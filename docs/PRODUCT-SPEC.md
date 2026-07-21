@@ -7,7 +7,7 @@ Plataforma: Windows 10 1903 o posterior, x64 y ARM64
 
 ## Objetivo
 
-Dar a una persona una vista rápida y fiable de la cuota restante, el próximo reinicio y el uso reciente de sus herramientas de IA. La app usa sesiones ya abiertas cuando existe un contrato seguro. No requiere una cuenta propia.
+Dar a una persona una vista rápida y fiable de la cuota restante, el próximo reinicio, los tokens y el gasto reciente de sus herramientas de IA. La app usa sesiones ya abiertas y datos locales cuando existe un contrato seguro. No requiere una cuenta propia.
 
 ## Usuarios
 
@@ -23,6 +23,7 @@ Desde el icono de bandeja, el usuario abre un panel y ve en menos de dos segundo
 - cuánto se usó o queda;
 - cuándo se reinicia cada ventana;
 - si el ritmo actual agotará la cuota antes del reinicio;
+- cuánto uso y gasto local se observó cuando la cuota no está disponible;
 - cuándo se tomó el dato y qué fuente lo produjo.
 
 ## Reglas de producto
@@ -35,6 +36,8 @@ Desde el icono de bandeja, el usuario abre un panel y ve en menos de dos segundo
 6. Un fallo conserva el último valor válido y muestra su edad.
 7. Un valor ausente aparece como `Sin datos`; no se inventa cero.
 8. Un proveedor se publica solo tras cerrar pruebas técnicas, seguridad y uso permitido.
+9. Cuota, uso observado y gasto son capacidades independientes; una tarjeta puede tener una, dos o tres.
+10. Los lectores locales no abren archivos de autenticación ni indexan prompts, respuestas, herramientas o comandos.
 
 ## Superficies
 
@@ -76,6 +79,12 @@ Cada tarjeta muestra:
 - aviso corto de credencial, red, throttle, dato vencido o cobertura parcial;
 - acción para actualizar solo ese proveedor.
 
+La cabecera de detalle indica las capacidades disponibles:
+
+- `Cuota`: límite, restante y reinicio informados por una fuente apta;
+- `Uso local`: actividad observada solo en este equipo;
+- `Gasto`: coste informado o estimado, con su etiqueta.
+
 Tipos de fila:
 
 - barra limitada con usado/restante y reinicio;
@@ -86,17 +95,22 @@ Tipos de fila:
 
 Un clic sobre `Usado` o `Restante` cambia el modo en toda la app. Un clic sobre el tiempo alterna cuenta regresiva y fecha exacta.
 
-### Gasto total
+### Uso y gasto
 
-Se muestra cuando al menos un proveedor ofrece gasto medido o estimado con cobertura conocida.
+Se muestra cuando al menos un proveedor ofrece tokens o gasto con cobertura conocida.
 
-- periodos: hoy, ayer y 30 días;
+- periodos rápidos: hoy, ayer, 7 días, 30 días y mes actual;
 - métricas: costo, costo por millón de tokens y tokens;
-- anillo por proveedor, total y leyenda;
+- anillo por agente, total y leyenda;
+- desglose por agente y modelo;
+- coste informado separado de coste estimado;
+- modelos sin precio y porcentaje cubierto;
 - detalle del origen y de estimaciones;
 - estado vacío cuando el periodo no tiene datos.
 
 El gasto estimado a tarifas API no se presenta como factura de una suscripción.
+
+La primera versión no agrupa por proyecto, sesión, tarea o comando. Esas vistas exigirían guardar más metadatos y quedan fuera del motor pequeño.
 
 ### Personalización
 
@@ -132,6 +146,7 @@ Ejecutable propio, por ejemplo `wusage.exe` tras cerrar el nombre:
 wusage limits
 wusage limits codex
 wusage limits --force --format json
+wusage usage --days 30 --format json
 wusage providers
 wusage doctor
 ```
@@ -148,6 +163,8 @@ Apagada al instalar. Al activarla expone:
 
 - `GET /v1/limits`;
 - `GET /v1/limits/{providerId}`;
+- `GET /v1/usage?days=30`;
+- `GET /v1/usage/{providerId}?days=30`;
 - `GET /v1/health`.
 
 Requiere `Authorization: Bearer <token>`. El token se crea al activar la función, se guarda en Credential Locker y puede rotarse. No se expone en pantalla salvo una acción con confirmación.
@@ -267,6 +284,8 @@ Persistidos:
 - configuración y orden;
 - snapshots sin credenciales;
 - índices de scanner y agregados diarios;
+- eventos normalizados sin contenido durante el periodo de retención;
+- versión y tasas del catálogo usadas para cada estimación;
 - token propio de API local en Credential Locker;
 - logs rotados sin valores de cuota por defecto.
 
@@ -274,6 +293,8 @@ No persistidos:
 
 - tokens de Codex, Claude u otra herramienta;
 - contenido de prompts o respuestas;
+- nombres de herramientas, comandos, tareas o archivos;
+- nombre de proyecto y ruta de trabajo en la primera versión;
 - correo de cuenta salvo que una función futura lo requiera y el usuario la acepte;
 - rutas de proyecto en informes normales.
 
@@ -287,6 +308,8 @@ No persistidos:
 - widget siempre visible en el escritorio;
 - instalación sin paquete;
 - importación automática de secretos de navegadores.
+- índice de transcripciones, tareas, herramientas o comandos.
+- cuota Grok o Antigravity mediante endpoints, tokens o TUI privados.
 
 ## Criterio de éxito del MVP
 
@@ -302,3 +325,5 @@ No persistidos:
 - paquete x64 firmado en beta y prueba ARM64 antes de estable;
 - licencia MIT y avisos de tercero incluidos;
 - nombre e identidad final aprobados.
+
+La beta de gasto agrega Claude, Grok Build y OpenCode con fixtures, totales diferenciales y cobertura visible. Antigravity CLI requiere primero una base local real, fixtures sanitizados y un parser que no use su login.

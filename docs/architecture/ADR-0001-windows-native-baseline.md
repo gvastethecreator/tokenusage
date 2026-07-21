@@ -77,6 +77,8 @@ sequenceDiagram
 ### Identidad
 
 - `ProviderId`: identificador estable en minúsculas, por ejemplo `codex`.
+- `AgentId`: cliente que produjo el uso, por ejemplo `grok-build` u `opencode`.
+- `ModelProviderId`: proveedor real del modelo cuando el agente lo informa; puede faltar.
 - `AccountId`: hash estable del identificador local cuando hay varias cuentas; nunca contiene correo.
 - `ProviderInstanceId`: combinación estable de proveedor, cuenta y origen.
 - `MetricId`: estable dentro de un proveedor; no depende del texto visible.
@@ -113,6 +115,23 @@ Cada valor declara:
 - campos omitidos y motivo.
 
 Esto permite que la UI distinga cuota informada por el proveedor, tokens medidos y costo estimado.
+
+### Uso y gasto local
+
+`UsageEvent` es el único registro detallado que conserva el motor propio:
+
+- `EventKey`: hash estable de proveedor, fuente e identidad local del evento;
+- `AgentId`, `ModelProviderId` opcional y `ModelId`;
+- `OccurredAt` en UTC y zona horaria usada al agrupar;
+- entrada, salida, razonamiento, lectura de caché y escritura de caché;
+- `ReportedCostUsd` o `EstimatedCostUsd`, nunca ambos como una sola cifra;
+- `CostKind`: `ProviderReported`, `CatalogEstimated` o `Unavailable`;
+- versión de parser, versión de catálogo y patrón exacto de precio;
+- `CoverageKind`: `Complete`, `Partial`, `SummaryOnly` o `Unpriced`.
+
+El evento no contiene texto, herramienta, comando, tarea, sesión, proyecto, ruta o cuenta. `DailyUsageRollup` agrega por fecha, agente y modelo. La UI calcula total y cobertura desde esos rollups.
+
+El orden de coste es: valor informado por la fuente, override exacto revisado, catálogo embebido y `Unavailable`. No se usan coincidencias por subcadena ni se transforma un coste de tarifa API en una factura de suscripción.
 
 ### Resultado de refresco
 
@@ -173,7 +192,8 @@ LocalState/
 ├─ cache/
 │  └─ snapshots.v1.json
 ├─ scanner/
-│  └─ index.v1.json
+│  ├─ index.v1.json
+│  └─ usage.v1.db
 └─ logs/
 ```
 
@@ -188,6 +208,10 @@ La escritura:
 La CLI se entrega dentro del mismo paquete y usa la misma identidad, carpeta y mutex. Las migraciones son incrementales, idempotentes y tienen pruebas con cada versión de fixture.
 
 La caché no guarda credenciales ni respuestas remotas completas. Guarda snapshots normalizados y warnings sin datos personales.
+
+`usage.v1.db` es una SQLite propia y pequeña. Contiene `usage_event`, `daily_usage_rollup`, `source_cursor`, `pricing_catalog` y una tabla de migraciones. Retiene eventos normalizados durante 400 días y rollups diarios hasta que el usuario borre sus datos. Una limpieza se ejecuta por lotes y nunca toca la fuente del proveedor.
+
+La UI y la CLI abren esta base por una sola capa de repositorio. Las escrituras usan transacción corta, WAL y `busy_timeout`; los readers no mantienen una transacción mientras esperan a un proceso externo.
 
 ## Bandeja y ventana
 
@@ -280,7 +304,15 @@ Un scanner recibe raíces explícitas y límites:
 - catálogo de precios por fecha y modelo;
 - índice incremental por ruta relativa, tamaño, fecha y hash corto de contenido relevante.
 
-Los parsers ignoran prompt, respuesta, nombre de proyecto y comando. Los tests incluyen archivos truncados, línea inválida, cambio de esquema, duplicado, subagente, cambio de zona horaria y modelo sin precio.
+Los parsers ignoran prompt, respuesta, nombre de proyecto, tarea, herramienta y comando. Solo materializan los campos de `UsageEvent`. Los tests incluyen archivos truncados, línea inválida, cambio de esquema, duplicado, subagente, cambio de zona horaria y modelo sin precio.
+
+Fuentes previstas:
+
+- Grok Build: `summary.json`, `signals.json`, `updates.jsonl` y, como fallback, `unified.jsonl`; la fuente de sesión evita el doble conteo del fallback.
+- OpenCode: `opencode.db` y el almacenamiento JSON legado; nunca `auth.json`. `opencode stats` sirve como oráculo diferencial, no como formato para parsear.
+- Antigravity CLI: solo `.db` local con `gen_metadata` o una futura statusline que el usuario configure. Se excluyen `.pb` cifrados, Credential Manager, tokens, CSRF, language server y RPC privados.
+
+Una base ajena se abre con SQLite en modo de solo lectura, consulta mínima y timeout corto. No se copia una base completa para evitar duplicar instalaciones grandes. Un bloqueo devuelve `Partial` con último rollup válido.
 
 ## Red
 
@@ -386,6 +418,8 @@ Límites de confianza:
 
 Cada borde valida tamaño, esquema, timeout y cancelación. La app no ejecuta texto de logs ni construye comandos de shell con datos externos.
 
+Los scanners pasivos no lanzan login, no leen archivos de autenticación y no llaman endpoints o servicios privados. En especial, Antigravity nunca usa Windows Credential Manager ni su language server; Grok no usa `auth.json` ni el endpoint interno de billing.
+
 Antes de publicar un proveedor se completa una revisión de amenazas que cubre credenciales, rotación, endpoint, logs, cuenta múltiple, proxy, errores y política.
 
 ## Consecuencias
@@ -413,6 +447,9 @@ Costos:
 - Windows Forms para toda la app: limita el diseño WinUI y la ruta de accesibilidad elegida.
 - `NotifyIcon` de Windows Forms dentro de WinUI: agrega una dependencia amplia por una API pequeña.
 - Lectura directa de `auth.json` Codex en el MVP: duplica la lógica de login y aumenta el riesgo de rotación.
+- Parsear la salida humana de `opencode stats`: el comando no promete un contrato JSON y el texto puede cambiar; se conserva como prueba diferencial.
+- Copiar bases SQLite de OpenCode antes de cada lectura: una instalación real puede ocupar varios GB y la copia aumenta I/O y espacio.
+- Descifrar conversaciones Antigravity o consultar su daemon: amplía el acceso a contenido y login y contradice el límite de publicación elegido.
 - App sin paquete: complica identidad, arranque, alias, avisos y actualización.
 - API local con CORS abierto al instalar: permite lectura desde páginas abiertas.
 
