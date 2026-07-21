@@ -21,6 +21,7 @@ Investigación y plan listos. La solución WinUI aún no se creó.
 
 - [Investigación de viabilidad](docs/research/2026-07-21-openusage-windows-feasibility.md)
 - [Investigación de Grok, Antigravity, OpenCode y gasto local](docs/research/2026-07-21-agent-costs-and-quotas.md)
+- [Preparación del primer scaffold WinUI](docs/research/2026-07-21-winui-m1-readiness.md)
 - [Especificación de producto](docs/PRODUCT-SPEC.md)
 - [Arquitectura base](docs/architecture/ADR-0001-windows-native-baseline.md)
 - [Matriz de proveedores](docs/PROVIDER-MATRIX.md)
