@@ -14,7 +14,7 @@ Use the single-context WOpenUsage product, provider, architecture, and research 
 
 ## Implementation rules
 
-- Preserve unrelated work and inspect `git status --short --branch` before edits.
+- Preserve unrelated work and inspect `git status --short --branch` before edits. A bounded worker without Git shell permission must rely on the parent-recorded checkout state in its handoff.
 - Build the packaged WinUI app for `x64` or `ARM64`; never use `AnyCPU` or run its packaged executable directly.
 - Keep credentials and customer content out of the repo, diagnostics, fixtures, and agent prompts.
 - Treat delegated changes as untrusted until the parent reviews the diff and runs local proof.
