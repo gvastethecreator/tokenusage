@@ -14,4 +14,3 @@
 - `wontfix`: deliberately rejected with a reason.
 
 Dependencies live in `Blocked by`; labels identify task ownership and readiness contract.
-
