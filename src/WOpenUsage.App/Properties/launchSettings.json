@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WOpenUsage.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WOpenUsage.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

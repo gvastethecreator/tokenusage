@@ -6,7 +6,7 @@ El producto final tendrá nombre, logo y paquete propios. OpenUsage permite reut
 
 ## Estado
 
-Investigación y plan listos. La solución WinUI aún no se creó.
+Investigación, plan y primer scaffold WinUI listos. La app empaquetada vive en `src/WOpenUsage.App`; la build y el launch `x64` del Ticket 03 están verificados.
 
 - Upstream estudiado: `robinebers/openusage` en `9d2bf09f10e21f769494a525a9d65c84d7aeb1df`.
 - Referencias de gasto local: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`.
@@ -17,11 +17,44 @@ Investigación y plan listos. La solución WinUI aún no se creó.
 - Grok Build y OpenCode: tokens y gasto local dentro de la beta; la cuota Grok queda sujeta a una interfaz pública o permiso.
 - Antigravity CLI: solo lectura pasiva de datos locales en fase experimental; la app no usa su login ni consulta servicios privados.
 
+## Scaffold WinUI
+
+El proyecto se generó con:
+
+```powershell
+dotnet new winui-mvvm -n WOpenUsage.App -o src/WOpenUsage.App
+```
+
+Versiones resueltas por la plantilla:
+
+| Componente | Versión |
+|---|---|
+| Target framework | `net10.0-windows10.0.26100.0` |
+| Microsoft.WindowsAppSDK | `2.3.1` |
+| Microsoft.Windows.SDK.BuildTools | `10.0.28000.2270` |
+| Microsoft.Windows.SDK.BuildTools.WinApp | `0.5.0` |
+| CommunityToolkit.Mvvm | `8.4.2` |
+
+Build `x64` desde la raíz:
+
+```powershell
+.\BuildAndRun.ps1 src\WOpenUsage.App\WOpenUsage.App.csproj -SkipRun /p:Platform=x64
+```
+
+Build y launch con identidad de paquete:
+
+```powershell
+.\BuildAndRun.ps1 src\WOpenUsage.App\WOpenUsage.App.csproj -Detach /p:Platform=x64
+```
+
+El script usa `winapp` para abrir la app empaquetada. El ejecutable generado no se inicia de forma directa. La evidencia está en [Ticket 03](docs/evidence/ticket-03-winui-scaffold.md).
+
 ## Documentos
 
 - [Investigación de viabilidad](docs/research/2026-07-21-openusage-windows-feasibility.md)
 - [Investigación de Grok, Antigravity, OpenCode y gasto local](docs/research/2026-07-21-agent-costs-and-quotas.md)
 - [Preparación del primer scaffold WinUI](docs/research/2026-07-21-winui-m1-readiness.md)
+- [Evidencia del Ticket 03](docs/evidence/ticket-03-winui-scaffold.md)
 - [Especificación de producto](docs/PRODUCT-SPEC.md)
 - [Arquitectura base](docs/architecture/ADR-0001-windows-native-baseline.md)
 - [Matriz de proveedores](docs/PROVIDER-MATRIX.md)
@@ -39,4 +72,4 @@ Investigación y plan listos. La solución WinUI aún no se creó.
 
 ## Inicio de la implementación
 
-La primera fase crea la solución con la plantilla `winui-mvvm`, conserva el manifiesto y compila por arquitectura concreta (`x64` y luego `ARM64`). El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
+El Ticket 03 creó y verificó el scaffold `x64`. El siguiente vertical separa los proyectos y fija las dependencias de arquitectura. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
