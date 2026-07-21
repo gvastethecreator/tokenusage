@@ -19,4 +19,3 @@ Use the single-context WOpenUsage product, provider, architecture, and research 
 - Keep credentials and customer content out of the repo, diagnostics, fixtures, and agent prompts.
 - Treat delegated changes as untrusted until the parent reviews the diff and runs local proof.
 - Do not commit, push, publish, install tools, or change product scope unless the current task grants that authority.
-

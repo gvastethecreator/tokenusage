@@ -25,4 +25,3 @@ Use one shared product context. Read only the provider research needed by the cu
 - **policy blocked:** data path withheld because authorization or public contract is missing.
 
 Report contradictions with the ADR. Do not change architecture or provider policy silently.
-

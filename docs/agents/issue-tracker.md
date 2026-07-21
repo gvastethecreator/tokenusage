@@ -28,4 +28,3 @@ Use `Type: AFK` only when a worker can complete the task without a product decis
 6. Mark `Progress: done` only after every acceptance check has evidence.
 
 One edit worker owns a checkout at a time. Remote issues, pull requests, and upstream repositories remain read-only sources unless the user grants separate authority.
-
