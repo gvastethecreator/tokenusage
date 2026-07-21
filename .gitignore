@@ -1,0 +1,14 @@
+# Local upstream source used for research.
+.reference/
+
+# Durable local task state.
+.scratch/
+
+# WinUI and .NET build output.
+bin/
+obj/
+.vs/
+
+# User-specific project state.
+*.user
+*.suo
