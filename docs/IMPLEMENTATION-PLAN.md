@@ -6,10 +6,11 @@ Fecha base: 2026-07-21
 
 Producto interno: WOpenUsage
 Upstream de referencia: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
+Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
 ## Meta
 
-Entregar una app Windows nativa que abra desde la bandeja, muestre cuota y uso de Codex desde la sesión existente, conserve datos fiables durante fallos y pueda crecer hacia el conjunto de proveedores de OpenUsage.
+Entregar una app Windows nativa que abra desde la bandeja, muestre cuota, tokens y gasto desde sesiones existentes, conserve datos fiables durante fallos y pueda crecer hacia el conjunto de proveedores de OpenUsage.
 
 La primera versión pública requiere identidad propia. `WOpenUsage` sirve para código y prototipos.
 
@@ -32,18 +33,18 @@ La primera versión pública requiere identidad propia. `WOpenUsage` sirve para 
 - notificaciones;
 - CLI;
 - API local segura opcional;
-- uso local Claude;
+- motor propio de uso y gasto local;
+- uso local Claude, Grok Build y OpenCode;
 - x64 y ARM64;
 - instalación, actualización y desinstalación probadas.
 
 ### Paridad ampliada
 
-- gasto total y detalle por modelo;
-- OpenCode y Grok local;
+- gasto total, cobertura y detalle por modelo;
 - OpenRouter y Z.ai con clave manual;
 - Cursor y Copilot tras sus gates;
 - Claude en vivo solo tras el gate del proveedor;
-- Antigravity y Devin como canales experimentales.
+- Antigravity local pasivo y Devin como canales experimentales.
 
 ## Reglas de ejecución
 
@@ -70,12 +71,16 @@ flowchart LR
     M2 --> M4["M4 Codex vertical"]
     M3 --> M4
     M4 --> M5["M5 Dashboard"]
-    M3 --> M6["M6 Scanners y Claude local"]
+    M3 --> M6["M6 Motor local y Claude"]
+    M6 --> M6A["M6A Grok y OpenCode"]
+    M6 --> M6B["M6B Antigravity pasivo"]
     M5 --> M7["M7 Ajustes y avisos"]
     M4 --> M8["M8 CLI y API"]
-    M6 --> M9["M9 Más proveedores"]
+    M6A --> M9["M9 Más proveedores"]
     M7 --> M10["M10 Paquete y beta"]
     M8 --> M10
+    M6A --> M10
+    M6B --> M11["M11 Paridad ampliada"]
     M9 --> M11["M11 Paridad ampliada"]
     M10 --> M11
 ```
@@ -94,6 +99,8 @@ Esfuerzo: 1–2 días. No bloquea prototipos con el nombre interno.
 - `M0.6` Definir un proceso de revisión de política por proveedor.
 - `M0.7` Contactar a OpenAI antes de un uso empresarial del cliente Codex, según la nota de `clientInfo` de app-server.
 - `M0.8` Consultar a Anthropic por una interfaz o permiso de cuota de solo lectura.
+- `M0.9` Consultar a xAI por una salida de cuota de solo lectura apta para otra app.
+- `M0.10` Registrar la prohibición de login Antigravity de terceros y revisar su FAQ antes de cada beta.
 
 ### Pruebas
 
@@ -278,7 +285,7 @@ Esfuerzo: 8–12 días.
 - `M5.3` Añadir usado/restante global y tiempo relativo/exacto.
 - `M5.4` Añadir bloque bajo demanda y persistencia de expansión.
 - `M5.5` Crear tendencia de 30 días accesible.
-- `M5.6` Crear `Gasto total` con datos fake y estados vacío/parcial.
+- `M5.6` Crear `Uso y gasto` con datos fake y estados vacío/parcial/sin precio.
 - `M5.7` Implementar personalización, drag accesible, teclado y reset.
 - `M5.8` Añadir hasta dos métricas de resumen por proveedor para tooltip y estado de bandeja.
 - `M5.9` Implementar undo por sesión.
@@ -298,6 +305,7 @@ Esfuerzo: 8–12 días.
 - throttle;
 - error de contrato;
 - gasto total vacío y poblado;
+- gasto informado, estimado y con modelos sin precio;
 - personalización y confirmación de reset.
 
 ### Pruebas
@@ -317,46 +325,124 @@ Esfuerzo: 8–12 días.
 - estados reales cubiertos;
 - baseline visual aprobada.
 
-## M6 — Scanners, precios y Claude local
+## M6 — Motor local de uso, precios y Claude
 
-Esfuerzo: 7–11 días.
+Esfuerzo: 10–15 días.
 
-### Tareas comunes
+### Contratos y persistencia
 
-- `M6.1` Crear scanner incremental streaming con budgets.
-- `M6.2` Definir deduplicación de sesiones y subagentes.
-- `M6.3` Definir buckets según zona horaria local.
-- `M6.4` Crear catálogo de precios versionado y fuente de actualización firmada o embebida.
-- `M6.5` Separar costo medido y estimado.
-- `M6.6` Marcar modelos sin precio y cobertura incompleta.
-- `M6.7` Probar reparse points, ciclos, archivos bloqueados y logs truncados.
+- `M6.1` Crear `UsageEvent`, `TokenBreakdown`, `CostObservation`, `Coverage` y `DailyUsageRollup`.
+- `M6.2` Separar `AgentId`, proveedor de modelo y modelo.
+- `M6.3` Crear `usage.v1.db` con eventos normalizados, rollups, cursores, precios y migraciones.
+- `M6.4` Retener eventos 400 días, conservar rollups y ofrecer borrado desde ajustes.
+- `M6.5` Implementar deduplicación idempotente por `EventKey` y transacciones cortas.
+- `M6.6` Crear scanner incremental streaming con límites de archivos, bytes y tiempo.
+- `M6.7` Definir buckets según zona horaria local y recomputación tras cambio de zona.
+
+### Precio y cobertura
+
+- `M6.8` Dar prioridad al coste informado por el agente.
+- `M6.9` Crear catálogo embebido y versionado desde LiteLLM, más overrides exactos revisados.
+- `M6.10` Prohibir coincidencias por subcadena y marcar modelos sin precio.
+- `M6.11` Calcular cobertura por tokens y coste en cada agregado.
+- `M6.12` Separar coste informado, coste estimado y fila sin coste en UI y JSON.
 
 ### Claude local
 
-- `M6.8` Resolver `%USERPROFILE%\.claude` y `CLAUDE_CONFIG_DIR`.
-- `M6.9` Detectar `projects` sin leer `.credentials.json`.
-- `M6.10` Parsear eventos mínimos de sesión.
-- `M6.11` Agregar hoy, ayer, 30 días y tendencia.
-- `M6.12` Detectar costo explícito, modelo y tokens aptos.
-- `M6.13` Explicar que `--no-session-persistence` y otros equipos no aparecen.
-- `M6.14` Etiquetar la tarjeta `Uso local` mientras la cuota esté bloqueada.
+- `M6.13` Resolver `%USERPROFILE%\.claude` y `CLAUDE_CONFIG_DIR`.
+- `M6.14` Detectar `projects` sin leer `.credentials.json`.
+- `M6.15` Parsear solo modelo, fecha, tokens, coste y claves de deduplicación.
+- `M6.16` Agregar hoy, ayer, 7 días, 30 días y mes actual.
+- `M6.17` Explicar que `--no-session-persistence`, sesiones borradas y otros equipos no aparecen.
+- `M6.18` Etiquetar la tarjeta `Uso local` mientras la cuota esté bloqueada.
 
 ### Pruebas
 
-- corpus sintético y sanitizado de versiones Claude;
+- migración, rollback lógico y acceso simultáneo UI/CLI a `usage.v1.db`;
+- coste informado gana a catálogo y no se suma dos veces;
+- modelo sin precio queda visible y reduce cobertura;
 - prompt o respuesta con campos parecidos no altera el conteo;
-- deduplicación y advisor/subagente;
+- deduplicación y subagente;
 - DST, cambio de año y zona horaria;
 - archivo agregado mientras el scanner corre;
 - presupuesto de 10.000 archivos sin bloquear UI;
-- diferencial con el agregador upstream sobre el mismo corpus permitido.
+- diferencial con OpenUsage, CodeBurn o AgentsView sobre el mismo corpus permitido.
 
 ### Salida
 
+- motor propio pequeño, sin índice de transcripciones;
 - métricas locales Claude con procedencia y cobertura;
 - cero uso remoto del OAuth Claude;
 - catálogo y scanner reutilizables;
 - rendimiento medido y registrado.
+
+## M6A — Grok Build y OpenCode local
+
+Esfuerzo: 7–11 días.
+
+### Grok Build
+
+- `M6A.1` Resolver `GROK_HOME` y la raíz `%USERPROFILE%\.grok` sin abrir `auth.json`.
+- `M6A.2` Descubrir sesiones por `summary.json`; observar `signals.json` y `updates.jsonl`.
+- `M6A.3` Preferir `params.update.usage`, modelo, tokens y `costUsdTicks` cuando existan.
+- `M6A.4` Añadir `unified.jsonl` como fallback con cursor por byte y límites de línea.
+- `M6A.5` Evitar doble conteo entre sesión y fallback.
+- `M6A.6` Estimar solo cuando falta coste informado y marcar el algoritmo y catálogo.
+- `M6A.7` Mantener cuota y saldo en `PolicyBlocked`; no leer auth ni llamar billing privado.
+
+### OpenCode
+
+- `M6A.8` Resolver `%USERPROFILE%\.local\share\opencode` y override documentado.
+- `M6A.9` Detectar `opencode.db` y `storage` sin abrir `auth.json`.
+- `M6A.10` Abrir SQLite ajena en modo de solo lectura con `busy_timeout` corto y sin copia completa.
+- `M6A.11` Leer solo identidad de evento, fecha, modelo, tokens y coste desde mensaje o `step-finish`.
+- `M6A.12` Unir SQLite y JSON legado con deduplicación estable.
+- `M6A.13` Comparar totales con `opencode stats` en un smoke opt-in; no parsear su salida para producción.
+- `M6A.14` Diseñar detección WSL como tarea posterior con consentimiento y roots por distro.
+
+### Pruebas
+
+- fixtures Grok antes y después de `params.update.usage`, compacción, truncado y modelo múltiple;
+- fixtures OpenCode SQLite, WAL, JSON legado, coste cero válido y sesión en ambos formatos;
+- base OpenCode bloqueada o con esquema nuevo conserva el último agregado;
+- scanner no lee `auth.json`, texto, comandos ni partes sin contadores;
+- diferencial de totales y cobertura sobre fixtures compartidos;
+- smoke Windows opt-in sin imprimir cifras ni contenido.
+
+### Salida
+
+- tarjetas Grok Build y OpenCode con tokens, gasto, tendencia y cobertura;
+- cuota Grok visible como bloqueada, sin acceso privado;
+- OpenCode nativo en Windows cubierto; WSL declarado fuera de esta salida;
+- scanner medido sobre una base OpenCode grande sin copiarla.
+
+## M6B — Spike pasivo de Antigravity CLI
+
+Esfuerzo: 4–7 días después de obtener una `.db` real.
+
+### Tareas
+
+- `M6B.1` Detectar `%USERPROFILE%\.gemini\antigravity-cli` y variantes documentadas sin abrir Credential Manager.
+- `M6B.2` Copiar a fixtures solo filas `gen_metadata` sanitizadas de una conversación `.db` autorizada.
+- `M6B.3` Validar esquema y extraer modelo, fecha y tokens por generación.
+- `M6B.4` Estimar coste con catálogo y marcar placeholders o modelos sin precio.
+- `M6B.5` Fallar cerrado ante `.pb`, cifrado, daemon, token, CSRF o necesidad de RPC.
+- `M6B.6` Mantener `/usage` y `/credits` fuera del adaptador.
+- `M6B.7` Evaluar una statusline mínima solo con instalación explícita y sin correo, cwd o texto.
+
+### Pruebas
+
+- fixture SQLite con filas válidas, corruptas, duplicadas y esquema distinto;
+- cero llamadas de red, procesos o Credential Manager;
+- fuente cifrada produce `PolicyBlocked` o `NotConfigured`, nunca un cero;
+- diferencial de tokens contra el contador visible del CLI realizado a mano;
+- smoke dentro del MSIX con una cuenta de prueba autorizada.
+
+### Salida
+
+- parser experimental de tokens y coste local, o registro de bloqueo con evidencia;
+- ningún claim de cuota o créditos;
+- feature flag apagado hasta cerrar fixtures, política y smoke.
 
 ## M7 — Ajustes, avisos y privacidad
 
@@ -399,9 +485,9 @@ Esfuerzo: 5–7 días.
 
 ### CLI
 
-- `M8.1` Implementar comandos `limits`, `providers` y `doctor`.
+- `M8.1` Implementar comandos `limits`, `usage`, `providers` y `doctor`.
 - `M8.2` Compartir caché y mutex con la app.
-- `M8.3` Definir JSON `wusage.limits.v1` con golden files.
+- `M8.3` Definir JSON `wusage.limits.v1` y `wusage.usage.v1` con golden files.
 - `M8.4` Añadir `--force`, provider ID y salida humana.
 - `M8.5` Definir códigos 0, 2 y 4.
 - `M8.6` Declarar alias de ejecución en MSIX.
@@ -411,7 +497,7 @@ Esfuerzo: 5–7 días.
 - `M8.7` Implementar host loopback apagado al instalar.
 - `M8.8` Crear, mostrar con confirmación y rotar bearer token propio.
 - `M8.9` Rechazar `Origin` por defecto y agregar allowlist exacta.
-- `M8.10` Implementar `/v1/health`, `/v1/limits` y provider.
+- `M8.10` Implementar `/v1/health`, `/v1/limits`, `/v1/usage` y filtros por provider/días.
 - `M8.11` Añadir límites de método, concurrencia, tamaño y timeout.
 - `M8.12` Añadir estado de puerto ocupado y selector de puerto.
 - `M8.13` Diseñar modo de compatibilidad OpenUsage como opción separada; no activarlo en beta inicial.
@@ -439,14 +525,13 @@ Esfuerzo: 3–10 días por proveedor más el tiempo del gate externo.
 
 Orden y alcance:
 
-1. OpenCode local.
-2. Grok local.
-3. OpenRouter manual.
-4. Z.ai manual si su contrato queda aprobado.
-5. Cursor.
-6. GitHub Copilot.
-7. Claude cuota en vivo tras aprobación.
-8. Antigravity y Devin en canal experimental.
+1. OpenRouter manual.
+2. Z.ai manual si su contrato queda aprobado.
+3. Cursor.
+4. GitHub Copilot.
+5. Claude cuota en vivo tras aprobación.
+6. Grok cuota en vivo tras interfaz pública o permiso.
+7. Devin en canal experimental.
 
 Cada proveedor se divide en commits:
 
@@ -496,6 +581,8 @@ Esfuerzo: 5–8 días.
 - una y dos pantallas;
 - DPI 100, 150 y 200%;
 - Codex ausente, sin login y con login;
+- Grok Build y OpenCode ausentes, con datos y con esquema no reconocido;
+- gasto con coste informado, estimado y sin precio;
 - red directa, sin red y proxy;
 - actualización desde la beta anterior.
 
@@ -575,6 +662,7 @@ Medir desde M4 y fijar gates con hardware de referencia:
 | CPU inactiva | cercana a 0% |
 | Refresco Codex | timeout propio; UI nunca espera |
 | Scanner 10.000 archivos | cancelable, sin freeze |
+| OpenCode DB de 2,5 GB | consulta incremental sin copia y sin freeze |
 | Caché y ajustes | escritura atómica < 100 ms típica |
 
 Si una meta falla, registrar la medición antes de ajustar el número.
@@ -595,6 +683,11 @@ Si una meta falla, registrar la medición antes de ajustar el número.
 | R10 | CLI y app dañan la caché | Baja | Media | mutex, reemplazo atómico y test multiproceso | M3/M8 |
 | R11 | Nombre o logo infringe marca | Baja | Alta | identidad propia y revisión | M0 |
 | R12 | Actualización rompe ajustes | Media | Alta | migraciones y upgrade matrix | M7/M10 |
+| R13 | Esquema local de agente cambia | Alta | Media | parser versionado, fixtures y estado parcial | M6/M6A/M6B |
+| R14 | Base OpenCode grande o bloqueada | Alta | Media | modo read-only, consulta mínima, timeout y sin copia | M6A |
+| R15 | Gasto estimado difiere del cobro | Alta | Alta | coste informado primero, catálogo fijado y cobertura visible | M5/M6 |
+| R16 | Lector pasivo cruza un límite de política | Media | Alta | lista de fuentes prohibidas, revisión y feature flag | M0/M6A/M6B |
+| R17 | OpenCode WSL queda fuera del scanner Windows | Alta | Media | estado de cobertura y fase WSL con consentimiento | M6A/M11 |
 
 ## Estimación
 
@@ -602,6 +695,8 @@ Para una persona con experiencia en C# y Windows:
 
 - MVP técnico Codex: 30–45 días de ingeniería;
 - beta de producto con UI, CLI, API y Claude local: 20–30 días adicionales;
+- motor de gasto, Grok Build y OpenCode local: 17–26 días dentro de la beta;
+- spike Antigravity pasivo: 4–7 días después de obtener una base real;
 - cada proveedor sencillo: 3–6 días tras tener contrato y fixtures;
 - cada proveedor privado o multicuenta: 7–15 días más el tiempo externo;
 - paridad amplia de diez proveedores: 4–6 meses como orden de magnitud.

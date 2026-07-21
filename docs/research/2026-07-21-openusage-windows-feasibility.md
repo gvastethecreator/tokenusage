@@ -14,7 +14,7 @@ Upstream fijado: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 
 Sí para el producto y para Codex. La UI, el ciclo de refresco, la caché, el uso local, la CLI y una API local tienen equivalentes sólidos en Windows.
 
-La ruta Codex quedó probada con la interfaz oficial `codex app-server`. Claude permite calcular uso desde logs locales, pero su cuota en vivo carece de una interfaz pública de solo lectura. Esa función queda sujeta a permiso o contrato público del proveedor. Los demás proveedores requieren una prueba aislada antes de prometer soporte.
+La ruta Codex quedó probada con la interfaz oficial `codex app-server`. Claude permite calcular uso desde logs locales, pero su cuota en vivo carece de una interfaz pública de solo lectura. Grok Build y OpenCode tienen rutas locales aptas para tokens y gasto. Antigravity requiere un parser pasivo y mantiene su cuota bloqueada por política. El detalle está en la [investigación de agentes y gasto](2026-07-21-agent-costs-and-quotas.md).
 
 La bandeja Windows no admite una tira persistente de texto y barras junto al icono. El diseño usará un icono de estado, un tooltip corto y un flyout nativo al hacer clic.
 
@@ -140,7 +140,7 @@ Un modo de compatibilidad con OpenUsage puede agregarse como opción con aviso d
 El upstream anuncia Antigravity, Claude, Codex, Copilot, Cursor, Devin, Grok, OpenCode, OpenRouter y Z.ai. La investigación de sus adaptadores muestra tres tipos:
 
 - interfaz oficial local: Codex;
-- logs o bases locales: Claude, Codex, Cursor, Grok, OpenCode;
+- logs o bases locales: Claude, Codex, Cursor, Grok, OpenCode y, con cobertura experimental, Antigravity;
 - endpoint privado con credencial reutilizada: Claude, Cursor, Copilot, Antigravity, Devin y Grok;
 - clave manual: OpenRouter y Z.ai.
 
@@ -169,4 +169,4 @@ Cada proveedor privado necesita una prueba técnica, revisión de política y fi
 
 ## Decisión
 
-Iniciar un MVP Windows con shell WinUI, bandeja Win32, caché común y una integración Codex por `app-server`. Añadir uso local Claude como función separada si el scanner queda probado. Mantener la cuota Claude y los demás endpoints privados detrás de gates de proveedor. Empaquetar como MSIX, mantener telemetría y API local apagadas al instalar, y usar nombre e identidad propios.
+Iniciar un MVP Windows con shell WinUI, bandeja Win32, caché común y una integración Codex por `app-server`. Construir un motor local pequeño de tokens y gasto para Claude, Grok Build y OpenCode. Evaluar Antigravity solo mediante una base local pasiva. Mantener la cuota Claude, Grok, Antigravity y los demás endpoints privados detrás de gates de proveedor. Empaquetar como MSIX, mantener telemetría y API local apagadas al instalar, y usar nombre e identidad propios.

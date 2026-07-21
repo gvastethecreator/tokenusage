@@ -4,6 +4,8 @@ Fecha de corte: 2026-07-21
 
 Upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 
+Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
+
 ## Estados
 
 - `MVP`: ruta técnica y de producto elegida.
@@ -11,21 +13,22 @@ Upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 - `Gate`: falta prueba, contrato público o revisión de uso permitido.
 - `Manual`: requiere una clave que el usuario entrega a la app.
 - `Experimental`: fuente frágil; sin promesa de soporte.
+- `Bloqueado`: la fuente conocida no se puede usar en una build pública.
 
 ## Resumen
 
-| Proveedor | Cuota restante | Uso local | Fuente de sesión | Estado | Entrega |
+| Proveedor | Cuota en vivo | Tokens y gasto local | Fuente elegida | Estado | Entrega |
 |---|---|---|---|---|---|
-| Codex | Sí, interfaz oficial local | Sí, API oficial y logs | `codex app-server` | MVP | M1 |
-| Claude | Endpoint no público | Sí, logs | Archivo Claude Code | Local + Gate | M2 local; cuota pendiente |
-| OpenCode | Sin cuota remota común | Sí, base local | Datos propios de OpenCode | Local | M5 |
-| Grok | Endpoint privado | Sí, JSONL | Archivo de auth Grok | Local + Gate | M5 local; cuota pendiente |
-| OpenRouter | Sí, API con clave | Depende de API | Clave manual propia | Manual | M6 |
-| Z.ai | Sí, API con clave | Depende de API | Clave manual propia | Manual + Gate | M6 |
-| Cursor | APIs privadas y export | Sí, DB/export | Estado local de Cursor | Gate | M7 |
-| GitHub Copilot | API interna; billing org público | Limitado | Editor o `gh` | Gate | M7 |
-| Antigravity | Servicio local o API privada | Limitado | Servicio/almacén local | Experimental | M8 |
-| Devin | RPC privado | Limitado | CLI o app local | Experimental | M8 |
+| Codex | Sí, interfaz oficial local | Sí, API oficial y logs | `codex app-server` | MVP | M4; detalle M6 |
+| Claude | Bloqueada sin interfaz pública | Sí, logs | sesiones Claude Code | Local + Gate | M6; cuota pendiente |
+| OpenCode | No hay cuota común | Sí, coste informado y tokens | `opencode.db` y `storage` | Local | M6A |
+| Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
+| OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
+| Z.ai | Sí, API con clave | Depende de API | clave manual propia | Manual + Gate | M9 |
+| Cursor | APIs privadas y export | Sí, DB/export | estado local de Cursor | Gate | M9 |
+| GitHub Copilot | API interna; billing org público | Limitado | editor o `gh` | Gate | M9 |
+| Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
+| Devin | RPC privado | Limitado | CLI o app local | Experimental | M9 |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 
@@ -45,6 +48,9 @@ Cada proveedor necesita:
 - [ ] prueba dentro del MSIX firmado;
 - [ ] prueba de regresión contra una versión real soportada;
 - [ ] texto de UI que explica fuente, cobertura y límites.
+- [ ] coste informado y estimado separados, con modelos sin precio visibles;
+- [ ] diferencial de totales contra una referencia sobre el mismo fixture;
+- [ ] prueba de que el lector no abre auth, prompt, respuesta, tarea o comando.
 
 ## Codex
 
@@ -116,22 +122,28 @@ Fuente upstream de comparación: [provider Claude](https://github.com/robinebers
 
 ### Fuente
 
-Base de datos y autenticación local de OpenCode. La ubicación exacta en Windows se debe obtener desde la configuración de la versión instalada, sin asumir una ruta Unix.
+OpenCode documenta `%USERPROFILE%\.local\share\opencode` en Windows y `~/.local/share/opencode` dentro de WSL. El lector admite `opencode.db` y el almacenamiento JSON `storage`. Omite `auth.json`.
+
+El comando oficial [`opencode stats`](https://opencode.ai/docs/cli/) entrega estadísticas humanas de tokens y coste. Como no ofrece JSON en la versión observada, se usa como oráculo diferencial y no como formato del adaptador.
 
 ### Métricas
 
 - uso observado en este equipo;
-- tokens y costo por periodo;
+- tokens por periodo, agente y modelo;
+- coste informado por OpenCode cuando exista;
+- coste estimado solo para filas sin coste informado;
 - tendencia;
 - modelos y fuentes con cobertura.
 
 ### Límites
 
-El dato local puede omitir otros equipos y servicios. La UI lo llama `Uso local observado`. No afirma cuota restante cuando no existe un límite común del proveedor.
+El dato local puede omitir otros equipos, sesiones eliminadas e instalaciones WSL. La UI lo llama `Uso local observado`. No afirma cuota restante porque OpenCode puede usar muchos proveedores y planes.
+
+La base se abre en modo de solo lectura con consultas mínimas. No se copia: en la prueba local ocupa cerca de 2,5 GB. La primera beta cubre OpenCode nativo en Windows; cada distro WSL requiere detección y consentimiento aparte.
 
 ### Salida
 
-Fase local después de una prueba Windows con base real y fixtures mínimos.
+Beta local después de fixtures para SQLite, JSON legado, WAL, modelo sin precio y deduplicación entre formatos. La instalación examinada tiene OpenCode `1.18.4`, `opencode.db`, `storage` y `opencode stats`.
 
 Fuente upstream de comparación: [provider OpenCode](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/opencode.md).
 
@@ -139,16 +151,20 @@ Fuente upstream de comparación: [provider OpenCode](https://github.com/robinebe
 
 ### Fuente local
 
-- `GROK_HOME/logs/unified.jsonl` o ruta por defecto;
-- tokens y modelos registrados por el CLI.
+- `GROK_HOME/sessions` con `summary.json`, `signals.json` y `updates.jsonl`;
+- `GROK_HOME/logs/unified.jsonl` como fallback;
+- `params.update.usage`, desglose por modelo y `costUsdTicks` cuando existan;
+- estimación por catálogo solo cuando la fuente no informa coste.
+
+La fuente de sesión tiene prioridad. El fallback no suma eventos ya cubiertos por una sesión.
 
 ### Cuota
 
-El upstream usa autenticación local y endpoints de billing no documentados. Esa ruta queda en gate.
+OpenUsage usa autenticación local y un endpoint de billing no documentado. xAI documenta `/usage` para su producto, pero no una salida de cuota apta para otra app. Su [política de uso aceptable](https://x.ai/legal/acceptable-use-policy) restringe el acceso automatizado. La build pública no lee `auth.json` ni llama el endpoint privado.
 
 ### Salida
 
-Logs locales después de prueba Windows. Cuota y saldo tras contrato y revisión.
+Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.106`, sesiones y el log unificado sin abrir la credencial.
 
 Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
 
@@ -228,7 +244,21 @@ Fuente upstream de comparación: [provider Copilot](https://github.com/robineber
 
 ## Antigravity
 
-El upstream prueba un servicio local y recurre a almacén de credenciales y API inversa. La disponibilidad cambia por versión. Se clasifica experimental hasta contar con un contrato estable, una matriz de versiones y un fallo seguro.
+### Cuota
+
+Antigravity documenta [`/usage`](https://antigravity.google/docs/cli/commands/usage) y [`/credits`](https://antigravity.google/docs/cli-credits) dentro de su TUI, sin una salida de máquina. Su [FAQ](https://antigravity.google/docs/faq) prohíbe usar el login de Antigravity desde software de terceros. La app no lee Windows Credential Manager, no automatiza el TUI y no llama Cloud Code, el language server o un RPC privado.
+
+### Fuente local permitida
+
+- conversaciones `.db` con `gen_metadata` y tokens por generación;
+- apertura SQLite de solo lectura;
+- una statusline futura solo si el usuario la instala de forma explícita y entrega datos mínimos.
+
+Se excluyen `.pb` cifrados, descifrado, daemon auxiliar, token, CSRF y transcript. El binario `agy.exe` `1.1.5` está instalado en el equipo examinado, pero aún no existe una raíz de conversaciones CLI para formar fixtures.
+
+### Salida
+
+Spike experimental después de que exista una `.db` real. Puede entregar tokens y coste estimado con cobertura. Cuota y créditos quedan `Bloqueado` mientras rija el contrato actual.
 
 Fuente upstream de comparación: [provider Antigravity](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/antigravity.md).
 
@@ -241,13 +271,14 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 ## Orden de implementación
 
 1. Codex completo.
-2. Claude local.
-3. Core de scanners y precios.
-4. OpenCode y Grok local.
-5. OpenRouter con clave manual.
-6. Z.ai si su contrato queda aprobado.
-7. Cursor y Copilot tras sus gates.
-8. Cuota Claude tras permiso o interfaz pública.
-9. Antigravity y Devin como experimentales.
+2. Motor propio de uso, gasto, precios y cobertura.
+3. Claude local.
+4. Grok Build y OpenCode local.
+5. Spike pasivo Antigravity CLI con una `.db` real.
+6. OpenRouter con clave manual.
+7. Z.ai si su contrato queda aprobado.
+8. Cursor y Copilot tras sus gates.
+9. Cuota Claude o Grok tras permiso o interfaz pública.
+10. Devin experimental.
 
 Este orden mantiene el objetivo de cuota restante con Codex y permite sumar valor local sin ampliar el manejo de credenciales ajenas.
