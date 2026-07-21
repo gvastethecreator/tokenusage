@@ -1,0 +1,637 @@
+# Plan de implementación
+
+Estado: listo para ejecutar
+
+Fecha base: 2026-07-21
+
+Producto interno: WOpenUsage
+Upstream de referencia: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
+
+## Meta
+
+Entregar una app Windows nativa que abra desde la bandeja, muestre cuota y uso de Codex desde la sesión existente, conserve datos fiables durante fallos y pueda crecer hacia el conjunto de proveedores de OpenUsage.
+
+La primera versión pública requiere identidad propia. `WOpenUsage` sirve para código y prototipos.
+
+## Alcance por entrega
+
+### MVP técnico
+
+- repo y solución WinUI;
+- bandeja, flyout, instancia única y arranque;
+- dominio, caché, refresco y estados;
+- Codex por `app-server`;
+- panel Codex con usado/restante, reinicio, ritmo y uso diario;
+- ajustes mínimos y diagnóstico;
+- pruebas y paquete MSIX x64 beta.
+
+### Beta de producto
+
+- UI completa de dashboard y personalización;
+- tema, alto contraste, teclado y lector de pantalla;
+- notificaciones;
+- CLI;
+- API local segura opcional;
+- uso local Claude;
+- x64 y ARM64;
+- instalación, actualización y desinstalación probadas.
+
+### Paridad ampliada
+
+- gasto total y detalle por modelo;
+- OpenCode y Grok local;
+- OpenRouter y Z.ai con clave manual;
+- Cursor y Copilot tras sus gates;
+- Claude en vivo solo tras el gate del proveedor;
+- Antigravity y Devin como canales experimentales.
+
+## Reglas de ejecución
+
+1. Leer `README.md`, la investigación, la especificación, ADR y matriz antes de código.
+2. Conservar cambios ajenos y comprobar `git status --short --branch` antes de editar.
+3. Crear trabajo pequeño, con prueba y commit propio cuando esté verde.
+4. Usar el stack y los scripts de la plantilla `winui-mvvm`.
+5. Compilar por `x64` o `ARM64`; no usar `AnyCPU`.
+6. Conservar `Package.appxmanifest`.
+7. Lanzar la app con el script de build de la plantilla; no abrir el `.exe` empaquetado de forma directa.
+8. Agregar paquetes sin versión manual y comprobar restore de inmediato.
+9. No leer, imprimir ni copiar secretos en pruebas o logs.
+10. Un proveedor con gate falla cerrado y conserva el resto de la app.
+11. Cada cambio de comportamiento actualiza docs, fixtures y texto de diagnóstico.
+12. Las suites largas se ejecutan en el cierre de un hito.
+
+## Mapa de dependencias
+
+```mermaid
+flowchart LR
+    M0["M0 Base y marca"] --> M1["M1 Solución"]
+    M1 --> M2["M2 Bandeja y flyout"]
+    M1 --> M3["M3 Dominio y caché"]
+    M2 --> M4["M4 Codex vertical"]
+    M3 --> M4
+    M4 --> M5["M5 Dashboard"]
+    M3 --> M6["M6 Scanners y Claude local"]
+    M5 --> M7["M7 Ajustes y avisos"]
+    M4 --> M8["M8 CLI y API"]
+    M6 --> M9["M9 Más proveedores"]
+    M7 --> M10["M10 Paquete y beta"]
+    M8 --> M10
+    M9 --> M11["M11 Paridad ampliada"]
+    M10 --> M11
+```
+
+## M0 — Decisiones previas y base legal
+
+Esfuerzo: 1–2 días. No bloquea prototipos con el nombre interno.
+
+### Tareas
+
+- `M0.1` Elegir nombre, dominio y logo finales antes de firma externa.
+- `M0.2` Definir Publisher ID, empresa y contacto de soporte.
+- `M0.3` Elegir distribución beta: App Installer privado o Store flight.
+- `M0.4` Crear `THIRD-PARTY-NOTICES.md` con MIT de OpenUsage y toda dependencia copiada.
+- `M0.5` Registrar el SHA upstream y una tabla de funciones en `docs/UPSTREAM-BASELINE.md`.
+- `M0.6` Definir un proceso de revisión de política por proveedor.
+- `M0.7` Contactar a OpenAI antes de un uso empresarial del cliente Codex, según la nota de `clientInfo` de app-server.
+- `M0.8` Consultar a Anthropic por una interfaz o permiso de cuota de solo lectura.
+
+### Pruebas
+
+- revisión de nombres y paquetes contra marcas existentes;
+- auditoría de archivos copiados y avisos;
+- revisión de que no aparece nombre o logo OpenUsage como producto.
+
+### Salida
+
+- identidad lista para empaquetado;
+- documentos de terceros y proveedor trazables;
+- gates externos con dueño y estado.
+
+## M1 — Scaffold WinUI y disciplina de repo
+
+Esfuerzo: 2–3 días.
+
+### Tareas
+
+- `M1.1` Comprobar .NET, plantilla `winui-mvvm`, Windows App SDK y Developer Mode. Si falta algo, ejecutar el flujo de preparación WinUI antes de seguir.
+- `M1.2` Crear la app desde la raíz con `dotnet new winui-mvvm -n WOpenUsage.App -o src/WOpenUsage.App`; no crear la carpeta a mano.
+- `M1.3` Crear la solución y proyectos de `Core`, `Providers`, `Platform.Windows` y `Cli`.
+- `M1.4` Crear los cinco proyectos de test definidos en el ADR.
+- `M1.5` Agregar referencias con la dirección del ADR.
+- `M1.6` Crear `Directory.Build.props`, análisis nullable, warnings y estilo común sin romper el XAML generado.
+- `M1.7` Mantener `Package.appxmanifest`; declarar solo capacidades necesarias.
+- `M1.8` Agregar `scripts/check.ps1` que ejecute restore, tests cortos y build x64.
+- `M1.9` Configurar CI Windows con caché NuGet y artifacts de test.
+- `M1.10` Añadir una prueba de arquitectura que prohíba referencias de `Core` a UI o Windows.
+
+### Verificación
+
+```powershell
+dotnet restore
+dotnet test tests\WOpenUsage.Core.Tests -p:Platform=x64
+dotnet build WOpenUsage.sln -p:Platform=x64
+powershell -ExecutionPolicy Bypass -File src\WOpenUsage.App\BuildAndRun.ps1 -Platform x64
+```
+
+El lanzamiento usa modo asíncrono durante trabajo con herramientas. Se confirma inicio y cierre manual del shell generado.
+
+### Salida
+
+- solución compila en x64;
+- app generada abre mediante el script;
+- CI básica verde;
+- manifiesto y referencias correctos;
+- primer commit de scaffold.
+
+## M2 — Bandeja, flyout e instancia única
+
+Esfuerzo: 5–8 días.
+
+### Tareas
+
+- `M2.1` Implementar `TrayIconHost` con `Shell_NotifyIconW` y versión 4.
+- `M2.2` Manejar clic, teclado, menú de contexto y `TaskbarCreated`.
+- `M2.3` Crear recursos de icono neutro, ámbar, rojo y alto contraste.
+- `M2.4` Obtener HWND de la ventana WinUI y encapsular el interop.
+- `M2.5` Configurar `AppWindow` sin marco, no redimensionable y ocultable.
+- `M2.6` Posicionar con `Shell_NotifyIconGetRect`, monitor, DPI y área de trabajo.
+- `M2.7` Definir fallback cuando el icono está en overflow o no hay rectángulo.
+- `M2.8` Ocultar al perder foco y proteger diálogos modales.
+- `M2.9` Implementar instancia única y redirección de activaciones.
+- `M2.10` Añadir menú Actualizar, Ajustes y Salir.
+- `M2.11` Añadir shell mock con estados cargando, datos, vacío y error.
+- `M2.12` Registrar una lista manual de pruebas por posición de taskbar, monitor y DPI.
+
+### Pruebas enfocadas
+
+- unidad para cálculo de posición con rectángulos sintéticos;
+- unidad para resumen de tooltip y estado peor;
+- integración de mensajes de bandeja con host fake;
+- UI automation: clic abre, segundo clic cierra, `Esc` cierra, teclado abre menú;
+- manual: reiniciar Explorer y comprobar que el icono vuelve;
+- manual: taskbar izquierda, derecha, arriba y abajo cuando el sistema lo permita;
+- manual: dos monitores con escalas distintas.
+
+### Salida
+
+- una sola instancia;
+- bandeja fiable y accesible;
+- panel siempre dentro del monitor;
+- cero ventana de consola;
+- evidencia de screenshots clara, oscura y alto contraste.
+
+## M3 — Dominio, caché y refresco
+
+Esfuerzo: 5–7 días.
+
+### Tareas
+
+- `M3.1` Crear IDs, métricas, snapshots, procedencia y outcomes.
+- `M3.2` Crear `IProviderRuntime`, `IClock`, `IFileSystem`, `IProcessRunner`, `ISecretStore` y red.
+- `M3.3` Implementar `RefreshCoordinator` con resultado por proveedor.
+- `M3.4` Añadir TTL, force refresh, timeout y cancelación.
+- `M3.5` Añadir backoff con jitter y respeto de `Retry-After`.
+- `M3.6` Crear `SnapshotStore` JSON con mutex y reemplazo atómico.
+- `M3.7` Crear `SettingsStore` y migración v1.
+- `M3.8` Calcular frescura, último valor válido y estado vencido.
+- `M3.9` Implementar motor de ritmo con reloj inyectable.
+- `M3.10` Publicar eventos incrementales a ViewModels.
+- `M3.11` Crear un proveedor fake determinista para UI y pruebas.
+
+### Pruebas enfocadas
+
+- todas las variantes de métrica y outcome;
+- caché válida, vencida, dañada, migrada y escritura interrumpida;
+- dos procesos compiten por el mismo documento;
+- proveedor lento, crash, timeout y cancelación;
+- lote parcial publica proveedores rápidos;
+- ritmo normal, cerca, agotamiento, ventana nueva y reloj que cambia;
+- último valor válido permanece durante fallos;
+- `Sin datos` nunca se convierte en cero.
+
+### Salida
+
+- `Core` sin referencias Windows;
+- caché visible antes de red;
+- refresco paralelo y cancelable;
+- tests deterministas sin esperas reales;
+- contrato de snapshot documentado.
+
+## M4 — Vertical Codex de extremo a extremo
+
+Esfuerzo: 6–9 días.
+
+### Tareas
+
+- `M4.1` Implementar resolución segura del binario Codex y override explícito.
+- `M4.2` Crear `CodexAppServerProcess` con Job Object, stdio y cierre seguro.
+- `M4.3` Crear cliente JSONL con handshake, IDs, timeouts y límite de línea.
+- `M4.4` Implementar `account/rateLimits/read`.
+- `M4.5` Implementar `account/usage/read`.
+- `M4.6` Mapear límites primario, secundario y adicionales sin asumir nombres fijos.
+- `M4.7` Mapear buckets diarios y resumen.
+- `M4.8` Distinguir falta de login, auth no apta, CLI ausente, throttle y protocolo incompatible.
+- `M4.9` Añadir `clientInfo` propio y una versión de integración visible en diagnóstico.
+- `M4.10` Crear servidor fake que reordene respuestas, envíe eventos y cierre en mitad de línea.
+- `M4.11` Añadir smoke real opt-in que solo imprime éxito y nombres de campos.
+- `M4.12` Mostrar la primera tarjeta Codex en el shell.
+- `M4.13` Añadir acción para abrir la herramienta original cuando falta login; la app no inicia el login.
+
+### Fixtures
+
+- respuesta con una ventana;
+- dos ventanas;
+- varios `limitId`;
+- límite sin reset;
+- porcentaje 0, 100 y decimal;
+- créditos ausentes, vacíos y con detalle;
+- buckets sin días, con zona horaria y con campos nuevos;
+- error JSON-RPC, línea inválida y salida temprana.
+
+Los fixtures se crean a mano o se sanitizan con una revisión que pruebe que no contienen token, correo, account ID ni cifras reales de un usuario.
+
+### Verificación
+
+- tests de contrato contra fake;
+- proceso no queda huérfano tras cierre forzado;
+- actualización manual correlaciona la respuesta correcta;
+- smoke local con sesión existente y salida limitada al esquema;
+- prueba empaquetada confirma que el proceso hijo se inicia;
+- captura de tarjeta con datos sintéticos y prueba real sin publicar cifras.
+
+### Salida
+
+- cuota y uso Codex desde login existente;
+- ningún acceso directo a `auth.json`;
+- ningún flujo de login o acción irreversible;
+- recuperación de crash y timeout;
+- claim permitido: `Codex compatible en Windows con CLI instalada y sesión ChatGPT existente`.
+
+## M5 — Dashboard y paridad visual
+
+Esfuerzo: 8–12 días.
+
+### Tareas
+
+- `M5.1` Extraer tokens de tamaño, espacio, radio, color y tipografía desde la captura y docs upstream, con identidad propia.
+- `M5.2` Crear header, tarjetas, barras, valores, badges, warnings y tooltips.
+- `M5.3` Añadir usado/restante global y tiempo relativo/exacto.
+- `M5.4` Añadir bloque bajo demanda y persistencia de expansión.
+- `M5.5` Crear tendencia de 30 días accesible.
+- `M5.6` Crear `Gasto total` con datos fake y estados vacío/parcial.
+- `M5.7` Implementar personalización, drag accesible, teclado y reset.
+- `M5.8` Añadir hasta dos métricas de resumen por proveedor para tooltip y estado de bandeja.
+- `M5.9` Implementar undo por sesión.
+- `M5.10` Añadir recursos de texto en español e inglés desde el inicio.
+- `M5.11` Ajustar alto dinámico sin saltos al cambiar de pantalla.
+- `M5.12` Crear baseline visual a 100% y 200% en claro, oscuro y alto contraste.
+
+### Estados que deben tener captura
+
+- primer inicio;
+- Codex con una y dos ventanas;
+- refresco con caché;
+- sin login;
+- sin datos;
+- dato parcial;
+- dato vencido;
+- throttle;
+- error de contrato;
+- gasto total vacío y poblado;
+- personalización y confirmación de reset.
+
+### Pruebas
+
+- ViewModels con orden, hide, reset y undo;
+- snapshot tests de strings y formatos con culturas distintas;
+- UI automation por teclado;
+- Accessibility Insights: nombres, roles, contraste y orden;
+- diff visual con tolerancia documentada;
+- texto al 200% y ventana angosta sin corte de cuota o reinicio.
+
+### Salida
+
+- jerarquía y funciones centrales del panel upstream reconocibles;
+- Fluent y convenciones Windows respetadas;
+- nombre y logo propios;
+- estados reales cubiertos;
+- baseline visual aprobada.
+
+## M6 — Scanners, precios y Claude local
+
+Esfuerzo: 7–11 días.
+
+### Tareas comunes
+
+- `M6.1` Crear scanner incremental streaming con budgets.
+- `M6.2` Definir deduplicación de sesiones y subagentes.
+- `M6.3` Definir buckets según zona horaria local.
+- `M6.4` Crear catálogo de precios versionado y fuente de actualización firmada o embebida.
+- `M6.5` Separar costo medido y estimado.
+- `M6.6` Marcar modelos sin precio y cobertura incompleta.
+- `M6.7` Probar reparse points, ciclos, archivos bloqueados y logs truncados.
+
+### Claude local
+
+- `M6.8` Resolver `%USERPROFILE%\.claude` y `CLAUDE_CONFIG_DIR`.
+- `M6.9` Detectar `projects` sin leer `.credentials.json`.
+- `M6.10` Parsear eventos mínimos de sesión.
+- `M6.11` Agregar hoy, ayer, 30 días y tendencia.
+- `M6.12` Detectar costo explícito, modelo y tokens aptos.
+- `M6.13` Explicar que `--no-session-persistence` y otros equipos no aparecen.
+- `M6.14` Etiquetar la tarjeta `Uso local` mientras la cuota esté bloqueada.
+
+### Pruebas
+
+- corpus sintético y sanitizado de versiones Claude;
+- prompt o respuesta con campos parecidos no altera el conteo;
+- deduplicación y advisor/subagente;
+- DST, cambio de año y zona horaria;
+- archivo agregado mientras el scanner corre;
+- presupuesto de 10.000 archivos sin bloquear UI;
+- diferencial con el agregador upstream sobre el mismo corpus permitido.
+
+### Salida
+
+- métricas locales Claude con procedencia y cobertura;
+- cero uso remoto del OAuth Claude;
+- catálogo y scanner reutilizables;
+- rendimiento medido y registrado.
+
+## M7 — Ajustes, avisos y privacidad
+
+Esfuerzo: 5–8 días.
+
+### Tareas
+
+- `M7.1` Crear navegación interna Dashboard, Personalizar y Ajustes.
+- `M7.2` Tema, densidad, transparencia, formato y modo usado/restante.
+- `M7.3` StartupTask con estado real y errores visibles.
+- `M7.4` Atajo global configurable y conflicto explicado.
+- `M7.5` App Notifications para umbral, proyección, vencido y credencial.
+- `M7.6` Deduplicar avisos por ventana y cambio de estado.
+- `M7.7` Añadir proxy del sistema y override probado.
+- `M7.8` Crear logs rotados y diagnóstico sanitizado.
+- `M7.9` Crear pantalla de datos guardados y acción borrar.
+- `M7.10` Mantener telemetría apagada; cualquier cambio futuro requiere consentimiento y ADR.
+- `M7.11` Añadir privacidad de screen capture si Windows ofrece una ruta fiable; si no, documentar el límite.
+
+### Pruebas
+
+- migración de ajustes;
+- inicio activado, denegado y administrado por Windows;
+- atajo libre y ocupado;
+- aviso no repetido durante cada refresco;
+- proxy correcto y credencial de proxy redacted;
+- export de diagnóstico revisado por detector de secretos;
+- borrado elimina caché, índice y claves propias sin tocar datos de proveedor.
+
+### Salida
+
+- ajustes sobreviven actualización;
+- avisos útiles y no repetidos;
+- usuario controla arranque y datos;
+- diagnóstico apto para soporte.
+
+## M8 — CLI y API local
+
+Esfuerzo: 5–7 días.
+
+### CLI
+
+- `M8.1` Implementar comandos `limits`, `providers` y `doctor`.
+- `M8.2` Compartir caché y mutex con la app.
+- `M8.3` Definir JSON `wusage.limits.v1` con golden files.
+- `M8.4` Añadir `--force`, provider ID y salida humana.
+- `M8.5` Definir códigos 0, 2 y 4.
+- `M8.6` Declarar alias de ejecución en MSIX.
+
+### API
+
+- `M8.7` Implementar host loopback apagado al instalar.
+- `M8.8` Crear, mostrar con confirmación y rotar bearer token propio.
+- `M8.9` Rechazar `Origin` por defecto y agregar allowlist exacta.
+- `M8.10` Implementar `/v1/health`, `/v1/limits` y provider.
+- `M8.11` Añadir límites de método, concurrencia, tamaño y timeout.
+- `M8.12` Añadir estado de puerto ocupado y selector de puerto.
+- `M8.13` Diseñar modo de compatibilidad OpenUsage como opción separada; no activarlo en beta inicial.
+
+### Pruebas
+
+- golden JSON y compatibilidad de campos opcionales;
+- CLI con app cerrada, abierta y refresco simultáneo;
+- token ausente, erróneo, correcto y rotado;
+- petición con Origin, método no apto y path inválido;
+- 16 solicitudes y rechazo controlado de exceso;
+- bind solo en loopback comprobado;
+- navegador no puede leer por defecto;
+- API nunca incluye token, correo, ruta o log.
+
+### Salida
+
+- automatización local estable;
+- API con activación consciente y autenticada;
+- contrato versionado con ejemplos.
+
+## M9 — Proveedores siguientes
+
+Esfuerzo: 3–10 días por proveedor más el tiempo del gate externo.
+
+Orden y alcance:
+
+1. OpenCode local.
+2. Grok local.
+3. OpenRouter manual.
+4. Z.ai manual si su contrato queda aprobado.
+5. Cursor.
+6. GitHub Copilot.
+7. Claude cuota en vivo tras aprobación.
+8. Antigravity y Devin en canal experimental.
+
+Cada proveedor se divide en commits:
+
+- descriptor y detección local;
+- parser o cliente con fixtures;
+- mapper y tests;
+- UI y textos de estado;
+- integración empaquetada;
+- docs y gate de lanzamiento.
+
+Un proveedor privado se puede desarrollar detrás de un feature flag. No se activa en builds públicas mientras falte una casilla del gate.
+
+### Salida por proveedor
+
+- matriz actualizada;
+- contrato y fixtures;
+- threat review;
+- Windows x64 y ARM64 probados;
+- claim exacto de cobertura;
+- rollback por flag remoto o build si la fuente cambia.
+
+## M10 — Empaquetado, actualización y beta
+
+Esfuerzo: 5–8 días.
+
+### Tareas
+
+- `M10.1` Cerrar identidad, iconos, splash y recursos del paquete.
+- `M10.2` Crear perfiles Release x64 y ARM64.
+- `M10.3` Configurar firma de CI con secreto externo al repo.
+- `M10.4` Construir MSIX y bundle.
+- `M10.5` Probar instalación limpia, upgrade, downgrade rechazado y desinstalación.
+- `M10.6` Probar StartupTask, alias CLI, notificaciones y acceso a archivos dentro del paquete.
+- `M10.7` Ejecutar Windows App Certification Kit.
+- `M10.8` Generar SBOM, hashes y avisos.
+- `M10.9` Crear canal beta y proceso de rollback.
+- `M10.10` Escribir release notes con límites de proveedor.
+- `M10.11` Crear checklist de soporte y recolección de diagnóstico.
+
+### Matriz mínima
+
+- Windows 10 soportado, x64;
+- Windows 11 actual, x64;
+- Windows 11 ARM64;
+- usuario estándar;
+- tema claro, oscuro y alto contraste;
+- una y dos pantallas;
+- DPI 100, 150 y 200%;
+- Codex ausente, sin login y con login;
+- red directa, sin red y proxy;
+- actualización desde la beta anterior.
+
+### Salida
+
+- MSIX firmado e instalable;
+- WACK sin fallos;
+- beta reversible;
+- documentación de privacidad, licencia, soporte y desinstalación.
+
+Publicar el artifact requiere autorización explícita. Crear el paquete local no autoriza subirlo a Store, GitHub Releases o un servidor.
+
+## M11 — Paridad ampliada y estable
+
+Esfuerzo: continuo. La amplitud de diez proveedores puede llevar 4–6 meses para una persona por los gates y pruebas reales.
+
+### Tareas
+
+- cerrar proveedores de M9 uno a uno;
+- añadir detalle por modelo y gasto total real;
+- comparar funciones con el SHA upstream y actualizar baseline;
+- medir consumo durante siete días;
+- resolver accesibilidad y fallos de beta;
+- validar migración desde las dos betas previas;
+- congelar schemas públicos v1;
+- completar revisión de seguridad;
+- publicar estable solo con proveedores aprobados.
+
+### Salida estable
+
+- cero crash bloqueante conocido en el flujo principal;
+- tasa de refresco válido medida y documentada;
+- sin secreto en logs, crash dumps o API;
+- accesibilidad principal aprobada;
+- x64 y ARM64 verdes;
+- instalación, upgrade y rollback probados;
+- cada claim de proveedor ligado a evidencia.
+
+## Estrategia de pruebas
+
+### Por commit
+
+- test que falla antes o prueba estática que muestra el hueco;
+- tests del proyecto afectado;
+- build x64 del proyecto afectado;
+- inspección de `git diff` y secretos.
+
+### Por hito
+
+- tests de unidad y contrato;
+- build completa x64;
+- launch por `BuildAndRun.ps1`;
+- UI smoke del camino afectado;
+- actualización de docs y screenshots;
+- commit lógico con mensaje descriptivo.
+
+### Antes de beta
+
+- toda la matriz x64;
+- build y smoke ARM64;
+- UI automation;
+- Accessibility Insights;
+- WACK;
+- instalación, upgrade y desinstalación;
+- scanner de secretos y SBOM;
+- prueba de siete días de caché, refresco y consumo.
+
+## Presupuesto de rendimiento
+
+Medir desde M4 y fijar gates con hardware de referencia:
+
+| Métrica | Meta inicial |
+|---|---|
+| Mostrar caché al abrir | < 500 ms |
+| Interacción de panel | 60 Hz sin trabajo de red en UI |
+| Memoria inactiva | < 150 MB |
+| CPU inactiva | cercana a 0% |
+| Refresco Codex | timeout propio; UI nunca espera |
+| Scanner 10.000 archivos | cancelable, sin freeze |
+| Caché y ajustes | escritura atómica < 100 ms típica |
+
+Si una meta falla, registrar la medición antes de ajustar el número.
+
+## Registro de riesgos
+
+| ID | Riesgo | Prob. | Impacto | Control | Hito |
+|---|---|---:|---:|---|---|
+| R1 | Endpoint privado cambia | Alta | Alta | Gate, fixtures, flag y último valor válido | M9 |
+| R2 | Rotación de token cierra la sesión | Media | Alta | Interfaz oficial y no escribir credenciales ajenas | M4/M9 |
+| R3 | Política impide una integración | Media | Alta | Revisión antes de activar y alternativa local | M0/M9 |
+| R4 | Tray desaparece tras Explorer | Media | Media | `TaskbarCreated` y test manual | M2 |
+| R5 | Flyout fuera de pantalla | Media | Media | cálculo por monitor/DPI y tests | M2 |
+| R6 | MSIX cambia rutas o procesos | Media | Alta | smoke dentro del paquete | M4/M10 |
+| R7 | CORS expone cuota al navegador | Alta si se copia upstream | Alta | API apagada, token y Origin deny | M8 |
+| R8 | Log local cuenta doble | Media | Media | deduplicación y diferencial | M6 |
+| R9 | Precio incompleto parece factura | Media | Alta | procedencia, cobertura y texto | M5/M6 |
+| R10 | CLI y app dañan la caché | Baja | Media | mutex, reemplazo atómico y test multiproceso | M3/M8 |
+| R11 | Nombre o logo infringe marca | Baja | Alta | identidad propia y revisión | M0 |
+| R12 | Actualización rompe ajustes | Media | Alta | migraciones y upgrade matrix | M7/M10 |
+
+## Estimación
+
+Para una persona con experiencia en C# y Windows:
+
+- MVP técnico Codex: 30–45 días de ingeniería;
+- beta de producto con UI, CLI, API y Claude local: 20–30 días adicionales;
+- cada proveedor sencillo: 3–6 días tras tener contrato y fixtures;
+- cada proveedor privado o multicuenta: 7–15 días más el tiempo externo;
+- paridad amplia de diez proveedores: 4–6 meses como orden de magnitud.
+
+La estimación excluye espera por permisos, firma, Store y cuentas de prueba. Se revisa al cerrar M4 con datos reales.
+
+## Criterio de completitud
+
+Un hito se marca completo cuando:
+
+- sus tareas y criterios de salida están cerrados;
+- tests relevantes y build pasan;
+- la ruta real se probó cuando existe;
+- estados de error y accesibilidad están cubiertos;
+- docs y matriz coinciden con el código;
+- el diff se revisó;
+- los cambios se dividieron en commits lógicos.
+
+Una función con test faltante, gate externo o smoke pendiente se marca `Implementada, no verificada por completo`.
+
+## Primera tanda recomendada
+
+La siguiente sesión debe ejecutar solo M1:
+
+1. verificar prerrequisitos WinUI;
+2. crear la app desde la plantilla;
+3. crear solución, proyectos y referencias;
+4. compilar y lanzar x64;
+5. agregar tests de arquitectura;
+6. documentar comandos y evidencia;
+7. revisar y commitear el scaffold.
+
+M2 comienza después de una build limpia del template. No se añade un proveedor antes de que bandeja, flyout y dominio tengan contratos probables.
