@@ -70,6 +70,7 @@
                     <FontIcon
                         AutomationProperties.AccessibilityView="Raw"
                         FontSize="16"
+                        IsTextScaleFactorEnabled="False"
                         Glyph="&#xE72C;" />
                 </Button>
 
@@ -84,6 +85,7 @@
                     <FontIcon
                         AutomationProperties.AccessibilityView="Raw"
                         FontSize="16"
+                        IsTextScaleFactorEnabled="False"
                         Glyph="&#xE72B;" />
                 </Button>
             </Grid>
@@ -252,6 +254,7 @@
                                 <TextBlock
                                     Style="{StaticResource SubtitleTextBlockStyle}"
                                     Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
+                                    TextWrapping="WrapWholeWords"
                                     VerticalAlignment="Center"
                                     Visibility="{x:Bind ViewModel.ActiveSample.HasSpend, Mode=OneWay}" />
                             </StackPanel>
@@ -266,7 +269,9 @@
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="{StaticResource DashboardCardCornerRadius}">
-                            <Grid ColumnSpacing="12">
+                            <Grid
+                                ColumnSpacing="12"
+                                Loaded="OnSampleSpendLayoutLoaded">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -348,18 +353,17 @@
                                                 AutomationProperties.AutomationId="{x:Bind DetailsAutomationId}"
                                                 AutomationProperties.HelpText="{x:Bind DetailsTooltip}"
                                                 AutomationProperties.Name="{x:Bind DetailsAutomationName}"
-                                                Height="28"
                                                 MinHeight="28"
                                                 MinWidth="28"
                                                 Padding="6"
                                                 Style="{StaticResource SubtleButtonStyle}"
                                                 ToolTipService.ToolTip="{x:Bind DetailsTooltip}"
                                                 VerticalAlignment="Center"
-                                                Visibility="{x:Bind HasDetails}"
-                                                Width="28">
+                                                Visibility="{x:Bind HasDetails}">
                                                 <FontIcon
                                                     AutomationProperties.AccessibilityView="Raw"
                                                     FontSize="14"
+                                                    IsTextScaleFactorEnabled="False"
                                                     Glyph="&#xE946;" />
                                                 <Button.Flyout>
                                                     <Flyout Placement="Left">
@@ -441,14 +445,14 @@
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                         Style="{StaticResource CaptionTextBlockStyle}"
                                                                         Text="{x:Bind RemainingText}"
-                                                                        TextTrimming="CharacterEllipsis" />
+                                                                        TextWrapping="WrapWholeWords" />
                                                                     <TextBlock
                                                                         Grid.Column="1"
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                         Style="{StaticResource CaptionTextBlockStyle}"
                                                                         Text="{x:Bind ResetText}"
                                                                         TextAlignment="Right"
-                                                                        TextTrimming="CharacterEllipsis" />
+                                                                        TextWrapping="WrapWholeWords" />
                                                                 </Grid>
                                                                 <TextBlock
                                                                     AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
@@ -492,7 +496,7 @@
                                                                     Grid.Column="1"
                                                                     Style="{StaticResource CaptionTextBlockStyle}"
                                                                     Text="{x:Bind Value}"
-                                                                    TextTrimming="CharacterEllipsis" />
+                                                                    TextWrapping="WrapWholeWords" />
                                                             </Grid>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -524,7 +528,7 @@
                                                                         Grid.Column="1"
                                                                         Style="{StaticResource CaptionTextBlockStyle}"
                                                                         Text="{x:Bind Value}"
-                                                                        TextTrimming="CharacterEllipsis" />
+                                                                        TextWrapping="WrapWholeWords" />
                                                                 </Grid>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
@@ -542,19 +546,23 @@
 
             <Grid Grid.Row="2" ColumnSpacing="8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="FooterIdentityColumn" Width="*" />
+                    <ColumnDefinition x:Name="FooterStatusColumn" Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
+                    x:Name="FlyoutFooterIdentity"
                     x:Uid="FlyoutFooterIdentity"
                     Grid.Column="0"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    MaxWidth="120"
                     Style="{StaticResource CaptionTextBlockStyle}"
+                    TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Center" />
 
                 <TextBlock
+                    x:Name="FlyoutStatusText"
                     AutomationProperties.AutomationId="FlyoutStatusText"
                     AutomationProperties.LiveSetting="Polite"
                     Grid.Column="1"
@@ -576,6 +584,7 @@
                         <FontIcon
                             AutomationProperties.AccessibilityView="Raw"
                             FontSize="16"
+                            IsTextScaleFactorEnabled="False"
                             Glyph="&#xE713;" />
                         <TextBlock
                             x:Uid="FooterOptionsLabel"

@@ -5,8 +5,21 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     AutomationProperties.AccessibilityView="Raw"
     IsTabStop="False">
-    <Image
-        x:Name="MarkImage"
-        AutomationProperties.AccessibilityView="Raw"
-        Stretch="Uniform" />
+    <Grid AutomationProperties.AccessibilityView="Raw">
+        <Image
+            x:Name="MarkImage"
+            AutomationProperties.AccessibilityView="Raw"
+            Stretch="Uniform"
+            Visibility="{ThemeResource ProviderBrandMarkVisibility}" />
+        <TextBlock
+            x:Name="HighContrastMark"
+            AutomationProperties.AccessibilityView="Raw"
+            Foreground="{ThemeResource SystemColorWindowTextColorBrush}"
+            FontWeight="SemiBold"
+            HorizontalAlignment="Center"
+            IsTextScaleFactorEnabled="False"
+            TextAlignment="Center"
+            VerticalAlignment="Center"
+            Visibility="{ThemeResource ProviderHighContrastMarkVisibility}" />
+    </Grid>
 </UserControl>

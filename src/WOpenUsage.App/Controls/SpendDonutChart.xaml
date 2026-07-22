@@ -12,6 +12,21 @@
     <Grid
         AutomationProperties.AccessibilityView="Raw"
         SizeChanged="OnChartSizeChanged">
+        <Grid
+            AutomationProperties.AccessibilityView="Raw"
+            IsHitTestVisible="False"
+            Visibility="Collapsed">
+            <Border x:Name="AntigravityBrushProxy" Background="{ThemeResource ProviderAntigravityBrush}" />
+            <Border x:Name="ClaudeBrushProxy" Background="{ThemeResource ProviderClaudeBrush}" />
+            <Border x:Name="CodexBrushProxy" Background="{ThemeResource ProviderCodexBrush}" />
+            <Border x:Name="GrokBrushProxy" Background="{ThemeResource ProviderGrokBrush}" />
+            <Border x:Name="OpenCodeBrushProxy" Background="{ThemeResource ProviderOpenCodeBrush}" />
+            <Border x:Name="FallbackBrushProxy" Background="{ThemeResource ProviderFallbackBrush}" />
+            <Border
+                x:Name="ShadowBrushProxy"
+                Background="{ThemeResource ProviderDonutShadowBrush}"
+                Opacity="{ThemeResource ProviderDonutShadowOpacity}" />
+        </Grid>
         <Canvas
             x:Name="ArcCanvas"
             AutomationProperties.AccessibilityView="Raw"
@@ -19,11 +34,11 @@
         <TextBlock
             AutomationProperties.AccessibilityView="Raw"
             HorizontalAlignment="Center"
+            IsTextScaleFactorEnabled="False"
             MaxWidth="60"
             Style="{StaticResource BodyStrongTextBlockStyle}"
             Text="{x:Bind CenterValue, Mode=OneWay}"
             TextAlignment="Center"
-            TextTrimming="CharacterEllipsis"
             VerticalAlignment="Center" />
     </Grid>
 </UserControl>
