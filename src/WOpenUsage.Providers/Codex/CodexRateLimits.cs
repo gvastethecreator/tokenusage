@@ -74,22 +74,6 @@ public sealed record CodexRateLimitsSnapshot
 internal static class CodexRateLimitsParser
 {
     private const int MaximumAdditionalLimits = 64;
-    private static readonly HashSet<string> KnownPlanTypes =
-    [
-        "free",
-        "go",
-        "plus",
-        "pro",
-        "prolite",
-        "team",
-        "self_serve_business_usage_based",
-        "business",
-        "enterprise_cbp_usage_based",
-        "enterprise",
-        "edu",
-        "unknown",
-    ];
-
     public static CodexRateLimitsSnapshot Parse(JsonElement result)
     {
         if (result.ValueKind != JsonValueKind.Object
@@ -136,10 +120,7 @@ internal static class CodexRateLimitsParser
                 throw ContractFailure();
             }
 
-            string? candidate = planElement.GetString();
-            planType = candidate is not null && KnownPlanTypes.Contains(candidate)
-                ? candidate
-                : "unknown";
+            planType = CodexPlanTypes.Normalize(planElement.GetString());
         }
 
         return new CodexRateLimitBucket(
