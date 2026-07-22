@@ -13,9 +13,11 @@ public sealed class SyntheticUsageEventSourceTests
             new FixedTimeProvider(new DateTimeOffset(2026, 7, 22, 15, 0, 0, TimeSpan.Zero)),
             "Argentina Standard Time");
 
-        IReadOnlyList<UsageEvent> events = await source.ReadAsync();
+        UsageSourceReadResult result = await source.ReadAsync();
+        IReadOnlyList<UsageEvent> events = result.Events;
 
         Assert.Equal(SourceKind.Synthetic, source.SourceKind);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal(4, events.Count);
         Assert.Contains(events, usageEvent => usageEvent.Cost.Kind == CostKind.ProviderReported);
         Assert.Contains(events, usageEvent => usageEvent.Cost.Kind == CostKind.CatalogEstimated);
