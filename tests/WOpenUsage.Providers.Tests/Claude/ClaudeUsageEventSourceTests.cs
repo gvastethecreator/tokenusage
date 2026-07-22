@@ -20,6 +20,7 @@ public sealed class ClaudeUsageEventSourceTests
 
         Assert.Empty(result.Events);
         Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
     }
 
     [Fact]
@@ -124,6 +125,7 @@ public sealed class ClaudeUsageEventSourceTests
 
         Assert.Single(events);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
     }
 
     [Fact]
