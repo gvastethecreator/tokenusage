@@ -47,10 +47,12 @@ public sealed partial class ProviderMarkImage : UserControl
         if (providerId is null || !FileNames.TryGetValue(providerId, out string? fileName))
         {
             MarkImage.Source = null;
+            HighContrastMark.Text = string.Empty;
             return;
         }
 
         MarkImage.Source = new SvgImageSource(
             new Uri($"ms-appx:///Assets/ProviderMarks/{fileName}"));
+        HighContrastMark.Text = providerId[..1].ToUpperInvariant();
     }
 }
