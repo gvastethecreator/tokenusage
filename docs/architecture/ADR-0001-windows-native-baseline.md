@@ -359,7 +359,7 @@ El modo de compatibilidad, si se implementa, se activa aparte y explica la difer
 
 ## Claves manuales
 
-OpenRouter, Z.ai u otro proveedor con clave manual usa `PasswordVault`:
+OpenRouter y cualquier proveedor futuro aprobado para clave manual usan `PasswordVault`:
 
 - resource: identificador de paquete + proveedor;
 - userName: identificador estable sin correo cuando sea posible;
