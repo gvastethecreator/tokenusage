@@ -82,6 +82,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
 - [Gate de fuente Devin](docs/research/2026-07-21-devin-source-gate.md)
+- [Blanco visual elegido para el flyout](docs/design/2026-07-21-selected-flyout.md)
 - [Preparación del primer scaffold WinUI](docs/research/2026-07-21-winui-m1-readiness.md)
 - [Evidencia del Ticket 03](docs/evidence/ticket-03-winui-scaffold.md)
 - [Evidencia del Ticket 04](docs/evidence/ticket-04-architecture.md)
@@ -102,4 +103,4 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 
 ## Inicio de la implementación
 
-Los Tickets 03 y 04 dejaron una app empaquetada y una solución con límites probados. Los gates Z.ai, Cursor, Copilot y Devin ya fijan sus fuentes y claims. El Ticket 05 queda bloqueado por la elección visual del Ticket 01. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
+Los Tickets 01, 03 y 04 dejaron un blanco visual aprobado, una app empaquetada y una solución con límites probados. Los gates Z.ai, Cursor, Copilot y Devin ya fijan sus fuentes y claims. El Ticket 05 puede abrir el primer vertical de bandeja y flyout. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
