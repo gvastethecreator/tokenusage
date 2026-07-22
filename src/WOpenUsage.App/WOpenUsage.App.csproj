@@ -55,6 +55,12 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\WOpenUsage.Core\WOpenUsage.Core.csproj" />
+    <ProjectReference Include="..\WOpenUsage.Providers\WOpenUsage.Providers.csproj" />
+    <ProjectReference Include="..\WOpenUsage.Platform.Windows\WOpenUsage.Platform.Windows.csproj" />
+  </ItemGroup>
+
   <!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
     Explorer "Package and Publish" context menu entry to be enabled for this project even if

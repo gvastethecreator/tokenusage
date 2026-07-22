@@ -6,7 +6,7 @@ El producto final tendrá nombre, logo y paquete propios. OpenUsage permite reut
 
 ## Estado
 
-Investigación, plan y primer scaffold WinUI listos. La app empaquetada vive en `src/WOpenUsage.App`; la build y el launch `x64` del Ticket 03 están verificados.
+Investigación, plan, scaffold WinUI y límites de arquitectura listos. La app empaquetada vive en `src/WOpenUsage.App`; la solución completa compila para `x64` y `ARM64`.
 
 - Upstream estudiado: `robinebers/openusage` en `9d2bf09f10e21f769494a525a9d65c84d7aeb1df`.
 - Referencias de gasto local: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`.
@@ -49,12 +49,38 @@ Build y launch con identidad de paquete:
 
 El script usa `winapp` para abrir la app empaquetada. El ejecutable generado no se inicia de forma directa. La evidencia está en [Ticket 03](docs/evidence/ticket-03-winui-scaffold.md).
 
+## Solución y arquitectura
+
+`WOpenUsage.slnx` contiene seis proyectos:
+
+- `WOpenUsage.Core`: contratos y dominio portables; no depende de Windows, UI ni providers.
+- `WOpenUsage.Providers`: adaptadores de proveedores; depende solo de Core.
+- `WOpenUsage.Platform.Windows`: servicios del sistema; depende solo de Core.
+- `WOpenUsage.App`: composición y UI WinUI; depende de Core, Providers y Platform.Windows.
+- `WOpenUsage.Cli`: composición de consola; depende de Core, Providers y Platform.Windows.
+- `WOpenUsage.Architecture.Tests`: comprueba el grafo desde los archivos de proyecto.
+
+Control completo para `x64`:
+
+```powershell
+.\scripts\check.ps1 -Platform x64
+```
+
+Compilación cruzada para `ARM64`, con las reglas de arquitectura ejecutadas en el host `x64`:
+
+```powershell
+.\scripts\check.ps1 -Platform ARM64
+```
+
+El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evidence/ticket-04-architecture.md).
+
 ## Documentos
 
 - [Investigación de viabilidad](docs/research/2026-07-21-openusage-windows-feasibility.md)
 - [Investigación de Grok, Antigravity, OpenCode y gasto local](docs/research/2026-07-21-agent-costs-and-quotas.md)
 - [Preparación del primer scaffold WinUI](docs/research/2026-07-21-winui-m1-readiness.md)
 - [Evidencia del Ticket 03](docs/evidence/ticket-03-winui-scaffold.md)
+- [Evidencia del Ticket 04](docs/evidence/ticket-04-architecture.md)
 - [Especificación de producto](docs/PRODUCT-SPEC.md)
 - [Arquitectura base](docs/architecture/ADR-0001-windows-native-baseline.md)
 - [Matriz de proveedores](docs/PROVIDER-MATRIX.md)
@@ -72,4 +98,4 @@ El script usa `winapp` para abrir la app empaquetada. El ejecutable generado no 
 
 ## Inicio de la implementación
 
-El Ticket 03 creó y verificó el scaffold `x64`. El siguiente vertical separa los proyectos y fija las dependencias de arquitectura. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
+Los Tickets 03 y 04 dejaron una app empaquetada y una solución con límites probados. El Ticket 05 queda bloqueado por la elección visual del Ticket 01. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).

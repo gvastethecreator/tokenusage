@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>WOpenUsage.Providers</RootNamespace>
+    <AssemblyName>WOpenUsage.Providers</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WOpenUsage.Core\WOpenUsage.Core.csproj" />
+  </ItemGroup>
+
+</Project>
