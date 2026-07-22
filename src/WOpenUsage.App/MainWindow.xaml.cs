@@ -219,23 +219,30 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!string.Equals(
-                e.PropertyName,
-                nameof(RootPage.ViewModel.SurfaceState),
-                StringComparison.Ordinal))
+        bool surfaceChanged = string.Equals(
+            e.PropertyName,
+            nameof(RootPage.ViewModel.SurfaceState),
+            StringComparison.Ordinal);
+        bool refreshChanged = string.Equals(
+            e.PropertyName,
+            nameof(RootPage.ViewModel.IsSampleRefreshing),
+            StringComparison.Ordinal);
+        if (!surfaceChanged && !refreshChanged)
         {
             return;
         }
 
-        RootPage.ViewModel.StatusText = RootPage.ViewModel.IsSampleLoading
+        RootPage.ViewModel.StatusText = RootPage.ViewModel.IsSampleRefreshing
+            ? GetString("SampleStatusLoading")
+            : RootPage.ViewModel.IsSampleLoading
             ? GetString("SampleStatusLoading")
             : RootPage.ViewModel.IsLoading
                 ? GetString("StatusLoading")
-                : RootPage.ViewModel.IsSample
+                : RootPage.ViewModel.IsSample || RootPage.ViewModel.IsSampleUnavailable
                     ? GetString("SampleStatus")
                     : GetString("StatusIdle");
 
-        if (_isFlyoutVisible)
+        if (surfaceChanged && _isFlyoutVisible)
         {
             BeginActivationGuard();
             SchedulePositionAfterLayout();

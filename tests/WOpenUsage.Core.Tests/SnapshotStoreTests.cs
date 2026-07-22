@@ -228,7 +228,7 @@ public sealed class SnapshotStoreTests
             FileAccess.Read,
             FileShare.Read))
         {
-            await Assert.ThrowsAsync<IOException>(() =>
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 store.UpsertLastGoodAsync(CreateSnapshot("fake", 75m)));
         }
 
