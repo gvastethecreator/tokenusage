@@ -1,0 +1,22 @@
+[
+  {
+    "name": "App starts hidden while live Codex refresh runs",
+    "status": "PASS"
+  },
+  {
+    "name": "Live Codex surface renders without synthetic spend or account data",
+    "status": "PASS"
+  },
+  {
+    "name": "Sample dashboard remains available after live quota",
+    "status": "PASS"
+  },
+  {
+    "name": "Interactive controls keep AutomationIds",
+    "status": "PASS"
+  },
+  {
+    "name": "Tray exit closes the process",
+    "status": "PASS"
+  }
+]
