@@ -16,6 +16,7 @@ $solution = Join-Path $repoRoot 'WOpenUsage.slnx'
 $architectureTests = Join-Path $repoRoot 'tests\WOpenUsage.Architecture.Tests\WOpenUsage.Architecture.Tests.csproj'
 $coreTests = Join-Path $repoRoot 'tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj'
 $providerTests = Join-Path $repoRoot 'tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj'
+$platformWindowsTests = Join-Path $repoRoot 'tests\WOpenUsage.Platform.Windows.Tests\WOpenUsage.Platform.Windows.Tests.csproj'
 
 function Invoke-DotNetStep {
     param(
@@ -38,7 +39,7 @@ if (-not (Test-Path -LiteralPath $solution)) {
     throw "Missing solution: $solution"
 }
 
-foreach ($testProject in @($architectureTests, $coreTests, $providerTests)) {
+foreach ($testProject in @($architectureTests, $coreTests, $providerTests, $platformWindowsTests)) {
     if (-not (Test-Path -LiteralPath $testProject)) {
         throw "Missing test project: $testProject"
     }
@@ -65,6 +66,14 @@ try {
     Invoke-DotNetStep 'Provider tests' @(
         'test',
         $providerTests,
+        '--configuration', $Configuration,
+        '-p:Platform=x64',
+        '--verbosity', 'minimal'
+    )
+
+    Invoke-DotNetStep 'Platform Windows tests' @(
+        'test',
+        $platformWindowsTests,
         '--configuration', $Configuration,
         '-p:Platform=x64',
         '--verbosity', 'minimal'
