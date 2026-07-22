@@ -1,0 +1,62 @@
+{
+  "launch": "packaged-x64-debug",
+  "interactiveCount": 8,
+  "interactiveMissingNameOrId": [],
+  "keyboardSequence": [
+    {
+      "Step": 1,
+      "Name": "Actualizar",
+      "AutomationId": "HeaderRefreshButton",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 4,
+      "Name": "Detalles de Codex",
+      "AutomationId": "SampleProvider.Codex.Details",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 7,
+      "Name": "Detalles de uso",
+      "AutomationId": "SampleProvider.Codex.SecondaryMetrics",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 8,
+      "Name": "Detalles de Claude",
+      "AutomationId": "SampleProvider.Claude.Details",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 11,
+      "Name": "Detalles de Grok Build",
+      "AutomationId": "SampleProvider.GrokBuild.Details",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 14,
+      "Name": "Detalles de OpenCode",
+      "AutomationId": "SampleProvider.OpenCode.Details",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 17,
+      "Name": "Detalles de Antigravity CLI",
+      "AutomationId": "SampleProvider.Antigravity.Details",
+      "ControlType": "ControlType.Button"
+    },
+    {
+      "Step": 20,
+      "Name": "Opciones",
+      "AutomationId": "FooterOptionsButton",
+      "ControlType": "ControlType.Button"
+    }
+  ],
+  "checks": {
+    "allInteractiveNamedAndIdentified": true,
+    "refreshReached": true,
+    "providerDetailsReached": true,
+    "secondaryMetricsReached": true,
+    "footerOptionsReached": true
+  }
+}
