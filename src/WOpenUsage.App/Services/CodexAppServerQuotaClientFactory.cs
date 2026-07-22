@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using System.Threading.Channels;
 using WOpenUsage.Platform.Windows.Processes;
 using WOpenUsage.Providers.Codex;
 
@@ -8,6 +9,7 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
 {
     private readonly CodexClientOptions _clientOptions;
     private readonly TimeProvider _clock;
+    private readonly Channel<bool> _processSlot;
 
     public CodexAppServerQuotaClientFactory(
         TimeProvider clock,
@@ -18,6 +20,13 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
             "wopenusage",
             "0.1.0",
             "WOpenUsage");
+        _processSlot = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = false,
+            SingleWriter = false,
+        });
+        _processSlot.Writer.TryWrite(true);
     }
 
     public ValueTask<CodexClientAvailability> DetectAsync(
@@ -39,39 +48,64 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (CodexExecutableResolver.Resolve()
-            is not CodexExecutableResolution.Resolved executable)
-        {
-            throw new CodexClientUnavailableException();
-        }
-
-        CodexAppServerProcess process;
+        await _processSlot.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        bool processSlotTransferred = false;
         try
         {
-            process = await Task.Run(
-                () => CodexAppServerProcess.Start(executable),
-                CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (CodexAppServerProcessException)
-        {
-            throw new CodexClientUnavailableException();
-        }
+            if (CodexExecutableResolver.Resolve()
+                is not CodexExecutableResolution.Resolved executable)
+            {
+                throw new CodexClientUnavailableException();
+            }
 
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var client = new CodexAppServerClient(
-                process.ClientInput,
-                process.ClientOutput,
-                _clientOptions,
-                _clock,
-                leaveOpen: true);
-            return new ProcessOwnedCodexQuotaClient(client, process);
+            CodexAppServerProcess process;
+            try
+            {
+                process = await Task.Run(
+                    () => CodexAppServerProcess.Start(executable),
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (CodexAppServerProcessException)
+            {
+                throw new CodexClientUnavailableException();
+            }
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var client = new CodexAppServerClient(
+                    process.ClientInput,
+                    process.ClientOutput,
+                    _clientOptions,
+                    _clock,
+                    leaveOpen: true);
+                var owner = new ProcessOwnedCodexQuotaClient(
+                    client,
+                    process,
+                    ReleaseProcessSlot);
+                processSlotTransferred = true;
+                return owner;
+            }
+            catch
+            {
+                await DisposeProcessAfterFailedCreationAsync(process).ConfigureAwait(false);
+                throw;
+            }
         }
-        catch
+        finally
         {
-            await DisposeProcessAfterFailedCreationAsync(process).ConfigureAwait(false);
-            throw;
+            if (!processSlotTransferred)
+            {
+                ReleaseProcessSlot();
+            }
+        }
+    }
+
+    private void ReleaseProcessSlot()
+    {
+        if (!_processSlot.Writer.TryWrite(true))
+        {
+            throw new InvalidOperationException("The Codex process slot could not be released.");
         }
     }
 
@@ -90,7 +124,8 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
 
     private sealed class ProcessOwnedCodexQuotaClient(
         CodexAppServerClient client,
-        CodexAppServerProcess process) : ICodexQuotaClient
+        CodexAppServerProcess process,
+        Action releaseProcessSlot) : ICodexQuotaClient
     {
         private int _disposeStarted;
 
@@ -116,31 +151,38 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
                 return;
             }
 
-            ExceptionDispatchInfo? unexpectedFailure = null;
             try
             {
-                await client.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (Exception exception) when (
-                exception is IOException or ObjectDisposedException)
-            {
-                // Cleanup ran; keep an already-read quota result usable.
-            }
-            catch (Exception exception)
-            {
-                unexpectedFailure = ExceptionDispatchInfo.Capture(exception);
-            }
+                ExceptionDispatchInfo? unexpectedFailure = null;
+                try
+                {
+                    await client.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception exception) when (
+                    exception is IOException or ObjectDisposedException)
+                {
+                    // Cleanup ran; keep an already-read quota result usable.
+                }
+                catch (Exception exception)
+                {
+                    unexpectedFailure = ExceptionDispatchInfo.Capture(exception);
+                }
 
-            try
-            {
-                await process.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (CodexAppServerProcessException)
-            {
-                // The process owner exhausted its shutdown path before throwing.
-            }
+                try
+                {
+                    await process.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (CodexAppServerProcessException)
+                {
+                    // The process owner exhausted its shutdown path before throwing.
+                }
 
-            unexpectedFailure?.Throw();
+                unexpectedFailure?.Throw();
+            }
+            finally
+            {
+                releaseProcessSlot();
+            }
         }
     }
 }

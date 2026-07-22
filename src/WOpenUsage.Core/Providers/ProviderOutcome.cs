@@ -134,28 +134,50 @@ public abstract class ProviderOutcome
 
     public sealed class TransientFailure : ProviderOutcome
     {
-        public TransientFailure(ProviderError error, ProviderSnapshot? lastGood)
+        public TransientFailure(
+            ProviderError error,
+            ProviderSnapshot? lastGood,
+            DateTimeOffset? retryAtUtc = null)
         {
             Error = error ?? throw new ArgumentNullException(nameof(error));
+            if (retryAtUtc is DateTimeOffset retryAt)
+            {
+                UtcTimestamp.Require(retryAt, nameof(retryAtUtc));
+            }
+
             LastGood = lastGood;
+            RetryAtUtc = retryAtUtc;
         }
 
         public ProviderError Error { get; }
 
         public ProviderSnapshot? LastGood { get; }
+
+        public DateTimeOffset? RetryAtUtc { get; }
     }
 
     public sealed class ContractFailure : ProviderOutcome
     {
-        public ContractFailure(ProviderError error, ProviderSnapshot? lastGood)
+        public ContractFailure(
+            ProviderError error,
+            ProviderSnapshot? lastGood,
+            DateTimeOffset? retryAtUtc = null)
         {
             Error = error ?? throw new ArgumentNullException(nameof(error));
+            if (retryAtUtc is DateTimeOffset retryAt)
+            {
+                UtcTimestamp.Require(retryAt, nameof(retryAtUtc));
+            }
+
             LastGood = lastGood;
+            RetryAtUtc = retryAtUtc;
         }
 
         public ProviderError Error { get; }
 
         public ProviderSnapshot? LastGood { get; }
+
+        public DateTimeOffset? RetryAtUtc { get; }
     }
 
     public sealed class PolicyBlocked : ProviderOutcome

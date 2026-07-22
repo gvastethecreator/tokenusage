@@ -11,6 +11,11 @@ namespace WOpenUsage.Platform.Windows.Tests;
 public sealed class CodexLiveCompositionTests
 {
     private const string FakeModeEnvironmentVariable = "WOPENUSAGE_FAKE_CODEX_MODE";
+    private const string FakeNowEnvironmentVariable = "WOPENUSAGE_FAKE_NOW_UTC";
+    private const string FakePathMarkerEnvironmentVariable = "WOPENUSAGE_FAKE_PATH_MARKER";
+    private const string RealSmokeEnvironmentVariable = "WOPENUSAGE_RUN_REAL_CODEX_SMOKE";
+    private static readonly DateTimeOffset FakeNow =
+        new(2026, 7, 22, 16, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task FakeProcessFlowsThroughProtocolCacheAndDashboardWithoutAccountData()
@@ -21,14 +26,19 @@ public sealed class CodexLiveCompositionTests
             CodexExecutableResolver.OverrideEnvironmentVariable);
         string? previousMode = Environment.GetEnvironmentVariable(
             FakeModeEnvironmentVariable);
+        string? previousNow = Environment.GetEnvironmentVariable(
+            FakeNowEnvironmentVariable);
         Environment.SetEnvironmentVariable(
             CodexExecutableResolver.OverrideEnvironmentVariable,
             executable);
         Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "quota");
+        Environment.SetEnvironmentVariable(
+            FakeNowEnvironmentVariable,
+            FakeNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
 
         try
         {
-            TimeProvider clock = TimeProvider.System;
+            TimeProvider clock = new FixedTimeProvider(FakeNow);
             var factory = new CodexAppServerQuotaClientFactory(
                 clock,
                 new CodexClientOptions(
@@ -103,6 +113,9 @@ public sealed class CodexLiveCompositionTests
             Environment.SetEnvironmentVariable(
                 FakeModeEnvironmentVariable,
                 previousMode);
+            Environment.SetEnvironmentVariable(
+                FakeNowEnvironmentVariable,
+                previousNow);
         }
     }
 
@@ -133,6 +146,172 @@ public sealed class CodexLiveCompositionTests
         }
     }
 
+    [Fact]
+    public async Task FactoryWaitsForTheActiveProcessOwnerBeforeStartingAnother()
+    {
+        string executable = GetFakeCodexPath();
+        string? previousExecutable = Environment.GetEnvironmentVariable(
+            CodexExecutableResolver.OverrideEnvironmentVariable);
+        Environment.SetEnvironmentVariable(
+            CodexExecutableResolver.OverrideEnvironmentVariable,
+            executable);
+
+        try
+        {
+            var factory = new CodexAppServerQuotaClientFactory(TimeProvider.System);
+            await using ICodexQuotaClient first =
+                await factory.CreateAsync(CancellationToken.None);
+            using var secondCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+            Task<ICodexQuotaClient> secondTask =
+                factory.CreateAsync(secondCancellation.Token);
+
+            Assert.False(secondTask.IsCompleted);
+
+            await first.DisposeAsync();
+            await using ICodexQuotaClient second =
+                await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                CodexExecutableResolver.OverrideEnvironmentVariable,
+                previousExecutable);
+        }
+    }
+
+    [Fact]
+    public async Task FakeProcessFailuresKeepLastGoodAndRecoverAfterBinaryPathChanges()
+    {
+        using var folder = new TemporaryFolder();
+        using var binaryFolder = new TemporaryFolder();
+        string executable = GetFakeCodexPath();
+        string? previousExecutable = Environment.GetEnvironmentVariable(
+            CodexExecutableResolver.OverrideEnvironmentVariable);
+        string? previousMode = Environment.GetEnvironmentVariable(
+            FakeModeEnvironmentVariable);
+        string? previousMarker = Environment.GetEnvironmentVariable(
+            FakePathMarkerEnvironmentVariable);
+
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                CodexExecutableResolver.OverrideEnvironmentVariable,
+                executable);
+            Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "quota");
+            TimeProvider clock = TimeProvider.System;
+            var factory = new CodexAppServerQuotaClientFactory(
+                clock,
+                new CodexClientOptions(
+                    "wopenusage-recovery-test",
+                    "0.1.0",
+                    requestTimeout: TimeSpan.FromSeconds(2)));
+            var coordinator = new CodexRefreshCoordinator(folder.Path, clock, factory);
+
+            ProviderOutcome.Success initial = Assert.IsType<ProviderOutcome.Success>(
+                Assert.IsType<CacheFirstEvent.ProviderCompleted>(
+                    (await CollectAsync(coordinator.RunAsync(true, CancellationToken.None)))[1]).Outcome);
+
+            Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "crash");
+            ProviderOutcome crash = Assert.IsType<CacheFirstEvent.ProviderCompleted>(
+                (await CollectAsync(coordinator.RunAsync(true, CancellationToken.None)))[1]).Outcome;
+            Assert.True(crash is ProviderOutcome.TransientFailure or ProviderOutcome.ContractFailure);
+            Assert.Equal(initial.Snapshot.SourceObservedAtUtc, LastGood(crash)?.SourceObservedAtUtc);
+
+            Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "timeout");
+            ProviderOutcome.TransientFailure timeout = Assert.IsType<ProviderOutcome.TransientFailure>(
+                Assert.IsType<CacheFirstEvent.ProviderCompleted>(
+                    (await CollectAsync(coordinator.RunAsync(true, CancellationToken.None)))[1]).Outcome);
+            Assert.Equal(initial.Snapshot.SourceObservedAtUtc, timeout.LastGood?.SourceObservedAtUtc);
+
+            Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "contract");
+            ProviderOutcome.ContractFailure contract = Assert.IsType<ProviderOutcome.ContractFailure>(
+                Assert.IsType<CacheFirstEvent.ProviderCompleted>(
+                    (await CollectAsync(coordinator.RunAsync(true, CancellationToken.None)))[1]).Outcome);
+            Assert.Equal(initial.Snapshot.SourceObservedAtUtc, contract.LastGood?.SourceObservedAtUtc);
+
+            string replacementDirectory = Path.Combine(binaryFolder.Path, "replacement");
+            CopyDirectory(Path.GetDirectoryName(executable)!, replacementDirectory);
+            string replacementExecutable = Path.Combine(replacementDirectory, "codex.exe");
+            string pathMarker = Path.Combine(binaryFolder.Path, "started-path.txt");
+            Environment.SetEnvironmentVariable(
+                CodexExecutableResolver.OverrideEnvironmentVariable,
+                replacementExecutable);
+            Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "quota");
+            Environment.SetEnvironmentVariable(FakePathMarkerEnvironmentVariable, pathMarker);
+
+            ProviderOutcome.Success recovered = Assert.IsType<ProviderOutcome.Success>(
+                Assert.IsType<CacheFirstEvent.ProviderCompleted>(
+                    (await CollectAsync(coordinator.RunAsync(true, CancellationToken.None)))[1]).Outcome);
+
+            Assert.True(recovered.Snapshot.SourceObservedAtUtc >= initial.Snapshot.SourceObservedAtUtc);
+            Assert.Equal("codex", recovered.Snapshot.ProviderId.Value);
+            Assert.Equal(
+                replacementExecutable,
+                await File.ReadAllTextAsync(pathMarker),
+                ignoreCase: true);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                CodexExecutableResolver.OverrideEnvironmentVariable,
+                previousExecutable);
+            Environment.SetEnvironmentVariable(
+                FakeModeEnvironmentVariable,
+                previousMode);
+            Environment.SetEnvironmentVariable(
+                FakePathMarkerEnvironmentVariable,
+                previousMarker);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "OptIn")]
+    public async Task RealCodexRecoverySmokeRestartsAfterAControlledClose()
+    {
+        if (!string.Equals(
+                Environment.GetEnvironmentVariable(RealSmokeEnvironmentVariable),
+                "1",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        using var folder = new TemporaryFolder();
+        TimeProvider clock = TimeProvider.System;
+        var factory = new CodexAppServerQuotaClientFactory(
+            clock,
+            new CodexClientOptions(
+                "wopenusage-real-smoke",
+                "0.1.0",
+                requestTimeout: TimeSpan.FromSeconds(10)));
+        Assert.Equal(
+            CodexClientAvailability.Available,
+            await factory.DetectAsync(CancellationToken.None));
+
+        await using (ICodexQuotaClient client =
+            await factory.CreateAsync(CancellationToken.None))
+        {
+            await client.HandshakeAsync(CancellationToken.None);
+        }
+
+        var coordinator = new CodexRefreshCoordinator(folder.Path, clock, factory);
+        ProviderOutcome outcome = Assert.IsType<CacheFirstEvent.ProviderCompleted>(
+            (await CollectAsync(coordinator.RunAsync(true, CancellationToken.None)))[1]).Outcome;
+        ProviderSnapshot snapshot = outcome switch
+        {
+            ProviderOutcome.Success success => success.Snapshot,
+            ProviderOutcome.PartialSuccess partial => partial.Snapshot,
+            _ => throw new InvalidOperationException("The real Codex recovery smoke did not return a snapshot."),
+        };
+
+        Assert.Equal("codex", snapshot.ProviderId.Value);
+        Assert.All(snapshot.Metrics, metric =>
+            Assert.True(
+                metric.Id.Value.StartsWith("quota.", StringComparison.Ordinal)
+                || metric.Id.Value.StartsWith("usage.", StringComparison.Ordinal)));
+    }
+
     private static string GetFakeCodexPath()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "FakeCodex", "codex.exe");
@@ -151,6 +330,23 @@ public sealed class CodexLiveCompositionTests
 
         return events;
     }
+
+    private static void CopyDirectory(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (string file in Directory.EnumerateFiles(source))
+        {
+            File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+        }
+    }
+
+    private static ProviderSnapshot? LastGood(ProviderOutcome outcome) => outcome switch
+    {
+        ProviderOutcome.TransientFailure failure => failure.LastGood,
+        ProviderOutcome.ContractFailure failure => failure.LastGood,
+        ProviderOutcome.Throttled throttled => throttled.LastGood,
+        _ => null,
+    };
 
     private static string GetString(string key) => key switch
     {
@@ -207,5 +403,10 @@ public sealed class CodexLiveCompositionTests
                 Directory.Delete(Path, recursive: true);
             }
         }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 }
