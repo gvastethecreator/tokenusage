@@ -171,15 +171,38 @@
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Solo sesiones guardadas en este equipo. El coste estimado usa precios API y no representa el cobro de tu plan.</value></data>
   <data name="LocalUsageClaudePartialNotice" xml:space="preserve"><value>Lectura parcial: algunos archivos no se pudieron procesar. Los importes visibles pueden ser menores.</value></data>
   <data name="LocalUsageClaudeNoDataNotice" xml:space="preserve"><value>No se encontraron sesiones Claude nuevas. El último total local puede conservarse.</value></data>
-  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Uso observado en este equipo. La cuota remota de Grok está bloqueada por política.</value></data>
-  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Lectura parcial: se conserva el último total fiable. La cuota remota de Grok está bloqueada por política.</value></data>
-  <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>No se encontraron sesiones nuevas. El último total local puede conservarse. La cuota remota de Grok está bloqueada por política.</value></data>
+  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Uso local observado. El coste estimado usa tarifas API y no es el cobro del plan. La cuota Grok está bloqueada.</value></data>
+  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Lectura parcial: se conserva el último total fiable. La estimación API no es el cobro del plan. La cuota Grok está bloqueada.</value></data>
+  <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>Sin sesiones nuevas; se conserva el último total local. La estimación API no es el cobro del plan. La cuota Grok está bloqueada.</value></data>
   <data name="LocalUsageUnavailable" xml:space="preserve"><value>No se pudo leer el uso local.</value></data>
   <data name="LocalUsageReportedCost" xml:space="preserve"><value>Coste informado</value></data>
   <data name="LocalUsageEstimatedCost" xml:space="preserve"><value>Coste estimado</value></data>
   <data name="LocalUsageUnpricedTokens" xml:space="preserve"><value>Tokens sin precio</value></data>
   <data name="LocalUsageTotalTokens" xml:space="preserve"><value>Tokens</value></data>
   <data name="LocalUsageCoverage" xml:space="preserve"><value>Cobertura de coste</value></data>
+  <data name="LocalUsageCostPerMillion" xml:space="preserve"><value>Coste por 1 M tokens</value></data>
+  <data name="LocalUsageUsdPerMillionFormat" xml:space="preserve"><value>${0:0.00}/1 M</value></data>
+  <data name="LocalUsagePeriodToday" xml:space="preserve"><value>Hoy</value></data>
+  <data name="LocalUsagePeriodYesterday" xml:space="preserve"><value>Ayer</value></data>
+  <data name="LocalUsagePeriod7Days" xml:space="preserve"><value>7 días</value></data>
+  <data name="LocalUsagePeriodMonth" xml:space="preserve"><value>Mes actual</value></data>
+  <data name="LocalUsageReportedShort" xml:space="preserve"><value>Inf.</value></data>
+  <data name="LocalUsageEstimatedShort" xml:space="preserve"><value>Est.</value></data>
+  <data name="LocalUsagePeriodCostFormat" xml:space="preserve"><value>{0} {1} · {2} {3}</value></data>
+  <data name="LocalUsagePeriodDetailFormat" xml:space="preserve"><value>{0} tokens · {1} cobertura · {2}</value></data>
+  <data name="LocalUsagePeriodAccessibleFormat" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
+  <data name="LocalUsagePeriodEmptyAccessibleFormat" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="LocalUsageBreakdownTitle" xml:space="preserve"><value>Desglose de 30 días</value></data>
+  <data name="LocalUsageBreakdownSummaryFormat" xml:space="preserve"><value>{0} agentes · {1} modelos</value></data>
+  <data name="LocalUsageBreakdownAccessibleFormat" xml:space="preserve"><value>Distribución de gasto informado y estimado: {0}. {1}</value></data>
+  <data name="LocalUsageModelReportedFormat" xml:space="preserve"><value>Informado {0}</value></data>
+  <data name="LocalUsageModelEstimatedFormat" xml:space="preserve"><value>Estimado {0}</value></data>
+  <data name="LocalUsageModelCoverageFormat" xml:space="preserve"><value>Cobertura {0}</value></data>
+  <data name="LocalUsageModelTitleFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="LocalUsageModelAccessibleFormat" xml:space="preserve"><value>{0}: {1}; {2}; {3}</value></data>
+  <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
+  <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
+  <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:0.00} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Cuota no disponible · uso local visible</value></data>
 </root>
