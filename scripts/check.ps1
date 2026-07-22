@@ -15,6 +15,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $solution = Join-Path $repoRoot 'WOpenUsage.slnx'
 $architectureTests = Join-Path $repoRoot 'tests\WOpenUsage.Architecture.Tests\WOpenUsage.Architecture.Tests.csproj'
 $coreTests = Join-Path $repoRoot 'tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj'
+$cliTests = Join-Path $repoRoot 'tests\WOpenUsage.Cli.Tests\WOpenUsage.Cli.Tests.csproj'
 $providerTests = Join-Path $repoRoot 'tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj'
 $platformWindowsTests = Join-Path $repoRoot 'tests\WOpenUsage.Platform.Windows.Tests\WOpenUsage.Platform.Windows.Tests.csproj'
 
@@ -39,7 +40,7 @@ if (-not (Test-Path -LiteralPath $solution)) {
     throw "Missing solution: $solution"
 }
 
-foreach ($testProject in @($architectureTests, $coreTests, $providerTests, $platformWindowsTests)) {
+foreach ($testProject in @($architectureTests, $coreTests, $cliTests, $providerTests, $platformWindowsTests)) {
     if (-not (Test-Path -LiteralPath $testProject)) {
         throw "Missing test project: $testProject"
     }
@@ -58,6 +59,14 @@ try {
     Invoke-DotNetStep 'Core tests' @(
         'test',
         $coreTests,
+        '--configuration', $Configuration,
+        '-p:Platform=x64',
+        '--verbosity', 'minimal'
+    )
+
+    Invoke-DotNetStep 'CLI tests' @(
+        'test',
+        $cliTests,
         '--configuration', $Configuration,
         '-p:Platform=x64',
         '--verbosity', 'minimal'
