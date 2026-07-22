@@ -271,6 +271,12 @@ codex app-server --stdio
 Controles:
 
 - búsqueda en rutas conocidas y `PATH`, sin aceptar el directorio de trabajo como origen implícito;
+- override `WOPENUSAGE_CODEX_EXECUTABLE` que acepta solo un `.exe` local y
+  absoluto; si el override es inválido, la resolución falla sin volver a `PATH`;
+- creación suspendida con pipes propias, asignación al Job Object y reanudación
+  después de que `KILL_ON_JOB_CLOSE` ya está activo;
+- `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` limita la herencia a los tres handles de
+  stdio y evita filtrar otro handle heredable creado por un hilo concurrente;
 - proceso dentro de un Job Object con `KILL_ON_JOB_CLOSE`;
 - stdin/stdout redirigidos como UTF-8;
 - stderr en buffer corto con sanitización;
