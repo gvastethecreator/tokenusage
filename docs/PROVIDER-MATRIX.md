@@ -25,7 +25,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
-| Cursor | APIs privadas y export | Sí, DB/export | estado local de Cursor | Gate | M9 |
+| Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
 | GitHub Copilot | API interna; billing org público | Limitado | editor o `gh` | Gate | M9 |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | RPC privado | Limitado | CLI o app local | Experimental | M9 |
@@ -204,23 +204,24 @@ Fuente upstream de comparación: [provider Z.ai](https://github.com/robinebers/o
 
 ## Cursor
 
-### Fuente candidata
+### Fuente elegida
 
-- base de estado local de Cursor en Windows;
-- endpoints de dashboard;
-- export CSV de uso para gasto y modelo.
+La Admin API pública de Cursor admite métricas, gasto y eventos de uso de Teams y Enterprise. Un administrador crea una clave y la entrega de forma manual. WOpenUsage la guarda en Windows Credential Locker y limita el cliente a `https://api.cursor.com`.
 
-### Riesgos
+Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso incluido que Cursor anunció para Teams en junio de 2026. La tarjeta muestra `Uso y gasto del equipo`, con procedencia y ciclo. No afirma cuota restante.
 
-- token y esquema internos;
-- diferencias Individual, Business y Enterprise;
-- endpoint o export sin contrato estable;
-- base SQLite bloqueada mientras Cursor corre;
-- varias instalaciones y perfiles.
+### Cobertura y política
 
-### Salida
+- Individual: `Unsupported`; no hay una interfaz pública encontrada para uso o gasto de la cuenta.
+- Teams: gasto, actividad, tokens y eventos según la Admin API.
+- Business: nombre legado que puede aparecer en eventos; usa la semántica de Teams.
+- Enterprise: mismo contrato por conexión configurada; varias conexiones no se mezclan por correo.
 
-Gate completo. El scanner debe copiar o abrir la base en modo solo lectura sin bloquear Cursor. La app no rota ni escribe el token.
+Quedan prohibidos `state.vscdb`, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado. Una base bloqueada, un export ausente o varias instalaciones no afectan el proveedor porque no se exploran.
+
+Gate resuelto como `implement-subset`. La build pública sigue apagada hasta un smoke autorizado con una clave admin y el borrado posterior de la credencial.
+
+Investigación: [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md).
 
 Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
@@ -281,7 +282,7 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 5. Spike pasivo Antigravity CLI con una `.db` real.
 6. OpenRouter con clave manual.
 7. Reabrir Z.ai solo con contrato público o permiso escrito.
-8. Cursor y Copilot tras sus gates.
+8. Cursor Teams y Enterprise con Admin API; Copilot tras su gate.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
 10. Devin experimental.
 
