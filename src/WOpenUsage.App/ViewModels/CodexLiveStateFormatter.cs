@@ -94,6 +94,7 @@ public static class CodexLiveStateFormatter
         SampleDataState.Error => "CodexStateError",
         SampleDataState.Throttled => "CodexStateThrottled",
         SampleDataState.NotSaved => "CodexStateNotSaved",
+        SampleDataState.Unavailable => "CodexStateUnavailable",
         _ => "CodexQuotaPeriod",
     };
 }

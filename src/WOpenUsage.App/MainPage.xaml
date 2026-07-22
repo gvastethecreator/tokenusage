@@ -319,6 +319,77 @@
                             </Grid>
                         </Border>
 
+                        <Border
+                            x:Name="UsageProductCard"
+                            x:Load="{x:Bind ViewModel.IsLocalUsageVisible, Mode=OneWay}"
+                            AutomationProperties.AutomationId="UsageProductCard"
+                            AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.Title, Mode=OneWay}"
+                            Padding="12"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource DashboardCardCornerRadius}">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="1">
+                                        <TextBlock
+                                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                                            Text="{x:Bind ViewModel.LocalUsage.Title, Mode=OneWay}" />
+                                        <TextBlock
+                                            AutomationProperties.AutomationId="UsageProductCard.DataOrigin"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="{x:Bind ViewModel.LocalUsage.SourceLabel, Mode=OneWay}"
+                                            TextWrapping="WrapWholeWords" />
+                                    </StackPanel>
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        AutomationProperties.AutomationId="UsageProductCard.Period"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind ViewModel.LocalUsage.PeriodLabel, Mode=OneWay}"
+                                        TextWrapping="WrapWholeWords" />
+                                </Grid>
+
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.LocalUsage.NoticeText, Mode=OneWay}"
+                                    TextWrapping="WrapWholeWords" />
+
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.LocalUsage.Metrics, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="sample:SampleMetric">
+                                            <Grid
+                                                AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                                AutomationProperties.Name="{x:Bind AutomationName}"
+                                                MinHeight="20"
+                                                ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Label}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Value}"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="sample:SampleProviderCard">
