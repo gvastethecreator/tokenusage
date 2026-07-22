@@ -24,7 +24,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | OpenCode | No hay cuota común | Sí, coste informado y tokens | `opencode.db` y `storage` | Local | M6A |
 | Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
-| Z.ai | Sí, API con clave | Depende de API | clave manual propia | Manual + Gate | M9 |
+| Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
 | Cursor | APIs privadas y export | Sí, DB/export | estado local de Cursor | Gate | M9 |
 | GitHub Copilot | API interna; billing org público | Limitado | editor o `gh` | Gate | M9 |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
@@ -188,13 +188,17 @@ Fuente upstream de comparación: [provider OpenRouter](https://github.com/robine
 
 ## Z.ai
 
-### Fuente
+### Fuente evaluada
 
-Clave manual en Credential Locker. El adaptador debe confirmar que el endpoint y su uso por terceros estén documentados para la región y el tipo de cuenta elegidos.
+Z.ai publica `glm-plan-usage`, un plugin de cuota para el plan Personal que se ejecuta dentro de Claude Code. Su repositorio oficial consulta `api.z.ai` para cuentas internacionales y `open.bigmodel.cn` para China. Los endpoints de monitor no aparecen en el OpenAPI general.
+
+La política limita el GLM Coding Plan a herramientas soportadas. Las fuentes no conceden a una app Windows aparte un scope de solo lectura ni permiso para reutilizar esos endpoints.
 
 ### Salida
 
-Después de OpenRouter. Se bloquea si depende de un endpoint interno.
+Bloqueado. La build pública no pide una key Z.ai, no invoca el plugin y no copia el cliente upstream. El gasto local de modelos Z.ai puede aparecer mediante logs de agents admitidos, con cobertura y procedencia.
+
+Gate completo: [investigación Z.ai](research/2026-07-21-zai-gate.md).
 
 Fuente upstream de comparación: [provider Z.ai](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/zai.md).
 
@@ -276,7 +280,7 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 4. Grok Build y OpenCode local.
 5. Spike pasivo Antigravity CLI con una `.db` real.
 6. OpenRouter con clave manual.
-7. Z.ai si su contrato queda aprobado.
+7. Reabrir Z.ai solo con contrato público o permiso escrito.
 8. Cursor y Copilot tras sus gates.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
 10. Devin experimental.

@@ -78,6 +78,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 
 - [Investigación de viabilidad](docs/research/2026-07-21-openusage-windows-feasibility.md)
 - [Investigación de Grok, Antigravity, OpenCode y gasto local](docs/research/2026-07-21-agent-costs-and-quotas.md)
+- [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Preparación del primer scaffold WinUI](docs/research/2026-07-21-winui-m1-readiness.md)
 - [Evidencia del Ticket 03](docs/evidence/ticket-03-winui-scaffold.md)
 - [Evidencia del Ticket 04](docs/evidence/ticket-04-architecture.md)
