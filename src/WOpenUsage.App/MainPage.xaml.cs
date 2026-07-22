@@ -13,6 +13,8 @@ namespace WOpenUsage.App;
 
 public sealed partial class MainPage : Page
 {
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
+
     public MainPage()
     {
         TimeProvider clock = TimeProvider.System;
@@ -32,6 +34,10 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
+        _relativeTimeTimer = DispatcherQueue.CreateTimer();
+        _relativeTimeTimer.Interval = TimeSpan.FromSeconds(30);
+        _relativeTimeTimer.Tick += (_, _) => ViewModel.RefreshRelativeTime();
+        _relativeTimeTimer.Start();
     }
 
     public event EventHandler? HideRequested;

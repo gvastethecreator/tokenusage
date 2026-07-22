@@ -21,6 +21,15 @@ public static class CodexExecutableResolver
         }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string candidate in EnumeratePreferredNativeCandidates(context))
+        {
+            if (TryNormalizeExecutable(candidate, out string? executablePath)
+                && seen.Add(executablePath))
+            {
+                return new CodexExecutableResolution.Resolved(executablePath);
+            }
+        }
+
         foreach (string candidate in EnumerateSearchCandidates(context))
         {
             if (!TryNormalizeExecutable(candidate, out string? executablePath)
@@ -38,6 +47,7 @@ public static class CodexExecutableResolver
     private static IEnumerable<string> EnumerateSearchCandidates(
         CodexExecutableSearchContext context)
     {
+        string? deferredBunCandidate = null;
         if (!string.IsNullOrEmpty(context.PathValue))
         {
             foreach (string rawEntry in context.PathValue.Split(Path.PathSeparator))
@@ -68,13 +78,25 @@ public static class CodexExecutableResolver
                     continue;
                 }
 
-                yield return Path.Combine(expanded, "codex.exe");
+                string candidate = Path.Combine(expanded, "codex.exe");
+                if (IsBunGlobalBin(expanded, context.UserProfile))
+                {
+                    deferredBunCandidate = candidate;
+                    continue;
+                }
+
+                yield return candidate;
             }
         }
 
         foreach (string candidate in EnumerateKnownCandidates(context))
         {
             yield return candidate;
+        }
+
+        if (deferredBunCandidate is not null)
+        {
+            yield return deferredBunCandidate;
         }
     }
 
@@ -84,39 +106,6 @@ public static class CodexExecutableResolver
         if (!string.IsNullOrWhiteSpace(context.UserProfile))
         {
             yield return Path.Combine(context.UserProfile, ".bun", "bin", "codex.exe");
-        }
-
-        if (!string.IsNullOrWhiteSpace(context.AppData))
-        {
-            string? package = context.Architecture switch
-            {
-                Architecture.X64 => "codex-win32-x64",
-                Architecture.Arm64 => "codex-win32-arm64",
-                _ => null,
-            };
-            string? target = context.Architecture switch
-            {
-                Architecture.X64 => "x86_64-pc-windows-msvc",
-                Architecture.Arm64 => "aarch64-pc-windows-msvc",
-                _ => null,
-            };
-
-            if (package is not null && target is not null)
-            {
-                yield return Path.Combine(
-                    context.AppData,
-                    "npm",
-                    "node_modules",
-                    "@openai",
-                    "codex",
-                    "node_modules",
-                    "@openai",
-                    package,
-                    "vendor",
-                    target,
-                    "bin",
-                    "codex.exe");
-            }
         }
 
         if (!string.IsNullOrWhiteSpace(context.LocalAppData))
@@ -142,6 +131,44 @@ public static class CodexExecutableResolver
         if (!string.IsNullOrWhiteSpace(context.ProgramFiles))
         {
             yield return Path.Combine(context.ProgramFiles, "Codex", "codex.exe");
+        }
+    }
+
+    private static IEnumerable<string> EnumeratePreferredNativeCandidates(
+        CodexExecutableSearchContext context)
+    {
+        if (string.IsNullOrWhiteSpace(context.AppData))
+        {
+            yield break;
+        }
+
+        string? package = context.Architecture switch
+        {
+            Architecture.X64 => "codex-win32-x64",
+            Architecture.Arm64 => "codex-win32-arm64",
+            _ => null,
+        };
+        string? target = context.Architecture switch
+        {
+            Architecture.X64 => "x86_64-pc-windows-msvc",
+            Architecture.Arm64 => "aarch64-pc-windows-msvc",
+            _ => null,
+        };
+        if (package is not null && target is not null)
+        {
+            yield return Path.Combine(
+                context.AppData,
+                "npm",
+                "node_modules",
+                "@openai",
+                "codex",
+                "node_modules",
+                "@openai",
+                package,
+                "vendor",
+                target,
+                "bin",
+                "codex.exe");
         }
     }
 
@@ -204,6 +231,29 @@ public static class CodexExecutableResolver
             && char.IsAsciiLetter(root[0])
             && root[1] == ':'
             && Path.EndsInDirectorySeparator(root);
+    }
+
+    private static bool IsBunGlobalBin(string path, string? userProfile)
+    {
+        if (string.IsNullOrWhiteSpace(userProfile))
+        {
+            return false;
+        }
+
+        try
+        {
+            string expected = Path.GetFullPath(Path.Combine(userProfile, ".bun", "bin"));
+            string actual = Path.GetFullPath(path);
+            return string.Equals(
+                Path.TrimEndingDirectorySeparator(actual),
+                Path.TrimEndingDirectorySeparator(expected),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
     }
 }
 

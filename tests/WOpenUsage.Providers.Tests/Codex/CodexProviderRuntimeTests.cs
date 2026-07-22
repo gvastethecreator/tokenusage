@@ -206,6 +206,24 @@ public sealed class CodexProviderRuntimeTests
     }
 
     [Fact]
+    public async Task MissingCliAfterSuccessPreservesLastGoodAsTransientFailure()
+    {
+        ProviderSnapshot lastGood = CreateLastGood();
+        var factory = new StubFactory(CodexClientAvailability.MissingCli, CreateReadyClient());
+        var runtime = new CodexProviderRuntime(factory, "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now), lastGood),
+            CancellationToken.None);
+
+        ProviderOutcome.TransientFailure failure =
+            Assert.IsType<ProviderOutcome.TransientFailure>(result);
+        Assert.Equal("Codex CLI is not installed or could not be found.", failure.Error.Message);
+        Assert.Same(lastGood, failure.LastGood);
+        Assert.Equal(0, factory.CreateCount);
+    }
+
+    [Fact]
     public async Task MissingChatGptLoginIsExplicitAndSkipsQuotaRead()
     {
         var client = new StubClient(
