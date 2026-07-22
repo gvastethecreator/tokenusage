@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve"><value>WOpenUsage</value></data>
+  <data name="TrayTooltip" xml:space="preserve"><value>WOpenUsage</value></data>
+  <data name="TrayMenuUpdate" xml:space="preserve"><value>Actualizar</value></data>
+  <data name="TrayMenuSettings" xml:space="preserve"><value>Opciones</value></data>
+  <data name="TrayMenuExit" xml:space="preserve"><value>Salir</value></data>
+  <data name="StatusIdle" xml:space="preserve"><value>Sin datos</value></data>
+  <data name="StatusLoading" xml:space="preserve"><value>Actualizando…</value></data>
+  <data name="ProviderHeader.Text" xml:space="preserve"><value>Proveedores</value></data>
+  <data name="HeaderRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Actualizar</value></data>
+  <data name="OptionsHeader.Text" xml:space="preserve"><value>Opciones</value></data>
+  <data name="OptionsBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Atrás</value></data>
+  <data name="LoadingProgressRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Actualizando uso</value></data>
+  <data name="LoadingLabel.Text" xml:space="preserve"><value>Buscando datos de uso locales…</value></data>
+  <data name="EmptyTitle.Text" xml:space="preserve"><value>Aún no hay proveedores</value></data>
+  <data name="EmptyBody.Text" xml:space="preserve"><value>La cuota y el gasto aparecerán aquí cuando haya una herramienta local compatible. Esta compilación no tiene una fuente conectada.</value></data>
+  <data name="EmptyOpenOptionsButton.Content" xml:space="preserve"><value>Abrir opciones</value></data>
+  <data name="EmptyOpenOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Abrir opciones</value></data>
+  <data name="CloseWhenInactiveToggle.Header" xml:space="preserve"><value>Cerrar al perder foco</value></data>
+  <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Cerrar al perder foco</value></data>
+  <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>WOpenUsage 0.1</value></data>
+  <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Opciones</value></data>
+  <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Opciones</value></data>
+</root>

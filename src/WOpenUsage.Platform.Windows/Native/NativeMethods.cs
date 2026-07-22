@@ -35,6 +35,9 @@ internal static class NativeMethods
     internal const uint TpmRightButton = 0x0002;
     internal const uint TpmReturnCmd = 0x0100;
 
+    internal const uint MonitorDefaultToNearest = 2;
+    internal const uint SpiGetWorkArea = 0x0030;
+
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool Shell_NotifyIcon(uint message, ref NotifyIconData data);
@@ -111,6 +114,27 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool GetCursorPos(out NativePoint point);
 
+    [DllImport("user32.dll")]
+    internal static extern nint MonitorFromPoint(NativePoint point, uint flags);
+
+    [DllImport("user32.dll")]
+    internal static extern nint MonitorFromRect(ref NativeRect rect, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern uint GetDpiForWindow(nint window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SystemParametersInfo(
+        uint action,
+        uint parameter,
+        ref NativeRect value,
+        uint updateFlags);
+
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern uint GetWindowThreadProcessId(nint window, out uint processId);
 
@@ -165,18 +189,41 @@ internal static class NativeMethods
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct NativeRect
+    internal struct NativeRect
     {
-        internal readonly int Left;
-        internal readonly int Top;
-        internal readonly int Right;
-        internal readonly int Bottom;
+        internal int Left;
+        internal int Top;
+        internal int Right;
+        internal int Bottom;
+
+        internal NativeRect(int left, int top, int right, int bottom)
+        {
+            Left = left;
+            Top = top;
+            Right = right;
+            Bottom = bottom;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct NativePoint
+    internal struct NativePoint
     {
-        internal readonly int X;
-        internal readonly int Y;
+        internal int X;
+        internal int Y;
+
+        internal NativePoint(int x, int y)
+        {
+            X = x;
+            Y = y;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct MonitorInfo
+    {
+        internal uint Size;
+        internal NativeRect Monitor;
+        internal NativeRect Work;
+        internal uint Flags;
     }
 }
