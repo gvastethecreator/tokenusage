@@ -11,6 +11,7 @@ using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.Providers.Claude;
 using WOpenUsage.Providers.Grok;
+using WOpenUsage.Providers.OpenCode;
 
 namespace WOpenUsage.App;
 
@@ -43,6 +44,7 @@ public sealed partial class MainPage : Page
                 [
                     new ClaudeUsageEventSource(TimeZoneInfo.Local.Id),
                     new GrokUsageEventSource(TimeZoneInfo.Local.Id),
+                    new OpenCodeUsageEventSource(TimeZoneInfo.Local.Id),
                 ],
                 clock));
         InitializeComponent();
