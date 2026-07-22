@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.App.ViewModels.Sample;
@@ -163,12 +165,102 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Equal("100%", FindValue(card, "UsageProductCard.CostCoverage"));
     }
 
+    [Fact]
+    public async Task PartialSnapshotReadKeepsTheLastReliableTotals()
+    {
+        using var folder = new TemporaryFolder();
+        var source = new SequenceSnapshotSource(
+        [
+            Result(100, UsageSourceReadStatus.Complete),
+            Result(900, UsageSourceReadStatus.Partial),
+        ]);
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            source,
+            new FixedTimeProvider(Now));
+        Func<string, string> strings = key => key switch
+        {
+            "LocalUsageTotalTokens" => "Tokens",
+            "CodexUsageMissing" => "Sin datos",
+            "LocalUsageUsdFormat" => "${0:0.00} USD",
+            _ => key,
+        };
+
+        _ = await coordinator.RefreshAsync(strings);
+        LocalUsageCard partial = await coordinator.RefreshAsync(strings);
+
+        Assert.Equal("100", FindValue(partial, "UsageProductCard.TotalTokens"));
+        Assert.Equal("LocalUsageClaudePartialNotice", partial.NoticeText);
+    }
+
+    [Fact]
+    public async Task MissingSnapshotRootDoesNotEraseTheLastReliableTotals()
+    {
+        using var folder = new TemporaryFolder();
+        var source = new SequenceSnapshotSource(
+        [
+            Result(100, UsageSourceReadStatus.Complete),
+            new UsageSourceReadResult([], UsageSourceReadStatus.NoData),
+        ]);
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            source,
+            new FixedTimeProvider(Now));
+        Func<string, string> strings = key => key switch
+        {
+            "LocalUsageTotalTokens" => "Tokens",
+            "CodexUsageMissing" => "Sin datos",
+            "LocalUsageUsdFormat" => "${0:0.00} USD",
+            _ => key,
+        };
+
+        _ = await coordinator.RefreshAsync(strings);
+        LocalUsageCard missing = await coordinator.RefreshAsync(strings);
+
+        Assert.Equal("100", FindValue(missing, "UsageProductCard.TotalTokens"));
+        Assert.Equal("LocalUsageClaudeNoDataNotice", missing.NoticeText);
+    }
+
     private static string FindValue(LocalUsageCard card, string automationId) =>
         Assert.Single(card.Metrics, metric => metric.AutomationId == automationId).Value;
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private static UsageSourceReadResult Result(
+        long tokens,
+        UsageSourceReadStatus status) => new(
+        [new UsageEvent(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(
+                Encoding.UTF8.GetBytes($"grok-{tokens}"))).ToLowerInvariant()),
+            new AgentId("grok"),
+            new ModelProviderId("xai"),
+            new ModelId("grok-4.5-build"),
+            Now,
+            "UTC",
+            new TokenBreakdown(tokens, 0, 0, 0, 0),
+            CostObservation.ProviderReported(0m),
+            "grok-build/1",
+            CoverageKind.Complete)],
+        status);
+
+    private sealed class SequenceSnapshotSource(
+        IReadOnlyList<UsageSourceReadResult> results) : ISnapshotUsageEventSource
+    {
+        private int _index;
+
+        public AgentId AgentId { get; } = new("grok");
+
+        public SourceKind SourceKind => SourceKind.LocalLog;
+
+        public Task<UsageSourceReadResult> ReadAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(results[Math.Min(_index++, results.Count - 1)]);
+        }
     }
 
     private sealed class TemporaryFolder : IDisposable
