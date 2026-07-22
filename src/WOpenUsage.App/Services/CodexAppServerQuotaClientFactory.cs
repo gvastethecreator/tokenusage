@@ -105,6 +105,10 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
             CancellationToken cancellationToken) =>
             client.ReadRateLimitsAsync(cancellationToken);
 
+        public Task<CodexTokenUsageSnapshot> ReadTokenUsageAsync(
+            CancellationToken cancellationToken) =>
+            client.ReadTokenUsageAsync(cancellationToken);
+
         public async ValueTask DisposeAsync()
         {
             if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
