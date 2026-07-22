@@ -5,4 +5,5 @@ public enum FlyoutSurfaceState
     Loading,
     Empty,
     Options,
+    Sample,
 }
