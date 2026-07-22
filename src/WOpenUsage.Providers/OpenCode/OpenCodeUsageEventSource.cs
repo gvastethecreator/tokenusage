@@ -547,10 +547,18 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     {
         string modelValue = model.Trim();
         int separator = modelValue.IndexOf('/');
-        if (string.IsNullOrWhiteSpace(provider) && separator > 0)
+        if (separator > 0)
         {
-            provider = modelValue[..separator];
-            modelValue = modelValue[(separator + 1)..];
+            string prefix = modelValue[..separator];
+            if (string.IsNullOrWhiteSpace(provider))
+            {
+                provider = prefix;
+                modelValue = modelValue[(separator + 1)..];
+            }
+            else if (string.Equals(provider.Trim(), prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                modelValue = modelValue[(separator + 1)..];
+            }
         }
         ModelProviderId? providerId = null;
         try { if (!string.IsNullOrWhiteSpace(provider)) providerId = new ModelProviderId(provider.Trim().ToLowerInvariant()); }
