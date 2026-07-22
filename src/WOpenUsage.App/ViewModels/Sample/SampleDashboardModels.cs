@@ -87,9 +87,29 @@ public sealed record LocalUsageCard(
     string NoticeText,
     IReadOnlyList<SampleMetric> Metrics,
     IReadOnlyList<LocalUsagePeriodRow> OtherPeriods,
-    LocalUsageSpendBreakdown SpendBreakdown)
+    LocalUsageSpendBreakdown SpendBreakdown,
+    IReadOnlyList<ProviderStatusRow> ProviderStatuses)
 {
     public bool HasData => Metrics.Count > 0;
+}
+
+public sealed record ProviderCapabilityRow(
+    string Label,
+    string Value,
+    string AutomationId)
+{
+    public string AutomationName => $"{Label}: {Value}";
+}
+
+public sealed record ProviderStatusRow(
+    string ProviderId,
+    string Name,
+    string RootState,
+    string RecoveryText,
+    IReadOnlyList<ProviderCapabilityRow> Capabilities,
+    string AutomationId)
+{
+    public string AutomationName => $"{Name}. {RootState}. {RecoveryText}";
 }
 
 public sealed record LocalUsagePeriodRow(

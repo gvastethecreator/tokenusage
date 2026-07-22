@@ -13,7 +13,8 @@ public static class LocalUsageCardProjector
         SourceKind sourceKind = SourceKind.Synthetic,
         UsageSourceReadStatus readStatus = UsageSourceReadStatus.Complete,
         bool hasMultipleRealSources = false,
-        DateOnly? today = null)
+        DateOnly? today = null,
+        IReadOnlyList<UsageSourceDiagnostic>? sourceDiagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(rollups);
         ArgumentNullException.ThrowIfNull(getString);
@@ -64,6 +65,11 @@ public static class LocalUsageCardProjector
             totals30Days,
             missing,
             getString);
+        ProviderStatusRow[] providerStatuses = CreateProviderStatuses(
+            rollups30Days,
+            sourceDiagnostics ?? [],
+            missing,
+            getString);
 
         return new LocalUsageCard(
             getString("LocalUsageTitle"),
@@ -88,7 +94,8 @@ public static class LocalUsageCardProjector
                 : "LocalUsageNotice"),
             metrics,
             otherPeriods,
-            breakdown);
+            breakdown,
+            providerStatuses);
     }
 
     public static LocalUsageCard CreateUnavailable(
@@ -285,6 +292,78 @@ public static class LocalUsageCardProjector
             "opencode" => getString("LocalUsageAgentOpenCode"),
             _ => agentId,
         };
+
+    private static ProviderStatusRow[] CreateProviderStatuses(
+        IReadOnlyList<DailyUsageRollup> rollups,
+        IReadOnlyList<UsageSourceDiagnostic> diagnostics,
+        string missing,
+        Func<string, string> getString) =>
+        diagnostics
+            .Where(item => item.AgentId.Value is "claude" or "grok" or "opencode")
+            .Select(item =>
+            {
+                Totals totals = Sum(rollups.Where(rollup => rollup.AgentId == item.AgentId));
+                string providerId = item.AgentId.Value;
+                bool isRetainedSnapshot = item.RetainsLastReliableSnapshot
+                    && item.Status != UsageSourceReadStatus.Complete
+                    && totals.TotalTokens > 0;
+                string usage = item.Issue == UsageSourceIssueKind.UnsupportedSchema
+                    ? getString("ProviderStatusUnsupportedSchema")
+                    : item.Status switch
+                    {
+                        UsageSourceReadStatus.Complete => getString("ProviderStatusComplete"),
+                        UsageSourceReadStatus.Partial => getString("ProviderStatusPartial"),
+                        _ when item.Issue == UsageSourceIssueKind.RootUnavailable =>
+                            getString("ProviderStatusNotConfigured"),
+                        _ => getString("ProviderStatusNoData"),
+                    };
+                string spend = totals.HasReported
+                    ? getString(isRetainedSnapshot
+                        ? "ProviderStatusReportedLastReliable"
+                        : "ProviderStatusReported")
+                    : totals.HasEstimated
+                        ? getString(isRetainedSnapshot
+                            ? "ProviderStatusEstimatedLastReliable"
+                            : "ProviderStatusEstimated")
+                        : totals.TotalTokens > 0
+                            ? getString("ProviderStatusUnavailable")
+                            : missing;
+                string coverage = isRetainedSnapshot
+                    ? string.Format(
+                        CultureInfo.CurrentCulture,
+                        getString("ProviderStatusCoverageLastReliableFormat"),
+                        FormatCoverage(totals, missing))
+                    : FormatCoverage(totals, missing);
+                string root = item.Issue == UsageSourceIssueKind.RootUnavailable
+                    ? getString("ProviderStatusRootMissing")
+                    : getString("ProviderStatusRootDetected");
+                string recovery = item.Issue switch
+                {
+                    UsageSourceIssueKind.RootUnavailable => getString("ProviderStatusRecoveryOpenTool"),
+                    UsageSourceIssueKind.UnsupportedSchema => getString("ProviderStatusRecoveryUpdate"),
+                    UsageSourceIssueKind.PartialScan or UsageSourceIssueKind.AccessBlocked =>
+                        getString("ProviderStatusRecoveryRetry"),
+                    _ => getString("ProviderStatusRecoveryRefresh"),
+                };
+                return new ProviderStatusRow(
+                    providerId,
+                    GetAgentName(providerId, getString),
+                    root,
+                    recovery,
+                    [
+                        new(
+                            getString("ProviderStatusQuota"),
+                            getString(providerId == "grok"
+                                ? "ProviderStatusBlocked"
+                                : "ProviderStatusUnavailable"),
+                            $"ProviderStatus.{providerId}.Quota"),
+                        new(getString("ProviderStatusUsage"), usage, $"ProviderStatus.{providerId}.Usage"),
+                        new(getString("ProviderStatusSpend"), spend, $"ProviderStatus.{providerId}.Spend"),
+                        new(getString("ProviderStatusCoverage"), coverage, $"ProviderStatus.{providerId}.Coverage"),
+                    ],
+                    $"ProviderStatus.{providerId}");
+            })
+            .ToArray();
 
     private static Totals Sum(
         IEnumerable<DailyUsageRollup> rollups,

@@ -12,8 +12,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AppTitle" xml:space="preserve"><value>WOpenUsage</value></data>
-  <data name="TrayTooltip" xml:space="preserve"><value>WOpenUsage</value></data>
+  <data name="AppTitle" xml:space="preserve"><value>TokenUsage</value></data>
+  <data name="TrayTooltip" xml:space="preserve"><value>TokenUsage</value></data>
   <data name="TrayMenuUpdate" xml:space="preserve"><value>Update</value></data>
   <data name="TrayMenuSettings" xml:space="preserve"><value>Options</value></data>
   <data name="TrayMenuExit" xml:space="preserve"><value>Exit</value></data>
@@ -32,7 +32,7 @@
   <data name="EmptyOpenOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open options</value></data>
   <data name="CloseWhenInactiveToggle.Header" xml:space="preserve"><value>Close when focus is lost</value></data>
   <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Close when focus is lost</value></data>
-  <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>WOpenUsage 0.1</value></data>
+  <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>TokenUsage 0.1</value></data>
   <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
   <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Options</value></data>
   <data name="SampleBadge.Text" xml:space="preserve"><value>Sample</value></data>
@@ -136,9 +136,9 @@
   <data name="CodexAgeDaysFormat" xml:space="preserve"><value>{0} d</value></data>
   <data name="SampleRetryAutomationName" xml:space="preserve"><value>Retry sample</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Codex quota unavailable</value></data>
-  <data name="CodexUnavailableBody" xml:space="preserve"><value>WOpenUsage could not read Codex quota. Check that Codex runs, then try again.</value></data>
+  <data name="CodexUnavailableBody" xml:space="preserve"><value>TokenUsage could not read Codex quota. Check that Codex runs, then try again.</value></data>
   <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex setup needed</value></data>
-  <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Install Codex CLI or sign in with ChatGPT in Codex, then retry. WOpenUsage does not ask for credentials.</value></data>
+  <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Install Codex CLI or sign in with ChatGPT in Codex, then retry. TokenUsage does not ask for credentials.</value></data>
   <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Codex quota is unavailable for this account</value></data>
   <data name="CodexUnsupportedBody" xml:space="preserve"><value>The active Codex account does not report ChatGPT quota windows.</value></data>
   <data name="CodexRetry" xml:space="preserve"><value>Retry Codex quota</value></data>
@@ -205,4 +205,35 @@
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:0.00} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
+  <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
+  <data name="ProviderStatusSectionDescription.Text" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
+  <data name="ProviderStatusRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh provider status</value></data>
+  <data name="ProviderStatusQuota" xml:space="preserve"><value>Quota</value></data>
+  <data name="ProviderStatusUsage" xml:space="preserve"><value>Local usage</value></data>
+  <data name="ProviderStatusSpend" xml:space="preserve"><value>Spend</value></data>
+  <data name="ProviderStatusCoverage" xml:space="preserve"><value>Coverage</value></data>
+  <data name="ProviderStatusAvailable" xml:space="preserve"><value>Available</value></data>
+  <data name="ProviderStatusComplete" xml:space="preserve"><value>Complete</value></data>
+  <data name="ProviderStatusPartial" xml:space="preserve"><value>Partial</value></data>
+  <data name="ProviderStatusNotConfigured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="ProviderStatusNoData" xml:space="preserve"><value>No data yet</value></data>
+  <data name="ProviderStatusBlocked" xml:space="preserve"><value>Blocked by provider policy</value></data>
+  <data name="ProviderStatusUnsupportedSchema" xml:space="preserve"><value>Newer format unsupported</value></data>
+  <data name="ProviderStatusUnsupported" xml:space="preserve"><value>Account type unsupported</value></data>
+  <data name="ProviderStatusReported" xml:space="preserve"><value>Provider reported</value></data>
+  <data name="ProviderStatusEstimated" xml:space="preserve"><value>Estimated from rates</value></data>
+  <data name="ProviderStatusReportedLastReliable" xml:space="preserve"><value>Provider reported · last reliable</value></data>
+  <data name="ProviderStatusEstimatedLastReliable" xml:space="preserve"><value>Estimated · last reliable</value></data>
+  <data name="ProviderStatusCoverageLastReliableFormat" xml:space="preserve"><value>Last reliable · {0}</value></data>
+  <data name="ProviderStatusUnavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="ProviderStatusRootDetected" xml:space="preserve"><value>Data source detected</value></data>
+  <data name="ProviderStatusRootMissing" xml:space="preserve"><value>Data source not found</value></data>
+  <data name="ProviderStatusRootPending" xml:space="preserve"><value>Detection pending</value></data>
+  <data name="ProviderStatusContractChanged" xml:space="preserve"><value>Provider response changed</value></data>
+  <data name="ProviderStatusRecoveryOpenTool" xml:space="preserve"><value>Open the provider once, then refresh status.</value></data>
+  <data name="ProviderStatusRecoveryUpdate" xml:space="preserve"><value>Update TokenUsage when support for this format is available.</value></data>
+  <data name="ProviderStatusRecoveryRetry" xml:space="preserve"><value>Close active session files, then refresh status.</value></data>
+  <data name="ProviderStatusRecoveryRefresh" xml:space="preserve"><value>Refresh status after new activity.</value></data>
+  <data name="ProviderStatusRecoveryUnavailable" xml:space="preserve"><value>No recovery is available in the app.</value></data>
+  <data name="LocalUsageAgentCodex" xml:space="preserve"><value>Codex</value></data>
 </root>

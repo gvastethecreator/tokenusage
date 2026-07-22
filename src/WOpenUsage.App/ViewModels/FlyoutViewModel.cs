@@ -23,6 +23,7 @@ public partial class FlyoutViewModel : ObservableObject
     private DateTimeOffset? _publishedObservedAtUtc;
     private DateTimeOffset? _retryAtUtc;
     private bool _hasLocalUsage;
+    private ProviderOutcome? _lastCodexOutcome;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
@@ -102,7 +103,11 @@ public partial class FlyoutViewModel : ObservableObject
         "",
         [],
         [],
-        new("", "", "", "", [], []));
+        new("", "", "", "", [], []),
+        []);
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ProviderStatusRow> ProviderStatuses { get; set; } = [];
 
     [ObservableProperty]
     public partial int SampleRevealToken { get; set; }
@@ -358,6 +363,7 @@ public partial class FlyoutViewModel : ObservableObject
             if (refreshVersion == _refreshVersion && !cancellationToken.IsCancellationRequested)
             {
                 LocalUsage = card;
+                RebuildProviderStatuses();
                 _hasLocalUsage = true;
                 OnPropertyChanged(nameof(IsLocalUsageVisible));
             }
@@ -371,7 +377,11 @@ public partial class FlyoutViewModel : ObservableObject
             {
                 LocalUsage = LocalUsageCardProjector.CreateUnavailable(
                     GetString,
-                    _localUsageCoordinator.SourceKind);
+                    _localUsageCoordinator.SourceKind) with
+                {
+                    ProviderStatuses = LocalUsage.ProviderStatuses,
+                };
+                RebuildProviderStatuses();
                 _hasLocalUsage = true;
                 OnPropertyChanged(nameof(IsLocalUsageVisible));
             }
@@ -407,6 +417,11 @@ public partial class FlyoutViewModel : ObservableObject
         SampleScenario? scenario,
         CacheFirstEvent.ProviderCompleted provider)
     {
+        if (scenario is null)
+        {
+            _lastCodexOutcome = provider.Outcome;
+        }
+
         ProviderSnapshot? snapshot = provider.Outcome switch
         {
             ProviderOutcome.Success success => success.Snapshot,
@@ -480,6 +495,11 @@ public partial class FlyoutViewModel : ObservableObject
 
     private void PublishUnavailable(ProviderOutcome? outcome)
     {
+        if (!IsSampleModeEnabled)
+        {
+            _lastCodexOutcome = outcome;
+        }
+
         _hasPublishedDashboard = false;
         _resultSurface = FlyoutSurfaceState.SampleUnavailable;
         SetDataState(SampleDataState.Unavailable);
@@ -519,7 +539,63 @@ public partial class FlyoutViewModel : ObservableObject
     private void SetDataState(SampleDataState state)
     {
         CurrentSampleDataState = state;
+        RebuildProviderStatuses();
         OnPropertyChanged(nameof(LiveDataStateText));
+    }
+
+    private void RebuildProviderStatuses()
+    {
+        var statuses = new List<ProviderStatusRow>
+        {
+            new(
+                "codex",
+                GetString("LocalUsageAgentCodex"),
+                _lastCodexOutcome is ProviderOutcome.NotConfigured
+                    ? GetString("ProviderStatusRootMissing")
+                    : _lastCodexOutcome is null && !_hasPublishedDashboard
+                        ? GetString("ProviderStatusRootPending")
+                        : GetString("ProviderStatusRootDetected"),
+                GetString(_lastCodexOutcome switch
+                {
+                    ProviderOutcome.NotConfigured => "ProviderStatusRecoveryOpenTool",
+                    ProviderOutcome.UnsupportedAccount or ProviderOutcome.PolicyBlocked =>
+                        "ProviderStatusRecoveryUnavailable",
+                    ProviderOutcome.ContractFailure => "ProviderStatusRecoveryUpdate",
+                    ProviderOutcome.Throttled or ProviderOutcome.TransientFailure =>
+                        "ProviderStatusRecoveryRetry",
+                    _ => "ProviderStatusRecoveryRefresh",
+                }),
+                [
+                    new(
+                        GetString("ProviderStatusQuota"),
+                        CurrentSampleDataState switch
+                        {
+                            _ when _lastCodexOutcome is ProviderOutcome.NotConfigured =>
+                                GetString("ProviderStatusNotConfigured"),
+                            _ when _lastCodexOutcome is ProviderOutcome.UnsupportedAccount =>
+                                GetString("ProviderStatusUnsupported"),
+                            _ when _lastCodexOutcome is ProviderOutcome.PolicyBlocked =>
+                                GetString("ProviderStatusBlocked"),
+                            _ when _lastCodexOutcome is ProviderOutcome.ContractFailure =>
+                                GetString("ProviderStatusContractChanged"),
+                            _ when _lastCodexOutcome is ProviderOutcome.Throttled
+                                or ProviderOutcome.TransientFailure =>
+                                GetString("ProviderStatusPartial"),
+                            SampleDataState.Partial => GetString("ProviderStatusPartial"),
+                            SampleDataState.Fresh or SampleDataState.CacheRefreshing
+                                or SampleDataState.StaleCacheRefreshing or SampleDataState.Stale
+                                or SampleDataState.NotSaved => GetString("ProviderStatusAvailable"),
+                            _ => GetString("ProviderStatusUnavailable"),
+                        },
+                        "ProviderStatus.codex.Quota"),
+                    new(GetString("ProviderStatusUsage"), GetString("ProviderStatusUnavailable"), "ProviderStatus.codex.Usage"),
+                    new(GetString("ProviderStatusSpend"), GetString("ProviderStatusUnavailable"), "ProviderStatus.codex.Spend"),
+                    new(GetString("ProviderStatusCoverage"), GetString("CodexUsageMissing"), "ProviderStatus.codex.Coverage"),
+                ],
+                "ProviderStatus.codex"),
+        };
+        statuses.AddRange(LocalUsage.ProviderStatuses);
+        ProviderStatuses = statuses;
     }
 
     public void RefreshRelativeTime()
