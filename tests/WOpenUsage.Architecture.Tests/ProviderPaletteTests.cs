@@ -13,8 +13,10 @@ public sealed class ProviderPaletteTests
         "OpenCode",
     ];
 
-    [Fact]
-    public void ProviderBrushesUseDarkToBaseDiagonalGradients()
+    [Theory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    public void ProviderBrushesUseDarkToBaseDiagonalGradients(string theme)
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
@@ -22,10 +24,12 @@ public sealed class ProviderPaletteTests
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
 
+        XElement dictionary = FindThemeDictionary(resources, theme, xaml, x);
+
         foreach (string provider in ProviderKeys)
         {
-            XElement? brush = resources
-                .Descendants(xaml + "LinearGradientBrush")
+            XElement? brush = dictionary
+                .Elements(xaml + "LinearGradientBrush")
                 .SingleOrDefault(element =>
                     string.Equals(
                         (string?)element.Attribute(x + "Key"),
@@ -50,45 +54,89 @@ public sealed class ProviderPaletteTests
         }
     }
 
-    [Theory]
-    [InlineData("ProviderFallbackBrush", "{ThemeResource TextFillColorSecondary}")]
-    [InlineData("ProviderHighContrastBrush", "{ThemeResource SystemColorHighlightColor}")]
-    public void SystemFallbackBrushesRemainSolid(string resourceKey, string expectedColor)
+    [Fact]
+    public void HighContrastUsesSystemBrushesWithoutGradients()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
             Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
-        XElement? brush = resources
-            .Descendants(xaml + "SolidColorBrush")
-            .SingleOrDefault(element =>
-                string.Equals(
-                    (string?)element.Attribute(x + "Key"),
-                    resourceKey,
-                    StringComparison.Ordinal));
+        XElement dictionary = FindThemeDictionary(resources, "HighContrast", xaml, x);
+        Assert.Empty(dictionary.Elements(xaml + "LinearGradientBrush"));
 
-        Assert.NotNull(brush);
-        Assert.Equal(expectedColor, (string?)brush.Attribute("Color"));
+        foreach (string provider in ProviderKeys)
+        {
+            AssertResourceRedirect(
+                dictionary,
+                $"Provider{provider}Brush",
+                "SystemColorHighlightColorBrush",
+                xaml,
+                x);
+        }
+
+        AssertResourceRedirect(
+            dictionary,
+            "ProviderFallbackBrush",
+            "SystemColorWindowTextColorBrush",
+            xaml,
+            x);
+        AssertResourceRedirect(
+            dictionary,
+            "ProviderDonutShadowBrush",
+            "SystemColorWindowTextColorBrush",
+            xaml,
+            x);
     }
 
     [Fact]
-    public void DonutShadowRemainsSubtleAndFixed()
+    public void DonutShadowIsThemeSpecificAndSubtle()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
             Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
-        XElement brush = resources
-            .Descendants(xaml + "SolidColorBrush")
+        Assert.Equal(
+            "#24000000",
+            FindBrushColor(resources, "Light", "ProviderDonutShadowBrush", xaml, x));
+        Assert.Equal(
+            "#30000000",
+            FindBrushColor(resources, "Dark", "ProviderDonutShadowBrush", xaml, x));
+    }
+
+    [Theory]
+    [InlineData("Light", "1", "Visible", "Collapsed")]
+    [InlineData("Dark", "1", "Visible", "Collapsed")]
+    [InlineData("HighContrast", "0", "Collapsed", "Visible")]
+    public void ThemeControlsShadowAndProviderMarkVisibility(
+        string theme,
+        string shadowOpacity,
+        string brandVisibility,
+        string highContrastVisibility)
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        XDocument resources = XDocument.Load(
+            Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement dictionary = FindThemeDictionary(resources, theme, xaml, x);
+
+        XElement opacity = dictionary
+            .Elements(x + "Double")
             .Single(element =>
                 string.Equals(
                     (string?)element.Attribute(x + "Key"),
-                    "ProviderDonutShadowBrush",
+                    "ProviderDonutShadowOpacity",
                     StringComparison.Ordinal));
-
-        Assert.Equal("#30000000", (string?)brush.Attribute("Color"));
+        Assert.Equal(shadowOpacity, opacity.Value);
+        AssertVisibility(dictionary, "ProviderBrandMarkVisibility", brandVisibility, xaml, x);
+        AssertVisibility(
+            dictionary,
+            "ProviderHighContrastMarkVisibility",
+            highContrastVisibility,
+            xaml,
+            x);
     }
 
     [Fact]
@@ -136,5 +184,57 @@ public sealed class ProviderPaletteTests
 
             Assert.Equal([expectedFill], fills);
         }
+    }
+
+    private static XElement FindThemeDictionary(
+        XDocument resources,
+        string theme,
+        XNamespace xaml,
+        XNamespace x) =>
+        resources
+            .Descendants(xaml + "ResourceDictionary")
+            .Single(element =>
+                string.Equals((string?)element.Attribute(x + "Key"), theme, StringComparison.Ordinal));
+
+    private static string? FindBrushColor(
+        XDocument resources,
+        string theme,
+        string resourceKey,
+        XNamespace xaml,
+        XNamespace x) =>
+        (string?)FindThemeDictionary(resources, theme, xaml, x)
+            .Elements(xaml + "SolidColorBrush")
+            .Single(element =>
+                string.Equals((string?)element.Attribute(x + "Key"), resourceKey, StringComparison.Ordinal))
+            .Attribute("Color");
+
+    private static void AssertResourceRedirect(
+        XElement dictionary,
+        string resourceKey,
+        string expectedTarget,
+        XNamespace xaml,
+        XNamespace x)
+    {
+        XElement redirect = dictionary
+            .Elements(xaml + "StaticResource")
+            .Single(element =>
+                string.Equals((string?)element.Attribute(x + "Key"), resourceKey, StringComparison.Ordinal));
+
+        Assert.Equal(expectedTarget, (string?)redirect.Attribute("ResourceKey"));
+    }
+
+    private static void AssertVisibility(
+        XElement dictionary,
+        string resourceKey,
+        string expectedValue,
+        XNamespace xaml,
+        XNamespace x)
+    {
+        XElement visibility = dictionary
+            .Elements(xaml + "Visibility")
+            .Single(element =>
+                string.Equals((string?)element.Attribute(x + "Key"), resourceKey, StringComparison.Ordinal));
+
+        Assert.Equal(expectedValue, visibility.Value);
     }
 }

@@ -21,7 +21,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _suppressDeactivateHide;
     private bool _disposed;
 
-    public MainWindow()
+    public MainWindow(bool showForTest = false, bool useSampleForTest = false)
     {
         InitializeComponent();
 
@@ -40,6 +40,13 @@ public sealed partial class MainWindow : Window, IDisposable
 
         AppWindow.Hide();
         InstallTrayIcon();
+
+        if (showForTest)
+        {
+            RootPage.ViewModel.CloseWhenInactive = false;
+            RootPage.ViewModel.IsSampleModeEnabled = useSampleForTest;
+            _ = DispatcherQueue.TryEnqueue(() => ShowFlyout(true));
+        }
     }
 
     private void ConfigureFlyoutWindow()

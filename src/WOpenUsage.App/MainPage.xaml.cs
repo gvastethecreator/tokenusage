@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Storage;
 using Windows.System;
+using Windows.UI.ViewManagement;
 using WOpenUsage.App.Controls;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
@@ -32,6 +33,7 @@ public sealed partial class MainPage : Page
             new SampleRefreshCoordinator(sampleCacheDirectory, clock),
             new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory));
         InitializeComponent();
+        ApplyTextScaleLayout();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
         _relativeTimeTimer = DispatcherQueue.CreateTimer();
@@ -99,6 +101,45 @@ public sealed partial class MainPage : Page
         {
             ScheduleSampleReveal();
         }
+    }
+
+    private void OnSampleSpendLayoutLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Grid layout || new UISettings().TextScaleFactor < 1.5)
+        {
+            return;
+        }
+
+        layout.ColumnDefinitions.Clear();
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        layout.RowDefinitions.Clear();
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        layout.RowSpacing = 8;
+
+        for (int index = 0; index < layout.Children.Count; index++)
+        {
+            FrameworkElement child = (FrameworkElement)layout.Children[index];
+            Grid.SetColumn(child, 0);
+            Grid.SetRow(child, index);
+            if (child is SpendDonutChart chart)
+            {
+                chart.HorizontalAlignment = HorizontalAlignment.Center;
+            }
+        }
+    }
+
+    private void ApplyTextScaleLayout()
+    {
+        if (new UISettings().TextScaleFactor < 1.5)
+        {
+            return;
+        }
+
+        FooterIdentityColumn.Width = new GridLength(0);
+        FlyoutFooterIdentity.Visibility = Visibility.Collapsed;
+        FlyoutStatusText.Opacity = 0;
+        FlyoutStatusText.IsHitTestVisible = false;
     }
 
     private void ScheduleSampleReveal()
