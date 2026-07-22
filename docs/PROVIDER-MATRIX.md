@@ -27,10 +27,18 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
 | Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
+| Zcode | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 48–49 |
+| Kimi Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 50–51 |
+| Command Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 52–53 |
+| Cline | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 54–55 |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
+
+Los nombres Zcode, Kimi Code y Command Code se conservan como términos de
+entrada. Sus tickets de investigación deben fijar el producto canónico antes de
+añadir IDs, iconos, rutas o claims al código.
 
 ## Gate de publicación
 
