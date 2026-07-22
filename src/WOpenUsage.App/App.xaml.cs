@@ -48,6 +48,15 @@ public partial class App : Application
                 grokHomeForTest[(grokHomeForTest.IndexOf('=') + 1)..]);
         }
 
+        string? openCodeDataForTest = launchArguments.FirstOrDefault(argument =>
+            argument.StartsWith("--test-opencode-data=", StringComparison.OrdinalIgnoreCase));
+        if (openCodeDataForTest is not null)
+        {
+            Environment.SetEnvironmentVariable(
+                "OPENCODE_DATA_DIR",
+                openCodeDataForTest[(openCodeDataForTest.IndexOf('=') + 1)..]);
+        }
+
         bool showForTest = launchArguments.Contains(
             "--test-show-flyout",
             StringComparer.OrdinalIgnoreCase);
