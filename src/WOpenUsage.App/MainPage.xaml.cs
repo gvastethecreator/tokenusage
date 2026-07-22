@@ -10,6 +10,7 @@ using WOpenUsage.App.Controls;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.Providers.Claude;
+using WOpenUsage.Providers.Grok;
 
 namespace WOpenUsage.App;
 
@@ -39,7 +40,10 @@ public sealed partial class MainPage : Page
             new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory),
             new LocalUsageCoordinator(
                 usageDatabasePath,
-                new ClaudeUsageEventSource(TimeZoneInfo.Local.Id),
+                [
+                    new ClaudeUsageEventSource(TimeZoneInfo.Local.Id),
+                    new GrokUsageEventSource(TimeZoneInfo.Local.Id),
+                ],
                 clock));
         InitializeComponent();
         ApplyTextScaleLayout();

@@ -392,6 +392,11 @@ Esfuerzo: 7–11 días.
 
 ### Grok Build
 
+Estado 2026-07-22: Ticket 18 entrega el scanner Windows de sesiones, coste
+informado en ticks, fallback unificado, reemplazo de snapshots y composición
+real junto a Claude. Cursor incremental y tarjeta separada por proveedor siguen
+pendientes.
+
 - `M6A.1` Resolver `GROK_HOME` y la raíz `%USERPROFILE%\.grok` sin abrir `auth.json`.
 - `M6A.2` Descubrir sesiones por `summary.json`; observar `signals.json` y `updates.jsonl`.
 - `M6A.3` Preferir `params.update.usage`, modelo, tokens y `costUsdTicks` cuando existan.
