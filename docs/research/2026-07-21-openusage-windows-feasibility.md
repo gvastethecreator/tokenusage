@@ -140,9 +140,9 @@ Un modo de compatibilidad con OpenUsage puede agregarse como opción con aviso d
 El upstream anuncia Antigravity, Claude, Codex, Copilot, Cursor, Devin, Grok, OpenCode, OpenRouter y Z.ai. La investigación de sus adaptadores muestra tres tipos:
 
 - interfaz oficial local: Codex;
-- logs o bases locales: Claude, Codex, Cursor, Grok, OpenCode y, con cobertura experimental, Antigravity;
+- logs o bases locales: Claude, Codex, Grok, OpenCode y, con cobertura experimental, Antigravity;
 - endpoint privado con credencial reutilizada: Claude, Cursor, Copilot, Antigravity, Devin y Grok;
-- clave manual aprobada: OpenRouter;
+- clave manual aprobada: OpenRouter y Cursor Admin API para administradores de Teams o Enterprise;
 - clave manual bloqueada: Z.ai, según su [gate de cuota](2026-07-21-zai-gate.md).
 
 Cada proveedor privado necesita una prueba técnica, revisión de política y fixtures sanitizados. La [matriz de proveedores](../PROVIDER-MATRIX.md) fija el orden.
