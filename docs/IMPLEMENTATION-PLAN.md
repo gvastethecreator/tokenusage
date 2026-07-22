@@ -407,6 +407,11 @@ pendientes.
 
 ### OpenCode
 
+Estado 2026-07-22: Ticket 19 entrega el scanner Windows nativo para el esquema
+SQLite actual, la base anterior y el almacenamiento JSON legado. La composición
+real, el smoke diferencial y la prueba UI están cerrados. WSL sigue fuera de
+este corte y requiere consentimiento.
+
 - `M6A.8` Resolver `%USERPROFILE%\.local\share\opencode` y override documentado.
 - `M6A.9` Detectar `opencode.db` y `storage` sin abrir `auth.json`.
 - `M6A.10` Abrir SQLite ajena en modo de solo lectura con `busy_timeout` corto y sin copia completa.
