@@ -28,7 +28,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
-| Devin | RPC privado | Limitado | CLI o app local | Experimental | M9 |
+| Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 
@@ -272,7 +272,24 @@ Fuente upstream de comparación: [provider Antigravity](https://github.com/robin
 
 ## Devin
 
-El upstream toma credenciales de CLI o app y llama un RPC no público. Se clasifica experimental. No entra en una promesa de paridad hasta validar Windows, política y estabilidad.
+### Fuente elegida
+
+La API v3 pública devuelve consumo diario de una organización. WOpenUsage admite un service user con scope de organización, permiso `ManageBilling`, ID manual y key en Credential Locker. El cliente fija `api.devin.ai` y llama solo `GET /v3/organizations/{org_id}/consumption/daily`.
+
+La tarjeta muestra ACUs y desglose por producto durante un período explícito. No afirma cuota restante o dólares.
+
+### Cobertura y política
+
+- Organización: subset experimental con ACUs diarios y total.
+- Self-serve: `Unsupported`; cuota y saldo siguen solo en el dashboard.
+- Enterprise: agregado y ACU limits fuera del primer subset por el scope amplio de la key.
+- Dedicated deployment: host personalizado fuera del primer subset.
+
+Quedan prohibidos el archivo CLI, SQLite de la app, RPC de `server.codeium.com`, identidad simulada, host tomado de configuración y Session Insights. Este último devuelve ACUs, pero también material de sesión que el motor no necesita.
+
+Gate resuelto como `implement-experimental-subset`. El permiso `ManageBilling` debe quedar acotado a una sola organización y pasar un smoke autorizado antes de activar la build pública.
+
+Investigación: [fuente Devin](research/2026-07-21-devin-source-gate.md).
 
 Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
 
@@ -287,6 +304,6 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 7. Reabrir Z.ai solo con contrato público o permiso escrito.
 8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
-10. Devin experimental.
+10. Devin experimental para ACUs de organización mediante API v3.
 
 Este orden mantiene el objetivo de cuota restante con Codex y permite sumar valor local sin ampliar el manejo de credenciales ajenas.
