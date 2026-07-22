@@ -60,6 +60,7 @@
   <data name="SampleStatePartial" xml:space="preserve"><value>30 días · cobertura parcial</value></data>
   <data name="SampleStateStale" xml:space="preserve"><value>30 días · dato vencido</value></data>
   <data name="SampleStateError" xml:space="preserve"><value>30 días · error, mostrando caché</value></data>
+  <data name="SampleStateThrottled" xml:space="preserve"><value>30 días · esperando reintento</value></data>
   <data name="SampleStateNotSaved" xml:space="preserve"><value>30 días · actualizado, sin guardar</value></data>
   <data name="SampleStateCacheRefreshingLabel.Text" xml:space="preserve"><value>30 días · caché, actualizando…</value></data>
   <data name="SampleStateStaleCacheRefreshingLabel.Text" xml:space="preserve"><value>30 días · caché vencida, actualizando…</value></data>
@@ -67,6 +68,7 @@
   <data name="SampleStatePartialLabel.Text" xml:space="preserve"><value>30 días · cobertura parcial</value></data>
   <data name="SampleStateStaleLabel.Text" xml:space="preserve"><value>30 días · dato vencido</value></data>
   <data name="SampleStateErrorLabel.Text" xml:space="preserve"><value>30 días · error, mostrando caché</value></data>
+  <data name="SampleStateThrottledLabel.Text" xml:space="preserve"><value>30 días · esperando reintento</value></data>
   <data name="SampleStateNotSavedLabel.Text" xml:space="preserve"><value>30 días · actualizado, sin guardar</value></data>
   <data name="SampleRemainingFormat" xml:space="preserve"><value>{0}% restante</value></data>
   <data name="SampleResetHoursFormat" xml:space="preserve"><value>Reinicia en {0} h</value></data>
@@ -79,6 +81,15 @@
   <data name="SampleCapabilityLocalSpend" xml:space="preserve"><value>Uso local · Gasto</value></data>
   <data name="SampleCapabilityLocal" xml:space="preserve"><value>Uso local</value></data>
   <data name="SampleCapabilityPolicy" xml:space="preserve"><value>Bloqueado por política</value></data>
+  <data name="ProviderSourceLabel" xml:space="preserve"><value>Fuente</value></data>
+  <data name="ProviderSourceSample" xml:space="preserve"><value>Datos de muestra</value></data>
+  <data name="ProviderSourceOfficialLocalApi" xml:space="preserve"><value>API local oficial</value></data>
+  <data name="ProviderObservedLabel" xml:space="preserve"><value>Actualizado</value></data>
+  <data name="ProviderObservedNow" xml:space="preserve"><value>Ahora</value></data>
+  <data name="ProviderObservedValueFormat" xml:space="preserve"><value>{0}</value></data>
+  <data name="ProviderDetailsTooltipFormat" xml:space="preserve"><value>Fuente: {0}. Actualizado: {1}.</value></data>
+  <data name="ProviderDetailsAutomationNameFormat" xml:space="preserve"><value>Detalles de {0}</value></data>
+  <data name="ProviderSecondaryMetricsExpander.Header" xml:space="preserve"><value>Detalles de uso</value></data>
   <data name="SampleMetricTokens" xml:space="preserve"><value>Tokens</value></data>
   <data name="SampleMetricSpend" xml:space="preserve"><value>Gasto</value></data>
   <data name="SampleNoticeNoQuota" xml:space="preserve"><value>Sin fuente de cuota en esta muestra.</value></data>

@@ -70,6 +70,14 @@ function Wait-Id([string]$Id, [int]$Timeout = 3000) {
     if ($LASTEXITCODE -ne 0) { throw "$Id did not appear." }
 }
 
+function Get-ExpandState([string]$Id) {
+    $tree = & winapp ui inspect -a $AppPid --interactive --json 2>$null | ConvertFrom-Json
+    $element = @($tree.windows.elements | Where-Object automationId -eq $Id) |
+        Select-Object -First 1
+    if (-not $element) { throw "$Id was absent from the interactive tree." }
+    return $element.expandState
+}
+
 function Assert-Text([string]$Text, [int]$Timeout = 3000) {
     $deadline = [DateTime]::UtcNow.AddMilliseconds($Timeout)
     do {
@@ -99,6 +107,14 @@ function Open-SampleScenario([int]$Offset) {
     Select-Scenario $Offset
     Invoke-App "OptionsBackButton"
     Start-Sleep -Milliseconds 1400
+    Wait-Id "SampleProvider.Codex.SecondaryMetrics" 5000
+    if ((Get-ExpandState "SampleProvider.Codex.SecondaryMetrics") -ne "collapsed") {
+        throw "Secondary metrics were not collapsed by default."
+    }
+    Invoke-App "SampleProvider.Codex.SecondaryMetrics"
+    if ((Get-ExpandState "SampleProvider.Codex.SecondaryMetrics") -ne "expanded") {
+        throw "Secondary metrics did not expand."
+    }
 }
 
 $ready = $false
@@ -116,6 +132,30 @@ foreach ($attempt in 1..4) {
     }
 }
 if (-not $ready) { throw "The tray surface did not become ready for UI proof." }
+
+Test-Ui "Provider details expose source and observation data" {
+    Open-SampleScenario 0
+    $details = & winapp ui get-property "SampleProvider.Codex.Details" -a $AppPid -p HelpText --json 2>$null |
+        ConvertFrom-Json
+    if ($details.properties.HelpText -notmatch "Datos de muestra|Sample data") {
+        throw "Provider details did not expose focus-accessible help text."
+    }
+
+    $shell = New-Object -ComObject WScript.Shell
+    $null = $shell.AppActivate($AppPid)
+    Start-Sleep -Milliseconds 100
+    & winapp ui click "SampleProvider.Codex.Details" -a $AppPid 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Provider details button could not open its flyout." }
+    Start-Sleep -Milliseconds 250
+    Wait-Id "SampleProvider.Codex.Details.Source"
+    Wait-Id "SampleProvider.Codex.Details.Observed"
+    & winapp ui wait-for "SampleProvider.Codex.Details.Source" -a $AppPid --value "Datos de muestra" --contains -t 1000 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        & winapp ui wait-for "SampleProvider.Codex.Details.Source" -a $AppPid --value "Sample data" --contains -t 1000 2>$null | Out-Null
+    }
+    if ($LASTEXITCODE -ne 0) { throw "Provider source was not visible in the details flyout." }
+    & winapp ui click "SampleProvider.Codex.Details" -a $AppPid 2>$null | Out-Null
+}
 
 Test-Ui "Usage rows and pace expose stable UIA" {
     Open-SampleScenario 0
@@ -149,6 +189,13 @@ Test-Ui "Interactive controls keep AutomationIds" {
     $controls = @($tree.windows.elements | Where-Object type -match "Button|ToggleSwitch|ComboBox")
     $missing = @($controls | Where-Object { -not $_.automationId })
     if ($missing.Count -gt 0) { throw "Missing AutomationId: $(($missing.name) -join ', ')" }
+}
+
+Test-Ui "Session controls return to defaults" {
+    & winapp ui wait-for "SampleModeToggle" -a $AppPid --value "On" -t 1000 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { Invoke-App "SampleModeToggle" }
+    & winapp ui wait-for "CloseWhenInactiveToggle" -a $AppPid --value "Off" -t 1000 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { Invoke-App "CloseWhenInactiveToggle" }
 }
 
 $results | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $ArtifactDirectory "ui-results.json")

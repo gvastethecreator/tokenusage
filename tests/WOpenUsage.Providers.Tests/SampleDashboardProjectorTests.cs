@@ -42,6 +42,11 @@ public sealed class SampleDashboardProjectorTests
         SampleProviderCard codex = dashboard.Providers.Single(provider => provider.ProviderId == "codex");
         Assert.Equal(expectedRemaining, codex.Windows[0].RemainingPercent);
         Assert.Contains("Codex", codex.Windows[0].AutomationName, StringComparison.Ordinal);
+        Assert.Contains(codex.Windows[0].ResetText, codex.Windows[0].AutomationName, StringComparison.Ordinal);
+        Assert.True(codex.HasDetails);
+        Assert.Equal("Sample data", codex.SourceValue);
+        Assert.Empty(codex.Metrics);
+        Assert.True(codex.HasSecondaryMetrics);
     }
 
     [Fact]
@@ -67,6 +72,12 @@ public sealed class SampleDashboardProjectorTests
             "SampleResetHoursFormat" => "Resets in {0} h",
             "SampleResetDaysFormat" => "Resets in {0} d",
             "SampleResetDaysHoursFormat" => "Resets in {0} d {1} h",
+            "ProviderSourceLabel" => "Source",
+            "ProviderSourceSample" => "Sample data",
+            "ProviderObservedLabel" => "Updated",
+            "ProviderObservedNow" => "Now",
+            "ProviderDetailsTooltipFormat" => "Source: {0}. Updated: {1}.",
+            "ProviderDetailsAutomationNameFormat" => "Details for {0}",
             _ => key,
         };
 

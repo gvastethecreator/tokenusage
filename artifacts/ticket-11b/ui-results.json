@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Provider details expose source and observation data",
+    "status": "PASS"
+  },
+  {
+    "name": "Usage rows and pace expose stable UIA",
+    "status": "PASS"
+  },
+  {
+    "name": "Near limit: caution pace",
+    "status": "PASS"
+  },
+  {
+    "name": "Partial: zero and missing stay distinct",
+    "status": "PASS"
+  },
+  {
+    "name": "Interactive controls keep AutomationIds",
+    "status": "PASS"
+  },
+  {
+    "name": "Session controls return to defaults",
+    "status": "PASS"
+  }
+]
