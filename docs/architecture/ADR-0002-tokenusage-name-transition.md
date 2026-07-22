@@ -1,14 +1,15 @@
 # ADR-0002: transición del nombre TokenUsage
 
-Estado: aceptado para planificación
+Estado: revisado; copy público aprobado
 
 Fecha: 2026-07-22
 
 ## Decisión
 
-El producto formal se llamará `TokenUsage`. La implementación conserva
-`WOpenUsage` mientras se completa el trabajo que ya usa ese nombre en tickets,
-ensamblados, namespaces, recursos, manifiesto, ejecutables, pruebas y evidencia.
+El producto formal se llama `TokenUsage`. Desde 2026-07-22, la UI, textos,
+tooltip de bandeja y nombre visible del paquete usan `TokenUsage`. La
+implementación conserva `WOpenUsage` en ensamblados, namespaces, ejecutables,
+rutas, pruebas y evidencia previa hasta el corte técnico de migración.
 
 ## Motivo
 
@@ -18,11 +19,12 @@ datos locales, alias de CLI y desinstalación.
 
 ## Regla de transición
 
-Hasta la tarea de migración:
+Hasta la tarea de migración técnica:
 
-- la UI del prototipo sigue mostrando `WOpenUsage`;
-- no cambian `Package.appxmanifest`, AUMID, Publisher, nombres de proyecto,
-  namespaces, assembly names, rutas de datos ni alias de CLI;
+- la UI y el copy muestran `TokenUsage`;
+- el manifiesto puede mostrar `TokenUsage`, pero no cambian Identity, AUMID,
+  Publisher, nombres de proyecto, namespaces, assembly names, rutas de datos ni
+  alias de CLI;
 - la documentación nueva puede nombrar `TokenUsage` como producto formal y debe
   indicar que `WOpenUsage` es la identidad transitoria;
 - no se crea un logo final dentro del corte visual 11A.

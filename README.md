@@ -1,6 +1,6 @@
-# WOpenUsage
+# TokenUsage
 
-`WOpenUsage` es el nombre interno de una app Windows que muestra cuotas, reinicios, tokens y gasto local de herramientas de IA desde las sesiones que ya existen en el equipo.
+`TokenUsage` es una app Windows que muestra cuotas, reinicios, tokens y gasto local de herramientas de IA desde las sesiones que ya existen en el equipo. La implementación conserva por ahora el nombre técnico `WOpenUsage` en proyectos, namespaces y rutas.
 
 El producto final tendrá nombre, logo y paquete propios. OpenUsage permite reutilizar su código bajo MIT, pero reserva su nombre, logo e identidad visual. Este repo no representa al proyecto OpenUsage.
 

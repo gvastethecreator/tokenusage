@@ -21,7 +21,7 @@ function Test-Ui([string]$Name, [scriptblock]$Body) {
 function Get-TraySelector {
     $deadline = [DateTime]::UtcNow.AddSeconds(3)
     do {
-        $search = & winapp ui search "WOpenUsage" -a $explorerPid --json 2>$null | ConvertFrom-Json
+        $search = & winapp ui search "TokenUsage" -a $explorerPid --json 2>$null | ConvertFrom-Json
         $match = $search.matches | Where-Object type -eq "Button" | Select-Object -First 1
         if (-not $match) { Start-Sleep -Milliseconds 100 }
     } while (-not $match -and [DateTime]::UtcNow -lt $deadline)
