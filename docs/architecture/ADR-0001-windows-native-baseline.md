@@ -108,7 +108,7 @@ La UI nunca recibe tokens de autenticación, rutas de credenciales ni la respues
 
 Cada valor declara:
 
-- `SourceKind`: `OfficialLocalApi`, `OfficialRemoteApi`, `LocalLog`, `LocalDatabase`, `PrivateRemoteApi` o `ManualKey`;
+- `SourceKind`: `OfficialLocalApi`, `OfficialRemoteApi`, `LocalLog`, `LocalDatabase`, `PrivateRemoteApi`, `ManualKey` o `Synthetic`; este último se reserva para muestras y tests;
 - `MeasurementKind`: `Measured`, `ProviderReported`, `Estimated` o `Derived`;
 - rango cubierto;
 - versión del parser o endpoint;
@@ -140,7 +140,7 @@ El orden de coste es: valor informado por la fuente, override exacto revisado, c
 - `Success(snapshot)`;
 - `NotConfigured(reason)`;
 - `UnsupportedAccount(reason)`;
-- `Partial(snapshot, warnings)`;
+- `PartialSuccess(snapshot, warnings)`; el sufijo evita el nombre reservado `partial` bajo los analizadores de .NET;
 - `Throttled(retryAt, lastGood)`;
 - `TransientFailure(error, lastGood)`;
 - `ContractFailure(error, lastGood)`;
@@ -161,7 +161,11 @@ public interface IProviderRuntime
 }
 ```
 
-`DetectAsync` solo usa fuentes locales. `RefreshAsync` recibe reloj, cliente de red, lector de archivos, proceso, proxy y catálogo de precios mediante contratos de `Core`.
+`DetectAsync` solo usa fuentes locales. `RefreshAsync` recibe un
+`RefreshContext`. El primer corte usa `TimeProvider` de .NET como reloj
+inyectable. Cliente de red, lector de archivos, proceso, proxy y catálogo de
+precios se agregan mediante contratos de `Core` cuando un proveedor real los
+necesite.
 
 No se cargan plugins de terceros en el primer ciclo. Los proveedores se registran en código para mantener una superficie de confianza conocida.
 
