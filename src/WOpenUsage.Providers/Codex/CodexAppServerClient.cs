@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace WOpenUsage.Providers.Codex;
 
-public sealed class CodexAppServerClient : IAsyncDisposable
+public sealed class CodexAppServerClient : ICodexQuotaClient
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -105,6 +105,43 @@ public sealed class CodexAppServerClient : IAsyncDisposable
                 .ConfigureAwait(false);
             JsonElement result = RequireResultObject(response.RootElement);
             return CodexRateLimitsParser.Parse(result);
+        }
+        catch (Exception exception) when (
+            exception is CodexProtocolException or OperationCanceledException)
+        {
+            _faulted = true;
+            throw;
+        }
+        finally
+        {
+            _requestGate.Release();
+        }
+    }
+
+    public async Task<CodexAccountStatus> ReadAccountStatusAsync(
+        CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            ThrowIfFaulted();
+            if (!_handshakeCompleted)
+            {
+                throw new InvalidOperationException(
+                    "Codex app-server handshake must complete before reading account status.");
+            }
+
+            long requestId = NextRequestId();
+            var request = new RpcRequest<AccountReadParams>(
+                requestId,
+                "account/read",
+                new AccountReadParams(RefreshToken: false));
+            using JsonDocument response = await ExchangeAsync(request, requestId, cancellationToken)
+                .ConfigureAwait(false);
+            JsonElement result = RequireResultObject(response.RootElement);
+            return CodexAccountStatusParser.Parse(result);
         }
         catch (Exception exception) when (
             exception is CodexProtocolException or OperationCanceledException)
@@ -339,4 +376,7 @@ public sealed class CodexAppServerClient : IAsyncDisposable
 
     private sealed record InitializeCapabilities(
         [property: JsonPropertyName("experimentalApi")] bool ExperimentalApi);
+
+    private sealed record AccountReadParams(
+        [property: JsonPropertyName("refreshToken")] bool RefreshToken);
 }

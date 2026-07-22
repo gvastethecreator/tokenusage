@@ -282,12 +282,20 @@ Controles:
 - reinicio con backoff tras crash;
 - circuit breaker después de fallos repetidos.
 
-El cliente llama solo:
+El cliente llama solo a métodos de lectura:
 
+- `account/read` con `refreshToken: false`, para clasificar sesión y tipo de
+  cuenta sin conservar correo ni campos de cuenta;
 - `account/rateLimits/read`;
 - `account/usage/read`.
 
 No llama login, logout, consumo de reset, envío de correo ni modelos. El usuario gestiona la sesión con Codex.
+
+La verificación del contrato de Codex CLI 0.145.0 añadió `account/read` a la
+lista permitida. La documentación oficial actual lo define como la lectura para
+distinguir sesión ausente, API key y cuenta ChatGPT. El adaptador selecciona
+solo `type`, `planType` y `requiresOpenaiAuth`; descarta `email` y nunca pide un
+refresh proactivo. Esto reemplaza la inferencia frágil desde un error de cuota.
 
 La detección devuelve:
 

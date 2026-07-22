@@ -56,11 +56,18 @@ Cada proveedor necesita:
 
 ### Fuente
 
+- estado de cuenta: `account/read` con `refreshToken: false`, seleccionando solo
+  tipo, plan y requisito de auth;
 - cuota: `account/rateLimits/read`;
 - tokens y buckets diarios: `account/usage/read`;
 - detalle local opcional: `CODEX_HOME/sessions` y `archived_sessions`.
 
 El [`app-server` oficial](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) gestiona el login y la renovación. La app no lee `auth.json` en el MVP.
+
+La lectura de estado no conserva ni muestra `email`, `codexHome`, token,
+respuesta cruda o identificador de cuenta. Una sesión ChatGPT habilita cuota;
+API key, Bedrock, modo local o auth futura quedan como cuenta no apta hasta que
+un contrato de cuota diga lo contrario.
 
 ### Métricas
 
