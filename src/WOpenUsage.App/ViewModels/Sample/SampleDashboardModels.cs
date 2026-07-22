@@ -85,7 +85,42 @@ public sealed record LocalUsageCard(
     string SourceLabel,
     string PeriodLabel,
     string NoticeText,
-    IReadOnlyList<SampleMetric> Metrics)
+    IReadOnlyList<SampleMetric> Metrics,
+    IReadOnlyList<LocalUsagePeriodRow> OtherPeriods,
+    LocalUsageSpendBreakdown SpendBreakdown)
 {
     public bool HasData => Metrics.Count > 0;
+}
+
+public sealed record LocalUsagePeriodRow(
+    string Label,
+    string CostText,
+    string DetailText,
+    string AutomationId,
+    string AutomationName);
+
+public sealed record LocalUsageModelRow(
+    string AgentId,
+    string AgentName,
+    string ModelName,
+    string ReportedText,
+    string EstimatedText,
+    string CoverageText,
+    string AutomationId,
+    string Title,
+    string AutomationName);
+
+public sealed record LocalUsageSpendBreakdown(
+    string Title,
+    string SummaryText,
+    string TotalText,
+    string AccessibleName,
+    IReadOnlyList<SampleSpendSlice> AgentSlices,
+    IReadOnlyList<LocalUsageModelRow> Models)
+{
+    public bool HasAgentSpend => AgentSlices.Count > 0;
+
+    public bool HasModels => Models.Count > 0;
+
+    public bool HasContent => HasAgentSpend || HasModels;
 }
