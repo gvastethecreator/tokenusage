@@ -228,47 +228,12 @@
                                         Text="{x:Bind ViewModel.LiveDataStateText, Mode=OneWay}"
                                         Visibility="{x:Bind ViewModel.IsLiveDataStateVisible, Mode=OneWay}" />
                                     <TextBlock
-                                        x:Uid="SampleStateCacheRefreshingLabel"
-                                        AutomationProperties.AutomationId="SampleStateCacheRefreshing"
+                                        AutomationProperties.AutomationId="{x:Bind ViewModel.SampleDataStateAutomationId, Mode=OneWay}"
+                                        AutomationProperties.LiveSetting="Polite"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStateCacheRefreshing, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Uid="SampleStateStaleCacheRefreshingLabel"
-                                        AutomationProperties.AutomationId="SampleStateStaleCacheRefreshing"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStateStaleCacheRefreshing, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Uid="SampleStateFreshLabel"
-                                        AutomationProperties.AutomationId="SampleStateFresh"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStateFresh, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Uid="SampleStatePartialLabel"
-                                        AutomationProperties.AutomationId="SampleStatePartial"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStatePartial, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Uid="SampleStateStaleLabel"
-                                        AutomationProperties.AutomationId="SampleStateStale"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStateStale, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Uid="SampleStateErrorLabel"
-                                        AutomationProperties.AutomationId="SampleStateError"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStateError, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Uid="SampleStateNotSavedLabel"
-                                        AutomationProperties.AutomationId="SampleStateNotSaved"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                        Visibility="{x:Bind ViewModel.IsSampleStateNotSaved, Mode=OneWay}" />
+                                        Text="{x:Bind ViewModel.SampleDataStateText, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.IsSampleDataStateVisible, Mode=OneWay}" />
                                 </Grid>
                             </StackPanel>
                             <StackPanel
@@ -358,6 +323,7 @@
                                                 <ColumnDefinition Width="18" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <controls:ProviderMarkImage
                                                 Height="18"
@@ -377,10 +343,59 @@
                                                 Text="{x:Bind PlanLabel}"
                                                 TextTrimming="CharacterEllipsis"
                                                 VerticalAlignment="Center" />
+                                            <Button
+                                                Grid.Column="3"
+                                                AutomationProperties.AutomationId="{x:Bind DetailsAutomationId}"
+                                                AutomationProperties.HelpText="{x:Bind DetailsTooltip}"
+                                                AutomationProperties.Name="{x:Bind DetailsAutomationName}"
+                                                Height="28"
+                                                MinHeight="28"
+                                                MinWidth="28"
+                                                Padding="6"
+                                                Style="{StaticResource SubtleButtonStyle}"
+                                                ToolTipService.ToolTip="{x:Bind DetailsTooltip}"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind HasDetails}"
+                                                Width="28">
+                                                <FontIcon
+                                                    AutomationProperties.AccessibilityView="Raw"
+                                                    FontSize="14"
+                                                    Glyph="&#xE946;" />
+                                                <Button.Flyout>
+                                                    <Flyout Placement="Left">
+                                                        <StackPanel Spacing="8" Width="220">
+                                                            <TextBlock
+                                                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                                Text="{x:Bind Name}" />
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock
+                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                                    Text="{x:Bind SourceLabel}" />
+                                                                <TextBlock
+                                                                    AutomationProperties.AutomationId="{x:Bind DetailsSourceAutomationId}"
+                                                                    Text="{x:Bind SourceValue}"
+                                                                    TextWrapping="WrapWholeWords" />
+                                                            </StackPanel>
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock
+                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                                    Text="{x:Bind ObservedLabel}" />
+                                                                <TextBlock
+                                                                    AutomationProperties.AutomationId="{x:Bind DetailsObservedAutomationId}"
+                                                                    Text="{x:Bind ObservedValue}"
+                                                                    TextWrapping="WrapWholeWords" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Flyout>
+                                                </Button.Flyout>
+                                            </Button>
                                         </Grid>
 
                                         <Border
                                             AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                            AutomationProperties.Name="{x:Bind Name}"
                                             Padding="12"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -482,6 +497,39 @@
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
+
+                                                <Expander
+                                                    x:Uid="ProviderSecondaryMetricsExpander"
+                                                    AutomationProperties.AutomationId="{x:Bind SecondaryMetricsAutomationId}"
+                                                    IsExpanded="False"
+                                                    Visibility="{x:Bind HasSecondaryMetrics}">
+                                                    <ItemsControl ItemsSource="{x:Bind SecondaryMetricItems}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="sample:SampleMetric">
+                                                                <Grid
+                                                                    AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                                                    AutomationProperties.Name="{x:Bind AutomationName}"
+                                                                    Margin="0,0,0,4"
+                                                                    ColumnSpacing="8">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock
+                                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Text="{x:Bind Label}"
+                                                                        TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock
+                                                                        Grid.Column="1"
+                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Text="{x:Bind Value}"
+                                                                        TextTrimming="CharacterEllipsis" />
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Expander>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -508,6 +556,7 @@
 
                 <TextBlock
                     AutomationProperties.AutomationId="FlyoutStatusText"
+                    AutomationProperties.LiveSetting="Polite"
                     Grid.Column="1"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}"
