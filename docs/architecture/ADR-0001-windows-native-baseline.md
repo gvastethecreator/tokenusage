@@ -211,7 +211,10 @@ La escritura:
 
 La CLI se entrega dentro del mismo paquete y usa la misma identidad, carpeta y mutex. Las migraciones son incrementales, idempotentes y tienen pruebas con cada versión de fixture.
 
-La caché no guarda credenciales ni respuestas remotas completas. Guarda snapshots normalizados y warnings sin datos personales.
+La caché no guarda credenciales ni respuestas remotas completas. El documento
+`snapshots.v1.json` de 07C guarda solo snapshots normalizados. Los warnings siguen
+en el outcome de runtime; un esquema posterior podrá persistirlos solo si no
+contienen datos personales.
 
 `usage.v1.db` es una SQLite propia y pequeña. Contiene `usage_event`, `daily_usage_rollup`, `source_cursor`, `pricing_catalog` y una tabla de migraciones. Retiene eventos normalizados durante 400 días y rollups diarios hasta que el usuario borre sus datos. Una limpieza se ejecuta por lotes y nunca toca la fuente del proveedor.
 
