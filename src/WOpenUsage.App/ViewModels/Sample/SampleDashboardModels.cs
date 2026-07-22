@@ -79,3 +79,13 @@ public sealed record SampleDashboardSnapshot(
 {
     public bool HasSpend => SpendSlices.Count > 0;
 }
+
+public sealed record LocalUsageCard(
+    string Title,
+    string SourceLabel,
+    string PeriodLabel,
+    string NoticeText,
+    IReadOnlyList<SampleMetric> Metrics)
+{
+    public bool HasData => Metrics.Count > 0;
+}

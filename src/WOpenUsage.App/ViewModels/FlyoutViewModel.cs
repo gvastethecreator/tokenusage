@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Windows.ApplicationModel.Resources;
+using System.Data.Common;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
@@ -13,6 +14,7 @@ public partial class FlyoutViewModel : ObservableObject
     private readonly ResourceLoader _resources = new();
     private readonly SampleRefreshCoordinator _sampleRefreshCoordinator;
     private readonly CodexRefreshCoordinator _codexRefreshCoordinator;
+    private readonly LocalUsageCoordinator _localUsageCoordinator;
     private CancellationTokenSource? _refreshCancellation;
     private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
     private SampleScenario? _activeScenario;
@@ -20,15 +22,19 @@ public partial class FlyoutViewModel : ObservableObject
     private int _refreshVersion;
     private DateTimeOffset? _publishedObservedAtUtc;
     private DateTimeOffset? _retryAtUtc;
+    private bool _hasLocalUsage;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
-        CodexRefreshCoordinator codexRefreshCoordinator)
+        CodexRefreshCoordinator codexRefreshCoordinator,
+        LocalUsageCoordinator localUsageCoordinator)
     {
         _sampleRefreshCoordinator = sampleRefreshCoordinator
             ?? throw new ArgumentNullException(nameof(sampleRefreshCoordinator));
         _codexRefreshCoordinator = codexRefreshCoordinator
             ?? throw new ArgumentNullException(nameof(codexRefreshCoordinator));
+        _localUsageCoordinator = localUsageCoordinator
+            ?? throw new ArgumentNullException(nameof(localUsageCoordinator));
         SampleScenarios =
         [
             new(SampleScenario.Normal, GetString("SampleScenarioNormal")),
@@ -58,6 +64,7 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSampleLoading))]
     [NotifyPropertyChangedFor(nameof(IsCardSurface))]
     [NotifyPropertyChangedFor(nameof(IsUsageSurface))]
+    [NotifyPropertyChangedFor(nameof(IsLocalUsageVisible))]
     [NotifyPropertyChangedFor(nameof(IsLiveDataStateVisible))]
     [NotifyPropertyChangedFor(nameof(IsSampleDataStateVisible))]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
@@ -78,6 +85,7 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSampleDataStateVisible))]
     [NotifyPropertyChangedFor(nameof(SampleDataStateText))]
     [NotifyPropertyChangedFor(nameof(SampleDataStateAutomationId))]
+    [NotifyPropertyChangedFor(nameof(IsLocalUsageVisible))]
     public partial bool IsSampleModeEnabled { get; set; }
 
     [ObservableProperty]
@@ -85,6 +93,9 @@ public partial class FlyoutViewModel : ObservableObject
 
     [ObservableProperty]
     public partial SampleDashboardSnapshot ActiveSample { get; set; } = null!;
+
+    [ObservableProperty]
+    public partial LocalUsageCard LocalUsage { get; set; } = new("", "", "", "", []);
 
     [ObservableProperty]
     public partial int SampleRevealToken { get; set; }
@@ -133,6 +144,9 @@ public partial class FlyoutViewModel : ObservableObject
     public bool IsCardSurface => !IsSample;
 
     public bool IsUsageSurface => !IsOptions;
+
+    public bool IsLocalUsageVisible =>
+        _hasLocalUsage && !IsSampleModeEnabled && IsUsageSurface;
 
     public bool IsSampleScenarioEnabled => IsSampleModeEnabled;
 
@@ -244,6 +258,9 @@ public partial class FlyoutViewModel : ObservableObject
         var cancellation = new CancellationTokenSource();
         _refreshCancellation = cancellation;
         IsSampleRefreshing = true;
+        Task localUsageRefresh = scenario is null
+            ? RefreshLocalUsageAsync(refreshVersion, cancellation.Token)
+            : Task.CompletedTask;
 
         if (!_hasPublishedDashboard)
         {
@@ -292,6 +309,23 @@ public partial class FlyoutViewModel : ObservableObject
         }
         finally
         {
+            await localUsageRefresh.ConfigureAwait(true);
+            if (refreshVersion == _refreshVersion
+                && scenario is null
+                && _hasLocalUsage
+                && _resultSurface == FlyoutSurfaceState.SampleUnavailable)
+            {
+                ActiveSample = new SampleDashboardSnapshot(
+                    SampleScenario.Normal,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    [],
+                    []);
+                _resultSurface = FlyoutSurfaceState.Sample;
+                ApplyResultSurfaceIfVisible();
+            }
+
             if (refreshVersion == _refreshVersion)
             {
                 IsSampleRefreshing = false;
@@ -302,6 +336,39 @@ public partial class FlyoutViewModel : ObservableObject
             }
 
             cancellation.Dispose();
+        }
+    }
+
+    private async Task RefreshLocalUsageAsync(
+        int refreshVersion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            LocalUsageCard card = await _localUsageCoordinator.RefreshAsync(
+                GetString,
+                cancellationToken);
+            if (refreshVersion == _refreshVersion && !cancellationToken.IsCancellationRequested)
+            {
+                LocalUsage = card;
+                _hasLocalUsage = true;
+                OnPropertyChanged(nameof(IsLocalUsageVisible));
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or DbException)
+        {
+            if (refreshVersion == _refreshVersion)
+            {
+                LocalUsage = LocalUsageCardProjector.CreateUnavailable(GetString);
+                _hasLocalUsage = true;
+                OnPropertyChanged(nameof(IsLocalUsageVisible));
+            }
         }
     }
 

@@ -9,6 +9,7 @@ using Windows.UI.ViewManagement;
 using WOpenUsage.App.Controls;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.Providers.Fakes;
 
 namespace WOpenUsage.App;
 
@@ -28,10 +29,18 @@ public sealed partial class MainPage : Page
             "cache",
             "providers",
             "codex");
+        string usageDatabasePath = Path.Combine(
+            ApplicationData.Current.LocalFolder.Path,
+            "scanner",
+            "usage.v1.db");
         var codexClientFactory = new CodexAppServerQuotaClientFactory(clock);
         ViewModel = new FlyoutViewModel(
             new SampleRefreshCoordinator(sampleCacheDirectory, clock),
-            new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory));
+            new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory),
+            new LocalUsageCoordinator(
+                usageDatabasePath,
+                new SyntheticUsageEventSource(clock, TimeZoneInfo.Local.Id),
+                clock));
         InitializeComponent();
         ApplyTextScaleLayout();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
