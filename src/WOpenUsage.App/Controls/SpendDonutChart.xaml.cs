@@ -2,11 +2,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
-using Windows.UI.ViewManagement;
 using WOpenUsage.App.ViewModels.Sample;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -17,22 +17,7 @@ public sealed partial class SpendDonutChart : UserControl
     private const double InnerRadiusRatio = 0.618;
     private const double GapWidth = 1.6;
 
-    private static readonly Dictionary<string, string> PaletteResourceKeys =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["antigravity"] = "ProviderAntigravityBrush",
-            ["claude"] = "ProviderClaudeBrush",
-            ["codex"] = "ProviderCodexBrush",
-            ["grok"] = "ProviderGrokBrush",
-            ["opencode"] = "ProviderOpenCodeBrush",
-        };
-
-    private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly List<ArcVisual> _arcVisuals = [];
-    private readonly Dictionary<string, Brush> _brandBrushes;
-    private readonly Brush _fallbackBrush;
-    private readonly Brush _highContrastBrush;
-    private readonly Brush _shadowBrush;
     private SpendDonutArc[] _arcs = [];
     private Storyboard? _storyboard;
     private int _lastRevealToken = int.MinValue;
@@ -68,14 +53,6 @@ public sealed partial class SpendDonutChart : UserControl
     public SpendDonutChart()
     {
         InitializeComponent();
-        _brandBrushes = PaletteResourceKeys.ToDictionary(
-            pair => pair.Key,
-            pair => (Brush)Application.Current.Resources[pair.Value],
-            StringComparer.Ordinal);
-        _fallbackBrush = (Brush)Application.Current.Resources["ProviderFallbackBrush"];
-        _highContrastBrush = (Brush)Application.Current.Resources["ProviderHighContrastBrush"];
-        _shadowBrush = (Brush)Application.Current.Resources["ProviderDonutShadowBrush"];
-        ActualThemeChanged += OnActualThemeChanged;
         Unloaded += OnUnloaded;
     }
 
@@ -196,7 +173,6 @@ public sealed partial class SpendDonutChart : UserControl
             var path = new XamlPath
             {
                 Data = geometry,
-                Stroke = ResolveBrush(arc.ProviderId),
                 StrokeEndLineCap = PenLineCap.Round,
                 StrokeStartLineCap = PenLineCap.Round,
                 Visibility = Visibility.Collapsed,
@@ -206,11 +182,31 @@ public sealed partial class SpendDonutChart : UserControl
                 Data = shadowGeometry,
                 IsHitTestVisible = false,
                 RenderTransform = new TranslateTransform { Y = 0.75 },
-                Stroke = _shadowBrush,
                 StrokeEndLineCap = PenLineCap.Round,
                 StrokeStartLineCap = PenLineCap.Round,
                 Visibility = Visibility.Collapsed,
             };
+            path.SetBinding(
+                Shape.StrokeProperty,
+                new Binding
+                {
+                    Source = ResolveBrushProxy(arc.ProviderId),
+                    Path = new PropertyPath(nameof(Border.Background)),
+                });
+            shadowPath.SetBinding(
+                Shape.StrokeProperty,
+                new Binding
+                {
+                    Source = ShadowBrushProxy,
+                    Path = new PropertyPath(nameof(Border.Background)),
+                });
+            shadowPath.SetBinding(
+                UIElement.OpacityProperty,
+                new Binding
+                {
+                    Source = ShadowBrushProxy,
+                    Path = new PropertyPath(nameof(Opacity)),
+                });
             AutomationProperties.SetAccessibilityView(shadowPath, AccessibilityView.Raw);
             AutomationProperties.SetAccessibilityView(path, AccessibilityView.Raw);
             ArcCanvas.Children.Add(shadowPath);
@@ -266,9 +262,7 @@ public sealed partial class SpendDonutChart : UserControl
             }
 
             visual.Path.Visibility = Visibility.Visible;
-            visual.ShadowPath.Visibility = _accessibilitySettings.HighContrast
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            visual.ShadowPath.Visibility = Visibility.Visible;
             visual.Path.StrokeThickness = strokeThickness;
             visual.ShadowPath.StrokeThickness = strokeThickness;
             visual.Figure.StartPoint = PolarPoint(center, radius, start);
@@ -282,36 +276,20 @@ public sealed partial class SpendDonutChart : UserControl
         }
     }
 
-    private void ApplyArcBrushes()
-    {
-        for (int index = 0; index < _arcs.Length && index < _arcVisuals.Count; index++)
-        {
-            _arcVisuals[index].Path.Stroke = ResolveBrush(_arcs[index].ProviderId);
-        }
-    }
-
     private static Point PolarPoint(Point center, double radius, double angle) =>
         new(
             center.X + (radius * Math.Cos(angle)),
             center.Y + (radius * Math.Sin(angle)));
 
-    private Brush ResolveBrush(string providerId)
+    private Border ResolveBrushProxy(string providerId) => providerId switch
     {
-        if (_accessibilitySettings.HighContrast)
-        {
-            return _highContrastBrush;
-        }
-
-        return _brandBrushes.TryGetValue(providerId, out Brush? brush)
-            ? brush
-            : _fallbackBrush;
-    }
-
-    private void OnActualThemeChanged(FrameworkElement sender, object args)
-    {
-        ApplyArcBrushes();
-        UpdateArcVisuals();
-    }
+        "antigravity" => AntigravityBrushProxy,
+        "claude" => ClaudeBrushProxy,
+        "codex" => CodexBrushProxy,
+        "grok" => GrokBrushProxy,
+        "opencode" => OpenCodeBrushProxy,
+        _ => FallbackBrushProxy,
+    };
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
