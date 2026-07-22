@@ -266,17 +266,29 @@ Test-Ui "Error scenario keeps the cached dashboard visible" {
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "06-error-cache.png") 2>$null | Out-Null
 }
 
-Test-Ui "Turning sample mode off restores the honest empty state" {
+Test-Ui "Turning sample mode off restores the live Codex surface" {
     Invoke-AppElement "FooterOptionsButton"
     Invoke-AppElement "SampleModeToggle"
     & winapp ui wait-for "SampleModeToggle" -a $AppPid --value "Off" -t 1000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Sample mode did not turn off." }
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "EmptyOpenOptionsButton" 1500
+    $deadline = [DateTime]::UtcNow.AddSeconds(3)
+    do {
+        $live = & winapp ui search "CodexDataState" -a $AppPid --json 2>$null | ConvertFrom-Json
+        $unavailable = & winapp ui search "SampleRetryButton" -a $AppPid --json 2>$null | ConvertFrom-Json
+        if ($live.matchCount -lt 1 -and $unavailable.matchCount -lt 1) {
+            Start-Sleep -Milliseconds 100
+        }
+    } while (($live.matchCount -lt 1 -and $unavailable.matchCount -lt 1) -and
+        [DateTime]::UtcNow -lt $deadline)
+
+    if ($live.matchCount -lt 1 -and $unavailable.matchCount -lt 1) {
+        throw "The live Codex surface did not appear."
+    }
 }
 
 Test-Ui "Interactive controls keep AutomationIds" {
-    Invoke-AppElement "EmptyOpenOptionsButton"
+    Invoke-AppElement "FooterOptionsButton"
     $tree = & winapp ui inspect -a $AppPid --interactive --json 2>$null | ConvertFrom-Json
     $controls = @($tree.windows.elements | Where-Object { $_.type -match "Button|ToggleSwitch|ComboBox" })
     $missing = @($controls | Where-Object { -not $_.automationId })

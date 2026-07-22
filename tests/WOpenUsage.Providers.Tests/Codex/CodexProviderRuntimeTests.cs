@@ -155,6 +155,23 @@ public sealed class CodexProviderRuntimeTests
     }
 
     [Fact]
+    public async Task ClientStartupFailureIsTransientAndPreservesLastGood()
+    {
+        ProviderSnapshot lastGood = CreateLastGood();
+        var runtime = new CodexProviderRuntime(new UnavailableFactory(), "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now), lastGood),
+            CancellationToken.None);
+
+        ProviderOutcome.TransientFailure failure =
+            Assert.IsType<ProviderOutcome.TransientFailure>(result);
+        Assert.Equal(ProviderErrorCode.TransientSourceFailure, failure.Error.Code);
+        Assert.Equal("Codex app-server is unavailable.", failure.Error.Message);
+        Assert.Same(lastGood, failure.LastGood);
+    }
+
+    [Fact]
     public async Task RpcRejectionIsTransientAndDoesNotExposeServerData()
     {
         StubClient client = CreateReadyClient();
@@ -171,6 +188,28 @@ public sealed class CodexProviderRuntimeTests
             Assert.IsType<ProviderOutcome.TransientFailure>(result);
         Assert.Equal("Codex app-server could not return quota right now.", failure.Error.Message);
         Assert.DoesNotContain("-32001", failure.Error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MissingAccountMethodMarksTheCliContractUnsupported()
+    {
+        ProviderSnapshot lastGood = CreateLastGood();
+        StubClient client = CreateReadyClient();
+        client.AccountException = new CodexRpcException(-32601);
+        var runtime = new CodexProviderRuntime(
+            new StubFactory(CodexClientAvailability.Available, client),
+            "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now), lastGood),
+            CancellationToken.None);
+
+        ProviderOutcome.ContractFailure failure =
+            Assert.IsType<ProviderOutcome.ContractFailure>(result);
+        Assert.Equal(
+            "The installed Codex CLI does not support the required account methods.",
+            failure.Error.Message);
+        Assert.Same(lastGood, failure.LastGood);
     }
 
     [Fact]
@@ -259,6 +298,21 @@ public sealed class CodexProviderRuntimeTests
             cancellationToken.ThrowIfCancellationRequested();
             CreateCount++;
             return Task.FromResult(client);
+        }
+    }
+
+    private sealed class UnavailableFactory : ICodexQuotaClientFactory
+    {
+        public ValueTask<CodexClientAvailability> DetectAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(CodexClientAvailability.Available);
+        }
+
+        public Task<ICodexQuotaClient> CreateAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new CodexClientUnavailableException();
         }
     }
 

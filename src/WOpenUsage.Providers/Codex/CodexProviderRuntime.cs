@@ -113,6 +113,14 @@ public sealed class CodexProviderRuntime : IProviderRuntime
         {
             return TransientFailure(TimeoutReason, context.LastGood);
         }
+        catch (CodexClientUnavailableException)
+        {
+            return TransientFailure(UnavailableReason, context.LastGood);
+        }
+        catch (CodexRpcException exception) when (exception.Code == -32601)
+        {
+            return ContractFailure(UnsupportedVersionReason, context.LastGood);
+        }
         catch (CodexRpcException)
         {
             return TransientFailure(RejectedReason, context.LastGood);

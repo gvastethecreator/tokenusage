@@ -24,6 +24,8 @@
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardCatalog.cs" Link="Sample\SampleDashboardCatalog.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardProjector.cs" Link="Sample\SampleDashboardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\Services\SampleRefreshCoordinator.cs" Link="Sample\SampleRefreshCoordinator.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\CodexDashboardProjector.cs" Link="Codex\CodexDashboardProjector.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\Services\CodexRefreshCoordinator.cs" Link="Codex\CodexRefreshCoordinator.cs" />
   </ItemGroup>
 
   <ItemGroup>

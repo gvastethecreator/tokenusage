@@ -15,8 +15,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WOpenUsage.Platform.Windows\WOpenUsage.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\WOpenUsage.Providers\WOpenUsage.Providers.csproj" />
     <ProjectReference Include="..\WOpenUsage.TestSupport.FakeCodex\WOpenUsage.TestSupport.FakeCodex.csproj"
                       ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\WOpenUsage.App\Services\CodexAppServerQuotaClientFactory.cs" Link="Composition\CodexAppServerQuotaClientFactory.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\Services\CodexRefreshCoordinator.cs" Link="Composition\CodexRefreshCoordinator.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\CodexDashboardProjector.cs" Link="Composition\CodexDashboardProjector.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleScenario.cs" Link="Composition\SampleScenario.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardModels.cs" Link="Composition\SampleDashboardModels.cs" />
   </ItemGroup>
 
   <ItemGroup>

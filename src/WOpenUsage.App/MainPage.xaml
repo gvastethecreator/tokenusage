@@ -156,19 +156,20 @@
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsSampleUnavailable, Mode=OneWay}">
                                 <TextBlock
-                                    x:Uid="SampleUnavailableTitle"
                                     Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.UnavailableTitle, Mode=OneWay}"
                                     TextWrapping="WrapWholeWords" />
                                 <TextBlock
-                                    x:Uid="SampleUnavailableBody"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.UnavailableBody, Mode=OneWay}"
                                     TextWrapping="WrapWholeWords" />
                                 <Button
                                     x:Name="SampleRetryButton"
-                                    x:Uid="SampleRetryButton"
                                     AutomationProperties.AutomationId="SampleRetryButton"
+                                    AutomationProperties.Name="{x:Bind ViewModel.RetryAutomationName, Mode=OneWay}"
                                     Command="{x:Bind ViewModel.RefreshCommand}"
+                                    Content="{x:Bind ViewModel.RetryButtonText, Mode=OneWay}"
                                     HorizontalAlignment="Left"
                                     Margin="0,4,0,0"
                                     Style="{StaticResource AccentButtonStyle}" />
@@ -216,9 +217,15 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Spacing="2">
                                 <TextBlock
-                                    x:Uid="SampleTotalSpendTitle"
-                                    Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.DashboardHeading, Mode=OneWay}" />
                                 <Grid AutomationProperties.LiveSetting="Polite">
+                                    <TextBlock
+                                        AutomationProperties.AutomationId="CodexDataState"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind ViewModel.LiveDataStateText, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.IsLiveDataStateVisible, Mode=OneWay}" />
                                     <TextBlock
                                         x:Uid="SampleStateCacheRefreshingLabel"
                                         AutomationProperties.AutomationId="SampleStateCacheRefreshing"
@@ -278,11 +285,14 @@
                                 <TextBlock
                                     Style="{StaticResource SubtitleTextBlockStyle}"
                                     Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
-                                    VerticalAlignment="Center" />
+                                    VerticalAlignment="Center"
+                                    Visibility="{x:Bind ViewModel.ActiveSample.HasSpend, Mode=OneWay}" />
                             </StackPanel>
                         </Grid>
 
                         <Border
+                            x:Name="SampleTotalSpendCard"
+                            x:Load="{x:Bind ViewModel.ActiveSample.HasSpend, Mode=OneWay}"
                             AutomationProperties.AutomationId="SampleTotalSpendCard"
                             Padding="12"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

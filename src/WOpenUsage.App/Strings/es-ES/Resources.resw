@@ -47,7 +47,7 @@
   <data name="SampleScenarioError" xml:space="preserve"><value>Error</value></data>
   <data name="SampleTotalSpendTitle.Text" xml:space="preserve"><value>Gasto total</value></data>
   <data name="SampleSpendAccessibleNameFormat" xml:space="preserve"><value>Gasto total {0} en {1} proveedores. {2}</value></data>
-  <data name="SampleStatus" xml:space="preserve"><value>Datos de muestra</value></data>
+  <data name="SampleStatus" xml:space="preserve"><value>Muestra</value></data>
   <data name="SampleStatusLoading" xml:space="preserve"><value>Actualizando muestra…</value></data>
   <data name="SamplePeriodNormal" xml:space="preserve"><value>30 días · muestra normal</value></data>
   <data name="SamplePeriodNearLimit" xml:space="preserve"><value>30 días · cerca del límite</value></data>
@@ -95,4 +95,32 @@
   <data name="SamplePlanPro" xml:space="preserve"><value>Pro</value></data>
   <data name="SamplePlanLocal" xml:space="preserve"><value>Local</value></data>
   <data name="SamplePlanExperimental" xml:space="preserve"><value>Experimental</value></data>
+  <data name="CodexQuotaTitle" xml:space="preserve"><value>Cuota de Codex</value></data>
+  <data name="CodexQuotaPeriod" xml:space="preserve"><value>Límites actuales de Codex</value></data>
+  <data name="CodexPlanUnknown" xml:space="preserve"><value>Plan no disponible</value></data>
+  <data name="CodexUsageFormat" xml:space="preserve"><value>{0}% restante · {1}% usado</value></data>
+  <data name="CodexWindowPrimary" xml:space="preserve"><value>Límite principal</value></data>
+  <data name="CodexWindowSecondary" xml:space="preserve"><value>Límite secundario</value></data>
+  <data name="CodexWindowAdditionalPrimaryFormat" xml:space="preserve"><value>Límite adicional {0}</value></data>
+  <data name="CodexWindowAdditionalSecondaryFormat" xml:space="preserve"><value>Límite adicional {0}</value></data>
+  <data name="CodexResetUnknown" xml:space="preserve"><value>Reinicio no disponible</value></data>
+  <data name="CodexResetDue" xml:space="preserve"><value>Reinicio pendiente</value></data>
+  <data name="CodexStateCacheRefreshing" xml:space="preserve"><value>Cuota de Codex · caché, actualizando…</value></data>
+  <data name="CodexStateStaleCacheRefreshing" xml:space="preserve"><value>Cuota de Codex · caché vencida, actualizando…</value></data>
+  <data name="CodexStateFresh" xml:space="preserve"><value>Cuota de Codex · actualizado ahora</value></data>
+  <data name="CodexStatePartial" xml:space="preserve"><value>Cuota de Codex · cobertura parcial</value></data>
+  <data name="CodexStateStale" xml:space="preserve"><value>Cuota de Codex · dato guardado</value></data>
+  <data name="CodexStateError" xml:space="preserve"><value>Cuota de Codex · error, mostrando caché</value></data>
+  <data name="CodexStateNotSaved" xml:space="preserve"><value>Cuota de Codex · actualizado, sin guardar</value></data>
+  <data name="CodexUnavailableTitle" xml:space="preserve"><value>Cuota de Codex no disponible</value></data>
+  <data name="CodexUnavailableBody" xml:space="preserve"><value>WOpenUsage no pudo leer la cuota de Codex. Comprueba que Codex funciona y vuelve a intentarlo.</value></data>
+  <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex necesita configuración</value></data>
+  <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Instala Codex CLI o inicia sesión con ChatGPT desde Codex y vuelve a intentarlo. WOpenUsage no solicita credenciales.</value></data>
+  <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Esta cuenta no ofrece cuota de Codex</value></data>
+  <data name="CodexUnsupportedBody" xml:space="preserve"><value>La cuenta activa de Codex no informa ventanas de cuota de ChatGPT.</value></data>
+  <data name="CodexRetry" xml:space="preserve"><value>Reintentar cuota de Codex</value></data>
+  <data name="SampleTotalSpendHeading" xml:space="preserve"><value>Gasto total</value></data>
+  <data name="SampleUnavailableTitleValue" xml:space="preserve"><value>Muestra no disponible</value></data>
+  <data name="SampleUnavailableBodyValue" xml:space="preserve"><value>La fuente de muestra falló y todavía no hay un dato guardado.</value></data>
+  <data name="SampleRetry" xml:space="preserve"><value>Reintentar</value></data>
 </root>

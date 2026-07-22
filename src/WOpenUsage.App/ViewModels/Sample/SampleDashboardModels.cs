@@ -38,4 +38,7 @@ public sealed record SampleDashboardSnapshot(
     string PeriodLabel,
     string SpendAccessibleName,
     IReadOnlyList<SampleSpendSlice> SpendSlices,
-    IReadOnlyList<SampleProviderCard> Providers);
+    IReadOnlyList<SampleProviderCard> Providers)
+{
+    public bool HasSpend => SpendSlices.Count > 0;
+}
