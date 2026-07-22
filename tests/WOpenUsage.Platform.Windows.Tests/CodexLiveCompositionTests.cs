@@ -60,11 +60,24 @@ public sealed class CodexLiveCompositionTests
             Assert.Equal("Plus", card.PlanLabel);
             Assert.Equal(2, card.Windows.Count);
             Assert.Equal(58d, card.Windows[0].RemainingPercent);
+            Assert.True(card.Windows[0].HasPace);
+            Assert.True(card.Windows[0].IsPaceBehind);
+            Assert.True(card.Windows[1].HasPace);
+            Assert.True(card.Windows[1].IsPaceWithinLimit);
+            Assert.Collection(
+                card.Metrics,
+                metric => Assert.Equal("1200 tokens", metric.Value.Replace(",", string.Empty).Replace(".", string.Empty)),
+                metric => Assert.Equal("300 tokens", metric.Value),
+                metric => Assert.Equal("1500 tokens", metric.Value.Replace(",", string.Empty).Replace(".", string.Empty)),
+                metric => Assert.Equal("1500 tokens", metric.Value.Replace(",", string.Empty).Replace(".", string.Empty)));
 
             string visibleText = string.Join(
                 '\n',
-                card.Windows.Select(window =>
-                    $"{window.Title}|{window.RemainingText}|{window.ResetText}|{window.AutomationName}"));
+                [
+                    .. card.Windows.Select(window =>
+                        $"{window.Title}|{window.RemainingText}|{window.ResetText}|{window.PaceText}|{window.AutomationName}"),
+                    .. card.Metrics.Select(metric => $"{metric.Label}|{metric.Value}"),
+                ]);
             Assert.DoesNotContain("private-live@example.invalid", visibleText, StringComparison.Ordinal);
             Assert.DoesNotContain("auth.json", visibleText, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Bearer", visibleText, StringComparison.OrdinalIgnoreCase);
@@ -155,7 +168,22 @@ public sealed class CodexLiveCompositionTests
         "SampleResetHoursFormat" => "Resets in {0} h",
         "SampleResetDaysFormat" => "Resets in {0} d",
         "SampleResetDaysHoursFormat" => "Resets in {0} d {1} h",
-        "SampleCapabilityQuota" => "Quota",
+        "CodexPartialUsageNotice" => "Daily token usage is incomplete.",
+        "CodexCapabilityUsage" => "Quota and local usage",
+        "CodexUsageToday" => "Today",
+        "CodexUsageYesterday" => "Yesterday",
+        "CodexUsageLast7Days" => "Last 7 days",
+        "CodexUsageLast30Days" => "Last 30 days",
+        "CodexUsageMissing" => "No data",
+        "CodexTokenCountFormat" => "{0:N0} tokens",
+        "CodexTokenCountSingular" => "{0:N0} token",
+        "CodexPaceAheadFormat" => "{0}% projected · below pace",
+        "CodexPaceOnTrackFormat" => "{0}% projected · on pace",
+        "CodexPaceBehindFormat" => "{0}% projected · above pace",
+        "CodexPaceBehindEtaFormat" => "{0}% projected · limit in {1}",
+        "CodexDurationHoursFormat" => "{0} h",
+        "CodexDurationMinutesFormat" => "{0} min",
+        "CodexDurationHoursMinutesFormat" => "{0} h {1} min",
         _ => throw new InvalidOperationException($"Unexpected resource '{key}'."),
     };
 
