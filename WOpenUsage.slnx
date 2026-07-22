@@ -34,5 +34,13 @@
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
+    <Project Path="tests/WOpenUsage.Core.Tests/WOpenUsage.Core.Tests.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="tests/WOpenUsage.Providers.Tests/WOpenUsage.Providers.Tests.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
   </Folder>
 </Solution>
