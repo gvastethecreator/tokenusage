@@ -59,6 +59,7 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsCardSurface))]
     [NotifyPropertyChangedFor(nameof(IsUsageSurface))]
     [NotifyPropertyChangedFor(nameof(IsLiveDataStateVisible))]
+    [NotifyPropertyChangedFor(nameof(IsSampleDataStateVisible))]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenOptionsCommand))]
     [NotifyCanExecuteChangedFor(nameof(CloseOptionsCommand))]
@@ -74,13 +75,9 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSampleLoading))]
     [NotifyPropertyChangedFor(nameof(DashboardHeading))]
     [NotifyPropertyChangedFor(nameof(IsLiveDataStateVisible))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateCacheRefreshing))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateStaleCacheRefreshing))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateFresh))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStatePartial))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateStale))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateError))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateNotSaved))]
+    [NotifyPropertyChangedFor(nameof(IsSampleDataStateVisible))]
+    [NotifyPropertyChangedFor(nameof(SampleDataStateText))]
+    [NotifyPropertyChangedFor(nameof(SampleDataStateAutomationId))]
     public partial bool IsSampleModeEnabled { get; set; }
 
     [ObservableProperty]
@@ -100,14 +97,9 @@ public partial class FlyoutViewModel : ObservableObject
     public partial bool IsSampleRefreshing { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateCacheRefreshing))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateStaleCacheRefreshing))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateFresh))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStatePartial))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateStale))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateError))]
-    [NotifyPropertyChangedFor(nameof(IsSampleStateNotSaved))]
     [NotifyPropertyChangedFor(nameof(LiveDataStateText))]
+    [NotifyPropertyChangedFor(nameof(SampleDataStateText))]
+    [NotifyPropertyChangedFor(nameof(SampleDataStateAutomationId))]
     public partial SampleDataState CurrentSampleDataState { get; set; } = SampleDataState.Idle;
 
     [ObservableProperty]
@@ -149,6 +141,8 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsLiveDataStateVisible => !IsSampleModeEnabled && IsSample;
 
+    public bool IsSampleDataStateVisible => IsSampleModeEnabled && IsSample;
+
     public string LiveDataStateText => CodexLiveStateFormatter.Format(
         CurrentSampleDataState,
         IsSampleModeEnabled,
@@ -157,26 +151,31 @@ public partial class FlyoutViewModel : ObservableObject
         _codexRefreshCoordinator.Clock.GetUtcNow(),
         GetString);
 
-    public bool IsSampleStateCacheRefreshing => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.CacheRefreshing;
+    public string SampleDataStateText => GetString(CurrentSampleDataState switch
+    {
+        SampleDataState.CacheRefreshing => "SampleStateCacheRefreshing",
+        SampleDataState.StaleCacheRefreshing => "SampleStateStaleCacheRefreshing",
+        SampleDataState.Fresh => "SampleStateFresh",
+        SampleDataState.Partial => "SampleStatePartial",
+        SampleDataState.Stale => "SampleStateStale",
+        SampleDataState.Error => "SampleStateError",
+        SampleDataState.Throttled => "SampleStateThrottled",
+        SampleDataState.NotSaved => "SampleStateNotSaved",
+        _ => "SamplePeriodNormal",
+    });
 
-    public bool IsSampleStateStaleCacheRefreshing => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.StaleCacheRefreshing;
-
-    public bool IsSampleStateFresh => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.Fresh;
-
-    public bool IsSampleStatePartial => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.Partial;
-
-    public bool IsSampleStateStale => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.Stale;
-
-    public bool IsSampleStateError => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.Error;
-
-    public bool IsSampleStateNotSaved => IsSampleModeEnabled
-        && CurrentSampleDataState == SampleDataState.NotSaved;
+    public string SampleDataStateAutomationId => CurrentSampleDataState switch
+    {
+        SampleDataState.CacheRefreshing => "SampleStateCacheRefreshing",
+        SampleDataState.StaleCacheRefreshing => "SampleStateStaleCacheRefreshing",
+        SampleDataState.Fresh => "SampleStateFresh",
+        SampleDataState.Partial => "SampleStatePartial",
+        SampleDataState.Stale => "SampleStateStale",
+        SampleDataState.Error => "SampleStateError",
+        SampleDataState.Throttled => "SampleStateThrottled",
+        SampleDataState.NotSaved => "SampleStateNotSaved",
+        _ => "SampleStateIdle",
+    };
 
     public IReadOnlyList<SampleScenarioOption> SampleScenarios { get; }
 

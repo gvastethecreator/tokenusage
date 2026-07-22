@@ -204,7 +204,7 @@ public static class SampleDashboardCatalog
         Func<string, string> text,
         string? notice,
         params SampleQuotaWindow[] windows) =>
-        new(
+        WithSampleDetails(new(
             providerId,
             id,
             name,
@@ -213,9 +213,9 @@ public static class SampleDashboardCatalog
             notice,
             windows.Select(window => window with
             {
-                AutomationName = $"{name}, {window.AutomationName}",
+                AutomationName = $"{name}, {window.AutomationName}. {window.ResetText}",
             }).ToArray(),
-            []);
+            []), text);
 
     private static SampleProviderCard MetricProvider(
         string providerId,
@@ -234,7 +234,9 @@ public static class SampleDashboardCatalog
             metrics.Add(new SampleMetric(text("SampleMetricSpend"), spend));
         }
 
-        return new SampleProviderCard(providerId, id, name, plan, capability, notice, [], metrics);
+        return WithSampleDetails(
+            new SampleProviderCard(providerId, id, name, plan, capability, notice, [], metrics),
+            text);
     }
 
     private static SampleProviderCard CodexProvider(
@@ -286,7 +288,28 @@ public static class SampleDashboardCatalog
         {
             CapabilityLabel = text("CodexCapabilityUsage"),
             Windows = pacedWindows,
-            Metrics = metrics,
+            Metrics = [],
+            SecondaryMetrics = metrics,
+        };
+    }
+
+    private static SampleProviderCard WithSampleDetails(
+        SampleProviderCard provider,
+        Func<string, string> text)
+    {
+        string source = text("ProviderSourceSample");
+        string observed = text("ProviderObservedNow");
+        return provider with
+        {
+            SourceLabel = text("ProviderSourceLabel"),
+            SourceValue = source,
+            ObservedLabel = text("ProviderObservedLabel"),
+            ObservedValue = observed,
+            DetailsTooltip = Format(text, "ProviderDetailsTooltipFormat", source, observed),
+            DetailsAutomationName = Format(
+                text,
+                "ProviderDetailsAutomationNameFormat",
+                provider.Name),
         };
     }
 

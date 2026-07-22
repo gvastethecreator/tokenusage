@@ -82,7 +82,7 @@ public static class SampleDashboardProjector
             RemainingPercent = remaining,
             RemainingText = remainingText,
             ResetText = resetText,
-            AutomationName = $"{provider.Name}, {windows[0].Title}: {remainingText}",
+            AutomationName = $"{provider.Name}, {windows[0].Title}: {remainingText}. {resetText}",
             IsNearLimit = remaining <= 15d,
         };
 

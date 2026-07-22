@@ -57,8 +57,17 @@ public sealed class CodexDashboardProjectorTests
         Assert.True(card.Windows[1].IsPaceWithinLimit);
         Assert.Null(card.NoticeText);
         Assert.False(card.HasNotice);
+        Assert.Empty(card.Metrics);
+        Assert.True(card.HasSecondaryMetrics);
+        Assert.True(card.HasDetails);
+        Assert.Equal("Source", card.SourceLabel);
+        Assert.Equal("Official local API", card.SourceValue);
+        Assert.Equal("Updated", card.ObservedLabel);
+        Assert.False(string.IsNullOrWhiteSpace(card.ObservedValue));
+        Assert.Contains("Official local API", card.DetailsTooltip, StringComparison.Ordinal);
+        Assert.Equal("Details for Codex", card.DetailsAutomationName);
         Assert.Collection(
-            card.Metrics,
+            card.SecondaryMetricItems,
             metric => Assert.Equal(new SampleMetric("Today", "No data", "CodexUsage.Today"), metric),
             metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday"), metric),
             metric => Assert.Equal(new SampleMetric("Last 7 days", "No data", "CodexUsage.Last7Days"), metric),
@@ -165,8 +174,9 @@ public sealed class CodexDashboardProjectorTests
             GetString).Providers);
 
         Assert.Equal("Daily token usage is incomplete.", card.NoticeText);
+        Assert.Empty(card.Metrics);
         Assert.Collection(
-            card.Metrics,
+            card.SecondaryMetricItems,
             metric => Assert.Equal(new SampleMetric("Today", "0 tokens", "CodexUsage.Today"), metric),
             metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday"), metric),
             metric => Assert.Equal(
@@ -260,6 +270,12 @@ public sealed class CodexDashboardProjectorTests
         "SampleCapabilityQuota" => "Quota",
         "CodexPartialUsageNotice" => "Daily token usage is incomplete.",
         "CodexCapabilityUsage" => "Quota and local usage",
+        "ProviderSourceLabel" => "Source",
+        "ProviderSourceOfficialLocalApi" => "Official local API",
+        "ProviderObservedLabel" => "Updated",
+        "ProviderObservedValueFormat" => "{0}",
+        "ProviderDetailsTooltipFormat" => "Source: {0}. Updated: {1}.",
+        "ProviderDetailsAutomationNameFormat" => "Details for {0}",
         "CodexUsageToday" => "Today",
         "CodexUsageYesterday" => "Yesterday",
         "CodexUsageLast7Days" => "Last 7 days",
