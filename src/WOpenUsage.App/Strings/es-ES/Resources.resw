@@ -12,8 +12,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AppTitle" xml:space="preserve"><value>WOpenUsage</value></data>
-  <data name="TrayTooltip" xml:space="preserve"><value>WOpenUsage</value></data>
+  <data name="AppTitle" xml:space="preserve"><value>TokenUsage</value></data>
+  <data name="TrayTooltip" xml:space="preserve"><value>TokenUsage</value></data>
   <data name="TrayMenuUpdate" xml:space="preserve"><value>Actualizar</value></data>
   <data name="TrayMenuSettings" xml:space="preserve"><value>Opciones</value></data>
   <data name="TrayMenuExit" xml:space="preserve"><value>Salir</value></data>
@@ -32,7 +32,7 @@
   <data name="EmptyOpenOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Abrir opciones</value></data>
   <data name="CloseWhenInactiveToggle.Header" xml:space="preserve"><value>Cerrar al perder foco</value></data>
   <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Cerrar al perder foco</value></data>
-  <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>WOpenUsage 0.1</value></data>
+  <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>TokenUsage 0.1</value></data>
   <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Opciones</value></data>
   <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Opciones</value></data>
   <data name="SampleBadge.Text" xml:space="preserve"><value>Muestra</value></data>
@@ -136,9 +136,9 @@
   <data name="CodexAgeDaysFormat" xml:space="preserve"><value>{0} d</value></data>
   <data name="SampleRetryAutomationName" xml:space="preserve"><value>Reintentar muestra</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Cuota de Codex no disponible</value></data>
-  <data name="CodexUnavailableBody" xml:space="preserve"><value>WOpenUsage no pudo leer la cuota de Codex. Comprueba que Codex funciona y vuelve a intentarlo.</value></data>
+  <data name="CodexUnavailableBody" xml:space="preserve"><value>TokenUsage no pudo leer la cuota de Codex. Comprueba que Codex funciona y vuelve a intentarlo.</value></data>
   <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex necesita configuración</value></data>
-  <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Instala Codex CLI o inicia sesión con ChatGPT desde Codex y vuelve a intentarlo. WOpenUsage no solicita credenciales.</value></data>
+  <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Instala Codex CLI o inicia sesión con ChatGPT desde Codex y vuelve a intentarlo. TokenUsage no solicita credenciales.</value></data>
   <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Esta cuenta no ofrece cuota de Codex</value></data>
   <data name="CodexUnsupportedBody" xml:space="preserve"><value>La cuenta activa de Codex no informa ventanas de cuota de ChatGPT.</value></data>
   <data name="CodexRetry" xml:space="preserve"><value>Reintentar cuota de Codex</value></data>
@@ -205,4 +205,35 @@
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:0.00} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Cuota no disponible · uso local visible</value></data>
+  <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Proveedores</value></data>
+  <data name="ProviderStatusSectionDescription.Text" xml:space="preserve"><value>Detección local y datos compatibles. Las rutas completas se mantienen privadas.</value></data>
+  <data name="ProviderStatusRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Actualizar estado de proveedores</value></data>
+  <data name="ProviderStatusQuota" xml:space="preserve"><value>Cuota</value></data>
+  <data name="ProviderStatusUsage" xml:space="preserve"><value>Uso local</value></data>
+  <data name="ProviderStatusSpend" xml:space="preserve"><value>Gasto</value></data>
+  <data name="ProviderStatusCoverage" xml:space="preserve"><value>Cobertura</value></data>
+  <data name="ProviderStatusAvailable" xml:space="preserve"><value>Disponible</value></data>
+  <data name="ProviderStatusComplete" xml:space="preserve"><value>Completo</value></data>
+  <data name="ProviderStatusPartial" xml:space="preserve"><value>Parcial</value></data>
+  <data name="ProviderStatusNotConfigured" xml:space="preserve"><value>Sin configurar</value></data>
+  <data name="ProviderStatusNoData" xml:space="preserve"><value>Aún sin datos</value></data>
+  <data name="ProviderStatusBlocked" xml:space="preserve"><value>Bloqueado por política del proveedor</value></data>
+  <data name="ProviderStatusUnsupportedSchema" xml:space="preserve"><value>Formato nuevo no compatible</value></data>
+  <data name="ProviderStatusUnsupported" xml:space="preserve"><value>Tipo de cuenta no compatible</value></data>
+  <data name="ProviderStatusReported" xml:space="preserve"><value>Informado por el proveedor</value></data>
+  <data name="ProviderStatusEstimated" xml:space="preserve"><value>Estimado con tarifas</value></data>
+  <data name="ProviderStatusReportedLastReliable" xml:space="preserve"><value>Informado · último dato fiable</value></data>
+  <data name="ProviderStatusEstimatedLastReliable" xml:space="preserve"><value>Estimado · último dato fiable</value></data>
+  <data name="ProviderStatusCoverageLastReliableFormat" xml:space="preserve"><value>Último dato fiable · {0}</value></data>
+  <data name="ProviderStatusUnavailable" xml:space="preserve"><value>No disponible</value></data>
+  <data name="ProviderStatusRootDetected" xml:space="preserve"><value>Fuente de datos detectada</value></data>
+  <data name="ProviderStatusRootMissing" xml:space="preserve"><value>Fuente de datos no encontrada</value></data>
+  <data name="ProviderStatusRootPending" xml:space="preserve"><value>Detección pendiente</value></data>
+  <data name="ProviderStatusContractChanged" xml:space="preserve"><value>Cambió la respuesta del proveedor</value></data>
+  <data name="ProviderStatusRecoveryOpenTool" xml:space="preserve"><value>Abre el proveedor una vez y actualiza el estado.</value></data>
+  <data name="ProviderStatusRecoveryUpdate" xml:space="preserve"><value>Actualiza TokenUsage cuando haya soporte para este formato.</value></data>
+  <data name="ProviderStatusRecoveryRetry" xml:space="preserve"><value>Cierra los archivos de sesión activos y actualiza el estado.</value></data>
+  <data name="ProviderStatusRecoveryRefresh" xml:space="preserve"><value>Actualiza el estado después de nueva actividad.</value></data>
+  <data name="ProviderStatusRecoveryUnavailable" xml:space="preserve"><value>No hay recuperación disponible en la app.</value></data>
+  <data name="LocalUsageAgentCodex" xml:space="preserve"><value>Codex</value></data>
 </root>
