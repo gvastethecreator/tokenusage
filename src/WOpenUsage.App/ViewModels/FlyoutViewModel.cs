@@ -18,6 +18,8 @@ public partial class FlyoutViewModel : ObservableObject
     private SampleScenario? _activeScenario;
     private bool _hasPublishedDashboard;
     private int _refreshVersion;
+    private DateTimeOffset? _publishedObservedAtUtc;
+    private DateTimeOffset? _retryAtUtc;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
@@ -147,17 +149,13 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsLiveDataStateVisible => !IsSampleModeEnabled && IsSample;
 
-    public string LiveDataStateText => GetString(CurrentSampleDataState switch
-    {
-        SampleDataState.CacheRefreshing => "CodexStateCacheRefreshing",
-        SampleDataState.StaleCacheRefreshing => "CodexStateStaleCacheRefreshing",
-        SampleDataState.Fresh => "CodexStateFresh",
-        SampleDataState.Partial => "CodexStatePartial",
-        SampleDataState.Stale => "CodexStateStale",
-        SampleDataState.Error => "CodexStateError",
-        SampleDataState.NotSaved => "CodexStateNotSaved",
-        _ => "CodexQuotaPeriod",
-    });
+    public string LiveDataStateText => CodexLiveStateFormatter.Format(
+        CurrentSampleDataState,
+        IsSampleModeEnabled,
+        _publishedObservedAtUtc,
+        _retryAtUtc,
+        _codexRefreshCoordinator.Clock.GetUtcNow(),
+        GetString);
 
     public bool IsSampleStateCacheRefreshing => IsSampleModeEnabled
         && CurrentSampleDataState == SampleDataState.CacheRefreshing;
@@ -347,6 +345,14 @@ public partial class FlyoutViewModel : ObservableObject
             _ => null,
         };
 
+        _retryAtUtc = provider.Outcome switch
+        {
+            ProviderOutcome.Throttled throttled => throttled.RetryAtUtc,
+            ProviderOutcome.TransientFailure failure => failure.RetryAtUtc,
+            ProviderOutcome.ContractFailure failure => failure.RetryAtUtc,
+            _ => null,
+        };
+
         if (snapshot is null)
         {
             PublishUnavailable(provider.Outcome);
@@ -354,9 +360,12 @@ public partial class FlyoutViewModel : ObservableObject
         }
 
         PublishDashboard(scenario, snapshot, reveal: true);
-        if (provider.Outcome is ProviderOutcome.TransientFailure
-            or ProviderOutcome.ContractFailure
-            or ProviderOutcome.Throttled)
+        if (provider.Outcome is ProviderOutcome.Throttled)
+        {
+            SetDataState(SampleDataState.Throttled);
+        }
+        else if (provider.Outcome is ProviderOutcome.TransientFailure
+            or ProviderOutcome.ContractFailure)
         {
             SetDataState(SampleDataState.Error);
         }
@@ -383,6 +392,7 @@ public partial class FlyoutViewModel : ObservableObject
         ProviderSnapshot snapshot,
         bool reveal)
     {
+        _publishedObservedAtUtc = snapshot.SourceObservedAtUtc;
         ActiveSample = scenario is SampleScenario sampleScenario
             ? SampleDashboardProjector.Create(sampleScenario, snapshot, GetString)
             : CodexDashboardProjector.Create(snapshot, _codexRefreshCoordinator.Clock, GetString);
@@ -407,7 +417,7 @@ public partial class FlyoutViewModel : ObservableObject
             UnavailableTitle = GetString("SampleUnavailableTitleValue");
             UnavailableBody = GetString("SampleUnavailableBodyValue");
             RetryButtonText = GetString("SampleRetry");
-            RetryAutomationName = GetString("SampleRetry");
+            RetryAutomationName = GetString("SampleRetryAutomationName");
         }
         else if (outcome is ProviderOutcome.NotConfigured)
         {
@@ -434,7 +444,33 @@ public partial class FlyoutViewModel : ObservableObject
         ApplyResultSurfaceIfVisible();
     }
 
-    private void SetDataState(SampleDataState state) => CurrentSampleDataState = state;
+    private void SetDataState(SampleDataState state)
+    {
+        CurrentSampleDataState = state;
+        OnPropertyChanged(nameof(LiveDataStateText));
+    }
+
+    public void RefreshRelativeTime()
+    {
+        if (IsSampleModeEnabled)
+        {
+            return;
+        }
+
+        if (_retryAtUtc is DateTimeOffset retryAtUtc
+            && retryAtUtc <= _codexRefreshCoordinator.Clock.GetUtcNow().ToUniversalTime()
+            && !IsSampleRefreshing)
+        {
+            _retryAtUtc = null;
+            _ = RefreshDashboardAsync(scenario: null, forceRefresh: false);
+            return;
+        }
+
+        if (_publishedObservedAtUtc is not null)
+        {
+            OnPropertyChanged(nameof(LiveDataStateText));
+        }
+    }
 
     private void ApplyResultSurfaceIfVisible()
     {

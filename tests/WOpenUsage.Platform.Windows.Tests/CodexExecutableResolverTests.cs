@@ -137,6 +137,41 @@ public sealed class CodexExecutableResolverTests
         Assert.Equal(executable, result.ExecutablePath, ignoreCase: true);
     }
 
+    [Fact]
+    public void BunGlobalShimIsDeferredBehindTheNpmNativeBinary()
+    {
+        using var folder = new TemporaryFolder();
+        string userProfile = folder.CreateDirectory("profile");
+        string bunShim = folder.CreateExecutable(
+            Path.Combine("profile", ".bun", "bin"),
+            "codex.exe");
+        string appData = folder.CreateDirectory("appdata");
+        string nativeExecutable = folder.CreateExecutable(
+            Path.Combine(
+                "appdata",
+                "npm",
+                "node_modules",
+                "@openai",
+                "codex",
+                "node_modules",
+                "@openai",
+                "codex-win32-x64",
+                "vendor",
+                "x86_64-pc-windows-msvc",
+                "bin"),
+            "codex.exe");
+        CodexExecutableSearchContext context = CreateContext(
+            explicitOverride: null,
+            pathValue: Path.GetDirectoryName(bunShim),
+            userProfile: userProfile,
+            appData: appData);
+
+        CodexExecutableResolution.Resolved result = Assert.IsType<CodexExecutableResolution.Resolved>(
+            CodexExecutableResolver.Resolve(context));
+
+        Assert.Equal(nativeExecutable, result.ExecutablePath, ignoreCase: true);
+    }
+
     private static CodexExecutableSearchContext CreateContext(
         string? explicitOverride,
         string? pathValue = null,

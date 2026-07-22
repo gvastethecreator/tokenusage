@@ -219,9 +219,10 @@
                                 <TextBlock
                                     Style="{StaticResource BodyStrongTextBlockStyle}"
                                     Text="{x:Bind ViewModel.DashboardHeading, Mode=OneWay}" />
-                                <Grid AutomationProperties.LiveSetting="Polite">
+                                <Grid>
                                     <TextBlock
                                         AutomationProperties.AutomationId="CodexDataState"
+                                        AutomationProperties.LiveSetting="Polite"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         Style="{StaticResource CaptionTextBlockStyle}"
                                         Text="{x:Bind ViewModel.LiveDataStateText, Mode=OneWay}"
@@ -277,6 +278,7 @@
                                 VerticalAlignment="Center">
                                 <ProgressRing
                                     x:Name="SampleRefreshProgressRing"
+                                    x:Uid="LoadingProgressRing"
                                     AutomationProperties.AutomationId="SampleRefreshProgressRing"
                                     Height="14"
                                     IsActive="{x:Bind ViewModel.IsSampleRefreshing, Mode=OneWay}"

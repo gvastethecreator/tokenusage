@@ -18,6 +18,7 @@ public enum SampleDataState
     Partial,
     Stale,
     Error,
+    Throttled,
     NotSaved,
     Unavailable,
 }

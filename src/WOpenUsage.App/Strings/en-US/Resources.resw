@@ -112,6 +112,18 @@
   <data name="CodexStateStale" xml:space="preserve"><value>Codex quota · saved data</value></data>
   <data name="CodexStateError" xml:space="preserve"><value>Codex quota · error, showing cache</value></data>
   <data name="CodexStateNotSaved" xml:space="preserve"><value>Codex quota · updated, not saved</value></data>
+  <data name="CodexStateThrottled" xml:space="preserve"><value>Codex quota · waiting to retry</value></data>
+  <data name="CodexStateCacheRefreshingWithAgeFormat" xml:space="preserve"><value>Codex quota · cache from {0} ago, updating…</value></data>
+  <data name="CodexStateStaleCacheRefreshingWithAgeFormat" xml:space="preserve"><value>Codex quota · stale cache from {0} ago, updating…</value></data>
+  <data name="CodexStateStaleWithAgeFormat" xml:space="preserve"><value>Codex quota · saved data from {0} ago</value></data>
+  <data name="CodexStateErrorWithAgeFormat" xml:space="preserve"><value>Codex quota · error, showing cache from {0} ago</value></data>
+  <data name="CodexStateErrorRetryWithAgeFormat" xml:space="preserve"><value>Codex quota · retry in {0}, cache from {1} ago</value></data>
+  <data name="CodexStateThrottledWithAgeFormat" xml:space="preserve"><value>Codex quota · retry in {0}, cache from {1} ago</value></data>
+  <data name="CodexAgeLessThanMinute" xml:space="preserve"><value>less than 1 min</value></data>
+  <data name="CodexAgeMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="CodexAgeHoursFormat" xml:space="preserve"><value>{0} h</value></data>
+  <data name="CodexAgeDaysFormat" xml:space="preserve"><value>{0} d</value></data>
+  <data name="SampleRetryAutomationName" xml:space="preserve"><value>Retry sample</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Codex quota unavailable</value></data>
   <data name="CodexUnavailableBody" xml:space="preserve"><value>WOpenUsage could not read Codex quota. Check that Codex runs, then try again.</value></data>
   <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex setup needed</value></data>

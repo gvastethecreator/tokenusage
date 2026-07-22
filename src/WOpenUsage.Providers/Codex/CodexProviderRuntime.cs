@@ -73,7 +73,9 @@ public sealed class CodexProviderRuntime : IProviderRuntime
         switch (availability)
         {
             case CodexClientAvailability.MissingCli:
-                return new ProviderOutcome.NotConfigured(MissingCliReason);
+                return context.LastGood is null
+                    ? new ProviderOutcome.NotConfigured(MissingCliReason)
+                    : TransientFailure(MissingCliReason, context.LastGood);
             case CodexClientAvailability.UnsupportedVersion:
                 return ContractFailure(UnsupportedVersionReason, context.LastGood);
             case CodexClientAvailability.Unavailable:
