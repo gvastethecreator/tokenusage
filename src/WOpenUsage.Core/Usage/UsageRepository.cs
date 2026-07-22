@@ -89,6 +89,96 @@ public sealed class UsageRepository
         return new UsageIngestResult(insertedCount, batch.Length - insertedCount);
     }
 
+    public async Task<UsageIngestResult> ReplaceAgentEventsAsync(
+        AgentId agentId,
+        IEnumerable<UsageEvent> events,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        ArgumentNullException.ThrowIfNull(events);
+        UsageEvent[] batch = events.ToArray();
+        if (batch.Any(usageEvent => usageEvent is null
+                                    || usageEvent.AgentId != agentId))
+        {
+            throw new ArgumentException(
+                "Replacement batches must contain only the selected agent.",
+                nameof(events));
+        }
+
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using SqliteTransaction transaction =
+            (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken)
+                .ConfigureAwait(false);
+        DateOnly? replaceFrom = batch.Length == 0
+            ? null
+            : batch.Select(usageEvent => AssertSingleRollup(usageEvent).Date).Min();
+        await using (SqliteCommand minimum = connection.CreateCommand())
+        {
+            minimum.Transaction = transaction;
+            minimum.CommandText =
+                "SELECT MIN(civil_date) FROM usage_event WHERE agent_id = $agentId;";
+            minimum.Parameters.AddWithValue("$agentId", agentId.Value);
+            object? value = await minimum.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            if (value is string dateText)
+            {
+                DateOnly existingFrom = DateOnly.ParseExact(
+                    dateText,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture);
+                replaceFrom = replaceFrom is null || existingFrom < replaceFrom
+                    ? existingFrom
+                    : replaceFrom;
+            }
+        }
+
+        if (replaceFrom is not null)
+        {
+            await using SqliteCommand deleteRollups = connection.CreateCommand();
+            deleteRollups.Transaction = transaction;
+            deleteRollups.CommandText =
+                "DELETE FROM daily_usage_rollup WHERE agent_id = $agentId AND civil_date >= $from;";
+            deleteRollups.Parameters.AddWithValue("$agentId", agentId.Value);
+            deleteRollups.Parameters.AddWithValue("$from", FormatDate(replaceFrom.Value));
+            await deleteRollups.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await using (SqliteCommand delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM usage_event WHERE agent_id = $agentId;";
+            delete.Parameters.AddWithValue("$agentId", agentId.Value);
+            await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        int insertedCount = 0;
+        foreach (UsageEvent usageEvent in batch)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await using (SqliteCommand clearTombstone = connection.CreateCommand())
+            {
+                clearTombstone.Transaction = transaction;
+                clearTombstone.CommandText =
+                    "DELETE FROM usage_event_tombstone WHERE event_key = $eventKey;";
+                clearTombstone.Parameters.AddWithValue("$eventKey", usageEvent.EventKey.Value);
+                await clearTombstone.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            if (await InsertEventAsync(connection, transaction, usageEvent, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                await ApplyRollupDeltaAsync(
+                    connection,
+                    transaction,
+                    AssertSingleRollup(usageEvent),
+                    cancellationToken).ConfigureAwait(false);
+                insertedCount++;
+            }
+        }
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return new UsageIngestResult(insertedCount, batch.Length - insertedCount);
+    }
+
     public async Task<IReadOnlyList<DailyUsageRollup>> QueryDailyRollupsAsync(
         DateOnly fromInclusive,
         DateOnly toInclusive,
@@ -443,8 +533,30 @@ public sealed class UsageRepository
             transaction,
             """
             DELETE FROM usage_event WHERE parser_version = 'fixture/1';
-            DELETE FROM daily_usage_rollup;
+            """,
+            cancellationToken).ConfigureAwait(false);
+        await RebuildRollupsAsync(connection, transaction, cancellationToken)
+            .ConfigureAwait(false);
 
+        await using SqliteCommand versionCommand = connection.CreateCommand();
+        versionCommand.Transaction = transaction;
+        versionCommand.CommandText =
+            "INSERT INTO schema_migration(version, applied_at_utc) VALUES (3, $appliedAt);";
+        versionCommand.Parameters.AddWithValue(
+            "$appliedAt",
+            DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        await versionCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task RebuildRollupsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CancellationToken cancellationToken) =>
+        await ExecuteAsync(
+            connection,
+            transaction,
+            """
+            DELETE FROM daily_usage_rollup;
             INSERT INTO daily_usage_rollup (
                 civil_date, grouping_time_zone_id, agent_id, model_provider_id, model_id,
                 input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
@@ -479,16 +591,6 @@ public sealed class UsageRepository
                      COALESCE(model_provider_id, ''), model_id;
             """,
             cancellationToken).ConfigureAwait(false);
-
-        await using SqliteCommand versionCommand = connection.CreateCommand();
-        versionCommand.Transaction = transaction;
-        versionCommand.CommandText =
-            "INSERT INTO schema_migration(version, applied_at_utc) VALUES (3, $appliedAt);";
-        versionCommand.Parameters.AddWithValue(
-            "$appliedAt",
-            DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-        await versionCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-    }
 
     private static async Task<bool> InsertEventAsync(
         SqliteConnection connection,

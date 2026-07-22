@@ -41,3 +41,8 @@ public interface IUsageEventSource
     Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default);
 }
+
+public interface ISnapshotUsageEventSource : IUsageEventSource
+{
+    AgentId AgentId { get; }
+}
