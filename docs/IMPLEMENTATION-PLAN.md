@@ -239,6 +239,8 @@ Esfuerzo: 6–9 días.
 - `M4.1` Implementar resolución segura del binario Codex y override explícito.
 - `M4.2` Crear `CodexAppServerProcess` con Job Object, stdio y cierre seguro.
 - `M4.3` Crear cliente JSONL con handshake, IDs, timeouts y límite de línea.
+- `M4.3a` Leer `account/read` con `refreshToken: false`, descartar correo y
+  clasificar sesión ausente, ChatGPT y auth sin cuota.
 - `M4.4` Implementar `account/rateLimits/read`.
 - `M4.5` Implementar `account/usage/read`.
 - `M4.6` Mapear límites primario, secundario y adicionales sin asumir nombres fijos.
