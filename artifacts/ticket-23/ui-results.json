@@ -1,0 +1,94 @@
+[
+  {
+    "name": "Provider status section appears",
+    "status": "PASS"
+  },
+  {
+    "name": "codex status appears",
+    "status": "PASS"
+  },
+  {
+    "name": "codex Quota is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "codex Usage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "codex Spend is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "codex Coverage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "claude status appears",
+    "status": "PASS"
+  },
+  {
+    "name": "claude Quota is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "claude Usage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "claude Spend is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "claude Coverage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "grok status appears",
+    "status": "PASS"
+  },
+  {
+    "name": "grok Quota is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "grok Usage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "grok Spend is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "grok Coverage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "opencode status appears",
+    "status": "PASS"
+  },
+  {
+    "name": "opencode Quota is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "opencode Usage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "opencode Spend is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "opencode Coverage is independent",
+    "status": "PASS"
+  },
+  {
+    "name": "Normal provider report hides full paths",
+    "status": "PASS"
+  },
+  {
+    "name": "Refresh action is safe and available",
+    "status": "PASS"
+  }
+]
