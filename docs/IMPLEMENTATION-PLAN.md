@@ -364,7 +364,10 @@ Esfuerzo: 10–15 días.
 - `M6.17` Explicar que `--no-session-persistence`, sesiones borradas y otros equipos no aparecen.
 - `M6.18` Etiquetar la tarjeta `Uso local` mientras la cuota esté bloqueada.
 
-Estado 2026-07-22: Ticket 17 entrega rutas Windows, lectura privada, deduplicación, coste, persistencia y la tarjeta Claude de 30 días. Los rangos adicionales y el cursor incremental siguen pendientes.
+Estado 2026-07-22: Ticket 17 entrega rutas Windows, lectura privada,
+deduplicación, coste y persistencia. Ticket 20 cierra Hoy, Ayer, 7 días, 30
+días, Mes actual, coste por millón, cobertura y desglose agente/modelo. El cursor
+incremental sigue pendiente.
 
 ### Pruebas
 

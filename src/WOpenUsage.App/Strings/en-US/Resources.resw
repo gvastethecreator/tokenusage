@@ -171,15 +171,38 @@
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Saved sessions on this device only. Estimated cost uses API list prices and does not represent your plan charge.</value></data>
   <data name="LocalUsageClaudePartialNotice" xml:space="preserve"><value>Partial read: some files could not be processed. Visible totals may be lower.</value></data>
   <data name="LocalUsageClaudeNoDataNotice" xml:space="preserve"><value>No new Claude sessions were found. The last local total may remain.</value></data>
-  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Usage observed on this device. Remote Grok quota is blocked by policy.</value></data>
-  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Partial read: the last reliable total is kept. Remote Grok quota is blocked by policy.</value></data>
-  <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>No new sessions were found. The last local total may remain. Remote Grok quota is blocked by policy.</value></data>
+  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Observed local usage. Estimated cost uses API rates and is not your plan charge. Grok quota is blocked.</value></data>
+  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Partial read: the last reliable total is kept. The API estimate is not your plan charge. Grok quota is blocked.</value></data>
+  <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>No new sessions; the last local total is kept. The API estimate is not your plan charge. Grok quota is blocked.</value></data>
   <data name="LocalUsageUnavailable" xml:space="preserve"><value>Local usage could not be read.</value></data>
   <data name="LocalUsageReportedCost" xml:space="preserve"><value>Reported cost</value></data>
   <data name="LocalUsageEstimatedCost" xml:space="preserve"><value>Estimated cost</value></data>
   <data name="LocalUsageUnpricedTokens" xml:space="preserve"><value>Unpriced tokens</value></data>
   <data name="LocalUsageTotalTokens" xml:space="preserve"><value>Tokens</value></data>
   <data name="LocalUsageCoverage" xml:space="preserve"><value>Cost coverage</value></data>
+  <data name="LocalUsageCostPerMillion" xml:space="preserve"><value>Cost per 1M tokens</value></data>
+  <data name="LocalUsageUsdPerMillionFormat" xml:space="preserve"><value>${0:0.00}/1M</value></data>
+  <data name="LocalUsagePeriodToday" xml:space="preserve"><value>Today</value></data>
+  <data name="LocalUsagePeriodYesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="LocalUsagePeriod7Days" xml:space="preserve"><value>7 days</value></data>
+  <data name="LocalUsagePeriodMonth" xml:space="preserve"><value>This month</value></data>
+  <data name="LocalUsageReportedShort" xml:space="preserve"><value>Rep.</value></data>
+  <data name="LocalUsageEstimatedShort" xml:space="preserve"><value>Est.</value></data>
+  <data name="LocalUsagePeriodCostFormat" xml:space="preserve"><value>{0} {1} · {2} {3}</value></data>
+  <data name="LocalUsagePeriodDetailFormat" xml:space="preserve"><value>{0} tokens · {1} coverage · {2}</value></data>
+  <data name="LocalUsagePeriodAccessibleFormat" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
+  <data name="LocalUsagePeriodEmptyAccessibleFormat" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="LocalUsageBreakdownTitle" xml:space="preserve"><value>30-day breakdown</value></data>
+  <data name="LocalUsageBreakdownSummaryFormat" xml:space="preserve"><value>{0} agents · {1} models</value></data>
+  <data name="LocalUsageBreakdownAccessibleFormat" xml:space="preserve"><value>Reported and estimated spend distribution: {0}. {1}</value></data>
+  <data name="LocalUsageModelReportedFormat" xml:space="preserve"><value>Reported {0}</value></data>
+  <data name="LocalUsageModelEstimatedFormat" xml:space="preserve"><value>Estimated {0}</value></data>
+  <data name="LocalUsageModelCoverageFormat" xml:space="preserve"><value>Coverage {0}</value></data>
+  <data name="LocalUsageModelTitleFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="LocalUsageModelAccessibleFormat" xml:space="preserve"><value>{0}: {1}; {2}; {3}</value></data>
+  <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
+  <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
+  <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:0.00} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
 </root>
