@@ -36,7 +36,7 @@ public static class SampleDashboardCatalog
                 Spend("antigravity", "Antigravity CLI", 0.40),
             ],
             [
-                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                CodexProvider(SampleScenario.Normal, text("SamplePlanPlus"), text, null,
                     Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(100, 5, false, text), Weekly(36, 1, 6, false, text)),
@@ -65,7 +65,7 @@ public static class SampleDashboardCatalog
                 Spend("antigravity", "Antigravity CLI", 1.20),
             ],
             [
-                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                CodexProvider(SampleScenario.NearLimit, text("SamplePlanPlus"), text, null,
                     Session(8, 1, true, text), Weekly(22, 2, 4, true, text)),
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(12, 2, true, text), Weekly(5, 0, 8, true, text)),
@@ -94,8 +94,8 @@ public static class SampleDashboardCatalog
                 Spend("antigravity", "Antigravity CLI", 0),
             ],
             [
-                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
-                    text("SampleNoticePartial"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
+                CodexProvider(SampleScenario.Partial, text("SamplePlanPlus"), text,
+                    text("CodexPartialUsageNotice"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     text("SampleNoticePartial"), Weekly(36, 1, 6, false, text)),
                 MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
@@ -123,7 +123,7 @@ public static class SampleDashboardCatalog
                 Spend("antigravity", "Antigravity CLI", 0.40),
             ],
             [
-                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                CodexProvider(SampleScenario.Stale, text("SamplePlanPlus"), text,
                     text("SampleNoticeStale"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(100, 5, false, text), Weekly(36, 1, 6, false, text)),
@@ -236,6 +236,72 @@ public static class SampleDashboardCatalog
 
         return new SampleProviderCard(providerId, id, name, plan, capability, notice, [], metrics);
     }
+
+    private static SampleProviderCard CodexProvider(
+        SampleScenario scenario,
+        string plan,
+        Func<string, string> text,
+        string? notice,
+        params SampleQuotaWindow[] windows)
+    {
+        SampleProviderCard provider = QuotaProvider(
+            "codex",
+            "SampleProvider.Codex",
+            "Codex",
+            plan,
+            text,
+            notice,
+            windows);
+        string?[] pace = scenario switch
+        {
+            SampleScenario.NearLimit =>
+            [
+                Format(text, "CodexPaceBehindEtaFormat", 135, Format(text, "CodexDurationHoursMinutesFormat", 2, 10)),
+                Format(text, "CodexPaceBehindFormat", 118),
+            ],
+            SampleScenario.Partial =>
+            [Format(text, "CodexPaceAheadFormat", 74), null],
+            _ =>
+            [
+                Format(text, "CodexPaceAheadFormat", 74),
+                Format(text, "CodexPaceOnTrackFormat", 96),
+            ],
+        };
+        SampleQuotaWindow[] pacedWindows = provider.Windows
+            .Select((window, index) => window with
+            {
+                PaceText = index < pace.Length ? pace[index] : null,
+                IsPaceBehind = scenario == SampleScenario.NearLimit && index < 2,
+                PaceAutomationId = index == 0 ? "CodexPace.Session" : "CodexPace.Weekly",
+            })
+            .ToArray();
+        IReadOnlyList<SampleMetric> metrics = scenario switch
+        {
+            SampleScenario.NearLimit => UsageMetrics("490K tokens", "420K tokens", "3.2M tokens", "12.4M tokens", text),
+            SampleScenario.Partial => UsageMetrics("0 tokens", text("CodexUsageMissing"), "820K tokens", text("CodexUsageMissing"), text),
+            _ => UsageMetrics("185K tokens", "162K tokens", "1.24M tokens", "5.82M tokens", text),
+        };
+
+        return provider with
+        {
+            CapabilityLabel = text("CodexCapabilityUsage"),
+            Windows = pacedWindows,
+            Metrics = metrics,
+        };
+    }
+
+    private static IReadOnlyList<SampleMetric> UsageMetrics(
+        string today,
+        string yesterday,
+        string last7Days,
+        string last30Days,
+        Func<string, string> text) =>
+        [
+            new(text("CodexUsageToday"), today, "CodexUsage.Today"),
+            new(text("CodexUsageYesterday"), yesterday, "CodexUsage.Yesterday"),
+            new(text("CodexUsageLast7Days"), last7Days, "CodexUsage.Last7Days"),
+            new(text("CodexUsageLast30Days"), last30Days, "CodexUsage.Last30Days"),
+        ];
 
     private static SampleQuotaWindow Session(
         int remaining,

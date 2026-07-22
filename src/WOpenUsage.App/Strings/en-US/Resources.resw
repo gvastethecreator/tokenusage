@@ -119,6 +119,22 @@
   <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Codex quota is unavailable for this account</value></data>
   <data name="CodexUnsupportedBody" xml:space="preserve"><value>The active Codex account does not report ChatGPT quota windows.</value></data>
   <data name="CodexRetry" xml:space="preserve"><value>Retry Codex quota</value></data>
+  <data name="CodexPartialUsageNotice" xml:space="preserve"><value>Daily token usage is incomplete.</value></data>
+  <data name="CodexCapabilityUsage" xml:space="preserve"><value>Quota and local usage</value></data>
+  <data name="CodexUsageToday" xml:space="preserve"><value>Today</value></data>
+  <data name="CodexUsageYesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="CodexUsageLast7Days" xml:space="preserve"><value>Last 7 days</value></data>
+  <data name="CodexUsageLast30Days" xml:space="preserve"><value>Last 30 days</value></data>
+  <data name="CodexUsageMissing" xml:space="preserve"><value>No data</value></data>
+  <data name="CodexTokenCountFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
+  <data name="CodexTokenCountSingular" xml:space="preserve"><value>{0:N0} token</value></data>
+  <data name="CodexPaceAheadFormat" xml:space="preserve"><value>{0}% projected · below pace</value></data>
+  <data name="CodexPaceOnTrackFormat" xml:space="preserve"><value>{0}% projected · on pace</value></data>
+  <data name="CodexPaceBehindFormat" xml:space="preserve"><value>{0}% projected · above pace</value></data>
+  <data name="CodexPaceBehindEtaFormat" xml:space="preserve"><value>{0}% projected · limit in {1}</value></data>
+  <data name="CodexDurationHoursFormat" xml:space="preserve"><value>{0} h</value></data>
+  <data name="CodexDurationMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="CodexDurationHoursMinutesFormat" xml:space="preserve"><value>{0} h {1} min</value></data>
   <data name="SampleTotalSpendHeading" xml:space="preserve"><value>Total spend</value></data>
   <data name="SampleUnavailableTitleValue" xml:space="preserve"><value>Sample unavailable</value></data>
   <data name="SampleUnavailableBodyValue" xml:space="preserve"><value>The sample source failed and no saved value is available yet.</value></data>
