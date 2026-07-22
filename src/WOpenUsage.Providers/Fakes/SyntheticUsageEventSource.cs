@@ -21,7 +21,7 @@ public sealed class SyntheticUsageEventSource : IUsageEventSource
 
     public SourceKind SourceKind => SourceKind.Synthetic;
 
-    public Task<IReadOnlyList<UsageEvent>> ReadAsync(
+    public Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -67,7 +67,9 @@ public sealed class SyntheticUsageEventSource : IUsageEventSource
                 CoverageKind.Unpriced),
         ];
 
-        return Task.FromResult(events);
+        return Task.FromResult(new UsageSourceReadResult(
+            events,
+            UsageSourceReadStatus.Complete));
     }
 
     private UsageEvent CreateEvent(

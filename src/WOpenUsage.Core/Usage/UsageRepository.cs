@@ -17,7 +17,7 @@ public sealed class UsageSchemaTooNewException(int actualVersion, int supportedV
 
 public sealed class UsageRepository
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
     private const decimal MicrosPerUsd = 1_000_000m;
     private readonly string _connectionString;
 
@@ -93,6 +93,31 @@ public sealed class UsageRepository
         DateOnly fromInclusive,
         DateOnly toInclusive,
         CancellationToken cancellationToken = default)
+        => await QueryDailyRollupsCoreAsync(
+            fromInclusive,
+            toInclusive,
+            agentId: null,
+            cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<DailyUsageRollup>> QueryDailyRollupsByAgentAsync(
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        AgentId agentId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        return await QueryDailyRollupsCoreAsync(
+            fromInclusive,
+            toInclusive,
+            agentId,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<DailyUsageRollup>> QueryDailyRollupsCoreAsync(
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        AgentId? agentId,
+        CancellationToken cancellationToken)
     {
         if (toInclusive < fromInclusive)
         {
@@ -112,10 +137,12 @@ public sealed class UsageRepository
                    unpriced_tokens, unavailable_cost_event_count, event_count, coverage_kind
             FROM daily_usage_rollup
             WHERE civil_date >= $from AND civil_date <= $to
+              AND ($agentId IS NULL OR agent_id = $agentId)
             ORDER BY civil_date, agent_id, model_id;
             """;
         command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
         command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
+        command.Parameters.AddWithValue("$agentId", (object?)agentId?.Value ?? DBNull.Value);
 
         var rollups = new List<DailyUsageRollup>();
         await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
@@ -250,6 +277,13 @@ public sealed class UsageRepository
         if (currentVersion == 1)
         {
             await ApplyVersionTwoAsync(connection, transaction, cancellationToken)
+                .ConfigureAwait(false);
+            currentVersion = 2;
+        }
+
+        if (currentVersion == 2)
+        {
+            await ApplyVersionThreeAsync(connection, transaction, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -393,6 +427,63 @@ public sealed class UsageRepository
         versionCommand.Transaction = transaction;
         versionCommand.CommandText =
             "INSERT INTO schema_migration(version, applied_at_utc) VALUES (2, $appliedAt);";
+        versionCommand.Parameters.AddWithValue(
+            "$appliedAt",
+            DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        await versionCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ApplyVersionThreeAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        await ExecuteAsync(
+            connection,
+            transaction,
+            """
+            DELETE FROM usage_event WHERE parser_version = 'fixture/1';
+            DELETE FROM daily_usage_rollup;
+
+            INSERT INTO daily_usage_rollup (
+                civil_date, grouping_time_zone_id, agent_id, model_provider_id, model_id,
+                input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
+                cache_write_tokens, reported_cost_micros, estimated_cost_micros,
+                unpriced_tokens, unavailable_cost_event_count, event_count, coverage_kind)
+            SELECT
+                civil_date,
+                grouping_time_zone_id,
+                agent_id,
+                COALESCE(model_provider_id, ''),
+                model_id,
+                SUM(input_tokens),
+                SUM(output_tokens),
+                SUM(reasoning_tokens),
+                SUM(cache_read_tokens),
+                SUM(cache_write_tokens),
+                CASE WHEN SUM(CASE WHEN cost_kind = 0 THEN 1 ELSE 0 END) > 0
+                     THEN SUM(CASE WHEN cost_kind = 0 THEN reported_cost_micros ELSE 0 END)
+                     ELSE NULL END,
+                CASE WHEN SUM(CASE WHEN cost_kind = 1 THEN 1 ELSE 0 END) > 0
+                     THEN SUM(CASE WHEN cost_kind = 1 THEN estimated_cost_micros ELSE 0 END)
+                     ELSE NULL END,
+                SUM(CASE WHEN cost_kind = 2
+                         THEN input_tokens + output_tokens + reasoning_tokens
+                              + cache_read_tokens + cache_write_tokens
+                         ELSE 0 END),
+                SUM(CASE WHEN cost_kind = 2 THEN 1 ELSE 0 END),
+                COUNT(*),
+                MAX(coverage_kind)
+            FROM usage_event
+            GROUP BY civil_date, grouping_time_zone_id, agent_id,
+                     COALESCE(model_provider_id, ''), model_id;
+            """,
+            cancellationToken).ConfigureAwait(false);
+
+        await using SqliteCommand versionCommand = connection.CreateCommand();
+        versionCommand.Transaction = transaction;
+        versionCommand.CommandText =
+            "INSERT INTO schema_migration(version, applied_at_utc) VALUES (3, $appliedAt);";
         versionCommand.Parameters.AddWithValue(
             "$appliedAt",
             DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
