@@ -19,6 +19,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleScenario.cs" Link="Sample\SampleScenario.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardModels.cs" Link="Sample\SampleDashboardModels.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardCatalog.cs" Link="Sample\SampleDashboardCatalog.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardProjector.cs" Link="Sample\SampleDashboardProjector.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\Services\SampleRefreshCoordinator.cs" Link="Sample\SampleRefreshCoordinator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

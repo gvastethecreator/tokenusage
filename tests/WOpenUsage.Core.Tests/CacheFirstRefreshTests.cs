@@ -132,7 +132,7 @@ public sealed class CacheFirstRefreshTests
 
         CacheFirstEvent.ProviderCompleted completed = Assert.IsType<CacheFirstEvent.ProviderCompleted>(events[1]);
         Assert.IsType<ProviderOutcome.Success>(completed.Outcome);
-        Assert.Equal(CacheUpdateStatus.IoFailure, completed.CacheStatus);
+        Assert.Equal(CacheUpdateStatus.AccessDenied, completed.CacheStatus);
         Assert.False(completed.CacheUpdated);
         SnapshotCacheReadResult.Loaded saved = Assert.IsType<SnapshotCacheReadResult.Loaded>(
             await store.LoadAsync());

@@ -14,7 +14,7 @@ Estado: aceptado. El enlace con la App y la prueba visual siguen en 07D.
   El resultado no expone la ruta completa ni sirve datos parciales como cero.
 - La escritura toma un mutex `Local` derivado del path, carga y mezcla bajo ese
   mutex, escribe un temporal único en la misma carpeta, hace flush a disco y usa
-  `File.Replace` o `File.Move`.
+  `File.Move(..., overwrite: true)` para reemplazar dentro del mismo volumen.
 - Los temporales huérfanos son inertes: nunca se leen ni se borran durante una
   lectura normal.
 - `CacheFirstRefresh` publica el resultado de caché antes de llamar al runtime.
@@ -74,3 +74,7 @@ de E/S al guardar.
 4. El store no migra versiones futuras ni las trata como corrupción.
 5. 07C no resuelve `ApplicationData.LocalFolder`; la App elegirá el path en 07D.
 6. 07C no cambia la UI ni afirma que el fake contiene datos reales.
+7. 07D probó el store dentro del `LocalState` cifrado del paquete. `File.Replace`
+   devolvió `0x80070057`; `File.Move` con overwrite conservó el atributo cifrado
+   y permitió dos upserts. Los tests de lock ahora clasifican el fallo como
+   `AccessDenied` cuando Windows niega el reemplazo.

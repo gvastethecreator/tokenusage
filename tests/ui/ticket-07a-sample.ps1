@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory)]
     [int]$AppPid,
-    [string]$ArtifactDirectory = "artifacts\ticket-11a"
+    [string]$ArtifactDirectory = "artifacts\ticket-07d"
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,6 +9,19 @@ $passed = 0
 $failed = 0
 $results = @()
 $explorerPid = Get-Process explorer | Select-Object -First 1 -ExpandProperty Id
+$package = Get-AppxPackage -Name "D6C94EDD-3747-465C-9A81-05DF5A4108C5" -ErrorAction Stop
+$sampleCacheRoot = [System.IO.Path]::GetFullPath(
+    (Join-Path $env:LOCALAPPDATA "Packages\$($package.PackageFamilyName)\LocalState\cache\sample"))
+$normalCacheDirectory = [System.IO.Path]::GetFullPath(
+    (Join-Path $sampleCacheRoot "normal"))
+if (-not $normalCacheDirectory.StartsWith(
+    $sampleCacheRoot + [System.IO.Path]::DirectorySeparatorChar,
+    [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "The synthetic sample cache target escaped its LocalState root."
+}
+if (Test-Path -LiteralPath $normalCacheDirectory) {
+    Remove-Item -LiteralPath $normalCacheDirectory -Recurse -Force
+}
 
 New-Item -ItemType Directory -Force -Path $ArtifactDirectory | Out-Null
 
@@ -126,8 +139,10 @@ function Select-ScenarioByOffset {
 
     $keyboard = New-Object -ComObject WScript.Shell
     $keyboard.SendKeys("{HOME}")
-    foreach ($step in 1..$DownCount) {
-        $keyboard.SendKeys("{DOWN}")
+    if ($DownCount -gt 0) {
+        foreach ($step in 1..$DownCount) {
+            $keyboard.SendKeys("{DOWN}")
+        }
     }
     $keyboard.SendKeys("{ENTER}")
     Start-Sleep -Milliseconds 150
@@ -154,15 +169,29 @@ Test-Ui "Options expose session-only sample controls" {
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "01-options-sample.png") 2>$null | Out-Null
 }
 
-Test-Ui "Normal sample shows coherent spend and five providers" {
+Test-Ui "First error without Normal cache shows retry instead of fixture data" {
     Invoke-AppElement "SampleModeToggle"
     & winapp ui wait-for "SampleModeToggle" -a $AppPid --value "On" -t 1000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Sample mode did not turn on." }
 
+    Select-ScenarioByOffset 4
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "SampleSpendDonut" 2000
+    Wait-ForElement "SampleRetryButton" 2000
+    $spend = & winapp ui search '$48.12' -a $AppPid --json 2>$null | ConvertFrom-Json
+    if ($spend.matchCount -ne 0) { throw "Fixture spend appeared without a Normal last-good." }
+    & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "00-error-no-cache.png") 2>$null | Out-Null
+
+    Invoke-AppElement "FooterOptionsButton"
+    Wait-ForElement "SampleScenarioCombo"
+    Select-ScenarioByOffset 0
+    Invoke-AppElement "OptionsBackButton"
+    Wait-ForElement "SampleStateFresh" 2000
+}
+
+Test-Ui "Normal sample shows coherent spend and five providers" {
+    Wait-ForElement "SampleSpendDonut" 500
     & winapp ui scroll "BodyScrollViewer" -a $AppPid --to top 2>$null | Out-Null
-    Start-Sleep -Milliseconds 750
+    Start-Sleep -Milliseconds 150
     Assert-VisibleText '$48.12'
     foreach ($amount in @('$22.40', '$12.30', '$7.10', '$5.92', '$0.40')) {
         Assert-VisibleText $amount
@@ -177,10 +206,10 @@ Test-Ui "Normal sample shows coherent spend and five providers" {
 
 Test-Ui "Refresh returns to the selected sample" {
     Invoke-AppElement "HeaderRefreshButton"
-    Wait-ForElement "LoadingProgressRing" 500
-    Wait-ForElement "SampleBadge" 500
-    Wait-ForElement "SampleSpendDonut" 2000
+    Wait-ForElement "SampleRefreshProgressRing" 500
+    Wait-ForElement "SampleSpendDonut" 500
     Assert-VisibleText '$48.12'
+    Wait-ForElement "SampleStateFresh" 2000
 }
 
 Test-Ui "Near-limit scenario renders deterministic values" {
@@ -188,7 +217,8 @@ Test-Ui "Near-limit scenario renders deterministic values" {
     Wait-ForElement "SampleScenarioCombo"
     Select-ScenarioByOffset 1
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "SampleSpendDonut" 1500
+    Wait-ForElement "SampleStateFresh" 2000
+    Wait-ForElement "SampleSpendDonut" 500
     & winapp ui scroll "BodyScrollViewer" -a $AppPid --to top 2>$null | Out-Null
     Start-Sleep -Milliseconds 750
     Assert-VisibleText '$96.40'
@@ -197,12 +227,13 @@ Test-Ui "Near-limit scenario renders deterministic values" {
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "03-near-limit.png") 2>$null | Out-Null
 }
 
-Test-Ui "Partial scenario exposes stale and policy states" {
+Test-Ui "Partial scenario exposes partial and policy states" {
     Invoke-AppElement "FooterOptionsButton"
     Wait-ForElement "SampleScenarioCombo"
     Select-ScenarioByOffset 2
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "SampleSpendDonut" 1500
+    Wait-ForElement "SampleStatePartial" 2000
+    Wait-ForElement "SampleSpendDonut" 500
     Assert-VisibleText '$31.05'
     Assert-VisibleText 'Grok Build'
 
@@ -210,6 +241,29 @@ Test-Ui "Partial scenario exposes stale and policy states" {
     if ($LASTEXITCODE -ne 0) { throw "The sample dashboard could not scroll to its last card." }
     Assert-VisibleText 'Antigravity CLI'
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "04-partial-stale.png") 2>$null | Out-Null
+}
+
+Test-Ui "Stale scenario remains a successful visible snapshot" {
+    Invoke-AppElement "FooterOptionsButton"
+    Wait-ForElement "SampleScenarioCombo"
+    Select-ScenarioByOffset 3
+    Invoke-AppElement "OptionsBackButton"
+    Wait-ForElement "SampleStateStale" 2000
+    Wait-ForElement "SampleSpendDonut" 500
+    Assert-VisibleText '$48.12'
+    & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "05-stale.png") 2>$null | Out-Null
+}
+
+Test-Ui "Error scenario keeps the cached dashboard visible" {
+    Invoke-AppElement "FooterOptionsButton"
+    Wait-ForElement "SampleScenarioCombo"
+    Select-ScenarioByOffset 4
+    Invoke-AppElement "OptionsBackButton"
+    Wait-ForElement "SampleRefreshProgressRing" 500
+    Wait-ForElement "SampleSpendDonut" 500
+    Wait-ForElement "SampleStateError" 2000
+    Assert-VisibleText '$48.12'
+    & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "06-error-cache.png") 2>$null | Out-Null
 }
 
 Test-Ui "Turning sample mode off restores the honest empty state" {

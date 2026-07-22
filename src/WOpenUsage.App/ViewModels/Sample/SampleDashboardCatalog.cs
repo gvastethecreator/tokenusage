@@ -13,7 +13,9 @@ public static class SampleDashboardCatalog
         return scenario switch
         {
             SampleScenario.NearLimit => CreateNearLimit(getString),
-            SampleScenario.PartialStale => CreatePartialStale(getString),
+            SampleScenario.Partial => CreatePartial(getString),
+            SampleScenario.Stale => CreateStale(getString),
+            SampleScenario.Error => CreateError(getString),
             _ => CreateNormal(getString),
         };
     }
@@ -76,12 +78,12 @@ public static class SampleDashboardCatalog
             ]);
     }
 
-    private static SampleDashboardSnapshot CreatePartialStale(Func<string, string> text)
+    private static SampleDashboardSnapshot CreatePartial(Func<string, string> text)
     {
         const double total = 31.05;
 
         return Snapshot(
-            SampleScenario.PartialStale,
+            SampleScenario.Partial,
             total,
             text,
             [
@@ -93,7 +95,7 @@ public static class SampleDashboardCatalog
             ],
             [
                 QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
-                    text("SampleNoticeStale"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
+                    text("SampleNoticePartial"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     text("SampleNoticePartial"), Weekly(36, 1, 6, false, text)),
                 MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
@@ -103,6 +105,52 @@ public static class SampleDashboardCatalog
                 MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
                     text("SampleCapabilityPolicy"), text("SampleNoticePolicy"), "64K", null, text),
             ]);
+    }
+
+    private static SampleDashboardSnapshot CreateStale(Func<string, string> text)
+    {
+        const double total = 48.12;
+
+        return Snapshot(
+            SampleScenario.Stale,
+            total,
+            text,
+            [
+                Spend("claude", "Claude", 22.40),
+                Spend("codex", "Codex", 12.30),
+                Spend("grok", "Grok Build", 7.10),
+                Spend("opencode", "OpenCode", 5.92),
+                Spend("antigravity", "Antigravity CLI", 0.40),
+            ],
+            [
+                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                    text("SampleNoticeStale"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
+                QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
+                    Session(100, 5, false, text), Weekly(36, 1, 6, false, text)),
+                MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
+                    text("SampleCapabilityLocalSpend"), null, "1.24M", "$7.10", text),
+                MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
+                    text("SampleCapabilityLocalSpend"), null, "860K", "$5.92", text),
+                MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
+                    text("SampleCapabilityLocal"), text("SampleNoticeNoQuota"), "120K", "$0.40", text),
+            ]);
+    }
+
+    private static SampleDashboardSnapshot CreateError(Func<string, string> text)
+    {
+        SampleDashboardSnapshot normal = CreateNormal(text);
+        SampleProviderCard[] providers = normal.Providers
+            .Select(provider => provider.ProviderId == "codex"
+                ? provider with { NoticeText = text("SampleNoticeError") }
+                : provider)
+            .ToArray();
+
+        return normal with
+        {
+            Scenario = SampleScenario.Error,
+            PeriodLabel = text("SamplePeriodError"),
+            Providers = providers,
+        };
     }
 
     private static SampleDashboardSnapshot Snapshot(
@@ -123,7 +171,9 @@ public static class SampleDashboardCatalog
             text(scenario switch
             {
                 SampleScenario.NearLimit => "SamplePeriodNearLimit",
-                SampleScenario.PartialStale => "SamplePeriodPartialStale",
+                SampleScenario.Partial => "SamplePeriodPartial",
+                SampleScenario.Stale => "SamplePeriodStale",
+                SampleScenario.Error => "SamplePeriodError",
                 _ => "SamplePeriodNormal",
             }),
             Format(text, "SampleSpendAccessibleNameFormat", totalText, slices.Count, details),

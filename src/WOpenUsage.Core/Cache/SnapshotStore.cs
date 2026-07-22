@@ -217,14 +217,7 @@ public sealed class SnapshotStore
                 stream.Flush(flushToDisk: true);
             }
 
-            if (File.Exists(DocumentPath))
-            {
-                File.Replace(temporaryPath, DocumentPath, destinationBackupFileName: null);
-            }
-            else
-            {
-                File.Move(temporaryPath, DocumentPath);
-            }
+            File.Move(temporaryPath, DocumentPath, overwrite: true);
         }
         finally
         {

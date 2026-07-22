@@ -42,14 +42,32 @@
   <data name="SampleScenarioCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Sample scenario</value></data>
   <data name="SampleScenarioNormal" xml:space="preserve"><value>Normal</value></data>
   <data name="SampleScenarioNearLimit" xml:space="preserve"><value>Near limit</value></data>
-  <data name="SampleScenarioPartialStale" xml:space="preserve"><value>Partial or stale</value></data>
+  <data name="SampleScenarioPartial" xml:space="preserve"><value>Partial</value></data>
+  <data name="SampleScenarioStale" xml:space="preserve"><value>Stale</value></data>
+  <data name="SampleScenarioError" xml:space="preserve"><value>Error</value></data>
   <data name="SampleTotalSpendTitle.Text" xml:space="preserve"><value>Total spend</value></data>
   <data name="SampleSpendAccessibleNameFormat" xml:space="preserve"><value>Total spend {0} across {1} providers. {2}</value></data>
   <data name="SampleStatus" xml:space="preserve"><value>Sample data</value></data>
   <data name="SampleStatusLoading" xml:space="preserve"><value>Refreshing sample…</value></data>
   <data name="SamplePeriodNormal" xml:space="preserve"><value>30 days · normal sample</value></data>
   <data name="SamplePeriodNearLimit" xml:space="preserve"><value>30 days · near limit</value></data>
-  <data name="SamplePeriodPartialStale" xml:space="preserve"><value>30 days · partial coverage</value></data>
+  <data name="SamplePeriodPartial" xml:space="preserve"><value>30 days · partial coverage</value></data>
+  <data name="SamplePeriodStale" xml:space="preserve"><value>30 days · stale sample</value></data>
+  <data name="SamplePeriodError" xml:space="preserve"><value>30 days · sample error</value></data>
+  <data name="SampleStateCacheRefreshing" xml:space="preserve"><value>30 days · cache, updating…</value></data>
+  <data name="SampleStateStaleCacheRefreshing" xml:space="preserve"><value>30 days · stale cache, updating…</value></data>
+  <data name="SampleStateFresh" xml:space="preserve"><value>30 days · updated now</value></data>
+  <data name="SampleStatePartial" xml:space="preserve"><value>30 days · partial coverage</value></data>
+  <data name="SampleStateStale" xml:space="preserve"><value>30 days · stale sample</value></data>
+  <data name="SampleStateError" xml:space="preserve"><value>30 days · error, showing cache</value></data>
+  <data name="SampleStateNotSaved" xml:space="preserve"><value>30 days · updated, not saved</value></data>
+  <data name="SampleStateCacheRefreshingLabel.Text" xml:space="preserve"><value>30 days · cache, updating…</value></data>
+  <data name="SampleStateStaleCacheRefreshingLabel.Text" xml:space="preserve"><value>30 days · stale cache, updating…</value></data>
+  <data name="SampleStateFreshLabel.Text" xml:space="preserve"><value>30 days · updated now</value></data>
+  <data name="SampleStatePartialLabel.Text" xml:space="preserve"><value>30 days · partial coverage</value></data>
+  <data name="SampleStateStaleLabel.Text" xml:space="preserve"><value>30 days · stale sample</value></data>
+  <data name="SampleStateErrorLabel.Text" xml:space="preserve"><value>30 days · error, showing cache</value></data>
+  <data name="SampleStateNotSavedLabel.Text" xml:space="preserve"><value>30 days · updated, not saved</value></data>
   <data name="SampleRemainingFormat" xml:space="preserve"><value>{0}% remaining</value></data>
   <data name="SampleResetHoursFormat" xml:space="preserve"><value>Resets in {0} h</value></data>
   <data name="SampleResetDaysFormat" xml:space="preserve"><value>Resets in {0} d</value></data>
@@ -68,6 +86,11 @@
   <data name="SampleNoticeStale" xml:space="preserve"><value>Stale · last sample 47 min ago</value></data>
   <data name="SampleNoticePartial" xml:space="preserve"><value>Partial coverage</value></data>
   <data name="SampleNoticePolicy" xml:space="preserve"><value>Quota access is blocked by policy in this sample.</value></data>
+  <data name="SampleNoticeError" xml:space="preserve"><value>Sample error · keeping the last value.</value></data>
+  <data name="SampleUnavailableTitle.Text" xml:space="preserve"><value>Sample unavailable</value></data>
+  <data name="SampleUnavailableBody.Text" xml:space="preserve"><value>The sample source failed and no saved value is available yet.</value></data>
+  <data name="SampleRetryButton.Content" xml:space="preserve"><value>Try again</value></data>
+  <data name="SampleRetryButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Retry sample</value></data>
   <data name="SamplePlanPlus" xml:space="preserve"><value>Plus</value></data>
   <data name="SamplePlanPro" xml:space="preserve"><value>Pro</value></data>
   <data name="SamplePlanLocal" xml:space="preserve"><value>Local</value></data>

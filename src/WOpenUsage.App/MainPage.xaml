@@ -154,6 +154,28 @@
 
                             <StackPanel
                                 Spacing="12"
+                                Visibility="{x:Bind ViewModel.IsSampleUnavailable, Mode=OneWay}">
+                                <TextBlock
+                                    x:Uid="SampleUnavailableTitle"
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    TextWrapping="WrapWholeWords" />
+                                <TextBlock
+                                    x:Uid="SampleUnavailableBody"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    TextWrapping="WrapWholeWords" />
+                                <Button
+                                    x:Name="SampleRetryButton"
+                                    x:Uid="SampleRetryButton"
+                                    AutomationProperties.AutomationId="SampleRetryButton"
+                                    Command="{x:Bind ViewModel.RefreshCommand}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,4,0,0"
+                                    Style="{StaticResource AccentButtonStyle}" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
                                 <ToggleSwitch
                                     x:Name="CloseWhenInactiveToggle"
@@ -196,16 +218,68 @@
                                 <TextBlock
                                     x:Uid="SampleTotalSpendTitle"
                                     Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                    Text="{x:Bind ViewModel.ActiveSample.PeriodLabel, Mode=OneWay}" />
+                                <Grid AutomationProperties.LiveSetting="Polite">
+                                    <TextBlock
+                                        x:Uid="SampleStateCacheRefreshingLabel"
+                                        AutomationProperties.AutomationId="SampleStateCacheRefreshing"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStateCacheRefreshing, Mode=OneWay}" />
+                                    <TextBlock
+                                        x:Uid="SampleStateStaleCacheRefreshingLabel"
+                                        AutomationProperties.AutomationId="SampleStateStaleCacheRefreshing"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStateStaleCacheRefreshing, Mode=OneWay}" />
+                                    <TextBlock
+                                        x:Uid="SampleStateFreshLabel"
+                                        AutomationProperties.AutomationId="SampleStateFresh"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStateFresh, Mode=OneWay}" />
+                                    <TextBlock
+                                        x:Uid="SampleStatePartialLabel"
+                                        AutomationProperties.AutomationId="SampleStatePartial"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStatePartial, Mode=OneWay}" />
+                                    <TextBlock
+                                        x:Uid="SampleStateStaleLabel"
+                                        AutomationProperties.AutomationId="SampleStateStale"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStateStale, Mode=OneWay}" />
+                                    <TextBlock
+                                        x:Uid="SampleStateErrorLabel"
+                                        AutomationProperties.AutomationId="SampleStateError"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStateError, Mode=OneWay}" />
+                                    <TextBlock
+                                        x:Uid="SampleStateNotSavedLabel"
+                                        AutomationProperties.AutomationId="SampleStateNotSaved"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.IsSampleStateNotSaved, Mode=OneWay}" />
+                                </Grid>
                             </StackPanel>
-                            <TextBlock
+                            <StackPanel
                                 Grid.Column="1"
-                                Style="{StaticResource SubtitleTextBlockStyle}"
-                                Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
-                                VerticalAlignment="Center" />
+                                Orientation="Horizontal"
+                                Spacing="6"
+                                VerticalAlignment="Center">
+                                <ProgressRing
+                                    x:Name="SampleRefreshProgressRing"
+                                    AutomationProperties.AutomationId="SampleRefreshProgressRing"
+                                    Height="14"
+                                    IsActive="{x:Bind ViewModel.IsSampleRefreshing, Mode=OneWay}"
+                                    Visibility="{x:Bind ViewModel.IsSampleRefreshing, Mode=OneWay}"
+                                    Width="14" />
+                                <TextBlock
+                                    Style="{StaticResource SubtitleTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
                         </Grid>
 
                         <Border

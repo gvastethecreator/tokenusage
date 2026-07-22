@@ -6,6 +6,7 @@
 
 # Disposable UI reruns; accepted receipts are copied beside the main artifacts.
 artifacts/**/regression-*/
+artifacts/ticket-*-retry*/
 
 # WinUI and .NET build output.
 bin/

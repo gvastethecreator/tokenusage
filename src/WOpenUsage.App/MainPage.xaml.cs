@@ -3,8 +3,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.Storage;
 using Windows.System;
 using WOpenUsage.App.Controls;
+using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
 
 namespace WOpenUsage.App;
@@ -13,6 +15,12 @@ public sealed partial class MainPage : Page
 {
     public MainPage()
     {
+        string sampleCacheDirectory = Path.Combine(
+            ApplicationData.Current.LocalFolder.Path,
+            "cache",
+            "sample");
+        ViewModel = new FlyoutViewModel(
+            new SampleRefreshCoordinator(sampleCacheDirectory, TimeProvider.System));
         InitializeComponent();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
@@ -20,7 +28,7 @@ public sealed partial class MainPage : Page
 
     public event EventHandler? HideRequested;
 
-    public FlyoutViewModel ViewModel { get; } = new();
+    public FlyoutViewModel ViewModel { get; }
 
     public FrameworkElement MeasureRoot => FlyoutChrome;
 
@@ -31,6 +39,7 @@ public sealed partial class MainPage : Page
             FlyoutSurfaceState.Options => CloseWhenInactiveToggle,
             FlyoutSurfaceState.Loading => FooterOptionsButton,
             FlyoutSurfaceState.Sample => HeaderRefreshButton,
+            FlyoutSurfaceState.SampleUnavailable => SampleRetryButton,
             _ => EmptyOpenOptionsButton,
         };
 

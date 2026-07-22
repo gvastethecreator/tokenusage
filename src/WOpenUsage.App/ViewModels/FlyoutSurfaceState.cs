@@ -6,4 +6,18 @@ public enum FlyoutSurfaceState
     Empty,
     Options,
     Sample,
+    SampleUnavailable,
+}
+
+public enum SampleDataState
+{
+    Idle,
+    CacheRefreshing,
+    StaleCacheRefreshing,
+    Fresh,
+    Partial,
+    Stale,
+    Error,
+    NotSaved,
+    Unavailable,
 }
