@@ -41,7 +41,7 @@ La primera versión pública requiere identidad propia. `WOpenUsage` sirve para 
 ### Paridad ampliada
 
 - gasto total, cobertura y detalle por modelo;
-- OpenRouter y Z.ai con clave manual;
+- OpenRouter con clave manual; Z.ai solo tras reabrir su gate;
 - Cursor y Copilot tras sus gates;
 - Claude en vivo solo tras el gate del proveedor;
 - Antigravity local pasivo y Devin como canales experimentales.
@@ -526,7 +526,7 @@ Esfuerzo: 3–10 días por proveedor más el tiempo del gate externo.
 Orden y alcance:
 
 1. OpenRouter manual.
-2. Z.ai manual si su contrato queda aprobado.
+2. Reevaluar Z.ai solo si existe un contrato público o permiso escrito para una app aparte.
 3. Cursor.
 4. GitHub Copilot.
 5. Claude cuota en vivo tras aprobación.

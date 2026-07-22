@@ -142,7 +142,8 @@ El upstream anuncia Antigravity, Claude, Codex, Copilot, Cursor, Devin, Grok, Op
 - interfaz oficial local: Codex;
 - logs o bases locales: Claude, Codex, Cursor, Grok, OpenCode y, con cobertura experimental, Antigravity;
 - endpoint privado con credencial reutilizada: Claude, Cursor, Copilot, Antigravity, Devin y Grok;
-- clave manual: OpenRouter y Z.ai.
+- clave manual aprobada: OpenRouter;
+- clave manual bloqueada: Z.ai, según su [gate de cuota](2026-07-21-zai-gate.md).
 
 Cada proveedor privado necesita una prueba técnica, revisión de política y fixtures sanitizados. La [matriz de proveedores](../PROVIDER-MATRIX.md) fija el orden.
 
