@@ -71,7 +71,24 @@ public static class CodexDashboardProjector
                 ? getString("CodexPartialUsageNotice")
                 : null,
             Windows: windows,
-            Metrics: CreateUsageMetrics(scalars, getString));
+            Metrics: [],
+            SecondaryMetrics: CreateUsageMetrics(scalars, getString),
+            SourceLabel: getString("ProviderSourceLabel"),
+            SourceValue: getString("ProviderSourceOfficialLocalApi"),
+            ObservedLabel: getString("ProviderObservedLabel"),
+            ObservedValue: Format(
+                getString,
+                "ProviderObservedValueFormat",
+                snapshot.SourceObservedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)),
+            DetailsTooltip: Format(
+                getString,
+                "ProviderDetailsTooltipFormat",
+                getString("ProviderSourceOfficialLocalApi"),
+                snapshot.SourceObservedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)),
+            DetailsAutomationName: Format(
+                getString,
+                "ProviderDetailsAutomationNameFormat",
+                snapshot.DisplayName));
 
         return new SampleDashboardSnapshot(
             SampleScenario.Normal,

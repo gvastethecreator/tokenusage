@@ -42,9 +42,31 @@ public sealed record SampleProviderCard(
     string CapabilityLabel,
     string? NoticeText,
     IReadOnlyList<SampleQuotaWindow> Windows,
-    IReadOnlyList<SampleMetric> Metrics)
+    IReadOnlyList<SampleMetric> Metrics,
+    IReadOnlyList<SampleMetric>? SecondaryMetrics = null,
+    string SourceLabel = "",
+    string SourceValue = "",
+    string ObservedLabel = "",
+    string ObservedValue = "",
+    string DetailsTooltip = "",
+    string DetailsAutomationName = "")
 {
     public bool HasNotice => !string.IsNullOrWhiteSpace(NoticeText);
+
+    public IReadOnlyList<SampleMetric> SecondaryMetricItems => SecondaryMetrics ?? [];
+
+    public bool HasSecondaryMetrics => SecondaryMetricItems.Count > 0;
+
+    public bool HasDetails =>
+        !string.IsNullOrWhiteSpace(SourceValue) || !string.IsNullOrWhiteSpace(ObservedValue);
+
+    public string DetailsAutomationId => $"{AutomationId}.Details";
+
+    public string DetailsSourceAutomationId => $"{AutomationId}.Details.Source";
+
+    public string DetailsObservedAutomationId => $"{AutomationId}.Details.Observed";
+
+    public string SecondaryMetricsAutomationId => $"{AutomationId}.SecondaryMetrics";
 }
 
 public sealed record SampleDashboardSnapshot(
