@@ -1,5 +1,6 @@
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.App.ViewModels.Sample;
+using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
 
 namespace WOpenUsage.App.Services;
@@ -21,6 +22,8 @@ public sealed class LocalUsageCoordinator
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
+    public SourceKind SourceKind => _source.SourceKind;
+
     public async Task<LocalUsageCard> RefreshAsync(
         Func<string, string> getString,
         CancellationToken cancellationToken = default)
@@ -29,8 +32,9 @@ public sealed class LocalUsageCoordinator
         UsageRepository repository = await UsageRepository.OpenAsync(
             _databasePath,
             cancellationToken).ConfigureAwait(false);
-        IReadOnlyList<UsageEvent> events = await _source.ReadAsync(cancellationToken)
+        UsageSourceReadResult readResult = await _source.ReadAsync(cancellationToken)
             .ConfigureAwait(false);
+        IReadOnlyList<UsageEvent> events = readResult.Events;
         await repository.IngestAsync(events, cancellationToken).ConfigureAwait(false);
 
         string groupingTimeZoneId = events.Count == 0
@@ -43,10 +47,20 @@ public sealed class LocalUsageCoordinator
                 _clock.GetUtcNow().ToUniversalTime(),
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
-        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(
-            today.AddDays(-29),
-            today,
-            cancellationToken).ConfigureAwait(false);
-        return LocalUsageCardProjector.Create(rollups, getString);
+        IReadOnlyList<DailyUsageRollup> rollups = _source.SourceKind == SourceKind.LocalLog
+            ? await repository.QueryDailyRollupsByAgentAsync(
+                today.AddDays(-29),
+                today,
+                new AgentId("claude"),
+                cancellationToken).ConfigureAwait(false)
+            : await repository.QueryDailyRollupsAsync(
+                today.AddDays(-29),
+                today,
+                cancellationToken).ConfigureAwait(false);
+        return LocalUsageCardProjector.Create(
+            rollups,
+            getString,
+            _source.SourceKind,
+            readResult.Status);
     }
 }

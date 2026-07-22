@@ -5,6 +5,8 @@ using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
 using WOpenUsage.Providers.Fakes;
+using WOpenUsage.Providers.Claude;
+using System.Text.Json;
 
 namespace WOpenUsage.Providers.Tests.Usage;
 
@@ -81,6 +83,84 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Equal("Sin datos", FindValue(card, "UsageProductCard.ReportedCost"));
         Assert.Equal("Sin datos", FindValue(card, "UsageProductCard.EstimatedCost"));
         Assert.DoesNotContain("0 USD", card.Metrics.Select(metric => metric.Value));
+        Assert.Equal("100", FindValue(card, "UsageProductCard.UnpricedUsage"));
+    }
+
+    [Fact]
+    public void PartialClaudeReadUsesAnExplicitCoverageNotice()
+    {
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [],
+            key => key,
+            SourceKind.LocalLog,
+            UsageSourceReadStatus.Partial);
+
+        Assert.Equal("LocalUsageClaudePartialNotice", card.NoticeText);
+    }
+
+    [Fact]
+    public void EmptyClaudeReadUsesAnExplicitNoDataNotice()
+    {
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [],
+            key => key,
+            SourceKind.LocalLog,
+            UsageSourceReadStatus.NoData);
+
+        Assert.Equal("LocalUsageClaudeNoDataNotice", card.NoticeText);
+    }
+
+    [Fact]
+    public async Task ClaudeCorpusFlowsIntoTheRealLocalUsageCard()
+    {
+        using var folder = new TemporaryFolder();
+        string configRoot = Path.Combine(folder.Path, "claude");
+        string projectRoot = Directory.CreateDirectory(
+            Path.Combine(configRoot, "projects", "project-a")).FullName;
+        File.WriteAllText(
+            Path.Combine(projectRoot, "session.jsonl"),
+            JsonSerializer.Serialize(new
+            {
+                type = "assistant",
+                timestamp = "2026-07-22T12:00:00.000Z",
+                requestId = "request-1",
+                message = new
+                {
+                    id = "message-1",
+                    model = "claude-sonnet-4-6",
+                    content = "private fixture content",
+                    usage = new { input_tokens = 1_000L, output_tokens = 200L },
+                },
+            }));
+        var source = new ClaudeUsageEventSource(
+            "UTC",
+            folder.Path,
+            configDirectoryOverride: configRoot);
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            source,
+            new FixedTimeProvider(Now));
+
+        LocalUsageCard card = await coordinator.RefreshAsync(key => key switch
+        {
+            "LocalUsageTitle" => "Uso local",
+            "LocalUsageSourceClaude" => "Claude Code · logs locales",
+            "LocalUsagePeriod30Days" => "Últimos 30 días",
+            "LocalUsageClaudeNotice" => "Solo sesiones guardadas en este equipo.",
+            "LocalUsageReportedCost" => "Coste informado",
+            "LocalUsageEstimatedCost" => "Coste estimado",
+            "LocalUsageUnpricedTokens" => "Tokens sin precio",
+            "LocalUsageTotalTokens" => "Tokens",
+            "LocalUsageCoverage" => "Cobertura de coste",
+            "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "CodexUsageMissing" => "Sin datos",
+            _ => key,
+        });
+
+        Assert.Equal("Claude Code · logs locales", card.SourceLabel);
+        Assert.Equal("1.200", FindValue(card, "UsageProductCard.TotalTokens"));
+        Assert.NotEqual("Sin datos", FindValue(card, "UsageProductCard.EstimatedCost"));
+        Assert.Equal("100%", FindValue(card, "UsageProductCard.CostCoverage"));
     }
 
     private static string FindValue(LocalUsageCard card, string automationId) =>
@@ -93,14 +173,16 @@ public sealed class LocalUsageCoordinatorTests
 
     private sealed class TemporaryFolder : IDisposable
     {
-        private readonly string _path = Path.Combine(
-            Path.GetTempPath(),
+        private readonly string _path = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
             "wopenusage-usage-integration",
             Guid.NewGuid().ToString("N"));
 
         public TemporaryFolder() => Directory.CreateDirectory(_path);
 
-        public string DatabasePath => Path.Combine(_path, "usage.v1.db");
+        public string Path => _path;
+
+        public string DatabasePath => System.IO.Path.Combine(_path, "usage.v1.db");
 
         public void Dispose() => Directory.Delete(_path, recursive: true);
     }

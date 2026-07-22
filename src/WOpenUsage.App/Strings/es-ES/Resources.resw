@@ -164,8 +164,12 @@
   <data name="SampleRetry" xml:space="preserve"><value>Reintentar</value></data>
   <data name="LocalUsageTitle" xml:space="preserve"><value>Uso local</value></data>
   <data name="LocalUsageSourceSynthetic" xml:space="preserve"><value>Fixture sintético · SQLite local</value></data>
+  <data name="LocalUsageSourceClaude" xml:space="preserve"><value>Claude Code · logs locales</value></data>
   <data name="LocalUsagePeriod30Days" xml:space="preserve"><value>Últimos 30 días</value></data>
   <data name="LocalUsageNotice" xml:space="preserve"><value>Datos locales de prueba</value></data>
+  <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Solo sesiones guardadas en este equipo. El coste estimado usa precios API y no representa el cobro de tu plan.</value></data>
+  <data name="LocalUsageClaudePartialNotice" xml:space="preserve"><value>Lectura parcial: algunos archivos no se pudieron procesar. Los importes visibles pueden ser menores.</value></data>
+  <data name="LocalUsageClaudeNoDataNotice" xml:space="preserve"><value>No se encontraron sesiones Claude guardadas en este equipo.</value></data>
   <data name="LocalUsageUnavailable" xml:space="preserve"><value>No se pudo leer el uso local.</value></data>
   <data name="LocalUsageReportedCost" xml:space="preserve"><value>Coste informado</value></data>
   <data name="LocalUsageEstimatedCost" xml:space="preserve"><value>Coste estimado</value></data>
