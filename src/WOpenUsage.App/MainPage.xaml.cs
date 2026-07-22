@@ -9,7 +9,7 @@ using Windows.UI.ViewManagement;
 using WOpenUsage.App.Controls;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
-using WOpenUsage.Providers.Fakes;
+using WOpenUsage.Providers.Claude;
 
 namespace WOpenUsage.App;
 
@@ -39,7 +39,7 @@ public sealed partial class MainPage : Page
             new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory),
             new LocalUsageCoordinator(
                 usageDatabasePath,
-                new SyntheticUsageEventSource(clock, TimeZoneInfo.Local.Id),
+                new ClaudeUsageEventSource(TimeZoneInfo.Local.Id),
                 clock));
         InitializeComponent();
         ApplyTextScaleLayout();
