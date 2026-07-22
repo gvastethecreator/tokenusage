@@ -45,7 +45,7 @@ La primera versión pública requiere identidad propia. `WOpenUsage` sirve para 
 - Cursor Teams y Enterprise con Admin API manual; Individual bloqueado;
 - Copilot billing personal pagado y organización con token manual; sin cuota restante;
 - Claude en vivo solo tras el gate del proveedor;
-- Antigravity local pasivo y Devin como canales experimentales.
+- Antigravity local pasivo y Devin ACUs de organización como canales experimentales.
 
 ## Reglas de ejecución
 
@@ -532,7 +532,7 @@ Orden y alcance:
 4. GitHub Copilot billing para cuenta personal pagada y organización; excluir cuota privada.
 5. Claude cuota en vivo tras aprobación.
 6. Grok cuota en vivo tras interfaz pública o permiso.
-7. Devin en canal experimental.
+7. Devin ACUs de organización por API v3 en canal experimental.
 
 Cada proveedor se divide en commits:
 
@@ -548,6 +548,8 @@ Un proveedor privado se puede desarrollar detrás de un feature flag. No se acti
 Cursor no usa una fuente privada. Su adaptador solo admite una clave Admin API creada por el usuario, varias conexiones nombradas y los endpoints públicos bajo `api.cursor.com`. Debe mostrar uso y gasto sin inferir cuota restante. La activación pública requiere un smoke autorizado; la DB, sesión, dashboard y export privado quedan fuera del binario.
 
 Copilot usa solo los reportes públicos de AI credits bajo `api.github.com`, con token fine-grained manual y scope declarado. La app no lee la sesión de editor o `gh`, no llama `/copilot_internal/user` y no convierte gasto en cuota restante. Personal y organización usan conexiones y textos distintos. La activación pública requiere un smoke autorizado.
+
+Devin usa solo el consumo diario v3 de una organización en `api.devin.ai`. La key pertenece a un service user de esa organización y vive en Credential Locker. La app no lee CLI o DB, no llama RPC privados y no solicita Session Insights. Muestra ACUs, no saldo o dólares, y requiere un smoke autorizado.
 
 ### Salida por proveedor
 
