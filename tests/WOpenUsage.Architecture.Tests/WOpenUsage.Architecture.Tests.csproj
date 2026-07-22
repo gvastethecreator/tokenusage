@@ -17,4 +17,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\src\WOpenUsage.App\Controls\SpendDonutGeometry.cs"
+             Link="SpendDonutGeometry.cs" />
+  </ItemGroup>
+
 </Project>

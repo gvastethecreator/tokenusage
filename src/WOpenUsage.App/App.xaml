@@ -10,7 +10,14 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+            <CornerRadius x:Key="DashboardCardCornerRadius">12</CornerRadius>
+            <SolidColorBrush x:Key="ProviderAntigravityBrush" Color="#FF4285F4" />
+            <SolidColorBrush x:Key="ProviderClaudeBrush" Color="#FFDE7356" />
+            <SolidColorBrush x:Key="ProviderCodexBrush" Color="#FF10A37F" />
+            <SolidColorBrush x:Key="ProviderFallbackBrush" Color="{ThemeResource TextFillColorSecondary}" />
+            <SolidColorBrush x:Key="ProviderGrokBrush" Color="#FF98989D" />
+            <SolidColorBrush x:Key="ProviderHighContrastBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="ProviderOpenCodeBrush" Color="#FFAEAEB2" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
