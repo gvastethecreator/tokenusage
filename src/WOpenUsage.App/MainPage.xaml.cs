@@ -2,7 +2,9 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Windows.System;
+using WOpenUsage.App.Controls;
 using WOpenUsage.App.ViewModels;
 
 namespace WOpenUsage.App;
@@ -56,12 +58,48 @@ public sealed partial class MainPage : Page
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!string.Equals(e.PropertyName, nameof(ViewModel.SurfaceState), StringComparison.Ordinal))
+        if (string.Equals(e.PropertyName, nameof(ViewModel.SurfaceState), StringComparison.Ordinal))
         {
+            _ = DispatcherQueue.TryEnqueue(() =>
+                BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
+
+            if (ViewModel.IsSample)
+            {
+                ScheduleSampleReveal();
+            }
+
             return;
         }
 
+        if (string.Equals(e.PropertyName, nameof(ViewModel.SampleRevealToken), StringComparison.Ordinal)
+            && ViewModel.IsSample)
+        {
+            ScheduleSampleReveal();
+        }
+    }
+
+    private void ScheduleSampleReveal()
+    {
+        int token = ViewModel.SampleRevealToken;
         _ = DispatcherQueue.TryEnqueue(() =>
-            BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
+            _ = DispatcherQueue.TryEnqueue(() => PlaySampleReveal(this, token)));
+    }
+
+    private static void PlaySampleReveal(DependencyObject root, int token)
+    {
+        if (root is SpendDonutChart donut)
+        {
+            donut.PlayReveal(token);
+        }
+        else if (root is AnimatedProgressBar progressBar)
+        {
+            progressBar.PlayReveal(token);
+        }
+
+        int childCount = VisualTreeHelper.GetChildrenCount(root);
+        for (int index = 0; index < childCount; index++)
+        {
+            PlaySampleReveal(VisualTreeHelper.GetChild(root, index), token);
+        }
     }
 }
