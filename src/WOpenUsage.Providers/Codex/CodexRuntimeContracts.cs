@@ -7,6 +7,8 @@ public interface ICodexQuotaClient : IAsyncDisposable
     Task<CodexAccountStatus> ReadAccountStatusAsync(CancellationToken cancellationToken);
 
     Task<CodexRateLimitsSnapshot> ReadRateLimitsAsync(CancellationToken cancellationToken);
+
+    Task<CodexTokenUsageSnapshot> ReadTokenUsageAsync(CancellationToken cancellationToken);
 }
 
 public enum CodexClientAvailability

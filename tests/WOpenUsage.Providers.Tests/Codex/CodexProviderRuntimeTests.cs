@@ -363,6 +363,15 @@ public sealed class CodexProviderRuntimeTests
                 : Task.FromException<CodexRateLimitsSnapshot>(RateLimitException);
         }
 
+        public Task<CodexTokenUsageSnapshot> ReadTokenUsageAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new CodexTokenUsageSnapshot(
+                new CodexUsageSummary(null, null, null, null, null),
+                []));
+        }
+
         public ValueTask DisposeAsync()
         {
             IsDisposed = true;

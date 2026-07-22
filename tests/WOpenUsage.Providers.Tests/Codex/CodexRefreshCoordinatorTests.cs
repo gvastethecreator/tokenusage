@@ -97,6 +97,15 @@ public sealed class CodexRefreshCoordinatorTests
                 new Dictionary<string, CodexRateLimitBucket>()));
         }
 
+        public Task<CodexTokenUsageSnapshot> ReadTokenUsageAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new CodexTokenUsageSnapshot(
+                new CodexUsageSummary(null, null, null, null, null),
+                []));
+        }
+
         public ValueTask DisposeAsync()
         {
             DisposeCount++;

@@ -155,6 +155,43 @@ public sealed class CodexAppServerClient : ICodexQuotaClient
         }
     }
 
+    public async Task<CodexTokenUsageSnapshot> ReadTokenUsageAsync(
+        CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            ThrowIfFaulted();
+            if (!_handshakeCompleted)
+            {
+                throw new InvalidOperationException(
+                    "Codex app-server handshake must complete before reading token usage.");
+            }
+
+            long requestId = NextRequestId();
+            var request = new RpcRequest<object?>(
+                requestId,
+                "account/usage/read",
+                Params: null);
+            using JsonDocument response = await ExchangeAsync(request, requestId, cancellationToken)
+                .ConfigureAwait(false);
+            JsonElement result = RequireResultObject(response.RootElement);
+            return CodexTokenUsageParser.Parse(result);
+        }
+        catch (Exception exception) when (
+            exception is CodexProtocolException or OperationCanceledException)
+        {
+            _faulted = true;
+            throw;
+        }
+        finally
+        {
+            _requestGate.Release();
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
