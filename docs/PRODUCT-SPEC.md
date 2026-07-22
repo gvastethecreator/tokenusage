@@ -57,16 +57,17 @@ El tooltip muestra hasta tres líneas: proveedor, porcentaje restante y próximo
 
 ### Panel principal
 
-Ventana sin marco, no redimensionable, alineada con el icono de bandeja y limitada al área visible del monitor. Ancho inicial: 440 DIPs. Altura: entre 360 y 720 DIPs según contenido.
+Ventana sin marco, no redimensionable, alineada con el icono de bandeja y limitada al área visible del monitor. Ancho base: 320 DIPs. El alto sigue el contenido, con un mínimo de 200 DIPs y un máximo de 720 DIPs o 85 % del área de trabajo, el menor. El escalado a píxeles físicos usa el DPI del monitor.
 
 Orden:
 
-1. encabezado con actualización, antigüedad y acceso a ajustes;
-2. tarjeta `Gasto total` cuando haya una fuente apta;
-3. tarjetas de proveedor;
-4. acciones de pie: personalizar, actualizar y ajustes.
+1. tarjeta `Gasto total` cuando haya una fuente apta;
+2. tarjetas de proveedor;
+3. pie fijo con identidad, antigüedad o actualización y acceso a opciones.
 
 La ventana se oculta al perder foco. Ajustes y personalización se abren dentro del mismo panel. `Esc` vuelve una pantalla; otro `Esc` cierra.
+
+El blanco visual elegido, sus fuentes y las correcciones obligatorias están en [Blanco visual del flyout](design/2026-07-21-selected-flyout.md).
 
 ### Tarjeta de proveedor
 

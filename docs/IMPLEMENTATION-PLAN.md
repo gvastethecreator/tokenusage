@@ -155,6 +155,8 @@ El lanzamiento usa modo asíncrono durante trabajo con herramientas. Se confirma
 
 Esfuerzo: 5–8 días.
 
+Blanco aprobado: [paridad OpenUsage para Windows](design/2026-07-21-selected-flyout.md). El shell usa 320 DIPs, alto por contenido, cabeceras fuera de las tarjetas y controles Fluent.
+
 ### Tareas
 
 - `M2.1` Implementar `TrayIconHost` con `Shell_NotifyIconW` y versión 4.
