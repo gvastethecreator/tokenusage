@@ -358,14 +358,13 @@ public partial class FlyoutViewModel : ObservableObject
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or InvalidOperationException
-            or DbException)
+        catch (Exception)
         {
             if (refreshVersion == _refreshVersion)
             {
-                LocalUsage = LocalUsageCardProjector.CreateUnavailable(GetString);
+                LocalUsage = LocalUsageCardProjector.CreateUnavailable(
+                    GetString,
+                    _localUsageCoordinator.SourceKind);
                 _hasLocalUsage = true;
                 OnPropertyChanged(nameof(IsLocalUsageVisible));
             }

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Claude card appears",
+    "status": "PASS"
+  },
+  {
+    "name": "Claude local source appears",
+    "status": "PASS"
+  },
+  {
+    "name": "Total tokens appear",
+    "status": "PASS"
+  },
+  {
+    "name": "Reported cost appears",
+    "status": "PASS"
+  },
+  {
+    "name": "Estimated cost appears",
+    "status": "PASS"
+  },
+  {
+    "name": "Unpriced tokens appear",
+    "status": "PASS"
+  },
+  {
+    "name": "Cost coverage appears",
+    "status": "PASS"
+  }
+]

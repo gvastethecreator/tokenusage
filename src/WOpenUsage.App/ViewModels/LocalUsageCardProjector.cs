@@ -1,5 +1,6 @@
 using System.Globalization;
 using WOpenUsage.App.ViewModels.Sample;
+using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
 
 namespace WOpenUsage.App.ViewModels;
@@ -8,7 +9,9 @@ public static class LocalUsageCardProjector
 {
     public static LocalUsageCard Create(
         IReadOnlyList<DailyUsageRollup> rollups,
-        Func<string, string> getString)
+        Func<string, string> getString,
+        SourceKind sourceKind = SourceKind.Synthetic,
+        UsageSourceReadStatus readStatus = UsageSourceReadStatus.Complete)
     {
         ArgumentNullException.ThrowIfNull(rollups);
         ArgumentNullException.ThrowIfNull(getString);
@@ -59,7 +62,7 @@ public static class LocalUsageCardProjector
                 "UsageProductCard.EstimatedCost"),
             new(
                 getString("LocalUsageUnpricedTokens"),
-                unpricedTokens == 0 ? missing : FormatCount(unpricedTokens),
+                totalTokens == 0 ? missing : FormatCount(unpricedTokens),
                 "UsageProductCard.UnpricedUsage"),
             new(
                 getString("LocalUsageTotalTokens"),
@@ -73,14 +76,24 @@ public static class LocalUsageCardProjector
 
         return new LocalUsageCard(
             getString("LocalUsageTitle"),
-            getString("LocalUsageSourceSynthetic"),
+            getString(sourceKind == SourceKind.LocalLog
+                ? "LocalUsageSourceClaude"
+                : "LocalUsageSourceSynthetic"),
             getString("LocalUsagePeriod30Days"),
-            getString("LocalUsageNotice"),
+            getString(sourceKind == SourceKind.LocalLog
+                ? readStatus == UsageSourceReadStatus.Partial
+                    ? "LocalUsageClaudePartialNotice"
+                    : readStatus == UsageSourceReadStatus.NoData
+                        ? "LocalUsageClaudeNoDataNotice"
+                        : "LocalUsageClaudeNotice"
+                : "LocalUsageNotice"),
             metrics);
     }
 
-    public static LocalUsageCard CreateUnavailable(Func<string, string> getString) =>
-        Create([], getString) with
+    public static LocalUsageCard CreateUnavailable(
+        Func<string, string> getString,
+        SourceKind sourceKind = SourceKind.Synthetic) =>
+        Create([], getString, sourceKind) with
         {
             NoticeText = getString("LocalUsageUnavailable"),
         };
