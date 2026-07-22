@@ -75,6 +75,7 @@ public sealed class OpenCodeUsageEventSourceTests
         Assert.Equal(SourceKind.LocalDatabase, source.SourceKind);
         Assert.Empty(result.Events);
         Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
     }
 
     [Fact]
@@ -156,7 +157,9 @@ public sealed class OpenCodeUsageEventSourceTests
     {
         using var unknown = new OpenCodeCorpus();
         unknown.CreateUnknownDatabase();
-        Assert.Equal(UsageSourceReadStatus.Partial, (await unknown.CreateSource().ReadAsync()).Status);
+        UsageSourceReadResult unknownResult = await unknown.CreateSource().ReadAsync();
+        Assert.Equal(UsageSourceReadStatus.Partial, unknownResult.Status);
+        Assert.Equal(UsageSourceIssueKind.UnsupportedSchema, unknownResult.Issue);
 
         using var malformed = new OpenCodeCorpus();
         malformed.WriteJsonSession("broken", "{\"id\":");

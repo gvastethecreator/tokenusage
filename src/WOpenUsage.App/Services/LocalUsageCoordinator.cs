@@ -112,7 +112,13 @@ public sealed class LocalUsageCoordinator
             SourceKind,
             readStatus,
             hasMultipleRealSources: SourceKind == SourceKind.LocalLog && _sources.Count > 1,
-            today: today);
+            today: today,
+            sourceDiagnostics: _sources.Select((source, index) =>
+                new UsageSourceDiagnostic(
+                    source.AgentId,
+                    readResults[index].Status,
+                    readResults[index].Issue,
+                    source is ISnapshotUsageEventSource)).ToArray());
     }
 
     private static DateOnly Min(DateOnly left, DateOnly right) =>

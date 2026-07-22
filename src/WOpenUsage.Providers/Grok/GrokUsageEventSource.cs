@@ -53,6 +53,14 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
 
     private UsageSourceReadResult ReadCore(CancellationToken cancellationToken)
     {
+        if (!Directory.Exists(_grokHome))
+        {
+            return new UsageSourceReadResult(
+                [],
+                UsageSourceReadStatus.NoData,
+                UsageSourceIssueKind.RootUnavailable);
+        }
+
         var state = new ScanState();
         var sessionEvents = new List<UsageEvent>();
         string sessionsRoot = Path.Combine(_grokHome, "sessions");
@@ -120,7 +128,12 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
             : events.Count == 0
                 ? UsageSourceReadStatus.NoData
                 : UsageSourceReadStatus.Complete;
-        return new UsageSourceReadResult(events, status);
+        return new UsageSourceReadResult(
+            events,
+            status,
+            status == UsageSourceReadStatus.NoData
+                ? UsageSourceIssueKind.Empty
+                : null);
     }
 
     private SummaryInfo ReadSummary(
