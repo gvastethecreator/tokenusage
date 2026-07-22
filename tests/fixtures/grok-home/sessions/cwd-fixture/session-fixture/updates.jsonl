@@ -1,0 +1,1 @@
+{"method":"params.update","timestamp":"2026-07-22T18:30:00Z","params":{"sessionId":"fixture-session","update":{"usage":{"inputTokens":2400,"outputTokens":420,"reasoningTokens":180,"cachedReadTokens":600,"costUsdTicks":1250000000,"modelUsage":{"grok-4.5-build":{"inputTokens":2400,"outputTokens":420,"reasoningTokens":180,"cachedReadTokens":600,"costUsdTicks":1250000000}}}}}}

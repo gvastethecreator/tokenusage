@@ -73,6 +73,7 @@ public sealed class ArchitectureRulesTests
             "MainPage.xaml.cs"));
 
         Assert.Contains("new ClaudeUsageEventSource", composition, StringComparison.Ordinal);
+        Assert.Contains("new GrokUsageEventSource", composition, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticUsageEventSource", composition, StringComparison.Ordinal);
     }
 }
