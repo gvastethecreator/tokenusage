@@ -6,6 +6,7 @@ using Windows.Graphics;
 using WOpenUsage.Platform.Windows.Display;
 using WOpenUsage.Platform.Windows.Placement;
 using WOpenUsage.Platform.Windows.Tray;
+using WOpenUsage.Platform.Windows.Windowing;
 using WinRT.Interop;
 
 namespace WOpenUsage.App;
@@ -13,6 +14,7 @@ namespace WOpenUsage.App;
 public sealed partial class MainWindow : Window, IDisposable
 {
     private readonly ResourceLoader _resources = new();
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _activationGuardTimer;
     private readonly nint _windowHandle;
     private TrayIconHost? _trayIcon;
     private bool _isFlyoutVisible;
@@ -22,6 +24,11 @@ public sealed partial class MainWindow : Window, IDisposable
     public MainWindow()
     {
         InitializeComponent();
+
+        _activationGuardTimer = DispatcherQueue.CreateTimer();
+        _activationGuardTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _activationGuardTimer.IsRepeating = false;
+        _activationGuardTimer.Tick += OnActivationGuardElapsed;
 
         _windowHandle = WindowNative.GetWindowHandle(this);
         ConfigureFlyoutWindow();
@@ -118,18 +125,28 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void ShowFlyout(bool focusPrimaryAction)
     {
+        BeginActivationGuard();
         PositionFlyout();
-        _suppressDeactivateHide = true;
         _isFlyoutVisible = true;
         AppWindow.Show();
         Activate();
 
         _ = DispatcherQueue.TryEnqueue(() =>
         {
-            _suppressDeactivateHide = false;
+            if (_isFlyoutVisible)
+            {
+                PositionFlyout();
+            }
+
             if (focusPrimaryAction && _isFlyoutVisible)
             {
-                RootPage.FocusPrimaryAction();
+                _ = DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (_isFlyoutVisible)
+                    {
+                        RootPage.FocusPrimaryAction();
+                    }
+                });
             }
         });
     }
@@ -172,11 +189,15 @@ public sealed partial class MainWindow : Window, IDisposable
             finalHeightDips,
             effectiveDpi,
             display.FallbackAnchor);
+        RootPage.MeasureRoot.Height = finalHeightDips;
+        RootPage.MeasureRoot.UpdateLayout();
         MoveTo(finalPlacement.Bounds);
     }
 
     private double MeasureDesiredHeightDips()
     {
+        RootPage.MeasureRoot.Height = double.NaN;
+        RootPage.MeasureRoot.Width = FlyoutSizePolicy.WidthDips;
         RootPage.MeasureRoot.InvalidateMeasure();
         RootPage.MeasureRoot.UpdateLayout();
         RootPage.MeasureRoot.Measure(
@@ -206,14 +227,39 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        RootPage.ViewModel.StatusText = RootPage.ViewModel.IsLoading
-            ? GetString("StatusLoading")
-            : GetString("StatusIdle");
+        RootPage.ViewModel.StatusText = RootPage.ViewModel.IsSampleLoading
+            ? GetString("SampleStatusLoading")
+            : RootPage.ViewModel.IsLoading
+                ? GetString("StatusLoading")
+                : RootPage.ViewModel.IsSample
+                    ? GetString("SampleStatus")
+                    : GetString("StatusIdle");
 
         if (_isFlyoutVisible)
         {
-            _ = DispatcherQueue.TryEnqueue(PositionFlyout);
+            BeginActivationGuard();
+            SchedulePositionAfterLayout();
         }
+    }
+
+    private void SchedulePositionAfterLayout()
+    {
+        _ = DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!_isFlyoutVisible)
+            {
+                return;
+            }
+
+            PositionFlyout();
+            _ = DispatcherQueue.TryEnqueue(() =>
+            {
+                if (_isFlyoutVisible)
+                {
+                    PositionFlyout();
+                }
+            });
+        });
     }
 
     private void OnHideRequested(object? sender, EventArgs e) => HideFlyout();
@@ -241,7 +287,28 @@ public sealed partial class MainWindow : Window, IDisposable
 
         AppWindow.Hide();
         _isFlyoutVisible = false;
+        _activationGuardTimer.Stop();
         _suppressDeactivateHide = false;
+    }
+
+    private void BeginActivationGuard()
+    {
+        _suppressDeactivateHide = true;
+        _activationGuardTimer.Stop();
+        _activationGuardTimer.Start();
+    }
+
+    private void OnActivationGuardElapsed(
+        Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
+        object args)
+    {
+        _suppressDeactivateHide = false;
+        if (_isFlyoutVisible
+            && RootPage.ViewModel.CloseWhenInactive
+            && !ForegroundWindowInspector.IsForeground(_windowHandle))
+        {
+            HideFlyout();
+        }
     }
 
     public void Dispose()
@@ -252,6 +319,8 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _disposed = true;
+        _activationGuardTimer.Stop();
+        _activationGuardTimer.Tick -= OnActivationGuardElapsed;
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
         DisposeTrayIcon();
