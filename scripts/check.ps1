@@ -14,6 +14,8 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solution = Join-Path $repoRoot 'WOpenUsage.slnx'
 $architectureTests = Join-Path $repoRoot 'tests\WOpenUsage.Architecture.Tests\WOpenUsage.Architecture.Tests.csproj'
+$coreTests = Join-Path $repoRoot 'tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj'
+$providerTests = Join-Path $repoRoot 'tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj'
 
 function Invoke-DotNetStep {
     param(
@@ -36,8 +38,10 @@ if (-not (Test-Path -LiteralPath $solution)) {
     throw "Missing solution: $solution"
 }
 
-if (-not (Test-Path -LiteralPath $architectureTests)) {
-    throw "Missing architecture tests: $architectureTests"
+foreach ($testProject in @($architectureTests, $coreTests, $providerTests)) {
+    if (-not (Test-Path -LiteralPath $testProject)) {
+        throw "Missing test project: $testProject"
+    }
 }
 
 Push-Location $repoRoot
@@ -45,6 +49,22 @@ try {
     Invoke-DotNetStep 'Architecture tests' @(
         'test',
         $architectureTests,
+        '--configuration', $Configuration,
+        '-p:Platform=x64',
+        '--verbosity', 'minimal'
+    )
+
+    Invoke-DotNetStep 'Core tests' @(
+        'test',
+        $coreTests,
+        '--configuration', $Configuration,
+        '-p:Platform=x64',
+        '--verbosity', 'minimal'
+    )
+
+    Invoke-DotNetStep 'Provider tests' @(
+        'test',
+        $providerTests,
         '--configuration', $Configuration,
         '-p:Platform=x64',
         '--verbosity', 'minimal'
