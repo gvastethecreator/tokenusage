@@ -39,6 +39,15 @@ public partial class App : Application
                 claudeConfigForTest[(claudeConfigForTest.IndexOf('=') + 1)..]);
         }
 
+        string? grokHomeForTest = launchArguments.FirstOrDefault(argument =>
+            argument.StartsWith("--test-grok-home=", StringComparison.OrdinalIgnoreCase));
+        if (grokHomeForTest is not null)
+        {
+            Environment.SetEnvironmentVariable(
+                "GROK_HOME",
+                grokHomeForTest[(grokHomeForTest.IndexOf('=') + 1)..]);
+        }
+
         bool showForTest = launchArguments.Contains(
             "--test-show-flyout",
             StringComparer.OrdinalIgnoreCase);

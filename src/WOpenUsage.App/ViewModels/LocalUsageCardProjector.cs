@@ -11,7 +11,8 @@ public static class LocalUsageCardProjector
         IReadOnlyList<DailyUsageRollup> rollups,
         Func<string, string> getString,
         SourceKind sourceKind = SourceKind.Synthetic,
-        UsageSourceReadStatus readStatus = UsageSourceReadStatus.Complete)
+        UsageSourceReadStatus readStatus = UsageSourceReadStatus.Complete,
+        bool hasMultipleRealSources = false)
     {
         ArgumentNullException.ThrowIfNull(rollups);
         ArgumentNullException.ThrowIfNull(getString);
@@ -77,15 +78,23 @@ public static class LocalUsageCardProjector
         return new LocalUsageCard(
             getString("LocalUsageTitle"),
             getString(sourceKind == SourceKind.LocalLog
-                ? "LocalUsageSourceClaude"
+                ? hasMultipleRealSources
+                    ? "LocalUsageSourceAgents"
+                    : "LocalUsageSourceClaude"
                 : "LocalUsageSourceSynthetic"),
             getString("LocalUsagePeriod30Days"),
             getString(sourceKind == SourceKind.LocalLog
-                ? readStatus == UsageSourceReadStatus.Partial
-                    ? "LocalUsageClaudePartialNotice"
-                    : readStatus == UsageSourceReadStatus.NoData
-                        ? "LocalUsageClaudeNoDataNotice"
-                        : "LocalUsageClaudeNotice"
+                ? hasMultipleRealSources
+                    ? readStatus == UsageSourceReadStatus.Partial
+                        ? "LocalUsageAgentsPartialNotice"
+                        : readStatus == UsageSourceReadStatus.NoData
+                            ? "LocalUsageAgentsNoDataNotice"
+                            : "LocalUsageAgentsNotice"
+                    : readStatus == UsageSourceReadStatus.Partial
+                        ? "LocalUsageClaudePartialNotice"
+                        : readStatus == UsageSourceReadStatus.NoData
+                            ? "LocalUsageClaudeNoDataNotice"
+                            : "LocalUsageClaudeNotice"
                 : "LocalUsageNotice"),
             metrics);
     }
