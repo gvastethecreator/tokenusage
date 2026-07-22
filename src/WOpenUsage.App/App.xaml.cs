@@ -30,6 +30,15 @@ public partial class App : Application
     {
 #if DEBUG
         string[] launchArguments = Environment.GetCommandLineArgs()[1..];
+        string? claudeConfigForTest = launchArguments.FirstOrDefault(argument =>
+            argument.StartsWith("--test-claude-config=", StringComparison.OrdinalIgnoreCase));
+        if (claudeConfigForTest is not null)
+        {
+            Environment.SetEnvironmentVariable(
+                "CLAUDE_CONFIG_DIR",
+                claudeConfigForTest[(claudeConfigForTest.IndexOf('=') + 1)..]);
+        }
+
         bool showForTest = launchArguments.Contains(
             "--test-show-flyout",
             StringComparer.OrdinalIgnoreCase);

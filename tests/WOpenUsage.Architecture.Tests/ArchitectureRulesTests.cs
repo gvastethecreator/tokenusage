@@ -61,4 +61,18 @@ public sealed class ArchitectureRulesTests
             forbidden,
             StringComparer.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void ProductionCompositionUsesTheRealClaudeUsageSource()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string composition = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "WOpenUsage.App",
+            "MainPage.xaml.cs"));
+
+        Assert.Contains("new ClaudeUsageEventSource", composition, StringComparison.Ordinal);
+        Assert.DoesNotContain("SyntheticUsageEventSource", composition, StringComparison.Ordinal);
+    }
 }
