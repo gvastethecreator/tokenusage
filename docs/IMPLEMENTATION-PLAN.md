@@ -4,7 +4,8 @@ Estado: listo para ejecutar
 
 Fecha base: 2026-07-21
 
-Producto interno: WOpenUsage
+Producto formal: TokenUsage
+Identidad de implementación transitoria: WOpenUsage
 Upstream de referencia: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
@@ -12,7 +13,9 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 
 Entregar una app Windows nativa que abra desde la bandeja, muestre cuota, tokens y gasto desde sesiones existentes, conserve datos fiables durante fallos y pueda crecer hacia el conjunto de proveedores de OpenUsage.
 
-La primera versión pública requiere identidad propia. `WOpenUsage` sirve para código y prototipos.
+La primera versión pública usará `TokenUsage`. `WOpenUsage` se conserva en código,
+paquete y prototipos hasta cerrar el trabajo ya documentado. Un corte posterior
+hará el cambio de forma atómica y con pruebas de actualización.
 
 ## Alcance por entrega
 
@@ -92,7 +95,7 @@ Esfuerzo: 1–2 días. No bloquea prototipos con el nombre interno.
 
 ### Tareas
 
-- `M0.1` Elegir nombre, dominio y logo finales antes de firma externa.
+- `M0.1` Conservar `TokenUsage` como nombre formal aprobado; elegir dominio y logo finales antes de firma externa.
 - `M0.2` Definir Publisher ID, empresa y contacto de soporte.
 - `M0.3` Elegir distribución beta: App Installer privado o Store flight.
 - `M0.4` Crear `THIRD-PARTY-NOTICES.md` con MIT de OpenUsage y toda dependencia copiada.
