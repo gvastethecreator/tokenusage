@@ -32,8 +32,8 @@ public sealed partial class MainWindow : Window, IDisposable
 
         _windowHandle = WindowNative.GetWindowHandle(this);
         ConfigureFlyoutWindow();
-        RootPage.ViewModel.StatusText = GetString("StatusIdle");
         RootPage.ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        UpdateStatusText();
         RootPage.HideRequested += OnHideRequested;
         Activated += OnWindowActivated;
         Closed += OnWindowClosed;
@@ -232,21 +232,36 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        RootPage.ViewModel.StatusText = RootPage.ViewModel.IsSampleRefreshing
-            ? GetString("SampleStatusLoading")
-            : RootPage.ViewModel.IsSampleLoading
-            ? GetString("SampleStatusLoading")
-            : RootPage.ViewModel.IsLoading
-                ? GetString("StatusLoading")
-                : RootPage.ViewModel.IsSample || RootPage.ViewModel.IsSampleUnavailable
-                    ? GetString("SampleStatus")
-                    : GetString("StatusIdle");
+        UpdateStatusText();
 
         if (surfaceChanged && _isFlyoutVisible)
         {
             BeginActivationGuard();
             SchedulePositionAfterLayout();
         }
+    }
+
+    private void UpdateStatusText()
+    {
+        string resourceKey;
+        if (RootPage.ViewModel.IsSampleRefreshing || RootPage.ViewModel.IsLoading)
+        {
+            resourceKey = RootPage.ViewModel.IsSampleModeEnabled
+                ? "SampleStatusLoading"
+                : "StatusLoading";
+        }
+        else if (RootPage.ViewModel.IsSample || RootPage.ViewModel.IsSampleUnavailable)
+        {
+            resourceKey = RootPage.ViewModel.IsSampleModeEnabled
+                ? "SampleStatus"
+                : "CodexQuotaTitle";
+        }
+        else
+        {
+            resourceKey = "StatusIdle";
+        }
+
+        RootPage.ViewModel.StatusText = GetString(resourceKey);
     }
 
     private void SchedulePositionAfterLayout()

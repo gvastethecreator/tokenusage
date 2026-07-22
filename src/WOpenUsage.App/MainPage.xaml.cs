@@ -15,12 +15,20 @@ public sealed partial class MainPage : Page
 {
     public MainPage()
     {
+        TimeProvider clock = TimeProvider.System;
         string sampleCacheDirectory = Path.Combine(
             ApplicationData.Current.LocalFolder.Path,
             "cache",
             "sample");
+        string codexCacheDirectory = Path.Combine(
+            ApplicationData.Current.LocalFolder.Path,
+            "cache",
+            "providers",
+            "codex");
+        var codexClientFactory = new CodexAppServerQuotaClientFactory(clock);
         ViewModel = new FlyoutViewModel(
-            new SampleRefreshCoordinator(sampleCacheDirectory, TimeProvider.System));
+            new SampleRefreshCoordinator(sampleCacheDirectory, clock),
+            new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory));
         InitializeComponent();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
