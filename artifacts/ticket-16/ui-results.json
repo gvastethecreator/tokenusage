@@ -1,0 +1,26 @@
+[
+  {
+    "status": "PASS",
+    "name": "Local usage card appears"
+  },
+  {
+    "status": "PASS",
+    "name": "SQLite origin is visible"
+  },
+  {
+    "status": "PASS",
+    "name": "Reported cost remains separate"
+  },
+  {
+    "status": "PASS",
+    "name": "Estimated cost remains separate"
+  },
+  {
+    "status": "PASS",
+    "name": "Unpriced usage remains visible"
+  },
+  {
+    "status": "PASS",
+    "name": "Interactive controls expose AutomationIds"
+  }
+]
