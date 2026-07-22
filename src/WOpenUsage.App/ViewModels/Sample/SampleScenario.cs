@@ -4,7 +4,9 @@ public enum SampleScenario
 {
     Normal,
     NearLimit,
-    PartialStale,
+    Partial,
+    Stale,
+    Error,
 }
 
 public sealed record SampleScenarioOption(SampleScenario Value, string DisplayName);

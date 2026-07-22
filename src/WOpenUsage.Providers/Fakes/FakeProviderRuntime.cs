@@ -5,6 +5,7 @@ namespace WOpenUsage.Providers.Fakes;
 public enum FakeProviderScenario
 {
     Success,
+    NearLimit,
     Partial,
     Stale,
     Error,
@@ -13,21 +14,35 @@ public enum FakeProviderScenario
 public sealed class FakeProviderRuntime : IProviderRuntime
 {
     private const string AdapterVersion = "fake/1";
+    private static readonly ProviderDescriptor DefaultDescriptor =
+        new(new ProviderId("fake"), "Fake provider", isExperimental: true);
 
-    public FakeProviderRuntime(FakeProviderScenario scenario)
+    public FakeProviderRuntime(
+        FakeProviderScenario scenario,
+        TimeSpan? delay = null,
+        ProviderDescriptor? descriptor = null)
     {
         if (!Enum.IsDefined(scenario))
         {
             throw new ArgumentOutOfRangeException(nameof(scenario));
         }
 
+        TimeSpan effectiveDelay = delay ?? TimeSpan.Zero;
+        if (effectiveDelay < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), "Delay cannot be negative.");
+        }
+
         Scenario = scenario;
+        Delay = effectiveDelay;
+        Descriptor = descriptor ?? DefaultDescriptor;
     }
 
     public FakeProviderScenario Scenario { get; }
 
-    public ProviderDescriptor Descriptor { get; } =
-        new(new ProviderId("fake"), "Fake provider", isExperimental: true);
+    public TimeSpan Delay { get; }
+
+    public ProviderDescriptor Descriptor { get; }
 
     public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken)
     {
@@ -35,27 +50,46 @@ public sealed class FakeProviderRuntime : IProviderRuntime
         return ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
     }
 
-    public Task<ProviderOutcome> RefreshAsync(
+    public async Task<ProviderOutcome> RefreshAsync(
         RefreshContext context,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
 
+        if (Delay > TimeSpan.Zero)
+        {
+            await Task.Delay(Delay, context.Clock, cancellationToken).ConfigureAwait(false);
+        }
+
         DateTimeOffset fetchedAtUtc = context.Clock.GetUtcNow().ToUniversalTime();
         ProviderOutcome outcome = Scenario switch
         {
             FakeProviderScenario.Success => new ProviderOutcome.Success(
                 CreateSnapshot(
+                    Descriptor,
                     fetchedAtUtc,
                     fetchedAtUtc.AddSeconds(-30),
-                    CoverageKind.Complete)),
+                    CoverageKind.Complete,
+                    used: 42m,
+                    spendUsd: 12.30m)),
+            FakeProviderScenario.NearLimit => new ProviderOutcome.Success(
+                CreateSnapshot(
+                    Descriptor,
+                    fetchedAtUtc,
+                    fetchedAtUtc.AddSeconds(-30),
+                    CoverageKind.Complete,
+                    used: 92m,
+                    spendUsd: 23.80m)),
             FakeProviderScenario.Partial => CreatePartialOutcome(fetchedAtUtc),
             FakeProviderScenario.Stale => new ProviderOutcome.Success(
                 CreateSnapshot(
+                    Descriptor,
                     fetchedAtUtc,
                     fetchedAtUtc.Subtract(context.StaleAfter).AddTicks(-1),
-                    CoverageKind.Complete)),
+                    CoverageKind.Complete,
+                    used: 42m,
+                    spendUsd: 12.30m)),
             FakeProviderScenario.Error => new ProviderOutcome.TransientFailure(
                 new ProviderError(
                     ProviderErrorCode.TransientSourceFailure,
@@ -64,13 +98,28 @@ public sealed class FakeProviderRuntime : IProviderRuntime
             _ => throw new InvalidOperationException("Unknown fake provider scenario."),
         };
 
-        return Task.FromResult(outcome);
+        return outcome;
     }
 
     public static ProviderSnapshot CreateSnapshot(
         DateTimeOffset fetchedAtUtc,
         DateTimeOffset sourceObservedAtUtc,
-        CoverageKind coverage)
+        CoverageKind coverage) =>
+        CreateSnapshot(
+            DefaultDescriptor,
+            fetchedAtUtc,
+            sourceObservedAtUtc,
+            coverage,
+            used: 42m,
+            spendUsd: 12.34m);
+
+    private static ProviderSnapshot CreateSnapshot(
+        ProviderDescriptor descriptor,
+        DateTimeOffset fetchedAtUtc,
+        DateTimeOffset sourceObservedAtUtc,
+        CoverageKind coverage,
+        decimal used,
+        decimal spendUsd)
     {
         var provenance = new DataProvenance(
             SourceKind.Synthetic,
@@ -78,8 +127,8 @@ public sealed class FakeProviderRuntime : IProviderRuntime
             AdapterVersion);
 
         return new ProviderSnapshot(
-            new ProviderId("fake"),
-            "Fake provider",
+            descriptor.Id,
+            descriptor.DisplayName,
             "Sample",
             fetchedAtUtc,
             sourceObservedAtUtc,
@@ -87,13 +136,13 @@ public sealed class FakeProviderRuntime : IProviderRuntime
             [
                 new ProgressMetricSnapshot(
                     new MetricId("session"),
-                    42m,
+                    used,
                     100m,
                     fetchedAtUtc.AddHours(4),
                     provenance),
                 new ScalarMetricSnapshot(
                     new MetricId("spend-usd"),
-                    12.34m,
+                    spendUsd,
                     "USD",
                     provenance),
             ],
@@ -101,7 +150,7 @@ public sealed class FakeProviderRuntime : IProviderRuntime
             adapterContractVersion: 1);
     }
 
-    private static ProviderOutcome.PartialSuccess CreatePartialOutcome(DateTimeOffset fetchedAtUtc)
+    private ProviderOutcome.PartialSuccess CreatePartialOutcome(DateTimeOffset fetchedAtUtc)
     {
         ProviderWarning[] warnings =
         [
@@ -112,9 +161,12 @@ public sealed class FakeProviderRuntime : IProviderRuntime
 
         return new ProviderOutcome.PartialSuccess(
             CreateSnapshot(
+                Descriptor,
                 fetchedAtUtc,
                 fetchedAtUtc.AddMinutes(-2),
-                CoverageKind.Partial),
+                CoverageKind.Partial,
+                used: 42m,
+                spendUsd: 9.40m),
             warnings);
     }
 }
