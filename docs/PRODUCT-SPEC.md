@@ -2,8 +2,14 @@
 
 Estado: base aprobada para implementación
 
-Nombre interno: WOpenUsage
+Nombre formal aprobado: TokenUsage
+Nombre interno transitorio: WOpenUsage
 Plataforma: Windows 10 1903 o posterior, x64 y ARM64
+
+La transición de nombre se hará después de cerrar el trabajo ya documentado con
+`WOpenUsage`. Hasta entonces no cambian ensamblados, namespaces, identidad MSIX,
+recursos, ejecutables ni textos del prototipo. El cambio final tendrá una tarea
+propia para evitar una migración parcial.
 
 ## Objetivo
 
