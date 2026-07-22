@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 
 namespace WOpenUsage.Platform.Windows.Native;
@@ -9,6 +10,19 @@ namespace WOpenUsage.Platform.Windows.Native;
     Justification = "These declarations use callback and fixed-string marshalling that is clearer with DllImport.")]
 internal static class NativeMethods
 {
+    internal const uint StartfUseStdHandles = 0x00000100;
+    internal const uint CreateSuspended = 0x00000004;
+    internal const uint CreateNoWindow = 0x08000000;
+    internal const uint ExtendedStartupInfoPresent = 0x00080000;
+    internal const uint HandleFlagInherit = 0x00000001;
+    internal const uint JobObjectLimitKillOnJobClose = 0x00002000;
+    internal const nuint ProcThreadAttributeHandleList = 0x00020002;
+    internal const int JobObjectExtendedLimitInformationClass = 9;
+    internal const uint Infinite = 0xFFFFFFFF;
+    internal const uint WaitObject0 = 0x00000000;
+    internal const uint WaitTimeout = 0x00000102;
+    internal const uint WaitFailed = 0xFFFFFFFF;
+
     internal const uint WmApp = 0x8000;
     internal const uint WmNull = 0x0000;
     internal const uint WmContextMenu = 0x007B;
@@ -144,6 +158,104 @@ internal static class NativeMethods
     [DllImport("kernel32.dll")]
     internal static extern uint GetCurrentThreadId();
 
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern nint CreateJobObject(
+        nint jobAttributes,
+        string? name);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetInformationJobObject(
+        SafeKernelHandle job,
+        int informationClass,
+        ref JobObjectExtendedLimitInformation information,
+        uint informationLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool AssignProcessToJobObject(
+        SafeKernelHandle job,
+        SafeKernelHandle process);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool TerminateJobObject(
+        SafeKernelHandle job,
+        uint exitCode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CreatePipe(
+        out SafeFileHandle readPipe,
+        out SafeFileHandle writePipe,
+        ref SecurityAttributes pipeAttributes,
+        uint size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetHandleInformation(
+        SafeFileHandle handle,
+        uint mask,
+        uint flags);
+
+    [DllImport(
+        "kernel32.dll",
+        EntryPoint = "CreateProcessW",
+        CharSet = CharSet.Unicode,
+        SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CreateProcessWithExtendedStartupInfo(
+        string applicationName,
+        [In, Out] char[] commandLine,
+        nint processAttributes,
+        nint threadAttributes,
+        [MarshalAs(UnmanagedType.Bool)] bool inheritHandles,
+        uint creationFlags,
+        nint environment,
+        string currentDirectory,
+        ref StartupInfoEx startupInfo,
+        out ProcessInformation processInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool InitializeProcThreadAttributeList(
+        nint attributeList,
+        uint attributeCount,
+        uint flags,
+        ref nuint size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UpdateProcThreadAttribute(
+        nint attributeList,
+        uint flags,
+        nuint attribute,
+        nint value,
+        nuint valueSize,
+        nint previousValue,
+        nint returnSize);
+
+    [DllImport("kernel32.dll")]
+    internal static extern void DeleteProcThreadAttributeList(nint attributeList);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern uint ResumeThread(SafeKernelHandle thread);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool TerminateProcess(
+        SafeKernelHandle process,
+        uint exitCode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern uint WaitForSingleObject(
+        SafeKernelHandle handle,
+        uint milliseconds);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CloseHandle(nint handle);
+
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     internal delegate nint SubclassProcedure(
         nint window,
@@ -152,6 +264,91 @@ internal static class NativeMethods
         nint lParam,
         nuint subclassId,
         nuint referenceData);
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct SecurityAttributes
+    {
+        internal uint Length;
+        internal nint SecurityDescriptor;
+
+        [MarshalAs(UnmanagedType.Bool)]
+        internal bool InheritHandle;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct StartupInfo
+    {
+        internal uint Size;
+        internal string? Reserved;
+        internal string? Desktop;
+        internal string? Title;
+        internal uint X;
+        internal uint Y;
+        internal uint XSize;
+        internal uint YSize;
+        internal uint XCountChars;
+        internal uint YCountChars;
+        internal uint FillAttribute;
+        internal uint Flags;
+        internal ushort ShowWindow;
+        internal ushort Reserved2;
+        internal nint ReservedPointer;
+        internal nint StandardInput;
+        internal nint StandardOutput;
+        internal nint StandardError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct ProcessInformation
+    {
+        internal nint Process;
+        internal nint Thread;
+        internal uint ProcessId;
+        internal uint ThreadId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct StartupInfoEx
+    {
+        internal StartupInfo StartupInfo;
+        internal nint AttributeList;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct JobObjectBasicLimitInformation
+    {
+        internal long PerProcessUserTimeLimit;
+        internal long PerJobUserTimeLimit;
+        internal uint LimitFlags;
+        internal nuint MinimumWorkingSetSize;
+        internal nuint MaximumWorkingSetSize;
+        internal uint ActiveProcessLimit;
+        internal nuint Affinity;
+        internal uint PriorityClass;
+        internal uint SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct IoCounters
+    {
+        internal ulong ReadOperationCount;
+        internal ulong WriteOperationCount;
+        internal ulong OtherOperationCount;
+        internal ulong ReadTransferCount;
+        internal ulong WriteTransferCount;
+        internal ulong OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct JobObjectExtendedLimitInformation
+    {
+        internal JobObjectBasicLimitInformation BasicLimitInformation;
+        internal IoCounters IoInfo;
+        internal nuint ProcessMemoryLimit;
+        internal nuint JobMemoryLimit;
+        internal nuint PeakProcessMemoryUsed;
+        internal nuint PeakJobMemoryUsed;
+    }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     internal struct NotifyIconData
