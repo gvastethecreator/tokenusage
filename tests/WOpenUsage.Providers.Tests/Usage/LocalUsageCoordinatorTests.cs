@@ -89,6 +89,89 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public void BuildsCivilPeriodsWithoutLeakingPreviousMonthIntoCurrentMonth()
+    {
+        DateOnly today = new(2026, 7, 22);
+        DailyUsageRollup[] rollups =
+        [
+            Rollup(new DateOnly(2026, 6, 30), "claude", "old", 100, 3m, null, 0),
+            Rollup(new DateOnly(2026, 7, 16), "claude", "week-edge", 200, null, 2m, 0),
+            Rollup(new DateOnly(2026, 7, 21), "grok", "yesterday", 300, 4m, null, 0),
+            Rollup(today, "opencode", "today", 400, 1m, null, 100),
+        ];
+
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            rollups,
+            Strings,
+            today: today);
+
+        AssertPeriod(card, "UsageProductCard.Period.Today", "$1", "75%", "400");
+        AssertPeriod(card, "UsageProductCard.Period.Yesterday", "$4", "100%", "300");
+        AssertPeriod(card, "UsageProductCard.Period.7Days", "$5", "$2", "900");
+        AssertPeriod(card, "UsageProductCard.Period.Month", "$5", "$2", "900");
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 8m),
+            FindValue(card, "UsageProductCard.ReportedCost"));
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 2m),
+            FindValue(card, "UsageProductCard.EstimatedCost"));
+    }
+
+    [Fact]
+    public void BreakdownKeepsZeroAndUnpricedModelsButChartsOnlyPositiveSpend()
+    {
+        DateOnly today = new(2026, 7, 22);
+        DailyUsageRollup[] rollups =
+        [
+            Rollup(today, "claude", "claude-sonnet", 100, null, 2m, 0),
+            Rollup(today.AddDays(-1), "claude", "claude-sonnet", 50, null, 1m, 0),
+            Rollup(today, "opencode", "free-model", 200, null, null, 200),
+            Rollup(today, "grok", "grok-zero", 25, 0m, null, 0),
+        ];
+
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            rollups,
+            Strings,
+            today: today);
+
+        SampleSpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
+        Assert.Equal("claude", slice.ProviderId);
+        Assert.Equal(3d, slice.Amount);
+        Assert.Equal(3, card.SpendBreakdown.Models.Count);
+        Assert.Contains("3 agentes", card.SpendBreakdown.SummaryText, StringComparison.Ordinal);
+        LocalUsageModelRow unpriced = Assert.Single(
+            card.SpendBreakdown.Models,
+            row => row.ModelName == "free-model");
+        Assert.Contains("0%", unpriced.CoverageText, StringComparison.Ordinal);
+        LocalUsageModelRow zero = Assert.Single(
+            card.SpendBreakdown.Models,
+            row => row.ModelName == "grok-zero");
+        Assert.Contains(
+            string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 0m),
+            zero.ReportedText,
+            StringComparison.Ordinal);
+        Assert.StartsWith("46", FindValue(card, "UsageProductCard.CostCoverage"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReportedZeroIsDataAndDoesNotCreateAnEmptyRingSlice()
+    {
+        DateOnly today = new(2026, 7, 22);
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [Rollup(today, "grok", "grok-zero", 25, 0m, null, 0)],
+            Strings,
+            today: today);
+
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 0m),
+            FindValue(card, "UsageProductCard.ReportedCost"));
+        Assert.Equal("100%", FindValue(card, "UsageProductCard.CostCoverage"));
+        Assert.Empty(card.SpendBreakdown.AgentSlices);
+        Assert.Single(card.SpendBreakdown.Models);
+        Assert.True(card.SpendBreakdown.HasContent);
+    }
+
+    [Fact]
     public void PartialClaudeReadUsesAnExplicitCoverageNotice()
     {
         LocalUsageCard card = LocalUsageCardProjector.Create(
@@ -221,8 +304,108 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Equal("LocalUsageClaudeNoDataNotice", missing.NoticeText);
     }
 
+    [Fact]
+    public async Task MixedCompleteAndNoDataSourcesAreReportedAsPartial()
+    {
+        using var folder = new TemporaryFolder();
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            [
+                new SequenceSnapshotSource([Result(100, UsageSourceReadStatus.Complete)]),
+                new SequenceSnapshotSource([
+                    new UsageSourceReadResult([], UsageSourceReadStatus.NoData),
+                ]),
+            ],
+            new FixedTimeProvider(Now));
+
+        LocalUsageCard card = await coordinator.RefreshAsync(Strings);
+
+        Assert.Equal("LocalUsageAgentsPartialNotice", card.NoticeText);
+    }
+
+    [Fact]
+    public async Task ConflictingGroupingTimeZonesFailBeforeWritingACombinedSnapshot()
+    {
+        using var folder = new TemporaryFolder();
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            [
+                new SequenceSnapshotSource([
+                    Result(100, UsageSourceReadStatus.Complete, "UTC"),
+                ]),
+                new SequenceSnapshotSource([
+                    Result(200, UsageSourceReadStatus.Complete, "Argentina Standard Time"),
+                ]),
+            ],
+            new FixedTimeProvider(Now));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => coordinator.RefreshAsync(Strings));
+
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        Assert.Empty(await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 1),
+            new DateOnly(2026, 7, 31)));
+    }
+
     private static string FindValue(LocalUsageCard card, string automationId) =>
         Assert.Single(card.Metrics, metric => metric.AutomationId == automationId).Value;
+
+    private static void AssertPeriod(
+        LocalUsageCard card,
+        string automationId,
+        params string[] expectedParts)
+    {
+        LocalUsagePeriodRow row = Assert.Single(
+            card.OtherPeriods,
+            item => item.AutomationId == automationId);
+        string text = row.CostText + " " + row.DetailText;
+        foreach (string part in expectedParts)
+        {
+            Assert.Contains(part, text, StringComparison.Ordinal);
+        }
+    }
+
+    private static DailyUsageRollup Rollup(
+        DateOnly date,
+        string agent,
+        string model,
+        long tokens,
+        decimal? reported,
+        decimal? estimated,
+        long unpriced) =>
+        new(
+            date,
+            "UTC",
+            new AgentId(agent),
+            null,
+            new ModelId(model),
+            new TokenBreakdown(tokens, 0, 0, 0, 0),
+            reported,
+            estimated,
+            unpriced,
+            unpriced > 0 ? 1 : 0,
+            eventCount: 1,
+            unpriced > 0 ? CoverageKind.Unpriced : CoverageKind.Complete);
+
+    private static string Strings(string key) => key switch
+    {
+        "CodexUsageMissing" => "Sin datos",
+        "LocalUsageUsdFormat" => "${0:0.00} USD",
+        "LocalUsageUsdPerMillionFormat" => "${0:0.00}/1 M",
+        "LocalUsageReportedShort" => "Inf.",
+        "LocalUsageEstimatedShort" => "Est.",
+        "LocalUsagePeriodCostFormat" => "{0} {1} · {2} {3}",
+        "LocalUsagePeriodDetailFormat" => "{0} tokens · {1} · {2}",
+        "LocalUsageModelReportedFormat" => "Informado {0}",
+        "LocalUsageModelEstimatedFormat" => "Estimado {0}",
+        "LocalUsageModelCoverageFormat" => "Cobertura {0}",
+        "LocalUsageBreakdownSummaryFormat" => "{0} agentes · {1} modelos",
+        "LocalUsageBreakdownAccessibleFormat" => "Total {0}. {1}",
+        "LocalUsageAgentClaude" => "Claude",
+        "LocalUsageAgentGrok" => "Grok Build",
+        "LocalUsageAgentOpenCode" => "OpenCode",
+        _ => key,
+    };
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
@@ -231,7 +414,8 @@ public sealed class LocalUsageCoordinatorTests
 
     private static UsageSourceReadResult Result(
         long tokens,
-        UsageSourceReadStatus status) => new(
+        UsageSourceReadStatus status,
+        string groupingTimeZoneId = "UTC") => new(
         [new UsageEvent(
             new UsageEventKey(Convert.ToHexString(SHA256.HashData(
                 Encoding.UTF8.GetBytes($"grok-{tokens}"))).ToLowerInvariant()),
@@ -239,7 +423,7 @@ public sealed class LocalUsageCoordinatorTests
             new ModelProviderId("xai"),
             new ModelId("grok-4.5-build"),
             Now,
-            "UTC",
+            groupingTimeZoneId,
             new TokenBreakdown(tokens, 0, 0, 0, 0),
             CostObservation.ProviderReported(0m),
             "grok-build/1",
