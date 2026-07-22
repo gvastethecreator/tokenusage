@@ -1,20 +1,53 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Windows.System;
 using WOpenUsage.App.ViewModels;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace WOpenUsage.App;
 
-/// <summary>
-/// The main content page displayed inside the application window.
-/// </summary>
 public sealed partial class MainPage : Page
 {
-    public MainPageViewModel ViewModel { get; } = new();
-
     public MainPage()
     {
         InitializeComponent();
+        KeyDown += OnKeyDown;
+    }
+
+    public event EventHandler? HideRequested;
+
+    public FlyoutViewModel ViewModel { get; } = new();
+
+    public FrameworkElement MeasureRoot => FlyoutChrome;
+
+    public void FocusPrimaryAction()
+    {
+        UIElement target = ViewModel.SurfaceState switch
+        {
+            FlyoutSurfaceState.Options => CloseWhenInactiveToggle,
+            FlyoutSurfaceState.Loading => FooterOptionsButton,
+            _ => EmptyOpenOptionsButton,
+        };
+
+        _ = target.Focus(FocusState.Programmatic);
+    }
+
+    private void OnKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Escape)
+        {
+            return;
+        }
+
+        if (ViewModel.IsOptions)
+        {
+            ViewModel.CloseOptionsCommand.Execute(null);
+        }
+        else
+        {
+            HideRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        e.Handled = true;
     }
 }
