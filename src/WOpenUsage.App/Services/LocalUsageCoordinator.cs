@@ -50,6 +50,17 @@ public sealed class LocalUsageCoordinator
             cancellationToken).ConfigureAwait(false);
         UsageSourceReadResult[] readResults = await Task.WhenAll(
             _sources.Select(source => source.ReadAsync(cancellationToken))).ConfigureAwait(false);
+        UsageEvent[] events = readResults.SelectMany(result => result.Events).ToArray();
+        string[] groupingTimeZoneIds = events
+            .Select(usageEvent => usageEvent.GroupingTimeZoneId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (groupingTimeZoneIds.Length > 1)
+        {
+            throw new InvalidDataException(
+                "Local usage sources must use one grouping time zone per refresh.");
+        }
+
         for (int index = 0; index < _sources.Count; index++)
         {
             IUsageEventSource source = _sources[index];
@@ -71,17 +82,19 @@ public sealed class LocalUsageCoordinator
             }
         }
 
-        UsageEvent[] events = readResults.SelectMany(result => result.Events).ToArray();
         UsageSourceReadStatus readStatus = readResults.Any(
             result => result.Status == UsageSourceReadStatus.Partial)
                 ? UsageSourceReadStatus.Partial
                 : readResults.All(result => result.Status == UsageSourceReadStatus.NoData)
                     ? UsageSourceReadStatus.NoData
+                    : _sources.Count > 1 && readResults.Any(
+                        result => result.Status == UsageSourceReadStatus.NoData)
+                        ? UsageSourceReadStatus.Partial
                     : UsageSourceReadStatus.Complete;
 
-        string groupingTimeZoneId = events.Length == 0
+        string groupingTimeZoneId = groupingTimeZoneIds.Length == 0
             ? TimeZoneInfo.Local.Id
-            : events[0].GroupingTimeZoneId;
+            : groupingTimeZoneIds[0];
         TimeZoneInfo groupingTimeZone = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
         DateOnly today = DateOnly.FromDateTime(
             TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), groupingTimeZone).DateTime);
@@ -90,7 +103,7 @@ public sealed class LocalUsageCoordinator
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(
-            today.AddDays(-29),
+            Min(today.AddDays(-29), new DateOnly(today.Year, today.Month, 1)),
             today,
             cancellationToken).ConfigureAwait(false);
         return LocalUsageCardProjector.Create(
@@ -98,6 +111,10 @@ public sealed class LocalUsageCoordinator
             getString,
             SourceKind,
             readStatus,
-            hasMultipleRealSources: SourceKind == SourceKind.LocalLog && _sources.Count > 1);
+            hasMultipleRealSources: SourceKind == SourceKind.LocalLog && _sources.Count > 1,
+            today: today);
     }
+
+    private static DateOnly Min(DateOnly left, DateOnly right) =>
+        left <= right ? left : right;
 }

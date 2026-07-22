@@ -95,7 +95,14 @@ public partial class FlyoutViewModel : ObservableObject
     public partial SampleDashboardSnapshot ActiveSample { get; set; } = null!;
 
     [ObservableProperty]
-    public partial LocalUsageCard LocalUsage { get; set; } = new("", "", "", "", []);
+    public partial LocalUsageCard LocalUsage { get; set; } = new(
+        "",
+        "",
+        "",
+        "",
+        [],
+        [],
+        new("", "", "", "", [], []));
 
     [ObservableProperty]
     public partial int SampleRevealToken { get; set; }
