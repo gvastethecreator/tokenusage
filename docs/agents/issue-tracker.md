@@ -9,6 +9,8 @@ WOpenUsage uses a local tracker so implementation state stays beside the source 
 - Ticket lifecycle: `.scratch/wopenusage/issues/<NN>-<slug>.md`
 - Rejected or deferred proposals: `.scratch/wopenusage/out-of-scope/`
 - Delegated worker prompts and results: `.scratch/agent-cli-delegation/`
+- Agent CLI isolated checkouts and snapshots: `.snapshots/`; never create them
+  as sibling folders under `D:\DEV`.
 
 The tracked product contract remains under `docs/`. Scratch records may cite it but must not replace it.
 
