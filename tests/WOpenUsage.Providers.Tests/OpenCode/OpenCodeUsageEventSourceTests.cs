@@ -130,6 +130,28 @@ public sealed class OpenCodeUsageEventSourceTests
     }
 
     [Fact]
+    public async Task MatchingProviderPrefixIsRemovedFromTheStableModelId()
+    {
+        using var corpus = new OpenCodeCorpus();
+        string message = JsonSerializer.Serialize(new
+        {
+            id = "message-provider",
+            role = "assistant",
+            time = new { created = 1_784_694_000_000L },
+            providerID = "openai",
+            modelID = "openai/gpt-5",
+            cost = 0m,
+            tokens = new { input = 10, output = 2 },
+        });
+        corpus.WriteJsonSession("session-provider", message);
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
+        Assert.Equal("gpt-5", usageEvent.ModelId.Value);
+    }
+
+    [Fact]
     public async Task UnknownSchemaMalformedJsonAndLimitsReturnPartial()
     {
         using var unknown = new OpenCodeCorpus();
