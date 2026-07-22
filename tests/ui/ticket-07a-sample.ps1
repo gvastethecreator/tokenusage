@@ -49,11 +49,11 @@ function Get-TraySelector {
     $match = $null
     $deadline = [DateTime]::UtcNow.AddSeconds(3)
     while (-not $match -and [DateTime]::UtcNow -lt $deadline) {
-        $search = & winapp ui search "WOpenUsage" -a $explorerPid --json 2>$null | ConvertFrom-Json
+        $search = & winapp ui search "TokenUsage" -a $explorerPid --json 2>$null | ConvertFrom-Json
         $match = $search.matches | Where-Object { $_.type -eq "Button" } | Select-Object -First 1
         if (-not $match) { Start-Sleep -Milliseconds 150 }
     }
-    if (-not $match) { throw "WOpenUsage tray button was not found." }
+    if (-not $match) { throw "TokenUsage tray button was not found." }
     return $match.selector
 }
 

@@ -9,7 +9,7 @@ $explorerPid = Get-Process explorer | Select-Object -First 1 -ExpandProperty Id
 function Get-TraySelector {
     $deadline = [DateTime]::UtcNow.AddSeconds(5)
     do {
-        $search = winapp ui search 'WOpenUsage' -a $explorerPid --json 2>$null |
+        $search = winapp ui search 'TokenUsage' -a $explorerPid --json 2>$null |
             ConvertFrom-Json
         $match = $search.matches | Where-Object type -eq 'Button' | Select-Object -First 1
         if (-not $match) { Start-Sleep -Milliseconds 100 }

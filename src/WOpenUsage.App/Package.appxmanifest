@@ -15,7 +15,7 @@
   <mp:PhoneIdentity PhoneProductId="D6C94EDD-3747-465C-9A81-05DF5A4108C5" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>WOpenUsage.App</DisplayName>
+    <DisplayName>TokenUsage</DisplayName>
     <PublisherDisplayName>AppPublisher</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -33,8 +33,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="WOpenUsage.App"
-        Description="WOpenUsage.App"
+        DisplayName="TokenUsage"
+        Description="TokenUsage shows AI tool quota, local usage, and spend."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
