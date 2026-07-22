@@ -100,9 +100,20 @@ function Wait-ForElement {
 }
 
 function Assert-VisibleText {
-    param([string]$Text)
+    param(
+        [string]$Text,
+        [int]$Timeout = 1000
+    )
 
-    $search = & winapp ui search $Text -a $AppPid --json 2>$null | ConvertFrom-Json
+    $search = $null
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($Timeout)
+    do {
+        $search = & winapp ui search $Text -a $AppPid --json 2>$null | ConvertFrom-Json
+        if ($search.matchCount -lt 1) {
+            Start-Sleep -Milliseconds 100
+        }
+    } while ($search.matchCount -lt 1 -and [DateTime]::UtcNow -lt $deadline)
+
     if ($search.matchCount -lt 1) { throw "Visible text '$Text' was not found." }
 }
 
@@ -197,7 +208,6 @@ Test-Ui "Partial scenario exposes stale and policy states" {
 
     & winapp ui scroll "BodyScrollViewer" -a $AppPid --to bottom 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "The sample dashboard could not scroll to its last card." }
-    Start-Sleep -Milliseconds 150
     Assert-VisibleText 'Antigravity CLI'
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "04-partial-stale.png") 2>$null | Out-Null
 }

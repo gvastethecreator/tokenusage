@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Process starts in tray mode",
+    "status": "PASS"
+  },
+  {
+    "name": "Tray icon is visible and enabled",
+    "status": "PASS"
+  },
+  {
+    "name": "Native context menu exposes all commands",
+    "status": "PASS"
+  },
+  {
+    "name": "Options state opens and toggle is real",
+    "status": "PASS"
+  },
+  {
+    "name": "Empty state renders and opens from options",
+    "status": "PASS"
+  },
+  {
+    "name": "Refresh shows loading then returns to empty",
+    "status": "PASS"
+  },
+  {
+    "name": "All interactive app controls have AutomationId",
+    "status": "PASS"
+  },
+  {
+    "name": "Escape hides the usage surface",
+    "status": "PASS"
+  },
+  {
+    "name": "UI Automation tray activation focuses the primary action",
+    "status": "PASS"
+  },
+  {
+    "name": "Mouse tray activation toggles visibility",
+    "status": "PASS"
+  },
+  {
+    "name": "Context Update runs the loading state",
+    "status": "PASS"
+  },
+  {
+    "name": "Context Exit shuts down cleanly",
+    "status": "PASS"
+  }
+]
