@@ -19,7 +19,7 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
         _clientOptions = clientOptions ?? new CodexClientOptions(
             "wopenusage",
             "0.1.0",
-            "WOpenUsage");
+            "TokenUsage");
         _processSlot = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
         {
             FullMode = BoundedChannelFullMode.Wait,
