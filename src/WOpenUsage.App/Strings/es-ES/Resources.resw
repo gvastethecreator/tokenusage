@@ -112,6 +112,18 @@
   <data name="CodexStateStale" xml:space="preserve"><value>Cuota de Codex · dato guardado</value></data>
   <data name="CodexStateError" xml:space="preserve"><value>Cuota de Codex · error, mostrando caché</value></data>
   <data name="CodexStateNotSaved" xml:space="preserve"><value>Cuota de Codex · actualizado, sin guardar</value></data>
+  <data name="CodexStateThrottled" xml:space="preserve"><value>Cuota de Codex · esperando reintento</value></data>
+  <data name="CodexStateCacheRefreshingWithAgeFormat" xml:space="preserve"><value>Cuota de Codex · caché de hace {0}, actualizando…</value></data>
+  <data name="CodexStateStaleCacheRefreshingWithAgeFormat" xml:space="preserve"><value>Cuota de Codex · caché vencida de hace {0}, actualizando…</value></data>
+  <data name="CodexStateStaleWithAgeFormat" xml:space="preserve"><value>Cuota de Codex · dato guardado de hace {0}</value></data>
+  <data name="CodexStateErrorWithAgeFormat" xml:space="preserve"><value>Cuota de Codex · error, mostrando caché de hace {0}</value></data>
+  <data name="CodexStateErrorRetryWithAgeFormat" xml:space="preserve"><value>Cuota de Codex · reintento en {0}, caché de hace {1}</value></data>
+  <data name="CodexStateThrottledWithAgeFormat" xml:space="preserve"><value>Cuota de Codex · reintento en {0}, caché de hace {1}</value></data>
+  <data name="CodexAgeLessThanMinute" xml:space="preserve"><value>menos de 1 min</value></data>
+  <data name="CodexAgeMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="CodexAgeHoursFormat" xml:space="preserve"><value>{0} h</value></data>
+  <data name="CodexAgeDaysFormat" xml:space="preserve"><value>{0} d</value></data>
+  <data name="SampleRetryAutomationName" xml:space="preserve"><value>Reintentar muestra</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Cuota de Codex no disponible</value></data>
   <data name="CodexUnavailableBody" xml:space="preserve"><value>WOpenUsage no pudo leer la cuota de Codex. Comprueba que Codex funciona y vuelve a intentarlo.</value></data>
   <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex necesita configuración</value></data>

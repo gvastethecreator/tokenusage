@@ -27,12 +27,43 @@ if (Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_EXTRA_HANDLE") is string
 
 await Console.Error.FlushAsync();
 
-if (string.Equals(
-    Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_CODEX_MODE"),
-    "quota",
-    StringComparison.Ordinal))
+if (Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_PATH_MARKER") is string markerPath
+    && !string.IsNullOrWhiteSpace(markerPath))
 {
-    await RunQuotaServerAsync();
+    await File.WriteAllTextAsync(markerPath, Environment.ProcessPath ?? string.Empty);
+}
+
+DateTimeOffset fakeNowUtc = DateTimeOffset.TryParse(
+    Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_NOW_UTC"),
+    CultureInfo.InvariantCulture,
+    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+    out DateTimeOffset parsedFakeNow)
+    ? parsedFakeNow
+    : DateTimeOffset.UtcNow;
+
+string mode = Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_CODEX_MODE") ?? string.Empty;
+if (string.Equals(mode, "quota", StringComparison.Ordinal))
+{
+    await RunQuotaServerAsync(fakeNowUtc);
+    return 0;
+}
+
+if (string.Equals(mode, "timeout", StringComparison.Ordinal))
+{
+    _ = await Console.In.ReadLineAsync();
+    await Task.Delay(Timeout.InfiniteTimeSpan);
+    return 0;
+}
+
+if (string.Equals(mode, "crash", StringComparison.Ordinal))
+{
+    _ = await Console.In.ReadLineAsync();
+    return 13;
+}
+
+if (string.Equals(mode, "contract", StringComparison.Ordinal))
+{
+    await RunContractServerAsync();
     return 0;
 }
 
@@ -45,8 +76,9 @@ while (await Console.In.ReadLineAsync() is string line)
 await Task.Delay(Timeout.InfiniteTimeSpan);
 return 0;
 
-static async Task RunQuotaServerAsync()
+static async Task RunQuotaServerAsync(DateTimeOffset fakeNowUtc)
 {
+    DateOnly localDate = DateOnly.FromDateTime(fakeNowUtc.ToLocalTime().DateTime);
     while (await Console.In.ReadLineAsync() is string line)
     {
         using JsonDocument request = JsonDocument.Parse(line);
@@ -86,13 +118,13 @@ static async Task RunQuotaServerAsync()
                         primary = new
                         {
                             usedPercent = 42,
-                            resetsAt = DateTimeOffset.UtcNow.AddHours(4).ToUnixTimeSeconds(),
+                            resetsAt = fakeNowUtc.AddHours(4).ToUnixTimeSeconds(),
                             windowDurationMins = 300,
                         },
                         secondary = new
                         {
                             usedPercent = 18,
-                            resetsAt = DateTimeOffset.UtcNow.AddDays(5).ToUnixTimeSeconds(),
+                            resetsAt = fakeNowUtc.AddDays(5).ToUnixTimeSeconds(),
                             windowDurationMins = 10080,
                         },
                     },
@@ -112,14 +144,14 @@ static async Task RunQuotaServerAsync()
                     {
                         new
                         {
-                            startDate = DateOnly.FromDateTime(DateTime.Now).ToString(
+                            startDate = localDate.ToString(
                                 "yyyy-MM-dd",
                                 CultureInfo.InvariantCulture),
                             tokens = 1200,
                         },
                         new
                         {
-                            startDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1).ToString(
+                            startDate = localDate.AddDays(-1).ToString(
                                 "yyyy-MM-dd",
                                 CultureInfo.InvariantCulture),
                             tokens = 300,
@@ -134,6 +166,33 @@ static async Task RunQuotaServerAsync()
             },
         };
 
+        await Console.Out.WriteLineAsync(JsonSerializer.Serialize(response));
+        await Console.Out.FlushAsync();
+    }
+}
+
+static async Task RunContractServerAsync()
+{
+    while (await Console.In.ReadLineAsync() is string line)
+    {
+        using JsonDocument request = JsonDocument.Parse(line);
+        JsonElement root = request.RootElement;
+        if (!root.TryGetProperty("id", out JsonElement id)
+            || !root.TryGetProperty("method", out JsonElement methodElement))
+        {
+            continue;
+        }
+
+        object response = string.Equals(
+            methodElement.GetString(),
+            "initialize",
+            StringComparison.Ordinal)
+            ? new { id = id.Clone(), result = new { } }
+            : new
+            {
+                id = id.Clone(),
+                error = new { code = -32601, message = "method unavailable" },
+            };
         await Console.Out.WriteLineAsync(JsonSerializer.Serialize(response));
         await Console.Out.FlushAsync();
     }
