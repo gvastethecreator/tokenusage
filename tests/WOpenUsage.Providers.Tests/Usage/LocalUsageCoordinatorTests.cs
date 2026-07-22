@@ -196,6 +196,63 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public void ProviderStatusKeepsQuotaUsageSpendAndCoverageIndependent()
+    {
+        DateOnly today = new(2026, 7, 22);
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [Rollup(today, "grok", "grok-4.5-build", 100, 2m, null, 0)],
+            Strings,
+            SourceKind.LocalLog,
+            UsageSourceReadStatus.Partial,
+            hasMultipleRealSources: true,
+            today: today,
+            sourceDiagnostics:
+            [
+                new(new AgentId("grok"), UsageSourceReadStatus.Complete, UsageSourceIssueKind.None, true),
+                new(new AgentId("opencode"), UsageSourceReadStatus.NoData, UsageSourceIssueKind.RootUnavailable, true),
+            ]);
+
+        ProviderStatusRow grok = Assert.Single(card.ProviderStatuses, row => row.ProviderId == "grok");
+        Assert.Equal("ProviderStatusBlocked", Capability(grok, "ProviderStatus.grok.Quota"));
+        Assert.Equal("ProviderStatusComplete", Capability(grok, "ProviderStatus.grok.Usage"));
+        Assert.Equal("ProviderStatusReported", Capability(grok, "ProviderStatus.grok.Spend"));
+        Assert.Equal("100%", Capability(grok, "ProviderStatus.grok.Coverage"));
+
+        ProviderStatusRow openCode = Assert.Single(card.ProviderStatuses, row => row.ProviderId == "opencode");
+        Assert.Equal("ProviderStatusNotConfigured", Capability(openCode, "ProviderStatus.opencode.Usage"));
+        Assert.Equal("ProviderStatusRootMissing", openCode.RootState);
+        Assert.DoesNotContain(":\\", string.Join(' ', card.ProviderStatuses.Select(row => row.AutomationName)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RetainedSnapshotSpendIsLabeledAsLastReliable()
+    {
+        DateOnly today = new(2026, 7, 22);
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [Rollup(today, "grok", "grok-4.5-build", 100, 2m, null, 0)],
+            Strings,
+            SourceKind.LocalLog,
+            UsageSourceReadStatus.NoData,
+            today: today,
+            sourceDiagnostics:
+            [
+                new(
+                    new AgentId("grok"),
+                    UsageSourceReadStatus.NoData,
+                    UsageSourceIssueKind.RootUnavailable,
+                    RetainsLastReliableSnapshot: true),
+            ]);
+
+        ProviderStatusRow grok = Assert.Single(card.ProviderStatuses);
+        Assert.Equal(
+            "ProviderStatusReportedLastReliable",
+            Capability(grok, "ProviderStatus.grok.Spend"));
+        Assert.Equal(
+            "ProviderStatusCoverageLastReliableFormat",
+            Capability(grok, "ProviderStatus.grok.Coverage"));
+    }
+
+    [Fact]
     public async Task ClaudeCorpusFlowsIntoTheRealLocalUsageCard()
     {
         using var folder = new TemporaryFolder();
@@ -349,6 +406,9 @@ public sealed class LocalUsageCoordinatorTests
 
     private static string FindValue(LocalUsageCard card, string automationId) =>
         Assert.Single(card.Metrics, metric => metric.AutomationId == automationId).Value;
+
+    private static string Capability(ProviderStatusRow row, string automationId) =>
+        Assert.Single(row.Capabilities, capability => capability.AutomationId == automationId).Value;
 
     private static void AssertPeriod(
         LocalUsageCard card,

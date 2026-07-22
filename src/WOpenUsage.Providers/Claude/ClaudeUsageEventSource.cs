@@ -44,6 +44,8 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
 
     public SourceKind SourceKind => SourceKind.LocalLog;
 
+    public AgentId AgentId { get; } = new("claude");
+
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default) =>
         await Task.Run(() => ReadCore(cancellationToken), cancellationToken)
@@ -56,7 +58,10 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
             _configDirectoryOverride);
         if (projectDirectories.Count == 0)
         {
-            return new UsageSourceReadResult([], UsageSourceReadStatus.NoData);
+            return new UsageSourceReadResult(
+                [],
+                UsageSourceReadStatus.NoData,
+                UsageSourceIssueKind.RootUnavailable);
         }
 
         var candidates = new List<Candidate>();
@@ -304,7 +309,12 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
             : events.Count == 0
                 ? UsageSourceReadStatus.NoData
                 : UsageSourceReadStatus.Complete;
-        return new UsageSourceReadResult(events, status);
+        return new UsageSourceReadResult(
+            events,
+            status,
+            status == UsageSourceReadStatus.NoData
+                ? UsageSourceIssueKind.Empty
+                : null);
     }
 
     private List<UsageEvent> CreateEvents(IEnumerable<Candidate> candidates)
