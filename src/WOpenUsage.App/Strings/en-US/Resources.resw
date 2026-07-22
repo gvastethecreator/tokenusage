@@ -25,6 +25,7 @@
   <data name="OptionsBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
   <data name="LoadingProgressRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Updating usage</value></data>
   <data name="LoadingLabel.Text" xml:space="preserve"><value>Looking for local usage data…</value></data>
+  <data name="SampleLoadingLabel.Text" xml:space="preserve"><value>Refreshing sample data…</value></data>
   <data name="EmptyTitle.Text" xml:space="preserve"><value>No providers yet</value></data>
   <data name="EmptyBody.Text" xml:space="preserve"><value>Quota and spend will appear here when a supported local tool is available. This build has no data source connected.</value></data>
   <data name="EmptyOpenOptionsButton.Content" xml:space="preserve"><value>Open options</value></data>
@@ -34,4 +35,42 @@
   <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>WOpenUsage 0.1</value></data>
   <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
   <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Options</value></data>
+  <data name="SampleBadge.Text" xml:space="preserve"><value>Sample</value></data>
+  <data name="SampleModeToggle.Header" xml:space="preserve"><value>Show sample dashboard</value></data>
+  <data name="SampleModeToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show sample dashboard</value></data>
+  <data name="SampleScenarioCombo.Header" xml:space="preserve"><value>Sample scenario</value></data>
+  <data name="SampleScenarioCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Sample scenario</value></data>
+  <data name="SampleScenarioNormal" xml:space="preserve"><value>Normal</value></data>
+  <data name="SampleScenarioNearLimit" xml:space="preserve"><value>Near limit</value></data>
+  <data name="SampleScenarioPartialStale" xml:space="preserve"><value>Partial or stale</value></data>
+  <data name="SampleInfoBar.Title" xml:space="preserve"><value>Sample data</value></data>
+  <data name="SampleInfoBar.Message" xml:space="preserve"><value>These values are for UI review and do not come from a live provider.</value></data>
+  <data name="SampleTotalSpendTitle.Text" xml:space="preserve"><value>Total spend</value></data>
+  <data name="SampleStatus" xml:space="preserve"><value>Sample data</value></data>
+  <data name="SampleStatusLoading" xml:space="preserve"><value>Refreshing sample…</value></data>
+  <data name="SamplePeriodNormal" xml:space="preserve"><value>30 days · normal sample</value></data>
+  <data name="SamplePeriodNearLimit" xml:space="preserve"><value>30 days · near limit</value></data>
+  <data name="SamplePeriodPartialStale" xml:space="preserve"><value>30 days · partial coverage</value></data>
+  <data name="SampleRemainingFormat" xml:space="preserve"><value>{0}% remaining</value></data>
+  <data name="SampleResetHoursFormat" xml:space="preserve"><value>Resets in {0} h</value></data>
+  <data name="SampleResetDaysFormat" xml:space="preserve"><value>Resets in {0} d</value></data>
+  <data name="SampleResetDaysHoursFormat" xml:space="preserve"><value>Resets in {0} d {1} h</value></data>
+  <data name="SampleWindowSession" xml:space="preserve"><value>Session</value></data>
+  <data name="SampleWindowWeekly" xml:space="preserve"><value>Weekly</value></data>
+  <data name="SampleWindowSoftBudget" xml:space="preserve"><value>Sample budget</value></data>
+  <data name="SampleCapabilityQuota" xml:space="preserve"><value>Quota</value></data>
+  <data name="SampleCapabilityLocalSpend" xml:space="preserve"><value>Local usage · Spend</value></data>
+  <data name="SampleCapabilityLocal" xml:space="preserve"><value>Local usage</value></data>
+  <data name="SampleCapabilityPolicy" xml:space="preserve"><value>Blocked by policy</value></data>
+  <data name="SampleMetricTokens" xml:space="preserve"><value>Tokens</value></data>
+  <data name="SampleMetricSpend" xml:space="preserve"><value>Spend</value></data>
+  <data name="SampleNoticeNoQuota" xml:space="preserve"><value>No quota source in this sample.</value></data>
+  <data name="SampleNoticeHighSpend" xml:space="preserve"><value>Higher sample spend in the last 30 days.</value></data>
+  <data name="SampleNoticeStale" xml:space="preserve"><value>Stale · last sample 47 min ago</value></data>
+  <data name="SampleNoticePartial" xml:space="preserve"><value>Partial coverage</value></data>
+  <data name="SampleNoticePolicy" xml:space="preserve"><value>Quota access is blocked by policy in this sample.</value></data>
+  <data name="SamplePlanPlus" xml:space="preserve"><value>Plus</value></data>
+  <data name="SamplePlanPro" xml:space="preserve"><value>Pro</value></data>
+  <data name="SamplePlanLocal" xml:space="preserve"><value>Local</value></data>
+  <data name="SamplePlanExperimental" xml:space="preserve"><value>Experimental</value></data>
 </root>

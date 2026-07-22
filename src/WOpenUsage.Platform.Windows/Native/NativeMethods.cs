@@ -127,6 +127,9 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern uint GetDpiForWindow(nint window);
 
+    [DllImport("user32.dll")]
+    internal static extern nint GetForegroundWindow();
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SystemParametersInfo(

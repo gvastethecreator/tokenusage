@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -11,6 +12,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
     }
 
@@ -26,6 +28,7 @@ public sealed partial class MainPage : Page
         {
             FlyoutSurfaceState.Options => CloseWhenInactiveToggle,
             FlyoutSurfaceState.Loading => FooterOptionsButton,
+            FlyoutSurfaceState.Sample => HeaderRefreshButton,
             _ => EmptyOpenOptionsButton,
         };
 
@@ -49,5 +52,16 @@ public sealed partial class MainPage : Page
         }
 
         e.Handled = true;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!string.Equals(e.PropertyName, nameof(ViewModel.SurfaceState), StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _ = DispatcherQueue.TryEnqueue(() =>
+            BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
     }
 }
