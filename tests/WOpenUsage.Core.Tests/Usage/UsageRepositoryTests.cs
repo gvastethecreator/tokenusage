@@ -31,6 +31,72 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task ReplacingAgentEventsRemovesOldSnapshotsAndKeepsOtherAgents()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent("grok-old", agentId: "grok", parserVersion: "grok-build/1"),
+            CreateEvent("claude-kept", agentId: "claude", parserVersion: "claude-jsonl/1"),
+        ]);
+
+        UsageEvent replacement = CreateEvent(
+            "grok-new",
+            agentId: "grok",
+            parserVersion: "grok-build/1",
+            tokens: new TokenBreakdown(300, 40, 10, 50, 0));
+        UsageIngestResult result = await repository.ReplaceAgentEventsAsync(
+            new AgentId("grok"),
+            [replacement]);
+
+        Assert.Equal(new UsageIngestResult(1, 0), result);
+        DailyUsageRollup grok = Assert.Single(await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("grok")));
+        Assert.Equal(400, grok.Tokens.Total);
+        Assert.Single(await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("claude")));
+    }
+
+    [Fact]
+    public async Task ReplacingSnapshotRevivesItsTombstonedKeyAndKeepsHistoricalRollup()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "long-lived-grok-session",
+                new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero),
+                agentId: "grok",
+                parserVersion: "grok-local/1"),
+        ]);
+        await repository.ApplyRetentionAsync(
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
+
+        UsageIngestResult result = await repository.ReplaceAgentEventsAsync(
+            new AgentId("grok"),
+            [CreateEvent(
+                "long-lived-grok-session",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                agentId: "grok",
+                parserVersion: "grok-local/1")]);
+
+        Assert.Equal(new UsageIngestResult(1, 0), result);
+        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2025, 1, 1),
+            new DateOnly(2026, 12, 31),
+            new AgentId("grok"));
+        Assert.Equal(2, rollups.Count);
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2025, 6, 16));
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2026, 7, 22));
+    }
+
+    [Fact]
     public async Task InitialMigrationIsCompleteAndIdempotent()
     {
         using var folder = new TemporaryFolder();
