@@ -98,6 +98,35 @@ static async Task RunQuotaServerAsync()
                     },
                 },
             },
+            "account/usage/read" => new
+            {
+                id = id.Clone(),
+                result = new
+                {
+                    summary = new
+                    {
+                        currentStreakDays = 2,
+                        privateField = "private-live@example.invalid",
+                    },
+                    dailyUsageBuckets = new[]
+                    {
+                        new
+                        {
+                            startDate = DateOnly.FromDateTime(DateTime.Now).ToString(
+                                "yyyy-MM-dd",
+                                CultureInfo.InvariantCulture),
+                            tokens = 1200,
+                        },
+                        new
+                        {
+                            startDate = DateOnly.FromDateTime(DateTime.Now).AddDays(-1).ToString(
+                                "yyyy-MM-dd",
+                                CultureInfo.InvariantCulture),
+                            tokens = 300,
+                        },
+                    },
+                },
+            },
             _ => new
             {
                 id = id.Clone(),

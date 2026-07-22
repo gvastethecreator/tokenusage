@@ -34,8 +34,44 @@ public sealed class CodexRefreshCoordinatorTests
 
         SnapshotCacheReadResult.Loaded cached = Assert.IsType<SnapshotCacheReadResult.Loaded>(
             Assert.IsType<CacheFirstEvent.CachePublished>(second[0]).ReadResult);
-        Assert.Equal("codex", Assert.Single(cached.Snapshots).ProviderId.Value);
+        ProviderSnapshot cachedSnapshot = Assert.Single(cached.Snapshots);
+        Assert.Equal("codex", cachedSnapshot.ProviderId.Value);
+        ScalarMetricSnapshot usage = Assert.Single(
+            cachedSnapshot.Metrics.OfType<ScalarMetricSnapshot>(),
+            metric => metric.Id.Value == "usage.tokens.today");
+        Assert.Equal(12m, usage.Value);
         Assert.Equal(2, client.DisposeCount);
+    }
+
+    [Fact]
+    public async Task UsageFailureReplacesStaleUsageWithFreshQuotaOnly()
+    {
+        using var folder = new TemporaryFolder();
+        var client = new StubClient();
+        var coordinator = new CodexRefreshCoordinator(
+            folder.Path,
+            new FixedTimeProvider(Now),
+            new StubFactory(client));
+        await CollectAsync(coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+        client.UsageException = new CodexRequestTimeoutException();
+
+        IReadOnlyList<CacheFirstEvent> refresh = await CollectAsync(
+            coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+        IReadOnlyList<CacheFirstEvent> after = await CollectAsync(
+            coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+
+        CacheFirstEvent.ProviderCompleted completed =
+            Assert.IsType<CacheFirstEvent.ProviderCompleted>(refresh[1]);
+        Assert.IsType<ProviderOutcome.PartialSuccess>(completed.Outcome);
+        Assert.Equal(CacheUpdateStatus.Updated, completed.CacheStatus);
+        ProviderSnapshot cached = Assert.Single(
+            Assert.IsType<SnapshotCacheReadResult.Loaded>(
+                Assert.IsType<CacheFirstEvent.CachePublished>(after[0]).ReadResult).Snapshots);
+        Assert.Equal(CoverageKind.Partial, cached.Coverage);
+        Assert.DoesNotContain(
+            cached.Metrics,
+            metric => metric.Id.Value.StartsWith("usage.", StringComparison.Ordinal));
+        Assert.Contains(cached.Metrics, metric => metric.Id.Value == "quota.primary");
     }
 
     private static async Task<IReadOnlyList<CacheFirstEvent>> CollectAsync(
@@ -69,6 +105,8 @@ public sealed class CodexRefreshCoordinatorTests
     {
         public int DisposeCount { get; private set; }
 
+        public Exception? UsageException { get; set; }
+
         public Task HandshakeAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -101,9 +139,11 @@ public sealed class CodexRefreshCoordinatorTests
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(new CodexTokenUsageSnapshot(
-                new CodexUsageSummary(null, null, null, null, null),
-                []));
+            return UsageException is null
+                ? Task.FromResult(new CodexTokenUsageSnapshot(
+                    new CodexUsageSummary(null, null, null, null, null),
+                    [new CodexUsageDailyBucket(new DateOnly(2026, 7, 22), 12)]))
+                : Task.FromException<CodexTokenUsageSnapshot>(UsageException);
         }
 
         public ValueTask DisposeAsync()

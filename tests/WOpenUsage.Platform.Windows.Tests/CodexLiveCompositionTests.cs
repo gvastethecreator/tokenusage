@@ -74,7 +74,13 @@ public sealed class CodexLiveCompositionTests
                 clock);
             SnapshotCacheReadResult.Loaded cached =
                 Assert.IsType<SnapshotCacheReadResult.Loaded>(await store.LoadAsync());
-            Assert.Equal("codex", Assert.Single(cached.Snapshots).ProviderId.Value);
+            ProviderSnapshot cachedSnapshot = Assert.Single(cached.Snapshots);
+            Assert.Equal("codex", cachedSnapshot.ProviderId.Value);
+            ScalarMetricSnapshot todayUsage = Assert.Single(
+                cachedSnapshot.Metrics.OfType<ScalarMetricSnapshot>(),
+                metric => metric.Id.Value == "usage.tokens.today");
+            Assert.Equal(1200m, todayUsage.Value);
+            Assert.Equal("tokens", todayUsage.Unit);
         }
         finally
         {
