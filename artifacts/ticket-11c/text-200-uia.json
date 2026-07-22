@@ -1,0 +1,1002 @@
+[
+  {
+    "Name": "$48.12",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Gasto total $48.12 en 5 proveedores. Claude $22.40, Codex $12.30, Grok Build $7.10, OpenCode $5.92, Antigravity CLI $0.40",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "$22.40",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "$12.30",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "$7.10",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "$5.92",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "$0.40",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Codex, Sesión: 58% restante. Reinicia en 4 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "58% restante",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Reinicia en 4 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Codex, Semanal: 81% restante. Reinicia en 5 d 2 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "81% restante",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Reinicia en 5 d 2 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Claude, Sesión: 100% restante. Reinicia en 5 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "100% restante",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Reinicia en 5 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Claude, Semanal: 36% restante. Reinicia en 1 d 6 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "36% restante",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Reinicia en 1 d 6 h",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Gasto: $7.10",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "$7.10",
+    "Offscreen": true,
+    "Rect": {
+      "IsEmpty": true,
+      "Location": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "Size": {
+        "IsEmpty": true,
+        "Width": "-Infinity",
+        "Height": "-Infinity"
+      },
+      "X": "Infinity",
+      "Y": "Infinity",
+      "Width": "-Infinity",
+      "Height": "-Infinity",
+      "Left": "Infinity",
+      "Top": "Infinity",
+      "Right": "-Infinity",
+      "Bottom": "-Infinity",
+      "TopLeft": {
+        "X": "Infinity",
+        "Y": "Infinity"
+      },
+      "TopRight": {
+        "X": "-Infinity",
+        "Y": "Infinity"
+      },
+      "BottomLeft": {
+        "X": "Infinity",
+        "Y": "-Infinity"
+      },
+      "BottomRight": {
+        "X": "-Infinity",
+        "Y": "-Infinity"
+      }
+    }
+  },
+  {
+    "Name": "Gasto: $5.92",
+    "Offscreen": false,
+    "Rect": {
+      "IsEmpty": false,
+      "Location": {
+        "X": 2478.0,
+        "Y": 855.0
+      },
+      "Size": {
+        "IsEmpty": false,
+        "Width": 331.0,
+        "Height": 4.0
+      },
+      "X": 2478.0,
+      "Y": 855.0,
+      "Width": 331.0,
+      "Height": 4.0,
+      "Left": 2478.0,
+      "Top": 855.0,
+      "Right": 2809.0,
+      "Bottom": 859.0,
+      "TopLeft": {
+        "X": 2478.0,
+        "Y": 855.0
+      },
+      "TopRight": {
+        "X": 2809.0,
+        "Y": 855.0
+      },
+      "BottomLeft": {
+        "X": 2478.0,
+        "Y": 859.0
+      },
+      "BottomRight": {
+        "X": 2809.0,
+        "Y": 859.0
+      }
+    }
+  },
+  {
+    "Name": "$5.92",
+    "Offscreen": false,
+    "Rect": {
+      "IsEmpty": false,
+      "Location": {
+        "X": 2738.0,
+        "Y": 855.0
+      },
+      "Size": {
+        "IsEmpty": false,
+        "Width": 71.0,
+        "Height": 4.0
+      },
+      "X": 2738.0,
+      "Y": 855.0,
+      "Width": 71.0,
+      "Height": 4.0,
+      "Left": 2738.0,
+      "Top": 855.0,
+      "Right": 2809.0,
+      "Bottom": 859.0,
+      "TopLeft": {
+        "X": 2738.0,
+        "Y": 855.0
+      },
+      "TopRight": {
+        "X": 2809.0,
+        "Y": 855.0
+      },
+      "BottomLeft": {
+        "X": 2738.0,
+        "Y": 859.0
+      },
+      "BottomRight": {
+        "X": 2809.0,
+        "Y": 859.0
+      }
+    }
+  },
+  {
+    "Name": "Gasto: $0.40",
+    "Offscreen": false,
+    "Rect": {
+      "IsEmpty": false,
+      "Location": {
+        "X": 2478.0,
+        "Y": 1231.0
+      },
+      "Size": {
+        "IsEmpty": false,
+        "Width": 331.0,
+        "Height": 39.0
+      },
+      "X": 2478.0,
+      "Y": 1231.0,
+      "Width": 331.0,
+      "Height": 39.0,
+      "Left": 2478.0,
+      "Top": 1231.0,
+      "Right": 2809.0,
+      "Bottom": 1270.0,
+      "TopLeft": {
+        "X": 2478.0,
+        "Y": 1231.0
+      },
+      "TopRight": {
+        "X": 2809.0,
+        "Y": 1231.0
+      },
+      "BottomLeft": {
+        "X": 2478.0,
+        "Y": 1270.0
+      },
+      "BottomRight": {
+        "X": 2809.0,
+        "Y": 1270.0
+      }
+    }
+  },
+  {
+    "Name": "$0.40",
+    "Offscreen": false,
+    "Rect": {
+      "IsEmpty": false,
+      "Location": {
+        "X": 2738.0,
+        "Y": 1231.0
+      },
+      "Size": {
+        "IsEmpty": false,
+        "Width": 71.0,
+        "Height": 39.0
+      },
+      "X": 2738.0,
+      "Y": 1231.0,
+      "Width": 71.0,
+      "Height": 39.0,
+      "Left": 2738.0,
+      "Top": 1231.0,
+      "Right": 2809.0,
+      "Bottom": 1270.0,
+      "TopLeft": {
+        "X": 2738.0,
+        "Y": 1231.0
+      },
+      "TopRight": {
+        "X": 2809.0,
+        "Y": 1231.0
+      },
+      "BottomLeft": {
+        "X": 2738.0,
+        "Y": 1270.0
+      },
+      "BottomRight": {
+        "X": 2809.0,
+        "Y": 1270.0
+      }
+    }
+  }
+]
