@@ -17,6 +17,8 @@ Investigación, plan, scaffold WinUI y límites de arquitectura listos. La app e
 - Grok Build: uso local real desde snapshots de sesión, con coste informado y fallback al log unificado. La cuota remota queda bloqueada por política.
 - OpenCode: uso local real desde SQLite y JSON legado, con coste informado,
   deduplicación y lectura WAL sin copiar la base.
+- Gasto local: periodos Hoy, Ayer, 7 días, 30 días y Mes actual, con coste
+  informado/estimado, cobertura, anillo por agente y detalle por modelo.
 - Antigravity CLI: solo lectura pasiva de datos locales en fase experimental; la app no usa su login ni consulta servicios privados.
 
 ## Scaffold WinUI
@@ -83,6 +85,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia del scanner Claude local](docs/evidence/ticket-17-claude-local-usage.md)
 - [Evidencia del scanner Grok Build local](docs/evidence/ticket-18-grok-local-usage.md)
 - [Evidencia del scanner OpenCode local](docs/evidence/ticket-19-opencode-local-usage.md)
+- [Evidencia del gasto agregado real](docs/evidence/ticket-20-real-spend.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
