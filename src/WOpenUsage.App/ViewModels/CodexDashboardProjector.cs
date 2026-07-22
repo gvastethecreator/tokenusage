@@ -1,6 +1,7 @@
 using System.Globalization;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
+using WOpenUsage.Providers.Codex;
 
 namespace WOpenUsage.App.ViewModels;
 
@@ -31,6 +32,12 @@ public static class CodexDashboardProjector
                 metric => metric.Id.Value[..^".window-minutes".Length],
                 metric => metric.Value,
                 StringComparer.Ordinal);
+        Dictionary<string, decimal> scalars = snapshot.Metrics
+            .OfType<ScalarMetricSnapshot>()
+            .ToDictionary(
+                metric => metric.Id.Value,
+                metric => metric.Value,
+                StringComparer.Ordinal);
 
         ProgressMetricSnapshot[] progressMetrics = snapshot.Metrics
             .OfType<ProgressMetricSnapshot>()
@@ -59,10 +66,12 @@ public static class CodexDashboardProjector
             "Provider.Codex",
             snapshot.DisplayName,
             plan,
-            getString("SampleCapabilityQuota"),
-            NoticeText: null,
+            getString("CodexCapabilityUsage"),
+            NoticeText: snapshot.Coverage == CoverageKind.Partial
+                ? getString("CodexPartialUsageNotice")
+                : null,
             Windows: windows,
-            Metrics: []);
+            Metrics: CreateUsageMetrics(scalars, getString));
 
         return new SampleDashboardSnapshot(
             SampleScenario.Normal,
@@ -92,6 +101,11 @@ public static class CodexDashboardProjector
             ref additionalWindow);
         string usage = Format(text, "CodexUsageFormat", remaining, used);
         string reset = FormatReset(metric.ResetsAtUtc, clock, text);
+        (string? paceText, bool isPaceBehind) = CreatePace(
+            metric,
+            durationMinutes,
+            clock,
+            text);
 
         return new SampleQuotaWindow(
             title,
@@ -99,7 +113,108 @@ public static class CodexDashboardProjector
             usage,
             reset,
             $"Codex, {title}: {usage}. {reset}",
-            remaining <= 15d);
+            remaining <= 15d,
+            paceText,
+            isPaceBehind,
+            $"CodexPace.{metric.Id.Value}");
+    }
+
+    private static IReadOnlyList<SampleMetric> CreateUsageMetrics(
+        IReadOnlyDictionary<string, decimal> scalars,
+        Func<string, string> text) =>
+        [
+            CreateUsageMetric("CodexUsageToday", "CodexUsage.Today", CodexUsageMetricIds.Today, scalars, text),
+            CreateUsageMetric("CodexUsageYesterday", "CodexUsage.Yesterday", CodexUsageMetricIds.Yesterday, scalars, text),
+            CreateUsageMetric("CodexUsageLast7Days", "CodexUsage.Last7Days", CodexUsageMetricIds.Last7Days, scalars, text),
+            CreateUsageMetric("CodexUsageLast30Days", "CodexUsage.Last30Days", CodexUsageMetricIds.Last30Days, scalars, text),
+        ];
+
+    private static SampleMetric CreateUsageMetric(
+        string labelKey,
+        string automationId,
+        string metricId,
+        IReadOnlyDictionary<string, decimal> scalars,
+        Func<string, string> text) =>
+        new(
+            text(labelKey),
+            scalars.TryGetValue(metricId, out decimal value)
+                ? Format(
+                    text,
+                    value == 1m ? "CodexTokenCountSingular" : "CodexTokenCountFormat",
+                    value)
+                : text("CodexUsageMissing"),
+            automationId);
+
+    private static (string? Text, bool IsBehind) CreatePace(
+        ProgressMetricSnapshot metric,
+        decimal durationMinutes,
+        TimeProvider clock,
+        Func<string, string> text)
+    {
+        TimeSpan? duration = CreateDuration(durationMinutes);
+        QuotaPaceResult? pace = QuotaPace.Evaluate(
+            metric.Used,
+            metric.Limit,
+            metric.ResetsAtUtc,
+            duration,
+            clock.GetUtcNow().ToUniversalTime());
+        if (pace is null)
+        {
+            return (null, false);
+        }
+
+        decimal projectedPercent = Math.Round(
+            pace.ProjectedUsage / metric.Limit * 100m,
+            0,
+            MidpointRounding.AwayFromZero);
+        return pace.Status switch
+        {
+            QuotaPaceStatus.Ahead => (
+                Format(text, "CodexPaceAheadFormat", projectedPercent),
+                false),
+            QuotaPaceStatus.OnTrack => (
+                Format(text, "CodexPaceOnTrackFormat", projectedPercent),
+                false),
+            _ when pace.TimeToExhaust is TimeSpan eta => (
+                Format(
+                    text,
+                    "CodexPaceBehindEtaFormat",
+                    projectedPercent,
+                    FormatDuration(eta, text)),
+                true),
+            _ => (
+                Format(text, "CodexPaceBehindFormat", projectedPercent),
+                true),
+        };
+    }
+
+    private static TimeSpan? CreateDuration(decimal durationMinutes)
+    {
+        if (durationMinutes <= 0m)
+        {
+            return null;
+        }
+
+        double minutes = decimal.ToDouble(durationMinutes);
+        if (!double.IsFinite(minutes) || minutes > TimeSpan.MaxValue.TotalMinutes)
+        {
+            return null;
+        }
+
+        return TimeSpan.FromMinutes(minutes);
+    }
+
+    private static string FormatDuration(TimeSpan duration, Func<string, string> text)
+    {
+        long totalMinutes = Math.Max(1L, checked((long)Math.Ceiling(duration.TotalMinutes)));
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes % 60;
+        return (hours, minutes) switch
+        {
+            (0, _) => Format(text, "CodexDurationMinutesFormat", minutes),
+            (_, 0) => Format(text, "CodexDurationHoursFormat", hours),
+            _ => Format(text, "CodexDurationHoursMinutesFormat", hours, minutes),
+        };
     }
 
     private static string ResolveWindowTitle(

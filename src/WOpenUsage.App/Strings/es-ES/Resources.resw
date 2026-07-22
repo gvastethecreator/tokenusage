@@ -119,6 +119,22 @@
   <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Esta cuenta no ofrece cuota de Codex</value></data>
   <data name="CodexUnsupportedBody" xml:space="preserve"><value>La cuenta activa de Codex no informa ventanas de cuota de ChatGPT.</value></data>
   <data name="CodexRetry" xml:space="preserve"><value>Reintentar cuota de Codex</value></data>
+  <data name="CodexPartialUsageNotice" xml:space="preserve"><value>El uso diario de tokens está incompleto.</value></data>
+  <data name="CodexCapabilityUsage" xml:space="preserve"><value>Cuota y uso local</value></data>
+  <data name="CodexUsageToday" xml:space="preserve"><value>Hoy</value></data>
+  <data name="CodexUsageYesterday" xml:space="preserve"><value>Ayer</value></data>
+  <data name="CodexUsageLast7Days" xml:space="preserve"><value>Últimos 7 días</value></data>
+  <data name="CodexUsageLast30Days" xml:space="preserve"><value>Últimos 30 días</value></data>
+  <data name="CodexUsageMissing" xml:space="preserve"><value>Sin datos</value></data>
+  <data name="CodexTokenCountFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
+  <data name="CodexTokenCountSingular" xml:space="preserve"><value>{0:N0} token</value></data>
+  <data name="CodexPaceAheadFormat" xml:space="preserve"><value>{0}% estimado · ritmo bajo</value></data>
+  <data name="CodexPaceOnTrackFormat" xml:space="preserve"><value>{0}% estimado · ritmo previsto</value></data>
+  <data name="CodexPaceBehindFormat" xml:space="preserve"><value>{0}% estimado · ritmo alto</value></data>
+  <data name="CodexPaceBehindEtaFormat" xml:space="preserve"><value>{0}% estimado · límite en {1}</value></data>
+  <data name="CodexDurationHoursFormat" xml:space="preserve"><value>{0} h</value></data>
+  <data name="CodexDurationMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="CodexDurationHoursMinutesFormat" xml:space="preserve"><value>{0} h {1} min</value></data>
   <data name="SampleTotalSpendHeading" xml:space="preserve"><value>Gasto total</value></data>
   <data name="SampleUnavailableTitleValue" xml:space="preserve"><value>Muestra no disponible</value></data>
   <data name="SampleUnavailableBodyValue" xml:space="preserve"><value>La fuente de muestra falló y todavía no hay un dato guardado.</value></data>

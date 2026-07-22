@@ -1,3 +1,4 @@
+using System.Globalization;
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
@@ -46,13 +47,135 @@ public sealed class CodexDashboardProjectorTests
         Assert.Equal("Additional limit 1", card.Windows[2].Title);
         Assert.Equal("58% remaining · 42% used", card.Windows[0].RemainingText);
         Assert.Equal("Resets in 4 h", card.Windows[0].ResetText);
+        Assert.Equal("210% projected · limit in 1 h 23 min", card.Windows[0].PaceText);
+        Assert.True(card.Windows[0].HasPace);
+        Assert.True(card.Windows[0].IsPaceBehind);
+        Assert.False(card.Windows[0].IsPaceWithinLimit);
+        Assert.Equal("63% projected · below pace", card.Windows[1].PaceText);
+        Assert.True(card.Windows[1].HasPace);
+        Assert.False(card.Windows[1].IsPaceBehind);
+        Assert.True(card.Windows[1].IsPaceWithinLimit);
+        Assert.Null(card.NoticeText);
+        Assert.False(card.HasNotice);
+        Assert.Collection(
+            card.Metrics,
+            metric => Assert.Equal(new SampleMetric("Today", "No data", "CodexUsage.Today"), metric),
+            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday"), metric),
+            metric => Assert.Equal(new SampleMetric("Last 7 days", "No data", "CodexUsage.Last7Days"), metric),
+            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days"), metric));
 
-        string rendered = string.Join(
-            '\n',
-            card.Windows.Select(window => $"{window.Title}|{window.RemainingText}|{window.AutomationName}"));
+        string rendered = string.Join('\n',
+        [
+            .. card.Windows.Select(window =>
+                $"{window.Title}|{window.RemainingText}|{window.ResetText}|{window.PaceText}|{window.AutomationName}"),
+            .. card.Metrics.Select(metric => $"{metric.Label}|{metric.Value}"),
+        ]);
         Assert.DoesNotContain("model-private-name", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("email", rendered, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("token", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Bearer", rendered, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MissingDurationOrResetHidesPaceWithoutHidingQuota()
+    {
+        SampleQuotaWindow missingDuration = Assert.Single(CreateCard(
+            used: 25m,
+            reset: Now.AddHours(3),
+            durationMinutes: null).Windows);
+        SampleQuotaWindow missingReset = Assert.Single(CreateCard(
+            used: 25m,
+            reset: null,
+            durationMinutes: 300m).Windows);
+
+        Assert.Equal("Resets in 3 h", missingDuration.ResetText);
+        Assert.False(missingDuration.HasPace);
+        Assert.False(missingDuration.IsPaceBehind);
+        Assert.False(missingDuration.IsPaceWithinLimit);
+        Assert.Equal("Reset time unavailable", missingReset.ResetText);
+        Assert.False(missingReset.HasPace);
+        Assert.False(missingReset.IsPaceBehind);
+        Assert.False(missingReset.IsPaceWithinLimit);
+    }
+
+    [Fact]
+    public void OnTrackAndExhaustedPaceMapToDistinctPresentationStates()
+    {
+        SampleQuotaWindow onTrack = Assert.Single(CreateCard(
+            used: 50m,
+            reset: Now.AddHours(2.5),
+            durationMinutes: 300m).Windows);
+        SampleQuotaWindow exhausted = Assert.Single(CreateCard(
+            used: 100m,
+            reset: Now.AddHours(2.5),
+            durationMinutes: 300m).Windows);
+
+        Assert.Equal("100% projected · on pace", onTrack.PaceText);
+        Assert.True(onTrack.HasPace);
+        Assert.True(onTrack.IsPaceWithinLimit);
+        Assert.False(onTrack.IsPaceBehind);
+        Assert.Equal("200% projected · above pace", exhausted.PaceText);
+        Assert.True(exhausted.HasPace);
+        Assert.False(exhausted.IsPaceWithinLimit);
+        Assert.True(exhausted.IsPaceBehind);
+    }
+
+    [Fact]
+    public void DailyUsageDistinguishesObservedZeroFromMissingAndPartialCoverage()
+    {
+        var provenance = new DataProvenance(
+            SourceKind.OfficialLocalApi,
+            MeasurementKind.Derived,
+            "codex-app-server/1");
+        var snapshot = new ProviderSnapshot(
+            new ProviderId("codex"),
+            "Codex",
+            "Plus",
+            Now,
+            Now,
+            "UTC",
+            [
+                new ProgressMetricSnapshot(
+                    new MetricId("quota.primary"),
+                    25m,
+                    100m,
+                    Now.AddHours(3),
+                    provenance),
+                new ScalarMetricSnapshot(
+                    new MetricId("quota.primary.window-minutes"),
+                    300m,
+                    "minutes",
+                    provenance),
+                new ScalarMetricSnapshot(
+                    new MetricId("usage.tokens.today"),
+                    0m,
+                    "tokens",
+                    provenance),
+                new ScalarMetricSnapshot(
+                    new MetricId("usage.tokens.7d"),
+                    1234567m,
+                    "tokens",
+                    provenance),
+            ],
+            CoverageKind.Partial,
+            1);
+
+        SampleProviderCard card = Assert.Single(CodexDashboardProjector.Create(
+            snapshot,
+            new FixedTimeProvider(Now),
+            GetString).Providers);
+
+        Assert.Equal("Daily token usage is incomplete.", card.NoticeText);
+        Assert.Collection(
+            card.Metrics,
+            metric => Assert.Equal(new SampleMetric("Today", "0 tokens", "CodexUsage.Today"), metric),
+            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday"), metric),
+            metric => Assert.Equal(
+                new SampleMetric(
+                    "Last 7 days",
+                    $"{1234567m.ToString("N0", CultureInfo.CurrentCulture)} tokens",
+                    "CodexUsage.Last7Days"),
+                metric),
+            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days"), metric));
     }
 
     [Fact]
@@ -75,6 +198,49 @@ public sealed class CodexDashboardProjectorTests
             GetString));
     }
 
+    private static SampleProviderCard CreateCard(
+        decimal used,
+        DateTimeOffset? reset,
+        decimal? durationMinutes)
+    {
+        var provenance = new DataProvenance(
+            SourceKind.OfficialLocalApi,
+            MeasurementKind.ProviderReported,
+            "codex-app-server/1");
+        var metrics = new List<MetricSnapshot>
+        {
+            new ProgressMetricSnapshot(
+                new MetricId("quota.primary"),
+                used,
+                100m,
+                reset,
+                provenance),
+        };
+        if (durationMinutes is decimal duration)
+        {
+            metrics.Add(new ScalarMetricSnapshot(
+                new MetricId("quota.primary.window-minutes"),
+                duration,
+                "minutes",
+                provenance));
+        }
+
+        var snapshot = new ProviderSnapshot(
+            new ProviderId("codex"),
+            "Codex",
+            "Plus",
+            Now,
+            Now,
+            "UTC",
+            metrics,
+            CoverageKind.Complete,
+            1);
+        return Assert.Single(CodexDashboardProjector.Create(
+            snapshot,
+            new FixedTimeProvider(Now),
+            GetString).Providers);
+    }
+
     private static string GetString(string key) => key switch
     {
         "CodexQuotaPeriod" => "Current Codex limits",
@@ -92,6 +258,22 @@ public sealed class CodexDashboardProjectorTests
         "SampleResetDaysFormat" => "Resets in {0} d",
         "SampleResetDaysHoursFormat" => "Resets in {0} d {1} h",
         "SampleCapabilityQuota" => "Quota",
+        "CodexPartialUsageNotice" => "Daily token usage is incomplete.",
+        "CodexCapabilityUsage" => "Quota and local usage",
+        "CodexUsageToday" => "Today",
+        "CodexUsageYesterday" => "Yesterday",
+        "CodexUsageLast7Days" => "Last 7 days",
+        "CodexUsageLast30Days" => "Last 30 days",
+        "CodexUsageMissing" => "No data",
+        "CodexTokenCountFormat" => "{0:N0} tokens",
+        "CodexTokenCountSingular" => "{0:N0} token",
+        "CodexPaceAheadFormat" => "{0}% projected · below pace",
+        "CodexPaceOnTrackFormat" => "{0}% projected · on pace",
+        "CodexPaceBehindFormat" => "{0}% projected · above pace",
+        "CodexPaceBehindEtaFormat" => "{0}% projected · limit in {1}",
+        "CodexDurationHoursFormat" => "{0} h",
+        "CodexDurationMinutesFormat" => "{0} min",
+        "CodexDurationHoursMinutesFormat" => "{0} h {1} min",
         _ => throw new InvalidOperationException($"Unexpected resource '{key}'."),
     };
 

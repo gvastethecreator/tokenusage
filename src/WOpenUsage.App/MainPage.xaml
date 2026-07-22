@@ -366,12 +366,14 @@
                                                 Grid.Column="1"
                                                 Style="{StaticResource BodyStrongTextBlockStyle}"
                                                 Text="{x:Bind Name}"
+                                                TextTrimming="CharacterEllipsis"
                                                 VerticalAlignment="Center" />
                                             <TextBlock
                                                 Grid.Column="2"
                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind PlanLabel}"
+                                                TextTrimming="CharacterEllipsis"
                                                 VerticalAlignment="Center" />
                                         </Grid>
 
@@ -389,7 +391,7 @@
                                                     Text="{x:Bind CapabilityLabel}"
                                                     TextWrapping="WrapWholeWords" />
                                                 <TextBlock
-                                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                     Style="{StaticResource CaptionTextBlockStyle}"
                                                     Text="{x:Bind NoticeText}"
                                                     TextWrapping="WrapWholeWords"
@@ -421,14 +423,32 @@
                                                                     <TextBlock
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                         Style="{StaticResource CaptionTextBlockStyle}"
-                                                                        Text="{x:Bind RemainingText}" />
+                                                                        Text="{x:Bind RemainingText}"
+                                                                        TextTrimming="CharacterEllipsis" />
                                                                     <TextBlock
                                                                         Grid.Column="1"
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                         Style="{StaticResource CaptionTextBlockStyle}"
                                                                         Text="{x:Bind ResetText}"
-                                                                        TextAlignment="Right" />
+                                                                        TextAlignment="Right"
+                                                                        TextTrimming="CharacterEllipsis" />
                                                                 </Grid>
+                                                                <TextBlock
+                                                                    AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
+                                                                    AutomationProperties.Name="{x:Bind PaceAutomationName}"
+                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                                    Text="{x:Bind PaceText}"
+                                                                    TextWrapping="WrapWholeWords"
+                                                                    Visibility="{x:Bind IsPaceWithinLimit}" />
+                                                                <TextBlock
+                                                                    AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
+                                                                    AutomationProperties.Name="{x:Bind PaceAutomationName}"
+                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                                    Text="{x:Bind PaceText}"
+                                                                    TextWrapping="WrapWholeWords"
+                                                                    Visibility="{x:Bind IsPaceBehind}" />
                                                             </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -437,7 +457,11 @@
                                                 <ItemsControl ItemsSource="{x:Bind Metrics}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="sample:SampleMetric">
-                                                            <Grid Margin="0,0,0,4" ColumnSpacing="8">
+                                                            <Grid
+                                                                AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                                                AutomationProperties.Name="{x:Bind AutomationName}"
+                                                                Margin="0,0,0,4"
+                                                                ColumnSpacing="8">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="*" />
                                                                     <ColumnDefinition Width="Auto" />
@@ -445,11 +469,13 @@
                                                                 <TextBlock
                                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                     Style="{StaticResource CaptionTextBlockStyle}"
-                                                                    Text="{x:Bind Label}" />
+                                                                    Text="{x:Bind Label}"
+                                                                    TextTrimming="CharacterEllipsis" />
                                                                 <TextBlock
                                                                     Grid.Column="1"
-                                                                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                                    Text="{x:Bind Value}" />
+                                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                                    Text="{x:Bind Value}"
+                                                                    TextTrimming="CharacterEllipsis" />
                                                             </Grid>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
