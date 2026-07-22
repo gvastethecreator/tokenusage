@@ -26,7 +26,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
 | Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
-| GitHub Copilot | API interna; billing org público | Limitado | editor o `gh` | Gate | M9 |
+| GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | RPC privado | Limitado | CLI o app local | Experimental | M9 |
 
@@ -227,23 +227,26 @@ Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers
 
 ## GitHub Copilot
 
-### Fuente candidata
+### Fuente elegida
 
-- sesión del editor;
-- `gh` y `hosts.yml`;
-- endpoint interno para el usuario;
-- API pública de billing de organización para dueños o responsables de facturación.
+La Billing REST API pública ofrece reportes dedicados de AI credits para una cuenta personal pagada y para una organización. WOpenUsage usa la versión `2026-03-10`, un fine-grained token entregado por el usuario y Windows Credential Locker.
 
-### Riesgos
+La cuenta personal requiere `Plan: read`. La organización requiere `Administration: read` y un administrador. Cada conexión declara su scope. El resultado muestra créditos usados, descuento cubierto y cargo neto. La vista de organización se etiqueta como total de la entidad.
 
-- alcance distinto por token;
-- cuotas por asiento no disponibles para miembros comunes;
-- límite de organización y límite personal con semántica distinta;
-- credencial en almacén del editor o Git Credential Manager.
+### Cobertura y política
 
-### Salida
+- Personal pagado: uso y cargo de Pro, Pro+ o Max bajo billing por AI credits.
+- Free y Student: `Unsupported` hasta validar una respuesta pública útil.
+- Plan anual legado: fuera del primer subset.
+- Business o Enterprise: total de organización para administradores; un miembro común recibe `InsufficientPermission`.
 
-Primero soportar solo una fuente oficial documentada. La vista de billing de organización se separa de la cuota personal. El endpoint interno queda bloqueado por gate.
+La API no devuelve la asignación efectiva o el saldo. La app no calcula cuota restante desde tablas de plan porque la parte flex cambia y los pools de organización dependen de licencias y presupuestos.
+
+Quedan prohibidos `/copilot_internal/user`, identidad de editor simulada, archivos de extensiones, `hosts.yml`, Credential Manager ajeno, cookies y `gh auth`. El provider ignora una sesión existente de editor o GitHub CLI.
+
+Gate resuelto como `implement-subset`. La build pública sigue apagada hasta un smoke autorizado y borrado de la credencial.
+
+Investigación: [fuente GitHub Copilot](research/2026-07-21-copilot-source-gate.md).
 
 Fuente upstream de comparación: [provider Copilot](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/copilot.md).
 
@@ -282,7 +285,7 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 5. Spike pasivo Antigravity CLI con una `.db` real.
 6. OpenRouter con clave manual.
 7. Reabrir Z.ai solo con contrato público o permiso escrito.
-8. Cursor Teams y Enterprise con Admin API; Copilot tras su gate.
+8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
 10. Devin experimental.
 
