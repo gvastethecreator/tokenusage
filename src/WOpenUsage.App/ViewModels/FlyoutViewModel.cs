@@ -10,19 +10,23 @@ namespace WOpenUsage.App.ViewModels;
 
 public partial class FlyoutViewModel : ObservableObject
 {
-    private static readonly TimeSpan EmptyRefreshDuration = TimeSpan.FromMilliseconds(750);
     private readonly ResourceLoader _resources = new();
     private readonly SampleRefreshCoordinator _sampleRefreshCoordinator;
-    private CancellationTokenSource? _sampleRefreshCancellation;
-    private FlyoutSurfaceState _sampleResultSurface = FlyoutSurfaceState.Loading;
-    private bool _hasPublishedSample;
-    private int _stateVersion;
-    private int _sampleRefreshVersion;
+    private readonly CodexRefreshCoordinator _codexRefreshCoordinator;
+    private CancellationTokenSource? _refreshCancellation;
+    private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
+    private SampleScenario? _activeScenario;
+    private bool _hasPublishedDashboard;
+    private int _refreshVersion;
 
-    public FlyoutViewModel(SampleRefreshCoordinator sampleRefreshCoordinator)
+    public FlyoutViewModel(
+        SampleRefreshCoordinator sampleRefreshCoordinator,
+        CodexRefreshCoordinator codexRefreshCoordinator)
     {
         _sampleRefreshCoordinator = sampleRefreshCoordinator
             ?? throw new ArgumentNullException(nameof(sampleRefreshCoordinator));
+        _codexRefreshCoordinator = codexRefreshCoordinator
+            ?? throw new ArgumentNullException(nameof(codexRefreshCoordinator));
         SampleScenarios =
         [
             new(SampleScenario.Normal, GetString("SampleScenarioNormal")),
@@ -33,7 +37,12 @@ public partial class FlyoutViewModel : ObservableObject
         ];
 
         SelectedSampleScenario = SampleScenarios[0];
+        UnavailableTitle = GetString("CodexUnavailableTitle");
+        UnavailableBody = GetString("CodexUnavailableBody");
+        RetryButtonText = GetString("SampleRetry");
+        RetryAutomationName = GetString("CodexRetry");
         RebuildSamplePreview();
+        _ = RefreshDashboardAsync(scenario: null, forceRefresh: false);
     }
 
     [ObservableProperty]
@@ -47,6 +56,7 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSampleLoading))]
     [NotifyPropertyChangedFor(nameof(IsCardSurface))]
     [NotifyPropertyChangedFor(nameof(IsUsageSurface))]
+    [NotifyPropertyChangedFor(nameof(IsLiveDataStateVisible))]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenOptionsCommand))]
     [NotifyCanExecuteChangedFor(nameof(CloseOptionsCommand))]
@@ -60,6 +70,15 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSampleContext))]
     [NotifyPropertyChangedFor(nameof(IsLiveLoading))]
     [NotifyPropertyChangedFor(nameof(IsSampleLoading))]
+    [NotifyPropertyChangedFor(nameof(DashboardHeading))]
+    [NotifyPropertyChangedFor(nameof(IsLiveDataStateVisible))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStateCacheRefreshing))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStateStaleCacheRefreshing))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStateFresh))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStatePartial))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStateStale))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStateError))]
+    [NotifyPropertyChangedFor(nameof(IsSampleStateNotSaved))]
     public partial bool IsSampleModeEnabled { get; set; }
 
     [ObservableProperty]
@@ -86,7 +105,20 @@ public partial class FlyoutViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSampleStateStale))]
     [NotifyPropertyChangedFor(nameof(IsSampleStateError))]
     [NotifyPropertyChangedFor(nameof(IsSampleStateNotSaved))]
+    [NotifyPropertyChangedFor(nameof(LiveDataStateText))]
     public partial SampleDataState CurrentSampleDataState { get; set; } = SampleDataState.Idle;
+
+    [ObservableProperty]
+    public partial string UnavailableTitle { get; set; }
+
+    [ObservableProperty]
+    public partial string UnavailableBody { get; set; }
+
+    [ObservableProperty]
+    public partial string RetryButtonText { get; set; }
+
+    [ObservableProperty]
+    public partial string RetryAutomationName { get; set; }
 
     public bool IsLoading => SurfaceState == FlyoutSurfaceState.Loading;
 
@@ -110,47 +142,56 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsSampleScenarioEnabled => IsSampleModeEnabled;
 
-    public bool IsSampleStateCacheRefreshing => CurrentSampleDataState == SampleDataState.CacheRefreshing;
+    public string DashboardHeading => GetString(
+        IsSampleModeEnabled ? "SampleTotalSpendHeading" : "CodexQuotaTitle");
 
-    public bool IsSampleStateStaleCacheRefreshing => CurrentSampleDataState == SampleDataState.StaleCacheRefreshing;
+    public bool IsLiveDataStateVisible => !IsSampleModeEnabled && IsSample;
 
-    public bool IsSampleStateFresh => CurrentSampleDataState == SampleDataState.Fresh;
+    public string LiveDataStateText => GetString(CurrentSampleDataState switch
+    {
+        SampleDataState.CacheRefreshing => "CodexStateCacheRefreshing",
+        SampleDataState.StaleCacheRefreshing => "CodexStateStaleCacheRefreshing",
+        SampleDataState.Fresh => "CodexStateFresh",
+        SampleDataState.Partial => "CodexStatePartial",
+        SampleDataState.Stale => "CodexStateStale",
+        SampleDataState.Error => "CodexStateError",
+        SampleDataState.NotSaved => "CodexStateNotSaved",
+        _ => "CodexQuotaPeriod",
+    });
 
-    public bool IsSampleStatePartial => CurrentSampleDataState == SampleDataState.Partial;
+    public bool IsSampleStateCacheRefreshing => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.CacheRefreshing;
 
-    public bool IsSampleStateStale => CurrentSampleDataState == SampleDataState.Stale;
+    public bool IsSampleStateStaleCacheRefreshing => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.StaleCacheRefreshing;
 
-    public bool IsSampleStateError => CurrentSampleDataState == SampleDataState.Error;
+    public bool IsSampleStateFresh => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.Fresh;
 
-    public bool IsSampleStateNotSaved => CurrentSampleDataState == SampleDataState.NotSaved;
+    public bool IsSampleStatePartial => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.Partial;
+
+    public bool IsSampleStateStale => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.Stale;
+
+    public bool IsSampleStateError => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.Error;
+
+    public bool IsSampleStateNotSaved => IsSampleModeEnabled
+        && CurrentSampleDataState == SampleDataState.NotSaved;
 
     public IReadOnlyList<SampleScenarioOption> SampleScenarios { get; }
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
-    private async Task RefreshAsync()
-    {
-        if (IsSampleModeEnabled)
-        {
-            await RefreshSampleAsync(forceRefresh: true);
-            return;
-        }
-
-        int refreshVersion = ++_stateVersion;
-        SurfaceState = FlyoutSurfaceState.Loading;
-        await Task.Delay(EmptyRefreshDuration);
-
-        if (refreshVersion == _stateVersion)
-        {
-            SurfaceState = FlyoutSurfaceState.Empty;
-        }
-    }
+    private Task RefreshAsync() => RefreshDashboardAsync(
+        IsSampleModeEnabled ? SelectedSampleScenario.Value : null,
+        forceRefresh: true);
 
     private bool CanRefresh() => !IsLoading && !IsSampleRefreshing;
 
     [RelayCommand(CanExecute = nameof(CanOpenOptions))]
     private void OpenOptions()
     {
-        _stateVersion++;
         SurfaceState = FlyoutSurfaceState.Options;
     }
 
@@ -159,30 +200,25 @@ public partial class FlyoutViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanCloseOptions))]
     private void CloseOptions()
     {
-        _stateVersion++;
-        SurfaceState = IsSampleModeEnabled
-            ? _sampleResultSurface
-            : FlyoutSurfaceState.Empty;
+        SurfaceState = _resultSurface;
     }
 
     private bool CanCloseOptions() => IsOptions;
 
     partial void OnIsSampleModeEnabledChanged(bool value)
     {
+        CancelRefresh();
+        _hasPublishedDashboard = false;
+        _activeScenario = null;
+        _resultSurface = FlyoutSurfaceState.Loading;
         if (value)
         {
-            _ = RefreshSampleAsync(forceRefresh: false);
-            return;
+            RebuildSamplePreview();
         }
 
-        CancelSampleRefresh();
-        _hasPublishedSample = false;
-        _sampleResultSurface = FlyoutSurfaceState.Loading;
-        RebuildSamplePreview();
-        if (!IsOptions)
-        {
-            SurfaceState = FlyoutSurfaceState.Empty;
-        }
+        _ = RefreshDashboardAsync(
+            value ? SelectedSampleScenario.Value : null,
+            forceRefresh: false);
     }
 
     partial void OnSelectedSampleScenarioChanged(SampleScenarioOption value)
@@ -194,7 +230,7 @@ public partial class FlyoutViewModel : ObservableObject
 
         if (IsSampleModeEnabled)
         {
-            _ = RefreshSampleAsync(forceRefresh: true);
+            _ = RefreshDashboardAsync(value.Value, forceRefresh: true);
         }
         else
         {
@@ -202,29 +238,34 @@ public partial class FlyoutViewModel : ObservableObject
         }
     }
 
-    private async Task RefreshSampleAsync(bool forceRefresh)
+    private async Task RefreshDashboardAsync(
+        SampleScenario? scenario,
+        bool forceRefresh)
     {
-        SampleScenario scenario = SelectedSampleScenario.Value;
-        int refreshVersion = ++_sampleRefreshVersion;
-        _sampleRefreshCancellation?.Cancel();
+        int refreshVersion = ++_refreshVersion;
+        _refreshCancellation?.Cancel();
         var cancellation = new CancellationTokenSource();
-        _sampleRefreshCancellation = cancellation;
+        _refreshCancellation = cancellation;
         IsSampleRefreshing = true;
 
-        if (!_hasPublishedSample)
+        if (!_hasPublishedDashboard)
         {
-            _sampleResultSurface = FlyoutSurfaceState.Loading;
-            ApplySampleSurfaceIfVisible();
+            _resultSurface = FlyoutSurfaceState.Loading;
+            ApplyResultSurfaceIfVisible();
         }
 
         try
         {
-            await foreach (CacheFirstEvent refreshEvent in _sampleRefreshCoordinator.RunAsync(
-                scenario,
-                forceRefresh,
-                cancellation.Token))
+            IAsyncEnumerable<CacheFirstEvent> events = scenario is SampleScenario sampleScenario
+                ? _sampleRefreshCoordinator.RunAsync(
+                    sampleScenario,
+                    forceRefresh,
+                    cancellation.Token)
+                : _codexRefreshCoordinator.RunAsync(forceRefresh, cancellation.Token);
+
+            await foreach (CacheFirstEvent refreshEvent in events)
             {
-                if (refreshVersion != _sampleRefreshVersion || cancellation.IsCancellationRequested)
+                if (refreshVersion != _refreshVersion || cancellation.IsCancellationRequested)
                 {
                     return;
                 }
@@ -232,7 +273,7 @@ public partial class FlyoutViewModel : ObservableObject
                 switch (refreshEvent)
                 {
                     case CacheFirstEvent.CachePublished cache:
-                        PublishCachedSample(scenario, cache);
+                        PublishCachedDashboard(scenario, cache);
                         break;
                     case CacheFirstEvent.ProviderCompleted provider:
                         PublishProviderOutcome(scenario, provider);
@@ -247,19 +288,19 @@ public partial class FlyoutViewModel : ObservableObject
             or UnauthorizedAccessException
             or TimeoutException)
         {
-            if (refreshVersion == _sampleRefreshVersion)
+            if (refreshVersion == _refreshVersion)
             {
-                PublishUnavailable();
+                PublishUnavailable(outcome: null);
             }
         }
         finally
         {
-            if (refreshVersion == _sampleRefreshVersion)
+            if (refreshVersion == _refreshVersion)
             {
                 IsSampleRefreshing = false;
-                if (ReferenceEquals(_sampleRefreshCancellation, cancellation))
+                if (ReferenceEquals(_refreshCancellation, cancellation))
                 {
-                    _sampleRefreshCancellation = null;
+                    _refreshCancellation = null;
                 }
             }
 
@@ -267,44 +308,33 @@ public partial class FlyoutViewModel : ObservableObject
         }
     }
 
-    private void PublishCachedSample(
-        SampleScenario scenario,
+    private void PublishCachedDashboard(
+        SampleScenario? scenario,
         CacheFirstEvent.CachePublished cache)
     {
         ProviderSnapshot? snapshot = cache.Snapshots.FirstOrDefault(candidate =>
             string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
         if (snapshot is null)
         {
-            if (!_hasPublishedSample)
+            if (!_hasPublishedDashboard)
             {
-                _sampleResultSurface = FlyoutSurfaceState.Loading;
-                ApplySampleSurfaceIfVisible();
+                _resultSurface = FlyoutSurfaceState.Loading;
+                ApplyResultSurfaceIfVisible();
             }
 
             return;
         }
 
-        if (_hasPublishedSample && ActiveSample.Scenario != scenario)
-        {
-            bool priorSnapshotIsStale = SnapshotFreshness.IsStale(
-                snapshot,
-                _sampleRefreshCoordinator.Clock);
-            SetSampleState(priorSnapshotIsStale
-                ? SampleDataState.StaleCacheRefreshing
-                : SampleDataState.CacheRefreshing);
-            return;
-        }
-
-        bool reveal = !_hasPublishedSample || ActiveSample.Scenario != scenario;
-        PublishSample(scenario, snapshot, reveal);
-        bool isStale = SnapshotFreshness.IsStale(snapshot, _sampleRefreshCoordinator.Clock);
-        SetSampleState(isStale
+        bool reveal = !_hasPublishedDashboard || _activeScenario != scenario;
+        PublishDashboard(scenario, snapshot, reveal);
+        bool isStale = SnapshotFreshness.IsStale(snapshot, GetClock(scenario));
+        SetDataState(isStale
             ? SampleDataState.StaleCacheRefreshing
             : SampleDataState.CacheRefreshing);
     }
 
     private void PublishProviderOutcome(
-        SampleScenario scenario,
+        SampleScenario? scenario,
         CacheFirstEvent.ProviderCompleted provider)
     {
         ProviderSnapshot? snapshot = provider.Outcome switch
@@ -319,73 +349,106 @@ public partial class FlyoutViewModel : ObservableObject
 
         if (snapshot is null)
         {
-            PublishUnavailable();
+            PublishUnavailable(provider.Outcome);
             return;
         }
 
-        PublishSample(scenario, snapshot, reveal: true);
+        PublishDashboard(scenario, snapshot, reveal: true);
         if (provider.Outcome is ProviderOutcome.TransientFailure
             or ProviderOutcome.ContractFailure
             or ProviderOutcome.Throttled)
         {
-            SetSampleState(SampleDataState.Error);
+            SetDataState(SampleDataState.Error);
         }
         else if (provider.CacheStatus is not CacheUpdateStatus.Updated)
         {
-            SetSampleState(SampleDataState.NotSaved);
+            SetDataState(SampleDataState.NotSaved);
         }
         else if (provider.Outcome is ProviderOutcome.PartialSuccess)
         {
-            SetSampleState(SampleDataState.Partial);
+            SetDataState(SampleDataState.Partial);
         }
-        else if (SnapshotFreshness.IsStale(snapshot, _sampleRefreshCoordinator.Clock))
+        else if (SnapshotFreshness.IsStale(snapshot, GetClock(scenario)))
         {
-            SetSampleState(SampleDataState.Stale);
+            SetDataState(SampleDataState.Stale);
         }
         else
         {
-            SetSampleState(SampleDataState.Fresh);
+            SetDataState(SampleDataState.Fresh);
         }
     }
 
-    private void PublishSample(
-        SampleScenario scenario,
+    private void PublishDashboard(
+        SampleScenario? scenario,
         ProviderSnapshot snapshot,
         bool reveal)
     {
-        ActiveSample = SampleDashboardProjector.Create(scenario, snapshot, GetString);
-        _hasPublishedSample = true;
-        _sampleResultSurface = FlyoutSurfaceState.Sample;
-        ApplySampleSurfaceIfVisible();
+        ActiveSample = scenario is SampleScenario sampleScenario
+            ? SampleDashboardProjector.Create(sampleScenario, snapshot, GetString)
+            : CodexDashboardProjector.Create(snapshot, _codexRefreshCoordinator.Clock, GetString);
+        _activeScenario = scenario;
+        _hasPublishedDashboard = true;
+        _resultSurface = FlyoutSurfaceState.Sample;
+        ApplyResultSurfaceIfVisible();
         if (reveal)
         {
             SampleRevealToken++;
         }
     }
 
-    private void PublishUnavailable()
+    private void PublishUnavailable(ProviderOutcome? outcome)
     {
-        _hasPublishedSample = false;
-        _sampleResultSurface = FlyoutSurfaceState.SampleUnavailable;
-        SetSampleState(SampleDataState.Unavailable);
-        ApplySampleSurfaceIfVisible();
+        _hasPublishedDashboard = false;
+        _resultSurface = FlyoutSurfaceState.SampleUnavailable;
+        SetDataState(SampleDataState.Unavailable);
+
+        if (IsSampleModeEnabled)
+        {
+            UnavailableTitle = GetString("SampleUnavailableTitleValue");
+            UnavailableBody = GetString("SampleUnavailableBodyValue");
+            RetryButtonText = GetString("SampleRetry");
+            RetryAutomationName = GetString("SampleRetry");
+        }
+        else if (outcome is ProviderOutcome.NotConfigured)
+        {
+            UnavailableTitle = GetString("CodexNotConfiguredTitle");
+            UnavailableBody = GetString("CodexNotConfiguredBody");
+            RetryButtonText = GetString("SampleRetry");
+            RetryAutomationName = GetString("CodexRetry");
+        }
+        else if (outcome is ProviderOutcome.UnsupportedAccount)
+        {
+            UnavailableTitle = GetString("CodexUnsupportedTitle");
+            UnavailableBody = GetString("CodexUnsupportedBody");
+            RetryButtonText = GetString("SampleRetry");
+            RetryAutomationName = GetString("CodexRetry");
+        }
+        else
+        {
+            UnavailableTitle = GetString("CodexUnavailableTitle");
+            UnavailableBody = GetString("CodexUnavailableBody");
+            RetryButtonText = GetString("SampleRetry");
+            RetryAutomationName = GetString("CodexRetry");
+        }
+
+        ApplyResultSurfaceIfVisible();
     }
 
-    private void SetSampleState(SampleDataState state) => CurrentSampleDataState = state;
+    private void SetDataState(SampleDataState state) => CurrentSampleDataState = state;
 
-    private void ApplySampleSurfaceIfVisible()
+    private void ApplyResultSurfaceIfVisible()
     {
-        if (!IsOptions && IsSampleModeEnabled)
+        if (!IsOptions)
         {
-            SurfaceState = _sampleResultSurface;
+            SurfaceState = _resultSurface;
         }
     }
 
-    private void CancelSampleRefresh()
+    private void CancelRefresh()
     {
-        _sampleRefreshVersion++;
-        _sampleRefreshCancellation?.Cancel();
-        _sampleRefreshCancellation = null;
+        _refreshVersion++;
+        _refreshCancellation?.Cancel();
+        _refreshCancellation = null;
         IsSampleRefreshing = false;
     }
 
@@ -399,6 +462,9 @@ public partial class FlyoutViewModel : ObservableObject
         ActiveSample = SampleDashboardCatalog.Create(SelectedSampleScenario.Value, GetString);
         CurrentSampleDataState = SampleDataState.Idle;
     }
+
+    private TimeProvider GetClock(SampleScenario? scenario) =>
+        scenario is null ? _codexRefreshCoordinator.Clock : _sampleRefreshCoordinator.Clock;
 
     private string GetString(string key)
     {

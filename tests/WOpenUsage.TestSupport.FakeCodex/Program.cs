@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 [assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
 
@@ -26,6 +27,15 @@ if (Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_EXTRA_HANDLE") is string
 
 await Console.Error.FlushAsync();
 
+if (string.Equals(
+    Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_CODEX_MODE"),
+    "quota",
+    StringComparison.Ordinal))
+{
+    await RunQuotaServerAsync();
+    return 0;
+}
+
 while (await Console.In.ReadLineAsync() is string line)
 {
     await Console.Out.WriteLineAsync(line);
@@ -34,6 +44,71 @@ while (await Console.In.ReadLineAsync() is string line)
 
 await Task.Delay(Timeout.InfiniteTimeSpan);
 return 0;
+
+static async Task RunQuotaServerAsync()
+{
+    while (await Console.In.ReadLineAsync() is string line)
+    {
+        using JsonDocument request = JsonDocument.Parse(line);
+        JsonElement root = request.RootElement;
+        if (!root.TryGetProperty("id", out JsonElement id)
+            || !root.TryGetProperty("method", out JsonElement methodElement))
+        {
+            continue;
+        }
+
+        string? method = methodElement.GetString();
+        object response = method switch
+        {
+            "initialize" => new { id = id.Clone(), result = new { } },
+            "account/read" => new
+            {
+                id = id.Clone(),
+                result = new
+                {
+                    account = new
+                    {
+                        type = "chatgpt",
+                        email = "private-live@example.invalid",
+                        planType = "plus",
+                    },
+                    requiresOpenaiAuth = true,
+                },
+            },
+            "account/rateLimits/read" => new
+            {
+                id = id.Clone(),
+                result = new
+                {
+                    rateLimits = new
+                    {
+                        planType = "plus",
+                        primary = new
+                        {
+                            usedPercent = 42,
+                            resetsAt = DateTimeOffset.UtcNow.AddHours(4).ToUnixTimeSeconds(),
+                            windowDurationMins = 300,
+                        },
+                        secondary = new
+                        {
+                            usedPercent = 18,
+                            resetsAt = DateTimeOffset.UtcNow.AddDays(5).ToUnixTimeSeconds(),
+                            windowDurationMins = 10080,
+                        },
+                    },
+                },
+            },
+            _ => new
+            {
+                id = id.Clone(),
+                error = new { code = -32601, message = "method unavailable" },
+            },
+        };
+
+        await Console.Out.WriteLineAsync(JsonSerializer.Serialize(response));
+        await Console.Out.FlushAsync();
+    }
+}
 
 [SuppressMessage(
     "Interoperability",
