@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Process starts with sample mode off",
+    "status": "PASS"
+  },
+  {
+    "name": "Options expose session-only sample controls",
+    "status": "PASS"
+  },
+  {
+    "name": "First error without Normal cache shows retry instead of fixture data",
+    "status": "PASS"
+  },
+  {
+    "name": "Normal sample shows coherent spend and five providers",
+    "status": "PASS"
+  },
+  {
+    "name": "Refresh returns to the selected sample",
+    "status": "PASS"
+  },
+  {
+    "name": "Near-limit scenario renders deterministic values",
+    "status": "PASS"
+  },
+  {
+    "name": "Partial scenario exposes partial and policy states",
+    "status": "PASS"
+  },
+  {
+    "name": "Stale scenario remains a successful visible snapshot",
+    "status": "PASS"
+  },
+  {
+    "name": "Error scenario keeps the cached dashboard visible",
+    "status": "PASS"
+  },
+  {
+    "name": "Turning sample mode off restores the honest empty state",
+    "status": "PASS"
+  },
+  {
+    "name": "Interactive controls keep AutomationIds",
+    "status": "PASS"
+  },
+  {
+    "name": "Close-on-deactivate still hides the taller surface",
+    "status": "PASS"
+  },
+  {
+    "name": "Exit shuts down the sample build",
+    "status": "PASS"
+  }
+]

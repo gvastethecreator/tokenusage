@@ -84,6 +84,55 @@ public sealed class FakeProviderRuntimeTests
     }
 
     [Fact]
+    public async Task ConfiguredDescriptorIsUsedByTheSnapshotAndCacheContract()
+    {
+        var descriptor = new ProviderDescriptor(
+            new ProviderId("codex"),
+            "Codex",
+            isExperimental: true);
+        var runtime = new FakeProviderRuntime(
+            FakeProviderScenario.Success,
+            descriptor: descriptor);
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new AdjustableTimeProvider(Now)),
+            CancellationToken.None);
+
+        ProviderOutcome.Success success = Assert.IsType<ProviderOutcome.Success>(result);
+        Assert.Same(descriptor, runtime.Descriptor);
+        Assert.Equal(descriptor.Id, success.Snapshot.ProviderId);
+        Assert.Equal(descriptor.DisplayName, success.Snapshot.DisplayName);
+    }
+
+    [Fact]
+    public async Task NearLimitProducesAVisibleLowRemainingValue()
+    {
+        var runtime = new FakeProviderRuntime(FakeProviderScenario.NearLimit);
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new AdjustableTimeProvider(Now)),
+            CancellationToken.None);
+
+        ProviderOutcome.Success success = Assert.IsType<ProviderOutcome.Success>(result);
+        ProgressMetricSnapshot progress = Assert.IsType<ProgressMetricSnapshot>(success.Snapshot.Metrics[0]);
+        Assert.Equal(8m, progress.RemainingPercent);
+    }
+
+    [Fact]
+    public async Task OptionalDelayCanBeCanceledWithoutPublishingAnOutcome()
+    {
+        var runtime = new FakeProviderRuntime(
+            FakeProviderScenario.Success,
+            delay: TimeSpan.FromSeconds(30));
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(25));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            runtime.RefreshAsync(
+                new RefreshContext(new AdjustableTimeProvider(Now)),
+                cancellation.Token));
+    }
+
+    [Fact]
     public async Task DetectionIsLocalAndAvailable()
     {
         var runtime = new FakeProviderRuntime(FakeProviderScenario.Success);
