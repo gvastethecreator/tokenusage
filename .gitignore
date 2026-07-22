@@ -4,6 +4,9 @@
 # Durable local task state.
 .scratch/
 
+# Disposable UI reruns; accepted receipts are copied beside the main artifacts.
+artifacts/**/regression-*/
+
 # WinUI and .NET build output.
 bin/
 obj/
