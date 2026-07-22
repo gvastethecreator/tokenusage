@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64;ARM64</Platforms>
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <Target Name="ValidateConcretePlatform" BeforeTargets="PrepareForBuild"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(Platform)' != 'x64' and '$(Platform)' != 'ARM64'">
+    <Error Text="WOpenUsage requires Platform=x64 or Platform=ARM64; received '$(Platform)'." />
+  </Target>
+</Project>
