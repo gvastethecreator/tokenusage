@@ -19,6 +19,7 @@ public sealed class GrokUsageEventSourceTests
         Assert.Equal(SourceKind.LocalLog, source.SourceKind);
         Assert.Empty(result.Events);
         Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
     }
 
     [Fact]
@@ -107,7 +108,7 @@ public sealed class GrokUsageEventSourceTests
             Snapshot("2026-07-22T11:00:00Z", 25, 4, model: "grok-session-model"));
         corpus.WriteUnified(
             "{\"ts\":\"2026-07-22T10:00:00Z\",\"pid\":1,\"msg\":\"model changed\",\"ctx\":{\"model\":\"grok-fallback-model\"}}",
-            "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":1,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"completion_tokens\":20}}" );
+            "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":1,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"completion_tokens\":20}}");
 
         UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
@@ -120,7 +121,7 @@ public sealed class GrokUsageEventSourceTests
         using var corpus = new GrokCorpus();
         corpus.WriteUnified(
             "{\"ts\":\"2026-07-22T10:00:00Z\",\"pid\":7,\"msg\":\"model catalog: notifying clients\",\"ctx\":{\"current_model_id\":\"grok-build\"}}",
-            "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":7,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"cached_prompt_tokens\":30,\"completion_tokens\":20,\"reasoning_tokens\":5}}" );
+            "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":7,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"cached_prompt_tokens\":30,\"completion_tokens\":20,\"reasoning_tokens\":5}}");
 
         UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
@@ -137,7 +138,7 @@ public sealed class GrokUsageEventSourceTests
         using var corpus = new GrokCorpus();
         corpus.WriteSession(
             "session-partial",
-            "{\"method\":\"params.update\",\"params\":{\"update\":{\"usage\":" ,
+            "{\"method\":\"params.update\",\"params\":{\"update\":{\"usage\":",
             Snapshot("2026-07-22T11:00:00Z", 25, 4));
 
         UsageSourceReadResult malformed = await corpus.CreateSource().ReadAsync();
@@ -180,6 +181,7 @@ public sealed class GrokUsageEventSourceTests
 
         Assert.Empty(result.Events);
         Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
+        Assert.Equal(UsageSourceIssueKind.Empty, result.Issue);
     }
 
     [Fact]

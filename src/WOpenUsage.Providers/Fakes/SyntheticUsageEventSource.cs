@@ -21,6 +21,8 @@ public sealed class SyntheticUsageEventSource : IUsageEventSource
 
     public SourceKind SourceKind => SourceKind.Synthetic;
 
+    public AgentId AgentId { get; } = new("synthetic");
+
     public Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default)
     {

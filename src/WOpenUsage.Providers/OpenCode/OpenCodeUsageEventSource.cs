@@ -52,7 +52,10 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     {
         if (!Directory.Exists(_dataRoot))
         {
-            return new UsageSourceReadResult([], UsageSourceReadStatus.NoData);
+            return new UsageSourceReadResult(
+                [],
+                UsageSourceReadStatus.NoData,
+                UsageSourceIssueKind.RootUnavailable);
         }
 
         var state = new ScanState();
@@ -99,7 +102,14 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         UsageSourceReadStatus status = state.IsPartial
             ? UsageSourceReadStatus.Partial
             : events.Count == 0 ? UsageSourceReadStatus.NoData : UsageSourceReadStatus.Complete;
-        return new UsageSourceReadResult(events, status);
+        return new UsageSourceReadResult(
+            events,
+            status,
+            state.UnsupportedSchema && events.Count == 0
+                ? UsageSourceIssueKind.UnsupportedSchema
+                : status == UsageSourceReadStatus.NoData
+                    ? UsageSourceIssueKind.Empty
+                    : null);
     }
 
     private string[] EnumerateDatabaseFiles(ScanState state, CancellationToken cancellationToken)
@@ -171,6 +181,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
             else
             {
                 state.IsPartial = true;
+                state.UnsupportedSchema = true;
                 return false;
             }
 
@@ -620,7 +631,12 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     private static bool IsFileFailure(Exception exception) => exception is IOException or UnauthorizedAccessException or System.Security.SecurityException;
 
     private sealed record Candidate(string SessionId, string MessageId, DateTimeOffset Timestamp, string Model, TokenBreakdown Tokens, decimal? Cost, string? Provider = null);
-    private sealed class ScanState { public int FilesRead { get; set; } public bool IsPartial { get; set; } }
+    private sealed class ScanState
+    {
+        public int FilesRead { get; set; }
+        public bool IsPartial { get; set; }
+        public bool UnsupportedSchema { get; set; }
+    }
 
     private sealed class JsonFields
     {
