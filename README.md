@@ -13,7 +13,7 @@ Investigación, plan, scaffold WinUI y límites de arquitectura listos. La app e
 - Clones locales ignorados: `.reference/openusage`, `.reference/codeburn` y `.reference/agentsview`.
 - Plataforma elegida: C#, WinUI 3 y Windows App SDK, con paquete MSIX de confianza plena.
 - Primer proveedor: Codex mediante su `app-server` oficial por `stdio`.
-- Claude: uso de logs locales viable; cuota restante bloqueada para distribución hasta contar con un contrato público o permiso del proveedor.
+- Claude: uso local real desde `projects/**/*.jsonl`, con deduplicación, coste y cobertura; la cuota restante sigue bloqueada hasta contar con un contrato público o permiso del proveedor.
 - Grok Build y OpenCode: tokens y gasto local dentro de la beta; la cuota Grok queda sujeta a una interfaz pública o permiso.
 - Antigravity CLI: solo lectura pasiva de datos locales en fase experimental; la app no usa su login ni consulta servicios privados.
 
@@ -78,6 +78,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 
 - [Investigación de viabilidad](docs/research/2026-07-21-openusage-windows-feasibility.md)
 - [Investigación de Grok, Antigravity, OpenCode y gasto local](docs/research/2026-07-21-agent-costs-and-quotas.md)
+- [Evidencia del scanner Claude local](docs/evidence/ticket-17-claude-local-usage.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
