@@ -361,6 +361,46 @@
                                     Text="{x:Bind ViewModel.LocalUsage.NoticeText, Mode=OneWay}"
                                     TextWrapping="WrapWholeWords" />
 
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.LocalUsage.OtherPeriods, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="sample:LocalUsagePeriodRow">
+                                            <Border
+                                                AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
+                                                AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
+                                                MinHeight="40"
+                                                Margin="0,0,0,4"
+                                                Padding="8,4"
+                                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                                CornerRadius="{ThemeResource ControlCornerRadius}">
+                                                <StackPanel Spacing="1">
+                                                    <Grid ColumnSpacing="8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="76" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock
+                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Text="{x:Bind Label, Mode=OneTime}"
+                                                            TextWrapping="WrapWholeWords" />
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            HorizontalAlignment="Right"
+                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Text="{x:Bind CostText, Mode=OneTime}"
+                                                            TextAlignment="Right"
+                                                            TextWrapping="WrapWholeWords" />
+                                                    </Grid>
+                                                    <TextBlock
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                        Text="{x:Bind DetailText, Mode=OneTime}"
+                                                        TextWrapping="WrapWholeWords" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.LocalUsage.Metrics, Mode=OneWay}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="sample:SampleMetric">
@@ -387,6 +427,121 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <Expander
+                                    AutomationProperties.AutomationId="UsageProductCard.Breakdown30Days"
+                                    AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
+                                    IsExpanded="False"
+                                    Visibility="{x:Bind ViewModel.LocalUsage.SpendBreakdown.HasContent, Mode=OneWay}">
+                                    <Expander.Header>
+                                        <StackPanel Spacing="1">
+                                            <TextBlock
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind ViewModel.LocalUsage.SpendBreakdown.Title, Mode=OneWay}"
+                                                TextWrapping="WrapWholeWords" />
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Text="{x:Bind ViewModel.LocalUsage.SpendBreakdown.SummaryText, Mode=OneWay}"
+                                                TextWrapping="WrapWholeWords" />
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <StackPanel Padding="0,6,0,0" Spacing="8">
+                                        <Grid
+                                            AutomationProperties.AutomationId="UsageProductCard.AgentRing30Days"
+                                            AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
+                                            ColumnSpacing="10"
+                                            Loaded="OnSampleSpendLayoutLoaded"
+                                            Visibility="{x:Bind ViewModel.LocalUsage.SpendBreakdown.HasAgentSpend, Mode=OneWay}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <controls:SpendDonutChart
+                                                AccessibleName="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
+                                                CenterValue="{x:Bind ViewModel.LocalUsage.SpendBreakdown.TotalText, Mode=OneWay}"
+                                                Height="88"
+                                                Slices="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AgentSlices, Mode=OneWay}"
+                                                Width="88" />
+                                            <ItemsControl
+                                                Grid.Column="1"
+                                                ItemsSource="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AgentSlices, Mode=OneWay}"
+                                                VerticalAlignment="Center">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="sample:SampleSpendSlice">
+                                                        <Grid MinHeight="32" ColumnSpacing="6" RowSpacing="0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="12" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="Auto" />
+                                                            </Grid.RowDefinitions>
+                                                            <controls:ProviderMarkImage
+                                                                Grid.RowSpan="2"
+                                                                Height="12"
+                                                                ProviderId="{x:Bind ProviderId, Mode=OneTime}"
+                                                                VerticalAlignment="Center"
+                                                                Width="12" />
+                                                            <TextBlock
+                                                                Grid.Column="1"
+                                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                                Text="{x:Bind ProviderName, Mode=OneTime}"
+                                                                TextWrapping="WrapWholeWords" />
+                                                            <TextBlock
+                                                                Grid.Row="1"
+                                                                Grid.Column="1"
+                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                                Text="{x:Bind AmountText, Mode=OneTime}"
+                                                                TextWrapping="WrapWholeWords" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+
+                                        <ListView
+                                            AutomationProperties.AutomationId="UsageProductCard.ModelBreakdown"
+                                            IsItemClickEnabled="False"
+                                            ItemsSource="{x:Bind ViewModel.LocalUsage.SpendBreakdown.Models, Mode=OneWay}"
+                                            MaxHeight="180"
+                                            SelectionMode="None"
+                                            Visibility="{x:Bind ViewModel.LocalUsage.SpendBreakdown.HasModels, Mode=OneWay}">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate x:DataType="sample:LocalUsageModelRow">
+                                                    <Grid
+                                                        AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
+                                                        AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
+                                                        MinHeight="40"
+                                                        Padding="0,4"
+                                                        RowSpacing="1">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock
+                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Text="{x:Bind Title, Mode=OneTime}"
+                                                            TextWrapping="WrapWholeWords" />
+                                                        <TextBlock
+                                                            Grid.Row="1"
+                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            TextWrapping="WrapWholeWords">
+                                                            <Run Text="{x:Bind ReportedText, Mode=OneTime}" />
+                                                            <Run Text=" · " />
+                                                            <Run Text="{x:Bind EstimatedText, Mode=OneTime}" />
+                                                            <Run Text=" · " />
+                                                            <Run Text="{x:Bind CoverageText, Mode=OneTime}" />
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </StackPanel>
+                                </Expander>
                             </StackPanel>
                         </Border>
 
