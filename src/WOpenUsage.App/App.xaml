@@ -11,13 +11,62 @@
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
             <CornerRadius x:Key="DashboardCardCornerRadius">12</CornerRadius>
-            <SolidColorBrush x:Key="ProviderAntigravityBrush" Color="#FF4285F4" />
-            <SolidColorBrush x:Key="ProviderClaudeBrush" Color="#FFDE7356" />
-            <SolidColorBrush x:Key="ProviderCodexBrush" Color="#FF10A37F" />
+
+            <!-- WOpenUsage data-visualization colors; these are not provider brand colors. -->
+            <Color x:Key="ProviderAntigravityColorDark">#FF2458AA</Color>
+            <Color x:Key="ProviderAntigravityColor">#FF4285F4</Color>
+            <Color x:Key="ProviderClaudeColorDark">#FFA04732</Color>
+            <Color x:Key="ProviderClaudeColor">#FFDE7356</Color>
+            <Color x:Key="ProviderCodexColorDark">#FF086B54</Color>
+            <Color x:Key="ProviderCodexColor">#FF10A37F</Color>
+            <Color x:Key="ProviderGrokColorDark">#FF4C36B8</Color>
+            <Color x:Key="ProviderGrokColor">#FF7C5CFC</Color>
+            <Color x:Key="ProviderOpenCodeColorDark">#FF9F2F62</Color>
+            <Color x:Key="ProviderOpenCodeColor">#FFE5488C</Color>
+
+            <LinearGradientBrush
+                x:Key="ProviderAntigravityBrush"
+                MappingMode="RelativeToBoundingBox"
+                StartPoint="0,0"
+                EndPoint="1,1">
+                <GradientStop Color="{StaticResource ProviderAntigravityColorDark}" Offset="0" />
+                <GradientStop Color="{StaticResource ProviderAntigravityColor}" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush
+                x:Key="ProviderClaudeBrush"
+                MappingMode="RelativeToBoundingBox"
+                StartPoint="0,0"
+                EndPoint="1,1">
+                <GradientStop Color="{StaticResource ProviderClaudeColorDark}" Offset="0" />
+                <GradientStop Color="{StaticResource ProviderClaudeColor}" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush
+                x:Key="ProviderCodexBrush"
+                MappingMode="RelativeToBoundingBox"
+                StartPoint="0,0"
+                EndPoint="1,1">
+                <GradientStop Color="{StaticResource ProviderCodexColorDark}" Offset="0" />
+                <GradientStop Color="{StaticResource ProviderCodexColor}" Offset="1" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="ProviderDonutShadowBrush" Color="#30000000" />
             <SolidColorBrush x:Key="ProviderFallbackBrush" Color="{ThemeResource TextFillColorSecondary}" />
-            <SolidColorBrush x:Key="ProviderGrokBrush" Color="#FF98989D" />
+            <LinearGradientBrush
+                x:Key="ProviderGrokBrush"
+                MappingMode="RelativeToBoundingBox"
+                StartPoint="0,0"
+                EndPoint="1,1">
+                <GradientStop Color="{StaticResource ProviderGrokColorDark}" Offset="0" />
+                <GradientStop Color="{StaticResource ProviderGrokColor}" Offset="1" />
+            </LinearGradientBrush>
             <SolidColorBrush x:Key="ProviderHighContrastBrush" Color="{ThemeResource SystemColorHighlightColor}" />
-            <SolidColorBrush x:Key="ProviderOpenCodeBrush" Color="#FFAEAEB2" />
+            <LinearGradientBrush
+                x:Key="ProviderOpenCodeBrush"
+                MappingMode="RelativeToBoundingBox"
+                StartPoint="0,0"
+                EndPoint="1,1">
+                <GradientStop Color="{StaticResource ProviderOpenCodeColorDark}" Offset="0" />
+                <GradientStop Color="{StaticResource ProviderOpenCodeColor}" Offset="1" />
+            </LinearGradientBrush>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

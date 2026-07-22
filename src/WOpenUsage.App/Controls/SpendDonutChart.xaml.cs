@@ -32,6 +32,7 @@ public sealed partial class SpendDonutChart : UserControl
     private readonly Dictionary<string, Brush> _brandBrushes;
     private readonly Brush _fallbackBrush;
     private readonly Brush _highContrastBrush;
+    private readonly Brush _shadowBrush;
     private SpendDonutArc[] _arcs = [];
     private Storyboard? _storyboard;
     private int _lastRevealToken = int.MinValue;
@@ -73,6 +74,7 @@ public sealed partial class SpendDonutChart : UserControl
             StringComparer.Ordinal);
         _fallbackBrush = (Brush)Application.Current.Resources["ProviderFallbackBrush"];
         _highContrastBrush = (Brush)Application.Current.Resources["ProviderHighContrastBrush"];
+        _shadowBrush = (Brush)Application.Current.Resources["ProviderDonutShadowBrush"];
         ActualThemeChanged += OnActualThemeChanged;
         Unloaded += OnUnloaded;
     }
@@ -177,6 +179,20 @@ public sealed partial class SpendDonutChart : UserControl
             var geometry = new PathGeometry();
             geometry.Figures.Add(figure);
 
+            var shadowFigure = new PathFigure
+            {
+                IsClosed = false,
+                IsFilled = false,
+            };
+            var shadowSegment = new ArcSegment
+            {
+                SweepDirection = SweepDirection.Clockwise,
+            };
+            shadowFigure.Segments.Add(shadowSegment);
+
+            var shadowGeometry = new PathGeometry();
+            shadowGeometry.Figures.Add(shadowFigure);
+
             var path = new XamlPath
             {
                 Data = geometry,
@@ -185,9 +201,28 @@ public sealed partial class SpendDonutChart : UserControl
                 StrokeStartLineCap = PenLineCap.Round,
                 Visibility = Visibility.Collapsed,
             };
+            var shadowPath = new XamlPath
+            {
+                Data = shadowGeometry,
+                IsHitTestVisible = false,
+                RenderTransform = new TranslateTransform { Y = 0.75 },
+                Stroke = _shadowBrush,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                Visibility = Visibility.Collapsed,
+            };
+            AutomationProperties.SetAccessibilityView(shadowPath, AccessibilityView.Raw);
             AutomationProperties.SetAccessibilityView(path, AccessibilityView.Raw);
+            ArcCanvas.Children.Add(shadowPath);
             ArcCanvas.Children.Add(path);
-            _arcVisuals.Add(new ArcVisual(path, figure, segment));
+            _arcVisuals.Add(
+                new ArcVisual(
+                    path,
+                    shadowPath,
+                    figure,
+                    segment,
+                    shadowFigure,
+                    shadowSegment));
         }
 
         UpdateArcVisuals();
@@ -226,15 +261,24 @@ public sealed partial class SpendDonutChart : UserControl
             if (sweep <= 0.001 || radius <= 0)
             {
                 visual.Path.Visibility = Visibility.Collapsed;
+                visual.ShadowPath.Visibility = Visibility.Collapsed;
                 continue;
             }
 
             visual.Path.Visibility = Visibility.Visible;
+            visual.ShadowPath.Visibility = _accessibilitySettings.HighContrast
+                ? Visibility.Collapsed
+                : Visibility.Visible;
             visual.Path.StrokeThickness = strokeThickness;
+            visual.ShadowPath.StrokeThickness = strokeThickness;
             visual.Figure.StartPoint = PolarPoint(center, radius, start);
             visual.Segment.Point = PolarPoint(center, radius, end);
             visual.Segment.Size = new Size(radius, radius);
             visual.Segment.IsLargeArc = sweep > Math.PI;
+            visual.ShadowFigure.StartPoint = visual.Figure.StartPoint;
+            visual.ShadowSegment.Point = visual.Segment.Point;
+            visual.ShadowSegment.Size = visual.Segment.Size;
+            visual.ShadowSegment.IsLargeArc = visual.Segment.IsLargeArc;
         }
     }
 
@@ -266,6 +310,7 @@ public sealed partial class SpendDonutChart : UserControl
     private void OnActualThemeChanged(FrameworkElement sender, object args)
     {
         ApplyArcBrushes();
+        UpdateArcVisuals();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -276,6 +321,9 @@ public sealed partial class SpendDonutChart : UserControl
 
     private sealed record ArcVisual(
         XamlPath Path,
+        XamlPath ShadowPath,
         PathFigure Figure,
-        ArcSegment Segment);
+        ArcSegment Segment,
+        PathFigure ShadowFigure,
+        ArcSegment ShadowSegment);
 }
