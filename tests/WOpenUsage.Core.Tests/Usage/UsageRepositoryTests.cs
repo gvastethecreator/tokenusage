@@ -52,8 +52,8 @@ public sealed class UsageRepositoryTests
             """;
         Assert.Equal(6L, (long)(await command.ExecuteScalarAsync())!);
 
-        command.CommandText = "SELECT COUNT(*) FROM schema_migration WHERE version IN (1, 2);";
-        Assert.Equal(2L, (long)(await command.ExecuteScalarAsync())!);
+        command.CommandText = "SELECT COUNT(*) FROM schema_migration WHERE version IN (1, 2, 3);";
+        Assert.Equal(3L, (long)(await command.ExecuteScalarAsync())!);
 
         command.CommandText = "PRAGMA journal_mode;";
         Assert.Equal("wal", (string)(await command.ExecuteScalarAsync())!);
@@ -95,7 +95,7 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (3, '2026-07-22T12:00:00Z');
+                VALUES (4, '2026-07-22T12:00:00Z');
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -103,7 +103,7 @@ public sealed class UsageRepositoryTests
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(3, error.ActualVersion);
+        Assert.Equal(4, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -114,9 +114,10 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
-    public async Task VersionOneDatabaseMigratesIncrementallyToVersionTwo()
+    public async Task VersionOneDatabaseMigratesIncrementallyToCurrentVersion()
     {
         using var folder = new TemporaryFolder();
+        await UsageRepository.OpenAsync(folder.DatabasePath);
         await using (var setup = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False"))
         {
@@ -124,12 +125,8 @@ public sealed class UsageRepositoryTests
             await using SqliteCommand command = setup.CreateCommand();
             command.CommandText =
                 """
-                CREATE TABLE schema_migration (
-                    version INTEGER NOT NULL PRIMARY KEY,
-                    applied_at_utc TEXT NOT NULL
-                );
-                INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (1, '2026-07-22T12:00:00Z');
+                DELETE FROM schema_migration WHERE version IN (2, 3);
+                DROP TABLE usage_event_tombstone;
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -141,11 +138,49 @@ public sealed class UsageRepositoryTests
         await verify.OpenAsync();
         await using SqliteCommand verifyCommand = verify.CreateCommand();
         verifyCommand.CommandText =
-            "SELECT COUNT(*) FROM schema_migration WHERE version = 2;";
-        Assert.Equal(1L, (long)(await verifyCommand.ExecuteScalarAsync())!);
+            "SELECT COUNT(*) FROM schema_migration WHERE version IN (2, 3);";
+        Assert.Equal(2L, (long)(await verifyCommand.ExecuteScalarAsync())!);
         verifyCommand.CommandText =
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'usage_event_tombstone';";
         Assert.Equal(1L, (long)(await verifyCommand.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task VersionThreeRemovesSyntheticEventsAndRebuildsRealRollups()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent("synthetic-event"),
+            CreateEvent(
+                "claude-event",
+                agentId: "claude",
+                parserVersion: "claude-jsonl/1"),
+        ]);
+
+        await using (var setup = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            await using SqliteCommand command = setup.CreateCommand();
+            command.CommandText = "DELETE FROM schema_migration WHERE version = 3;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        IReadOnlyList<DailyUsageRollup> all = await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22));
+        IReadOnlyList<DailyUsageRollup> claude = await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("claude"));
+
+        Assert.Single(all);
+        Assert.Single(claude);
+        Assert.Equal("claude", all[0].AgentId.Value);
+        Assert.Equal(1, all[0].EventCount);
     }
 
     [Fact]
@@ -270,18 +305,20 @@ public sealed class UsageRepositoryTests
     private static UsageEvent CreateEvent(
         string localIdentity,
         DateTimeOffset? occurredAtUtc = null,
-        TokenBreakdown? tokens = null) =>
+        TokenBreakdown? tokens = null,
+        string agentId = "grok",
+        string parserVersion = "fixture/1") =>
         new(
             new UsageEventKey(Convert.ToHexString(SHA256.HashData(
                 Encoding.UTF8.GetBytes(localIdentity))).ToLowerInvariant()),
-            new AgentId("grok"),
+            new AgentId(agentId),
             new ModelProviderId("xai"),
             new ModelId("grok-4.5"),
             occurredAtUtc ?? new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
             "Argentina Standard Time",
             tokens ?? new TokenBreakdown(100, 25, 5, 20, 0),
             CostObservation.ProviderReported(0.25m),
-            "fixture/1",
+            parserVersion,
             CoverageKind.Complete);
 
     private sealed class TemporaryFolder : IDisposable

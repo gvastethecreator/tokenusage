@@ -21,7 +21,7 @@ public sealed class LocalUsageCliAccessTests
                 new DateTimeOffset(2026, 7, 22, 15, 0, 0, TimeSpan.Zero));
             var source = new SyntheticUsageEventSource(clock, "Argentina Standard Time");
             UsageRepository appRepository = await UsageRepository.OpenAsync(databasePath);
-            await appRepository.IngestAsync(await source.ReadAsync());
+            await appRepository.IngestAsync((await source.ReadAsync()).Events);
 
             UsageCliSummary summary = await LocalUsageCliAccess.ReadAsync(
                 databasePath,
