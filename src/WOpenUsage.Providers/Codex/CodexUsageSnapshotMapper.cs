@@ -2,6 +2,14 @@ using WOpenUsage.Core.Providers;
 
 namespace WOpenUsage.Providers.Codex;
 
+public static class CodexUsageMetricIds
+{
+    public const string Today = "usage.tokens.today";
+    public const string Yesterday = "usage.tokens.yesterday";
+    public const string Last7Days = "usage.tokens.7d";
+    public const string Last30Days = "usage.tokens.30d";
+}
+
 internal static class CodexUsageSnapshotMapper
 {
     private const string AdapterVersion = "codex-app-server/1";
@@ -34,10 +42,10 @@ internal static class CodexUsageSnapshotMapper
             MeasurementKind.Derived,
             AdapterVersion);
 
-        AddMetric(metrics, "usage.tokens.today", totals.TodayTokens, provenance);
-        AddMetric(metrics, "usage.tokens.yesterday", totals.YesterdayTokens, provenance);
-        AddMetric(metrics, "usage.tokens.7d", totals.Last7DaysTokens, provenance);
-        AddMetric(metrics, "usage.tokens.30d", totals.Last30DaysTokens, provenance);
+        AddMetric(metrics, CodexUsageMetricIds.Today, totals.TodayTokens, provenance);
+        AddMetric(metrics, CodexUsageMetricIds.Yesterday, totals.YesterdayTokens, provenance);
+        AddMetric(metrics, CodexUsageMetricIds.Last7Days, totals.Last7DaysTokens, provenance);
+        AddMetric(metrics, CodexUsageMetricIds.Last30Days, totals.Last30DaysTokens, provenance);
 
         return Copy(quotaSnapshot, metrics, quotaSnapshot.Coverage);
     }

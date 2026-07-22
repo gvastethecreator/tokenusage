@@ -12,12 +12,27 @@ public sealed record SampleQuotaWindow(
     string RemainingText,
     string ResetText,
     string AutomationName,
-    bool IsNearLimit)
+    bool IsNearLimit,
+    string? PaceText = null,
+    bool IsPaceBehind = false,
+    string PaceAutomationId = "")
 {
     public bool IsWithinLimit => !IsNearLimit;
+
+    public bool HasPace => !string.IsNullOrWhiteSpace(PaceText);
+
+    public bool IsPaceWithinLimit => HasPace && !IsPaceBehind;
+
+    public string PaceAutomationName => $"{Title}: {PaceText}";
 }
 
-public sealed record SampleMetric(string Label, string Value);
+public sealed record SampleMetric(
+    string Label,
+    string Value,
+    string AutomationId = "")
+{
+    public string AutomationName => $"{Label}: {Value}";
+}
 
 public sealed record SampleProviderCard(
     string ProviderId,
