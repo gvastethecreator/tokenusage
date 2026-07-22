@@ -46,6 +46,147 @@ public sealed class CodexProviderRuntimeTests
         Assert.Equal(1, client.HandshakeCount);
         Assert.Equal(1, client.AccountReadCount);
         Assert.Equal(1, client.RateLimitReadCount);
+        Assert.Equal(1, client.UsageReadCount);
+        Assert.True(client.IsDisposed);
+    }
+
+    [Fact]
+    public async Task DailyUsageAddsOnlyObservedLocalPeriodMetrics()
+    {
+        StubClient client = CreateReadyClient();
+        client.TokenUsage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [
+                new CodexUsageDailyBucket(new DateOnly(2026, 7, 22), 800),
+                new CodexUsageDailyBucket(new DateOnly(2026, 7, 21), 400),
+            ]);
+        var runtime = new CodexProviderRuntime(
+            new StubFactory(CodexClientAvailability.Available, client),
+            "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now)),
+            CancellationToken.None);
+
+        ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(result).Snapshot;
+        Assert.Equal(CoverageKind.Complete, snapshot.Coverage);
+        Assert.Equal(
+            [
+                "quota.primary",
+                "quota.primary.window-minutes",
+                "usage.tokens.today",
+                "usage.tokens.yesterday",
+                "usage.tokens.7d",
+                "usage.tokens.30d",
+            ],
+            snapshot.Metrics.Select(metric => metric.Id.Value));
+        Assert.Equal(
+            [800m, 400m, 1200m, 1200m],
+            snapshot.Metrics
+                .OfType<ScalarMetricSnapshot>()
+                .Where(metric => metric.Unit == "tokens")
+                .Select(metric => metric.Value));
+    }
+
+    [Fact]
+    public async Task SuccessfulEmptyUsageDoesNotInventZeroMetrics()
+    {
+        StubClient client = CreateReadyClient();
+        var runtime = new CodexProviderRuntime(
+            new StubFactory(CodexClientAvailability.Available, client),
+            "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now)),
+            CancellationToken.None);
+
+        ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(result).Snapshot;
+        Assert.DoesNotContain(
+            snapshot.Metrics,
+            metric => metric.Id.Value.StartsWith("usage.", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("timeout")]
+    [InlineData("rpc")]
+    [InlineData("missing-method")]
+    [InlineData("protocol")]
+    public async Task UsageFailureKeepsFreshQuotaAsPartialSuccess(string failure)
+    {
+        StubClient client = CreateReadyClient();
+        client.UsageException = failure switch
+        {
+            "timeout" => new CodexRequestTimeoutException(),
+            "rpc" => new CodexRpcException(-32001),
+            "missing-method" => new CodexRpcException(-32601),
+            "protocol" => new CodexProtocolException("PRIVATE_USAGE_SENTINEL"),
+            _ => throw new InvalidOperationException(),
+        };
+        var runtime = new CodexProviderRuntime(
+            new StubFactory(CodexClientAvailability.Available, client),
+            "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now)),
+            CancellationToken.None);
+
+        ProviderOutcome.PartialSuccess partial =
+            Assert.IsType<ProviderOutcome.PartialSuccess>(result);
+        Assert.Equal(CoverageKind.Partial, partial.Snapshot.Coverage);
+        Assert.Contains(
+            partial.Snapshot.Metrics,
+            metric => metric.Id.Value == "quota.primary");
+        Assert.DoesNotContain(
+            partial.Snapshot.Metrics,
+            metric => metric.Id.Value.StartsWith("usage.", StringComparison.Ordinal));
+        ProviderWarning warning = Assert.Single(partial.Warnings);
+        Assert.Equal(ProviderWarningCode.MissingMetric, warning.Code);
+        Assert.DoesNotContain("PRIVATE_", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DuplicateUsageDayKeepsFreshQuotaAsPartialSuccess()
+    {
+        StubClient client = CreateReadyClient();
+        client.TokenUsage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [
+                new CodexUsageDailyBucket(new DateOnly(2026, 7, 22), 1),
+                new CodexUsageDailyBucket(new DateOnly(2026, 7, 22), 2),
+            ]);
+        var runtime = new CodexProviderRuntime(
+            new StubFactory(CodexClientAvailability.Available, client),
+            "UTC");
+
+        ProviderOutcome result = await runtime.RefreshAsync(
+            new RefreshContext(new FixedTimeProvider(Now)),
+            CancellationToken.None);
+
+        ProviderOutcome.PartialSuccess partial =
+            Assert.IsType<ProviderOutcome.PartialSuccess>(result);
+        Assert.Equal(CoverageKind.Partial, partial.Snapshot.Coverage);
+        Assert.Contains(partial.Snapshot.Metrics, metric => metric.Id.Value == "quota.primary");
+        Assert.DoesNotContain(partial.Snapshot.Metrics, metric => metric.Id.Value.StartsWith("usage.", StringComparison.Ordinal));
+        Assert.Equal(
+            ProviderWarningCode.MissingMetric,
+            Assert.Single(partial.Warnings).Code);
+    }
+
+    [Fact]
+    public async Task CancellationDuringUsageIsNeverPublishedAsPartialSuccess()
+    {
+        using var cancellation = new CancellationTokenSource();
+        StubClient client = CreateReadyClient();
+        client.BeforeUsageRead = cancellation.Cancel;
+        var runtime = new CodexProviderRuntime(
+            new StubFactory(CodexClientAvailability.Available, client),
+            "UTC");
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            runtime.RefreshAsync(
+                new RefreshContext(new FixedTimeProvider(Now)),
+                cancellation.Token));
+
         Assert.True(client.IsDisposed);
     }
 
@@ -326,11 +467,20 @@ public sealed class CodexProviderRuntimeTests
 
         public Exception? RateLimitException { get; set; }
 
+        public Exception? UsageException { get; set; }
+
+        public Action? BeforeUsageRead { get; set; }
+
+        public CodexTokenUsageSnapshot TokenUsage { get; set; } =
+            new(new CodexUsageSummary(null, null, null, null, null), []);
+
         public int HandshakeCount { get; private set; }
 
         public int AccountReadCount { get; private set; }
 
         public int RateLimitReadCount { get; private set; }
+
+        public int UsageReadCount { get; private set; }
 
         public bool IsDisposed { get; private set; }
 
@@ -366,10 +516,12 @@ public sealed class CodexProviderRuntimeTests
         public Task<CodexTokenUsageSnapshot> ReadTokenUsageAsync(
             CancellationToken cancellationToken)
         {
+            UsageReadCount++;
+            BeforeUsageRead?.Invoke();
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(new CodexTokenUsageSnapshot(
-                new CodexUsageSummary(null, null, null, null, null),
-                []));
+            return UsageException is null
+                ? Task.FromResult(TokenUsage)
+                : Task.FromException<CodexTokenUsageSnapshot>(UsageException);
         }
 
         public ValueTask DisposeAsync()

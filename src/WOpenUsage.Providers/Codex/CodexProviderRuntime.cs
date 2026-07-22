@@ -13,8 +13,11 @@ public sealed class CodexProviderRuntime : IProviderRuntime
     private const string TimeoutReason = "Codex app-server timed out while reading quota.";
     private const string RejectedReason = "Codex app-server could not return quota right now.";
     private const string ContractReason = "Codex app-server returned an unsupported response.";
+    private const string UsageUnavailableReason =
+        "Codex daily usage is unavailable; quota remains current.";
 
     private readonly ICodexQuotaClientFactory _clientFactory;
+    private readonly TimeZoneInfo _timeZone;
     private readonly string _timeZoneId;
 
     public CodexProviderRuntime(
@@ -24,6 +27,15 @@ public sealed class CodexProviderRuntime : IProviderRuntime
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
         _timeZoneId = timeZoneId ?? TimeZoneInfo.Local.Id;
         ArgumentException.ThrowIfNullOrWhiteSpace(_timeZoneId);
+        try
+        {
+            _timeZone = TimeZoneInfo.FindSystemTimeZoneById(_timeZoneId);
+        }
+        catch (Exception exception) when (
+            exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            throw new ArgumentException("The Codex time zone is invalid.", nameof(timeZoneId), exception);
+        }
     }
 
     public ProviderDescriptor Descriptor { get; } =
@@ -99,7 +111,10 @@ public sealed class CodexProviderRuntime : IProviderRuntime
             return mapping switch
             {
                 CodexSnapshotMappingResult.Available available =>
-                    new ProviderOutcome.Success(available.Snapshot),
+                    await ReadUsageAsync(
+                        client,
+                        available.Snapshot,
+                        cancellationToken).ConfigureAwait(false),
                 CodexSnapshotMappingResult.NoRateLimits =>
                     new ProviderOutcome.UnsupportedAccount(MissingRateLimitsReason),
                 _ => throw new InvalidOperationException("Unknown Codex snapshot mapping result."),
@@ -128,6 +143,38 @@ public sealed class CodexProviderRuntime : IProviderRuntime
         catch (CodexProtocolException)
         {
             return ContractFailure(ContractReason, context.LastGood);
+        }
+    }
+
+    private async Task<ProviderOutcome> ReadUsageAsync(
+        ICodexQuotaClient client,
+        ProviderSnapshot quotaSnapshot,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            CodexTokenUsageSnapshot usage =
+                await client.ReadTokenUsageAsync(cancellationToken).ConfigureAwait(false);
+            ProviderSnapshot snapshot =
+                CodexUsageSnapshotMapper.AppendUsage(quotaSnapshot, usage, _timeZone);
+            return new ProviderOutcome.Success(snapshot);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (
+            exception is CodexRequestTimeoutException
+                or CodexClientUnavailableException
+                or CodexRpcException
+                or CodexProtocolException
+                or OperationCanceledException)
+        {
+            ProviderSnapshot partialSnapshot =
+                CodexUsageSnapshotMapper.MarkUsageUnavailable(quotaSnapshot);
+            return new ProviderOutcome.PartialSuccess(
+                partialSnapshot,
+                [new ProviderWarning(ProviderWarningCode.MissingMetric, UsageUnavailableReason)]);
         }
     }
 
