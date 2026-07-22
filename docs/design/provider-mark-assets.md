@@ -15,13 +15,15 @@ código con licencia MIT. El aviso requerido está en `THIRD-PARTY-NOTICES.md`.
 |---|---|---|
 | `codex.svg` | Codex | relleno `#10A37F` |
 | `claude.svg` | Claude | relleno `#DE7356` |
-| `grok.svg` | Grok Build | relleno `#98989D` |
-| `opencode.svg` | OpenCode | relleno `#AEAEB2` |
+| `grok.svg` | Grok Build | relleno `#7C5CFC` |
+| `opencode.svg` | OpenCode | relleno `#E5488C` |
 | `antigravity.svg` | Antigravity CLI | conserva `#4285F4` |
 
-No se modificaron los trazados. Los colores siguen la paleta por proveedor de
-`TotalSpendCard.swift` en el mismo commit. El cambio evita que marcas negras se
-pierdan en el tema oscuro del prototipo.
+No se modificaron los trazados. Los rellenos sólidos enlazan cada marca con el
+color base al que llega su gradiente en el donut. Son colores de visualización propios de
+WOpenUsage; no se presentan como colores oficiales de los proveedores. La
+paleta separa Grok Build y OpenCode, que en el primer corte usaban dos grises
+cercanos.
 
 La app carga estos SVG por medio de `SvgImageSource`. Este camino mantiene la
 marca nítida en las escalas de pantalla de Windows y evita un segundo asset
@@ -37,5 +39,8 @@ derivado.
 - Un cambio de asset debe conservar fuente, commit, licencia y revisión visual
   a 16 DIPs antes de aceptarse.
 
-El donut se genera con geometría de datos en WinUI. No es un asset de marca y
-no reemplaza ninguno de estos archivos.
+El donut se genera con geometría de datos en WinUI. Cada arco parte de una
+variante oscura y llega al color base mediante un `LinearGradientBrush`. Un
+trazo negro con alfa `0x30`, desplazado 0,75 DIP, añade separación leve entre
+capas. Alto contraste reemplaza los cinco gradientes por el color de realce que
+el usuario eligió en Windows y oculta la sombra.

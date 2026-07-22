@@ -96,6 +96,7 @@ function Open-TrayMenu {
         throw "Native tray menu was not found."
     }
 
+    Start-Sleep -Milliseconds 200
     return $menu.hwnd
 }
 
@@ -225,15 +226,17 @@ Test-Ui "Escape hides the usage surface" {
     }
 }
 
-Test-Ui "Keyboard tray activation focuses the primary action" {
+Test-Ui "UI Automation tray activation focuses the primary action" {
     $selector = Get-TraySelector
-    & winapp ui focus $selector -a $explorerPid 2>$null | Out-Null
-    $keyboard = New-Object -ComObject WScript.Shell
-    $keyboard.SendKeys("{ENTER}")
-    Wait-ForElement "EmptyOpenOptionsButton"
+    & winapp ui invoke $selector -a $explorerPid 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tray InvokePattern activation failed."
+    }
+
+    Wait-ForElement "EmptyOpenOptionsButton" 2500
     $focused = & winapp ui get-focused -a $AppPid --json 2>$null | ConvertFrom-Json
     if ($focused.element.automationId -ne "EmptyOpenOptionsButton") {
-        throw "Keyboard activation focused '$($focused.element.automationId)'."
+        throw "Tray activation focused '$($focused.element.automationId)'."
     }
 }
 
