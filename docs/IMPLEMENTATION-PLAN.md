@@ -43,7 +43,7 @@ La primera versión pública requiere identidad propia. `WOpenUsage` sirve para 
 - gasto total, cobertura y detalle por modelo;
 - OpenRouter con clave manual; Z.ai solo tras reabrir su gate;
 - Cursor Teams y Enterprise con Admin API manual; Individual bloqueado;
-- Copilot tras su gate;
+- Copilot billing personal pagado y organización con token manual; sin cuota restante;
 - Claude en vivo solo tras el gate del proveedor;
 - Antigravity local pasivo y Devin como canales experimentales.
 
@@ -529,7 +529,7 @@ Orden y alcance:
 1. OpenRouter manual.
 2. Reevaluar Z.ai solo si existe un contrato público o permiso escrito para una app aparte.
 3. Cursor Teams y Enterprise mediante Admin API; mantener Individual sin proveedor remoto.
-4. GitHub Copilot.
+4. GitHub Copilot billing para cuenta personal pagada y organización; excluir cuota privada.
 5. Claude cuota en vivo tras aprobación.
 6. Grok cuota en vivo tras interfaz pública o permiso.
 7. Devin en canal experimental.
@@ -546,6 +546,8 @@ Cada proveedor se divide en commits:
 Un proveedor privado se puede desarrollar detrás de un feature flag. No se activa en builds públicas mientras falte una casilla del gate.
 
 Cursor no usa una fuente privada. Su adaptador solo admite una clave Admin API creada por el usuario, varias conexiones nombradas y los endpoints públicos bajo `api.cursor.com`. Debe mostrar uso y gasto sin inferir cuota restante. La activación pública requiere un smoke autorizado; la DB, sesión, dashboard y export privado quedan fuera del binario.
+
+Copilot usa solo los reportes públicos de AI credits bajo `api.github.com`, con token fine-grained manual y scope declarado. La app no lee la sesión de editor o `gh`, no llama `/copilot_internal/user` y no convierte gasto en cuota restante. Personal y organización usan conexiones y textos distintos. La activación pública requiere un smoke autorizado.
 
 ### Salida por proveedor
 

@@ -80,6 +80,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Investigación de Grok, Antigravity, OpenCode y gasto local](docs/research/2026-07-21-agent-costs-and-quotas.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
+- [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
 - [Preparación del primer scaffold WinUI](docs/research/2026-07-21-winui-m1-readiness.md)
 - [Evidencia del Ticket 03](docs/evidence/ticket-03-winui-scaffold.md)
 - [Evidencia del Ticket 04](docs/evidence/ticket-04-architecture.md)
@@ -92,7 +93,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 
 - La app no tendrá una cuenta propia.
 - Cada proveedor debe tener una fuente local o pública comprobada.
-- La app no copiará tokens a su propio almacén.
+- La app no copiará tokens de otra app ni leerá sus almacenes de sesión.
 - El motor de gasto será propio y pequeño: no indexará transcripciones, herramientas ni comandos.
 - Las claves que el usuario agregue de forma manual irán a Windows Credential Locker.
 - La API local y la telemetría estarán apagadas al instalar.
@@ -100,4 +101,4 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 
 ## Inicio de la implementación
 
-Los Tickets 03 y 04 dejaron una app empaquetada y una solución con límites probados. El Ticket 05 queda bloqueado por la elección visual del Ticket 01. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
+Los Tickets 03 y 04 dejaron una app empaquetada y una solución con límites probados. Los gates Z.ai, Cursor y Copilot ya fijan sus fuentes y claims. El Ticket 05 queda bloqueado por la elección visual del Ticket 01. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
