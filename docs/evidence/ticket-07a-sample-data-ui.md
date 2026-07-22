@@ -75,3 +75,11 @@ The parent compared `02-normal.png` with `docs/design/selected-flyout-option-1.p
 - These fixtures prove UI behavior only. They do not prove provider discovery, quota retrieval, local spend parsing, cache behavior, or persistence.
 - Current runtime proof covers the local machine in dark mode at 125% scale.
 - Light mode, high contrast, 200% scale, alternate taskbar edges, and the wider release matrix remain Ticket 39 work.
+
+## Revisión posterior 11A
+
+El corte 11A reemplazó el InfoBar y las filas de gasto por un encabezado de
+muestra más compacto, un donut real, marcas vectoriales y barras animadas. La
+divulgación sigue visible en el badge y el footer. La evidencia vigente de esa
+revisión está en `docs/evidence/ticket-11a-compact-animated-dashboard.md`; esta
+sección no cambia el baseline histórico de 07A.

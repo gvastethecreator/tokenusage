@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory)]
     [int]$AppPid,
-    [string]$ArtifactDirectory = "artifacts\ticket-07a"
+    [string]$ArtifactDirectory = "artifacts\ticket-11a"
 )
 
 $ErrorActionPreference = "Stop"
@@ -149,10 +149,15 @@ Test-Ui "Normal sample shows coherent spend and five providers" {
     if ($LASTEXITCODE -ne 0) { throw "Sample mode did not turn on." }
 
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "SampleInfoBar" 2000
+    Wait-ForElement "SampleSpendDonut" 2000
     & winapp ui scroll "BodyScrollViewer" -a $AppPid --to top 2>$null | Out-Null
     Start-Sleep -Milliseconds 750
     Assert-VisibleText '$48.12'
+    foreach ($amount in @('$22.40', '$12.30', '$7.10', '$5.92', '$0.40')) {
+        Assert-VisibleText $amount
+    }
+    & winapp ui wait-for "SampleSpendDonut" -a $AppPid --value '$48.12' --contains -t 1000 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "The spend donut did not expose its accessible total." }
     foreach ($provider in @("Codex", "Claude", "Grok Build", "OpenCode", "Antigravity CLI")) {
         Assert-VisibleText $provider
     }
@@ -163,7 +168,7 @@ Test-Ui "Refresh returns to the selected sample" {
     Invoke-AppElement "HeaderRefreshButton"
     Wait-ForElement "LoadingProgressRing" 500
     Wait-ForElement "SampleBadge" 500
-    Wait-ForElement "SampleInfoBar" 2000
+    Wait-ForElement "SampleSpendDonut" 2000
     Assert-VisibleText '$48.12'
 }
 
@@ -172,7 +177,7 @@ Test-Ui "Near-limit scenario renders deterministic values" {
     Wait-ForElement "SampleScenarioCombo"
     Select-ScenarioByOffset 1
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "SampleInfoBar" 1500
+    Wait-ForElement "SampleSpendDonut" 1500
     & winapp ui scroll "BodyScrollViewer" -a $AppPid --to top 2>$null | Out-Null
     Start-Sleep -Milliseconds 750
     Assert-VisibleText '$96.40'
@@ -186,7 +191,7 @@ Test-Ui "Partial scenario exposes stale and policy states" {
     Wait-ForElement "SampleScenarioCombo"
     Select-ScenarioByOffset 2
     Invoke-AppElement "OptionsBackButton"
-    Wait-ForElement "SampleInfoBar" 1500
+    Wait-ForElement "SampleSpendDonut" 1500
     Assert-VisibleText '$31.05'
     Assert-VisibleText 'Grok Build'
 
