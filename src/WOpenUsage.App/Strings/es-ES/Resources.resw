@@ -43,9 +43,8 @@
   <data name="SampleScenarioNormal" xml:space="preserve"><value>Normal</value></data>
   <data name="SampleScenarioNearLimit" xml:space="preserve"><value>Cerca del límite</value></data>
   <data name="SampleScenarioPartialStale" xml:space="preserve"><value>Parcial o vencido</value></data>
-  <data name="SampleInfoBar.Title" xml:space="preserve"><value>Datos de muestra</value></data>
-  <data name="SampleInfoBar.Message" xml:space="preserve"><value>Estos valores sirven para revisar la interfaz y no provienen de un proveedor en vivo.</value></data>
   <data name="SampleTotalSpendTitle.Text" xml:space="preserve"><value>Gasto total</value></data>
+  <data name="SampleSpendAccessibleNameFormat" xml:space="preserve"><value>Gasto total {0} en {1} proveedores. {2}</value></data>
   <data name="SampleStatus" xml:space="preserve"><value>Datos de muestra</value></data>
   <data name="SampleStatusLoading" xml:space="preserve"><value>Actualizando muestra…</value></data>
   <data name="SamplePeriodNormal" xml:space="preserve"><value>30 días · muestra normal</value></data>

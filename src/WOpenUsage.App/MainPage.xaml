@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:WOpenUsage.App.Controls"
     xmlns:sample="using:WOpenUsage.App.ViewModels.Sample"
     Background="Transparent"
     mc:Ignorable="d">
@@ -16,7 +17,7 @@
         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
         BorderThickness="1"
         CornerRadius="{ThemeResource OverlayCornerRadius}">
-        <Grid RowSpacing="14">
+        <Grid RowSpacing="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -184,88 +185,106 @@
                     </Border>
 
                     <StackPanel
-                        Spacing="14"
+                        Spacing="12"
                         Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}">
-                        <InfoBar
-                            x:Name="SampleInfoBar"
-                            x:Uid="SampleInfoBar"
-                            AutomationProperties.AutomationId="SampleInfoBar"
-                            IsClosable="False"
-                            IsOpen="True"
-                            Severity="Informational" />
+                        <Grid Margin="4,0" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    x:Uid="SampleTotalSpendTitle"
+                                    Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.ActiveSample.PeriodLabel, Mode=OneWay}" />
+                            </StackPanel>
+                            <TextBlock
+                                Grid.Column="1"
+                                Style="{StaticResource SubtitleTextBlockStyle}"
+                                Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
+                                VerticalAlignment="Center" />
+                        </Grid>
 
                         <Border
                             AutomationProperties.AutomationId="SampleTotalSpendCard"
-                            Padding="16"
+                            Padding="12"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
-                            CornerRadius="{ThemeResource ControlCornerRadius}">
-                            <StackPanel Spacing="12">
-                                <Grid ColumnSpacing="8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock
-                                            x:Uid="SampleTotalSpendTitle"
-                                            Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                        <TextBlock
-                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                            Style="{StaticResource CaptionTextBlockStyle}"
-                                            Text="{x:Bind ViewModel.ActiveSample.PeriodLabel, Mode=OneWay}" />
-                                    </StackPanel>
-                                    <TextBlock
-                                        Grid.Column="1"
-                                        Style="{StaticResource SubtitleTextBlockStyle}"
-                                        Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
-                                        VerticalAlignment="Center" />
-                                </Grid>
+                            CornerRadius="{StaticResource DashboardCardCornerRadius}">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-                                <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.SpendSlices, Mode=OneWay}">
+                                <controls:SpendDonutChart
+                                    x:Name="SampleSpendDonutChart"
+                                    AccessibleName="{x:Bind ViewModel.ActiveSample.SpendAccessibleName, Mode=OneWay}"
+                                    CenterValue="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
+                                    Slices="{x:Bind ViewModel.ActiveSample.SpendSlices, Mode=OneWay}" />
+
+                                <ItemsControl
+                                    Grid.Column="1"
+                                    ItemsSource="{x:Bind ViewModel.ActiveSample.SpendSlices, Mode=OneWay}"
+                                    VerticalAlignment="Center">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="sample:SampleSpendSlice">
-                                            <StackPanel Margin="0,0,0,8" Spacing="5">
-                                                <Grid ColumnSpacing="8">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock
-                                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                                        Text="{x:Bind ProviderName}" />
-                                                    <TextBlock
-                                                        Grid.Column="1"
-                                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                                        Text="{x:Bind AmountText}" />
-                                                </Grid>
-                                                <ProgressBar
-                                                    AutomationProperties.Name="{x:Bind ProviderName}"
-                                                    Height="5"
-                                                    Maximum="100"
-                                                    Value="{x:Bind SharePercent}" />
-                                            </StackPanel>
+                                            <Grid MinHeight="20" ColumnSpacing="6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="12" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <controls:ProviderMarkImage
+                                                    Height="12"
+                                                    ProviderId="{x:Bind ProviderId, Mode=OneTime}"
+                                                    VerticalAlignment="Center"
+                                                    Width="12" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind ProviderName}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    VerticalAlignment="Center" />
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind AmountText}"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                            </StackPanel>
+                            </Grid>
                         </Border>
 
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="sample:SampleProviderCard">
-                                    <StackPanel Margin="0,0,0,14" Spacing="6">
-                                        <Grid ColumnSpacing="8">
+                                    <StackPanel Margin="0,0,0,12" Spacing="4">
+                                        <Grid Margin="4,0" ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="18" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock
-                                                Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                Text="{x:Bind Name}" />
+                                            <controls:ProviderMarkImage
+                                                Height="18"
+                                                ProviderId="{x:Bind ProviderId, Mode=OneTime}"
+                                                VerticalAlignment="Center"
+                                                Width="18" />
                                             <TextBlock
                                                 Grid.Column="1"
+                                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                Text="{x:Bind Name}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="2"
                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                 Style="{StaticResource CaptionTextBlockStyle}"
                                                 Text="{x:Bind PlanLabel}"
@@ -274,12 +293,12 @@
 
                                         <Border
                                             AutomationProperties.AutomationId="{x:Bind AutomationId}"
-                                            Padding="16"
+                                            Padding="12"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="1"
-                                            CornerRadius="{ThemeResource ControlCornerRadius}">
-                                            <StackPanel Spacing="12">
+                                            CornerRadius="{StaticResource DashboardCardCornerRadius}">
+                                            <StackPanel Spacing="8">
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -295,22 +314,20 @@
                                                 <ItemsControl ItemsSource="{x:Bind Windows}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="sample:SampleQuotaWindow">
-                                                            <StackPanel Margin="0,0,0,8" Spacing="6">
+                                                            <StackPanel Margin="0,0,0,8" Spacing="4">
                                                                 <TextBlock
                                                                     Style="{StaticResource BodyStrongTextBlockStyle}"
                                                                     Text="{x:Bind Title}" />
-                                                                <ProgressBar
-                                                                    AutomationProperties.Name="{x:Bind AutomationName}"
+                                                                <controls:AnimatedProgressBar
+                                                                    AutomationName="{x:Bind AutomationName}"
                                                                     Height="5"
-                                                                    Maximum="100"
-                                                                    Value="{x:Bind RemainingPercent}"
+                                                                    TargetValue="{x:Bind RemainingPercent}"
                                                                     Visibility="{x:Bind IsWithinLimit}" />
-                                                                <ProgressBar
-                                                                    AutomationProperties.Name="{x:Bind AutomationName}"
+                                                                <controls:AnimatedProgressBar
+                                                                    AutomationName="{x:Bind AutomationName}"
                                                                     Foreground="{ThemeResource SystemFillColorCautionBrush}"
                                                                     Height="5"
-                                                                    Maximum="100"
-                                                                    Value="{x:Bind RemainingPercent}"
+                                                                    TargetValue="{x:Bind RemainingPercent}"
                                                                     Visibility="{x:Bind IsNearLimit}" />
                                                                 <Grid ColumnSpacing="8">
                                                                     <Grid.ColumnDefinitions>
@@ -336,7 +353,7 @@
                                                 <ItemsControl ItemsSource="{x:Bind Metrics}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="sample:SampleMetric">
-                                                            <Grid Margin="0,0,0,6" ColumnSpacing="8">
+                                                            <Grid Margin="0,0,0,4" ColumnSpacing="8">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="*" />
                                                                     <ColumnDefinition Width="Auto" />

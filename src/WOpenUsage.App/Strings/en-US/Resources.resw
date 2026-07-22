@@ -43,9 +43,8 @@
   <data name="SampleScenarioNormal" xml:space="preserve"><value>Normal</value></data>
   <data name="SampleScenarioNearLimit" xml:space="preserve"><value>Near limit</value></data>
   <data name="SampleScenarioPartialStale" xml:space="preserve"><value>Partial or stale</value></data>
-  <data name="SampleInfoBar.Title" xml:space="preserve"><value>Sample data</value></data>
-  <data name="SampleInfoBar.Message" xml:space="preserve"><value>These values are for UI review and do not come from a live provider.</value></data>
   <data name="SampleTotalSpendTitle.Text" xml:space="preserve"><value>Total spend</value></data>
+  <data name="SampleSpendAccessibleNameFormat" xml:space="preserve"><value>Total spend {0} across {1} providers. {2}</value></data>
   <data name="SampleStatus" xml:space="preserve"><value>Sample data</value></data>
   <data name="SampleStatusLoading" xml:space="preserve"><value>Refreshing sample…</value></data>
   <data name="SamplePeriodNormal" xml:space="preserve"><value>30 days · normal sample</value></data>

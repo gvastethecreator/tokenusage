@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WOpenUsage.App.Controls.SpendDonutChart"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    AutomationProperties.AccessibilityView="Content"
+    AutomationProperties.AutomationId="SampleSpendDonut"
+    AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
+    Height="104"
+    IsTabStop="False"
+    Width="104">
+    <Grid
+        AutomationProperties.AccessibilityView="Raw"
+        SizeChanged="OnChartSizeChanged">
+        <Canvas
+            x:Name="ArcCanvas"
+            AutomationProperties.AccessibilityView="Raw"
+            IsHitTestVisible="False" />
+        <TextBlock
+            AutomationProperties.AccessibilityView="Raw"
+            HorizontalAlignment="Center"
+            MaxWidth="60"
+            Style="{StaticResource BodyStrongTextBlockStyle}"
+            Text="{x:Bind CenterValue, Mode=OneWay}"
+            TextAlignment="Center"
+            TextTrimming="CharacterEllipsis"
+            VerticalAlignment="Center" />
+    </Grid>
+</UserControl>

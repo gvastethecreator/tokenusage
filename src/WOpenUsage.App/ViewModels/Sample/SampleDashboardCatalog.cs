@@ -27,22 +27,22 @@ public static class SampleDashboardCatalog
             total,
             text,
             [
-                Spend("Claude", 22.40, total),
-                Spend("Codex", 12.30, total),
-                Spend("Grok Build", 7.10, total),
-                Spend("OpenCode", 5.92, total),
-                Spend("Antigravity CLI", 0.40, total),
+                Spend("claude", "Claude", 22.40),
+                Spend("codex", "Codex", 12.30),
+                Spend("grok", "Grok Build", 7.10),
+                Spend("opencode", "OpenCode", 5.92),
+                Spend("antigravity", "Antigravity CLI", 0.40),
             ],
             [
-                QuotaProvider("SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
                     Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
-                QuotaProvider("SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
+                QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(100, 5, false, text), Weekly(36, 1, 6, false, text)),
-                MetricProvider("SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
+                MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
                     text("SampleCapabilityLocalSpend"), null, "1.24M", "$7.10", text),
-                MetricProvider("SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
+                MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
                     text("SampleCapabilityLocalSpend"), null, "860K", "$5.92", text),
-                MetricProvider("SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
+                MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
                     text("SampleCapabilityLocal"), text("SampleNoticeNoQuota"), "120K", "$0.40", text),
             ]);
     }
@@ -56,22 +56,22 @@ public static class SampleDashboardCatalog
             total,
             text,
             [
-                Spend("Claude", 36.70, total),
-                Spend("Codex", 23.80, total),
-                Spend("Grok Build", 18.90, total),
-                Spend("OpenCode", 15.80, total),
-                Spend("Antigravity CLI", 1.20, total),
+                Spend("claude", "Claude", 36.70),
+                Spend("codex", "Codex", 23.80),
+                Spend("grok", "Grok Build", 18.90),
+                Spend("opencode", "OpenCode", 15.80),
+                Spend("antigravity", "Antigravity CLI", 1.20),
             ],
             [
-                QuotaProvider("SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
                     Session(8, 1, true, text), Weekly(22, 2, 4, true, text)),
-                QuotaProvider("SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
+                QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(12, 2, true, text), Weekly(5, 0, 8, true, text)),
-                MetricProvider("SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
+                MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
                     text("SampleCapabilityLocalSpend"), text("SampleNoticeHighSpend"), "4.10M", "$18.90", text),
-                MetricProvider("SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
+                MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
                     text("SampleCapabilityLocalSpend"), null, "2.20M", "$15.80", text),
-                QuotaProvider("SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"), text,
+                QuotaProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"), text,
                     SoftBudget(11, 3, true, text)),
             ]);
     }
@@ -85,22 +85,22 @@ public static class SampleDashboardCatalog
             total,
             text,
             [
-                Spend("Claude", 12.60, total),
-                Spend("Codex", 9.40, total),
-                Spend("Grok Build", 4.25, total),
-                Spend("OpenCode", 4.80, total),
-                Spend("Antigravity CLI", 0, total),
+                Spend("claude", "Claude", 12.60),
+                Spend("codex", "Codex", 9.40),
+                Spend("grok", "Grok Build", 4.25),
+                Spend("opencode", "OpenCode", 4.80),
+                Spend("antigravity", "Antigravity CLI", 0),
             ],
             [
-                QuotaProvider("SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
+                QuotaProvider("codex", "SampleProvider.Codex", "Codex", text("SamplePlanPlus"), text,
                     text("SampleNoticeStale"), Session(62, 4, false, text), Weekly(81, 5, 2, false, text)),
-                QuotaProvider("SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
+                QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     text("SampleNoticePartial"), Weekly(36, 1, 6, false, text)),
-                MetricProvider("SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
+                MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
                     text("SampleCapabilityLocalSpend"), text("SampleNoticePartial"), "720K", "$4.25", text),
-                MetricProvider("SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
+                MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
                     text("SampleCapabilityLocalSpend"), null, "640K", "$4.80", text),
-                MetricProvider("SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
+                MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
                     text("SampleCapabilityPolicy"), text("SampleNoticePolicy"), "64K", null, text),
             ]);
     }
@@ -110,31 +110,44 @@ public static class SampleDashboardCatalog
         double total,
         Func<string, string> text,
         IReadOnlyList<SampleSpendSlice> slices,
-        IReadOnlyList<SampleProviderCard> providers) =>
-        new(
+        IReadOnlyList<SampleProviderCard> providers)
+    {
+        string totalText = Money(total);
+        string details = string.Join(
+            ", ",
+            slices.Select(slice => $"{slice.ProviderName} {slice.AmountText}"));
+
+        return new(
             scenario,
-            Money(total),
+            totalText,
             text(scenario switch
             {
                 SampleScenario.NearLimit => "SamplePeriodNearLimit",
                 SampleScenario.PartialStale => "SamplePeriodPartialStale",
                 _ => "SamplePeriodNormal",
             }),
+            Format(text, "SampleSpendAccessibleNameFormat", totalText, slices.Count, details),
             slices,
             providers);
+    }
 
-    private static SampleSpendSlice Spend(string provider, double amount, double total) =>
-        new(provider, Money(amount), total <= 0 ? 0 : amount / total * 100);
+    private static SampleSpendSlice Spend(
+        string providerId,
+        string provider,
+        double amount) =>
+        new(providerId, provider, amount, Money(amount));
 
     private static SampleProviderCard QuotaProvider(
+        string providerId,
         string id,
         string name,
         string plan,
         Func<string, string> text,
         params SampleQuotaWindow[] windows) =>
-        QuotaProvider(id, name, plan, text, null, windows);
+        QuotaProvider(providerId, id, name, plan, text, null, windows);
 
     private static SampleProviderCard QuotaProvider(
+        string providerId,
         string id,
         string name,
         string plan,
@@ -142,6 +155,7 @@ public static class SampleDashboardCatalog
         string? notice,
         params SampleQuotaWindow[] windows) =>
         new(
+            providerId,
             id,
             name,
             plan,
@@ -154,6 +168,7 @@ public static class SampleDashboardCatalog
             []);
 
     private static SampleProviderCard MetricProvider(
+        string providerId,
         string id,
         string name,
         string plan,
@@ -169,7 +184,7 @@ public static class SampleDashboardCatalog
             metrics.Add(new SampleMetric(text("SampleMetricSpend"), spend));
         }
 
-        return new SampleProviderCard(id, name, plan, capability, notice, [], metrics);
+        return new SampleProviderCard(providerId, id, name, plan, capability, notice, [], metrics);
     }
 
     private static SampleQuotaWindow Session(

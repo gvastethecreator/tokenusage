@@ -56,6 +56,9 @@ public partial class FlyoutViewModel : ObservableObject
     public partial SampleDashboardSnapshot ActiveSample { get; set; } = null!;
 
     [ObservableProperty]
+    public partial int SampleRevealToken { get; set; }
+
+    [ObservableProperty]
     public partial string StatusText { get; set; } = string.Empty;
 
     public bool IsLoading => SurfaceState == FlyoutSurfaceState.Loading;
@@ -141,6 +144,7 @@ public partial class FlyoutViewModel : ObservableObject
         }
 
         ActiveSample = SampleDashboardCatalog.Create(SelectedSampleScenario.Value, GetString);
+        SampleRevealToken++;
     }
 
     private string GetString(string key) => _resources.GetString(key);

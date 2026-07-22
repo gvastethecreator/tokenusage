@@ -39,9 +39,17 @@ function Get-AppWindows {
 }
 
 function Get-TraySelector {
-    $search = & winapp ui search "WOpenUsage" -a $explorerPid --json 2>$null |
-        ConvertFrom-Json
-    $match = $search.matches | Where-Object { $_.type -eq "Button" } | Select-Object -First 1
+    $match = $null
+    $deadline = [DateTime]::UtcNow.AddSeconds(3)
+    while (-not $match -and [DateTime]::UtcNow -lt $deadline) {
+        $search = & winapp ui search "WOpenUsage" -a $explorerPid --json 2>$null |
+            ConvertFrom-Json
+        $match = $search.matches | Where-Object { $_.type -eq "Button" } | Select-Object -First 1
+        if (-not $match) {
+            Start-Sleep -Milliseconds 150
+        }
+    }
+
     if (-not $match) {
         throw "WOpenUsage tray button was not found."
     }
@@ -137,6 +145,7 @@ Test-Ui "Tray icon is visible and enabled" {
 
 Test-Ui "Native context menu exposes all commands" {
     $menuHwnd = Open-TrayMenu
+    Start-Sleep -Milliseconds 100
     $menu = & winapp ui inspect -w $menuHwnd --interactive --json 2>$null |
         ConvertFrom-Json
     $names = @($menu.windows.elements.name)

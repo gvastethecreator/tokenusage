@@ -1,9 +1,10 @@
 namespace WOpenUsage.App.ViewModels.Sample;
 
 public sealed record SampleSpendSlice(
+    string ProviderId,
     string ProviderName,
-    string AmountText,
-    double SharePercent);
+    double Amount,
+    string AmountText);
 
 public sealed record SampleQuotaWindow(
     string Title,
@@ -19,6 +20,7 @@ public sealed record SampleQuotaWindow(
 public sealed record SampleMetric(string Label, string Value);
 
 public sealed record SampleProviderCard(
+    string ProviderId,
     string AutomationId,
     string Name,
     string PlanLabel,
@@ -34,5 +36,6 @@ public sealed record SampleDashboardSnapshot(
     SampleScenario Scenario,
     string TotalSpendAmount,
     string PeriodLabel,
+    string SpendAccessibleName,
     IReadOnlyList<SampleSpendSlice> SpendSlices,
     IReadOnlyList<SampleProviderCard> Providers);
