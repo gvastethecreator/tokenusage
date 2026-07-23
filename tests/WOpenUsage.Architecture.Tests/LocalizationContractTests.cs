@@ -95,7 +95,7 @@ public sealed partial class LocalizationContractTests
     public void PackageManifestDeclaresOnlyTheSupportedLanguages()
     {
         XNamespace package = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
-        XDocument manifest = XDocument.Load(Path.Combine(AppRoot(), "Package.appxmanifest"));
+        XDocument manifest = XDocument.Load(Path.Combine(PackageRoot(), "Package.appxmanifest"));
         string[] languages = manifest
             .Descendants(package + "Resource")
             .Select(element => (string?)element.Attribute("Language"))
@@ -129,6 +129,11 @@ public sealed partial class LocalizationContractTests
         ProjectReferenceGraph.FindRepoRoot(),
         "src",
         "WOpenUsage.App");
+
+    private static string PackageRoot() => Path.Combine(
+        ProjectReferenceGraph.FindRepoRoot(),
+        "src",
+        "WOpenUsage.Package");
 
     private static bool IsGeneratedPath(string path) =>
         path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)

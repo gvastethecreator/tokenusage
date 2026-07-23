@@ -31,7 +31,7 @@ public sealed class UsageCliProcessTests
             var source = new SyntheticUsageEventSource(clock, "Argentina Standard Time");
             await repository.IngestAsync((await source.ReadAsync()).Events);
 
-            string executablePath = Path.Combine(AppContext.BaseDirectory, "WOpenUsage.Cli.exe");
+            string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
             var startInfo = new ProcessStartInfo(executablePath)
             {
                 UseShellExecute = false,
@@ -195,7 +195,7 @@ public sealed class UsageCliProcessTests
 
     private static async Task<ProcessResult> RunUsageProcessAsync(string dataRoot)
     {
-        string executablePath = Path.Combine(AppContext.BaseDirectory, "WOpenUsage.Cli.exe");
+        string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
         var startInfo = new ProcessStartInfo(executablePath)
         {
             UseShellExecute = false,
