@@ -4,6 +4,8 @@ namespace WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 public interface IVercelGatewayCredentialVault
 {
+    IReadOnlyList<string> FindUserNames(string resource);
+
     bool Contains(string resource, string userName);
 
     string? Read(string resource, string userName);
@@ -27,6 +29,24 @@ public sealed class WindowsVercelGatewayCredentialVault : IVercelGatewayCredenti
     internal WindowsVercelGatewayCredentialVault(PasswordVault vault)
     {
         _vault = vault ?? throw new ArgumentNullException(nameof(vault));
+    }
+
+    public IReadOnlyList<string> FindUserNames(string resource)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resource);
+
+        try
+        {
+            string[] userNames = _vault
+                .FindAllByResource(resource)
+                .Select(credential => credential.UserName)
+                .ToArray();
+            return Array.AsReadOnly(userNames);
+        }
+        catch (Exception exception) when (IsElementNotFound(exception))
+        {
+            return Array.Empty<string>();
+        }
     }
 
     public bool Contains(string resource, string userName)

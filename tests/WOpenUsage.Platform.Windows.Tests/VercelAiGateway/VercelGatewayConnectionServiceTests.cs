@@ -215,6 +215,50 @@ public sealed class VercelGatewayConnectionServiceTests
     }
 
     [Fact]
+    public async Task ConnectWithKeyIdPersistsBothConnectionValues()
+    {
+        using var folder = new TemporaryFolder();
+        var credentials = new FakeCredentialStore(apiKey: null);
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            new SnapshotStore(folder.DocumentPath, new FixedTimeProvider(Now)),
+            new ProviderOperationGate());
+
+        VercelGatewayConnectResult result = await service.ConnectAsync(
+            "new-test-api-key",
+            "key_abc-123");
+
+        Assert.True(result.IsComplete);
+        Assert.Equal("new-test-api-key", credentials.ApiKey);
+        Assert.Equal("key_abc-123", credentials.KeyId);
+        Assert.Equal(1, credentials.SaveCalls);
+    }
+
+    [Fact]
+    public async Task InvalidKeyIdIsRejectedBeforeCredentialOrCacheMutation()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var snapshotStore = new SnapshotStore(folder.DocumentPath, clock);
+        await snapshotStore.UpsertLastGoodAsync(CreateVercelSnapshot());
+        var credentials = new FakeCredentialStore("old-test-api-key", "old_key");
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            snapshotStore,
+            new ProviderOperationGate());
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.ConnectAsync("new-test-api-key", "bad/key"));
+
+        Assert.Equal("old-test-api-key", credentials.ApiKey);
+        Assert.Equal("old_key", credentials.KeyId);
+        Assert.Equal(0, credentials.SaveCalls);
+        SnapshotCacheReadResult.Loaded cached =
+            Assert.IsType<SnapshotCacheReadResult.Loaded>(await snapshotStore.LoadAsync());
+        Assert.Single(cached.Snapshots);
+    }
+
+    [Fact]
     public async Task FutureCacheVersionRefusesConnectAndPreservesCredentialAndBytes()
     {
         using var folder = new TemporaryFolder();
@@ -344,9 +388,12 @@ public sealed class VercelGatewayConnectionServiceTests
             CoverageKind.Complete,
             1);
 
-    private sealed class FakeCredentialStore(string? apiKey) : IVercelGatewayCredentialStore
+    private sealed class FakeCredentialStore(string? apiKey, string? keyId = null)
+        : IVercelGatewayCredentialStore
     {
         public string? ApiKey { get; private set; } = apiKey;
+
+        public string? KeyId { get; private set; } = keyId;
 
         public int DeleteCalls { get; private set; }
 
@@ -367,7 +414,7 @@ public sealed class VercelGatewayConnectionServiceTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(
-                ApiKey is null ? null : new VercelGatewayConnection(ApiKey));
+                ApiKey is null ? null : new VercelGatewayConnection(ApiKey, KeyId));
         }
 
         public Task SaveAsync(
@@ -378,6 +425,20 @@ public sealed class VercelGatewayConnectionServiceTests
             SaveCalls++;
             OnSave?.Invoke();
             ApiKey = newApiKey;
+            KeyId = null;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveAsync(
+            string newApiKey,
+            string newKeyId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SaveCalls++;
+            OnSave?.Invoke();
+            ApiKey = newApiKey;
+            KeyId = newKeyId;
             return Task.CompletedTask;
         }
 
@@ -388,6 +449,7 @@ public sealed class VercelGatewayConnectionServiceTests
             OnDelete?.Invoke();
             bool removed = ApiKey is not null;
             ApiKey = null;
+            KeyId = null;
             return Task.FromResult(removed);
         }
     }
