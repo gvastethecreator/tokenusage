@@ -97,6 +97,145 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task ReplacingAgentRangeUsesExactCurrentSnapshotAndKeepsOlderHistory()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "claude-history",
+                new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/1"),
+            CreateEvent(
+                "claude-stale",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/1"),
+            CreateEvent(
+                "claude-retained",
+                new DateTimeOffset(2026, 7, 22, 11, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2"),
+        ]);
+
+        UsageIngestResult result = await repository.ReconcileAgentEventRangeAsync(
+            new AgentId("claude"),
+            "claude-jsonl/2",
+            new DateOnly(2026, 6, 23),
+            new DateOnly(2026, 7, 22),
+            [CreateEvent(
+                "claude-final",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                new TokenBreakdown(400, 80, 0, 20, 0),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2")]);
+
+        Assert.Equal(new UsageIngestResult(1, 0), result);
+        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 6, 1),
+            new DateOnly(2026, 7, 22),
+            new AgentId("claude"));
+        Assert.Equal(2, rollups.Count);
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2026, 6, 1));
+        Assert.Equal(
+            500,
+            Assert.Single(rollups, rollup => rollup.Date == new DateOnly(2026, 7, 22))
+                .Tokens.Total);
+    }
+
+    [Fact]
+    public async Task UpsertingMutableEventReplacesItsCountersWithoutAddingAnotherEvent()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "claude-stream",
+                tokens: new TokenBreakdown(100, 20, 0, 0, 0),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2"),
+        ]);
+
+        UsageIngestResult result = await repository.UpsertAgentEventsAsync(
+            new AgentId("claude"),
+            [CreateEvent(
+                "claude-stream",
+                tokens: new TokenBreakdown(300, 60, 0, 40, 0),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2")]);
+
+        Assert.Equal(new UsageIngestResult(1, 0), result);
+        DailyUsageRollup rollup = Assert.Single(await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("claude")));
+        Assert.Equal(400, rollup.Tokens.Total);
+        Assert.Equal(1, rollup.EventCount);
+    }
+
+    [Fact]
+    public async Task ReplacingAgentRangeRejectsEventsOutsideTheSelectedDays()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            repository.ReconcileAgentEventRangeAsync(
+                new AgentId("claude"),
+                "claude-jsonl/2",
+                new DateOnly(2026, 7, 1),
+                new DateOnly(2026, 7, 22),
+                [CreateEvent(
+                    "claude-outside",
+                    new DateTimeOffset(2026, 6, 30, 12, 0, 0, TimeSpan.Zero),
+                    agentId: "claude",
+                    parserVersion: "claude-jsonl/2")]));
+    }
+
+    [Fact]
+    public async Task EmptyAuthoritativeWindowRemovesAllEventsInsideIt()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "claude-old-history",
+                new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/1"),
+            CreateEvent(
+                "claude-stale-window",
+                new DateTimeOffset(2026, 7, 10, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/1"),
+            CreateEvent(
+                "claude-current-stale-window",
+                new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2"),
+        ]);
+
+        UsageIngestResult result = await repository.ReconcileAgentEventRangeAsync(
+            new AgentId("claude"),
+            "claude-jsonl/2",
+            new DateOnly(2026, 6, 18),
+            new DateOnly(2026, 7, 22),
+            []);
+
+        Assert.Equal(new UsageIngestResult(0, 0), result);
+        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 5, 1),
+            new DateOnly(2026, 7, 22),
+            new AgentId("claude"));
+        Assert.Single(rollups);
+        Assert.Equal(new DateOnly(2026, 5, 1), rollups[0].Date);
+    }
+
+    [Fact]
     public async Task InitialMigrationIsCompleteAndIdempotent()
     {
         using var folder = new TemporaryFolder();
@@ -251,6 +390,15 @@ public sealed class UsageRepositoryTests
             () => reader.IngestAsync([CreateEvent("blocked-write")]));
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => reader.ReplaceAgentEventsAsync(new AgentId("grok"), []));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => reader.ReconcileAgentEventRangeAsync(
+                new AgentId("grok"),
+                "grok-local/1",
+                new DateOnly(2026, 7, 1),
+                new DateOnly(2026, 7, 22),
+                []));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => reader.UpsertAgentEventsAsync(new AgentId("grok"), []));
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => reader.ApplyRetentionAsync(DateTimeOffset.UtcNow));
         await Assert.ThrowsAsync<InvalidOperationException>(

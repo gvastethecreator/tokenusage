@@ -120,6 +120,28 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public void ThirtyDayTotalAndSpendChartUseTheSameInclusiveWindow()
+    {
+        DateOnly today = new(2026, 7, 22);
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [
+                Rollup(today.AddDays(-30), "claude", "outside", 9_000, 90m, null, 0),
+                Rollup(today.AddDays(-29), "claude", "edge", 100, 2m, null, 0),
+                Rollup(today, "grok", "today", 200, 3m, null, 0),
+            ],
+            Strings,
+            today: today);
+
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 5m),
+            FindValue(card, "UsageProductCard.ReportedCost"));
+        Assert.Equal(5d, card.SpendBreakdown.AgentSlices.Sum(slice => slice.Amount));
+        Assert.DoesNotContain(
+            card.SpendBreakdown.Models,
+            row => row.ModelName == "outside");
+    }
+
+    [Fact]
     public void HeatmapBuildsThirtyFiveCivilDaysAndCombinesDailyAgents()
     {
         DateOnly today = new(2026, 7, 22);
@@ -339,6 +361,76 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public async Task ClaudeRefreshReplacesStreamingCountersInsteadOfAddingThem()
+    {
+        using var folder = new TemporaryFolder();
+        string configRoot = Path.Combine(folder.Path, "claude");
+        string projectRoot = Directory.CreateDirectory(
+            Path.Combine(configRoot, "projects", "project-a")).FullName;
+        string sessionPath = Path.Combine(projectRoot, "session.jsonl");
+        var source = new ClaudeUsageEventSource(
+            "UTC",
+            folder.Path,
+            configDirectoryOverride: configRoot);
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            source,
+            new FixedTimeProvider(Now));
+        Func<string, string> strings = key => key switch
+        {
+            "LocalUsageTotalTokens" => "Tokens",
+            "CodexUsageMissing" => "Sin datos",
+            "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdCompactFormat" => "${0:0.00}",
+            _ => key,
+        };
+
+        File.WriteAllText(sessionPath, ClaudeLine("request-1", 100, 20));
+        _ = await coordinator.RefreshAsync(strings);
+        File.WriteAllText(sessionPath, ClaudeLine("request-2", 300, 60));
+
+        LocalUsageCard refreshed = await coordinator.RefreshAsync(strings);
+
+        Assert.Equal("360", FindValue(refreshed, "UsageProductCard.TotalTokens"));
+    }
+
+    [Fact]
+    public async Task EmptyCompleteClaudeWindowDropsLegacyParserTotals()
+    {
+        using var folder = new TemporaryFolder();
+        string configRoot = Path.Combine(folder.Path, "claude");
+        _ = Directory.CreateDirectory(Path.Combine(configRoot, "projects", "project-a"));
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [new UsageEvent(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(
+                Encoding.UTF8.GetBytes("legacy-claude"))).ToLowerInvariant()),
+            new AgentId("claude"),
+            new ModelProviderId("anthropic"),
+            new ModelId("claude-sonnet-4-6"),
+            Now,
+            "UTC",
+            new TokenBreakdown(100, 20, 0, 0, 0),
+            CostObservation.CatalogEstimated(0.01m, "legacy", "legacy"),
+            "claude-jsonl/1",
+            CoverageKind.Partial)]);
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            new ClaudeUsageEventSource(
+                "UTC",
+                folder.Path,
+                configDirectoryOverride: configRoot),
+            new FixedTimeProvider(Now));
+
+        _ = await coordinator.RefreshAsync(Strings);
+
+        Assert.Empty(await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2026, 7, 1),
+            new DateOnly(2026, 7, 31),
+            new AgentId("claude")));
+    }
+
+    [Fact]
     public async Task PartialSnapshotReadKeepsTheLastReliableTotals()
     {
         using var folder = new TemporaryFolder();
@@ -441,6 +533,20 @@ public sealed class LocalUsageCoordinatorTests
 
     private static string FindValue(LocalUsageCard card, string automationId) =>
         Assert.Single(card.Metrics, metric => metric.AutomationId == automationId).Value;
+
+    private static string ClaudeLine(string requestId, long input, long output) =>
+        JsonSerializer.Serialize(new
+        {
+            type = "assistant",
+            timestamp = "2026-07-22T12:00:00.000Z",
+            requestId,
+            message = new
+            {
+                id = "message-stream",
+                model = "claude-sonnet-4-6",
+                usage = new { input_tokens = input, output_tokens = output },
+            },
+        });
 
     private static string Capability(ProviderStatusRow row, string automationId) =>
         Assert.Single(row.Capabilities, capability => capability.AutomationId == automationId).Value;

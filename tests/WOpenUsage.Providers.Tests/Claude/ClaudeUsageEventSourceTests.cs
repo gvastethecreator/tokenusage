@@ -99,6 +99,55 @@ public sealed class ClaudeUsageEventSourceTests
     }
 
     [Fact]
+    public async Task KeepsTheLastStreamingUsageForOneMessageAndItsFirstTimestamp()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteLines(
+            UsageLine(
+                "message-stream",
+                "request-1",
+                10,
+                2,
+                timestamp: "2026-07-22T11:00:00.000Z"),
+            UsageLine(
+                "message-stream",
+                "request-2",
+                80,
+                12,
+                timestamp: "2026-07-22T12:00:00.000Z"));
+
+        UsageEvent usageEvent = Assert.Single(
+            (await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(80, usageEvent.Tokens.Input);
+        Assert.Equal(12, usageEvent.Tokens.Output);
+        Assert.Equal(
+            new DateTimeOffset(2026, 7, 22, 11, 0, 0, TimeSpan.Zero),
+            usageEvent.OccurredAtUtc);
+        Assert.Equal(ClaudeUsageEventSource.ParserVersion, usageEvent.ParserVersion);
+    }
+
+    [Fact]
+    public async Task IncludesAdvisorIterationsAsSeparateModelSpend()
+    {
+        using var corpus = new ClaudeCorpus();
+        string line = UsageLine("message-advisor", "request-1", 20, 4).Replace(
+            "\"cache_creation_input_tokens\":0",
+            "\"cache_creation_input_tokens\":0,\"iterations\":[{\"type\":\"advisor_message\",\"model\":\"claude-opus-4-6\",\"input_tokens\":100,\"output_tokens\":10,\"cache_read_input_tokens\":5}]",
+            StringComparison.Ordinal);
+        corpus.WriteLines(line);
+
+        IReadOnlyList<UsageEvent> events = (await corpus.CreateSource().ReadAsync()).Events;
+
+        Assert.Equal(2, events.Count);
+        UsageEvent advisor = Assert.Single(
+            events,
+            usageEvent => usageEvent.ModelId.Value == "claude-opus-4-6");
+        Assert.Equal(new TokenBreakdown(100, 10, 0, 5, 0), advisor.Tokens);
+        Assert.Equal(CostKind.CatalogEstimated, advisor.Cost.Kind);
+    }
+
+    [Fact]
     public async Task EstimatesExactModelsAndLeavesUnknownModelsUnpriced()
     {
         using var corpus = new ClaudeCorpus();
@@ -195,6 +244,21 @@ public sealed class ClaudeUsageEventSourceTests
     }
 
     [Fact]
+    public async Task IgnoresAnUnfinishedTrailingRecordWhileClaudeIsWriting()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteRaw(
+            UsageLine("message-valid", "request-valid", 20, 4)
+            + Environment.NewLine
+            + "{\"type\":\"assistant\",\"message\":{\"usage\":");
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+
+        Assert.Single(result.Events);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+    }
+
+    [Fact]
     public async Task PricingMatchesModelIdsWithoutCaseSensitivity()
     {
         using var corpus = new ClaudeCorpus();
@@ -240,7 +304,8 @@ public sealed class ClaudeUsageEventSourceTests
         string model = "claude-sonnet-4-6",
         string content = "fixture",
         long? cacheWrite5Minutes = null,
-        long? cacheWrite1Hour = null)
+        long? cacheWrite1Hour = null,
+        string timestamp = "2026-07-22T12:00:00.000Z")
     {
         var usage = new Dictionary<string, object?>
         {
@@ -261,7 +326,7 @@ public sealed class ClaudeUsageEventSourceTests
         var value = new Dictionary<string, object?>
         {
             ["type"] = "assistant",
-            ["timestamp"] = "2026-07-22T12:00:00.000Z",
+            ["timestamp"] = timestamp,
             ["requestId"] = requestId,
             ["isSidechain"] = isSidechain,
             ["costUSD"] = costUsd,
@@ -309,6 +374,9 @@ public sealed class ClaudeUsageEventSourceTests
 
         public void WriteFile(string fileName, string line) =>
             File.WriteAllLines(Path.Combine(ProjectRoot, fileName), [line]);
+
+        public void WriteRaw(string content) =>
+            File.WriteAllText(Path.Combine(ProjectRoot, "session.jsonl"), content);
 
         public void WriteLines(string first, string second) =>
             File.WriteAllLines(Path.Combine(ProjectRoot, "session.jsonl"), [first, second]);

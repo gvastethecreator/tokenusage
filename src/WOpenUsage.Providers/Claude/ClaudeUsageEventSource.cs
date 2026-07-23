@@ -8,9 +8,9 @@ using WOpenUsage.Core.Usage;
 
 namespace WOpenUsage.Providers.Claude;
 
-public sealed class ClaudeUsageEventSource : IUsageEventSource
+public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
 {
-    public const string ParserVersion = "claude-jsonl/1";
+    public const string ParserVersion = "claude-jsonl/2";
     private readonly string _homeDirectory;
     private readonly string? _configDirectoryOverride;
     private readonly string _groupingTimeZoneId;
@@ -45,6 +45,10 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
     public SourceKind SourceKind => SourceKind.LocalLog;
 
     public AgentId AgentId { get; } = new("claude");
+
+    public string EventParserVersion => ParserVersion;
+
+    public int ReconciliationWindowDays => 35;
 
     public bool IsRootAvailable => ClaudeConfigLocator.FindProjectDirectories(
         _homeDirectory,
@@ -161,14 +165,20 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
                     }
                 }
 
-                if (lineBuffer.WrittenCount > 0 || lineTooLong)
+                if (lineTooLong)
                 {
-                    lineNumber++;
-                    complete &= ProcessLine(
+                    complete = false;
+                }
+                else if (lineBuffer.WrittenCount > 0)
+                {
+                    // Claude may still be writing the last JSONL record. Parse a
+                    // complete record when possible, but do not downgrade the
+                    // whole snapshot for an unfinished non-newline tail.
+                    _ = ProcessLine(
                         path,
-                        lineNumber,
+                        lineNumber + 1,
                         lineBuffer.WrittenMemory,
-                        lineTooLong,
+                        lineTooLong: false,
                         candidates);
                 }
             }
@@ -223,10 +233,13 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
             return true;
         }
 
-        if (TryParse(utf8, CreateSourceOrdinal(path, lineNumber), out Candidate? candidate)
-            && candidate is not null)
+        if (TryParse(
+                utf8,
+                CreateSourceOrdinal(path, lineNumber),
+                out IReadOnlyList<Candidate>? parsedCandidates)
+            && parsedCandidates is not null)
         {
-            candidates.Add(candidate);
+            candidates.AddRange(parsedCandidates);
             return true;
         }
 
@@ -359,72 +372,43 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
 
     private static Candidate[] Deduplicate(IEnumerable<Candidate> input)
     {
-        var exact = new Dictionary<string, Candidate>(StringComparer.Ordinal);
-        var withoutExactKey = new List<Candidate>();
+        var byMessageId = new Dictionary<string, Candidate>(StringComparer.Ordinal);
+        var withoutMessageId = new List<Candidate>();
         foreach (Candidate candidate in input)
         {
-            if (candidate.MessageId is null || candidate.RequestId is null)
+            if (candidate.MessageId is null)
             {
-                withoutExactKey.Add(candidate);
+                withoutMessageId.Add(candidate);
                 continue;
             }
 
-            string key = $"{candidate.MessageId}\0{candidate.RequestId}";
-            if (!exact.TryGetValue(key, out Candidate? current)
-                || IsPreferred(candidate, current))
+            if (!byMessageId.TryGetValue(candidate.MessageId, out Candidate? current))
             {
-                exact[key] = candidate;
+                byMessageId[candidate.MessageId] = candidate;
+                continue;
             }
+
+            Candidate replacement = candidate.IsSidechain != current.IsSidechain
+                ? candidate.IsSidechain ? current : candidate
+                : candidate;
+            byMessageId[candidate.MessageId] = replacement with
+            {
+                OccurredAtUtc = current.OccurredAtUtc,
+            };
         }
 
-        List<Candidate> firstPass = [.. exact.Values, .. withoutExactKey];
-        var sidechainIds = firstPass
-            .Where(candidate => candidate.IsSidechain && candidate.MessageId is not null)
-            .Select(candidate => candidate.MessageId!)
-            .ToHashSet(StringComparer.Ordinal);
-        var result = new List<Candidate>();
-        foreach (IGrouping<string?, Candidate> group in firstPass.GroupBy(
-                     candidate => sidechainIds.Contains(candidate.MessageId ?? string.Empty)
-                         ? candidate.MessageId
-                         : null,
-                     StringComparer.Ordinal))
-        {
-            if (group.Key is null)
-            {
-                result.AddRange(group);
-            }
-            else
-            {
-                result.Add(group.Aggregate((best, next) => IsPreferred(next, best) ? next : best));
-            }
-        }
-
-        return result.OrderBy(candidate => candidate.OccurredAtUtc)
+        return byMessageId.Values.Concat(withoutMessageId)
+            .OrderBy(candidate => candidate.OccurredAtUtc)
             .ThenBy(candidate => candidate.SourceOrdinal, StringComparer.Ordinal)
             .ToArray();
-    }
-
-    private static bool IsPreferred(Candidate candidate, Candidate current)
-    {
-        if (candidate.IsSidechain != current.IsSidechain)
-        {
-            return !candidate.IsSidechain;
-        }
-
-        if (candidate.Tokens.Total != current.Tokens.Total)
-        {
-            return candidate.Tokens.Total > current.Tokens.Total;
-        }
-
-        return candidate.ReportedCostUsd is not null && current.ReportedCostUsd is null;
     }
 
     private static bool TryParse(
         ReadOnlyMemory<byte> utf8,
         string sourceOrdinal,
-        out Candidate? candidate)
+        out IReadOnlyList<Candidate>? candidates)
     {
-        candidate = null;
+        candidates = null;
         try
         {
             using JsonDocument document = JsonDocument.Parse(utf8);
@@ -499,7 +483,10 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
 
                 isFast = string.Equals(speed, "fast", StringComparison.Ordinal);
             }
-            candidate = new Candidate(
+            string? messageId = TryGetString(message, "id", out string? parsedMessageId)
+                ? parsedMessageId
+                : null;
+            var mainCandidate = new Candidate(
                 timestamp.ToUniversalTime(),
                 model,
                 new TokenBreakdown(
@@ -510,13 +497,22 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
                     checked(cacheWrite5Minutes + cacheWrite1Hour)),
                 cacheWrite5Minutes,
                 cacheWrite1Hour,
-                TryGetString(message, "id", out string? messageId) ? messageId : null,
-                TryGetString(root, "requestId", out string? requestId) ? requestId : null,
+                messageId,
                 root.TryGetProperty("isSidechain", out JsonElement sidechain)
                     && sidechain.ValueKind is JsonValueKind.True,
                 reportedCost,
                 isFast,
                 sourceOrdinal);
+            var parsed = new List<Candidate> { mainCandidate };
+            AppendAdvisorCandidates(
+                parsed,
+                usage,
+                timestamp.ToUniversalTime(),
+                model,
+                messageId,
+                isFast,
+                sourceOrdinal);
+            candidates = parsed;
             return true;
         }
         catch (Exception exception) when (exception is JsonException
@@ -526,6 +522,105 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
         {
             return false;
         }
+    }
+
+    private static void AppendAdvisorCandidates(
+        List<Candidate> candidates,
+        JsonElement usage,
+        DateTimeOffset occurredAtUtc,
+        string fallbackModel,
+        string? parentMessageId,
+        bool parentIsFast,
+        string sourceOrdinal)
+    {
+        if (!usage.TryGetProperty("iterations", out JsonElement iterations)
+            || iterations.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        int advisorOrdinal = 0;
+        foreach (JsonElement iteration in iterations.EnumerateArray())
+        {
+            if (iteration.ValueKind != JsonValueKind.Object
+                || !TryGetString(iteration, "type", out string? type)
+                || !string.Equals(type, "advisor_message", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int ordinal = advisorOrdinal++;
+            string model = TryGetString(iteration, "model", out string? advisorModel)
+                ? advisorModel!
+                : fallbackModel;
+            long input = GetNonNegativeInt64OrZero(iteration, "input_tokens");
+            long output = GetNonNegativeInt64OrZero(iteration, "output_tokens");
+            long cacheRead = GetNonNegativeInt64OrZero(
+                iteration,
+                "cache_read_input_tokens");
+            long legacyWrite = GetNonNegativeInt64OrZero(
+                iteration,
+                "cache_creation_input_tokens");
+            (long cacheWrite5Minutes, long cacheWrite1Hour) = ReadCacheCreation(
+                iteration,
+                legacyWrite);
+            bool isFast = ReadSpeed(iteration, parentIsFast);
+            string? messageId = parentMessageId is null
+                ? null
+                : $"{parentMessageId}:advisor:{ordinal}";
+            candidates.Add(new Candidate(
+                occurredAtUtc,
+                model,
+                new TokenBreakdown(
+                    input,
+                    output,
+                    reasoning: 0,
+                    cacheRead,
+                    checked(cacheWrite5Minutes + cacheWrite1Hour)),
+                cacheWrite5Minutes,
+                cacheWrite1Hour,
+                messageId,
+                IsSidechain: false,
+                ReportedCostUsd: null,
+                isFast,
+                CreateAdvisorSourceOrdinal(sourceOrdinal, ordinal)));
+        }
+    }
+
+    private static (long FiveMinutes, long OneHour) ReadCacheCreation(
+        JsonElement usage,
+        long legacyWrite)
+    {
+        long fiveMinutes = legacyWrite;
+        long oneHour = 0;
+        if (usage.TryGetProperty("cache_creation", out JsonElement cacheCreation)
+            && cacheCreation.ValueKind == JsonValueKind.Object)
+        {
+            fiveMinutes = GetNonNegativeInt64OrZero(
+                cacheCreation,
+                "ephemeral_5m_input_tokens");
+            oneHour = GetNonNegativeInt64OrZero(
+                cacheCreation,
+                "ephemeral_1h_input_tokens");
+            long splitTotal = checked(fiveMinutes + oneHour);
+            if (legacyWrite > splitTotal)
+            {
+                fiveMinutes = checked(fiveMinutes + legacyWrite - splitTotal);
+            }
+        }
+
+        return (fiveMinutes, oneHour);
+    }
+
+    private static bool ReadSpeed(JsonElement usage, bool fallback)
+    {
+        if (!usage.TryGetProperty("speed", out JsonElement speedElement)
+            || speedElement.ValueKind != JsonValueKind.String)
+        {
+            return fallback;
+        }
+
+        return string.Equals(speedElement.GetString(), "fast", StringComparison.Ordinal);
     }
 
     private static bool TryGetString(
@@ -558,8 +653,8 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
 
     private static UsageEventKey CreateEventKey(Candidate candidate)
     {
-        string identity = candidate.MessageId is not null && candidate.RequestId is not null
-            ? $"claude\0{candidate.MessageId}\0{candidate.RequestId}"
+        string identity = candidate.MessageId is not null
+            ? $"claude\0{candidate.MessageId}"
             : $"claude\0{candidate.SourceOrdinal}";
         return new UsageEventKey(Hash(identity));
     }
@@ -579,6 +674,9 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
     private static string CreateSourceOrdinal(string path, int lineNumber) =>
         Hash($"{Path.GetFullPath(path)}\0{lineNumber}");
 
+    private static string CreateAdvisorSourceOrdinal(string sourceOrdinal, int ordinal) =>
+        Hash($"{sourceOrdinal}\0advisor\0{ordinal}");
+
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))
             .ToLowerInvariant();
@@ -590,7 +688,6 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
         long CacheWrite5Minutes,
         long CacheWrite1Hour,
         string? MessageId,
-        string? RequestId,
         bool IsSidechain,
         decimal? ReportedCostUsd,
         bool IsFast,

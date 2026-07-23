@@ -90,3 +90,15 @@ public interface IUsageEventSource
 public interface ISnapshotUsageEventSource : IUsageEventSource
 {
 }
+
+/// <summary>
+/// A source whose current files can revise events that were read before their
+/// final usage counters were written. Complete reads are authoritative only for
+/// the civil-date window they contain, so older retained history stays intact.
+/// </summary>
+public interface IWindowedSnapshotUsageEventSource : IUsageEventSource
+{
+    string EventParserVersion { get; }
+
+    int ReconciliationWindowDays { get; }
+}
