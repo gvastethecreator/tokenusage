@@ -58,6 +58,14 @@ probar una fuente apta para Windows.
 | Warp | Aparece en CodeBurn y AgentsView | No leer historial de terminal ni comandos | 72 |
 | Vercel AI Gateway | CodeBurn expone un reporte agregado por API | Separar gasto del gateway y uso de agentes; clave manual con permiso mínimo | 73 |
 | Mistral Vibe | Aparece en CodeBurn y AgentsView | No leer mensajes, herramientas ni comandos; exigir fuente agregada | 75 |
+| DeepSeek TUI / CodeWhale | Comparten rutas heredadas entre AgentsView y CodeBurn | Resolver identidad y migración antes de crear IDs o leer sesiones | 77 |
+| Windsurf | AgentsView declara rutas Windows | Exigir fuente agregada; no leer chat ni estado global del IDE | 78 |
+| Trae | AgentsView declara varias rutas Windows | Separar variantes del editor y excluir chats, tareas y credenciales | 79 |
+| Aider | AgentsView lo trata como raíz opt-in | Fijar consentimiento y aceptar solo métricas mínimas documentadas | 80 |
+| OpenHands CLI | AgentsView registra sesiones locales | Separar CLI, servicio y proveedor de modelo; no leer contenido | 81 |
+| Amp | AgentsView registra threads locales | Mantener en inventario hasta probar una fuente Windows apta | 82 |
+| Codebuff | CodeBurn registra gasto desde sesiones | Buscar un agregado oficial que no exponga mensajes ni herramientas | 83 |
+| Piebald | AgentsView declara almacenamiento Windows propio | Confirmar producto, soporte y fuente antes de crear un provider ID | 84 |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 

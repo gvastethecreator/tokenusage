@@ -594,6 +594,14 @@ Orden y alcance:
     gateway en Ticket 73. La integración queda en Ticket 74.
 27. Mistral Vibe, gate de fuente agregada que excluye contenido de sesión en
     Ticket 75. La integración queda en Ticket 76.
+28. DeepSeek TUI / CodeWhale, gate de identidad y migración en Ticket 77.
+29. Windsurf, gate Windows y de fuente agregada en Ticket 78.
+30. Trae, gate de variantes Windows y privacidad en Ticket 79.
+31. Aider, gate de consentimiento y roots opt-in en Ticket 80.
+32. OpenHands CLI, gate de identidad y fuente en Ticket 81.
+33. Amp, gate de baja prioridad para threads locales en Ticket 82.
+34. Codebuff, gate de contabilidad agregada en Ticket 83.
+35. Piebald, gate Windows y de almacenamiento en Ticket 84.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
@@ -625,6 +633,10 @@ La revisión completa de los registros abrió los Tickets 73–76. Vercel AI
 Gateway tiene un candidato de reporte agregado con clave manual en CodeBurn;
 Mistral Vibe aparece en CodeBurn y AgentsView, pero sus adapters leen sesiones.
 Ambos requieren fuentes primarias y un gate antes de crear un descriptor.
+
+La segunda revisión abrió los Tickets 77–84. Prioriza rutas Windows y una
+decisión de identidad para DeepSeek TUI / CodeWhale. Estos tickets solo
+autorizan investigación; no autorizan lectores de chats, threads o bases de IDE.
 
 Cada proveedor se divide en commits:
 
