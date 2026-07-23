@@ -6,6 +6,34 @@ namespace WOpenUsage.Platform.Windows.Tests;
 public sealed class FlyoutSizePolicyTests
 {
     [Fact]
+    public void UsesRoomForDashboardHierarchy()
+    {
+        Assert.Equal(400, FlyoutSizePolicy.WidthDips);
+    }
+
+    [Fact]
+    public void ClampWidthUsesDesiredWidthWhenItFits()
+    {
+        double width = FlyoutSizePolicy.ClampWidthDips(
+            400,
+            new PlatformRect(0, 0, 1920, 1080),
+            144);
+
+        Assert.Equal(400, width);
+    }
+
+    [Fact]
+    public void ClampWidthFitsNarrowHighDpiWorkArea()
+    {
+        double width = FlyoutSizePolicy.ClampWidthDips(
+            400,
+            new PlatformRect(0, 0, 600, 1000),
+            192);
+
+        Assert.Equal(300, width);
+    }
+
+    [Fact]
     public void ClampHeightUsesDesiredHeightInsideRange()
     {
         var height = FlyoutSizePolicy.ClampHeightDips(

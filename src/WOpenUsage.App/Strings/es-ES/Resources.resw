@@ -351,6 +351,16 @@
   <data name="DashboardMetricMoveToOnDemandAutomationNameFormat" xml:space="preserve"><value>Mostrar {0} bajo demanda</value></data>
   <data name="DashboardMetricSectionButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Cambiar sección de la métrica</value></data>
   <data name="DashboardMetricHighlightLimitReached" xml:space="preserve"><value>Puedes destacar hasta dos métricas por proveedor.</value></data>
+  <data name="DashboardLayoutUndoButton.Content" xml:space="preserve"><value>Deshacer</value></data>
+  <data name="DashboardLayoutUndoButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Deshacer el último cambio del panel</value></data>
+  <data name="DashboardLayoutUndoButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Deshacer el último cambio del panel (Ctrl+Z)</value></data>
+  <data name="DashboardLayoutResetButton.Content" xml:space="preserve"><value>Restablecer</value></data>
+  <data name="DashboardLayoutResetButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Restablecer el diseño del panel</value></data>
+  <data name="DashboardLayoutResetButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Restaurar el diseño predeterminado del panel</value></data>
+  <data name="DashboardLayoutResetTitle" xml:space="preserve"><value>¿Restablecer el diseño del panel?</value></data>
+  <data name="DashboardLayoutResetBody" xml:space="preserve"><value>Esto restaura el diseño predeterminado de proveedores y métricas. Puedes deshacerlo mientras TokenUsage siga abierto.</value></data>
+  <data name="DashboardLayoutResetConfirm" xml:space="preserve"><value>Restablecer panel</value></data>
+  <data name="DashboardLayoutResetCancel" xml:space="preserve"><value>Cancelar</value></data>
   <data name="DashboardAllProvidersHidden.Text" xml:space="preserve"><value>Todas las tarjetas de proveedores están ocultas. Abre Opciones para mostrar una.</value></data>
   <data name="DashboardLayoutRecoveredFormat" xml:space="preserve"><value>La configuración de diseño dañada se movió a {0}. Puedes guardar una nueva.</value></data>
   <data name="DashboardLayoutNewerVersionFormat" xml:space="preserve"><value>El formato de diseño {0} es más nuevo. Actualiza TokenUsage antes de cambiarlo.</value></data>

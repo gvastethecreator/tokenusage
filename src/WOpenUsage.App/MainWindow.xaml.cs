@@ -177,7 +177,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ? iconRect
             : null;
         var display = MonitorPlacementContextProvider.Resolve(iconBounds);
-        var desiredHeightDips = MeasureDesiredHeightDips();
+        var desiredHeightDips = MeasureDesiredHeightDips(FlyoutSizePolicy.WidthDips);
 
         var initialHeightDips = FlyoutSizePolicy.ClampHeightDips(
             desiredHeightDips,
@@ -193,6 +193,11 @@ public sealed partial class MainWindow : Window, IDisposable
         MoveTo(initialPlacement.Bounds);
 
         var effectiveDpi = MonitorPlacementContextProvider.GetWindowDpi(_windowHandle);
+        var finalWidthDips = FlyoutSizePolicy.ClampWidthDips(
+            FlyoutSizePolicy.WidthDips,
+            display.WorkArea,
+            effectiveDpi);
+        desiredHeightDips = MeasureDesiredHeightDips(finalWidthDips);
         var finalHeightDips = FlyoutSizePolicy.ClampHeightDips(
             desiredHeightDips,
             display.WorkArea,
@@ -200,24 +205,25 @@ public sealed partial class MainWindow : Window, IDisposable
         var finalPlacement = FlyoutPlacementCalculator.Calculate(
             iconBounds,
             display.WorkArea,
-            FlyoutSizePolicy.WidthDips,
+            finalWidthDips,
             finalHeightDips,
             effectiveDpi,
             display.FallbackAnchor);
+        RootPage.MeasureRoot.Width = finalWidthDips;
         RootPage.MeasureRoot.Height = finalHeightDips;
         RootPage.MeasureRoot.UpdateLayout();
         MoveTo(finalPlacement.Bounds);
     }
 
-    private double MeasureDesiredHeightDips()
+    private double MeasureDesiredHeightDips(double widthDips)
     {
         RootPage.MeasureRoot.Height = double.NaN;
-        RootPage.MeasureRoot.Width = FlyoutSizePolicy.WidthDips;
+        RootPage.MeasureRoot.Width = widthDips;
         RootPage.MeasureRoot.InvalidateMeasure();
         RootPage.MeasureRoot.UpdateLayout();
         RootPage.MeasureRoot.Measure(
             new Windows.Foundation.Size(
-                FlyoutSizePolicy.WidthDips,
+                widthDips,
                 double.PositiveInfinity));
 
         var desiredHeight = RootPage.MeasureRoot.DesiredSize.Height;

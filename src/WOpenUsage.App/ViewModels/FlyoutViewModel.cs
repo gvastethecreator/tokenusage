@@ -36,6 +36,7 @@ public partial class FlyoutViewModel : ObservableObject
     private SampleDashboardSnapshot? _rawDashboard;
     private bool _isDashboardLayoutReadOnly;
     private readonly HashSet<string> _expandedDashboardMetricProviders = new(StringComparer.Ordinal);
+    private readonly DashboardLayoutSessionHistory _dashboardLayoutHistory = new();
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
@@ -162,6 +163,7 @@ public partial class FlyoutViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDashboardLayoutEditable))]
+    [NotifyPropertyChangedFor(nameof(CanUndoDashboardLayout))]
     public partial bool IsDashboardLayoutBusy { get; set; }
 
     [ObservableProperty]
@@ -230,6 +232,17 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsDashboardLayoutEditable =>
         !_isDashboardLayoutReadOnly && !IsDashboardLayoutBusy;
+
+    public bool CanUndoDashboardLayout =>
+        IsDashboardLayoutEditable && _dashboardLayoutHistory.CanUndo;
+
+    public string DashboardLayoutResetTitle => GetString("DashboardLayoutResetTitle");
+
+    public string DashboardLayoutResetBody => GetString("DashboardLayoutResetBody");
+
+    public string DashboardLayoutResetConfirm => GetString("DashboardLayoutResetConfirm");
+
+    public string DashboardLayoutResetCancel => GetString("DashboardLayoutResetCancel");
 
     public string DashboardHeading => GetString(
         IsSampleModeEnabled ? "SampleTotalSpendHeading" : "LiveDashboardHeading");
@@ -936,6 +949,66 @@ public partial class FlyoutViewModel : ObservableObject
             isOnDemand));
     }
 
+    public Task ResetDashboardLayoutAsync() =>
+        MutateDashboardLayoutAsync(_ => DashboardLayout.Empty);
+
+    public async Task UndoDashboardLayoutAsync()
+    {
+        await _dashboardLayoutInitialization;
+        if (IsDashboardLayoutBusy)
+        {
+            return;
+        }
+
+        IsDashboardLayoutBusy = true;
+        try
+        {
+            if (_isDashboardLayoutReadOnly
+                || _rawDashboard is null
+                || !_dashboardLayoutHistory.TryPeek(out DashboardLayout? target)
+                || target is null)
+            {
+                return;
+            }
+
+            DashboardLayoutSaveResult save = await _dashboardLayoutStore.SaveAsync(target);
+            if (save is DashboardLayoutSaveResult.RefusedUnsupportedVersion unsupported)
+            {
+                SetDashboardLayoutReadOnly(string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    GetString("DashboardLayoutNewerVersionFormat"),
+                    unsupported.SchemaVersion));
+                PublishActiveDashboard(_rawDashboard);
+                return;
+            }
+
+            if (!_dashboardLayoutHistory.CommitUndo(target))
+            {
+                throw new InvalidOperationException("Dashboard undo history changed unexpectedly.");
+            }
+
+            _dashboardLayout = target;
+            DashboardLayoutStatusText = string.Empty;
+            PublishActiveDashboard(_rawDashboard);
+            OnPropertyChanged(nameof(CanUndoDashboardLayout));
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or TimeoutException)
+        {
+            DashboardLayoutStatusText = GetString("DashboardLayoutSaveFailed");
+            if (_rawDashboard is not null)
+            {
+                PublishActiveDashboard(_rawDashboard);
+            }
+        }
+        finally
+        {
+            IsDashboardLayoutBusy = false;
+        }
+    }
+
     private async Task InitializeDashboardLayoutAsync()
     {
         try
@@ -1016,9 +1089,12 @@ public partial class FlyoutViewModel : ObservableObject
                 return;
             }
 
+            DashboardLayout previous = _dashboardLayout;
             _dashboardLayout = next;
+            _dashboardLayoutHistory.Record(previous);
             DashboardLayoutStatusText = string.Empty;
             PublishActiveDashboard(_rawDashboard);
+            OnPropertyChanged(nameof(CanUndoDashboardLayout));
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
@@ -1206,6 +1282,7 @@ public partial class FlyoutViewModel : ObservableObject
         _isDashboardLayoutReadOnly = true;
         DashboardLayoutStatusText = statusText;
         OnPropertyChanged(nameof(IsDashboardLayoutEditable));
+        OnPropertyChanged(nameof(CanUndoDashboardLayout));
     }
 
     private TimeProvider GetClock(SampleScenario? scenario) =>

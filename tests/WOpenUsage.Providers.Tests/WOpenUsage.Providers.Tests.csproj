@@ -28,6 +28,7 @@
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\CodexLiveStateFormatter.cs" Link="Codex\CodexLiveStateFormatter.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\DashboardLayoutProjector.cs" Link="Dashboard\DashboardLayoutProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\DashboardMetricActionModels.cs" Link="Dashboard\DashboardMetricActionModels.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\DashboardLayoutSessionHistory.cs" Link="Dashboard\DashboardLayoutSessionHistory.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\FlyoutSurfaceState.cs" Link="Codex\FlyoutSurfaceState.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\Services\LocalUsageCoordinator.cs" Link="Usage\LocalUsageCoordinator.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\LocalUsageCardProjector.cs" Link="Usage\LocalUsageCardProjector.cs" />
