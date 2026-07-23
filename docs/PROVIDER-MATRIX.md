@@ -28,7 +28,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | ZCode | Bloqueada sin API pública | Bloqueados sin esquema local seguro | Sin fuente apta | Bloqueado | M9; Ticket 48 cerrado, Ticket 49 `needs-info` |
-| Kimi Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 50–51 |
+| Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
 | Command Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 52–53 |
 | Cline | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 54–55 |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
@@ -229,7 +229,7 @@ ruta o el esquema de los registros, una exportación de métricas ni una API de
 lectura para terceros.
 
 La única ruta Windows publicada para datos propios es
-`%USERPROFILE%\\.zcode\\logs`, destinada a soporte. La política confirma que las
+`%USERPROFILE%\.zcode\logs`, destinada a soporte. La política confirma que las
 conversaciones pueden incluir entradas, contenido generado, archivos, código y
 comandos. Los términos prohíben extracción automática o no autorizada de datos.
 
@@ -241,6 +241,32 @@ una API pública de solo lectura autorizada o una exportación local documentada
 mínima y libre de contenido de sesión.
 
 Gate completo: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
+
+## Kimi Code
+
+### Fuente evaluada
+
+Kimi Code ofrece el CLI `kimi`, una extensión de VS Code, `/usage` dentro de
+la TUI y una Console para cuota y Extra Usage. No publica una salida de
+máquina, exportación de métricas ni API de solo lectura para cuota, tokens o
+gasto de Kimi Code.
+
+En Windows almacena configuración, OAuth, sesiones, logs e historial bajo
+`%USERPROFILE%\.kimi-code` o `KIMI_CODE_HOME`. Sus sesiones incluyen
+`lastPrompt`, comunicación completa y trazas de requests. La suscripción se
+limita al uso interactivo y prohíbe automatización no interactiva.
+
+Kimi Platform publica balance y uso con cuentas y facturación separadas. No se
+mezcla con el provider Kimi Code.
+
+### Salida
+
+Bloqueado. La build pública puede detectar `kimi --version` en una fase de
+diagnóstico, pero no lee datos, inicia la TUI, usa `kimi web`, toma tokens o
+llama la Console. El provider se reabre con una fuente mínima, documentada y
+autorizada para terceros.
+
+Gate completo: [investigación de fuente Kimi Code](research/2026-07-22-kimi-code-source-gate.md).
 
 ## Cursor
 
