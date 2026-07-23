@@ -1,6 +1,6 @@
 # Matriz de proveedores
 
-Fecha de corte: 2026-07-22
+Fecha de corte: 2026-07-23
 
 Upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 
@@ -35,6 +35,27 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Zed | Sin contrato público de cuota | Bloqueados por la mezcla de tokens y transcripción | Sin fuente apta | Bloqueado | M9; Ticket 58 cerrado, Ticket 59 `needs-info` |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
+
+## Siguiente ola de investigación
+
+Estos nombres aparecen en las referencias locales, pero aún no son proveedores
+activos. Cada uno empieza con un gate separado. No se añade un scanner hasta
+probar una fuente apta para Windows.
+
+| Candidato | Motivo | Límite inicial | Ticket |
+|---|---|---|---|
+| Gemini CLI | Aparece en CodeBurn y AgentsView | No leer chats ni credenciales; separar uso local de cuota Google | 61 |
+| Kiro | Aparece en CodeBurn y AgentsView | Separar CLI, IDE y cuenta; no leer contenido de sesiones | 62 |
+| Roo Code | Aparece en CodeBurn y AgentsView | No reutilizar tareas de VS Code; evitar doble conteo con el proveedor del modelo | 63 |
+| Goose | Tiene un adapter propio en CodeBurn | Confirmar soporte Windows y una fuente agregada sin contenido | 64 |
+| Kimi CLI | CodeBurn y AgentsView lo separan de Kimi Code | Mantener identidad, almacenamiento y claims separados de Kimi Code | 65 |
+| Cursor Agent | CodeBurn lo separa del editor Cursor | Mantenerlo separado de Cursor Admin API e Individual | 66 |
+| Forge | Aparece en CodeBurn y AgentsView | Validar soporte Windows y evitar bases con contenido | 67 |
+| Hermes Agent | Aparece en CodeBurn y AgentsView | Separar gasto del agente y del proveedor de modelo | 68 |
+| OpenClaw | Aparece en CodeBurn y AgentsView | Fijar identidad y fuente agregada; no leer conversaciones | 69 |
+| Pi | Aparece en CodeBurn y AgentsView | Distinguir Pi de OMP y fijar deduplicación | 70 |
+| Qwen | Aparece en CodeBurn y AgentsView | Separar Qwen Code del proveedor de modelos Qwen | 71 |
+| Warp | Aparece en CodeBurn y AgentsView | No leer historial de terminal ni comandos | 72 |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 
