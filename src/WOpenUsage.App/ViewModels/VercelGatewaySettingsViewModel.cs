@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
+using WOpenUsage.Providers.VercelAiGateway;
 using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.App.ViewModels;
@@ -31,6 +32,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
     private readonly VercelGatewayRefreshCoordinator _coordinator;
     private readonly Func<string, string> _getString;
     private CancellationTokenSource? _operationCancellation;
+    private ProviderSnapshot? _lastSnapshot;
 
     public VercelGatewaySettingsViewModel(
         VercelGatewayRefreshCoordinator coordinator,
@@ -64,6 +66,11 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
     public partial bool HasApiKeyInput { get; private set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSubmitConnection))]
+    [NotifyPropertyChangedFor(nameof(IsKeyIdErrorVisible))]
+    public partial bool IsKeyIdInputValid { get; private set; } = true;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsStatusOpen))]
     public partial string StatusText { get; private set; }
 
@@ -81,13 +88,40 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
     public bool IsInputEnabled => !IsBusy;
 
     public bool CanSubmitConnection =>
-        !IsConfigured && !IsBusy && IsConsentAccepted && HasApiKeyInput;
+        !IsConfigured
+        && !IsBusy
+        && IsConsentAccepted
+        && HasApiKeyInput
+        && IsKeyIdInputValid;
+
+    public bool IsKeyIdErrorVisible => !IsKeyIdInputValid;
 
     public bool IsStatusOpen => !string.IsNullOrWhiteSpace(StatusText);
 
     public void SetApiKeyInputPresence(string? apiKey)
     {
         HasApiKeyInput = !string.IsNullOrWhiteSpace(apiKey);
+    }
+
+    public void SetKeyIdInput(string? keyId)
+    {
+        if (string.IsNullOrWhiteSpace(keyId))
+        {
+            IsKeyIdInputValid = true;
+            return;
+        }
+
+        try
+        {
+            _ = new VercelGatewayConnection(
+                "validation-placeholder",
+                keyId);
+            IsKeyIdInputValid = true;
+        }
+        catch (ArgumentException)
+        {
+            IsKeyIdInputValid = false;
+        }
     }
 
     public async Task InitializeAsync()
@@ -126,9 +160,12 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
         }
     }
 
-    public async Task ConnectAsync(string apiKey)
+    public Task ConnectAsync(string apiKey) => ConnectAsync(apiKey, keyId: null);
+
+    public async Task ConnectAsync(string apiKey, string? keyId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+        SetKeyIdInput(keyId);
         if (!CanSubmitConnection)
         {
             return;
@@ -139,8 +176,11 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
         SetState(VercelGatewayUiState.Connecting, "VercelStatusConnecting");
         try
         {
-            VercelGatewayConnectResult result = await _coordinator.Connections
-                .ConnectAsync(apiKey, cancellation.Token);
+            VercelGatewayConnectResult result = string.IsNullOrWhiteSpace(keyId)
+                ? await _coordinator.Connections
+                    .ConnectAsync(apiKey, cancellation.Token)
+                : await _coordinator.Connections
+                    .ConnectAsync(apiKey, keyId, cancellation.Token);
             if (!result.IsComplete)
             {
                 IsConfigured = await _coordinator.Connections
@@ -154,6 +194,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
             IsConfigured = true;
             IsConsentAccepted = false;
             HasApiKeyInput = false;
+            IsKeyIdInputValid = true;
             await RefreshCoreAsync(forceRefresh: true, cancellation.Token);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -181,8 +222,10 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
                 .DisconnectAsync(cancellation.Token);
             IsConfigured = false;
             ProviderCard = null;
+            _lastSnapshot = null;
             IsConsentAccepted = false;
             HasApiKeyInput = false;
+            IsKeyIdInputValid = true;
             SetState(
                 result.IsComplete
                     ? VercelGatewayUiState.Disconnected
@@ -243,18 +286,32 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
             _ when hasReport => "ProviderStatusAvailable",
             _ => "ProviderStatusUnavailable",
         });
+        ProviderCapabilityState? quotaState = _lastSnapshot?.Capabilities
+            .FirstOrDefault(capability => string.Equals(
+                capability.Id.Value,
+                "quota.gateway.key.budget",
+                StringComparison.Ordinal))
+            ?.State;
+        string quotaStatus = _getString(quotaState switch
+        {
+            ProviderCapabilityState.Available => "ProviderStatusAvailable",
+            ProviderCapabilityState.NotRequested => "VercelQuotaStatusKeyIdMissing",
+            ProviderCapabilityState.NotConfigured => "VercelQuotaStatusNoBudget",
+            ProviderCapabilityState.Degraded => "VercelQuotaStatusDegraded",
+            _ => "ProviderStatusUnavailable",
+        });
         return new ProviderStatusRow(
             "vercel-ai-gateway",
             "Vercel AI Gateway",
             _getString(IsConfigured ? "ProviderStatusRootDetected" : "ProviderStatusRootMissing"),
             _getString(IsConfigured ? "ProviderStatusRecoveryRefresh" : "VercelStatusRecoveryConnect"),
             [
-                new(_getString("ProviderStatusQuota"), _getString("ProviderStatusUnavailable"), "ProviderStatus.vercel-ai-gateway.Quota"),
+                new(_getString("ProviderStatusQuota"), quotaStatus, "ProviderStatus.vercel-ai-gateway.Quota"),
                 new(_getString("ProviderStatusUsage"), status, "ProviderStatus.vercel-ai-gateway.Usage"),
                 new(_getString("ProviderStatusSpend"), status, "ProviderStatus.vercel-ai-gateway.Spend"),
                 new(
                     _getString("ProviderStatusCoverage"),
-                    State == VercelGatewayUiState.Partial
+                    _lastSnapshot?.Coverage == CoverageKind.Partial
                         ? _getString("ProviderStatusPartial")
                         : hasReport
                             ? _getString("ProviderStatusComplete")
@@ -284,6 +341,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
                     ProviderSnapshot? cached = FindSnapshot(cache.Snapshots);
                     if (cached is not null)
                     {
+                        _lastSnapshot = cached;
                         ProviderCard = VercelGatewayCardProjector.Create(cached, _getString);
                         SetState(VercelGatewayUiState.Refreshing, "VercelStatusCachedRefreshing");
                     }
@@ -311,6 +369,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
         };
         if (snapshot is not null)
         {
+            _lastSnapshot = snapshot;
             ProviderCard = VercelGatewayCardProjector.Create(snapshot, _getString);
         }
 
@@ -346,6 +405,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
                 if (!IsConfigured)
                 {
                     ProviderCard = null;
+                    _lastSnapshot = null;
                 }
 
                 SetState(
