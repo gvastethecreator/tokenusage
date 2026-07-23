@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "wusage.limits.v1",
+  "generatedAt": "2026-07-22T15:00:00+00:00",
+  "providers": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "observedAt": "2026-07-22T14:40:00+00:00",
+      "stale": true,
+      "coverage": "partial",
+      "metrics": [
+        {
+          "kind": "scalar",
+          "id": "tokens",
+          "value": 53080,
+          "unit": "tokens",
+          "sourceKind": "localLog",
+          "measurementKind": "measured"
+        }
+      ]
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "plan": "Plus",
+      "observedAt": "2026-07-22T14:55:00+00:00",
+      "stale": false,
+      "coverage": "complete",
+      "metrics": [
+        {
+          "kind": "progress",
+          "id": "session",
+          "used": 20,
+          "limit": 100,
+          "remainingPercent": 80.0,
+          "resetsAt": "2026-07-22T18:00:00+00:00",
+          "sourceKind": "officialLocalApi",
+          "measurementKind": "providerReported"
+        },
+        {
+          "kind": "scalar",
+          "id": "spend-usd",
+          "value": 12.34,
+          "unit": "USD",
+          "sourceKind": "localLog",
+          "measurementKind": "estimated"
+        }
+      ]
+    }
+  ],
+  "stale": true
+}

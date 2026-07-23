@@ -1,13 +1,6 @@
 using Windows.Storage;
 using WOpenUsage.Cli;
 
-if (args.Length == 0 || !string.Equals(args[0], "usage", StringComparison.Ordinal))
-{
-    await Console.Error.WriteLineAsync(
-        "Usage: wusage <usage> [command options]");
-    return UsageCommand.InvalidUsageExitCode;
-}
-
 string dataDirectory;
 try
 {
@@ -27,14 +20,9 @@ catch (Exception)
     return UsageCommand.NoDataExitCode;
 }
 
-string databasePath = Path.Combine(dataDirectory, "scanner", "usage.v1.db");
-return await UsageCommand.RunAsync(
-    args[1..],
+return await CliApplication.RunAsync(
+    args,
     Console.Out,
     Console.Error,
-    (from, to, cancellationToken) => LocalUsageCliAccess.ReadAsync(
-        databasePath,
-        from,
-        to,
-        cancellationToken),
+    dataDirectory,
     TimeProvider.System);
