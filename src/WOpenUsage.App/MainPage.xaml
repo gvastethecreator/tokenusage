@@ -276,11 +276,59 @@
                                 x:Name="OptionsStack"
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
+                                <Grid
+                                    AutomationProperties.AutomationId="OptionsSectionNavigation"
+                                    ColumnSpacing="4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        x:Name="OptionsGeneralButton"
+                                        x:Uid="OptionsGeneralButton"
+                                        AutomationProperties.AutomationId="OptionsGeneralButton"
+                                        Command="{x:Bind ViewModel.ShowGeneralOptionsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        MinHeight="36">
+                                        <StackPanel HorizontalAlignment="Center" Spacing="3">
+                                            <TextBlock x:Uid="OptionsGeneralLabel" />
+                                            <Border Height="2" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="1" Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        x:Name="OptionsAppearanceButton"
+                                        x:Uid="OptionsAppearanceButton"
+                                        Grid.Column="1"
+                                        AutomationProperties.AutomationId="OptionsAppearanceButton"
+                                        Command="{x:Bind ViewModel.ShowAppearanceOptionsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        MinHeight="36">
+                                        <StackPanel HorizontalAlignment="Center" Spacing="3">
+                                            <TextBlock x:Uid="OptionsAppearanceLabel" />
+                                            <Border Height="2" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="1" Visibility="{x:Bind ViewModel.IsAppearanceOptionsSection, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        x:Name="OptionsProvidersButton"
+                                        x:Uid="OptionsProvidersButton"
+                                        Grid.Column="2"
+                                        AutomationProperties.AutomationId="OptionsProvidersButton"
+                                        Command="{x:Bind ViewModel.ShowProvidersOptionsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        MinHeight="36">
+                                        <StackPanel HorizontalAlignment="Center" Spacing="3">
+                                            <TextBlock x:Uid="OptionsProvidersLabel" />
+                                            <Border Height="2" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="1" Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
                                 <Border
                                     AutomationProperties.AutomationId="AppearanceSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
-                                    Padding="10,4">
+                                    Padding="10,4"
+                                    Visibility="{x:Bind ViewModel.IsAppearanceOptionsSection, Mode=OneWay}">
                                     <Expander
                                         x:Uid="AppearanceExpander"
                                         AutomationProperties.AutomationId="AppearanceExpander"
@@ -399,7 +447,8 @@
                                     AutomationProperties.AutomationId="LanguageSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
-                                    Padding="10,8">
+                                    Padding="10,8"
+                                    Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}">
                                     <StackPanel Spacing="8">
                                         <TextBlock
                                             x:Uid="LanguageSectionTitle"
@@ -444,7 +493,8 @@
                                     HorizontalAlignment="Stretch"
                                     IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
                                     OffContent=""
-                                    OnContent="" />
+                                    OnContent=""
+                                    Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}" />
                                 <ToggleSwitch
                                     x:Name="SampleModeToggle"
                                     x:Uid="SampleModeToggle"
@@ -452,7 +502,8 @@
                                     HorizontalAlignment="Stretch"
                                     IsOn="{x:Bind ViewModel.IsSampleModeEnabled, Mode=TwoWay}"
                                     OffContent=""
-                                    OnContent="" />
+                                    OnContent=""
+                                    Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}" />
                                 <ComboBox
                                     x:Name="SampleScenarioCombo"
                                     x:Uid="SampleScenarioCombo"
@@ -461,14 +512,16 @@
                                     HorizontalAlignment="Stretch"
                                     IsEnabled="{x:Bind ViewModel.IsSampleScenarioEnabled, Mode=OneWay}"
                                     ItemsSource="{x:Bind ViewModel.SampleScenarios}"
-                                    SelectedItem="{x:Bind ViewModel.SelectedSampleScenario, Mode=TwoWay}" />
+                                    SelectedItem="{x:Bind ViewModel.SelectedSampleScenario, Mode=TwoWay}"
+                                    Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}" />
 
                                 <Border
                                     x:Name="DashboardLayoutSection"
                                     AutomationProperties.AutomationId="DashboardLayoutSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
-                                    Padding="10,4">
+                                    Padding="10,4"
+                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
                                     <Expander
                                         x:Uid="DashboardLayoutExpander"
                                         AutomationProperties.AutomationId="DashboardLayoutExpander"
@@ -780,7 +833,8 @@
                                     AutomationProperties.AutomationId="VercelConnectionSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
-                                    Padding="10,8">
+                                    Padding="10,8"
+                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
                                     <StackPanel Spacing="8">
                                         <Grid ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
@@ -881,7 +935,8 @@
                                     AutomationProperties.AutomationId="ProviderStatusSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="8"
-                                    Padding="10,8">
+                                    Padding="10,8"
+                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
                                     <StackPanel Spacing="8">
                                         <Grid ColumnSpacing="8" RowSpacing="2">
                                             <Grid.ColumnDefinitions>
