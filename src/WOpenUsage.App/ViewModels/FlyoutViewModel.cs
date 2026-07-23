@@ -35,6 +35,7 @@ public partial class FlyoutViewModel : ObservableObject
     private DashboardLayout _dashboardLayout = DashboardLayout.Empty;
     private SampleDashboardSnapshot? _rawDashboard;
     private bool _isDashboardLayoutReadOnly;
+    private readonly HashSet<string> _expandedDashboardMetricProviders = new(StringComparer.Ordinal);
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
@@ -863,6 +864,78 @@ public partial class FlyoutViewModel : ObservableObject
             layout.SetProviderHighlighted(id, isHighlighted));
     }
 
+    public Task MoveDashboardMetricAsync(
+        string providerId,
+        string metricId,
+        int offset)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metricId);
+        if (offset is not (-1 or 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+
+        return MutateDashboardLayoutAsync(layout =>
+            MoveCurrentDashboardMetric(
+                layout,
+                new ProviderId(providerId),
+                new MetricId(metricId),
+                offset));
+    }
+
+    public Task SetDashboardMetricVisibleAsync(
+        string providerId,
+        string metricId,
+        bool isVisible)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metricId);
+        return MutateDashboardLayoutAsync(layout => layout.SetMetricVisible(
+            new ProviderId(providerId),
+            new MetricId(metricId),
+            isVisible));
+    }
+
+    public Task SetDashboardMetricHighlightedAsync(
+        string providerId,
+        string metricId,
+        bool isHighlighted)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metricId);
+        return MutateDashboardLayoutAsync(layout =>
+        {
+            var provider = new ProviderId(providerId);
+            var metric = new MetricId(metricId);
+            ProviderLayoutPreference currentProvider = layout.Providers.Single(item =>
+                item.ProviderId == provider);
+            MetricLayoutPreference currentMetric = currentProvider.Metrics.Single(item =>
+                item.MetricId == metric);
+            DashboardLayout next = layout.SetMetricHighlighted(provider, metric, isHighlighted);
+
+            if (isHighlighted && !currentMetric.IsHighlighted && next.Equals(layout))
+            {
+                DashboardLayoutStatusText = GetString("DashboardMetricHighlightLimitReached");
+            }
+
+            return next;
+        });
+    }
+
+    public Task SetDashboardMetricOnDemandAsync(
+        string providerId,
+        string metricId,
+        bool isOnDemand)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(metricId);
+        return MutateDashboardLayoutAsync(layout => layout.SetMetricOnDemand(
+            new ProviderId(providerId),
+            new MetricId(metricId),
+            isOnDemand));
+    }
+
     private async Task InitializeDashboardLayoutAsync()
     {
         try
@@ -928,6 +1001,7 @@ public partial class FlyoutViewModel : ObservableObject
             DashboardLayout next = mutation(_dashboardLayout);
             if (next.Equals(_dashboardLayout))
             {
+                PublishActiveDashboard(_rawDashboard);
                 return;
             }
 
@@ -1017,6 +1091,69 @@ public partial class FlyoutViewModel : ObservableObject
         throw new KeyNotFoundException($"Provider '{providerId.Value}' is absent from the dashboard layout.");
     }
 
+    private DashboardLayout MoveCurrentDashboardMetric(
+        DashboardLayout layout,
+        ProviderId providerId,
+        MetricId metricId,
+        int offset)
+    {
+        DashboardProviderLayoutRow providerRow = DashboardLayoutProviders.FirstOrDefault(row =>
+            string.Equals(row.ProviderId, providerId.Value, StringComparison.Ordinal))
+            ?? throw new KeyNotFoundException(
+                $"Provider '{providerId.Value}' is absent from the dashboard layout rows.");
+
+        int currentRowIndex = -1;
+        for (int index = 0; index < providerRow.Metrics.Count; index++)
+        {
+            if (string.Equals(
+                    providerRow.Metrics[index].MetricId,
+                    metricId.Value,
+                    StringComparison.Ordinal))
+            {
+                currentRowIndex = index;
+                break;
+            }
+        }
+
+        int targetRowIndex = currentRowIndex + offset;
+        if (currentRowIndex < 0
+            || targetRowIndex < 0
+            || targetRowIndex >= providerRow.Metrics.Count)
+        {
+            return layout;
+        }
+
+        var targetId = new MetricId(providerRow.Metrics[targetRowIndex].MetricId);
+        ProviderLayoutPreference providerPreference = layout.Providers.Single(provider =>
+            provider.ProviderId == providerId);
+        int currentLayoutIndex = FindDashboardMetricIndex(providerPreference, metricId);
+        int targetLayoutIndex = FindDashboardMetricIndex(providerPreference, targetId);
+        while (currentLayoutIndex != targetLayoutIndex)
+        {
+            int step = currentLayoutIndex < targetLayoutIndex ? 1 : -1;
+            layout = layout.MoveMetric(providerId, metricId, step);
+            currentLayoutIndex += step;
+        }
+
+        return layout;
+    }
+
+    private static int FindDashboardMetricIndex(
+        ProviderLayoutPreference provider,
+        MetricId metricId)
+    {
+        for (int index = 0; index < provider.Metrics.Count; index++)
+        {
+            if (provider.Metrics[index].MetricId == metricId)
+            {
+                return index;
+            }
+        }
+
+        throw new KeyNotFoundException(
+            $"Metric '{metricId.Value}' is absent from provider '{provider.ProviderId.Value}'.");
+    }
+
     private void PublishActiveDashboard(SampleDashboardSnapshot dashboard)
     {
         _rawDashboard = dashboard;
@@ -1028,11 +1165,40 @@ public partial class FlyoutViewModel : ObservableObject
                 GetString("DashboardProviderMoveUpAutomationNameFormat"),
                 GetString("DashboardProviderMoveDownAutomationNameFormat"),
                 GetString("DashboardProviderVisibilityAutomationNameFormat"),
-                GetString("DashboardProviderHighlightAutomationNameFormat")));
+                GetString("DashboardProviderHighlightAutomationNameFormat"),
+                GetString("DashboardProviderMetricsAutomationNameFormat")),
+            new DashboardMetricActionNameFormats(
+                GetString("DashboardMetricMoveUpAutomationNameFormat"),
+                GetString("DashboardMetricMoveDownAutomationNameFormat"),
+                GetString("DashboardMetricVisibilityAutomationNameFormat"),
+                GetString("DashboardMetricHighlightAutomationNameFormat"),
+                GetString("DashboardMetricAlwaysVisibleSection"),
+                GetString("DashboardMetricOnDemandSection"),
+                GetString("DashboardMetricMoveToAlwaysVisibleAutomationNameFormat"),
+                GetString("DashboardMetricMoveToOnDemandAutomationNameFormat")));
         _dashboardLayout = projection.Layout;
         ActiveSample = projection.Dashboard;
-        DashboardLayoutProviders = projection.Providers;
+        DashboardLayoutProviders = projection.Providers
+            .Select(row => row with
+            {
+                IsMetricsExpanded = _expandedDashboardMetricProviders.Contains(row.ProviderId),
+            })
+            .ToArray();
         OnPropertyChanged(nameof(AreAllDashboardProvidersHidden));
+    }
+
+    public void SetDashboardProviderMetricsExpanded(string providerId, bool isExpanded)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+
+        if (isExpanded)
+        {
+            _expandedDashboardMetricProviders.Add(providerId);
+        }
+        else
+        {
+            _expandedDashboardMetricProviders.Remove(providerId);
+        }
     }
 
     private void SetDashboardLayoutReadOnly(string statusText)

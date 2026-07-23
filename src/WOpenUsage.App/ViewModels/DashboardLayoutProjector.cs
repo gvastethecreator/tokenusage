@@ -16,12 +16,18 @@ public sealed record DashboardProviderLayoutRow(
     string MoveDownAutomationName,
     string VisibilityAutomationName,
     string HighlightAutomationName,
-    IReadOnlyList<DashboardMetricLayoutRow> Metrics)
+    IReadOnlyList<DashboardMetricLayoutRow> Metrics,
+    string MetricsAutomationName,
+    bool IsMetricsExpanded = false)
 {
     public string MoveUpAutomationId => $"{AutomationId}.MoveUp";
     public string MoveDownAutomationId => $"{AutomationId}.MoveDown";
     public string VisibilityAutomationId => $"{AutomationId}.Visibility";
     public string HighlightAutomationId => $"{AutomationId}.Highlight";
+    public string MetricsAutomationId => $"{AutomationId}.Metrics";
+    public bool HasMetrics => Metrics.Count > 0;
+    public DashboardProviderLayoutRow Self => this;
+    public IReadOnlyList<DashboardMetricLayoutRow> ExpandedMetrics => IsMetricsExpanded ? Metrics : [];
 }
 
 public sealed record DashboardMetricLayoutRow(
@@ -33,19 +39,34 @@ public sealed record DashboardMetricLayoutRow(
     bool IsHighlighted,
     bool CanMoveUp,
     bool CanMoveDown,
-    string AutomationId);
+    string AutomationId,
+    string SectionLabel,
+    string MoveUpAutomationName,
+    string MoveDownAutomationName,
+    string VisibilityAutomationName,
+    string HighlightAutomationName,
+    string SectionAutomationName)
+{
+    public string MoveUpAutomationId => $"{AutomationId}.MoveUp";
+    public string MoveDownAutomationId => $"{AutomationId}.MoveDown";
+    public string VisibilityAutomationId => $"{AutomationId}.Visibility";
+    public string HighlightAutomationId => $"{AutomationId}.Highlight";
+    public string SectionAutomationId => $"{AutomationId}.Section";
+}
 
 public sealed record DashboardProviderActionNameFormats(
     string MoveUp,
     string MoveDown,
     string Visibility,
-    string Highlight)
+    string Highlight,
+    string Metrics = "Metrics for {0}")
 {
     public static DashboardProviderActionNameFormats English { get; } = new(
         "Move {0} up",
         "Move {0} down",
         "Show or hide {0}",
-        "Highlight {0}");
+        "Highlight {0}",
+        "Metrics for {0}");
 }
 
 public sealed record DashboardLayoutProjection(
@@ -59,12 +80,14 @@ public static class DashboardLayoutProjector
         SampleDashboardSnapshot dashboard,
         DashboardLayout savedLayout,
         string highlightLabel,
-        DashboardProviderActionNameFormats? actionNameFormats = null)
+        DashboardProviderActionNameFormats? actionNameFormats = null,
+        DashboardMetricActionNameFormats? metricActionNameFormats = null)
     {
         ArgumentNullException.ThrowIfNull(dashboard);
         ArgumentNullException.ThrowIfNull(savedLayout);
         ArgumentNullException.ThrowIfNull(highlightLabel);
         actionNameFormats ??= DashboardProviderActionNameFormats.English;
+        metricActionNameFormats ??= DashboardMetricActionNameFormats.English;
         if (dashboard.Providers is null)
         {
             throw new ArgumentException(
@@ -138,6 +161,10 @@ public static class DashboardLayoutProjector
             {
                 MetricLayoutPreference metricPreference = currentMetrics[metricIndex];
                 MetricSource metricSource = providerMetricSources[metricPreference.MetricId.Value];
+                DashboardMetricActionNames metricActionNames = DashboardMetricActionNames.Create(
+                    metricSource.Label,
+                    metricPreference.IsOnDemand,
+                    metricActionNameFormats);
 
                 metricRows.Add(new DashboardMetricLayoutRow(
                     id,
@@ -148,7 +175,13 @@ public static class DashboardLayoutProjector
                     metricPreference.IsHighlighted,
                     CanMoveUp: metricIndex > 0,
                     CanMoveDown: metricIndex < currentMetrics.Length - 1,
-                    $"{automationId}.Metric.{metricPreference.MetricId.Value}"));
+                    $"{automationId}.Metric.{metricPreference.MetricId.Value}",
+                    metricActionNames.SectionLabel,
+                    metricActionNames.MoveUp,
+                    metricActionNames.MoveDown,
+                    metricActionNames.Visibility,
+                    metricActionNames.Highlight,
+                    metricActionNames.Section));
             }
 
             string FormatActionName(string format) => string.Format(
@@ -167,7 +200,8 @@ public static class DashboardLayoutProjector
                 FormatActionName(actionNameFormats.MoveDown),
                 FormatActionName(actionNameFormats.Visibility),
                 FormatActionName(actionNameFormats.Highlight),
-                metricRows.AsReadOnly()));
+                metricRows.AsReadOnly(),
+                FormatActionName(actionNameFormats.Metrics)));
 
             if (!pref.IsVisible)
             {

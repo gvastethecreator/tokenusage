@@ -259,6 +259,119 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnDashboardMetricMoveUpClicked(object sender, RoutedEventArgs e)
+    {
+        if (TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
+        {
+            await ViewModel.MoveDashboardMetricAsync(providerId, metricId, -1);
+        }
+    }
+
+    private async void OnDashboardMetricMoveDownClicked(object sender, RoutedEventArgs e)
+    {
+        if (TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
+        {
+            await ViewModel.MoveDashboardMetricAsync(providerId, metricId, 1);
+        }
+    }
+
+    private async void OnDashboardMetricVisibilityClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle
+            && TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
+        {
+            await ViewModel.SetDashboardMetricVisibleAsync(
+                providerId,
+                metricId,
+                toggle.IsChecked is true);
+        }
+    }
+
+    private async void OnDashboardMetricHighlightClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle
+            && TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
+        {
+            await ViewModel.SetDashboardMetricHighlightedAsync(
+                providerId,
+                metricId,
+                toggle.IsChecked is true);
+        }
+    }
+
+    private async void OnDashboardMetricSectionClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle
+            && TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
+        {
+            await ViewModel.SetDashboardMetricOnDemandAsync(
+                providerId,
+                metricId,
+                toggle.IsChecked is true);
+        }
+    }
+
+    private static bool TryGetDashboardMetricTarget(
+        object sender,
+        out string providerId,
+        out string metricId)
+    {
+        if (sender is ButtonBase
+            {
+                Tag: string provider,
+                CommandParameter: string metric,
+            }
+            && !string.IsNullOrWhiteSpace(provider)
+            && !string.IsNullOrWhiteSpace(metric))
+        {
+            providerId = provider;
+            metricId = metric;
+            return true;
+        }
+
+        providerId = string.Empty;
+        metricId = string.Empty;
+        return false;
+    }
+
+    private void OnDashboardProviderMetricsExpanding(object sender, ExpanderExpandingEventArgs e)
+    {
+        SetDashboardProviderMetricsExpanded(sender, isExpanded: true);
+        SetDashboardProviderMetricItems(sender, loadItems: true);
+    }
+
+    private void OnDashboardProviderMetricsCollapsed(object sender, ExpanderCollapsedEventArgs e)
+    {
+        SetDashboardProviderMetricsExpanded(sender, isExpanded: false);
+        SetDashboardProviderMetricItems(sender, loadItems: false);
+    }
+
+    private void SetDashboardProviderMetricsExpanded(object sender, bool isExpanded)
+    {
+        if (sender is FrameworkElement { Tag: DashboardProviderLayoutRow row }
+            && (isExpanded || ViewModel.DashboardLayoutProviders.Any(current =>
+                ReferenceEquals(current, row))))
+        {
+            ViewModel.SetDashboardProviderMetricsExpanded(row.ProviderId, isExpanded);
+        }
+    }
+
+    private static void SetDashboardProviderMetricItems(object sender, bool loadItems)
+    {
+        if (sender is not Expander
+            {
+                Tag: DashboardProviderLayoutRow row,
+                Content: ItemsControl items,
+            })
+        {
+            return;
+        }
+
+        items.ItemsSource = loadItems
+            ? row.Metrics
+            : null;
+    }
+
     private static string GetLanguageRestartArguments()
     {
 #if DEBUG || UI_TEST_FIXTURES

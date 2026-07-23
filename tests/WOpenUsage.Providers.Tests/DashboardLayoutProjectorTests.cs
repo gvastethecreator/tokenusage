@@ -181,7 +181,17 @@ public sealed class DashboardLayoutProjectorTests
         DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
             source,
             saved,
-            "Highlighted");
+            "Highlighted",
+            actionNameFormats: null,
+            new DashboardMetricActionNameFormats(
+                "Up {0}",
+                "Down {0}",
+                "Visible {0}",
+                "Star {0}",
+                "Always",
+                "Demand",
+                "Always action {0}",
+                "Demand action {0}"));
 
         SampleProviderCard card = Assert.Single(result.Dashboard.Providers);
         Assert.Equal("usage.secondary", Assert.Single(card.Metrics).LayoutMetricId);
@@ -203,6 +213,12 @@ public sealed class DashboardLayoutProjectorTests
         Assert.False(providerRow.Metrics[0].CanMoveUp);
         Assert.True(providerRow.Metrics[0].CanMoveDown);
         Assert.False(providerRow.Metrics[2].CanMoveDown);
+        Assert.Equal("Always", providerRow.Metrics[0].SectionLabel);
+        Assert.Equal("Up Secondary", providerRow.Metrics[0].MoveUpAutomationName);
+        Assert.Equal("Demand action Secondary", providerRow.Metrics[0].SectionAutomationName);
+        Assert.Equal(
+            "DashboardLayout.Provider.codex.Metric.usage.secondary.Section",
+            providerRow.Metrics[0].SectionAutomationId);
     }
 
     [Fact]

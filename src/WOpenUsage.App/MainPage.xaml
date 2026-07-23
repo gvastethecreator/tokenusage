@@ -292,6 +292,7 @@
                                                             BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                                                             BorderThickness="0,1,0,0"
                                                             Padding="0,4">
+                                                            <StackPanel>
                                                             <Grid ColumnSpacing="4" MinHeight="36">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="16" />
@@ -383,6 +384,127 @@
                                                                     IsTextScaleFactorEnabled="False" />
                                                                 </ToggleButton>
                                                             </Grid>
+                                                            <Expander
+                                                                x:Name="ProviderMetricsExpander"
+                                                                x:Uid="DashboardProviderMetricsExpander"
+                                                                AutomationProperties.AutomationId="{x:Bind MetricsAutomationId}"
+                                                                AutomationProperties.Name="{x:Bind MetricsAutomationName}"
+                                                                Collapsed="OnDashboardProviderMetricsCollapsed"
+                                                                Expanding="OnDashboardProviderMetricsExpanding"
+                                                                IsExpanded="{x:Bind IsMetricsExpanded, Mode=OneTime}"
+                                                                Margin="20,0,0,0"
+                                                                Tag="{x:Bind Self}"
+                                                                Visibility="{x:Bind HasMetrics}">
+                                                                <ItemsControl
+                                                                    x:Name="ProviderMetricsItems"
+                                                                    ItemsSource="{x:Bind ExpandedMetrics}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate x:DataType="viewModels:DashboardMetricLayoutRow">
+                                                                            <Border
+                                                                                AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                                                                AutomationProperties.Name="{x:Bind Label}"
+                                                                                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                                                                BorderThickness="0,1,0,0"
+                                                                                Padding="0,3">
+                                                                                <Grid ColumnSpacing="2" MinHeight="36">
+                                                                                    <Grid.ColumnDefinitions>
+                                                                                        <ColumnDefinition Width="*" />
+                                                                                        <ColumnDefinition Width="32" />
+                                                                                        <ColumnDefinition Width="32" />
+                                                                                        <ColumnDefinition Width="32" />
+                                                                                        <ColumnDefinition Width="32" />
+                                                                                        <ColumnDefinition Width="32" />
+                                                                                    </Grid.ColumnDefinitions>
+                                                                                    <StackPanel VerticalAlignment="Center">
+                                                                                        <TextBlock
+                                                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                                                            Text="{x:Bind Label}"
+                                                                                            TextTrimming="CharacterEllipsis" />
+                                                                                        <TextBlock
+                                                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                            Text="{x:Bind SectionLabel}"
+                                                                                            TextTrimming="CharacterEllipsis" />
+                                                                                    </StackPanel>
+                                                                                    <Button
+                                                                                        x:Uid="DashboardMetricMoveUpButton"
+                                                                                        Grid.Column="1"
+                                                                                        AutomationProperties.AutomationId="{x:Bind MoveUpAutomationId}"
+                                                                                        AutomationProperties.Name="{x:Bind MoveUpAutomationName}"
+                                                                                        Click="OnDashboardMetricMoveUpClicked"
+                                                                                        CommandParameter="{x:Bind MetricId}"
+                                                                                        IsEnabled="{x:Bind CanMoveUp}"
+                                                                                        MinHeight="32"
+                                                                                        MinWidth="32"
+                                                                                        Padding="6"
+                                                                                        Style="{StaticResource SubtleButtonStyle}"
+                                                                                        Tag="{x:Bind ProviderId}">
+                                                                                        <FontIcon AutomationProperties.AccessibilityView="Raw" FontSize="11" Glyph="&#xE74A;" IsTextScaleFactorEnabled="False" />
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        x:Uid="DashboardMetricMoveDownButton"
+                                                                                        Grid.Column="2"
+                                                                                        AutomationProperties.AutomationId="{x:Bind MoveDownAutomationId}"
+                                                                                        AutomationProperties.Name="{x:Bind MoveDownAutomationName}"
+                                                                                        Click="OnDashboardMetricMoveDownClicked"
+                                                                                        CommandParameter="{x:Bind MetricId}"
+                                                                                        IsEnabled="{x:Bind CanMoveDown}"
+                                                                                        MinHeight="32"
+                                                                                        MinWidth="32"
+                                                                                        Padding="6"
+                                                                                        Style="{StaticResource SubtleButtonStyle}"
+                                                                                        Tag="{x:Bind ProviderId}">
+                                                                                        <FontIcon AutomationProperties.AccessibilityView="Raw" FontSize="11" Glyph="&#xE74B;" IsTextScaleFactorEnabled="False" />
+                                                                                    </Button>
+                                                                                    <ToggleButton
+                                                                                        x:Uid="DashboardMetricVisibilityButton"
+                                                                                        Grid.Column="3"
+                                                                                        AutomationProperties.AutomationId="{x:Bind VisibilityAutomationId}"
+                                                                                        AutomationProperties.Name="{x:Bind VisibilityAutomationName}"
+                                                                                        Click="OnDashboardMetricVisibilityClicked"
+                                                                                        CommandParameter="{x:Bind MetricId}"
+                                                                                        IsChecked="{x:Bind IsVisible, Mode=OneTime}"
+                                                                                        MinHeight="32"
+                                                                                        MinWidth="32"
+                                                                                        Padding="6"
+                                                                                        Tag="{x:Bind ProviderId}">
+                                                                                        <FontIcon AutomationProperties.AccessibilityView="Raw" FontSize="11" Glyph="&#xE890;" IsTextScaleFactorEnabled="False" />
+                                                                                    </ToggleButton>
+                                                                                    <ToggleButton
+                                                                                        x:Uid="DashboardMetricHighlightButton"
+                                                                                        Grid.Column="4"
+                                                                                        AutomationProperties.AutomationId="{x:Bind HighlightAutomationId}"
+                                                                                        AutomationProperties.Name="{x:Bind HighlightAutomationName}"
+                                                                                        Click="OnDashboardMetricHighlightClicked"
+                                                                                        CommandParameter="{x:Bind MetricId}"
+                                                                                        IsChecked="{x:Bind IsHighlighted, Mode=OneTime}"
+                                                                                        MinHeight="32"
+                                                                                        MinWidth="32"
+                                                                                        Padding="6"
+                                                                                        Tag="{x:Bind ProviderId}">
+                                                                                        <FontIcon AutomationProperties.AccessibilityView="Raw" FontSize="11" Glyph="&#xE734;" IsTextScaleFactorEnabled="False" />
+                                                                                    </ToggleButton>
+                                                                                    <ToggleButton
+                                                                                        x:Uid="DashboardMetricSectionButton"
+                                                                                        Grid.Column="5"
+                                                                                        AutomationProperties.AutomationId="{x:Bind SectionAutomationId}"
+                                                                                        AutomationProperties.Name="{x:Bind SectionAutomationName}"
+                                                                                        Click="OnDashboardMetricSectionClicked"
+                                                                                        CommandParameter="{x:Bind MetricId}"
+                                                                                        IsChecked="{x:Bind IsOnDemand, Mode=OneTime}"
+                                                                                        MinHeight="32"
+                                                                                        MinWidth="32"
+                                                                                        Padding="6"
+                                                                                        Tag="{x:Bind ProviderId}">
+                                                                                        <FontIcon AutomationProperties.AccessibilityView="Raw" FontSize="11" Glyph="&#xE8AB;" IsTextScaleFactorEnabled="False" />
+                                                                                    </ToggleButton>
+                                                                                </Grid>
+                                                                            </Border>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </Expander>
+                                                            </StackPanel>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
