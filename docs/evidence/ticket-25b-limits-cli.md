@@ -26,10 +26,10 @@ credenciales ni datos del proveedor.
 - Códigos `0`, `2` y `4`; argumentos y fallos se redactan.
 - Salida humana estable frente a la cultura del proceso.
 
-`--force` ya forma parte del parser y del contrato del lector. Este corte falla
-cerrado con código `4` porque la fábrica de proceso Codex aún vive en la
-composición WinUI. Ticket 25B2 debe compartir esa composición con la CLI y
-probar un refresco real.
+En el commit de este corte, `--force` ya formaba parte del parser pero fallaba
+cerrado porque la fábrica Codex vivía en la composición WinUI. Ticket 25B2
+cerró ese límite; su evidencia está en
+`docs/evidence/ticket-25b2-force-refresh-cli.md`.
 
 ## Evidence
 
@@ -58,6 +58,6 @@ congelado. Las regresiones cubren los tres casos.
 
 ## Boundary
 
-Este corte implementa la lectura real de caché. Siguen pendientes el refresco
-Codex real de `--force`, `providers`, `doctor`, concurrencia app/CLI y el alias
-MSIX.
+Este corte implementó la lectura real de caché. Ticket 25B2 añadió el refresco
+Codex real. Siguen pendientes `providers`, `doctor`, concurrencia app/CLI y el
+alias MSIX.
