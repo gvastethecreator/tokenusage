@@ -27,7 +27,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
 | Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
-| Zcode | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 48–49 |
+| ZCode | Bloqueada sin API pública | Bloqueados sin esquema local seguro | Sin fuente apta | Bloqueado | M9; Ticket 48 cerrado, Ticket 49 `needs-info` |
 | Kimi Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 50–51 |
 | Command Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 52–53 |
 | Cline | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 54–55 |
@@ -36,9 +36,10 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 
-Los nombres Zcode, Kimi Code y Command Code se conservan como términos de
-entrada. Sus tickets de investigación deben fijar el producto canónico antes de
-añadir IDs, iconos, rutas o claims al código.
+El término de entrada `Zcode` se resuelve como `ZCode`, el producto de
+escritorio de ZCode Agent. Kimi Code y Command Code se conservan como términos
+de entrada. Sus tickets de investigación deben fijar el producto canónico antes
+de añadir IDs, iconos, rutas o claims al código.
 
 ## Gate de publicación
 
@@ -216,6 +217,30 @@ Bloqueado. La build pública no pide una key Z.ai, no invoca el plugin y no copi
 Gate completo: [investigación Z.ai](research/2026-07-21-zai-gate.md).
 
 Fuente upstream de comparación: [provider Z.ai](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/zai.md).
+
+## ZCode
+
+### Fuente evaluada
+
+ZCode es una app de escritorio con ZCode Agent integrado. Su UI muestra
+`App Usage` desde registros de sesión locales y `Coding Plan` para la cuota y
+el uso remotos de Z.ai o BigModel. La documentación revisada no publica la
+ruta o el esquema de los registros, una exportación de métricas ni una API de
+lectura para terceros.
+
+La única ruta Windows publicada para datos propios es
+`%USERPROFILE%\\.zcode\\logs`, destinada a soporte. La política confirma que las
+conversaciones pueden incluir entradas, contenido generado, archivos, código y
+comandos. Los términos prohíben extracción automática o no autorizada de datos.
+
+### Salida
+
+Bloqueado. La build pública no lee `.zcode`, logs, sesiones, configuración,
+prompts o credenciales, ni llama endpoints privados. El provider se reabre con
+una API pública de solo lectura autorizada o una exportación local documentada,
+mínima y libre de contenido de sesión.
+
+Gate completo: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
 
 ## Cursor
 
