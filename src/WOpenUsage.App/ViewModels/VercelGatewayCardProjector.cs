@@ -24,6 +24,18 @@ public static class VercelGatewayCardProjector
         IReadOnlyDictionary<string, decimal> metrics = snapshot.Metrics
             .OfType<ScalarMetricSnapshot>()
             .ToDictionary(metric => metric.Id.Value, metric => metric.Value, StringComparer.Ordinal);
+        ProgressMetricSnapshot? quota = snapshot.Metrics
+            .OfType<ProgressMetricSnapshot>()
+            .SingleOrDefault(metric => string.Equals(
+                metric.Id.Value,
+                "quota.gateway.key.budget",
+                StringComparison.Ordinal));
+        ProviderCapabilityState? quotaState = snapshot.Capabilities
+            .FirstOrDefault(capability => string.Equals(
+                capability.Id.Value,
+                "quota.gateway.key.budget",
+                StringComparison.Ordinal))
+            ?.State;
         string missing = getString("CodexUsageMissing");
         string source = getString("VercelSourceValue");
         string observed = string.Format(
@@ -39,8 +51,10 @@ public static class VercelGatewayCardProjector
             getString("VercelCapabilityReport"),
             snapshot.Coverage == CoverageKind.Partial
                 ? getString("VercelPartialReportNotice")
-                : getString("VercelReportLagNotice"),
-            Windows: [],
+                : quotaState == ProviderCapabilityState.Degraded
+                    ? getString("VercelQuotaDegradedNotice")
+                    : getString("VercelReportLagNotice"),
+            Windows: CreateQuotaWindows(quota, quotaState, getString),
             Metrics:
             [
                 CurrencyMetric(
@@ -50,6 +64,10 @@ public static class VercelGatewayCardProjector
                     metrics,
                     missing,
                     getString),
+                new SampleMetric(
+                    getString("VercelMetricKeyBudget"),
+                    QuotaStatus(quota, quotaState, getString),
+                    "VercelGateway.KeyBudgetState"),
                 CountMetric(
                     "VercelMetricInputTokens",
                     "VercelGateway.InputTokens30Days",
@@ -95,6 +113,75 @@ public static class VercelGatewayCardProjector
                 getString("ProviderDetailsAutomationNameFormat"),
                 snapshot.DisplayName));
     }
+
+    private static IReadOnlyList<SampleQuotaWindow> CreateQuotaWindows(
+        ProgressMetricSnapshot? quota,
+        ProviderCapabilityState? quotaState,
+        Func<string, string> getString)
+    {
+        if (quota is null
+            || quotaState != ProviderCapabilityState.Available
+            || quota.IsActive != true)
+        {
+            return [];
+        }
+
+        string title = getString("VercelQuotaTitle");
+        string remaining = FormatRemaining(quota, getString);
+        string reset = ResetText(quota.ResetCadence, getString);
+        return
+        [
+            new SampleQuotaWindow(
+                title,
+                (double)quota.RemainingPercent,
+                remaining,
+                reset,
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    getString("VercelQuotaAutomationFormat"),
+                    title,
+                    remaining,
+                    reset),
+                IsNearLimit: quota.RemainingPercent <= 20m),
+        ];
+    }
+
+    private static string QuotaStatus(
+        ProgressMetricSnapshot? quota,
+        ProviderCapabilityState? quotaState,
+        Func<string, string> getString) => quotaState switch
+        {
+            ProviderCapabilityState.Available when quota?.IsActive == false =>
+                getString("VercelQuotaStatusInactive"),
+            ProviderCapabilityState.Available when quota is not null =>
+                FormatRemaining(quota, getString),
+            ProviderCapabilityState.NotRequested =>
+                getString("VercelQuotaStatusKeyIdMissing"),
+            ProviderCapabilityState.NotConfigured =>
+                getString("VercelQuotaStatusNoBudget"),
+            ProviderCapabilityState.Degraded =>
+                getString("VercelQuotaStatusDegraded"),
+            _ => getString("ProviderStatusUnavailable"),
+        };
+
+    private static string FormatRemaining(
+        ProgressMetricSnapshot quota,
+        Func<string, string> getString) => string.Format(
+        CultureInfo.CurrentCulture,
+        getString("VercelQuotaRemainingFormat"),
+        Math.Max(0m, quota.Limit - quota.Used),
+        quota.Limit);
+
+    private static string ResetText(
+        ProgressResetCadence? cadence,
+        Func<string, string> getString) => getString(cadence switch
+        {
+            ProgressResetCadence.Daily => "VercelQuotaResetDaily",
+            ProgressResetCadence.Weekly => "VercelQuotaResetWeekly",
+            ProgressResetCadence.Monthly => "VercelQuotaResetMonthly",
+            ProgressResetCadence.Never => "VercelQuotaResetNever",
+            _ => "ProviderStatusUnavailable",
+        });
 
     private static SampleMetric CurrencyMetric(
         string labelKey,

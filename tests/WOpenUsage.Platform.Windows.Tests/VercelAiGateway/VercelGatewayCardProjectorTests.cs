@@ -36,7 +36,81 @@ public sealed class VercelGatewayCardProjectorTests
         Assert.Equal(
             7m.ToString("N0", CultureInfo.CurrentCulture),
             Metric(card, "VercelGateway.Requests30Days").Value);
+        Assert.Equal(
+            "Add a key ID to check",
+            Metric(card, "VercelGateway.KeyBudgetState").Value);
+        Assert.Empty(card.Windows);
         Assert.Equal(6, card.SecondaryMetricItems.Count);
+    }
+
+    [Fact]
+    public void AvailableBudgetMapsAnimatedWindowAndUsdRemaining()
+    {
+        SampleProviderCard card = VercelGatewayCardProjector.Create(
+            CreateSnapshot(
+                CoverageKind.Complete,
+                quotaState: ProviderCapabilityState.Available,
+                includeBudget: true),
+            Strings);
+
+        SampleQuotaWindow window = Assert.Single(card.Windows);
+        Assert.Equal(65d, window.RemainingPercent);
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "${0:N2} left of ${1:N2}", 6.5m, 10m),
+            window.RemainingText);
+        Assert.Equal("Resets monthly (UTC)", window.ResetText);
+        Assert.False(window.IsNearLimit);
+        Assert.Equal(
+            window.RemainingText,
+            Metric(card, "VercelGateway.KeyBudgetState").Value);
+    }
+
+    [Fact]
+    public void DegradedBudgetKeepsReportNoticeScopedToBudget()
+    {
+        SampleProviderCard card = VercelGatewayCardProjector.Create(
+            CreateSnapshot(
+                CoverageKind.Complete,
+                quotaState: ProviderCapabilityState.Degraded),
+            Strings);
+
+        Assert.Empty(card.Windows);
+        Assert.Contains("budget", card.NoticeText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "Budget unavailable",
+            Metric(card, "VercelGateway.KeyBudgetState").Value);
+    }
+
+    [Fact]
+    public void MissingBudgetKeepsReportWithoutProgressWindow()
+    {
+        SampleProviderCard card = VercelGatewayCardProjector.Create(
+            CreateSnapshot(
+                CoverageKind.Complete,
+                quotaState: ProviderCapabilityState.NotConfigured),
+            Strings);
+
+        Assert.Empty(card.Windows);
+        Assert.Equal(
+            "No budget set",
+            Metric(card, "VercelGateway.KeyBudgetState").Value);
+    }
+
+    [Fact]
+    public void InactiveBudgetDoesNotRenderAProgressWindow()
+    {
+        SampleProviderCard card = VercelGatewayCardProjector.Create(
+            CreateSnapshot(
+                CoverageKind.Complete,
+                quotaState: ProviderCapabilityState.Available,
+                includeBudget: true,
+                budgetIsActive: false),
+            Strings);
+
+        Assert.Empty(card.Windows);
+        Assert.Equal(
+            "Budget inactive",
+            Metric(card, "VercelGateway.KeyBudgetState").Value);
     }
 
     [Fact]
@@ -65,7 +139,10 @@ public sealed class VercelGatewayCardProjectorTests
     private static ProviderSnapshot CreateSnapshot(
         CoverageKind coverage,
         bool includeOutput = true,
-        string providerId = "vercel-ai-gateway")
+        string providerId = "vercel-ai-gateway",
+        ProviderCapabilityState quotaState = ProviderCapabilityState.NotRequested,
+        bool includeBudget = false,
+        bool budgetIsActive = true)
     {
         var metrics = new List<MetricSnapshot>
         {
@@ -84,6 +161,22 @@ public sealed class VercelGatewayCardProjectorTests
             metrics.Add(Scalar("usage.tokens.output.30d", 250m, "tokens"));
         }
 
+        if (includeBudget)
+        {
+            metrics.Add(new ProgressMetricSnapshot(
+                new MetricId("quota.gateway.key.budget"),
+                3.5m,
+                10m,
+                resetsAtUtc: null,
+                new DataProvenance(
+                    SourceKind.ManualKey,
+                    MeasurementKind.ProviderReported,
+                    "vercel-ai-gateway-quota/1"),
+                "usd",
+                ProgressResetCadence.Monthly,
+                isActive: budgetIsActive));
+        }
+
         return new ProviderSnapshot(
             new ProviderId(providerId),
             "Vercel AI Gateway",
@@ -93,7 +186,16 @@ public sealed class VercelGatewayCardProjectorTests
             "UTC",
             metrics,
             coverage,
-            1);
+            2,
+            [
+                new ProviderCapabilitySnapshot(
+                    new CapabilityId("quota.gateway.key.budget"),
+                    quotaState,
+                    new DataProvenance(
+                        SourceKind.ManualKey,
+                        MeasurementKind.Derived,
+                        "vercel-ai-gateway-quota-state/1")),
+            ]);
     }
 
     private static ScalarMetricSnapshot Scalar(string id, decimal value, string unit) => new(
@@ -109,9 +211,10 @@ public sealed class VercelGatewayCardProjectorTests
     {
         "CodexUsageMissing" => "Missing",
         "VercelExperimental" => "Experimental",
-        "VercelCapabilityReport" => "Account-wide spend and tokens · Last 30 days",
+        "VercelCapabilityReport" => "Account-wide report · Optional per-key budget",
         "VercelPartialReportNotice" => "Some report fields are missing.",
         "VercelReportLagNotice" => "Reports can lag.",
+        "VercelQuotaDegradedNotice" => "The report is current. The key budget could not be checked.",
         "VercelSourceValue" => "Official report · Manual key · Account-wide",
         "VercelMetricTotalSpend" => "Gateway spend",
         "VercelMetricMarketValue" => "Market value",
@@ -123,6 +226,19 @@ public sealed class VercelGatewayCardProjectorTests
         "VercelMetricCacheCreationTokens" => "Cache creation tokens",
         "VercelMetricReasoningTokens" => "Reasoning tokens",
         "VercelMetricRequests" => "Requests",
+        "VercelMetricKeyBudget" => "Key budget",
+        "VercelQuotaTitle" => "API key budget",
+        "VercelQuotaRemainingFormat" => "${0:N2} left of ${1:N2}",
+        "VercelQuotaAutomationFormat" => "{0}: {1}. {2}",
+        "VercelQuotaResetDaily" => "Resets daily (UTC)",
+        "VercelQuotaResetWeekly" => "Resets weekly (UTC)",
+        "VercelQuotaResetMonthly" => "Resets monthly (UTC)",
+        "VercelQuotaResetNever" => "No reset",
+        "VercelQuotaStatusKeyIdMissing" => "Add a key ID to check",
+        "VercelQuotaStatusNoBudget" => "No budget set",
+        "VercelQuotaStatusDegraded" => "Budget unavailable",
+        "VercelQuotaStatusInactive" => "Budget inactive",
+        "ProviderStatusUnavailable" => "Unavailable",
         "ProviderSourceLabel" => "Source",
         "ProviderObservedLabel" => "Observed",
         "ProviderObservedValueFormat" => "Observed {0}",

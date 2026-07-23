@@ -200,11 +200,21 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void OnVercelKeyIdTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (sender is TextBox textBox)
+        {
+            ViewModel.Vercel.SetKeyIdInput(textBox.Text);
+        }
+    }
+
     private async void OnVercelConnectClicked(object sender, RoutedEventArgs e)
     {
         string apiKey = VercelApiKeyBox.Password;
-        Task connection = ViewModel.Vercel.ConnectAsync(apiKey);
+        string keyId = VercelKeyIdBox.Text;
+        Task connection = ViewModel.Vercel.ConnectAsync(apiKey, keyId);
         VercelApiKeyBox.Password = string.Empty;
+        VercelKeyIdBox.Text = string.Empty;
         await connection;
     }
 
@@ -355,7 +365,15 @@ public sealed partial class MainPage : Page
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult<VercelGatewayQuotaLookupResult>(
-                VercelGatewayQuotaLookupResult.NoBudget.Instance);
+                new VercelGatewayQuotaLookupResult.Found(
+                    new VercelGatewayQuota(
+                        "api_key_id_" + keyId,
+                        "tokenusage-ui-test",
+                        10m,
+                        3.5m,
+                        6.5m,
+                        VercelGatewayQuotaRefreshPeriod.Monthly,
+                        Active: true)));
         }
     }
 #endif
