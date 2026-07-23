@@ -66,8 +66,40 @@ probar una fuente apta para Windows.
 | Amp | AgentsView registra threads locales | Mantener en inventario hasta probar una fuente Windows apta | 82 |
 | Codebuff | CodeBurn registra gasto desde sesiones | Buscar un agregado oficial que no exponga mensajes ni herramientas | 83 |
 | Piebald | AgentsView declara almacenamiento Windows propio | Confirmar producto, soporte y fuente antes de crear un provider ID | 84 |
+| Crush | CodeBurn lo registra como agente distinto | Fijar producto, publisher y una fuente agregada apta para Windows | 86 |
+| Droid | CodeBurn lo registra como identidad propia | Resolver el nombre ambiguo y separar agente, cuenta y proveedor de modelo | 87 |
+| IBM Bob | CodeBurn incluye un adapter dedicado | Confirmar producto vigente, soporte Windows y exportación mínima | 88 |
+| LingTai TUI | CodeBurn incluye sesiones propias | Fijar identidad y soporte Windows antes de evaluar métricas | 89 |
+| Mux | CodeBurn lo separa de otros agentes | Exigir fuente agregada y evitar datos de conversación | 90 |
+| Open Design | CodeBurn incluye un adapter dedicado | Confirmar que es un agente medible y no un formato auxiliar | 91 |
+| Quick Desktop | CodeBurn usa la identidad `quickdesk` | Fijar nombre canónico, publisher y fuente Windows | 92 |
+| Zerostack | CodeBurn incluye un adapter dedicado | Confirmar producto, versión y contrato de métricas | 93 |
+| Zencoder | AgentsView declara sesiones propias | Separar el producto de otros usos del nombre y exigir fuente apta | 94 |
+| Qoder | AgentsView declara rutas de proyecto | No leer transcripciones; buscar un agregado oficial | 95 |
+| Cortex Code | AgentsView declara sesiones locales | Separar uso del agente y facturación Snowflake | 96 |
+| gptme | AgentsView declara logs locales | Confirmar soporte Windows y una salida sin contenido | 97 |
+| iFlow | AgentsView declara sesiones propias | Fijar publisher, producto y contrato antes de crear ID | 98 |
+| IcodeMate | AgentsView registra una identidad propia | Resolver identidad, soporte Windows y fuente mínima | 99 |
+| MiMoCode | AgentsView declara almacenamiento local | Evitar bases con contenido y separar modelos MiMo | 100 |
+| Posit Assistant | AgentsView lo separa de Positron | Fijar soporte Windows y una fuente sin conversación | 101 |
+| Positron Assistant | AgentsView declara rutas por plataforma | Confirmar soporte Windows antes de evaluar datos | 102 |
+| QClaw | AgentsView lo separa de OpenClaw | Resolver relación, migración y deduplicación | 103 |
+| QwenPaw | AgentsView lo separa de Qwen Code | Resolver identidad y relación con el proveedor Qwen | 104 |
+| Reasonix | AgentsView declara una ruta Windows | Exigir métricas agregadas; excluir sesiones y sidecars con contenido | 105 |
+| Shelley | AgentsView declara una base propia | Confirmar soporte Windows y tablas libres de contenido | 106 |
+| WorkBuddy | AgentsView declara sesiones por proyecto | Fijar producto, soporte Windows y fuente apta | 107 |
+| OpenClaude | AgentsView lo separa de Claude Code | Resolver si es fork, alias o provider antes de heredar contratos | 108 |
+| Claude Cowork | AgentsView lo separa de Claude Code | Mantenerlo dentro de la familia Claude hasta fijar cuenta y fuente | 109 |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
+
+ZooCode permanece dentro del gate de Roo Code hasta fijar su identidad y la
+migración del producto. VS Code Copilot y Visual Studio Copilot permanecen bajo la familia GitHub
+Copilot. Kiro IDE queda bajo Kiro; Antigravity IDE y CLI conservan fuentes
+distintas dentro de la misma familia. OMP se resuelve en el gate de Pi.
+`ChatGPT` y `Claude.ai` aparecen en AgentsView como importaciones de historiales,
+no como agentes locales con una cuota medible, y quedan fuera del inventario de
+providers hasta que exista otro contrato.
 
 El término de entrada `Zcode` se resuelve como `ZCode`, el producto de
 escritorio de ZCode Agent. Kilo Code, Kimi Code y Command Code se conservan
