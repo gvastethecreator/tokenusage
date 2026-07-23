@@ -158,6 +158,14 @@ public sealed partial class MainWindow : Window, IDisposable
         });
     }
 
+    internal void ShowFromExternalActivation()
+    {
+        if (!_disposed)
+        {
+            ShowFlyout(true);
+        }
+    }
+
     private void PositionFlyout()
     {
         if (_trayIcon is null)

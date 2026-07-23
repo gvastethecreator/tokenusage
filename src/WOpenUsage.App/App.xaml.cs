@@ -1,10 +1,14 @@
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppLifecycle;
 using WOpenUsage.App.Localization;
 
 namespace WOpenUsage.App;
 
 public partial class App : Application
 {
+    private static readonly object ActivationSync = new();
+    private static bool _redirectedActivationPending;
+
     public static Window Window { get; private set; } = null!;
 
     public static Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; private set; } = null!;
@@ -71,5 +75,38 @@ public partial class App : Application
 #endif
         Window = new MainWindow(showForTest, useSampleForTest);
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+
+        bool showRedirectedActivation;
+        lock (ActivationSync)
+        {
+            showRedirectedActivation = _redirectedActivationPending;
+            _redirectedActivationPending = false;
+        }
+
+        if (showRedirectedActivation)
+        {
+            _ = DispatcherQueue.TryEnqueue(
+                () => ((MainWindow)Window).ShowFromExternalActivation());
+        }
+    }
+
+    internal static void OnRedirectedActivation(
+        object? sender,
+        AppActivationArguments args)
+    {
+        Microsoft.UI.Dispatching.DispatcherQueue? dispatcherQueue;
+        lock (ActivationSync)
+        {
+            if (Window is null || DispatcherQueue is null)
+            {
+                _redirectedActivationPending = true;
+                return;
+            }
+
+            dispatcherQueue = DispatcherQueue;
+        }
+
+        _ = dispatcherQueue.TryEnqueue(
+            () => ((MainWindow)Window).ShowFromExternalActivation());
     }
 }
