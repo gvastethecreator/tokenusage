@@ -17,7 +17,7 @@ public static class LocalUsageCliAccess
         DateOnly toInclusive,
         CancellationToken cancellationToken = default)
     {
-        UsageRepository repository = await UsageRepository.OpenAsync(
+        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(
             databasePath,
             cancellationToken).ConfigureAwait(false);
         IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(

@@ -50,6 +50,17 @@ public sealed class SnapshotStore
     public Task<SnapshotCacheReadResult> LoadAsync(CancellationToken cancellationToken = default) =>
         RunLocked(LoadCore, cancellationToken);
 
+    public Task<SnapshotCacheProbeResult> ProbeAsync(CancellationToken cancellationToken = default) =>
+        RunLocked(() => ProbeCore(requiredProvider: null), cancellationToken);
+
+    public Task<SnapshotCacheProbeResult> ProbeProviderAsync(
+        ProviderId providerId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(providerId);
+        return RunLocked(() => ProbeCore(providerId), cancellationToken);
+    }
+
     public Task<SnapshotCacheSaveResult> UpsertLastGoodAsync(
         ProviderSnapshot snapshot,
         CancellationToken cancellationToken = default)
@@ -141,6 +152,73 @@ public sealed class SnapshotStore
         catch (Exception exception) when (IsInvalidDocument(exception))
         {
             return QuarantineCorrupt();
+        }
+    }
+
+    private SnapshotCacheProbeResult ProbeCore(ProviderId? requiredProvider)
+    {
+        if (!File.Exists(DocumentPath))
+        {
+            return new SnapshotCacheProbeResult.Missing();
+        }
+
+        try
+        {
+            var file = new FileInfo(DocumentPath);
+            if (file.Length is <= 0 or > MaximumDocumentBytes)
+            {
+                return new SnapshotCacheProbeResult.Unreadable();
+            }
+
+            byte[] bytes = File.ReadAllBytes(DocumentPath);
+            if (bytes.Length is <= 0 or > MaximumDocumentBytes)
+            {
+                return new SnapshotCacheProbeResult.Unreadable();
+            }
+
+            ReadOnlyMemory<byte> jsonBytes = HasUtf8Preamble(bytes)
+                ? bytes.AsMemory(Encoding.UTF8.Preamble.Length)
+                : bytes;
+            using JsonDocument parsed = JsonDocument.Parse(
+                jsonBytes,
+                new JsonDocumentOptions { MaxDepth = SerializerOptions.MaxDepth });
+            if (parsed.RootElement.ValueKind != JsonValueKind.Object
+                || !parsed.RootElement.TryGetProperty("schemaVersion", out JsonElement versionElement)
+                || !versionElement.TryGetInt32(out int schemaVersion))
+            {
+                return new SnapshotCacheProbeResult.Unreadable();
+            }
+
+            if (schemaVersion > CurrentSchemaVersion)
+            {
+                return new SnapshotCacheProbeResult.UnsupportedVersion();
+            }
+
+            if (schemaVersion != CurrentSchemaVersion)
+            {
+                return new SnapshotCacheProbeResult.Unreadable();
+            }
+
+            SnapshotCacheDocumentV1? document = JsonSerializer.Deserialize<SnapshotCacheDocumentV1>(
+                jsonBytes.Span,
+                SerializerOptions);
+            if (document is null)
+            {
+                return new SnapshotCacheProbeResult.Unreadable();
+            }
+
+            IReadOnlyList<ProviderSnapshot> snapshots = SnapshotCacheMapper.FromDocument(document);
+            return requiredProvider is null
+                   || snapshots.Any(snapshot => snapshot.ProviderId == requiredProvider)
+                ? new SnapshotCacheProbeResult.Present()
+                : new SnapshotCacheProbeResult.Missing();
+        }
+        catch (Exception exception) when (IsInvalidDocument(exception)
+                                          || exception is IOException
+                                          or UnauthorizedAccessException
+                                          or System.Security.SecurityException)
+        {
+            return new SnapshotCacheProbeResult.Unreadable();
         }
     }
 

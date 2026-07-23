@@ -180,6 +180,97 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task ReadOnlyOpenDoesNotCreateAMissingDatabase()
+    {
+        using var folder = new TemporaryFolder();
+
+        await Assert.ThrowsAsync<FileNotFoundException>(
+            () => UsageRepository.OpenReadOnlyAsync(folder.DatabasePath));
+
+        Assert.False(File.Exists(folder.DatabasePath));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(folder.DatabasePath)!));
+    }
+
+    [Fact]
+    public async Task ReadOnlyRepositoryFindsAgentUsageWithoutChangingFiles()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository writer = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await writer.IngestAsync([CreateEvent("grok-read-only")]);
+        byte[] databaseBefore = await File.ReadAllBytesAsync(folder.DatabasePath);
+        DateTime lastWriteBefore = File.GetLastWriteTimeUtc(folder.DatabasePath);
+
+        UsageRepository reader = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
+        bool hasGrok = await reader.HasUsageForAgentAsync(new AgentId("grok"));
+        bool hasClaude = await reader.HasUsageForAgentAsync(new AgentId("claude"));
+
+        Assert.True(hasGrok);
+        Assert.False(hasClaude);
+        Assert.Equal(databaseBefore, await File.ReadAllBytesAsync(folder.DatabasePath));
+        Assert.Equal(lastWriteBefore, File.GetLastWriteTimeUtc(folder.DatabasePath));
+        Assert.All(
+            Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!),
+            path => Assert.True(
+                Path.GetFileName(path) is "usage.v1.db" or "usage.v1.db-shm" or "usage.v1.db-wal"));
+    }
+
+    [Fact]
+    public async Task ReadOnlyOpenRejectsOldSchemaWithoutMigratingIt()
+    {
+        using var folder = new TemporaryFolder();
+        await UsageRepository.OpenAsync(folder.DatabasePath);
+        await using (var setup = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            await using SqliteCommand command = setup.CreateCommand();
+            command.CommandText = "DELETE FROM schema_migration WHERE version = 3;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        UsageSchemaTooOldException error = await Assert.ThrowsAsync<UsageSchemaTooOldException>(
+            () => UsageRepository.OpenReadOnlyAsync(folder.DatabasePath));
+
+        Assert.Equal(2, error.ActualVersion);
+        await using var verify = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Pooling=False");
+        await verify.OpenAsync();
+        await using SqliteCommand verifyCommand = verify.CreateCommand();
+        verifyCommand.CommandText = "SELECT COALESCE(MAX(version), 0) FROM schema_migration;";
+        Assert.Equal(2L, (long)(await verifyCommand.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task ReadOnlyRepositoryRejectsMutatorsBeforeOpeningAWriteConnection()
+    {
+        using var folder = new TemporaryFolder();
+        await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageRepository reader = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => reader.IngestAsync([CreateEvent("blocked-write")]));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => reader.ReplaceAgentEventsAsync(new AgentId("grok"), []));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => reader.ApplyRetentionAsync(DateTimeOffset.UtcNow));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => reader.DeleteAllUsageDataAsync());
+    }
+
+    [Fact]
+    public async Task ReadOnlyRepositorySeesCommitsMadeAfterItWasCreated()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository writer = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageRepository reader = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
+        Assert.False(await reader.HasUsageForAgentAsync(new AgentId("grok")));
+
+        await writer.IngestAsync([CreateEvent("late-writer-event")]);
+
+        Assert.True(await reader.HasUsageForAgentAsync(new AgentId("grok")));
+    }
+
+    [Fact]
     public async Task VersionOneDatabaseMigratesIncrementallyToCurrentVersion()
     {
         using var folder = new TemporaryFolder();

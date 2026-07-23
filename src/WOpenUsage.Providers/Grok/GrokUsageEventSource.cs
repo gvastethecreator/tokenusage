@@ -46,6 +46,8 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
 
     public AgentId AgentId { get; } = new("grok");
 
+    public bool IsRootAvailable => Directory.Exists(_grokHome);
+
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default) =>
         await Task.Run(() => ReadCore(cancellationToken), cancellationToken)
