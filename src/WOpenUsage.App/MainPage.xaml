@@ -1322,6 +1322,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <controls:ProviderMarkImage
                                                 Height="18"
@@ -1362,7 +1363,7 @@
                                                     TextTrimming="CharacterEllipsis" />
                                             </Border>
                                             <Button
-                                                Grid.Column="3"
+                                                Grid.Column="4"
                                                 AutomationProperties.AutomationId="{x:Bind DetailsAutomationId}"
                                                 AutomationProperties.HelpText="{x:Bind DetailsTooltip}"
                                                 AutomationProperties.Name="{x:Bind DetailsAutomationName}"
@@ -1408,6 +1409,22 @@
                                                     </Flyout>
                                                 </Button.Flyout>
                                             </Button>
+                                            <ToggleButton
+                                                x:Uid="ProviderSecondaryMetricsToggle"
+                                                Grid.Column="3"
+                                                AutomationProperties.AutomationId="{x:Bind SecondaryMetricsAutomationId}"
+                                                IsChecked="{x:Bind IsOnDemandMetricsExpanded, Mode=TwoWay}"
+                                                MinHeight="32"
+                                                MinWidth="32"
+                                                Padding="6"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind HasOnDemandMetrics}">
+                                                <FontIcon
+                                                    AutomationProperties.AccessibilityView="Raw"
+                                                    FontSize="14"
+                                                    Glyph="&#xE70D;"
+                                                    IsTextScaleFactorEnabled="False" />
+                                            </ToggleButton>
                                         </Grid>
 
                                         <Border
@@ -1483,12 +1500,9 @@
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
 
-                                                <Expander
-                                                    x:Uid="ProviderSecondaryMetricsExpander"
-                                                    AutomationProperties.AutomationId="{x:Bind SecondaryMetricsAutomationId}"
-                                                    IsExpanded="False"
-                                                    Visibility="{x:Bind HasOnDemandMetrics}">
-                                                    <ItemsControl ItemsSource="{x:Bind OnDemandMetricItems}">
+                                                <ItemsControl
+                                                    ItemsSource="{x:Bind OnDemandMetricItems}"
+                                                    Visibility="{x:Bind IsOnDemandMetricsExpanded, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
                                                                 <StackPanel>
@@ -1556,8 +1570,7 @@
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </Expander>
+                                                </ItemsControl>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>

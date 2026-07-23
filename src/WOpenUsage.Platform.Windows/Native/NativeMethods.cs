@@ -52,6 +52,7 @@ internal static class NativeMethods
     internal const uint MonitorDefaultToNearest = 2;
     internal const uint SpiGetWorkArea = 0x0030;
     internal const uint DwmWindowAttributeBorderColor = 34;
+    internal const uint DwmColorNone = 0xFFFFFFFE;
     internal const int GwlStyle = -16;
     internal const long NonClientFrameStyleMask = 0x00CF0000;
     internal const long AccessibleNonClientFrameStyle = 0x00480000;

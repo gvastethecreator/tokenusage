@@ -388,20 +388,18 @@ public sealed partial class MainWindow : Window, IDisposable
         _ = _accessibilitySettings.HighContrast
             ? WindowBorderStyle.TryRestoreAccessibleFrame(_windowHandle)
             : WindowBorderStyle.TryRemoveNonClientFrame(_windowHandle);
-        MatchSystemBorderToSurface();
+        UpdateSystemBorder();
     }
 
-    private void MatchSystemBorderToSurface()
+    private void UpdateSystemBorder()
     {
-        AppThemeMode theme = RootPage.ViewModel.Appearance.Theme;
-        Windows.UI.Color color = _accessibilitySettings.HighContrast
-            ? _uiSettings.GetColorValue(UIColorType.Foreground)
-            : theme switch
-            {
-                AppThemeMode.Dark => Windows.UI.Color.FromArgb(255, 39, 39, 39),
-                AppThemeMode.Light => Windows.UI.Color.FromArgb(255, 249, 249, 249),
-                _ => _uiSettings.GetColorValue(UIColorType.Background),
-            };
+        if (!_accessibilitySettings.HighContrast)
+        {
+            _ = WindowBorderStyle.TryHideSystemBorder(_windowHandle);
+            return;
+        }
+
+        Windows.UI.Color color = _uiSettings.GetColorValue(UIColorType.Foreground);
 
         _ = WindowBorderStyle.TryMatchSystemBorder(
             _windowHandle,
@@ -463,7 +461,7 @@ public sealed partial class MainWindow : Window, IDisposable
         Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
         object args)
     {
-        MatchSystemBorderToSurface();
+        UpdateSystemBorder();
         _suppressDeactivateHide = false;
         if (_isFlyoutVisible
             && RootPage.ViewModel.CloseWhenInactive
