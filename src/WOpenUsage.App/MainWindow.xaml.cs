@@ -165,6 +165,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ApplyBorderlessChrome();
         _systemVisualSettingsTimer.Start();
         Activate();
+        _ = ForegroundWindowActivator.TryActivate(_windowHandle);
 
         _ = DispatcherQueue.TryEnqueue(() =>
         {
