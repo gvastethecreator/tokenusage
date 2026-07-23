@@ -330,8 +330,75 @@ public sealed class SnapshotStoreTests
         Assert.Empty(Directory.GetFiles(folder.Path));
     }
 
+    [Fact]
+    public async Task LoadCancellationWhileWaitingForSharedMutexLeavesCacheUntouched()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+        await store.UpsertLastGoodAsync(CreateSnapshot("fake", 42m));
+        byte[] before = await File.ReadAllBytesAsync(folder.DocumentPath);
+        using var holderReady = new ManualResetEventSlim();
+        using var releaseHolder = new ManualResetEventSlim();
+        Exception? holderFailure = null;
+        var holder = new Thread(() =>
+        {
+            try
+            {
+                using var heldMutex = new Mutex(
+                    initiallyOwned: false,
+                    CreateSnapshotMutexName(folder.DocumentPath));
+                if (!heldMutex.WaitOne(TimeSpan.FromSeconds(1)))
+                {
+                    throw new TimeoutException("Test mutex holder could not acquire the cache lock.");
+                }
+
+                holderReady.Set();
+                releaseHolder.Wait();
+                heldMutex.ReleaseMutex();
+            }
+            catch (Exception exception)
+            {
+                holderFailure = exception;
+                holderReady.Set();
+            }
+        })
+        {
+            IsBackground = true,
+        };
+        holder.Start();
+        Assert.True(holderReady.Wait(TimeSpan.FromSeconds(2)));
+        Assert.Null(holderFailure);
+        try
+        {
+            using var cancellation = new CancellationTokenSource();
+            Task<SnapshotCacheReadResult> load = store.LoadAsync(cancellation.Token);
+            await Task.Delay(TimeSpan.FromMilliseconds(200));
+            Assert.False(load.IsCompleted);
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => load);
+        }
+        finally
+        {
+            releaseHolder.Set();
+        }
+        Assert.True(holder.Join(TimeSpan.FromSeconds(2)));
+        Assert.Null(holderFailure);
+
+        Assert.Equal(before, await File.ReadAllBytesAsync(folder.DocumentPath));
+        Assert.Empty(Directory.GetFiles(folder.Path, "*.tmp"));
+        Assert.Empty(Directory.GetFiles(folder.Path, "*.corrupt-*"));
+    }
+
     private static SnapshotStore CreateStore(string path) =>
         new(path, new FixedTimeProvider(Now));
+
+    private static string CreateSnapshotMutexName(string documentPath)
+    {
+        string normalizedPath = Path.GetFullPath(documentPath).ToUpperInvariant();
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
+        return $"Local\\WOpenUsage.SnapshotStore.{Convert.ToHexString(hash.AsSpan(0, 16))}";
+    }
 
     private static WorkerProcess StartWorkerProcess(
         string rootPath,

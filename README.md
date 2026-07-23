@@ -101,6 +101,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia de límites desde la CLI](docs/evidence/ticket-25b-limits-cli.md)
 - [Evidencia del refresco forzado desde la CLI](docs/evidence/ticket-25b2-force-refresh-cli.md)
 - [Evidencia de diagnóstico de providers](docs/evidence/ticket-25c-provider-diagnostics-cli.md)
+- [Evidencia de concurrencia entre app y CLI](docs/evidence/ticket-25d1-concurrent-cli-storage.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente ZCode](docs/research/2026-07-22-zcode-source-gate.md)
 - [Gate de fuente Kilo Code](docs/research/2026-07-22-kilo-code-source-gate.md)
