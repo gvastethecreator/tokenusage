@@ -90,6 +90,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia del gasto agregado real](docs/evidence/ticket-20-real-spend.md)
 - [Evidencia de i18n inicial](docs/evidence/ticket-47-i18n.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
+- [Gate de fuente ZCode](docs/research/2026-07-22-zcode-source-gate.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
 - [Gate de fuente Devin](docs/research/2026-07-21-devin-source-gate.md)
