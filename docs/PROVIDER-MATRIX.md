@@ -29,7 +29,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | ZCode | Bloqueada sin API pública | Bloqueados sin esquema local seguro | Sin fuente apta | Bloqueado | M9; Ticket 48 cerrado, Ticket 49 `needs-info` |
 | Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
-| Command Code | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 52–53 |
+| Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
 | Cline | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 54–55 |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
@@ -267,6 +267,37 @@ llama la Console. El provider se reabre con una fuente mínima, documentada y
 autorizada para terceros.
 
 Gate completo: [investigación de fuente Kimi Code](research/2026-07-22-kimi-code-source-gate.md).
+
+## Command Code
+
+### Fuente evaluada
+
+Command Code ofrece el CLI `cmd`; en Windows nativo se usa `cmdc` porque `cmd`
+pertenece al sistema. Windows nativo sigue en alpha y la documentación
+recomienda WSL. `/usage` muestra créditos, plan y límites dentro de una sesión
+interactiva; Studio muestra tokens, coste e historial por solicitud tras iniciar
+sesión.
+
+No publica un subcomando de cuota ni una exportación de métricas. `--output-format
+json` solo aplica a la respuesta de `cmd -p`; no convierte `/usage` en un
+contrato de lectura. La Provider API publica inferencia y listado de modelos,
+no una API de saldo, cuota o historial de gasto. Usa la misma API key que la
+CLI, por lo que no es una credencial de monitor de solo lectura.
+
+La documentación fija conversaciones bajo `~/.commandcode/projects/`, tokens
+en `~/.commandcode/auth.json` y preferencias en `.commandcode/taste/`. Esas
+rutas pueden contener prompts, respuestas, credenciales, reglas o contexto y
+no son una fuente apta.
+
+### Salida
+
+Bloqueado. La build pública puede detectar `cmdc --version` en una fase de
+diagnóstico, pero no lee datos, inicia sesión, llama `/usage`, automatiza Studio
+ni reutiliza una API key. El provider se reabre con una API o exportación de
+solo lectura, documentada para terceros, sin sesiones ni credenciales y
+autorizada para consultas automáticas.
+
+Gate completo: [investigación de fuente Command Code](research/2026-07-22-command-code-source-gate.md).
 
 ## Cursor
 
