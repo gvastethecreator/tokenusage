@@ -240,7 +240,7 @@ public sealed partial class MainWindow : Window, IDisposable
             StringComparison.Ordinal);
         bool refreshChanged = string.Equals(
             e.PropertyName,
-            nameof(RootPage.ViewModel.IsSampleRefreshing),
+            nameof(RootPage.ViewModel.IsRefreshing),
             StringComparison.Ordinal);
         if (!surfaceChanged && !refreshChanged)
         {
@@ -259,7 +259,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private void UpdateStatusText()
     {
         string resourceKey;
-        if (RootPage.ViewModel.IsSampleRefreshing || RootPage.ViewModel.IsLoading)
+        if (RootPage.ViewModel.IsRefreshing || RootPage.ViewModel.IsLoading)
         {
             resourceKey = RootPage.ViewModel.IsSampleModeEnabled
                 ? "SampleStatusLoading"
@@ -383,8 +383,20 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private static string GetIconPath()
     {
-        return Path.GetFullPath(
+        var appLocalPath = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
+        if (File.Exists(appLocalPath))
+        {
+            return appLocalPath;
+        }
+
+        // WAP places app binaries in a child folder while package assets stay
+        // at the package root.
+        var packageRootPath = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "Assets", "AppIcon.ico"));
+        return File.Exists(packageRootPath)
+            ? packageRootPath
+            : appLocalPath;
     }
 
     private string GetString(string key)

@@ -69,6 +69,55 @@ public sealed class VercelGatewayProviderRuntimeTests
     }
 
     [Fact]
+    public async Task RefreshAsyncUsesFreshCacheWithoutPaidReportCall()
+    {
+        ProviderSnapshot lastGood = CreateLastGood(TimeSpan.FromMinutes(5));
+        var client = new FakeReportClient();
+        var source = new FakeConnectionSource(CreateConnection());
+        var runtime = CreateRuntime(source, client);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(
+            CreateContext(lastGood),
+            CancellationToken.None);
+
+        ProviderOutcome.Success success = Assert.IsType<ProviderOutcome.Success>(outcome);
+        Assert.Same(lastGood, success.Snapshot);
+        Assert.Equal(1, source.ReadCount);
+        Assert.Equal(0, client.CallCount);
+    }
+
+    [Fact]
+    public async Task ForcedRefreshIgnoresFreshCacheAndCallsReport()
+    {
+        ProviderSnapshot lastGood = CreateLastGood(TimeSpan.FromMinutes(5));
+        var client = new FakeReportClient { Report = CreateFullReport() };
+        var runtime = CreateRuntime(new FakeConnectionSource(CreateConnection()), client);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(
+            CreateContext(lastGood, forceRefresh: true),
+            CancellationToken.None);
+
+        ProviderOutcome.Success success = Assert.IsType<ProviderOutcome.Success>(outcome);
+        Assert.NotSame(lastGood, success.Snapshot);
+        Assert.Equal(1, client.CallCount);
+    }
+
+    [Fact]
+    public async Task MissingConnectionDoesNotPublishFreshCache()
+    {
+        ProviderSnapshot lastGood = CreateLastGood(TimeSpan.FromMinutes(5));
+        var client = new FakeReportClient();
+        var runtime = CreateRuntime(new FakeConnectionSource(null), client);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(
+            CreateContext(lastGood),
+            CancellationToken.None);
+
+        Assert.IsType<ProviderOutcome.NotConfigured>(outcome);
+        Assert.Equal(0, client.CallCount);
+    }
+
+    [Fact]
     public async Task RefreshAsyncQueriesExactlyThirtyInclusiveUtcDays()
     {
         var client = new FakeReportClient
@@ -477,9 +526,14 @@ public sealed class VercelGatewayProviderRuntimeTests
         return new VercelGatewayProviderRuntime(connectionSource, reportClient);
     }
 
-    private static RefreshContext CreateContext(ProviderSnapshot? lastGood = null)
+    private static RefreshContext CreateContext(
+        ProviderSnapshot? lastGood = null,
+        bool forceRefresh = false)
     {
-        return new RefreshContext(new FixedTimeProvider(FixedUtc), lastGood);
+        return new RefreshContext(
+            new FixedTimeProvider(FixedUtc),
+            lastGood,
+            forceRefresh);
     }
 
     private static VercelGatewayConnection CreateConnection()
@@ -487,14 +541,15 @@ public sealed class VercelGatewayProviderRuntimeTests
         return new VercelGatewayConnection(SecretApiKey);
     }
 
-    private static ProviderSnapshot CreateLastGood()
+    private static ProviderSnapshot CreateLastGood(TimeSpan? age = null)
     {
+        TimeSpan effectiveAge = age ?? TimeSpan.FromHours(1);
         return new ProviderSnapshot(
             new ProviderId("vercel-ai-gateway"),
             "Vercel AI Gateway",
             planLabel: null,
-            fetchedAtUtc: FixedUtc.AddHours(-1),
-            sourceObservedAtUtc: FixedUtc.AddHours(-1),
+            fetchedAtUtc: FixedUtc - effectiveAge,
+            sourceObservedAtUtc: FixedUtc - effectiveAge,
             timeZoneId: "UTC",
             metrics: Array.Empty<MetricSnapshot>(),
             coverage: CoverageKind.Complete,

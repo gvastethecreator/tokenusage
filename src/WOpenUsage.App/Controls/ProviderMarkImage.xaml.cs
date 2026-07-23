@@ -14,6 +14,7 @@ public sealed partial class ProviderMarkImage : UserControl
             ["codex"] = "codex.svg",
             ["grok"] = "grok.svg",
             ["opencode"] = "opencode.svg",
+            ["vercel-ai-gateway"] = "vercel-ai-gateway.svg",
         };
 
     public static readonly DependencyProperty ProviderIdProperty =

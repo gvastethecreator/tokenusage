@@ -19,7 +19,7 @@ public partial class App : Application
     {
         AppLanguageRuntime.Initialize();
         InitializeComponent();
-#if DEBUG
+#if DEBUG || UI_TEST_FIXTURES
         string[] launchArguments = Environment.GetCommandLineArgs()[1..];
         if (launchArguments.Contains("--theme=light", StringComparer.OrdinalIgnoreCase))
         {
@@ -34,7 +34,7 @@ public partial class App : Application
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-#if DEBUG
+#if DEBUG || UI_TEST_FIXTURES
         string[] launchArguments = Environment.GetCommandLineArgs()[1..];
         string? claudeConfigForTest = launchArguments.FirstOrDefault(argument =>
             argument.StartsWith("--test-claude-config=", StringComparison.OrdinalIgnoreCase));

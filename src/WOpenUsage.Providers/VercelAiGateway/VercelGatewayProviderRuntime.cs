@@ -85,6 +85,13 @@ public sealed class VercelGatewayProviderRuntime : IProviderRuntime
         }
 
         DateTimeOffset utcNow = context.Clock.GetUtcNow().ToUniversalTime();
+        if (!context.ForceRefresh
+            && context.LastGood is ProviderSnapshot lastGood
+            && !SnapshotFreshness.IsStale(lastGood, context.Clock, context.StaleAfter))
+        {
+            return new ProviderOutcome.Success(lastGood);
+        }
+
         var today = DateOnly.FromDateTime(utcNow.UtcDateTime);
         var startDate = today.AddDays(-29);
         var endDate = today;

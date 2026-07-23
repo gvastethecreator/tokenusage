@@ -186,6 +186,131 @@ public sealed class VercelGatewayConnectionServiceTests
         Assert.Empty(cached.Snapshots);
     }
 
+    [Fact]
+    public async Task ConnectRemovesOldSnapshotBeforeSavingExactNewKey()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var snapshotStore = new SnapshotStore(folder.DocumentPath, clock);
+        await snapshotStore.UpsertLastGoodAsync(CreateVercelSnapshot());
+        var credentials = new FakeCredentialStore("old-test-api-key");
+        credentials.OnSave = () =>
+        {
+            SnapshotCacheReadResult.Loaded cached = Assert.IsType<SnapshotCacheReadResult.Loaded>(
+                snapshotStore.LoadAsync().GetAwaiter().GetResult());
+            Assert.Empty(cached.Snapshots);
+        };
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            snapshotStore,
+            new ProviderOperationGate());
+
+        VercelGatewayConnectResult result = await service.ConnectAsync(" new-test-api-key ");
+
+        Assert.True(result.CredentialSaved);
+        Assert.True(result.IsComplete);
+        Assert.Equal(VercelGatewayCacheCleanupStatus.Removed, result.CacheStatus);
+        Assert.Equal(" new-test-api-key ", credentials.ApiKey);
+        Assert.Equal(1, credentials.SaveCalls);
+    }
+
+    [Fact]
+    public async Task FutureCacheVersionRefusesConnectAndPreservesCredentialAndBytes()
+    {
+        using var folder = new TemporaryFolder();
+        const string futureDocument =
+            "{\"schemaVersion\":999,\"savedAtUtc\":\"2026-07-23T07:00:00Z\",\"providers\":[]}";
+        await File.WriteAllTextAsync(folder.DocumentPath, futureDocument);
+        var credentials = new FakeCredentialStore("old-test-api-key");
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            new SnapshotStore(folder.DocumentPath, new FixedTimeProvider(Now)),
+            new ProviderOperationGate());
+
+        VercelGatewayConnectResult result = await service.ConnectAsync("new-test-api-key");
+
+        Assert.False(result.CredentialSaved);
+        Assert.False(result.IsComplete);
+        Assert.Equal(
+            VercelGatewayCacheCleanupStatus.RefusedUnsupportedVersion,
+            result.CacheStatus);
+        Assert.Equal(999, result.UnsupportedSchemaVersion);
+        Assert.Equal("old-test-api-key", credentials.ApiKey);
+        Assert.Equal(0, credentials.SaveCalls);
+        Assert.Equal(futureDocument, await File.ReadAllTextAsync(folder.DocumentPath));
+    }
+
+    [Fact]
+    public async Task CancellationAfterConnectAcquisitionDoesNotInterruptCleanupOrSave()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var snapshotStore = new SnapshotStore(folder.DocumentPath, clock);
+        await snapshotStore.UpsertLastGoodAsync(CreateVercelSnapshot());
+        using var cancellation = new CancellationTokenSource();
+        var credentials = new FakeCredentialStore("old-test-api-key")
+        {
+            OnSave = cancellation.Cancel,
+        };
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            snapshotStore,
+            new ProviderOperationGate());
+
+        VercelGatewayConnectResult result = await service.ConnectAsync(
+            "new-test-api-key",
+            cancellation.Token);
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.True(result.IsComplete);
+        Assert.Equal("new-test-api-key", credentials.ApiKey);
+        SnapshotCacheReadResult.Loaded cached =
+            Assert.IsType<SnapshotCacheReadResult.Loaded>(await snapshotStore.LoadAsync());
+        Assert.Empty(cached.Snapshots);
+    }
+
+    [Fact]
+    public async Task WhitespaceConnectIsRejectedWithoutMutatingState()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var snapshotStore = new SnapshotStore(folder.DocumentPath, clock);
+        await snapshotStore.UpsertLastGoodAsync(CreateVercelSnapshot());
+        var credentials = new FakeCredentialStore("old-test-api-key");
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            snapshotStore,
+            new ProviderOperationGate());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.ConnectAsync("   "));
+
+        Assert.Equal("old-test-api-key", credentials.ApiKey);
+        Assert.Equal(0, credentials.SaveCalls);
+        SnapshotCacheReadResult.Loaded cached =
+            Assert.IsType<SnapshotCacheReadResult.Loaded>(await snapshotStore.LoadAsync());
+        Assert.Single(cached.Snapshots);
+    }
+
+    [Fact]
+    public async Task IsConfiguredWaitsForOperationGate()
+    {
+        using var folder = new TemporaryFolder();
+        var gate = new ProviderOperationGate();
+        await using IAsyncDisposable blocker = await gate.EnterAsync();
+        var credentials = new FakeCredentialStore("test-api-key");
+        var service = new VercelGatewayConnectionService(
+            credentials,
+            new SnapshotStore(folder.DocumentPath, new FixedTimeProvider(Now)),
+            gate);
+
+        Task<bool> configured = service.IsConfiguredAsync();
+        await Task.Yield();
+        Assert.False(configured.IsCompleted);
+
+        await blocker.DisposeAsync();
+        Assert.True(await configured);
+    }
+
     private static async Task<IReadOnlyList<CacheFirstEvent>> CollectAsync(
         IAsyncEnumerable<CacheFirstEvent> source)
     {
@@ -225,7 +350,11 @@ public sealed class VercelGatewayConnectionServiceTests
 
         public int DeleteCalls { get; private set; }
 
+        public int SaveCalls { get; private set; }
+
         public Action? OnDelete { get; init; }
+
+        public Action? OnSave { get; set; }
 
         public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken = default)
         {
@@ -246,6 +375,8 @@ public sealed class VercelGatewayConnectionServiceTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            SaveCalls++;
+            OnSave?.Invoke();
             ApiKey = newApiKey;
             return Task.CompletedTask;
         }
