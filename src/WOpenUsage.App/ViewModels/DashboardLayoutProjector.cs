@@ -80,6 +80,11 @@ public sealed record DashboardLayoutProjection(
     SampleDashboardSnapshot Dashboard,
     IReadOnlyList<DashboardProviderLayoutRow> Providers);
 
+public sealed record DashboardSpendSummary(
+    string TotalAmount,
+    string CompactTotalAmount,
+    string AccessibleName);
+
 public static class DashboardLayoutProjector
 {
     public static DashboardLayoutProjection Apply(
@@ -87,7 +92,8 @@ public static class DashboardLayoutProjector
         DashboardLayout savedLayout,
         string highlightLabel,
         DashboardProviderActionNameFormats? actionNameFormats = null,
-        DashboardMetricActionNameFormats? metricActionNameFormats = null)
+        DashboardMetricActionNameFormats? metricActionNameFormats = null,
+        Func<IReadOnlyList<SampleSpendSlice>, DashboardSpendSummary>? spendSummaryFormatter = null)
     {
         ArgumentNullException.ThrowIfNull(dashboard);
         ArgumentNullException.ThrowIfNull(savedLayout);
@@ -100,8 +106,15 @@ public static class DashboardLayoutProjector
                 "Dashboard providers must not be null.",
                 nameof(dashboard));
         }
+        if (dashboard.SpendSlices is null)
+        {
+            throw new ArgumentException(
+                "Dashboard spend slices must not be null.",
+                nameof(dashboard));
+        }
 
-        var catalogProviders = new List<ProviderId>(dashboard.Providers.Count);
+        var catalogProviders = new List<ProviderId>(
+            dashboard.Providers.Count + dashboard.SpendSlices.Count);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var nameById = new Dictionary<string, string>(StringComparer.Ordinal);
         var metricCatalog = new Dictionary<ProviderId, IReadOnlyList<MetricLayoutCatalogEntry>>();
@@ -129,6 +142,32 @@ public static class DashboardLayoutProjector
                 CreateMetricCatalog(card, dashboard);
             metricCatalog[catalogProviders[^1]] = entries;
             metricSources[card.ProviderId] = sources;
+        }
+
+        var seenSpend = new HashSet<string>(StringComparer.Ordinal);
+        foreach (SampleSpendSlice slice in dashboard.SpendSlices)
+        {
+            if (slice is null)
+            {
+                throw new ArgumentException(
+                    "Dashboard spend slices must not contain null entries.",
+                    nameof(dashboard));
+            }
+            if (!seenSpend.Add(slice.ProviderId))
+            {
+                throw new ArgumentException(
+                    $"Duplicate spend provider id '{slice.ProviderId}'.",
+                    nameof(dashboard));
+            }
+            if (seen.Add(slice.ProviderId))
+            {
+                var providerId = new ProviderId(slice.ProviderId);
+                catalogProviders.Add(providerId);
+                nameById[slice.ProviderId] = slice.ProviderName;
+                metricCatalog[providerId] = [];
+                metricSources[slice.ProviderId] =
+                    new Dictionary<string, MetricSource>(StringComparer.Ordinal);
+            }
         }
 
         var layout = savedLayout.ReconcileWithMetricCatalog(catalogProviders, metricCatalog);
@@ -216,32 +255,97 @@ public static class DashboardLayoutProjector
                 continue;
             }
 
-            cards.Add(ProjectCard(
-                cardById[id],
-                pref,
-                providerMetricSources,
-                highlightLabel));
+            if (cardById.TryGetValue(id, out SampleProviderCard? sourceCard))
+            {
+                cards.Add(ProjectCard(
+                    sourceCard,
+                    pref,
+                    providerMetricSources,
+                    highlightLabel));
+            }
         }
 
         var colorsByProvider = currentPrefs.ToDictionary(
             preference => preference.ProviderId.Value,
             preference => preference.ColorHex,
             StringComparer.Ordinal);
-        SampleSpendSlice[] spendSlices = dashboard.SpendSlices
-            .Select(slice => slice with
+        var spendByProvider = dashboard.SpendSlices.ToDictionary(
+            slice => slice.ProviderId,
+            StringComparer.Ordinal);
+        SampleSpendSlice[] spendSlices = currentPrefs
+            .Where(preference => preference.IsVisible
+                && spendByProvider.ContainsKey(preference.ProviderId.Value))
+            .Select(preference => spendByProvider[preference.ProviderId.Value] with
             {
-                ColorHex = colorsByProvider.GetValueOrDefault(slice.ProviderId),
+                ColorHex = colorsByProvider.GetValueOrDefault(preference.ProviderId.Value),
             })
             .ToArray();
+        DashboardSpendSummary? visibleSpendSummary = spendSummaryFormatter?.Invoke(spendSlices);
         var projectedDashboard = dashboard with
         {
             Providers = cards.AsReadOnly(),
             SpendSlices = spendSlices,
+            TotalSpendAmount = visibleSpendSummary?.TotalAmount ?? dashboard.TotalSpendAmount,
+            CompactTotalSpendAmount = visibleSpendSummary?.CompactTotalAmount
+                ?? dashboard.CompactTotalSpendAmount,
+            SpendAccessibleName = visibleSpendSummary?.AccessibleName
+                ?? dashboard.SpendAccessibleName,
         };
         return new DashboardLayoutProjection(
             layout,
             projectedDashboard,
             rows.AsReadOnly());
+    }
+
+    public static LocalUsageCard ApplyToLocalUsage(
+        LocalUsageCard card,
+        DashboardLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(layout);
+
+        Dictionary<string, (ProviderLayoutPreference Preference, int Rank)> preferences = layout.Providers
+            .Select((preference, rank) => (preference, rank))
+            .ToDictionary(
+                item => item.preference.ProviderId.Value,
+                item => (item.preference, item.rank),
+                StringComparer.Ordinal);
+
+        bool IsVisible(string providerId) =>
+            !preferences.TryGetValue(providerId, out var entry) || entry.Preference.IsVisible;
+
+        int Rank(string providerId) => preferences.TryGetValue(providerId, out var entry)
+            ? entry.Rank
+            : int.MaxValue;
+
+        SampleSpendSlice[] slices = card.SpendBreakdown.AgentSlices
+            .Select((slice, index) => (slice, index))
+            .Where(item => IsVisible(item.slice.ProviderId))
+            .OrderBy(item => Rank(item.slice.ProviderId))
+            .ThenBy(item => item.index)
+            .Select(item => item.slice with
+            {
+                ColorHex = preferences.TryGetValue(item.slice.ProviderId, out var entry)
+                    ? entry.Preference.ColorHex
+                    : item.slice.ColorHex,
+            })
+            .ToArray();
+        LocalUsageModelRow[] models = card.SpendBreakdown.Models
+            .Select((model, index) => (model, index))
+            .Where(item => IsVisible(item.model.AgentId))
+            .OrderBy(item => Rank(item.model.AgentId))
+            .ThenBy(item => item.index)
+            .Select(item => item.model)
+            .ToArray();
+
+        return card with
+        {
+            SpendBreakdown = card.SpendBreakdown with
+            {
+                AgentSlices = slices,
+                Models = models,
+            },
+        };
     }
 
     private static (IReadOnlyList<MetricLayoutCatalogEntry> Entries, IReadOnlyDictionary<string, MetricSource> Sources)

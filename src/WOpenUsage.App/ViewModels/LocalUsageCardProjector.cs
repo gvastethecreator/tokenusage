@@ -96,7 +96,9 @@ public static class LocalUsageCardProjector
             otherPeriods,
             breakdown,
             providerStatuses,
-            UsageHeatmapProjector.Create(rollups, currentDate, getString));
+            UsageHeatmapProjector.Create(rollups, currentDate, getString),
+            IsNoticeImportant: sourceKind == SourceKind.LocalLog
+                && readStatus != UsageSourceReadStatus.Complete);
     }
 
     public static LocalUsageCard CreateUnavailable(
@@ -105,6 +107,7 @@ public static class LocalUsageCardProjector
         Create([], getString, sourceKind) with
         {
             NoticeText = getString("LocalUsageUnavailable"),
+            IsNoticeImportant = true,
         };
 
     private static SampleMetric[] CreateMetrics(
@@ -205,7 +208,8 @@ public static class LocalUsageCardProjector
                 item.Agent.Value,
                 GetAgentName(item.Agent.Value, getString),
                 decimal.ToDouble(item.Amount),
-                FormatCostParts(item.Totals, missing, getString)))
+                FormatCostParts(item.Totals, missing, getString),
+                CompactAmountText: FormatUsd(item.Amount, getString)))
             .ToArray();
 
         LocalUsageModelRow[] models = rollups
