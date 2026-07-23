@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Input;
 using Microsoft.Windows.AppLifecycle;
 using Windows.Storage;
@@ -36,6 +37,10 @@ public sealed partial class MainPage : Page
 
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
     private int _detailRevealToken;
+    private Storyboard? _viewTransitionStoryboard;
+    private int _viewTransitionToken;
+    private FlyoutSurfaceState _lastSurfaceState;
+    private OptionsSection _lastOptionsSection;
 
     public MainPage()
     {
@@ -78,6 +83,8 @@ public sealed partial class MainPage : Page
             new AppearanceSettingsStore(appearanceSettingsPath, clock),
             CreateVercelCoordinator(vercelCacheDirectory, clock));
         InitializeComponent();
+        _lastSurfaceState = ViewModel.SurfaceState;
+        _lastOptionsSection = ViewModel.ActiveOptionsSection;
         ApplyTextScaleLayout();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
@@ -198,9 +205,34 @@ public sealed partial class MainPage : Page
             StringComparison.Ordinal);
         if (surfaceChanged || optionsSectionChanged)
         {
+            FlyoutSurfaceState previousSurface = _lastSurfaceState;
+            OptionsSection previousSection = _lastOptionsSection;
+            FlyoutSurfaceState nextSurface = ViewModel.SurfaceState;
+            OptionsSection nextSection = ViewModel.ActiveOptionsSection;
+            _lastSurfaceState = nextSurface;
+            _lastOptionsSection = nextSection;
+            bool isNavigationChange = optionsSectionChanged
+                || (surfaceChanged
+                    && (previousSurface == FlyoutSurfaceState.Options
+                        || nextSurface == FlyoutSurfaceState.Options));
+            double transitionOffset = GetViewTransitionOffset(
+                previousSurface,
+                previousSection,
+                nextSurface,
+                nextSection);
+            int transitionToken = 0;
+            if (isNavigationChange)
+            {
+                transitionToken = ++_viewTransitionToken;
+                PrepareViewTransition(transitionOffset);
+            }
             _ = DispatcherQueue.TryEnqueue(() =>
             {
                 BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
+                if (isNavigationChange && transitionToken == _viewTransitionToken)
+                {
+                    PlayViewTransition(transitionOffset);
+                }
                 if (ViewModel.IsOptions)
                 {
                     FocusPrimaryAction();
@@ -221,6 +253,92 @@ public sealed partial class MainPage : Page
             ScheduleSampleReveal();
         }
     }
+
+    private void PrepareViewTransition(double startOffset)
+    {
+        _viewTransitionStoryboard?.Stop();
+        _viewTransitionStoryboard = null;
+        if (!MotionSettings.AreAnimationsEnabled())
+        {
+            BodyScrollViewer.Opacity = 1;
+            BodyTransitionTransform.TranslateX = 0;
+            return;
+        }
+
+        BodyScrollViewer.Opacity = 0.84;
+        BodyTransitionTransform.TranslateX = startOffset;
+    }
+
+    private void PlayViewTransition(double startOffset)
+    {
+        _viewTransitionStoryboard?.Stop();
+        _viewTransitionStoryboard = null;
+        if (!MotionSettings.AreAnimationsEnabled())
+        {
+            BodyScrollViewer.Opacity = 1;
+            BodyTransitionTransform.TranslateX = 0;
+            return;
+        }
+
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var opacity = new DoubleAnimation
+        {
+            From = 0.84,
+            To = 1,
+            Duration = MotionSettings.ViewTransitionDuration,
+            EasingFunction = easing,
+        };
+        Storyboard.SetTarget(opacity, BodyScrollViewer);
+        Storyboard.SetTargetProperty(opacity, nameof(Opacity));
+        var translation = new DoubleAnimation
+        {
+            From = startOffset,
+            To = 0,
+            Duration = MotionSettings.ViewTransitionDuration,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            EnableDependentAnimation = true,
+        };
+        Storyboard.SetTarget(translation, BodyTransitionTransform);
+        Storyboard.SetTargetProperty(translation, nameof(CompositeTransform.TranslateX));
+        var storyboard = new Storyboard();
+        storyboard.Children.Add(opacity);
+        storyboard.Children.Add(translation);
+        storyboard.Completed += (_, _) =>
+        {
+            if (!ReferenceEquals(_viewTransitionStoryboard, storyboard))
+            {
+                return;
+            }
+
+            storyboard.Stop();
+            BodyScrollViewer.Opacity = 1;
+            BodyTransitionTransform.TranslateX = 0;
+            _viewTransitionStoryboard = null;
+        };
+        _viewTransitionStoryboard = storyboard;
+        storyboard.Begin();
+    }
+
+    private static double GetViewTransitionOffset(
+        FlyoutSurfaceState previousSurface,
+        OptionsSection previousSection,
+        FlyoutSurfaceState nextSurface,
+        OptionsSection nextSection)
+    {
+        if (previousSurface != nextSurface)
+        {
+            return nextSurface == FlyoutSurfaceState.Options ? 12 : -12;
+        }
+
+        return GetOptionsDepth(nextSection) >= GetOptionsDepth(previousSection) ? 12 : -12;
+    }
+
+    private static int GetOptionsDepth(OptionsSection section) => section switch
+    {
+        OptionsSection.Home => 0,
+        OptionsSection.Vercel or OptionsSection.ProviderStatus => 2,
+        _ => 1,
+    };
 
     private void OnSampleSpendLayoutLoaded(object sender, RoutedEventArgs e)
     {

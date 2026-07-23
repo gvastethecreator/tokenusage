@@ -10,5 +10,7 @@ internal static class MotionSettings
 
     public static readonly TimeSpan DonutRevealDuration = TimeSpan.FromMilliseconds(480);
 
+    public static readonly TimeSpan ViewTransitionDuration = TimeSpan.FromMilliseconds(200);
+
     public static bool AreAnimationsEnabled() => Settings.AnimationsEnabled;
 }
