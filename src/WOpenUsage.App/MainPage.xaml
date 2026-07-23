@@ -19,19 +19,28 @@
             x:Key="DashboardAmountTextBlockStyle"
             BasedOn="{StaticResource BodyStrongTextBlockStyle}"
             TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style
             x:Key="DashboardHeadingTextBlockStyle"
             BasedOn="{StaticResource BodyStrongTextBlockStyle}"
             TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style
             x:Key="DashboardCompactStrongTextBlockStyle"
             BasedOn="{StaticResource CaptionTextBlockStyle}"
             TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style
+            x:Key="DashboardCaptionTextBlockStyle"
+            BasedOn="{StaticResource CaptionTextBlockStyle}"
+            TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
         </Style>
     </Page.Resources>
 
@@ -40,12 +49,12 @@
             <VisualStateGroup x:Name="AppearanceDensityStates">
                 <VisualState x:Name="RegularDensity">
                     <VisualState.Setters>
-                        <Setter Target="FlyoutChrome.Padding" Value="16" />
-                        <Setter Target="RootLayout.RowSpacing" Value="12" />
+                        <Setter Target="FlyoutChrome.Padding" Value="14" />
+                        <Setter Target="RootLayout.RowSpacing" Value="10" />
                         <Setter Target="EmptyStateStack.Spacing" Value="12" />
                         <Setter Target="UnavailableStateStack.Spacing" Value="12" />
                         <Setter Target="OptionsStack.Spacing" Value="12" />
-                        <Setter Target="DashboardStack.Spacing" Value="12" />
+                        <Setter Target="DashboardStack.Spacing" Value="10" />
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="CompactDensity">
@@ -99,8 +108,7 @@
             SizeChanged="OnFlyoutChromeSizeChanged"
             Padding="14"
             Background="{ThemeResource LayerFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
+            BorderThickness="0"
             CornerRadius="{ThemeResource OverlayCornerRadius}">
         <Grid x:Name="RootLayout" RowSpacing="12">
             <Grid.RowDefinitions>
@@ -956,7 +964,7 @@
 
                     <StackPanel
                         x:Name="DashboardStack"
-                        Spacing="12"
+                        Spacing="10"
                         Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}">
                         <Grid Margin="4,0" ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -972,14 +980,14 @@
                                         AutomationProperties.AutomationId="CodexDataState"
                                         AutomationProperties.LiveSetting="Polite"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                         Text="{x:Bind ViewModel.LiveDataStateText, Mode=OneWay}"
                                         Visibility="{x:Bind ViewModel.IsLiveDataStateVisible, Mode=OneWay}" />
                                     <TextBlock
                                         AutomationProperties.AutomationId="{x:Bind ViewModel.SampleDataStateAutomationId, Mode=OneWay}"
                                         AutomationProperties.LiveSetting="Polite"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                         Text="{x:Bind ViewModel.SampleDataStateText, Mode=OneWay}"
                                         Visibility="{x:Bind ViewModel.IsSampleDataStateVisible, Mode=OneWay}" />
                                 </Grid>
@@ -1048,14 +1056,14 @@
                                                     Width="12" />
                                                 <TextBlock
                                                     Grid.Column="1"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind ProviderName}"
                                                     TextTrimming="CharacterEllipsis"
                                                     VerticalAlignment="Center" />
                                                 <TextBlock
                                                     Grid.Column="2"
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind AmountText}"
                                                     VerticalAlignment="Center" />
                                             </Grid>
@@ -1088,7 +1096,7 @@
                                         <TextBlock
                                             AutomationProperties.AutomationId="UsageProductCard.DataOrigin"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                             Text="{x:Bind ViewModel.LocalUsage.SourceLabel, Mode=OneWay}"
                                             TextWrapping="WrapWholeWords" />
                                     </StackPanel>
@@ -1096,14 +1104,14 @@
                                         Grid.Column="1"
                                         AutomationProperties.AutomationId="UsageProductCard.Period"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                         Text="{x:Bind ViewModel.LocalUsage.PeriodLabel, Mode=OneWay}"
                                         TextWrapping="WrapWholeWords" />
                                 </Grid>
 
                                 <TextBlock
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                     Text="{x:Bind ViewModel.LocalUsage.NoticeText, Mode=OneWay}"
                                     TextWrapping="WrapWholeWords" />
 
@@ -1125,20 +1133,20 @@
                                                             <ColumnDefinition Width="*" />
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock
-                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                             Text="{x:Bind Label, Mode=OneTime}"
                                                             TextWrapping="WrapWholeWords" />
                                                         <TextBlock
                                                             Grid.Column="1"
                                                             HorizontalAlignment="Right"
-                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                             Text="{x:Bind CostText, Mode=OneTime}"
                                                             TextAlignment="Right"
                                                             TextWrapping="WrapWholeWords" />
                                                     </Grid>
                                                     <TextBlock
                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                         Text="{x:Bind DetailText, Mode=OneTime}"
                                                         TextWrapping="WrapWholeWords" />
                                                 </StackPanel>
@@ -1161,12 +1169,12 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind Label}"
                                                     TextTrimming="CharacterEllipsis" />
                                                 <TextBlock
                                                     Grid.Column="1"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind Value}"
                                                     TextWrapping="WrapWholeWords" />
                                             </Grid>
@@ -1182,12 +1190,12 @@
                                     <Expander.Header>
                                         <StackPanel Spacing="1">
                                             <TextBlock
-                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                 Text="{x:Bind ViewModel.LocalUsage.SpendBreakdown.Title, Mode=OneWay}"
                                                 TextWrapping="WrapWholeWords" />
                                             <TextBlock
                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                 Text="{x:Bind ViewModel.LocalUsage.SpendBreakdown.SummaryText, Mode=OneWay}"
                                                 TextWrapping="WrapWholeWords" />
                                         </StackPanel>
@@ -1232,14 +1240,14 @@
                                                                 Width="12" />
                                                             <TextBlock
                                                                 Grid.Column="1"
-                                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                                Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                 Text="{x:Bind ProviderName, Mode=OneTime}"
                                                                 TextWrapping="WrapWholeWords" />
                                                             <TextBlock
                                                                 Grid.Row="1"
                                                                 Grid.Column="1"
                                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                                Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                 Text="{x:Bind AmountText, Mode=OneTime}"
                                                                 TextWrapping="WrapWholeWords" />
                                                         </Grid>
@@ -1268,13 +1276,13 @@
                                                             <RowDefinition Height="Auto" />
                                                         </Grid.RowDefinitions>
                                                         <TextBlock
-                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                             Text="{x:Bind Title, Mode=OneTime}"
                                                             TextWrapping="WrapWholeWords" />
                                                         <TextBlock
                                                             Grid.Row="1"
                                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                             TextWrapping="WrapWholeWords">
                                                             <Run Text="{x:Bind ReportedText, Mode=OneTime}" />
                                                             <Run Text=" · " />
@@ -1300,14 +1308,14 @@
                             <TextBlock
                                 x:Uid="DashboardAllProvidersHidden"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                 TextWrapping="WrapWholeWords" />
                         </Border>
 
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="sample:SampleProviderCard">
-                                    <StackPanel Margin="0,0,0,12" Spacing="8">
+                                    <StackPanel Margin="0,0,0,10" Spacing="6">
                                         <Grid Margin="4,0" ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="18" />
@@ -1343,13 +1351,13 @@
                                             </Grid>
                                             <Border
                                                 Grid.Column="2"
-                                                Padding="8,4"
+                                                Padding="7,2"
                                                 Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                                 CornerRadius="{ThemeResource ControlCornerRadius}"
                                                 VerticalAlignment="Center">
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind PlanLabel}"
                                                     TextTrimming="CharacterEllipsis" />
                                             </Border>
@@ -1405,20 +1413,20 @@
                                         <Border
                                             AutomationProperties.AutomationId="{x:Bind AutomationId}"
                                             AutomationProperties.Name="{x:Bind CardAutomationName}"
-                                            Padding="12,8"
+                                            Padding="12,10"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             CornerRadius="{StaticResource DashboardCardCornerRadius}">
-                                            <StackPanel Spacing="8">
+                                            <StackPanel Spacing="7">
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind CapabilityLabel}"
                                                     TextWrapping="WrapWholeWords" />
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                     Text="{x:Bind NoticeText}"
                                                     TextWrapping="WrapWholeWords"
                                                     Visibility="{x:Bind HasNotice}" />
@@ -1427,7 +1435,7 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
                                                             <StackPanel>
-                                                                <StackPanel Margin="0,0,0,8" Spacing="4" Visibility="{x:Bind IsQuotaWindow}">
+                                                                <StackPanel Margin="0,0,0,10" Spacing="3" Visibility="{x:Bind IsQuotaWindow}">
                                                                     <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Title}" />
                                                                     <controls:AnimatedProgressBar
                                                                         AutomationName="{x:Bind WindowAutomationName}"
@@ -1445,14 +1453,14 @@
                                                                             <ColumnDefinition Width="*" />
                                                                             <ColumnDefinition Width="Auto" />
                                                                         </Grid.ColumnDefinitions>
-                                                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind RemainingText}" TextWrapping="WrapWholeWords" />
-                                                                        <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ResetText}" TextAlignment="Right" TextWrapping="WrapWholeWords" />
+                                                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource DashboardCaptionTextBlockStyle}" Text="{x:Bind RemainingText}" TextWrapping="WrapWholeWords" />
+                                                                        <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource DashboardCaptionTextBlockStyle}" Text="{x:Bind ResetText}" TextAlignment="Right" TextWrapping="WrapWholeWords" />
                                                                     </Grid>
                                                                     <TextBlock
                                                                         AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
                                                                         AutomationProperties.Name="{x:Bind PaceAutomationName}"
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                         Text="{x:Bind PaceText}"
                                                                         TextWrapping="WrapWholeWords"
                                                                         Visibility="{x:Bind HasPace}" />
@@ -1467,8 +1475,8 @@
                                                                         <ColumnDefinition Width="*" />
                                                                         <ColumnDefinition Width="Auto" />
                                                                     </Grid.ColumnDefinitions>
-                                                                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" />
-                                                                    <TextBlock Grid.Column="1" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Value}" TextWrapping="WrapWholeWords" />
+                                                                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource DashboardCaptionTextBlockStyle}" Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource DashboardCaptionTextBlockStyle}" Text="{x:Bind Value}" TextWrapping="WrapWholeWords" />
                                                                 </Grid>
                                                             </StackPanel>
                                                         </DataTemplate>
@@ -1484,7 +1492,7 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
                                                                 <StackPanel>
-                                                                <StackPanel Margin="0,0,0,8" Spacing="4" Visibility="{x:Bind IsQuotaWindow}">
+                                                                <StackPanel Margin="0,0,0,10" Spacing="3" Visibility="{x:Bind IsQuotaWindow}">
                                                                     <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Title}" />
                                                                     <controls:AnimatedProgressBar
                                                                         AutomationName="{x:Bind WindowAutomationName}"
@@ -1504,13 +1512,13 @@
                                                                         </Grid.ColumnDefinitions>
                                                                         <TextBlock
                                                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                             Text="{x:Bind RemainingText}"
                                                                             TextWrapping="WrapWholeWords" />
                                                                         <TextBlock
                                                                             Grid.Column="1"
                                                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                                            Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                             Text="{x:Bind ResetText}"
                                                                             TextAlignment="Right"
                                                                             TextWrapping="WrapWholeWords" />
@@ -1519,7 +1527,7 @@
                                                                         AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
                                                                         AutomationProperties.Name="{x:Bind PaceAutomationName}"
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                         Text="{x:Bind PaceText}"
                                                                         TextWrapping="WrapWholeWords"
                                                                         Visibility="{x:Bind HasPace}" />
@@ -1536,12 +1544,12 @@
                                                                     </Grid.ColumnDefinitions>
                                                                     <TextBlock
                                                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                         Text="{x:Bind Label}"
                                                                         TextTrimming="CharacterEllipsis" />
                                                                     <TextBlock
                                                                         Grid.Column="1"
-                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                                                         Text="{x:Bind Value}"
                                                                         TextWrapping="WrapWholeWords" />
                                                                 </Grid>
