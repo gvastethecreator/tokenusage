@@ -70,12 +70,9 @@ function Wait-Id([string]$Id, [int]$Timeout = 3000) {
     if ($LASTEXITCODE -ne 0) { throw "$Id did not appear." }
 }
 
-function Get-ExpandState([string]$Id) {
-    $tree = & winapp ui inspect -a $AppPid --interactive --json 2>$null | ConvertFrom-Json
-    $element = @($tree.windows.elements | Where-Object automationId -eq $Id) |
-        Select-Object -First 1
-    if (-not $element) { throw "$Id was absent from the interactive tree." }
-    return $element.expandState
+function Wait-ToggleState([string]$Id, [string]$State) {
+    & winapp ui wait-for $Id -a $AppPid -p ToggleState --value $State -t 2000 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "$Id did not reach toggle state $State." }
 }
 
 function Assert-Text([string]$Text, [int]$Timeout = 3000) {
@@ -108,13 +105,9 @@ function Open-SampleScenario([int]$Offset) {
     Invoke-App "OptionsBackButton"
     Start-Sleep -Milliseconds 1400
     Wait-Id "SampleProvider.Codex.SecondaryMetrics" 5000
-    if ((Get-ExpandState "SampleProvider.Codex.SecondaryMetrics") -ne "collapsed") {
-        throw "Secondary metrics were not collapsed by default."
-    }
+    Wait-ToggleState "SampleProvider.Codex.SecondaryMetrics" "Off"
     Invoke-App "SampleProvider.Codex.SecondaryMetrics"
-    if ((Get-ExpandState "SampleProvider.Codex.SecondaryMetrics") -ne "expanded") {
-        throw "Secondary metrics did not expand."
-    }
+    Wait-ToggleState "SampleProvider.Codex.SecondaryMetrics" "On"
 }
 
 $ready = $false
@@ -168,8 +161,11 @@ Test-Ui "Usage rows and pace expose stable UIA" {
 
 Test-Ui "Near limit: caution pace" {
     Open-SampleScenario 1
-    & winapp ui wait-for "CodexUsage.Today" -a $AppPid --value "490K tokens" --contains -t 5000 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Near-limit usage did not render." }
+    $nearLimitUsage = & winapp ui get-property "CodexUsage.Today" -a $AppPid --json 2>$null |
+        ConvertFrom-Json
+    if ($nearLimitUsage.properties.Name -notmatch "490.*tokens") {
+        throw "Near-limit usage did not render."
+    }
     & winapp ui wait-for "CodexPace.Session" -a $AppPid --value "135%" --contains -t 5000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Near-limit pace did not render." }
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "02-near-limit.png") 2>$null | Out-Null

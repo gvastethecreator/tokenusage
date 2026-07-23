@@ -89,7 +89,8 @@
   <data name="ProviderObservedValueFormat" xml:space="preserve"><value>{0}</value></data>
   <data name="ProviderDetailsTooltipFormat" xml:space="preserve"><value>Source: {0}. Updated: {1}.</value></data>
   <data name="ProviderDetailsAutomationNameFormat" xml:space="preserve"><value>Details for {0}</value></data>
-  <data name="ProviderSecondaryMetricsExpander.Header" xml:space="preserve"><value>Usage details</value></data>
+  <data name="ProviderSecondaryMetricsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show or hide usage details</value></data>
+  <data name="ProviderSecondaryMetricsToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Usage details</value></data>
   <data name="SampleMetricTokens" xml:space="preserve"><value>Tokens</value></data>
   <data name="SampleMetricSpend" xml:space="preserve"><value>Spend</value></data>
   <data name="SampleNoticeNoQuota" xml:space="preserve"><value>No quota source in this sample.</value></data>

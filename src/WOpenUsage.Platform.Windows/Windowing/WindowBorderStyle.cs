@@ -68,6 +68,23 @@ public static class WindowBorderStyle
         return result >= 0;
     }
 
+    public static bool TryHideSystemBorder(nint windowHandle)
+    {
+        if (windowHandle == 0)
+        {
+            return false;
+        }
+
+        uint borderColor = NativeMethods.DwmColorNone;
+        int result = NativeMethods.DwmSetWindowAttribute(
+            windowHandle,
+            NativeMethods.DwmWindowAttributeBorderColor,
+            ref borderColor,
+            sizeof(uint));
+
+        return result >= 0;
+    }
+
     public static bool TryRestoreAccessibleFrame(nint windowHandle)
     {
         if (windowHandle == 0)
@@ -109,5 +126,4 @@ public static class WindowBorderStyle
                 | NativeMethods.SwpNoActivate
                 | NativeMethods.SwpFrameChanged);
     }
-
 }

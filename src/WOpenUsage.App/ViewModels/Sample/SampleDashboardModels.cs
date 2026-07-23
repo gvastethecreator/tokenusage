@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace WOpenUsage.App.ViewModels.Sample;
 
 public sealed record SampleSpendSlice(
@@ -124,8 +126,29 @@ public sealed record SampleProviderCard(
     string HighlightLabel = "",
     IReadOnlyList<SampleQuotaWindow>? SecondaryWindows = null,
     IReadOnlyList<SampleDashboardMetricItem>? OrderedPrimaryMetrics = null,
-    IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null)
+    IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null) : INotifyPropertyChanged
 {
+    private bool _isOnDemandMetricsExpanded;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public bool IsOnDemandMetricsExpanded
+    {
+        get => _isOnDemandMetricsExpanded;
+        set
+        {
+            if (_isOnDemandMetricsExpanded == value)
+            {
+                return;
+            }
+
+            _isOnDemandMetricsExpanded = value;
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(nameof(IsOnDemandMetricsExpanded)));
+        }
+    }
+
     public bool HasNotice => !string.IsNullOrWhiteSpace(NoticeText);
 
     public IReadOnlyList<SampleMetric> SecondaryMetricItems => SecondaryMetrics ?? [];
