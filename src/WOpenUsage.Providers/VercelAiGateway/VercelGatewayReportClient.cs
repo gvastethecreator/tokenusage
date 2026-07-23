@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace WOpenUsage.Providers.VercelAiGateway;
 
-public sealed class VercelGatewayReportClient
+public sealed class VercelGatewayReportClient : IVercelGatewayReportClient
 {
     private const int MaximumResponseBytes = 1024 * 1024;
 
