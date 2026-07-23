@@ -26,6 +26,7 @@ public sealed partial class ProviderColorSwatch : UserControl
     {
         InitializeComponent();
         ActualThemeChanged += OnActualThemeChanged;
+        Loaded += OnLoaded;
     }
 
     public string? ColorHex
@@ -47,9 +48,16 @@ public sealed partial class ProviderColorSwatch : UserControl
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => UpdateFill();
 
+    private void OnLoaded(object sender, RoutedEventArgs e) => UpdateFill();
+
     private void UpdateFill()
     {
-        if (!_accessibilitySettings.HighContrast && ColorHex is not null)
+        if (Swatch is null)
+        {
+            return;
+        }
+
+        if (!_accessibilitySettings.HighContrast && !string.IsNullOrWhiteSpace(ColorHex))
         {
             Swatch.Fill = ProviderColorPalette.CreateGradient(ColorHex);
             return;

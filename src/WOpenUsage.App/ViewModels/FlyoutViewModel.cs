@@ -146,6 +146,12 @@ public partial class FlyoutViewModel : ObservableObject
     public partial bool CloseWhenInactive { get; set; } = true;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGeneralOptionsSection))]
+    [NotifyPropertyChangedFor(nameof(IsAppearanceOptionsSection))]
+    [NotifyPropertyChangedFor(nameof(IsProvidersOptionsSection))]
+    public partial OptionsSection ActiveOptionsSection { get; set; } = OptionsSection.General;
+
+    [ObservableProperty]
     public partial AppearanceSettings Appearance { get; private set; } = AppearanceSettings.Default;
 
     [ObservableProperty]
@@ -276,6 +282,12 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsUsageSurface => !IsOptions;
 
+    public bool IsGeneralOptionsSection => ActiveOptionsSection == OptionsSection.General;
+
+    public bool IsAppearanceOptionsSection => ActiveOptionsSection == OptionsSection.Appearance;
+
+    public bool IsProvidersOptionsSection => ActiveOptionsSection == OptionsSection.Providers;
+
     public bool IsLocalUsageVisible =>
         _hasLocalUsage && !IsSampleModeEnabled && IsUsageSurface;
 
@@ -379,6 +391,7 @@ public partial class FlyoutViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanOpenOptions))]
     private void OpenOptions()
     {
+        ActiveOptionsSection = OptionsSection.General;
         SurfaceState = FlyoutSurfaceState.Options;
     }
 
@@ -391,6 +404,15 @@ public partial class FlyoutViewModel : ObservableObject
     }
 
     private bool CanCloseOptions() => IsOptions;
+
+    [RelayCommand]
+    private void ShowGeneralOptions() => ActiveOptionsSection = OptionsSection.General;
+
+    [RelayCommand]
+    private void ShowAppearanceOptions() => ActiveOptionsSection = OptionsSection.Appearance;
+
+    [RelayCommand]
+    private void ShowProvidersOptions() => ActiveOptionsSection = OptionsSection.Providers;
 
     partial void OnSelectedLanguageChanged(AppLanguageOption value)
     {
