@@ -15,20 +15,31 @@ public sealed class UsageSchemaTooNewException(int actualVersion, int supportedV
     public int SupportedVersion { get; } = supportedVersion;
 }
 
+public sealed class UsageSchemaTooOldException(int actualVersion, int supportedVersion)
+    : InvalidOperationException(
+        $"Usage database schema {actualVersion} is older than supported schema {supportedVersion}.")
+{
+    public int ActualVersion { get; } = actualVersion;
+
+    public int SupportedVersion { get; } = supportedVersion;
+}
+
 public sealed class UsageRepository
 {
     public const int CurrentSchemaVersion = 3;
     private const decimal MicrosPerUsd = 1_000_000m;
     private readonly string _connectionString;
+    private readonly bool _isReadOnly;
 
-    private UsageRepository(string databasePath)
+    private UsageRepository(string databasePath, SqliteOpenMode openMode)
     {
         DatabasePath = databasePath;
+        _isReadOnly = openMode == SqliteOpenMode.ReadOnly;
         _connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Cache = SqliteCacheMode.Shared,
+            Mode = openMode,
+            Cache = _isReadOnly ? SqliteCacheMode.Private : SqliteCacheMode.Shared,
             Pooling = false,
             DefaultTimeout = 5,
         }.ToString();
@@ -49,8 +60,24 @@ public sealed class UsageRepository
         }
 
         Directory.CreateDirectory(directory);
-        var repository = new UsageRepository(fullPath);
+        var repository = new UsageRepository(fullPath, SqliteOpenMode.ReadWriteCreate);
         await repository.EnsureMigratedAsync(cancellationToken).ConfigureAwait(false);
+        return repository;
+    }
+
+    public static async Task<UsageRepository> OpenReadOnlyAsync(
+        string databasePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+        string fullPath = Path.GetFullPath(databasePath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("The usage database does not exist.", fullPath);
+        }
+
+        var repository = new UsageRepository(fullPath, SqliteOpenMode.ReadOnly);
+        await repository.EnsureReadOnlySchemaAsync(cancellationToken).ConfigureAwait(false);
         return repository;
     }
 
@@ -58,6 +85,7 @@ public sealed class UsageRepository
         IEnumerable<UsageEvent> events,
         CancellationToken cancellationToken = default)
     {
+        EnsureWritable();
         ArgumentNullException.ThrowIfNull(events);
         UsageEvent[] batch = events.ToArray();
         if (batch.Any(usageEvent => usageEvent is null))
@@ -94,6 +122,7 @@ public sealed class UsageRepository
         IEnumerable<UsageEvent> events,
         CancellationToken cancellationToken = default)
     {
+        EnsureWritable();
         ArgumentNullException.ThrowIfNull(agentId);
         ArgumentNullException.ThrowIfNull(events);
         UsageEvent[] batch = events.ToArray();
@@ -203,6 +232,21 @@ public sealed class UsageRepository
             cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<bool> HasUsageForAgentAsync(
+        AgentId agentId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT EXISTS(SELECT 1 FROM daily_usage_rollup WHERE agent_id = $agentId LIMIT 1);";
+        command.Parameters.AddWithValue("$agentId", agentId.Value);
+        object? result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return Convert.ToInt32(result, CultureInfo.InvariantCulture) == 1;
+    }
+
     private async Task<IReadOnlyList<DailyUsageRollup>> QueryDailyRollupsCoreAsync(
         DateOnly fromInclusive,
         DateOnly toInclusive,
@@ -251,6 +295,7 @@ public sealed class UsageRepository
         int batchSize = 500,
         CancellationToken cancellationToken = default)
     {
+        EnsureWritable();
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(retentionDays, 0);
         ArgumentOutOfRangeException.ThrowIfLessThan(batchSize, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(batchSize, 10_000);
@@ -310,6 +355,7 @@ public sealed class UsageRepository
     public async Task DeleteAllUsageDataAsync(
         CancellationToken cancellationToken = default)
     {
+        EnsureWritable();
         await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
             .ConfigureAwait(false);
         await using SqliteTransaction transaction =
@@ -380,6 +426,33 @@ public sealed class UsageRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private async Task EnsureReadOnlySchemaAsync(CancellationToken cancellationToken)
+    {
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "SELECT COALESCE(MAX(version), 0) FROM schema_migration;";
+        object? result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        int currentVersion = Convert.ToInt32(result, CultureInfo.InvariantCulture);
+        if (currentVersion > CurrentSchemaVersion)
+        {
+            throw new UsageSchemaTooNewException(currentVersion, CurrentSchemaVersion);
+        }
+
+        if (currentVersion < CurrentSchemaVersion)
+        {
+            throw new UsageSchemaTooOldException(currentVersion, CurrentSchemaVersion);
+        }
+    }
+
+    private void EnsureWritable()
+    {
+        if (_isReadOnly)
+        {
+            throw new InvalidOperationException("The usage repository is read-only.");
+        }
+    }
+
     private async Task<SqliteConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
         var connection = new SqliteConnection(_connectionString);
@@ -388,10 +461,19 @@ public sealed class UsageRepository
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             await ExecuteAsync(connection, null, "PRAGMA busy_timeout = 5000;", cancellationToken)
                 .ConfigureAwait(false);
-            await ExecuteAsync(connection, null, "PRAGMA foreign_keys = ON;", cancellationToken)
-                .ConfigureAwait(false);
-            await ExecuteAsync(connection, null, "PRAGMA journal_mode = WAL;", cancellationToken)
-                .ConfigureAwait(false);
+            if (_isReadOnly)
+            {
+                await ExecuteAsync(connection, null, "PRAGMA query_only = ON;", cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                await ExecuteAsync(connection, null, "PRAGMA foreign_keys = ON;", cancellationToken)
+                    .ConfigureAwait(false);
+                await ExecuteAsync(connection, null, "PRAGMA journal_mode = WAL;", cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             return connection;
         }
         catch

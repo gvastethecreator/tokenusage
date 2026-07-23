@@ -91,3 +91,18 @@ public abstract class SnapshotCacheSaveResult
         public int SchemaVersion { get; }
     }
 }
+
+public abstract class SnapshotCacheProbeResult
+{
+    private SnapshotCacheProbeResult()
+    {
+    }
+
+    public sealed class Missing : SnapshotCacheProbeResult;
+
+    public sealed class Present : SnapshotCacheProbeResult;
+
+    public sealed class Unreadable : SnapshotCacheProbeResult;
+
+    public sealed class UnsupportedVersion : SnapshotCacheProbeResult;
+}

@@ -8,6 +8,28 @@ namespace WOpenUsage.Providers.Tests.Grok;
 public sealed class GrokUsageEventSourceTests
 {
     [Fact]
+    public void RootDetectionDoesNotReadFiles()
+    {
+        string root = Directory.CreateDirectory(
+            Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))).FullName;
+        string trap = Path.Combine(root, "auth.json");
+        File.WriteAllText(trap, "Bearer private-account@example.test");
+        try
+        {
+            using (var locked = new FileStream(
+                       trap, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                var source = new GrokUsageEventSource("UTC", grokHomeOverride: root);
+                Assert.True(source.IsRootAvailable);
+            }
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task MissingGrokDataIsReportedAsNoData()
     {
         string home = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -15,6 +37,7 @@ public sealed class GrokUsageEventSourceTests
 
         UsageSourceReadResult result = await source.ReadAsync();
 
+        Assert.False(source.IsRootAvailable);
         Assert.Equal("grok", source.AgentId.Value);
         Assert.Equal(SourceKind.LocalLog, source.SourceKind);
         Assert.Empty(result.Events);
@@ -40,8 +63,10 @@ public sealed class GrokUsageEventSourceTests
                     ["grok-4.1-fast"] = ModelUsage(40, 8, 50, 0),
                 }));
 
-        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        GrokUsageEventSource source = corpus.CreateSource();
+        UsageSourceReadResult result = await source.ReadAsync();
 
+        Assert.True(source.IsRootAvailable);
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Collection(
             result.Events.OrderBy(value => value.ModelId.Value),

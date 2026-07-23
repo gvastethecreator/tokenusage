@@ -8,6 +8,28 @@ namespace WOpenUsage.Providers.Tests.Claude;
 public sealed class ClaudeUsageEventSourceTests
 {
     [Fact]
+    public void RootDetectionDoesNotReadSessionFiles()
+    {
+        string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string projects = Directory.CreateDirectory(Path.Combine(root, "projects")).FullName;
+        string trap = Path.Combine(projects, "private-session.jsonl");
+        File.WriteAllText(trap, "Bearer private-account@example.test");
+        try
+        {
+            using (var locked = new FileStream(
+                       trap, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                var source = new ClaudeUsageEventSource("UTC", configDirectoryOverride: root);
+                Assert.True(source.IsRootAvailable);
+            }
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task MissingProjectsDirectoryIsReportedAsNoData()
     {
         string home = Path.Combine(
@@ -18,6 +40,7 @@ public sealed class ClaudeUsageEventSourceTests
 
         UsageSourceReadResult result = await source.ReadAsync();
 
+        Assert.False(source.IsRootAvailable);
         Assert.Empty(result.Events);
         Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
         Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
@@ -43,6 +66,7 @@ public sealed class ClaudeUsageEventSourceTests
         UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
 
+        Assert.True(source.IsRootAvailable);
         Assert.Equal(SourceKind.LocalLog, source.SourceKind);
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal("claude", usageEvent.AgentId.Value);

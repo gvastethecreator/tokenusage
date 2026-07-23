@@ -25,8 +25,10 @@ Investigación, plan, scaffold WinUI y límites de arquitectura listos. La app e
 - CLI: `usage --days N --format human|json` lee la SQLite compartida y
   `limits [provider-id] --format human|json` lee la caché real de Codex.
   `limits --force` ejecuta el mismo runtime Codex que la app. Publica
-  `wusage.usage.v1` y `wusage.limits.v1`. `providers` y `doctor` siguen en
-  desarrollo.
+  `wusage.usage.v1` y `wusage.limits.v1`. `providers` separa capacidad,
+  detección y datos propios para los providers activos. `doctor` informa seis
+  checks cerrados sin rutas ni errores privados. Sus contratos son
+  `wusage.providers.v1` y `wusage.doctor.v1`.
 
 ## Scaffold WinUI
 
@@ -98,6 +100,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia del primer corte CLI](docs/evidence/ticket-25a-usage-cli.md)
 - [Evidencia de límites desde la CLI](docs/evidence/ticket-25b-limits-cli.md)
 - [Evidencia del refresco forzado desde la CLI](docs/evidence/ticket-25b2-force-refresh-cli.md)
+- [Evidencia de diagnóstico de providers](docs/evidence/ticket-25c-provider-diagnostics-cli.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente ZCode](docs/research/2026-07-22-zcode-source-gate.md)
 - [Gate de fuente Kilo Code](docs/research/2026-07-22-kilo-code-source-gate.md)

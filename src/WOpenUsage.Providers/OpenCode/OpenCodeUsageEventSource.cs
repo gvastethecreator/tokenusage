@@ -45,6 +45,8 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     public SourceKind SourceKind => SourceKind.LocalDatabase;
     public AgentId AgentId { get; } = new("opencode");
 
+    public bool IsRootAvailable => Directory.Exists(_dataRoot);
+
     public async Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
         await Task.Run(() => ReadCore(cancellationToken), cancellationToken).ConfigureAwait(false);
 
