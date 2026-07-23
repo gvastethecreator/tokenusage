@@ -3,7 +3,7 @@ using System.Threading.Channels;
 using WOpenUsage.Platform.Windows.Processes;
 using WOpenUsage.Providers.Codex;
 
-namespace WOpenUsage.App.Services;
+namespace WOpenUsage.Runtime.Windows.Codex;
 
 public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
 {

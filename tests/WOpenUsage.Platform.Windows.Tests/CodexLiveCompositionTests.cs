@@ -1,10 +1,10 @@
-using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Platform.Windows.Processes;
 using WOpenUsage.Providers.Codex;
+using WOpenUsage.Runtime.Windows.Codex;
 
 namespace WOpenUsage.Platform.Windows.Tests;
 

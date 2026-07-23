@@ -21,6 +21,7 @@ WOpenUsage.sln
 │  ├─ WOpenUsage.Core/               dominio, coordinación, caché y contratos
 │  ├─ WOpenUsage.Providers/          adaptadores y scanners por proveedor
 │  ├─ WOpenUsage.Platform.Windows/   bandeja, ventanas, procesos, archivos y secretos
+│  ├─ WOpenUsage.Runtime.Windows/    composición Windows compartida por app y CLI
 │  └─ WOpenUsage.Cli/                comandos y JSON estable
 ├─ tests/
 │  ├─ WOpenUsage.Core.Tests/
@@ -41,14 +42,20 @@ flowchart TD
     App["WOpenUsage.App"] --> Core["WOpenUsage.Core"]
     App --> Providers["WOpenUsage.Providers"]
     App --> Windows["WOpenUsage.Platform.Windows"]
+    App --> Runtime["WOpenUsage.Runtime.Windows"]
     CLI["WOpenUsage.Cli"] --> Core
     CLI --> Providers
-    CLI --> Windows
+    CLI --> Runtime
+    Runtime --> Core
+    Runtime --> Providers
+    Runtime --> Windows
     Providers --> Core
     Windows --> Core
 ```
 
-`Core` no referencia WinUI, Windows App SDK ni implementaciones de proveedor. Una prueba de arquitectura verifica estas reglas.
+`Runtime.Windows` contiene la composición que une procesos Windows y providers;
+no contiene UI. `Core` no referencia WinUI, Windows App SDK ni implementaciones
+de proveedor. Una prueba de arquitectura verifica estas reglas.
 
 ## Flujo de datos
 

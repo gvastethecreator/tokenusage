@@ -20,7 +20,7 @@ public sealed class LimitsCommandTests
             ["--format", "json"],
             output,
             error,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>(
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>(
                 [CreateCodexSnapshot(), CreateClaudeSnapshot()]),
             new FixedTimeProvider(Now));
 
@@ -44,7 +44,7 @@ public sealed class LimitsCommandTests
             ["codex", "--format", "json"],
             output,
             TextWriter.Null,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>(
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>(
                 [CreateClaudeSnapshot(), CreateCodexSnapshot()]),
             new FixedTimeProvider(Now));
 
@@ -82,7 +82,7 @@ public sealed class LimitsCommandTests
             ["--format", "json"],
             output,
             TextWriter.Null,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([boundary]),
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([boundary]),
             new FixedTimeProvider(Now.AddMilliseconds(500)));
 
         Assert.Equal(0, exitCode);
@@ -107,7 +107,7 @@ public sealed class LimitsCommandTests
             ["grok", "--format", "json"],
             output,
             TextWriter.Null,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([CreateCodexSnapshot()]),
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([CreateCodexSnapshot()]),
             new FixedTimeProvider(Now));
 
         Assert.Equal(4, exitCode);
@@ -130,7 +130,7 @@ public sealed class LimitsCommandTests
             ["--format", "json"],
             output,
             TextWriter.Null,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([empty]),
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([empty]),
             new FixedTimeProvider(Now));
 
         Assert.Equal(4, exitCode);
@@ -152,7 +152,7 @@ public sealed class LimitsCommandTests
             [],
             output,
             TextWriter.Null,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([CreateCodexSnapshot()]),
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([CreateCodexSnapshot()]),
             new FixedTimeProvider(Now));
 
         Assert.Equal(0, exitCode);
@@ -188,7 +188,7 @@ public sealed class LimitsCommandTests
             [],
             output,
             TextWriter.Null,
-            (_, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([hostile]),
+            (_, _, _) => Task.FromResult<IReadOnlyList<ProviderSnapshot>>([hostile]),
             new FixedTimeProvider(Now));
 
         Assert.Equal(0, exitCode);
@@ -205,37 +205,24 @@ public sealed class LimitsCommandTests
     [Fact]
     public async Task ForceFlagIsPassedToReader()
     {
+        string? receivedProviderId = null;
         bool? receivedForce = null;
 
         int exitCode = await LimitsCommand.RunAsync(
-            ["--force"],
+            ["codex", "--force"],
             TextWriter.Null,
             TextWriter.Null,
-            (force, _) =>
+            (providerId, force, _) =>
             {
+                receivedProviderId = providerId;
                 receivedForce = force;
                 return Task.FromResult<IReadOnlyList<ProviderSnapshot>>([CreateCodexSnapshot()]);
             },
             new FixedTimeProvider(Now));
 
         Assert.Equal(0, exitCode);
+        Assert.Equal("codex", receivedProviderId);
         Assert.True(receivedForce);
-    }
-
-    [Fact]
-    public async Task UnavailableForceRefreshReturnsSafeNoDataError()
-    {
-        var error = new StringWriter(CultureInfo.InvariantCulture);
-
-        int exitCode = await LimitsCommand.RunAsync(
-            ["--force"],
-            TextWriter.Null,
-            error,
-            (_, _) => throw new LimitsRefreshUnavailableException(),
-            new FixedTimeProvider(Now));
-
-        Assert.Equal(4, exitCode);
-        Assert.Equal("Live limit refresh is unavailable." + Environment.NewLine, error.ToString());
     }
 
     [Theory]
@@ -258,7 +245,7 @@ public sealed class LimitsCommandTests
             arguments,
             output,
             error,
-            (_, _) =>
+            (_, _, _) =>
             {
                 readerCalled = true;
                 return Task.FromResult<IReadOnlyList<ProviderSnapshot>>([CreateCodexSnapshot()]);
@@ -281,7 +268,7 @@ public sealed class LimitsCommandTests
             [],
             TextWriter.Null,
             error,
-            (_, _) => throw new IOException("C:\\Users\\secret\\snapshots.v1.json"),
+            (_, _, _) => throw new IOException("C:\\Users\\secret\\snapshots.v1.json"),
             new FixedTimeProvider(Now));
 
         Assert.Equal(4, exitCode);
@@ -299,7 +286,7 @@ public sealed class LimitsCommandTests
             [],
             TextWriter.Null,
             TextWriter.Null,
-            (_, token) => Task.FromCanceled<IReadOnlyList<ProviderSnapshot>>(token),
+            (_, _, token) => Task.FromCanceled<IReadOnlyList<ProviderSnapshot>>(token),
             new FixedTimeProvider(Now),
             cancellation.Token));
     }

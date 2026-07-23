@@ -14,6 +14,7 @@ using WOpenUsage.App.ViewModels;
 using WOpenUsage.Providers.Claude;
 using WOpenUsage.Providers.Grok;
 using WOpenUsage.Providers.OpenCode;
+using WOpenUsage.Runtime.Windows.Codex;
 
 namespace WOpenUsage.App;
 
