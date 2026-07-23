@@ -22,6 +22,12 @@
   <data name="ProviderHeader.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="HeaderRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update</value></data>
   <data name="OptionsHeader.Text" xml:space="preserve"><value>Options</value></data>
+  <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
+  <data name="OptionsGeneralButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
+  <data name="OptionsAppearanceLabel.Text" xml:space="preserve"><value>Appearance</value></data>
+  <data name="OptionsAppearanceButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Appearance options</value></data>
+  <data name="OptionsProvidersLabel.Text" xml:space="preserve"><value>Providers</value></data>
+  <data name="OptionsProvidersButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
   <data name="OptionsBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
   <data name="LoadingProgressRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Updating usage</value></data>
   <data name="LoadingLabel.Text" xml:space="preserve"><value>Looking for local usage data…</value></data>

@@ -68,6 +68,8 @@ function Send-KeyTo([string]$Selector, [string]$Keys) {
 function Open-Appearance {
     Wait-ForElement "SampleSpendDonut" 10000
     Invoke-Element "FooterOptionsButton"
+    Wait-ForElement "OptionsAppearanceButton"
+    Invoke-Element "OptionsAppearanceButton"
     Wait-ForElement "AppearanceExpander"
     winapp ui scroll-into-view "AppearanceExpander" -a $AppPid 2>$null | Out-Null
     Invoke-Element "AppearanceExpander"
