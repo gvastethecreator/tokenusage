@@ -49,6 +49,7 @@ hará el cambio de forma atómica y con pruebas de actualización.
 - Copilot billing personal pagado y organización con token manual; sin cuota restante;
 - Claude en vivo solo tras el gate del proveedor;
 - Antigravity local pasivo y Devin ACUs de organización como canales experimentales.
+- Kilo Code y Zed solo tras reabrir sus gates; fuera de la beta de paridad actual.
 
 ## Reglas de ejecución
 
@@ -572,18 +573,29 @@ Orden y alcance:
 11. Cline, solo mediante API pública de lectura y una API key propia aportada
     de forma explícita, después de fijar schema y permiso; quedan excluidos
     datos locales de tareas.
+12. Kilo Code, en gate por Ticket 56: `kilo stats` es una fuente candidata,
+    sin salida estructurada ni contrato de solo lectura. Se excluyen `kilo.db`
+    y sesiones locales.
+13. Zed, bloqueado por Ticket 58: los hilos locales mezclan transcripción y
+    contadores; solo se reabre con una fuente agregada oficial para terceros.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
 
-ZCode, Kimi Code y Command Code cerraron su investigación con estado bloqueado
-en los Tickets 48, 50 y 52. Cline cerró Ticket 54; el provider sigue bloqueado:
-la API Enterprise candidata carece de schema publicado y permiso de monitor
-probado. Ticket 55 queda en `needs-info`. Cada proveedor debe confirmar el
-nombre canónico, editor o CLI objetivo, rutas Windows, contrato de cuota, uso
-y gasto, licencia y política antes de escribir un adapter.
+ZCode, Kimi Code, Command Code y Zed cerraron su investigación con estado
+bloqueado en los Tickets 48, 50, 52 y 58. Cline cerró Ticket 54; el provider
+sigue bloqueado: la API Enterprise candidata carece de schema publicado y
+permiso de monitor probado. Kilo Code cerró Ticket 56 con un gate abierto:
+`kilo stats` no tiene salida estructurada ni garantía de solo lectura. Los
+Tickets 55, 57 y 59 quedan en `needs-info`. Cada proveedor debe confirmar el
+nombre canónico, editor o CLI objetivo, rutas Windows, contrato de cuota, uso y
+gasto, licencia y política antes de escribir un adapter.
 
 Gate Cline: [investigación de fuente Cline](research/2026-07-22-cline-source-gate.md).
+
+Gates nuevos: [Kilo Code](research/2026-07-22-kilo-code-source-gate.md),
+[Zed](research/2026-07-22-zed-source-gate.md) e [inventario de cobertura]
+(research/2026-07-22-provider-reference-inventory.md).
 
 Cada proveedor se divide en commits:
 
@@ -655,7 +667,7 @@ Publicar el artifact requiere autorización explícita. Crear el paquete local n
 
 ## M11 — Paridad ampliada y estable
 
-Esfuerzo: continuo. La amplitud de diez proveedores puede llevar 4–6 meses para una persona por los gates y pruebas reales.
+Esfuerzo: continuo. La amplitud de proveedores puede llevar 4–6 meses para una persona por los gates y pruebas reales.
 
 ### Tareas
 
@@ -757,7 +769,7 @@ Para una persona con experiencia en C# y Windows:
 - spike Antigravity pasivo: 4–7 días después de obtener una base real;
 - cada proveedor sencillo: 3–6 días tras tener contrato y fixtures;
 - cada proveedor privado o multicuenta: 7–15 días más el tiempo externo;
-- paridad amplia de diez proveedores: 4–6 meses como orden de magnitud.
+- paridad amplia de proveedores: 4–6 meses como orden de magnitud.
 
 La estimación excluye espera por permisos, firma, Store y cuentas de prueba. Se revisa al cerrar M4 con datos reales.
 
