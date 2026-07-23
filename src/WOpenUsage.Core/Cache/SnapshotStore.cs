@@ -94,6 +94,14 @@ public sealed class SnapshotStore
         return RunLocked(() => SaveCore(snapshotArray), cancellationToken);
     }
 
+    public Task<SnapshotCacheRemoveResult> RemoveProviderAsync(
+        ProviderId providerId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(providerId);
+        return RunLocked(() => RemoveProviderCore(providerId), cancellationToken);
+    }
+
     private SnapshotCacheReadResult LoadCore()
     {
         if (!File.Exists(DocumentPath))
@@ -242,8 +250,46 @@ public sealed class SnapshotStore
         ProviderSnapshot[] ordered = merged.Values
             .OrderBy(snapshot => snapshot.ProviderId.Value, StringComparer.Ordinal)
             .ToArray();
+        WriteSnapshotSet(ordered);
+        return new SnapshotCacheSaveResult.Saved(ordered);
+    }
+
+    private SnapshotCacheRemoveResult RemoveProviderCore(ProviderId providerId)
+    {
+        SnapshotCacheReadResult current = LoadCore();
+        if (current is SnapshotCacheReadResult.UnsupportedVersion unsupported)
+        {
+            return new SnapshotCacheRemoveResult.RefusedUnsupportedVersion(
+                unsupported.SchemaVersion);
+        }
+
+        if (current is SnapshotCacheReadResult.Corrupt corrupt)
+        {
+            return new SnapshotCacheRemoveResult.Unreadable(corrupt.QuarantineFileName);
+        }
+
+        if (current is not SnapshotCacheReadResult.Loaded loaded)
+        {
+            return new SnapshotCacheRemoveResult.Missing();
+        }
+
+        ProviderSnapshot[] remaining = loaded.Snapshots
+            .Where(snapshot => snapshot.ProviderId != providerId)
+            .OrderBy(snapshot => snapshot.ProviderId.Value, StringComparer.Ordinal)
+            .ToArray();
+        if (remaining.Length == loaded.Snapshots.Count)
+        {
+            return new SnapshotCacheRemoveResult.Missing();
+        }
+
+        WriteSnapshotSet(remaining);
+        return new SnapshotCacheRemoveResult.Removed(remaining);
+    }
+
+    private void WriteSnapshotSet(IReadOnlyList<ProviderSnapshot> snapshots)
+    {
         SnapshotCacheDocumentV1 document = SnapshotCacheMapper.ToDocument(
-            ordered,
+            snapshots,
             _clock.GetUtcNow().ToUniversalTime());
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(document, SerializerOptions);
         if (bytes.Length > MaximumDocumentBytes)
@@ -253,7 +299,6 @@ public sealed class SnapshotStore
         }
 
         WriteAtomically(bytes);
-        return new SnapshotCacheSaveResult.Saved(ordered);
     }
 
     private SnapshotCacheReadResult.Corrupt QuarantineCorrupt()
