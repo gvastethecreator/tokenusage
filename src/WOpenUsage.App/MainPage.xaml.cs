@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.AppLifecycle;
@@ -16,6 +17,7 @@ using WOpenUsage.Providers.Grok;
 using WOpenUsage.Providers.OpenCode;
 using WOpenUsage.Providers.VercelAiGateway;
 using WOpenUsage.Core.Cache;
+using WOpenUsage.Core.Layout;
 using WOpenUsage.Runtime.Windows.Codex;
 using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
@@ -51,6 +53,8 @@ public sealed partial class MainPage : Page
             "cache",
             "providers",
             "vercel-ai-gateway");
+        string dashboardLayoutPath = GetDashboardLayoutPath(
+            ApplicationData.Current.LocalFolder.Path);
         var codexClientFactory = new CodexAppServerQuotaClientFactory(clock);
         ViewModel = new FlyoutViewModel(
             new SampleRefreshCoordinator(sampleCacheDirectory, clock),
@@ -63,6 +67,7 @@ public sealed partial class MainPage : Page
                     new OpenCodeUsageEventSource(TimeZoneInfo.Local.Id),
                 ],
                 clock),
+            new DashboardLayoutStore(dashboardLayoutPath, clock),
             CreateVercelCoordinator(vercelCacheDirectory, clock));
         InitializeComponent();
         ApplyTextScaleLayout();
@@ -218,6 +223,42 @@ public sealed partial class MainPage : Page
         await connection;
     }
 
+    private async void OnDashboardProviderMoveUpClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string providerId })
+        {
+            await ViewModel.MoveDashboardProviderAsync(providerId, -1);
+        }
+    }
+
+    private async void OnDashboardProviderMoveDownClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string providerId })
+        {
+            await ViewModel.MoveDashboardProviderAsync(providerId, 1);
+        }
+    }
+
+    private async void OnDashboardProviderVisibilityClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton { Tag: string providerId } toggle)
+        {
+            await ViewModel.SetDashboardProviderVisibleAsync(
+                providerId,
+                toggle.IsChecked is true);
+        }
+    }
+
+    private async void OnDashboardProviderHighlightClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton { Tag: string providerId } toggle)
+        {
+            await ViewModel.SetDashboardProviderHighlightedAsync(
+                providerId,
+                toggle.IsChecked is true);
+        }
+    }
+
     private static string GetLanguageRestartArguments()
     {
 #if DEBUG || UI_TEST_FIXTURES
@@ -250,6 +291,19 @@ public sealed partial class MainPage : Page
             cacheDirectory,
             clock,
             VercelHttpClient);
+    }
+
+    private static string GetDashboardLayoutPath(string localFolderPath)
+    {
+#if DEBUG || UI_TEST_FIXTURES
+        string? overrideArgument = Environment.GetCommandLineArgs().FirstOrDefault(argument =>
+            argument.StartsWith("--test-layout-path=", StringComparison.OrdinalIgnoreCase));
+        if (overrideArgument is not null)
+        {
+            return overrideArgument[(overrideArgument.IndexOf('=') + 1)..];
+        }
+#endif
+        return Path.Combine(localFolderPath, DashboardLayoutStore.DefaultFileName);
     }
 
     private void ScheduleSampleReveal()

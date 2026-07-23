@@ -323,4 +323,21 @@
   <data name="VercelQuotaStatusDegraded" xml:space="preserve"><value>Budget unavailable</value></data>
   <data name="VercelQuotaStatusInactive" xml:space="preserve"><value>Budget inactive</value></data>
   <data name="VercelQuotaDegradedNotice" xml:space="preserve"><value>The account report is current. The key budget could not be checked.</value></data>
+  <data name="DashboardLayoutExpander.Header" xml:space="preserve"><value>Dashboard layout</value></data>
+  <data name="DashboardLayoutExpander.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Dashboard layout</value></data>
+  <data name="DashboardLayoutDescription.Text" xml:space="preserve"><value>Reorder, show, hide, or highlight provider cards.</value></data>
+  <data name="DashboardProviderMoveUpAutomationNameFormat" xml:space="preserve"><value>Move {0} up</value></data>
+  <data name="DashboardProviderMoveUpButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Move up</value></data>
+  <data name="DashboardProviderMoveDownAutomationNameFormat" xml:space="preserve"><value>Move {0} down</value></data>
+  <data name="DashboardProviderMoveDownButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Move down</value></data>
+  <data name="DashboardProviderVisibilityAutomationNameFormat" xml:space="preserve"><value>Show or hide {0}</value></data>
+  <data name="DashboardProviderVisibilityButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show or hide</value></data>
+  <data name="DashboardProviderHighlightAutomationNameFormat" xml:space="preserve"><value>Highlight {0}</value></data>
+  <data name="DashboardProviderHighlightButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Highlight</value></data>
+  <data name="DashboardProviderHighlightedLabel" xml:space="preserve"><value>Highlighted</value></data>
+  <data name="DashboardAllProvidersHidden.Text" xml:space="preserve"><value>All provider cards are hidden. Open Options to show one.</value></data>
+  <data name="DashboardLayoutRecoveredFormat" xml:space="preserve"><value>Invalid layout settings were moved to {0}. You can save new settings.</value></data>
+  <data name="DashboardLayoutNewerVersionFormat" xml:space="preserve"><value>Layout format {0} is newer. Update TokenUsage before changing it.</value></data>
+  <data name="DashboardLayoutUnavailable" xml:space="preserve"><value>Layout settings cannot be read. Changes are disabled.</value></data>
+  <data name="DashboardLayoutSaveFailed" xml:space="preserve"><value>Layout settings could not be saved. Your previous settings remain.</value></data>
 </root>

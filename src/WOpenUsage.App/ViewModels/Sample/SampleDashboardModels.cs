@@ -49,7 +49,9 @@ public sealed record SampleProviderCard(
     string ObservedLabel = "",
     string ObservedValue = "",
     string DetailsTooltip = "",
-    string DetailsAutomationName = "")
+    string DetailsAutomationName = "",
+    bool IsHighlighted = false,
+    string HighlightLabel = "")
 {
     public bool HasNotice => !string.IsNullOrWhiteSpace(NoticeText);
 
@@ -67,6 +69,12 @@ public sealed record SampleProviderCard(
     public string DetailsObservedAutomationId => $"{AutomationId}.Details.Observed";
 
     public string SecondaryMetricsAutomationId => $"{AutomationId}.SecondaryMetrics";
+
+    public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
+
+    public string CardAutomationName => HasHighlight
+        ? $"{Name}. {HighlightLabel}"
+        : Name;
 }
 
 public sealed record SampleDashboardSnapshot(

@@ -7,6 +7,7 @@ using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
+using WOpenUsage.Core.Layout;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Runtime.Windows.Codex;
 using WOpenUsage.Runtime.Windows.VercelAiGateway;
@@ -19,6 +20,8 @@ public partial class FlyoutViewModel : ObservableObject
     private readonly SampleRefreshCoordinator _sampleRefreshCoordinator;
     private readonly CodexRefreshCoordinator _codexRefreshCoordinator;
     private readonly LocalUsageCoordinator _localUsageCoordinator;
+    private readonly DashboardLayoutStore _dashboardLayoutStore;
+    private readonly Task _dashboardLayoutInitialization;
     private CancellationTokenSource? _refreshCancellation;
     private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
     private SampleScenario? _activeScenario;
@@ -29,11 +32,15 @@ public partial class FlyoutViewModel : ObservableObject
     private bool _hasLocalUsage;
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
+    private DashboardLayout _dashboardLayout = DashboardLayout.Empty;
+    private SampleDashboardSnapshot? _rawDashboard;
+    private bool _isDashboardLayoutReadOnly;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
         CodexRefreshCoordinator codexRefreshCoordinator,
         LocalUsageCoordinator localUsageCoordinator,
+        DashboardLayoutStore dashboardLayoutStore,
         VercelGatewayRefreshCoordinator vercelGatewayCoordinator)
     {
         _sampleRefreshCoordinator = sampleRefreshCoordinator
@@ -42,6 +49,8 @@ public partial class FlyoutViewModel : ObservableObject
             ?? throw new ArgumentNullException(nameof(codexRefreshCoordinator));
         _localUsageCoordinator = localUsageCoordinator
             ?? throw new ArgumentNullException(nameof(localUsageCoordinator));
+        _dashboardLayoutStore = dashboardLayoutStore
+            ?? throw new ArgumentNullException(nameof(dashboardLayoutStore));
         Vercel = new VercelGatewaySettingsViewModel(
             vercelGatewayCoordinator
                 ?? throw new ArgumentNullException(nameof(vercelGatewayCoordinator)),
@@ -71,6 +80,8 @@ public partial class FlyoutViewModel : ObservableObject
         RetryButtonText = GetString("SampleRetry");
         RetryAutomationName = GetString("CodexRetry");
         RebuildSamplePreview();
+        IsDashboardLayoutBusy = true;
+        _dashboardLayoutInitialization = InitializeDashboardLayoutAsync();
         _ = RefreshDashboardAsync(scenario: null, forceRefresh: false);
         _ = Vercel.InitializeAsync();
     }
@@ -140,6 +151,19 @@ public partial class FlyoutViewModel : ObservableObject
     public partial IReadOnlyList<ProviderStatusRow> ProviderStatuses { get; set; } = [];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDashboardLayoutProviders))]
+    [NotifyPropertyChangedFor(nameof(AreAllDashboardProvidersHidden))]
+    public partial IReadOnlyList<DashboardProviderLayoutRow> DashboardLayoutProviders { get; set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDashboardLayoutStatusVisible))]
+    public partial string DashboardLayoutStatusText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDashboardLayoutEditable))]
+    public partial bool IsDashboardLayoutBusy { get; set; }
+
+    [ObservableProperty]
     public partial int SampleRevealToken { get; set; }
 
     [ObservableProperty]
@@ -194,6 +218,17 @@ public partial class FlyoutViewModel : ObservableObject
     public bool IsSampleScenarioEnabled => IsSampleModeEnabled;
 
     public bool IsRefreshing => IsSampleRefreshing || Vercel.IsBusy;
+
+    public bool HasDashboardLayoutProviders => DashboardLayoutProviders.Count > 0;
+
+    public bool AreAllDashboardProvidersHidden =>
+        DashboardLayoutProviders.Count > 0 && ActiveSample.Providers.Count == 0;
+
+    public bool IsDashboardLayoutStatusVisible =>
+        !string.IsNullOrWhiteSpace(DashboardLayoutStatusText);
+
+    public bool IsDashboardLayoutEditable =>
+        !_isDashboardLayoutReadOnly && !IsDashboardLayoutBusy;
 
     public string DashboardHeading => GetString(
         IsSampleModeEnabled ? "SampleTotalSpendHeading" : "LiveDashboardHeading");
@@ -338,13 +373,13 @@ public partial class FlyoutViewModel : ObservableObject
         {
             if (!PublishCombinedLiveDashboard(reveal: true) && _hasLocalUsage)
             {
-                ActiveSample = new SampleDashboardSnapshot(
+                PublishActiveDashboard(new SampleDashboardSnapshot(
                     SampleScenario.Normal,
                     string.Empty,
                     GetString("LiveDashboardPeriod"),
                     string.Empty,
                     [],
-                    []);
+                    []));
                 _hasPublishedDashboard = true;
                 _resultSurface = FlyoutSurfaceState.Sample;
                 ApplyResultSurfaceIfVisible();
@@ -418,13 +453,13 @@ public partial class FlyoutViewModel : ObservableObject
                 && _hasLocalUsage
                 && _resultSurface == FlyoutSurfaceState.SampleUnavailable)
             {
-                ActiveSample = new SampleDashboardSnapshot(
+                PublishActiveDashboard(new SampleDashboardSnapshot(
                     SampleScenario.Normal,
                     string.Empty,
                     string.Empty,
                     string.Empty,
                     [],
-                    []);
+                    []));
                 _resultSurface = FlyoutSurfaceState.Sample;
                 ApplyResultSurfaceIfVisible();
             }
@@ -573,7 +608,8 @@ public partial class FlyoutViewModel : ObservableObject
         _publishedObservedAtUtc = snapshot.SourceObservedAtUtc;
         if (scenario is SampleScenario sampleScenario)
         {
-            ActiveSample = SampleDashboardProjector.Create(sampleScenario, snapshot, GetString);
+            PublishActiveDashboard(
+                SampleDashboardProjector.Create(sampleScenario, snapshot, GetString));
         }
         else
         {
@@ -615,13 +651,13 @@ public partial class FlyoutViewModel : ObservableObject
             return false;
         }
 
-        ActiveSample = new SampleDashboardSnapshot(
+        PublishActiveDashboard(new SampleDashboardSnapshot(
             SampleScenario.Normal,
             string.Empty,
             GetString("LiveDashboardPeriod"),
             string.Empty,
             [],
-            providers);
+            providers));
         _activeScenario = null;
         _hasPublishedDashboard = true;
         _resultSurface = FlyoutSurfaceState.Sample;
@@ -795,8 +831,215 @@ public partial class FlyoutViewModel : ObservableObject
             return;
         }
 
-        ActiveSample = SampleDashboardCatalog.Create(SelectedSampleScenario.Value, GetString);
+        PublishActiveDashboard(
+            SampleDashboardCatalog.Create(SelectedSampleScenario.Value, GetString));
         CurrentSampleDataState = SampleDataState.Idle;
+    }
+
+    public Task MoveDashboardProviderAsync(string providerId, int offset)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        if (offset is not (-1 or 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+
+        return MutateDashboardLayoutAsync(layout =>
+            MoveCurrentDashboardProvider(layout, new ProviderId(providerId), offset));
+    }
+
+    public Task SetDashboardProviderVisibleAsync(string providerId, bool isVisible)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        var id = new ProviderId(providerId);
+        return MutateDashboardLayoutAsync(layout => layout.SetProviderVisible(id, isVisible));
+    }
+
+    public Task SetDashboardProviderHighlightedAsync(string providerId, bool isHighlighted)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        var id = new ProviderId(providerId);
+        return MutateDashboardLayoutAsync(layout =>
+            layout.SetProviderHighlighted(id, isHighlighted));
+    }
+
+    private async Task InitializeDashboardLayoutAsync()
+    {
+        try
+        {
+            DashboardLayoutLoadResult result = await _dashboardLayoutStore.LoadAsync();
+            switch (result)
+            {
+                case DashboardLayoutLoadResult.Loaded loaded:
+                    _dashboardLayout = loaded.Layout;
+                    break;
+                case DashboardLayoutLoadResult.Corrupt corrupt:
+                    _dashboardLayout = DashboardLayout.Empty;
+                    DashboardLayoutStatusText = string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        GetString("DashboardLayoutRecoveredFormat"),
+                        corrupt.QuarantineFileName);
+                    break;
+                case DashboardLayoutLoadResult.UnsupportedVersion unsupported:
+                    _dashboardLayout = DashboardLayout.Empty;
+                    SetDashboardLayoutReadOnly(string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        GetString("DashboardLayoutNewerVersionFormat"),
+                        unsupported.SchemaVersion));
+                    break;
+                case DashboardLayoutLoadResult.Empty:
+                    _dashboardLayout = DashboardLayout.Empty;
+                    break;
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or TimeoutException)
+        {
+            SetDashboardLayoutReadOnly(GetString("DashboardLayoutUnavailable"));
+        }
+
+        if (_rawDashboard is not null)
+        {
+            PublishActiveDashboard(_rawDashboard);
+        }
+
+        IsDashboardLayoutBusy = false;
+    }
+
+    private async Task MutateDashboardLayoutAsync(
+        Func<DashboardLayout, DashboardLayout> mutation)
+    {
+        ArgumentNullException.ThrowIfNull(mutation);
+        await _dashboardLayoutInitialization;
+        if (IsDashboardLayoutBusy)
+        {
+            return;
+        }
+
+        IsDashboardLayoutBusy = true;
+        try
+        {
+            if (_isDashboardLayoutReadOnly || _rawDashboard is null)
+            {
+                return;
+            }
+
+            DashboardLayout next = mutation(_dashboardLayout);
+            if (next.Equals(_dashboardLayout))
+            {
+                return;
+            }
+
+            DashboardLayoutSaveResult save = await _dashboardLayoutStore.SaveAsync(next);
+            if (save is DashboardLayoutSaveResult.RefusedUnsupportedVersion unsupported)
+            {
+                SetDashboardLayoutReadOnly(string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    GetString("DashboardLayoutNewerVersionFormat"),
+                    unsupported.SchemaVersion));
+                PublishActiveDashboard(_rawDashboard);
+                return;
+            }
+
+            _dashboardLayout = next;
+            DashboardLayoutStatusText = string.Empty;
+            PublishActiveDashboard(_rawDashboard);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or TimeoutException)
+        {
+            DashboardLayoutStatusText = GetString("DashboardLayoutSaveFailed");
+            if (_rawDashboard is not null)
+            {
+                PublishActiveDashboard(_rawDashboard);
+            }
+        }
+        finally
+        {
+            IsDashboardLayoutBusy = false;
+        }
+    }
+
+    private DashboardLayout MoveCurrentDashboardProvider(
+        DashboardLayout layout,
+        ProviderId providerId,
+        int offset)
+    {
+        int currentRowIndex = -1;
+        for (int index = 0; index < DashboardLayoutProviders.Count; index++)
+        {
+            if (string.Equals(
+                    DashboardLayoutProviders[index].ProviderId,
+                    providerId.Value,
+                    StringComparison.Ordinal))
+            {
+                currentRowIndex = index;
+                break;
+            }
+        }
+
+        int targetRowIndex = currentRowIndex + offset;
+        if (currentRowIndex < 0
+            || targetRowIndex < 0
+            || targetRowIndex >= DashboardLayoutProviders.Count)
+        {
+            return layout;
+        }
+
+        var targetId = new ProviderId(DashboardLayoutProviders[targetRowIndex].ProviderId);
+        int currentLayoutIndex = FindDashboardProviderIndex(layout, providerId);
+        int targetLayoutIndex = FindDashboardProviderIndex(layout, targetId);
+        while (currentLayoutIndex != targetLayoutIndex)
+        {
+            int step = currentLayoutIndex < targetLayoutIndex ? 1 : -1;
+            layout = layout.MoveProvider(providerId, step);
+            currentLayoutIndex += step;
+        }
+
+        return layout;
+    }
+
+    private static int FindDashboardProviderIndex(
+        DashboardLayout layout,
+        ProviderId providerId)
+    {
+        for (int index = 0; index < layout.Providers.Count; index++)
+        {
+            if (layout.Providers[index].ProviderId == providerId)
+            {
+                return index;
+            }
+        }
+
+        throw new KeyNotFoundException($"Provider '{providerId.Value}' is absent from the dashboard layout.");
+    }
+
+    private void PublishActiveDashboard(SampleDashboardSnapshot dashboard)
+    {
+        _rawDashboard = dashboard;
+        DashboardLayoutProjection projection = DashboardLayoutProjector.Apply(
+            dashboard,
+            _dashboardLayout,
+            GetString("DashboardProviderHighlightedLabel"),
+            new DashboardProviderActionNameFormats(
+                GetString("DashboardProviderMoveUpAutomationNameFormat"),
+                GetString("DashboardProviderMoveDownAutomationNameFormat"),
+                GetString("DashboardProviderVisibilityAutomationNameFormat"),
+                GetString("DashboardProviderHighlightAutomationNameFormat")));
+        _dashboardLayout = projection.Layout;
+        ActiveSample = projection.Dashboard;
+        DashboardLayoutProviders = projection.Providers;
+        OnPropertyChanged(nameof(AreAllDashboardProvidersHidden));
+    }
+
+    private void SetDashboardLayoutReadOnly(string statusText)
+    {
+        _isDashboardLayoutReadOnly = true;
+        DashboardLayoutStatusText = statusText;
+        OnPropertyChanged(nameof(IsDashboardLayoutEditable));
     }
 
     private TimeProvider GetClock(SampleScenario? scenario) =>

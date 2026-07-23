@@ -323,4 +323,21 @@
   <data name="VercelQuotaStatusDegraded" xml:space="preserve"><value>Presupuesto no disponible</value></data>
   <data name="VercelQuotaStatusInactive" xml:space="preserve"><value>Presupuesto inactivo</value></data>
   <data name="VercelQuotaDegradedNotice" xml:space="preserve"><value>El reporte de la cuenta está actualizado. No se pudo consultar el presupuesto de la clave.</value></data>
+  <data name="DashboardLayoutExpander.Header" xml:space="preserve"><value>Diseño del panel</value></data>
+  <data name="DashboardLayoutExpander.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Diseño del panel</value></data>
+  <data name="DashboardLayoutDescription.Text" xml:space="preserve"><value>Ordena, muestra, oculta o destaca tarjetas de proveedores.</value></data>
+  <data name="DashboardProviderMoveUpAutomationNameFormat" xml:space="preserve"><value>Mover {0} hacia arriba</value></data>
+  <data name="DashboardProviderMoveUpButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mover hacia arriba</value></data>
+  <data name="DashboardProviderMoveDownAutomationNameFormat" xml:space="preserve"><value>Mover {0} hacia abajo</value></data>
+  <data name="DashboardProviderMoveDownButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mover hacia abajo</value></data>
+  <data name="DashboardProviderVisibilityAutomationNameFormat" xml:space="preserve"><value>Mostrar u ocultar {0}</value></data>
+  <data name="DashboardProviderVisibilityButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mostrar u ocultar</value></data>
+  <data name="DashboardProviderHighlightAutomationNameFormat" xml:space="preserve"><value>Destacar {0}</value></data>
+  <data name="DashboardProviderHighlightButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Destacar</value></data>
+  <data name="DashboardProviderHighlightedLabel" xml:space="preserve"><value>Destacado</value></data>
+  <data name="DashboardAllProvidersHidden.Text" xml:space="preserve"><value>Todas las tarjetas de proveedores están ocultas. Abre Opciones para mostrar una.</value></data>
+  <data name="DashboardLayoutRecoveredFormat" xml:space="preserve"><value>La configuración de diseño dañada se movió a {0}. Puedes guardar una nueva.</value></data>
+  <data name="DashboardLayoutNewerVersionFormat" xml:space="preserve"><value>El formato de diseño {0} es más nuevo. Actualiza TokenUsage antes de cambiarlo.</value></data>
+  <data name="DashboardLayoutUnavailable" xml:space="preserve"><value>No se puede leer la configuración de diseño. Los cambios están desactivados.</value></data>
+  <data name="DashboardLayoutSaveFailed" xml:space="preserve"><value>No se pudo guardar el diseño. La configuración anterior sigue vigente.</value></data>
 </root>
