@@ -23,6 +23,7 @@ public sealed class TrayIconHost : IDisposable
     private bool _iconAdded;
     private bool _subclassInstalled;
     private bool _disposed;
+    private long _lastMouseActivationTick = long.MinValue;
 
     public TrayIconHost(
         nint windowHandle,
@@ -254,22 +255,30 @@ public sealed class TrayIconHost : IDisposable
     {
         var packedMessage = unchecked((nuint)lParam);
         var eventCode = LowWord(packedMessage);
-        var iconId = HighWord(packedMessage);
 
-        if (iconId != IconId)
+        if (!TrayMessageRoutingPolicy.IsForIcon(wParam, packedMessage, IconId))
         {
             return;
         }
 
-        switch (eventCode)
+        switch (TrayMessageClassifier.Classify(eventCode))
         {
-            case NativeMethods.NinSelect:
+            case TrayMessageAction.ActivateWithMouse:
+                long currentTick = Environment.TickCount64;
+                if (!TrayMessageRoutingPolicy.ShouldDispatchMouseActivation(
+                        _lastMouseActivationTick,
+                        currentTick))
+                {
+                    break;
+                }
+
+                _lastMouseActivationTick = currentTick;
                 Activated?.Invoke(this, new TrayActivatedEventArgs(TrayActivationKind.Mouse));
                 break;
-            case NativeMethods.NinKeySelect:
+            case TrayMessageAction.ActivateWithKeyboard:
                 Activated?.Invoke(this, new TrayActivatedEventArgs(TrayActivationKind.Keyboard));
                 break;
-            case NativeMethods.WmContextMenu:
+            case TrayMessageAction.ShowContextMenu:
                 ShowContextMenu(GetContextMenuPoint(wParam));
                 break;
         }
@@ -396,8 +405,6 @@ public sealed class TrayIconHost : IDisposable
     }
 
     private static uint LowWord(nuint value) => unchecked((uint)(value & 0xFFFF));
-
-    private static uint HighWord(nuint value) => unchecked((uint)((value >> 16) & 0xFFFF));
 
     private static int SignedLowWord(nuint value) => unchecked((short)(value & 0xFFFF));
 

@@ -26,6 +26,9 @@ internal static class NativeMethods
     internal const uint WmApp = 0x8000;
     internal const uint WmNull = 0x0000;
     internal const uint WmContextMenu = 0x007B;
+    internal const uint WmLButtonDown = 0x0201;
+    internal const uint WmLButtonUp = 0x0202;
+    internal const uint WmLButtonDoubleClick = 0x0203;
     internal const uint NinSelect = 0x0400;
     internal const uint NinKeySelect = 0x0401;
 
