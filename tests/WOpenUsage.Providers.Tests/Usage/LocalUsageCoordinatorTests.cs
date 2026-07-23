@@ -120,6 +120,32 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public void HeatmapBuildsThirtyFiveCivilDaysAndCombinesDailyAgents()
+    {
+        DateOnly today = new(2026, 7, 22);
+        DateOnly firstDay = today.AddDays(-34);
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [
+                Rollup(firstDay, "claude", "oldest", 100, null, null, 100),
+                Rollup(today, "claude", "reported", 1_000, 1m, null, 0),
+                Rollup(today, "grok", "estimated", 500, null, 2m, 0),
+                Rollup(today.AddDays(-35), "opencode", "outside", 9_999, 9m, null, 0),
+            ],
+            Strings,
+            today: today);
+
+        Assert.Equal(35, card.Heatmap.Cells.Count);
+        Assert.Equal(firstDay, card.Heatmap.Cells[0].Date);
+        Assert.Equal(today, card.Heatmap.Cells[^1].Date);
+        Assert.Equal(2, card.Heatmap.Cells.Count(cell => cell.HasActivity));
+        Assert.Equal(1_500, card.Heatmap.Cells[^1].TotalTokens);
+        Assert.Equal(2, card.Heatmap.Cells[^1].EventCount);
+        Assert.Equal(4, card.Heatmap.Cells[^1].Level);
+        Assert.Contains("US$", card.Heatmap.Cells[^1].AccessibleName, StringComparison.Ordinal);
+        Assert.DoesNotContain(card.Heatmap.Cells, cell => cell.TotalTokens == 9_999);
+    }
+
+    [Fact]
     public void BreakdownKeepsZeroAndUnpricedModelsButChartsOnlyPositiveSpend()
     {
         DateOnly today = new(2026, 7, 22);
@@ -467,6 +493,12 @@ public sealed class LocalUsageCoordinatorTests
         "LocalUsageModelCoverageFormat" => "Cobertura {0}",
         "LocalUsageBreakdownSummaryFormat" => "{0} agentes · {1} modelos",
         "LocalUsageBreakdownAccessibleFormat" => "Total {0}. {1}",
+        "UsageHeatmapTitle" => "Actividad diaria",
+        "UsageHeatmapSummaryFormat" => "{0} días activos · últimos {1}",
+        "UsageHeatmapEmptyDayFormat" => "{0}: sin actividad",
+        "UsageHeatmapDayFormat" => "{0}: {1} tokens en {2} eventos; {3}",
+        "UsageHeatmapCostFormat" => "{0:0.00} US$",
+        "UsageHeatmapCostUnavailable" => "gasto no disponible",
         "LocalUsageAgentClaude" => "Claude",
         "LocalUsageAgentGrok" => "Grok Build",
         "LocalUsageAgentOpenCode" => "OpenCode",

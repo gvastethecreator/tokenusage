@@ -35,6 +35,7 @@ public sealed partial class MainPage : Page
     };
 
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
+    private int _detailRevealToken;
 
     public MainPage()
     {
@@ -556,6 +557,28 @@ public sealed partial class MainPage : Page
             _ = DispatcherQueue.TryEnqueue(() => PlaySampleReveal(this, token)));
     }
 
+    private void OnProviderUsageDetailsChecked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleButton toggle)
+        {
+            return;
+        }
+
+        DependencyObject header = VisualTreeHelper.GetParent(toggle);
+        DependencyObject provider = VisualTreeHelper.GetParent(header);
+        ScheduleDetailReveal(provider);
+    }
+
+    private void OnUsageDetailsExpanding(Expander sender, ExpanderExpandingEventArgs args) =>
+        ScheduleDetailReveal(sender);
+
+    private void ScheduleDetailReveal(DependencyObject root)
+    {
+        int token = unchecked(++_detailRevealToken);
+        _ = DispatcherQueue.TryEnqueue(() =>
+            _ = DispatcherQueue.TryEnqueue(() => PlaySampleReveal(root, token)));
+    }
+
     private static void PlaySampleReveal(DependencyObject root, int token)
     {
         if (root is SpendDonutChart donut)
@@ -565,6 +588,10 @@ public sealed partial class MainPage : Page
         else if (root is AnimatedProgressBar progressBar)
         {
             progressBar.PlayReveal(token);
+        }
+        else if (root is UsageHeatmap heatmap)
+        {
+            heatmap.PlayReveal(token);
         }
 
         int childCount = VisualTreeHelper.GetChildrenCount(root);

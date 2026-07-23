@@ -338,7 +338,58 @@ public static class SampleDashboardCatalog
                 text,
                 "ProviderDetailsAutomationNameFormat",
                 provider.Name),
+            ActivityHeatmap = CreateSampleHeatmap(provider.ProviderId, text),
         };
+    }
+
+    private static UsageHeatmapModel CreateSampleHeatmap(
+        string providerId,
+        Func<string, string> text)
+    {
+        DateOnly today = new(2026, 7, 23);
+        int seed = providerId.Aggregate(0, (value, character) => value + character);
+        var cells = new UsageHeatmapCell[35];
+        int activeDays = 0;
+        for (int index = 0; index < cells.Length; index++)
+        {
+            DateOnly date = today.AddDays(index - (cells.Length - 1));
+            int level = (seed + (index * 3)) % 7 == 0
+                ? 0
+                : ((seed + index) % 4) + 1;
+            long tokens = level == 0 ? 0 : level * 12_500L + ((index % 5) * 1_250L);
+            int events = level == 0 ? 0 : level + (index % 3);
+            if (level > 0)
+            {
+                activeDays++;
+            }
+
+            string formattedDate = date.ToString("d", CultureInfo.CurrentCulture);
+            string accessibleName = level == 0
+                ? Format(text, "UsageHeatmapEmptyDayFormat", formattedDate)
+                : Format(
+                    text,
+                    "UsageHeatmapDayFormat",
+                    formattedDate,
+                    tokens.ToString("N0", CultureInfo.CurrentCulture),
+                    events,
+                    Format(text, "UsageHeatmapCostFormat", level * 0.18m));
+            cells[index] = new UsageHeatmapCell(
+                date,
+                level,
+                tokens,
+                events,
+                $"SampleHeatmap.{providerId}.{date:yyyy-MM-dd}",
+                accessibleName);
+        }
+
+        string title = text("UsageHeatmapTitle");
+        string summary = Format(text, "UsageHeatmapSummaryFormat", activeDays, cells.Length);
+        return new UsageHeatmapModel(
+            title,
+            summary,
+            $"{title}. {summary}",
+            $"SampleHeatmap.{providerId}",
+            cells);
     }
 
     private static IReadOnlyList<SampleMetric> UsageMetrics(
