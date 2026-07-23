@@ -46,7 +46,14 @@ public sealed class SnapshotStoreTests
         JsonElement root = document.RootElement;
         Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("fake", root.GetProperty("snapshots")[0].GetProperty("providerId").GetString());
-        Assert.Equal("progress", root.GetProperty("snapshots")[0].GetProperty("metrics")[0].GetProperty("kind").GetString());
+        JsonElement progress = root.GetProperty("snapshots")[0].GetProperty("metrics")[0];
+        Assert.Equal("progress", progress.GetProperty("kind").GetString());
+        Assert.Equal("usd", progress.GetProperty("unit").GetString());
+        Assert.Equal("Monthly", progress.GetProperty("resetCadence").GetString());
+        Assert.True(progress.GetProperty("isActive").GetBoolean());
+        JsonElement capability = root.GetProperty("snapshots")[0].GetProperty("capabilities")[0];
+        Assert.Equal("quota.key", capability.GetProperty("id").GetString());
+        Assert.Equal("Available", capability.GetProperty("state").GetString());
         Assert.Equal("scalar", root.GetProperty("snapshots")[0].GetProperty("metrics")[1].GetProperty("kind").GetString());
     }
 
@@ -171,6 +178,23 @@ public sealed class SnapshotStoreTests
     {
         using var folder = new TemporaryFolder();
         string invalidJson = ValidDocumentJson.Replace("\"limit\": 100", "\"limit\": 0", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(folder.DocumentPath, invalidJson, Encoding.UTF8);
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheReadResult result = await store.LoadAsync();
+
+        Assert.IsType<SnapshotCacheReadResult.Corrupt>(result);
+        Assert.False(File.Exists(folder.DocumentPath));
+    }
+
+    [Fact]
+    public async Task LoadUnknownProgressCadenceTreatsWholeDocumentAsCorrupt()
+    {
+        using var folder = new TemporaryFolder();
+        string invalidJson = ValidDocumentJson.Replace(
+            "\"resetsAtUtc\": \"2026-07-22T16:00:00Z\"",
+            "\"resetsAtUtc\": \"2026-07-22T16:00:00Z\", \"resetCadence\": \"Hourly\"",
+            StringComparison.Ordinal);
         await File.WriteAllTextAsync(folder.DocumentPath, invalidJson, Encoding.UTF8);
         var store = CreateStore(folder.DocumentPath);
 
@@ -642,7 +666,10 @@ public sealed class SnapshotStoreTests
                     used,
                     100m,
                     Now.AddHours(4),
-                    CreateProvenance()),
+                    CreateProvenance(),
+                    "usd",
+                    ProgressResetCadence.Monthly,
+                    isActive: true),
                 new ScalarMetricSnapshot(
                     new MetricId("spend-usd"),
                     12.34m,
@@ -650,7 +677,13 @@ public sealed class SnapshotStoreTests
                     CreateProvenance()),
             ],
             CoverageKind.Complete,
-            1);
+            1,
+            [
+                new ProviderCapabilitySnapshot(
+                    new CapabilityId("quota.key"),
+                    ProviderCapabilityState.Available,
+                    CreateProvenance()),
+            ]);
 
     private static DataProvenance CreateProvenance() =>
         new(SourceKind.Synthetic, MeasurementKind.ProviderReported, "fake/1");
@@ -665,6 +698,7 @@ public sealed class SnapshotStoreTests
         Assert.Equal(expected.TimeZoneId, actual.TimeZoneId);
         Assert.Equal(expected.Coverage, actual.Coverage);
         Assert.Equal(expected.AdapterContractVersion, actual.AdapterContractVersion);
+        Assert.Equal(expected.Capabilities, actual.Capabilities);
 
         var expectedProgress = Assert.IsType<ProgressMetricSnapshot>(expected.Metrics[0]);
         var actualProgress = Assert.IsType<ProgressMetricSnapshot>(actual.Metrics[0]);
@@ -672,6 +706,9 @@ public sealed class SnapshotStoreTests
         Assert.Equal(expectedProgress.Used, actualProgress.Used);
         Assert.Equal(expectedProgress.Limit, actualProgress.Limit);
         Assert.Equal(expectedProgress.ResetsAtUtc, actualProgress.ResetsAtUtc);
+        Assert.Equal(expectedProgress.Unit, actualProgress.Unit);
+        Assert.Equal(expectedProgress.ResetCadence, actualProgress.ResetCadence);
+        Assert.Equal(expectedProgress.IsActive, actualProgress.IsActive);
         Assert.Equal(expectedProgress.Provenance, actualProgress.Provenance);
 
         var expectedScalar = Assert.IsType<ScalarMetricSnapshot>(expected.Metrics[1]);

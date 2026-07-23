@@ -11,7 +11,8 @@ public sealed class ProviderSnapshot
         string timeZoneId,
         IEnumerable<MetricSnapshot> metrics,
         CoverageKind coverage,
-        int adapterContractVersion)
+        int adapterContractVersion,
+        IEnumerable<ProviderCapabilitySnapshot>? capabilities = null)
     {
         ProviderId = providerId ?? throw new ArgumentNullException(nameof(providerId));
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
@@ -51,6 +52,25 @@ public sealed class ProviderSnapshot
                 nameof(metrics));
         }
 
+        ProviderCapabilitySnapshot[] capabilityArray = capabilities?.ToArray() ?? [];
+        if (capabilityArray.Any(capability => capability is null))
+        {
+            throw new ArgumentException(
+                "Capabilities cannot contain null values.",
+                nameof(capabilities));
+        }
+
+        string? duplicateCapability = capabilityArray
+            .GroupBy(capability => capability.Id.Value, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1)
+            ?.Key;
+        if (duplicateCapability is not null)
+        {
+            throw new ArgumentException(
+                $"Capability ID '{duplicateCapability}' appears more than once.",
+                nameof(capabilities));
+        }
+
         DisplayName = displayName;
         PlanLabel = string.IsNullOrWhiteSpace(planLabel) ? null : planLabel;
         FetchedAtUtc = fetchedAtUtc;
@@ -59,6 +79,7 @@ public sealed class ProviderSnapshot
         Metrics = Array.AsReadOnly(metricArray);
         Coverage = coverage;
         AdapterContractVersion = adapterContractVersion;
+        Capabilities = Array.AsReadOnly(capabilityArray);
     }
 
     public ProviderId ProviderId { get; }
@@ -78,6 +99,8 @@ public sealed class ProviderSnapshot
     public CoverageKind Coverage { get; }
 
     public int AdapterContractVersion { get; }
+
+    public IReadOnlyList<ProviderCapabilitySnapshot> Capabilities { get; }
 }
 
 public static class SnapshotFreshness

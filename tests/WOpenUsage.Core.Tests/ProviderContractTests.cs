@@ -35,6 +35,83 @@ public sealed class ProviderContractTests
     }
 
     [Fact]
+    public void SnapshotCopiesCapabilitiesAndRejectsDuplicateCapabilityIds()
+    {
+        var provenance = new DataProvenance(
+            SourceKind.ManualKey,
+            MeasurementKind.ProviderReported,
+            "fake/1");
+        var capabilities = new List<ProviderCapabilitySnapshot>
+        {
+            new(new CapabilityId("quota.key"), ProviderCapabilityState.Available, provenance),
+        };
+        ProviderSnapshot snapshot = new(
+            new ProviderId("fake"),
+            "Fake provider",
+            "Sample",
+            Now,
+            Now,
+            "UTC",
+            [CreateProgressMetric("session")],
+            CoverageKind.Complete,
+            1,
+            capabilities);
+
+        capabilities.Clear();
+
+        Assert.Single(snapshot.Capabilities);
+        Assert.Throws<ArgumentException>(() => new ProviderSnapshot(
+            new ProviderId("fake"),
+            "Fake provider",
+            "Sample",
+            Now,
+            Now,
+            "UTC",
+            [CreateProgressMetric("session")],
+            CoverageKind.Complete,
+            1,
+            [
+                new(new CapabilityId("quota.key"), ProviderCapabilityState.Available, provenance),
+                new(new CapabilityId("quota.key"), ProviderCapabilityState.Degraded, provenance),
+            ]));
+    }
+
+    [Fact]
+    public void ProgressMetadataIsOptionalAndValidated()
+    {
+        var metric = new ProgressMetricSnapshot(
+            new MetricId("budget"),
+            1m,
+            10m,
+            resetsAtUtc: null,
+            new DataProvenance(
+                SourceKind.ManualKey,
+                MeasurementKind.ProviderReported,
+                "fake/1"),
+            "usd",
+            ProgressResetCadence.Monthly,
+            isActive: false);
+
+        Assert.Equal("usd", metric.Unit);
+        Assert.Equal(ProgressResetCadence.Monthly, metric.ResetCadence);
+        Assert.False(metric.IsActive);
+        Assert.Throws<ArgumentException>(() => new ProgressMetricSnapshot(
+            new MetricId("bad-unit"),
+            1m,
+            10m,
+            resetsAtUtc: null,
+            metric.Provenance,
+            " "));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ProgressMetricSnapshot(
+            new MetricId("bad-cadence"),
+            1m,
+            10m,
+            resetsAtUtc: null,
+            metric.Provenance,
+            resetCadence: (ProgressResetCadence)999));
+    }
+
+    [Fact]
     public void SnapshotRejectsNonUtcAndFutureSourceTimestamps()
     {
         DateTimeOffset nonUtc = Now.ToOffset(TimeSpan.FromHours(2));

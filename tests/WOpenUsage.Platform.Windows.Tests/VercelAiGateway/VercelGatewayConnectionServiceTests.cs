@@ -22,6 +22,7 @@ public sealed class VercelGatewayConnectionServiceTests
             snapshotStore,
             credentials,
             reportClient,
+            new NoBudgetQuotaClient(),
             clock);
         await using IAsyncEnumerator<CacheFirstEvent> events = coordinator
             .RunAsync(forceRefresh: true, CancellationToken.None)
@@ -72,6 +73,7 @@ public sealed class VercelGatewayConnectionServiceTests
             new SnapshotStore(folder.DocumentPath, clock),
             credentials,
             reportClient,
+            new NoBudgetQuotaClient(),
             clock);
         await using IAsyncEnumerator<CacheFirstEvent> events = coordinator
             .RunAsync(forceRefresh: true, CancellationToken.None)
@@ -496,6 +498,16 @@ public sealed class VercelGatewayConnectionServiceTests
                     RequestCount: 2),
             ]);
         }
+    }
+
+    private sealed class NoBudgetQuotaClient : IVercelGatewayQuotaClient
+    {
+        public Task<VercelGatewayQuotaLookupResult> GetQuotaAsync(
+            string apiKey,
+            string keyId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<VercelGatewayQuotaLookupResult>(
+                VercelGatewayQuotaLookupResult.NoBudget.Instance);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

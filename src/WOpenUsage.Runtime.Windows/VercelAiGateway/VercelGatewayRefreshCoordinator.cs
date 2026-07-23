@@ -18,6 +18,7 @@ public sealed class VercelGatewayRefreshCoordinator
             new VercelGatewayCredentialStore(),
             new VercelGatewayReportClient(
                 httpClient ?? throw new ArgumentNullException(nameof(httpClient))),
+            new VercelGatewayQuotaClient(httpClient),
             clock)
     {
     }
@@ -26,16 +27,18 @@ public sealed class VercelGatewayRefreshCoordinator
         SnapshotStore snapshotStore,
         IVercelGatewayCredentialStore credentialStore,
         IVercelGatewayReportClient reportClient,
+        IVercelGatewayQuotaClient quotaClient,
         TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(snapshotStore);
         ArgumentNullException.ThrowIfNull(credentialStore);
         ArgumentNullException.ThrowIfNull(reportClient);
+        ArgumentNullException.ThrowIfNull(quotaClient);
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
         _operationGate = new ProviderOperationGate();
         var provider = new ResilientProviderRuntime(
-            new VercelGatewayProviderRuntime(credentialStore, reportClient));
+            new VercelGatewayProviderRuntime(credentialStore, reportClient, quotaClient));
         _refresh = new CacheFirstRefresh(
             snapshotStore,
             [provider],

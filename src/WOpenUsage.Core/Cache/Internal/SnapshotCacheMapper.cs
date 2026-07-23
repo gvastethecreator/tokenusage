@@ -6,6 +6,7 @@ internal static class SnapshotCacheMapper
 {
     public const int MaximumSnapshots = 256;
     public const int MaximumMetricsPerSnapshot = 512;
+    public const int MaximumCapabilitiesPerSnapshot = 128;
 
     public static SnapshotCacheDocumentV1 ToDocument(
         IEnumerable<ProviderSnapshot> snapshots,
@@ -70,6 +71,12 @@ internal static class SnapshotCacheMapper
                 $"Provider '{snapshot.ProviderId.Value}' cannot cache more than {MaximumMetricsPerSnapshot} metrics.");
         }
 
+        if (snapshot.Capabilities.Count > MaximumCapabilitiesPerSnapshot)
+        {
+            throw new InvalidOperationException(
+                $"Provider '{snapshot.ProviderId.Value}' cannot cache more than {MaximumCapabilitiesPerSnapshot} capabilities.");
+        }
+
         return new SnapshotCacheProviderV1
         {
             ProviderId = snapshot.ProviderId.Value,
@@ -81,8 +88,17 @@ internal static class SnapshotCacheMapper
             Coverage = snapshot.Coverage.ToString(),
             AdapterContractVersion = snapshot.AdapterContractVersion,
             Metrics = snapshot.Metrics.Select(ToMetric).ToList(),
+            Capabilities = snapshot.Capabilities.Select(ToCapability).ToList(),
         };
     }
+
+    private static SnapshotCacheCapabilityV1 ToCapability(
+        ProviderCapabilitySnapshot capability) => new()
+        {
+            Id = capability.Id.Value,
+            State = capability.State.ToString(),
+            Provenance = ToProvenance(capability.Provenance),
+        };
 
     private static SnapshotCacheMetricV1 ToMetric(MetricSnapshot metric)
     {
@@ -99,6 +115,9 @@ internal static class SnapshotCacheMapper
                 dto.Used = progress.Used;
                 dto.Limit = progress.Limit;
                 dto.ResetsAtUtc = progress.ResetsAtUtc;
+                dto.Unit = progress.Unit;
+                dto.ResetCadence = progress.ResetCadence?.ToString();
+                dto.IsActive = progress.IsActive;
                 break;
             case ScalarMetricSnapshot scalar:
                 dto.Kind = "scalar";
@@ -139,6 +158,18 @@ internal static class SnapshotCacheMapper
             throw new SnapshotCacheFormatException("A provider metric list contains a null entry.");
         }
 
+        if (dto.Capabilities is { Count: > MaximumCapabilitiesPerSnapshot })
+        {
+            throw new SnapshotCacheFormatException(
+                $"A provider contains more than {MaximumCapabilitiesPerSnapshot} capabilities.");
+        }
+
+        if (dto.Capabilities?.Any(capability => capability is null) == true)
+        {
+            throw new SnapshotCacheFormatException(
+                "A provider capability list contains a null entry.");
+        }
+
         return new ProviderSnapshot(
             new ProviderId(RequireText(dto.ProviderId, nameof(dto.ProviderId))),
             RequireText(dto.DisplayName, nameof(dto.DisplayName)),
@@ -149,8 +180,17 @@ internal static class SnapshotCacheMapper
             dto.Metrics.Select(FromMetric),
             ParseEnum<CoverageKind>(dto.Coverage, nameof(dto.Coverage)),
             dto.AdapterContractVersion
-                ?? throw new SnapshotCacheFormatException("The adapter contract version is missing."));
+                ?? throw new SnapshotCacheFormatException("The adapter contract version is missing."),
+            dto.Capabilities?.Select(FromCapability));
     }
+
+    private static ProviderCapabilitySnapshot FromCapability(
+        SnapshotCacheCapabilityV1 dto) => new(
+        new CapabilityId(RequireText(dto.Id, nameof(dto.Id))),
+        ParseEnum<ProviderCapabilityState>(dto.State, nameof(dto.State)),
+        FromProvenance(
+            dto.Provenance
+            ?? throw new SnapshotCacheFormatException("Capability provenance is missing.")));
 
     private static MetricSnapshot FromMetric(SnapshotCacheMetricV1 dto)
     {
@@ -165,7 +205,12 @@ internal static class SnapshotCacheMapper
                 dto.Used ?? throw new SnapshotCacheFormatException("Progress used value is missing."),
                 dto.Limit ?? throw new SnapshotCacheFormatException("Progress limit is missing."),
                 OptionalUtc(dto.ResetsAtUtc, nameof(dto.ResetsAtUtc)),
-                provenance),
+                provenance,
+                OptionalText(dto.Unit, nameof(dto.Unit)),
+                ParseOptionalEnum<ProgressResetCadence>(
+                    dto.ResetCadence,
+                    nameof(dto.ResetCadence)),
+                dto.IsActive),
             "scalar" => new ScalarMetricSnapshot(
                 id,
                 dto.Value ?? throw new SnapshotCacheFormatException("Scalar value is missing."),
@@ -192,6 +237,20 @@ internal static class SnapshotCacheMapper
         }
 
         return parsed;
+    }
+
+    private static TEnum? ParseOptionalEnum<TEnum>(string? value, string fieldName)
+        where TEnum : struct, Enum =>
+        value is null ? null : ParseEnum<TEnum>(value, fieldName);
+
+    private static string? OptionalText(string? value, string fieldName)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return RequireText(value, fieldName);
     }
 
     private static string RequireText(string? value, string fieldName)
