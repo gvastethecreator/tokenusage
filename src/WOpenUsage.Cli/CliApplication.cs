@@ -2,7 +2,8 @@ namespace WOpenUsage.Cli;
 
 public static class CliApplication
 {
-    public const string UsageText = "Usage: wusage <limits|usage> [command options]";
+    public const string UsageText =
+        "Usage: wusage <limits|usage|providers|doctor> [command options]";
 
     public static async Task<int> RunAsync(
         IReadOnlyList<string> arguments,
@@ -50,6 +51,26 @@ public static class CliApplication
                     fullDataDirectory,
                     providerId,
                     force,
+                    clock,
+                    token),
+                clock,
+                cancellationToken).ConfigureAwait(false),
+            "providers" => await ProvidersCommand.RunAsync(
+                commandArguments,
+                standardOutput,
+                standardError,
+                token => LocalProviderDiagnosticsAccess.ReadAsync(
+                    fullDataDirectory,
+                    clock,
+                    token),
+                clock,
+                cancellationToken).ConfigureAwait(false),
+            "doctor" => await DoctorCommand.RunAsync(
+                commandArguments,
+                standardOutput,
+                standardError,
+                token => LocalProviderDiagnosticsAccess.ReadAsync(
+                    fullDataDirectory,
                     clock,
                     token),
                 clock,

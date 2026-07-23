@@ -12,6 +12,28 @@ namespace WOpenUsage.Providers.Tests.OpenCode;
 public sealed class OpenCodeUsageEventSourceTests
 {
     [Fact]
+    public void RootDetectionDoesNotOpenDatabaseOrAuthFiles()
+    {
+        string root = Directory.CreateDirectory(
+            Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))).FullName;
+        string trap = Path.Combine(root, "auth.json");
+        File.WriteAllText(trap, "Bearer private-account@example.test");
+        try
+        {
+            using (var locked = new FileStream(
+                       trap, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                var source = new OpenCodeUsageEventSource("UTC", dataDirectoryOverride: root);
+                Assert.True(source.IsRootAvailable);
+            }
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task OptInSmokeMatchesOpenCodeStatsWithoutPersistingCliOutput()
     {
         if (!string.Equals(
@@ -71,6 +93,7 @@ public sealed class OpenCodeUsageEventSourceTests
 
         UsageSourceReadResult result = await source.ReadAsync();
 
+        Assert.False(source.IsRootAvailable);
         Assert.Equal("opencode", source.AgentId.Value);
         Assert.Equal(SourceKind.LocalDatabase, source.SourceKind);
         Assert.Empty(result.Events);
@@ -85,9 +108,11 @@ public sealed class OpenCodeUsageEventSourceTests
         corpus.CreateCurrentDatabase((
             "session-a", 1_784_694_600_000L, "OpenAI/GPT-5", 0m, 100L, 20L, 5L, 30L, 7L));
 
-        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        OpenCodeUsageEventSource source = corpus.CreateSource();
+        UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
 
+        Assert.True(source.IsRootAvailable);
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
         Assert.Equal("gpt-5", usageEvent.ModelId.Value);

@@ -46,6 +46,10 @@ public sealed class ClaudeUsageEventSource : IUsageEventSource
 
     public AgentId AgentId { get; } = new("claude");
 
+    public bool IsRootAvailable => ClaudeConfigLocator.FindProjectDirectories(
+        _homeDirectory,
+        _configDirectoryOverride).Count > 0;
+
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default) =>
         await Task.Run(() => ReadCore(cancellationToken), cancellationToken)
