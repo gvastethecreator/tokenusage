@@ -146,6 +146,19 @@ public sealed class DashboardLayoutTests
     }
 
     [Fact]
+    public void SetProviderColorNormalizesAndPreservesOtherPreferences()
+    {
+        var layout = CreateThreeProviderLayout();
+
+        DashboardLayout colored = layout.SetProviderColor(ProviderB, " #a1b2c3 ");
+
+        Assert.Equal("#A1B2C3", colored.Providers[1].ColorHex);
+        Assert.Equal(layout.Providers[1].Metrics, colored.Providers[1].Metrics);
+        Assert.Throws<ArgumentException>(() =>
+            layout.SetProviderColor(ProviderB, "red"));
+    }
+
+    [Fact]
     public void MoveMetricMovesByMinusOneAndPlusOneAndClamps()
     {
         var layout = CreateSingleProviderWithThreeMetrics();

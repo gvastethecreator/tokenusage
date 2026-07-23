@@ -18,13 +18,17 @@ public sealed record DashboardProviderLayoutRow(
     string HighlightAutomationName,
     IReadOnlyList<DashboardMetricLayoutRow> Metrics,
     string MetricsAutomationName,
-    bool IsMetricsExpanded = false)
+    bool IsMetricsExpanded = false,
+    string? ColorHex = null,
+    string ColorAutomationName = "Change provider color")
 {
     public string MoveUpAutomationId => $"{AutomationId}.MoveUp";
     public string MoveDownAutomationId => $"{AutomationId}.MoveDown";
     public string VisibilityAutomationId => $"{AutomationId}.Visibility";
     public string HighlightAutomationId => $"{AutomationId}.Highlight";
     public string MetricsAutomationId => $"{AutomationId}.Metrics";
+    public string ColorAutomationId => $"{AutomationId}.Color";
+    public string ColorPickerAutomationId => $"{ColorAutomationId}.Picker";
     public bool HasMetrics => Metrics.Count > 0;
     public DashboardProviderLayoutRow Self => this;
     public IReadOnlyList<DashboardMetricLayoutRow> ExpandedMetrics => IsMetricsExpanded ? Metrics : [];
@@ -59,14 +63,16 @@ public sealed record DashboardProviderActionNameFormats(
     string MoveDown,
     string Visibility,
     string Highlight,
-    string Metrics = "Metrics for {0}")
+    string Metrics = "Metrics for {0}",
+    string Color = "Change color for {0}")
 {
     public static DashboardProviderActionNameFormats English { get; } = new(
         "Move {0} up",
         "Move {0} down",
         "Show or hide {0}",
         "Highlight {0}",
-        "Metrics for {0}");
+        "Metrics for {0}",
+        "Change color for {0}");
 }
 
 public sealed record DashboardLayoutProjection(
@@ -201,7 +207,9 @@ public static class DashboardLayoutProjector
                 FormatActionName(actionNameFormats.Visibility),
                 FormatActionName(actionNameFormats.Highlight),
                 metricRows.AsReadOnly(),
-                FormatActionName(actionNameFormats.Metrics)));
+                FormatActionName(actionNameFormats.Metrics),
+                ColorHex: pref.ColorHex,
+                ColorAutomationName: FormatActionName(actionNameFormats.Color)));
 
             if (!pref.IsVisible)
             {
@@ -215,7 +223,21 @@ public static class DashboardLayoutProjector
                 highlightLabel));
         }
 
-        var projectedDashboard = dashboard with { Providers = cards.AsReadOnly() };
+        var colorsByProvider = currentPrefs.ToDictionary(
+            preference => preference.ProviderId.Value,
+            preference => preference.ColorHex,
+            StringComparer.Ordinal);
+        SampleSpendSlice[] spendSlices = dashboard.SpendSlices
+            .Select(slice => slice with
+            {
+                ColorHex = colorsByProvider.GetValueOrDefault(slice.ProviderId),
+            })
+            .ToArray();
+        var projectedDashboard = dashboard with
+        {
+            Providers = cards.AsReadOnly(),
+            SpendSlices = spendSlices,
+        };
         return new DashboardLayoutProjection(
             layout,
             projectedDashboard,
@@ -352,6 +374,7 @@ public static class DashboardLayoutProjector
             OrderedOnDemandMetrics = orderedOnDemandMetrics.AsReadOnly(),
             IsHighlighted = preference.IsHighlighted,
             HighlightLabel = preference.IsHighlighted ? highlightLabel : string.Empty,
+            ProviderColorHex = preference.ColorHex,
         };
     }
 
