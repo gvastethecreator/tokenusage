@@ -48,7 +48,7 @@ probar una fuente apta para Windows.
 | Kiro | Aparece en CodeBurn y AgentsView | Separar CLI, IDE y cuenta; no leer contenido de sesiones | 62 |
 | Roo Code | Aparece en CodeBurn y AgentsView | No reutilizar tareas de VS Code; evitar doble conteo con el proveedor del modelo | 63 |
 | Goose | Tiene un adapter propio en CodeBurn | Confirmar soporte Windows y una fuente agregada sin contenido | 64 |
-| Kimi CLI | CodeBurn y AgentsView lo separan de Kimi Code | Mantener identidad, almacenamiento y claims separados de Kimi Code | 65 |
+| Kimi CLI | CodeBurn lo separa de Kimi Code; AgentsView mezcla ambas rutas | Fijar identidad antes de heredar almacenamiento o claims de Kimi Code | 65 |
 | Cursor Agent | CodeBurn lo separa del editor Cursor | Mantenerlo separado de Cursor Admin API e Individual | 66 |
 | Forge | Aparece en CodeBurn y AgentsView | Validar soporte Windows y evitar bases con contenido | 67 |
 | Hermes Agent | Aparece en CodeBurn y AgentsView | Separar gasto del agente y del proveedor de modelo | 68 |
@@ -56,6 +56,8 @@ probar una fuente apta para Windows.
 | Pi | Aparece en CodeBurn y AgentsView | Distinguir Pi de OMP y fijar deduplicación | 70 |
 | Qwen | Aparece en CodeBurn y AgentsView | Separar Qwen Code del proveedor de modelos Qwen | 71 |
 | Warp | Aparece en CodeBurn y AgentsView | No leer historial de terminal ni comandos | 72 |
+| Vercel AI Gateway | CodeBurn expone un reporte agregado por API | Separar gasto del gateway y uso de agentes; clave manual con permiso mínimo | 73 |
+| Mistral Vibe | Aparece en CodeBurn y AgentsView | No leer mensajes, herramientas ni comandos; exigir fuente agregada | 75 |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 

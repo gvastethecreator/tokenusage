@@ -590,6 +590,10 @@ Orden y alcance:
 23. Pi, gate de identidad y deduplicación con OMP en Ticket 70.
 24. Qwen Code, gate separado del proveedor de modelos Qwen en Ticket 71.
 25. Warp, gate que excluye historial y comandos de terminal en Ticket 72.
+26. Vercel AI Gateway, gate de reporte agregado, permisos de clave y gasto del
+    gateway en Ticket 73. La integración queda en Ticket 74.
+27. Mistral Vibe, gate de fuente agregada que excluye contenido de sesión en
+    Ticket 75. La integración queda en Ticket 76.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
@@ -609,14 +613,18 @@ Gates nuevos: [Kilo Code](research/2026-07-22-kilo-code-source-gate.md),
 [Zed](research/2026-07-22-zed-source-gate.md) e [inventario de cobertura]
 (research/2026-07-22-provider-reference-inventory.md).
 
-El inventario local también abrió los Tickets 61–66. Gemini CLI, Kiro, Roo
-Code y Goose forman la siguiente ola. Kimi CLI y Cursor Agent quedan como
-identidades propias para evitar que sus datos se mezclen con Kimi Code o
-Cursor Admin API.
+El inventario local abrió los Tickets 61–66. Gemini CLI, Kiro, Roo Code y
+Goose forman la siguiente ola. Kimi CLI y Cursor Agent conservan identidades
+propias hasta que sus gates prueben su relación con Kimi Code o Cursor.
 
 Una segunda comparación abrió los Tickets 67–72 para Forge, Hermes Agent,
 OpenClaw, Pi, Qwen y Warp. Los seis aparecen en CodeBurn y AgentsView. Su
 presencia repetida solo define el orden de investigación.
+
+La revisión completa de los registros abrió los Tickets 73–76. Vercel AI
+Gateway tiene un candidato de reporte agregado con clave manual en CodeBurn;
+Mistral Vibe aparece en CodeBurn y AgentsView, pero sus adapters leen sesiones.
+Ambos requieren fuentes primarias y un gate antes de crear un descriptor.
 
 Cada proveedor se divide en commits:
 
