@@ -260,6 +260,11 @@ Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/o
 
 Clave que el usuario agrega a esta app y que se guarda en Credential Locker. No se importa una clave de otra app sin confirmación.
 
+El contrato oficial vigente separa capacidades. `/api/v1/key` informa uso y
+límite de la clave activa. `/api/v1/credits` informa créditos de cuenta y exige
+una management key. Un `403` en créditos no invalida el resultado de uso de la
+clave.
+
 ### Métricas
 
 - créditos y saldo;
@@ -268,7 +273,10 @@ Clave que el usuario agrega a esta app y que se guarda en Credential Locker. No 
 
 ### Salida
 
-Después de fijar el contrato de la API oficial, probar revocación, permisos mínimos y rate limits. Se marca como configuración manual.
+Contrato oficial fijado en
+[el gate OpenRouter](research/2026-07-23-openrouter-source-gate.md). El cliente
+offline es el primer corte; Credential Locker, runtime, UI y smoke autorizado
+siguen pendientes. Se marca como configuración manual.
 
 Fuente upstream de comparación: [provider OpenRouter](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/openrouter.md).
 
