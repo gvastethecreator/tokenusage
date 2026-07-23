@@ -51,6 +51,39 @@ internal static class NativeMethods
 
     internal const uint MonitorDefaultToNearest = 2;
     internal const uint SpiGetWorkArea = 0x0030;
+    internal const uint DwmWindowAttributeBorderColor = 34;
+    internal const int GwlStyle = -16;
+    internal const long NonClientFrameStyleMask = 0x00CF0000;
+    internal const long AccessibleNonClientFrameStyle = 0x00480000;
+    internal const uint SwpNoSize = 0x0001;
+    internal const uint SwpNoMove = 0x0002;
+    internal const uint SwpNoZOrder = 0x0004;
+    internal const uint SwpNoActivate = 0x0010;
+    internal const uint SwpFrameChanged = 0x0020;
+
+    [DllImport("dwmapi.dll")]
+    internal static extern int DwmSetWindowAttribute(
+        nint window,
+        uint attribute,
+        ref uint value,
+        uint valueSize);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    internal static extern nint GetWindowLongPtr(nint window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    internal static extern nint SetWindowLongPtr(nint window, int index, nint value);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetWindowPos(
+        nint window,
+        nint insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

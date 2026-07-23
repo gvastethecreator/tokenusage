@@ -4,7 +4,7 @@ namespace WOpenUsage.Platform.Windows.Display;
 
 public static class FlyoutSizePolicy
 {
-    public const double WidthDips = 440d;
+    public const double WidthDips = 480d;
     public const double MinimumHeightDips = 200d;
     public const double AbsoluteMaximumHeightDips = 720d;
     public const double WorkAreaHeightFraction = 0.85d;
