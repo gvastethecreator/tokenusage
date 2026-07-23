@@ -91,9 +91,12 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia de i18n inicial](docs/evidence/ticket-47-i18n.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente ZCode](docs/research/2026-07-22-zcode-source-gate.md)
+- [Gate de fuente Kilo Code](docs/research/2026-07-22-kilo-code-source-gate.md)
 - [Gate de fuente Kimi Code](docs/research/2026-07-22-kimi-code-source-gate.md)
 - [Gate de fuente Command Code](docs/research/2026-07-22-command-code-source-gate.md)
 - [Gate de fuente Cline](docs/research/2026-07-22-cline-source-gate.md)
+- [Gate de fuente Zed](docs/research/2026-07-22-zed-source-gate.md)
+- [Inventario de cobertura de referencias](docs/research/2026-07-22-provider-reference-inventory.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
 - [Gate de fuente Devin](docs/research/2026-07-21-devin-source-gate.md)
@@ -118,4 +121,4 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 
 ## Inicio de la implementación
 
-Los Tickets 01, 03 y 04 dejaron un blanco visual aprobado, una app empaquetada y una solución con límites probados. Los gates Z.ai, Cursor, Copilot y Devin ya fijan sus fuentes y claims. El Ticket 05 puede abrir el primer vertical de bandeja y flyout. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).
+Los Tickets 01, 03 y 04 dejaron un blanco visual aprobado, una app empaquetada y una solución con límites probados. Los gates Z.ai, Cursor, Copilot y Devin ya fijan sus fuentes y claims. Kilo Code y Zed tienen gates documentados; Kimi Code y Cursor ya estaban en el alcance. El Ticket 05 puede abrir el primer vertical de bandeja y flyout. El orden, las pruebas y los criterios de salida están en el [plan](docs/IMPLEMENTATION-PLAN.md).

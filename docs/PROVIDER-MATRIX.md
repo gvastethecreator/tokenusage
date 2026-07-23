@@ -28,18 +28,25 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | ZCode | Bloqueada sin API pública | Bloqueados sin esquema local seguro | Sin fuente apta | Bloqueado | M9; Ticket 48 cerrado, Ticket 49 `needs-info` |
+| Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
 | Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
 | Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
 | Cline | API manual pendiente de contrato | Bloqueados por contenido de tareas | API Enterprise candidata | Bloqueado | M9; Ticket 54 cerrado, Ticket 55 `needs-info` |
+| Zed | Sin contrato público de cuota | Bloqueados por la mezcla de tokens y transcripción | Sin fuente apta | Bloqueado | M9; Ticket 58 cerrado, Ticket 59 `needs-info` |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
 
 La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
 
 El término de entrada `Zcode` se resuelve como `ZCode`, el producto de
-escritorio de ZCode Agent. Kimi Code y Command Code se conservan como términos
-de entrada. Sus tickets de investigación deben fijar el producto canónico antes
-de añadir IDs, iconos, rutas o claims al código.
+escritorio de ZCode Agent. Kilo Code, Kimi Code y Command Code se conservan
+como términos de entrada. Zed representa solo su agente nativo: las sesiones de
+agentes externos siguen perteneciendo a su proveedor original. Sus tickets de
+investigación deben fijar el producto canónico antes de añadir IDs, iconos,
+rutas o claims al código.
+
+La revisión de referencias que motivó esta ampliación está en
+[inventario de cobertura](research/2026-07-22-provider-reference-inventory.md).
 
 ## Gate de publicación
 
@@ -242,6 +249,30 @@ mínima y libre de contenido de sesión.
 
 Gate completo: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
 
+## Kilo Code
+
+### Fuente evaluada
+
+Kilo Code publica el CLI `kilo`, disponible también en Windows, y documenta
+`kilo stats` para mostrar estadísticas de tokens y coste. La referencia del
+comando solo expone filtros por días, herramientas, modelos y proyecto; no
+publica una salida JSON ni un contrato versionado para automatizar la tabla.
+
+La extensión mantiene un `kilo.db` local con sesiones e historial. Esa base no
+es una fuente apta: TokenUsage no puede abrirla ni inferir sus tablas para
+obtener métricas. Una prueba aislada de `kilo 7.4.15` devolvió una tabla vacía
+de estadísticas sin login, pero no prueba que el comando sea de solo lectura,
+estable o seguro contra cambios de formato.
+
+### Salida
+
+Gate abierto. No se crea lector de base, parser de sesiones ni tarjeta pública
+en esta fase. La ruta candidata queda limitada a un comando oficial que emita
+un contrato estructurado, de solo lectura y con métricas agregadas. Hasta
+entonces la app solo puede detectar `kilo --version` en un diagnóstico futuro.
+
+Gate completo: [investigación de fuente Kilo Code](research/2026-07-22-kilo-code-source-gate.md).
+
 ## Kimi Code
 
 ### Fuente evaluada
@@ -327,6 +358,30 @@ estados de error antes de activar la build pública. ClinePass y BYOK conservan
 sus fuentes y reglas de facturación independientes.
 
 Gate completo: [investigación de fuente Cline](research/2026-07-22-cline-source-gate.md).
+
+## Zed
+
+### Fuente evaluada
+
+Zed muestra el uso de tokens del hilo activo en su Agent Panel. Esa superficie
+cubre el agente nativo; los agentes externos y los hilos de terminal conservan
+su propia autenticación y pueden no exponer las mismas métricas.
+
+El código oficial persiste cada hilo con mensajes, resultados de herramientas,
+modelo y contadores de tokens en el mismo blob comprimido de `threads.db`.
+Descomprimir o consultar ese almacén para extraer contadores daría acceso a
+prompts, respuestas y datos de herramientas, fuera del límite de privacidad de
+TokenUsage. La documentación no publica un CLI, API o exportación de métricas
+agregadas para terceros.
+
+### Salida
+
+Bloqueado. La build pública no abre la base de hilos, no automatiza el panel ni
+usa los hilos de agentes externos como datos Zed. Un provider futuro requiere
+una API o exportación oficial, mínima, agregada y apta para consultas de
+terceros.
+
+Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gate.md).
 
 ## Cursor
 
@@ -431,5 +486,7 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
 10. Devin experimental para ACUs de organización mediante API v3.
+11. Kilo Code tras cerrar el contrato de `kilo stats`; Zed solo tras una fuente
+    agregada aprobada.
 
 Este orden mantiene el objetivo de cuota restante con Codex y permite sumar valor local sin ampliar el manejo de credenciales ajenas.

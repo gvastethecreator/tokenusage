@@ -44,3 +44,10 @@ variante oscura y llega al color base mediante un `LinearGradientBrush`. Un
 trazo negro con alfa `0x30`, desplazado 0,75 DIP, añade separación leve entre
 capas. Alto contraste reemplaza los cinco gradientes por el color de realce que
 el usuario eligió en Windows y oculta la sombra.
+
+## Proveedores en gate
+
+Kilo Code y Zed no añaden una marca al paquete mientras sus gates no permitan
+una tarjeta pública. Cuando una fuente se apruebe, el ticket de integración debe
+fijar el asset oficial, licencia, SHA de procedencia, color de visualización y
+captura a 16 DIPs antes de incluirlo.
