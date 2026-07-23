@@ -342,7 +342,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             resourceKey = RootPage.ViewModel.IsSampleModeEnabled
                 ? "SampleStatus"
-                : "CodexQuotaTitle";
+                : "LiveDashboardHeading";
         }
         else
         {

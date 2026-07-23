@@ -3,7 +3,7 @@ param([Parameter(Mandatory)][int]$AppPid)
 $ErrorActionPreference = 'Stop'
 $checks = @(
     @{ Name = 'Claude card appears'; Id = 'UsageProductCard'; Value = $null },
-    @{ Name = 'Claude local source appears'; Id = 'UsageProductCard.DataOrigin'; Value = 'Claude Code' },
+    @{ Name = 'Claude local source appears'; Id = 'UsageProductCard.DataOrigin'; Value = 'Claude' },
     @{ Name = 'Total tokens appear'; Id = 'UsageProductCard.TotalTokens'; Value = $null },
     @{ Name = 'Reported cost appears'; Id = 'UsageProductCard.ReportedCost'; Value = $null },
     @{ Name = 'Estimated cost appears'; Id = 'UsageProductCard.EstimatedCost'; Value = $null },
@@ -11,6 +11,12 @@ $checks = @(
     @{ Name = 'Cost coverage appears'; Id = 'UsageProductCard.CostCoverage'; Value = $null }
 )
 $results = @()
+winapp ui wait-for 'UsageProductCard' -a $AppPid -t 10000 2>$null | Out-Null
+$usageDetails = winapp ui search 'UsageProductCard.DetailsToggle' -a $AppPid --json 2>$null |
+    ConvertFrom-Json
+if (($usageDetails.matches | Select-Object -First 1).toggleState -ne 'on') {
+    winapp ui invoke 'UsageProductCard.DetailsToggle' -a $AppPid 2>$null | Out-Null
+}
 foreach ($check in $checks) {
     try {
         winapp ui wait-for $check.Id -a $AppPid -t 10000 2>$null | Out-Null

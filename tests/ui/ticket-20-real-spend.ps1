@@ -23,12 +23,31 @@ function Require-Value([string]$Id, [string]$Pattern, [bool]$Reject = $false) {
     }
 }
 
-Add-Check 'Today has real spend' {
-    Require-Value 'UsageProductCard.Period.Today' 'Inf\.|Rep\.'
-    Require-Value 'UsageProductCard.Period.Today' 'Sin datos|No data' $true
+function Read-Value([string]$Id) {
+    winapp ui wait-for $Id -a $AppPid -t 10000 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Missing $Id" }
+    return (winapp ui get-value $Id -a $AppPid --json 2>$null | ConvertFrom-Json).text
 }
-Add-Check 'Yesterday has an empty state' {
-    Require-Value 'UsageProductCard.Period.Yesterday' 'Sin datos|No data'
+
+winapp ui wait-for 'UsageProductCard' -a $AppPid -t 10000 2>$null | Out-Null
+$usageDetails = winapp ui search 'UsageProductCard.DetailsToggle' -a $AppPid --json 2>$null |
+    ConvertFrom-Json
+if (($usageDetails.matches | Select-Object -First 1).toggleState -ne 'on') {
+    winapp ui invoke 'UsageProductCard.DetailsToggle' -a $AppPid 2>$null | Out-Null
+}
+winapp ui wait-for 'UsageProductCard.ReportedCost' -a $AppPid -t 3000 2>$null | Out-Null
+
+Add-Check 'Recent day and empty day stay distinct' {
+    $recentDays = @(
+        (Read-Value 'UsageProductCard.Period.Today'),
+        (Read-Value 'UsageProductCard.Period.Yesterday')
+    )
+    if (@($recentDays | Where-Object { $_ -match 'Inf\.|Rep\.' }).Count -ne 1) {
+        throw 'Expected one recent day with spend'
+    }
+    if (@($recentDays | Where-Object { $_ -match 'Sin datos|No data' }).Count -ne 1) {
+        throw 'Expected one recent day without data'
+    }
 }
 Add-Check 'Seven days has coverage' {
     Require-Value 'UsageProductCard.Period.7Days' '%'
