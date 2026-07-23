@@ -2,7 +2,14 @@ using WOpenUsage.Providers.VercelAiGateway;
 
 namespace WOpenUsage.Runtime.Windows.VercelAiGateway;
 
-public sealed class VercelGatewayCredentialStore : IVercelGatewayConnectionSource
+public interface IVercelGatewayCredentialStore : IVercelGatewayConnectionSource
+{
+    Task SaveAsync(string apiKey, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(CancellationToken cancellationToken = default);
+}
+
+public sealed class VercelGatewayCredentialStore : IVercelGatewayCredentialStore
 {
     public const string ResourceName =
         "D6C94EDD-3747-465C-9A81-05DF5A4108C5/vercel-ai-gateway";
