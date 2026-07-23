@@ -277,6 +277,146 @@ public sealed class SnapshotStoreTests
     }
 
     [Fact]
+    public async Task RemoveProviderPreservesOtherSnapshotsAndWritesValidJson()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+        await store.SaveLastGoodAsync(
+            [CreateSnapshot("fake-b", 20m), CreateSnapshot("fake-a", 10m)]);
+
+        SnapshotCacheRemoveResult.Removed removed =
+            Assert.IsType<SnapshotCacheRemoveResult.Removed>(
+                await store.RemoveProviderAsync(new ProviderId("fake-a")));
+
+        ProviderSnapshot remaining = Assert.Single(removed.RemainingSnapshots);
+        Assert.Equal("fake-b", remaining.ProviderId.Value);
+        SnapshotCacheReadResult.Loaded loaded = Assert.IsType<SnapshotCacheReadResult.Loaded>(
+            await store.LoadAsync());
+        Assert.Equal(20m, ProgressUsed(loaded, "fake-b"));
+        using JsonDocument document = JsonDocument.Parse(
+            await File.ReadAllTextAsync(folder.DocumentPath));
+        Assert.Equal("fake-b", document.RootElement
+            .GetProperty("snapshots")[0]
+            .GetProperty("providerId")
+            .GetString());
+    }
+
+    [Fact]
+    public async Task RemoveOnlyProviderWritesValidEmptyDocument()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+        await store.UpsertLastGoodAsync(CreateSnapshot("fake", 42m));
+
+        SnapshotCacheRemoveResult.Removed removed =
+            Assert.IsType<SnapshotCacheRemoveResult.Removed>(
+                await store.RemoveProviderAsync(new ProviderId("fake")));
+
+        Assert.Empty(removed.RemainingSnapshots);
+        SnapshotCacheReadResult.Loaded loaded = Assert.IsType<SnapshotCacheReadResult.Loaded>(
+            await store.LoadAsync());
+        Assert.Empty(loaded.Snapshots);
+    }
+
+    [Fact]
+    public async Task RemoveMissingProviderDoesNotCreateOrRewriteCache()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+
+        Assert.IsType<SnapshotCacheRemoveResult.Missing>(
+            await store.RemoveProviderAsync(new ProviderId("fake")));
+        Assert.False(File.Exists(folder.DocumentPath));
+
+        await store.UpsertLastGoodAsync(CreateSnapshot("other", 42m));
+        byte[] before = await File.ReadAllBytesAsync(folder.DocumentPath);
+        DateTime lastWriteBefore = File.GetLastWriteTimeUtc(folder.DocumentPath);
+
+        Assert.IsType<SnapshotCacheRemoveResult.Missing>(
+            await store.RemoveProviderAsync(new ProviderId("fake")));
+        Assert.Equal(before, await File.ReadAllBytesAsync(folder.DocumentPath));
+        Assert.Equal(lastWriteBefore, File.GetLastWriteTimeUtc(folder.DocumentPath));
+    }
+
+    [Fact]
+    public async Task RemoveProviderRefusesFutureSchemaWithoutChangingBytes()
+    {
+        using var folder = new TemporaryFolder();
+        const string futureJson =
+            "{\"schemaVersion\":2,\"writtenAtUtc\":\"2026-07-22T12:00:00Z\",\"snapshots\":[]}";
+        await File.WriteAllTextAsync(folder.DocumentPath, futureJson, Encoding.UTF8);
+        byte[] before = await File.ReadAllBytesAsync(folder.DocumentPath);
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheRemoveResult.RefusedUnsupportedVersion refused =
+            Assert.IsType<SnapshotCacheRemoveResult.RefusedUnsupportedVersion>(
+                await store.RemoveProviderAsync(new ProviderId("fake")));
+
+        Assert.Equal(2, refused.SchemaVersion);
+        Assert.Equal(before, await File.ReadAllBytesAsync(folder.DocumentPath));
+        Assert.Empty(Directory.GetFiles(folder.Path, "*.tmp"));
+        Assert.Empty(Directory.GetFiles(folder.Path, "*.corrupt-*"));
+    }
+
+    [Fact]
+    public async Task RemoveProviderQuarantinesCorruptCacheAndReturnsFileNameOnly()
+    {
+        using var folder = new TemporaryFolder();
+        const string corruptJson = "{ broken";
+        await File.WriteAllTextAsync(folder.DocumentPath, corruptJson, Encoding.UTF8);
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheRemoveResult.Unreadable unreadable =
+            Assert.IsType<SnapshotCacheRemoveResult.Unreadable>(
+                await store.RemoveProviderAsync(new ProviderId("fake")));
+
+        Assert.False(File.Exists(folder.DocumentPath));
+        Assert.Equal(unreadable.QuarantineFileName, Path.GetFileName(unreadable.QuarantineFileName));
+        Assert.Equal(
+            corruptJson,
+            await File.ReadAllTextAsync(
+                Path.Combine(folder.Path, unreadable.QuarantineFileName),
+                Encoding.UTF8));
+    }
+
+    [Fact]
+    public async Task RemoveProviderWriteFailurePreservesPreviousDocument()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+        await store.SaveLastGoodAsync(
+            [CreateSnapshot("fake-a", 10m), CreateSnapshot("fake-b", 20m)]);
+        byte[] before = await File.ReadAllBytesAsync(folder.DocumentPath);
+
+        await using (FileStream heldDocument = new(
+            folder.DocumentPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read))
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                store.RemoveProviderAsync(new ProviderId("fake-a")));
+        }
+
+        Assert.Equal(before, await File.ReadAllBytesAsync(folder.DocumentPath));
+        Assert.Empty(Directory.GetFiles(folder.Path, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task RemoveProviderCancellationBeforeLockChangesNothing()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            store.RemoveProviderAsync(new ProviderId("fake"), cancellation.Token));
+
+        Assert.Empty(Directory.GetFiles(folder.Path));
+    }
+
+    [Fact]
     public async Task SaveOverCorruptDocumentQuarantinesItBeforeWritingFreshData()
     {
         using var folder = new TemporaryFolder();

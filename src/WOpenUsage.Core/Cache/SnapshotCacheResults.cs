@@ -92,6 +92,68 @@ public abstract class SnapshotCacheSaveResult
     }
 }
 
+public abstract class SnapshotCacheRemoveResult
+{
+    private SnapshotCacheRemoveResult()
+    {
+    }
+
+    public sealed class Removed : SnapshotCacheRemoveResult
+    {
+        public Removed(IEnumerable<ProviderSnapshot> remainingSnapshots)
+        {
+            ArgumentNullException.ThrowIfNull(remainingSnapshots);
+            ProviderSnapshot[] snapshotArray = remainingSnapshots.ToArray();
+            if (snapshotArray.Any(snapshot => snapshot is null))
+            {
+                throw new ArgumentException(
+                    "Snapshots cannot contain null values.",
+                    nameof(remainingSnapshots));
+            }
+
+            RemainingSnapshots = Array.AsReadOnly(snapshotArray);
+        }
+
+        public IReadOnlyList<ProviderSnapshot> RemainingSnapshots { get; }
+    }
+
+    public sealed class Missing : SnapshotCacheRemoveResult;
+
+    public sealed class Unreadable : SnapshotCacheRemoveResult
+    {
+        public Unreadable(string quarantineFileName)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(quarantineFileName);
+            if (!string.Equals(
+                quarantineFileName,
+                Path.GetFileName(quarantineFileName),
+                StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "The quarantine value must contain a file name only.",
+                    nameof(quarantineFileName));
+            }
+
+            QuarantineFileName = quarantineFileName;
+        }
+
+        public string QuarantineFileName { get; }
+    }
+
+    public sealed class RefusedUnsupportedVersion : SnapshotCacheRemoveResult
+    {
+        public RefusedUnsupportedVersion(int schemaVersion)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+                schemaVersion,
+                SnapshotStore.CurrentSchemaVersion);
+            SchemaVersion = schemaVersion;
+        }
+
+        public int SchemaVersion { get; }
+    }
+}
+
 public abstract class SnapshotCacheProbeResult
 {
     private SnapshotCacheProbeResult()
