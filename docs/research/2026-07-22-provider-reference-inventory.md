@@ -55,6 +55,13 @@ CodeBurn y AgentsView obtienen gasto desde datos locales de sesión. Ese enfoque
 puede contener prompts, respuestas, comandos, rutas y credenciales. TokenUsage
 no adopta esas rutas solo por aparecer en una referencia.
 
+El registro ejecutable de CodeBurn contiene 38 adaptadores: 27 cargados de
+forma directa y 11 bajo carga diferida. Su índice de documentación queda atrás
+y omite Codebuff, Mux, Open Design y Zed. Para contar cobertura se usa
+`.reference/codeburn/src/providers/index.ts`, no el total declarado en el
+README. Esta diferencia no cambia la prioridad: esos adaptadores siguen sujetos
+al mismo gate de fuente y privacidad.
+
 ## Prioridad siguiente
 
 Ticket 60 se divide en gates pequeños:
@@ -73,8 +80,8 @@ Ticket 60 se divide en gates pequeños:
 11. Qwen, Ticket 71, presente en ambas referencias y distinto del proveedor de modelos.
 12. Warp, Ticket 72, presente en ambas referencias y con datos de terminal sensibles.
 
-Aider, Amp, Windsurf, Crush, CodeWhale, Droid, IBM Bob, LingTai TUI, Mistral
-Vibe, OMP, Quick Desktop, Zerostack y otros agentes
+Aider, Amp, Windsurf, Codebuff, Crush, CodeWhale, Droid, IBM Bob, LingTai TUI,
+Mistral Vibe, Mux, OMP, Open Design, Quick Desktop, Zerostack y otros agentes
 de referencia quedan como candidatos posteriores. Antes de sumarlos a M9 se
 debe evaluar demanda, soporte Windows y una fuente que no cruce el límite de
 privacidad.
