@@ -62,6 +62,7 @@
     <ProjectReference Include="..\WOpenUsage.Core\WOpenUsage.Core.csproj" />
     <ProjectReference Include="..\WOpenUsage.Providers\WOpenUsage.Providers.csproj" />
     <ProjectReference Include="..\WOpenUsage.Platform.Windows\WOpenUsage.Platform.Windows.csproj" />
+    <ProjectReference Include="..\WOpenUsage.Runtime.Windows\WOpenUsage.Runtime.Windows.csproj" />
   </ItemGroup>
 
   <!--

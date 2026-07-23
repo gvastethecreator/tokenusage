@@ -5,6 +5,7 @@ using WOpenUsage.Core.Providers;
 namespace WOpenUsage.Cli;
 
 public delegate Task<IReadOnlyList<ProviderSnapshot>> LimitsSnapshotReader(
+    string? providerId,
     bool forceRefresh,
     CancellationToken cancellationToken);
 
@@ -42,7 +43,10 @@ public static class LimitsCommand
         IReadOnlyList<ProviderSnapshot> snapshots;
         try
         {
-            snapshots = await readSnapshots(options.ForceRefresh, cancellationToken)
+            snapshots = await readSnapshots(
+                    options.ProviderId,
+                    options.ForceRefresh,
+                    cancellationToken)
                 .ConfigureAwait(false);
             ArgumentNullException.ThrowIfNull(snapshots);
             if (snapshots.Any(snapshot => snapshot is null))
@@ -53,12 +57,6 @@ public static class LimitsCommand
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
-        }
-        catch (LimitsRefreshUnavailableException)
-        {
-            await standardError.WriteLineAsync("Live limit refresh is unavailable.")
-                .ConfigureAwait(false);
-            return UsageCommand.NoDataExitCode;
         }
         catch (Exception)
         {
@@ -285,13 +283,5 @@ public static class LimitsCommand
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
-    }
-}
-
-public sealed class LimitsRefreshUnavailableException : Exception
-{
-    public LimitsRefreshUnavailableException()
-        : base("Live refresh is not configured for this CLI runtime.")
-    {
     }
 }

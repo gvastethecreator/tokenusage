@@ -10,14 +10,19 @@ public static class ArchitectureRules
             ["WOpenUsage.Core"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
             ["WOpenUsage.Providers"] = CreateSet("WOpenUsage.Core"),
             ["WOpenUsage.Platform.Windows"] = CreateSet("WOpenUsage.Core"),
+            ["WOpenUsage.Runtime.Windows"] = CreateSet(
+                "WOpenUsage.Core",
+                "WOpenUsage.Providers",
+                "WOpenUsage.Platform.Windows"),
             ["WOpenUsage.App"] = CreateSet(
                 "WOpenUsage.Core",
                 "WOpenUsage.Providers",
-                "WOpenUsage.Platform.Windows"),
+                "WOpenUsage.Platform.Windows",
+                "WOpenUsage.Runtime.Windows"),
             ["WOpenUsage.Cli"] = CreateSet(
                 "WOpenUsage.Core",
                 "WOpenUsage.Providers",
-                "WOpenUsage.Platform.Windows"),
+                "WOpenUsage.Runtime.Windows"),
         };
 
     public static IReadOnlyList<string> FindForbiddenEdges(ProjectReferenceGraph graph)
