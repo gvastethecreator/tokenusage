@@ -9,6 +9,7 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
 {
     public const int MaxProviders = 100;
     public const int MaxMetricsPerProvider = 100;
+    public const int MaxHighlightedMetricsPerProvider = 2;
 
     public static DashboardLayout Empty { get; } = new(Array.Empty<ProviderLayoutPreference>());
 
@@ -174,6 +175,24 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
             return this;
         }
 
+        // Never evict another metric: refuse to highlight when the per-provider cap is already full.
+        if (isHighlighted)
+        {
+            var highlightedCount = 0;
+            foreach (var candidate in provider.Metrics)
+            {
+                if (candidate.IsHighlighted)
+                {
+                    highlightedCount++;
+                }
+            }
+
+            if (highlightedCount >= MaxHighlightedMetricsPerProvider)
+            {
+                return this;
+            }
+        }
+
         var metrics = provider.Metrics.ToArray();
         metrics[metricIndex] = metric.WithHighlighted(isHighlighted);
 
@@ -182,15 +201,72 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
         return new DashboardLayout(next);
     }
 
+    public DashboardLayout SetMetricOnDemand(ProviderId providerId, MetricId metricId, bool isOnDemand)
+    {
+        ArgumentNullException.ThrowIfNull(providerId);
+        ArgumentNullException.ThrowIfNull(metricId);
+        var providerIndex = IndexOfProvider(providerId);
+        var provider = _providers[providerIndex];
+        var metricIndex = provider.IndexOfMetric(metricId);
+        var metric = provider.Metrics[metricIndex];
+        if (metric.IsOnDemand == isOnDemand)
+        {
+            return this;
+        }
+
+        var metrics = provider.Metrics.ToArray();
+        metrics[metricIndex] = metric.WithOnDemand(isOnDemand);
+
+        var next = (ProviderLayoutPreference[])_providers.Clone();
+        next[providerIndex] = provider.WithMetrics(metrics);
+        return new DashboardLayout(next);
+    }
+
     /// <summary>
     /// Reconciles this layout with an ordered catalog of providers and metrics.
-    /// Preserves saved order and unknown saved items, then appends new catalog
-    /// providers/metrics in catalog order with visible=true and highlighted=false,
-    /// up to the persisted layout limits.
+    /// Maps each catalog metric to <see cref="MetricLayoutCatalogEntry"/> with
+    /// <c>IsOnDemand=false</c> and delegates to the catalog-entry method.
     /// </summary>
     public DashboardLayout Reconcile(
         IReadOnlyList<ProviderId> catalogProviders,
         IReadOnlyDictionary<ProviderId, IReadOnlyList<MetricId>> catalogMetricsByProvider)
+    {
+        ArgumentNullException.ThrowIfNull(catalogProviders);
+        ArgumentNullException.ThrowIfNull(catalogMetricsByProvider);
+
+        var mapped = new Dictionary<ProviderId, IReadOnlyList<MetricLayoutCatalogEntry>>();
+        foreach (var pair in catalogMetricsByProvider)
+        {
+            if (pair.Value is null)
+            {
+                mapped[pair.Key] = null!;
+                continue;
+            }
+
+            var entries = new List<MetricLayoutCatalogEntry>(pair.Value.Count);
+            foreach (var metricId in pair.Value)
+            {
+                // Preserve null entries so the catalog-entry method can validate them.
+                entries.Add(metricId is null
+                    ? null!
+                    : new MetricLayoutCatalogEntry(metricId, isOnDemand: false));
+            }
+
+            mapped[pair.Key] = entries;
+        }
+
+        return ReconcileWithMetricCatalog(catalogProviders, mapped);
+    }
+
+    /// <summary>
+    /// Reconciles this layout with an ordered catalog of providers and metric entries.
+    /// Preserves saved order, flags, and unknown saved items, then appends new catalog
+    /// providers/metrics in catalog order with visible=true, highlighted=false, and the
+    /// catalog <see cref="MetricLayoutCatalogEntry.IsOnDemand"/> value, up to layout limits.
+    /// </summary>
+    public DashboardLayout ReconcileWithMetricCatalog(
+        IReadOnlyList<ProviderId> catalogProviders,
+        IReadOnlyDictionary<ProviderId, IReadOnlyList<MetricLayoutCatalogEntry>> catalogMetricsByProvider)
     {
         ArgumentNullException.ThrowIfNull(catalogProviders);
         ArgumentNullException.ThrowIfNull(catalogMetricsByProvider);
@@ -220,7 +296,7 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
         {
             retainedProviderIds.Add(saved.ProviderId.Value);
             catalogMetricsByProvider.TryGetValue(saved.ProviderId, out var catalogMetrics);
-            catalogMetrics ??= Array.Empty<MetricId>();
+            catalogMetrics ??= Array.Empty<MetricLayoutCatalogEntry>();
             result.Add(ReconcileProviderMetrics(saved, catalogMetrics));
         }
 
@@ -237,18 +313,22 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
             }
 
             catalogMetricsByProvider.TryGetValue(catalogProviderId, out var catalogMetrics);
-            catalogMetrics ??= Array.Empty<MetricId>();
+            catalogMetrics ??= Array.Empty<MetricLayoutCatalogEntry>();
 
             var metrics = new List<MetricLayoutPreference>(catalogMetrics.Count);
             ValidateCatalogMetrics(catalogProviderId, catalogMetrics, nameof(catalogMetricsByProvider));
-            foreach (var metricId in catalogMetrics)
+            foreach (var entry in catalogMetrics)
             {
                 if (metrics.Count >= MaxMetricsPerProvider)
                 {
                     break;
                 }
 
-                metrics.Add(new MetricLayoutPreference(metricId, isVisible: true, isHighlighted: false));
+                metrics.Add(new MetricLayoutPreference(
+                    entry.MetricId,
+                    isVisible: true,
+                    isHighlighted: false,
+                    isOnDemand: entry.IsOnDemand));
             }
 
             result.Add(new ProviderLayoutPreference(
@@ -263,7 +343,7 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
 
     private static ProviderLayoutPreference ReconcileProviderMetrics(
         ProviderLayoutPreference saved,
-        IReadOnlyList<MetricId> catalogMetrics)
+        IReadOnlyList<MetricLayoutCatalogEntry> catalogMetrics)
     {
         ValidateCatalogMetrics(saved.ProviderId, catalogMetrics, nameof(catalogMetrics));
 
@@ -276,9 +356,9 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
             metrics.Add(metric);
         }
 
-        foreach (var metricId in catalogMetrics)
+        foreach (var entry in catalogMetrics)
         {
-            if (retained.Contains(metricId.Value))
+            if (retained.Contains(entry.MetricId.Value))
             {
                 continue;
             }
@@ -288,7 +368,11 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
                 break;
             }
 
-            metrics.Add(new MetricLayoutPreference(metricId, isVisible: true, isHighlighted: false));
+            metrics.Add(new MetricLayoutPreference(
+                entry.MetricId,
+                isVisible: true,
+                isHighlighted: false,
+                isOnDemand: entry.IsOnDemand));
         }
 
         return saved.WithMetrics(metrics);
@@ -296,23 +380,23 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
 
     private static void ValidateCatalogMetrics(
         ProviderId providerId,
-        IReadOnlyList<MetricId> catalogMetrics,
+        IReadOnlyList<MetricLayoutCatalogEntry> catalogMetrics,
         string parameterName)
     {
         var catalogSet = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var metricId in catalogMetrics)
+        foreach (var entry in catalogMetrics)
         {
-            if (metricId is null)
+            if (entry is null)
             {
                 throw new ArgumentException(
                     "Catalog metrics must not contain null entries.",
                     parameterName);
             }
 
-            if (!catalogSet.Add(metricId.Value))
+            if (!catalogSet.Add(entry.MetricId.Value))
             {
                 throw new ArgumentException(
-                    $"Duplicate catalog metric id '{metricId.Value}' for provider '{providerId.Value}'.",
+                    $"Duplicate catalog metric id '{entry.MetricId.Value}' for provider '{providerId.Value}'.",
                     parameterName);
             }
         }
@@ -540,8 +624,13 @@ public sealed class MetricLayoutPreference : IEquatable<MetricLayoutPreference>
     public MetricId MetricId { get; }
     public bool IsVisible { get; }
     public bool IsHighlighted { get; }
+    public bool IsOnDemand { get; }
 
-    public MetricLayoutPreference(MetricId metricId, bool isVisible, bool isHighlighted)
+    public MetricLayoutPreference(
+        MetricId metricId,
+        bool isVisible,
+        bool isHighlighted,
+        bool isOnDemand = false)
     {
         ArgumentNullException.ThrowIfNull(metricId);
         if (string.IsNullOrEmpty(metricId.Value))
@@ -552,13 +641,17 @@ public sealed class MetricLayoutPreference : IEquatable<MetricLayoutPreference>
         MetricId = metricId;
         IsVisible = isVisible;
         IsHighlighted = isHighlighted;
+        IsOnDemand = isOnDemand;
     }
 
     internal MetricLayoutPreference WithVisibility(bool isVisible) =>
-        new(MetricId, isVisible, IsHighlighted);
+        new(MetricId, isVisible, IsHighlighted, IsOnDemand);
 
     internal MetricLayoutPreference WithHighlighted(bool isHighlighted) =>
-        new(MetricId, IsVisible, isHighlighted);
+        new(MetricId, IsVisible, isHighlighted, IsOnDemand);
+
+    internal MetricLayoutPreference WithOnDemand(bool isOnDemand) =>
+        new(MetricId, IsVisible, IsHighlighted, isOnDemand);
 
     public bool Equals(MetricLayoutPreference? other)
     {
@@ -569,7 +662,8 @@ public sealed class MetricLayoutPreference : IEquatable<MetricLayoutPreference>
 
         return string.Equals(MetricId.Value, other.MetricId.Value, StringComparison.Ordinal)
             && IsVisible == other.IsVisible
-            && IsHighlighted == other.IsHighlighted;
+            && IsHighlighted == other.IsHighlighted
+            && IsOnDemand == other.IsOnDemand;
     }
 
     public override bool Equals(object? obj) => obj is MetricLayoutPreference other && Equals(other);
@@ -580,6 +674,23 @@ public sealed class MetricLayoutPreference : IEquatable<MetricLayoutPreference>
         hash.Add(MetricId.Value, StringComparer.Ordinal);
         hash.Add(IsVisible);
         hash.Add(IsHighlighted);
+        hash.Add(IsOnDemand);
         return hash.ToHashCode();
+    }
+}
+
+/// <summary>
+/// Immutable catalog row describing one known metric for layout reconciliation.
+/// </summary>
+public sealed class MetricLayoutCatalogEntry
+{
+    public MetricId MetricId { get; }
+    public bool IsOnDemand { get; }
+
+    public MetricLayoutCatalogEntry(MetricId metricId, bool isOnDemand)
+    {
+        ArgumentNullException.ThrowIfNull(metricId);
+        MetricId = metricId;
+        IsOnDemand = isOnDemand;
     }
 }

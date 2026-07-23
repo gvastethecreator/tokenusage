@@ -78,6 +78,30 @@ public sealed class DashboardLayoutStoreTests
         Assert.Equal(MetricY, loaded.Layout.Providers[1].Metrics[0].MetricId);
         Assert.False(loaded.Layout.Providers[1].Metrics[0].IsVisible);
         Assert.True(loaded.Layout.Providers[1].Metrics[0].IsHighlighted);
+        Assert.False(loaded.Layout.Providers[1].Metrics[0].IsOnDemand);
+    }
+
+    [Fact]
+    public async Task LoadAsyncLegacyOverHighlightLimitPreservesVersionOneDocument()
+    {
+        using var dir = new TempDirectory();
+        var path = Path.Combine(dir.Path, DashboardLayoutStore.DefaultFileName);
+        var json =
+            """
+            {"schemaVersion":1,"providers":[{"providerId":"provider-a","isVisible":true,"isHighlighted":false,"metrics":[{"metricId":"metric-x","isVisible":true,"isHighlighted":true},{"metricId":"metric-y","isVisible":true,"isHighlighted":true},{"metricId":"metric-z","isVisible":true,"isHighlighted":true}]}]}
+            """;
+        await File.WriteAllTextAsync(path, json, new UTF8Encoding(false));
+
+        var store = new DashboardLayoutStore(path);
+        DashboardLayoutLoadResult load = await store.LoadAsync();
+        DashboardLayout loaded = Assert.IsType<DashboardLayoutLoadResult.Loaded>(load).Layout;
+
+        Assert.Equal(3, loaded.Providers[0].Metrics.Count(metric => metric.IsHighlighted));
+        Assert.True(File.Exists(path));
+        Assert.Empty(Directory.GetFiles(dir.Path, "*.corrupt-*"));
+
+        DashboardLayout repaired = loaded.SetMetricHighlighted(ProviderA, MetricX, false);
+        Assert.Equal(2, repaired.Providers[0].Metrics.Count(metric => metric.IsHighlighted));
     }
 
     [Fact]
@@ -321,7 +345,7 @@ public sealed class DashboardLayoutStoreTests
                 isHighlighted: false,
                 [
                     new MetricLayoutPreference(MetricX, true, false),
-                    new MetricLayoutPreference(MetricY, true, false),
+                    new MetricLayoutPreference(MetricY, true, false, isOnDemand: true),
                 ]),
         ]);
 
@@ -354,6 +378,8 @@ public sealed class DashboardLayoutStoreTests
         Assert.Equal(2, metrics.GetArrayLength());
         Assert.Equal("metric-x", metrics[0].GetProperty("metricId").GetString());
         Assert.Equal("metric-y", metrics[1].GetProperty("metricId").GetString());
+        Assert.False(metrics[0].GetProperty("isOnDemand").GetBoolean());
+        Assert.True(metrics[1].GetProperty("isOnDemand").GetBoolean());
 
         // No enum-style strings for flags
         Assert.DoesNotContain("True", first, StringComparison.Ordinal);
@@ -397,7 +423,7 @@ public sealed class DashboardLayoutStoreTests
                 isHighlighted: false,
                 [
                     new MetricLayoutPreference(MetricX, true, false),
-                    new MetricLayoutPreference(MetricY, false, true),
+                    new MetricLayoutPreference(MetricY, false, true, isOnDemand: true),
                 ]),
             new ProviderLayoutPreference(
                 ProviderB,

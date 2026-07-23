@@ -182,6 +182,55 @@ public sealed class DashboardLayoutTests
     }
 
     [Fact]
+    public void SetMetricOnDemandReturnsNewLayoutAndIsIdempotent()
+    {
+        var layout = CreateSingleProviderWithThreeMetrics();
+
+        DashboardLayout onDemand = layout.SetMetricOnDemand(ProviderA, MetricY, true);
+
+        Assert.False(layout.Providers[0].Metrics[1].IsOnDemand);
+        Assert.True(onDemand.Providers[0].Metrics[1].IsOnDemand);
+        Assert.Same(onDemand, onDemand.SetMetricOnDemand(ProviderA, MetricY, true));
+        Assert.False(onDemand.SetMetricOnDemand(ProviderA, MetricY, false)
+            .Providers[0].Metrics[1].IsOnDemand);
+    }
+
+    [Fact]
+    public void ThirdHighlightedMetricIsRefusedWithoutEvictingExistingChoices()
+    {
+        DashboardLayout layout = CreateSingleProviderWithThreeMetrics()
+            .SetMetricHighlighted(ProviderA, MetricX, true)
+            .SetMetricHighlighted(ProviderA, MetricY, true);
+
+        DashboardLayout refused = layout.SetMetricHighlighted(ProviderA, MetricZ, true);
+
+        Assert.Same(layout, refused);
+        Assert.Equal(
+            [MetricX, MetricY],
+            refused.Providers[0].Metrics
+                .Where(metric => metric.IsHighlighted)
+                .Select(metric => metric.MetricId));
+        Assert.False(refused.Providers[0].Metrics[2].IsHighlighted);
+        Assert.False(refused.SetMetricHighlighted(ProviderA, MetricY, false)
+            .Providers[0].Metrics[1].IsHighlighted);
+    }
+
+    [Fact]
+    public void LegacyProviderPreferenceCanRetainMoreThanTwoHighlightedMetrics()
+    {
+        var metrics = new[]
+        {
+            new MetricLayoutPreference(MetricX, true, true),
+            new MetricLayoutPreference(MetricY, true, true),
+            new MetricLayoutPreference(MetricZ, true, true),
+        };
+
+        var provider = new ProviderLayoutPreference(ProviderA, true, false, metrics);
+
+        Assert.Equal(3, provider.Metrics.Count(metric => metric.IsHighlighted));
+    }
+
+    [Fact]
     public void MutationsMissingProviderOrMetricThrowKeyNotFoundException()
     {
         var layout = CreateThreeProviderLayout();
@@ -208,6 +257,8 @@ public sealed class DashboardLayoutTests
         Assert.Throws<ArgumentNullException>(() => layout.MoveMetric(ProviderA, null!, 1));
         Assert.Throws<ArgumentNullException>(() => layout.SetMetricVisible(null!, MetricX, true));
         Assert.Throws<ArgumentNullException>(() => layout.SetMetricHighlighted(ProviderA, null!, true));
+        Assert.Throws<ArgumentNullException>(() => layout.SetMetricOnDemand(null!, MetricX, true));
+        Assert.Throws<ArgumentNullException>(() => layout.SetMetricOnDemand(ProviderA, null!, true));
     }
 
     [Theory]
@@ -308,6 +359,48 @@ public sealed class DashboardLayoutTests
         Assert.Equal(
             once.Providers.Select(p => p.ProviderId.Value),
             twice.Providers.Select(p => p.ProviderId.Value));
+    }
+
+    [Fact]
+    public void ReconcileCatalogEntriesUseDefaultsAndKeepSavedOnDemandMembership()
+    {
+        var saved = new DashboardLayout(
+        [
+            new ProviderLayoutPreference(
+                ProviderA,
+                true,
+                false,
+                [new MetricLayoutPreference(MetricX, true, false, isOnDemand: true)]),
+        ]);
+        var catalog = new Dictionary<ProviderId, IReadOnlyList<MetricLayoutCatalogEntry>>
+        {
+            [ProviderA] =
+            [
+                new MetricLayoutCatalogEntry(MetricX, isOnDemand: false),
+                new MetricLayoutCatalogEntry(MetricY, isOnDemand: true),
+            ],
+        };
+
+        DashboardLayout reconciled = saved.ReconcileWithMetricCatalog([ProviderA], catalog);
+
+        Assert.Equal([MetricX, MetricY], reconciled.Providers[0].Metrics.Select(item => item.MetricId));
+        Assert.True(reconciled.Providers[0].Metrics[0].IsOnDemand);
+        Assert.True(reconciled.Providers[0].Metrics[1].IsOnDemand);
+        Assert.True(reconciled.Providers[0].Metrics[1].IsVisible);
+        Assert.False(reconciled.Providers[0].Metrics[1].IsHighlighted);
+    }
+
+    [Fact]
+    public void LegacyMetricCatalogOverloadDefaultsNewMetricsToAlwaysVisible()
+    {
+        DashboardLayout reconciled = DashboardLayout.Empty.Reconcile(
+            [ProviderA],
+            new Dictionary<ProviderId, IReadOnlyList<MetricId>>
+            {
+                [ProviderA] = [MetricX],
+            });
+
+        Assert.False(Assert.Single(reconciled.Providers[0].Metrics).IsOnDemand);
     }
 
     [Fact]

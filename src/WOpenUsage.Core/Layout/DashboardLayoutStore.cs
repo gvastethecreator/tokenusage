@@ -231,7 +231,8 @@ public sealed class DashboardLayoutStore
                 metrics.Add(new MetricLayoutPreference(
                     new MetricId(metric.MetricId),
                     metric.IsVisible,
-                    metric.IsHighlighted));
+                    metric.IsHighlighted,
+                    metric.IsOnDemand));
             }
 
             providers.Add(new ProviderLayoutPreference(
@@ -257,6 +258,7 @@ public sealed class DashboardLayoutStore
                 MetricId = metric.MetricId.Value,
                 IsVisible = metric.IsVisible,
                 IsHighlighted = metric.IsHighlighted,
+                IsOnDemand = metric.IsOnDemand,
             }).ToList(),
         }).ToList(),
     };
@@ -425,6 +427,8 @@ public sealed class DashboardLayoutStore
         public bool IsVisible { get; set; }
 
         public bool IsHighlighted { get; set; }
+
+        public bool IsOnDemand { get; set; }
     }
 
     private sealed class LayoutDocumentFormatException : Exception;
