@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using WOpenUsage.App.Localization;
 
 namespace WOpenUsage.App;
 
@@ -12,6 +13,7 @@ public partial class App : Application
 
     public App()
     {
+        AppLanguageRuntime.Initialize();
         InitializeComponent();
 #if DEBUG
         string[] launchArguments = Environment.GetCommandLineArgs()[1..];

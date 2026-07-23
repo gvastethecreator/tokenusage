@@ -3,10 +3,12 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Windows.AppLifecycle;
 using Windows.Storage;
 using Windows.System;
 using Windows.UI.ViewManagement;
 using WOpenUsage.App.Controls;
+using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
 using WOpenUsage.Providers.Claude;
@@ -155,6 +157,33 @@ public sealed partial class MainPage : Page
         FlyoutFooterIdentity.Visibility = Visibility.Collapsed;
         FlyoutStatusText.Opacity = 0;
         FlyoutStatusText.IsHitTestVisible = false;
+    }
+
+    private void OnRestartForLanguageClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            AppLanguageRuntime.RestartWithLanguage(
+                ViewModel.PendingLanguageTag,
+                GetLanguageRestartArguments());
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or InvalidOperationException
+            or UnauthorizedAccessException
+            or System.Runtime.InteropServices.COMException)
+        {
+        }
+
+        ViewModel.ReportLanguageRestartFailure();
+    }
+
+    private static string GetLanguageRestartArguments()
+    {
+#if DEBUG
+        return AppLanguageRestartArguments.Create(Environment.GetCommandLineArgs()[1..]);
+#else
+        return string.Empty;
+#endif
     }
 
     private void ScheduleSampleReveal()

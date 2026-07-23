@@ -266,6 +266,12 @@ public static class LocalUsageCardProjector
         string totalText = totals.HasAnyCost
             ? FormatUsd(totals.Reported + totals.Estimated, getString)
             : missing;
+        string compactTotalText = totals.HasAnyCost
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                getString("LocalUsageUsdCompactFormat"),
+                totals.Reported + totals.Estimated)
+            : missing;
         string summary = string.Format(
             CultureInfo.CurrentCulture,
             getString("LocalUsageBreakdownSummaryFormat"),
@@ -281,7 +287,8 @@ public static class LocalUsageCardProjector
                 totalText,
                 summary),
             agentSlices,
-            models);
+            models,
+            compactTotalText);
     }
 
     private static string GetAgentName(string agentId, Func<string, string> getString) =>

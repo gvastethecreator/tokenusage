@@ -181,7 +181,7 @@
   <data name="LocalUsageTotalTokens" xml:space="preserve"><value>Tokens</value></data>
   <data name="LocalUsageCoverage" xml:space="preserve"><value>Cost coverage</value></data>
   <data name="LocalUsageCostPerMillion" xml:space="preserve"><value>Cost per 1M tokens</value></data>
-  <data name="LocalUsageUsdPerMillionFormat" xml:space="preserve"><value>${0:0.00}/1M</value></data>
+  <data name="LocalUsageUsdPerMillionFormat" xml:space="preserve"><value>${0:N2}/1M</value></data>
   <data name="LocalUsagePeriodToday" xml:space="preserve"><value>Today</value></data>
   <data name="LocalUsagePeriodYesterday" xml:space="preserve"><value>Yesterday</value></data>
   <data name="LocalUsagePeriod7Days" xml:space="preserve"><value>7 days</value></data>
@@ -203,7 +203,7 @@
   <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
   <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
-  <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:0.00} USD</value></data>
+  <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:N2} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
   <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="ProviderStatusSectionDescription.Text" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
@@ -236,4 +236,22 @@
   <data name="ProviderStatusRecoveryRefresh" xml:space="preserve"><value>Refresh status after new activity.</value></data>
   <data name="ProviderStatusRecoveryUnavailable" xml:space="preserve"><value>No recovery is available in the app.</value></data>
   <data name="LocalUsageAgentCodex" xml:space="preserve"><value>Codex</value></data>
+  <data name="LanguageSectionTitle.Text" xml:space="preserve"><value>Language</value></data>
+  <data name="LanguageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>App language</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>English (United States)</value></data>
+  <data name="LanguageSpanish" xml:space="preserve"><value>Spanish (Spain)</value></data>
+  <data name="LanguageRestartNotice.Title" xml:space="preserve"><value>Restart required</value></data>
+  <data name="LanguageRestartNotice.Message" xml:space="preserve"><value>Restart TokenUsage to apply the selected language.</value></data>
+  <data name="LanguageRestartButton.Content" xml:space="preserve"><value>Restart now</value></data>
+  <data name="LanguageRestartButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Restart TokenUsage now</value></data>
+  <data name="LanguageRestartError.Title" xml:space="preserve"><value>Restart failed</value></data>
+  <data name="LanguageRestartError.Message" xml:space="preserve"><value>Your language stayed unchanged. Close and reopen TokenUsage, then try again.</value></data>
+  <data name="SampleUsdFormat" xml:space="preserve"><value>${0:N2}</value></data>
+  <data name="SampleUsdCompactFormat" xml:space="preserve"><value>${0:N2}</value></data>
+  <data name="LocalUsageUsdCompactFormat" xml:space="preserve"><value>${0:N2}</value></data>
+  <data name="SampleCompactThousandsFormat" xml:space="preserve"><value>{0:0.##}K</value></data>
+  <data name="SampleCompactMillionsFormat" xml:space="preserve"><value>{0:0.##}M</value></data>
+  <data name="SampleTokenThousandsFormat" xml:space="preserve"><value>{0:0.##}K tokens</value></data>
+  <data name="SampleTokenMillionsFormat" xml:space="preserve"><value>{0:0.##}M tokens</value></data>
+  <data name="SampleTokenExactFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
 </root>
