@@ -3,8 +3,8 @@
 Fecha de corte: 2026-07-23
 
 Decisión: ampliar el alcance con Kilo Code y Zed; conservar Kimi Code y Cursor
-en sus gates existentes; abrir una siguiente ola de investigación, sin crear
-adaptadores todavía.
+en sus gates existentes; abrir gates para Vercel AI Gateway y Mistral Vibe;
+mantener el resto como inventario, sin crear adaptadores todavía.
 
 ## Pregunta
 
@@ -45,19 +45,26 @@ AgentsView confirma la presencia de Gemini, Kiro, Roo Code, Kilo, Kimi y Zed.
 La coincidencia entre referencias sube la prioridad de los tres primeros, pero
 no valida sus rutas ni su política.
 
-La comparación de los índices completos encontró seis coincidencias que no
-estaban en el alcance: Forge, Hermes Agent, OpenClaw, Pi, Qwen y Warp. AgentsView
-también tiene muchos parsers que CodeBurn no enumera. Estos quedan fuera por
-ahora porque una sola implementación de referencia aporta poca señal de demanda
-y ninguna prueba de uso permitido.
+La comparación de los índices completos encontró siete coincidencias que no
+estaban en el alcance: Forge, Hermes Agent, OpenClaw, Pi, Qwen, Warp y Mistral
+Vibe. Los primeros seis recibieron los Tickets 67–72. Mistral Vibe recibe el
+Ticket 75 porque cumple la misma regla de dos referencias. Sus adapters locales
+leen sesiones, por lo que esa coincidencia no autoriza un scanner.
 
-CodeBurn y AgentsView obtienen gasto desde datos locales de sesión. Ese enfoque
-puede contener prompts, respuestas, comandos, rutas y credenciales. TokenUsage
-no adopta esas rutas solo por aparecer en una referencia.
+CodeBurn también registra Vercel AI Gateway. Su adapter consulta un reporte
+HTTP agregado por día y modelo con una clave manual. La forma es mejor candidata
+que una transcripción, pero la referencia no prueba contrato público, scopes,
+planes aptos ni permiso de uso. El Ticket 73 debe resolver esos puntos con
+fuentes primarias antes de crear un cliente.
+
+Muchos adapters de CodeBurn y AgentsView obtienen gasto desde datos locales de
+sesión. Ese enfoque puede contener prompts, respuestas, comandos, rutas y
+credenciales. TokenUsage no adopta esas rutas solo por aparecer en una
+referencia.
 
 El registro ejecutable de CodeBurn contiene 38 adaptadores: 27 cargados de
 forma directa y 11 bajo carga diferida. Su índice de documentación queda atrás
-y omite Codebuff, Mux, Open Design y Zed. Para contar cobertura se usa
+y omite Codebuff, Mux, Open Design, Vercel AI Gateway y Zed. Para contar cobertura se usa
 `.reference/codeburn/src/providers/index.ts`, no el total declarado en el
 README. Esta diferencia no cambia la prioridad: esos adaptadores siguen sujetos
 al mismo gate de fuente y privacidad.
@@ -79,21 +86,34 @@ Ticket 60 se divide en gates pequeños:
 10. Pi, Ticket 70, presente en ambas referencias y relacionado con OMP.
 11. Qwen, Ticket 71, presente en ambas referencias y distinto del proveedor de modelos.
 12. Warp, Ticket 72, presente en ambas referencias y con datos de terminal sensibles.
+13. Vercel AI Gateway, Ticket 73, por su candidato de reporte agregado con clave manual.
+14. Mistral Vibe, Ticket 75, por presencia en ambas referencias y necesidad de
+    excluir mensajes, herramientas y comandos.
 
-Aider, Amp, Windsurf, Codebuff, Crush, CodeWhale, Droid, IBM Bob, LingTai TUI,
-Mistral Vibe, Mux, OMP, Open Design, Quick Desktop, Zerostack y otros agentes
-de referencia quedan como candidatos posteriores. Antes de sumarlos a M9 se
-debe evaluar demanda, soporte Windows y una fuente que no cruce el límite de
-privacidad.
+AgentsView registra 53 identidades. Aider, Amp, Windsurf, OpenHands CLI,
+Zencoder, Trae, Qoder, Cortex Code, DeepSeek TUI, gptme, iFlow, IcodeMate,
+MiMoCode, Piebald, Posit Assistant, Positron Assistant, QClaw, QwenPaw,
+Reasonix, Shelley y WorkBuddy quedan como candidatos posteriores. Variantes de
+Claude, Copilot, Kiro y Antigravity se resuelven dentro de sus familias antes
+de abrir IDs propios.
+
+CodeBurn conserva como candidatos posteriores Codebuff, Crush, CodeWhale,
+Droid, IBM Bob, LingTai TUI, Mux, Open Design, Quick Desktop y Zerostack. OMP
+queda bajo el gate de Pi. DeepSeek TUI y CodeWhale comparten rutas candidatas y
+necesitan una decisión de identidad. Antes de sumarlos a M9 se debe evaluar
+demanda, soporte Windows y una fuente que no cruce el límite de privacidad.
 
 ## Decisión de producto
 
 - Kilo Code y Zed quedan representados en la matriz y M9 con estado de gate.
 - Kimi Code y Cursor quedan cubiertos por sus tickets actuales.
 - Kimi CLI y Cursor Agent se investigan por separado; no heredan los contratos
-  de Kimi Code ni Cursor Admin API.
+  de Kimi Code ni Cursor Admin API. AgentsView mezcla las rutas Kimi bajo una
+  identidad, así que no aporta evidencia para separarlas.
 - Forge, Hermes Agent, OpenClaw, Pi, Qwen y Warp reciben gates propios por su
   presencia en ambas referencias.
+- Vercel AI Gateway recibe un gate propio por su reporte agregado candidato;
+  Mistral Vibe recibe otro por su presencia en ambas referencias.
 - Ningún candidato de la siguiente ola recibe descriptor, logo, scanner,
   credencial o tarjeta antes de su gate de fuente.
 - La investigación futura debe mantener separado el uso del agente, la cuota
@@ -105,3 +125,8 @@ Las referencias cambian rápido y sus parsers no prueban términos ni contratos.
 Antes de anunciar soporte de cualquier candidato, hay que repetir el gate con
 documentación primaria vigente, una prueba Windows aislada y datos mínimos
 autorizados cuando hagan falta.
+
+Punteros de inventario: `.reference/codeburn/src/providers/index.ts`,
+`.reference/codeburn/src/providers/vercel-gateway.ts`,
+`.reference/codeburn/src/providers/mistral-vibe.ts` y
+`.reference/agentsview/internal/parser/types.go`.
