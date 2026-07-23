@@ -7,6 +7,24 @@ namespace WOpenUsage.Cli.Tests;
 
 public sealed class LocalUsageCliAccessTests
 {
+    [Fact]
+    public async Task MissingDatabaseFailsWithoutCreatingIt()
+    {
+        string databasePath = Path.Combine(
+            Path.GetTempPath(),
+            "wopenusage-cli-tests",
+            Guid.NewGuid().ToString("N"),
+            "usage.v1.db");
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => LocalUsageCliAccess.ReadAsync(
+            databasePath,
+            new DateOnly(2026, 7, 1),
+            new DateOnly(2026, 7, 23)));
+
+        Assert.False(File.Exists(databasePath));
+        Assert.False(Directory.Exists(Path.GetDirectoryName(databasePath)!));
+    }
+
     [Theory]
     [InlineData("en-US")]
     [InlineData("es-ES")]

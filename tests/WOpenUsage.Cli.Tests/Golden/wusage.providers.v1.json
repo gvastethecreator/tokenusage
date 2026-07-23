@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "wusage.providers.v1",
+  "generatedAt": "2026-07-23T04:00:00+00:00",
+  "providers": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "capabilities": [
+        "localUsage"
+      ],
+      "detection": "missing",
+      "data": "absent"
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "capabilities": [
+        "limits"
+      ],
+      "detection": "detected",
+      "data": "present"
+    },
+    {
+      "id": "grok",
+      "name": "Grok Build",
+      "capabilities": [
+        "localUsage"
+      ],
+      "detection": "detected",
+      "data": "present"
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "capabilities": [
+        "localUsage"
+      ],
+      "detection": "unavailable",
+      "data": "unreadable"
+    }
+  ]
+}

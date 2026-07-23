@@ -87,6 +87,86 @@ public sealed class SnapshotStoreTests
     }
 
     [Fact]
+    public async Task ProbeMissingCacheDoesNotCreateIt()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheProbeResult result = await store.ProbeAsync();
+
+        Assert.IsType<SnapshotCacheProbeResult.Missing>(result);
+        Assert.False(File.Exists(folder.DocumentPath));
+    }
+
+    [Fact]
+    public async Task ProbeValidCacheReportsPresentWithoutChangingBytes()
+    {
+        using var folder = new TemporaryFolder();
+        await File.WriteAllTextAsync(folder.DocumentPath, ValidDocumentJson, Encoding.UTF8);
+        byte[] before = await File.ReadAllBytesAsync(folder.DocumentPath);
+        DateTime lastWriteBefore = File.GetLastWriteTimeUtc(folder.DocumentPath);
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheProbeResult result = await store.ProbeAsync();
+
+        Assert.IsType<SnapshotCacheProbeResult.Present>(result);
+        Assert.Equal(before, await File.ReadAllBytesAsync(folder.DocumentPath));
+        Assert.Equal(lastWriteBefore, File.GetLastWriteTimeUtc(folder.DocumentPath));
+    }
+
+    [Fact]
+    public async Task ProbeProviderReportsOnlyTheRequestedSnapshotWithoutChangingBytes()
+    {
+        using var folder = new TemporaryFolder();
+        var store = CreateStore(folder.DocumentPath);
+        await store.SaveLastGoodAsync([]);
+        Assert.IsType<SnapshotCacheProbeResult.Missing>(
+            await store.ProbeProviderAsync(new ProviderId("codex")));
+
+        await store.UpsertLastGoodAsync(CreateSnapshot("fake", 42m));
+        byte[] before = await File.ReadAllBytesAsync(folder.DocumentPath);
+        DateTime lastWriteBefore = File.GetLastWriteTimeUtc(folder.DocumentPath);
+
+        Assert.IsType<SnapshotCacheProbeResult.Missing>(
+            await store.ProbeProviderAsync(new ProviderId("codex")));
+        Assert.IsType<SnapshotCacheProbeResult.Present>(
+            await store.ProbeProviderAsync(new ProviderId("fake")));
+        Assert.Equal(before, await File.ReadAllBytesAsync(folder.DocumentPath));
+        Assert.Equal(lastWriteBefore, File.GetLastWriteTimeUtc(folder.DocumentPath));
+    }
+
+    [Fact]
+    public async Task ProbeCorruptCacheNeverQuarantinesIt()
+    {
+        using var folder = new TemporaryFolder();
+        const string corruptJson = "{ \"schemaVersion\": 1, \"snapshots\": [";
+        await File.WriteAllTextAsync(folder.DocumentPath, corruptJson, Encoding.UTF8);
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheProbeResult result = await store.ProbeAsync();
+
+        Assert.IsType<SnapshotCacheProbeResult.Unreadable>(result);
+        Assert.True(File.Exists(folder.DocumentPath));
+        Assert.Equal(corruptJson, await File.ReadAllTextAsync(folder.DocumentPath, Encoding.UTF8));
+        Assert.Single(Directory.GetFiles(folder.Path));
+    }
+
+    [Fact]
+    public async Task ProbeFutureSchemaReportsUnsupportedWithoutChangingIt()
+    {
+        using var folder = new TemporaryFolder();
+        const string futureJson = "{ \"schemaVersion\": 2, \"snapshots\": [] }";
+        await File.WriteAllTextAsync(folder.DocumentPath, futureJson, Encoding.UTF8);
+        var store = CreateStore(folder.DocumentPath);
+
+        SnapshotCacheProbeResult result = await store.ProbeAsync();
+
+        Assert.IsType<SnapshotCacheProbeResult.UnsupportedVersion>(result);
+        Assert.Equal(futureJson, await File.ReadAllTextAsync(folder.DocumentPath, Encoding.UTF8));
+        Assert.Single(Directory.GetFiles(folder.Path));
+    }
+
+    [Fact]
     public async Task LoadInvalidDomainDataTreatsWholeDocumentAsCorrupt()
     {
         using var folder = new TemporaryFolder();
