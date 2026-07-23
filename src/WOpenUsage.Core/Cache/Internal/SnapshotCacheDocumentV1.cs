@@ -28,6 +28,17 @@ internal sealed class SnapshotCacheProviderV1
     public int? AdapterContractVersion { get; set; }
 
     public List<SnapshotCacheMetricV1>? Metrics { get; set; }
+
+    public List<SnapshotCacheCapabilityV1>? Capabilities { get; set; }
+}
+
+internal sealed class SnapshotCacheCapabilityV1
+{
+    public string? Id { get; set; }
+
+    public string? State { get; set; }
+
+    public SnapshotCacheProvenanceV1? Provenance { get; set; }
 }
 
 internal sealed class SnapshotCacheMetricV1
@@ -45,6 +56,10 @@ internal sealed class SnapshotCacheMetricV1
     public decimal? Value { get; set; }
 
     public string? Unit { get; set; }
+
+    public string? ResetCadence { get; set; }
+
+    public bool? IsActive { get; set; }
 
     public SnapshotCacheProvenanceV1? Provenance { get; set; }
 }

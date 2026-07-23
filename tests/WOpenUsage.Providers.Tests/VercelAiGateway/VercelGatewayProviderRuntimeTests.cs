@@ -193,7 +193,7 @@ public sealed class VercelGatewayProviderRuntimeTests
         Assert.Equal(FixedUtc, snapshot.SourceObservedAtUtc);
         Assert.Equal("UTC", snapshot.TimeZoneId);
         Assert.Equal(CoverageKind.Complete, snapshot.Coverage);
-        Assert.Equal(1, snapshot.AdapterContractVersion);
+        Assert.Equal(2, snapshot.AdapterContractVersion);
 
         var metrics = snapshot.Metrics.OfType<ScalarMetricSnapshot>().ToDictionary(m => m.Id.Value);
         Assert.Equal(10, metrics.Count);
@@ -231,6 +231,117 @@ public sealed class VercelGatewayProviderRuntimeTests
         var success = Assert.IsType<ProviderOutcome.Success>(outcome);
         Assert.Equal(CoverageKind.Complete, success.Snapshot.Coverage);
         Assert.Empty(success.Snapshot.Metrics);
+    }
+
+    [Fact]
+    public async Task RefreshWithKeyIdAddsTypedBudgetMetric()
+    {
+        var quotaClient = new FakeQuotaClient
+        {
+            Result = new VercelGatewayQuotaLookupResult.Found(
+                new VercelGatewayQuota(
+                    "api_key_id_key_abc-123",
+                    "desktop-key",
+                    10m,
+                    1.5m,
+                    8.5m,
+                    VercelGatewayQuotaRefreshPeriod.Monthly,
+                    Active: true)),
+        };
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection("key_abc-123")),
+            new FakeReportClient { Report = CreateFullReport() },
+            quotaClient);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(outcome).Snapshot;
+        ProgressMetricSnapshot metric = Assert.IsType<ProgressMetricSnapshot>(
+            snapshot.Metrics.Single(item => item.Id.Value == "quota.gateway.key.budget"));
+        Assert.Equal(1.5m, metric.Used);
+        Assert.Equal(10m, metric.Limit);
+        Assert.Equal("usd", metric.Unit);
+        Assert.Equal(ProgressResetCadence.Monthly, metric.ResetCadence);
+        Assert.True(metric.IsActive);
+        Assert.Null(metric.ResetsAtUtc);
+        Assert.Equal("vercel-ai-gateway-quota/1", metric.Provenance.AdapterVersion);
+        ProviderCapabilitySnapshot capability = Assert.Single(snapshot.Capabilities);
+        Assert.Equal("quota.gateway.key.budget", capability.Id.Value);
+        Assert.Equal(ProviderCapabilityState.Available, capability.State);
+        Assert.Equal(SecretApiKey, quotaClient.LastApiKey);
+        Assert.Equal("key_abc-123", quotaClient.LastKeyId);
+    }
+
+    [Fact]
+    public async Task LegacyConnectionSkipsQuotaCall()
+    {
+        var quotaClient = new FakeQuotaClient();
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection()),
+            new FakeReportClient { Report = CreateFullReport() },
+            quotaClient);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        Assert.Equal(0, quotaClient.CallCount);
+        ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(outcome).Snapshot;
+        Assert.Equal(
+            ProviderCapabilityState.NotRequested,
+            Assert.Single(snapshot.Capabilities).State);
+    }
+
+    [Fact]
+    public async Task NoBudgetKeepsReportSuccessfulWithoutQuotaMetric()
+    {
+        var quotaClient = new FakeQuotaClient
+        {
+            Result = VercelGatewayQuotaLookupResult.NoBudget.Instance,
+        };
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection("key_abc-123")),
+            new FakeReportClient { Report = CreateFullReport() },
+            quotaClient);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(outcome).Snapshot;
+        Assert.DoesNotContain(snapshot.Metrics, metric =>
+            metric.Id.Value == "quota.gateway.key.budget");
+        Assert.Equal(
+            ProviderCapabilityState.NotConfigured,
+            Assert.Single(snapshot.Capabilities).State);
+        Assert.Equal(1, quotaClient.CallCount);
+    }
+
+    [Fact]
+    public async Task QuotaFailureDegradesOnlyQuotaAndKeepsReportSnapshot()
+    {
+        var quotaClient = new FakeQuotaClient
+        {
+            Exception = new VercelGatewayQuotaException(
+                VercelGatewayQuotaErrorKind.Transient,
+                "PRIVATE_QUOTA_BODY"),
+        };
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection("key_abc-123")),
+            new FakeReportClient { Report = CreateFullReport() },
+            quotaClient);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderOutcome.PartialSuccess partial =
+            Assert.IsType<ProviderOutcome.PartialSuccess>(outcome);
+        Assert.Equal(CoverageKind.Complete, partial.Snapshot.Coverage);
+        Assert.Contains(partial.Snapshot.Metrics, metric =>
+            metric.Id.Value == "spend.gateway.total.30d");
+        ProviderWarning warning = Assert.Single(partial.Warnings);
+        Assert.Equal(ProviderWarningCode.SourceDegraded, warning.Code);
+        Assert.DoesNotContain("PRIVATE_QUOTA_BODY", warning.Message, StringComparison.Ordinal);
+        AssertNoSecret(warning.Message);
+        ProviderCapabilitySnapshot capability = Assert.Single(partial.Snapshot.Capabilities);
+        Assert.Equal(ProviderCapabilityState.Degraded, capability.State);
+        Assert.Equal(MeasurementKind.Derived, capability.Provenance.MeasurementKind);
+        Assert.Equal("vercel-ai-gateway-quota-state/1", capability.Provenance.AdapterVersion);
     }
 
     [Fact]
@@ -533,9 +644,13 @@ public sealed class VercelGatewayProviderRuntimeTests
 
     private static VercelGatewayProviderRuntime CreateRuntime(
         IVercelGatewayConnectionSource connectionSource,
-        IVercelGatewayReportClient reportClient)
+        IVercelGatewayReportClient reportClient,
+        IVercelGatewayQuotaClient? quotaClient = null)
     {
-        return new VercelGatewayProviderRuntime(connectionSource, reportClient);
+        return new VercelGatewayProviderRuntime(
+            connectionSource,
+            reportClient,
+            quotaClient ?? new FakeQuotaClient());
     }
 
     private static RefreshContext CreateContext(
@@ -548,9 +663,9 @@ public sealed class VercelGatewayProviderRuntimeTests
             forceRefresh);
     }
 
-    private static VercelGatewayConnection CreateConnection()
+    private static VercelGatewayConnection CreateConnection(string? keyId = null)
     {
-        return new VercelGatewayConnection(SecretApiKey);
+        return new VercelGatewayConnection(SecretApiKey, keyId);
     }
 
     private static ProviderSnapshot CreateLastGood(TimeSpan? age = null)
@@ -717,6 +832,37 @@ public sealed class VercelGatewayProviderRuntimeTests
 
             BeforeReturn?.Invoke();
             return Task.FromResult(Report);
+        }
+    }
+
+    private sealed class FakeQuotaClient : IVercelGatewayQuotaClient
+    {
+        public VercelGatewayQuotaLookupResult Result { get; set; } =
+            VercelGatewayQuotaLookupResult.NoBudget.Instance;
+
+        public VercelGatewayQuotaException? Exception { get; set; }
+
+        public int CallCount { get; private set; }
+
+        public string? LastApiKey { get; private set; }
+
+        public string? LastKeyId { get; private set; }
+
+        public Task<VercelGatewayQuotaLookupResult> GetQuotaAsync(
+            string apiKey,
+            string keyId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            LastApiKey = apiKey;
+            LastKeyId = keyId;
+            if (Exception is not null)
+            {
+                throw Exception;
+            }
+
+            return Task.FromResult(Result);
         }
     }
 }
