@@ -68,6 +68,18 @@ if (-not $Project) {
     }
 }
 
+# The WinUI project no longer owns the package manifest. Route its packaged
+# workflow through the Windows Application Packaging Project while preserving
+# the existing command line used by docs and local scripts.
+$resolvedProject = (Resolve-Path $Project).Path
+$packageProject = Join-Path (Split-Path (Split-Path $resolvedProject -Parent) -Parent) `
+    'WOpenUsage.Package\WOpenUsage.Package.wapproj'
+if ((Split-Path $resolvedProject -Leaf) -eq 'WOpenUsage.App.csproj' -and
+    (Test-Path -LiteralPath $packageProject)) {
+    Write-Host "--> Packaging project: $packageProject" -ForegroundColor DarkGray
+    $Project = $packageProject
+}
+
 # -- 2. Auto-detect platform --
 $detectedPlatform = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "ARM64" } else { "x64" }
 $detectedConfig = "Debug"
@@ -140,6 +152,10 @@ if (Test-Path $analyzerDll) {
 "@ | Set-Content $tempBuildProps
         Write-Host "--> Microsoft.WindowsAppSDK.Analyzers: enabled" -ForegroundColor DarkGray
     } else {
+        if ([System.IO.Path]::GetExtension($Project) -eq '.wapproj') {
+            throw 'The Windows Application Packaging Project requires Visual Studio MSBuild.'
+        }
+
         $tempBuildProps = $null  # Don't clean up a pre-existing file
         Write-Host "--> Microsoft.WindowsAppSDK.Analyzers: skipped (existing Directory.Build.props)" -ForegroundColor DarkGray
     }
@@ -199,25 +215,28 @@ $rid = $detectedPlatform.ToLower()
 $projectDir = Split-Path (Resolve-Path $Project) -Parent
 if (-not $projectDir) { $projectDir = "." }
 
-# Search for the output folder pattern: bin\<Platform>\<Config>\<tfm>\win-<rid>\
+# A packaging project emits a ready-to-register layout directly under
+# bin\<Platform>\<Configuration>. SDK-style app projects retain their TFM path.
 $binDir = Join-Path $projectDir "bin\$detectedPlatform\$detectedConfig"
 if (-not (Test-Path $binDir)) {
     Write-Host "WARNING: Build output not found at $binDir -- skipping run" -ForegroundColor Yellow
     exit 0
 }
 
-# Find the TFM folder (e.g., net10.0-windows10.0.26100.0)
-$tfmDirs = Get-ChildItem $binDir -Directory | Where-Object { $_.Name -match "^net\d" }
-if (-not $tfmDirs) {
-    Write-Host "WARNING: No TFM folder found in $binDir -- skipping run" -ForegroundColor Yellow
-    exit 0
-}
+if ([System.IO.Path]::GetExtension($Project) -eq '.wapproj') {
+    $outputDir = $binDir
+} else {
+    $tfmDirs = Get-ChildItem $binDir -Directory | Where-Object { $_.Name -match "^net\d" }
+    if (-not $tfmDirs) {
+        Write-Host "WARNING: No TFM folder found in $binDir -- skipping run" -ForegroundColor Yellow
+        exit 0
+    }
 
-$tfmDir = $tfmDirs | Sort-Object Name -Descending | Select-Object -First 1
-$outputDir = Join-Path $tfmDir.FullName "win-$rid"
-if (-not (Test-Path $outputDir)) {
-    # Try without RID subfolder
-    $outputDir = $tfmDir.FullName
+    $tfmDir = $tfmDirs | Sort-Object Name -Descending | Select-Object -First 1
+    $outputDir = Join-Path $tfmDir.FullName "win-$rid"
+    if (-not (Test-Path $outputDir)) {
+        $outputDir = $tfmDir.FullName
+    }
 }
 
 # Check winapp is available

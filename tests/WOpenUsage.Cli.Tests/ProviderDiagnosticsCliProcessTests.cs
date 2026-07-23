@@ -59,7 +59,7 @@ public sealed class ProviderDiagnosticsCliProcessTests
         string markerPath,
         string missingProviderRoot)
     {
-        string executablePath = Path.Combine(AppContext.BaseDirectory, "WOpenUsage.Cli.exe");
+        string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
         string fakeCodexPath = Path.Combine(AppContext.BaseDirectory, "FakeCodex", "codex.exe");
         var startInfo = new ProcessStartInfo(executablePath)
         {

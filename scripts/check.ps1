@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solution = Join-Path $repoRoot 'WOpenUsage.slnx'
+$packageProject = Join-Path $repoRoot 'src\WOpenUsage.Package\WOpenUsage.Package.wapproj'
 $architectureTests = Join-Path $repoRoot 'tests\WOpenUsage.Architecture.Tests\WOpenUsage.Architecture.Tests.csproj'
 $coreTests = Join-Path $repoRoot 'tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj'
 $cliTests = Join-Path $repoRoot 'tests\WOpenUsage.Cli.Tests\WOpenUsage.Cli.Tests.csproj'
@@ -36,9 +37,47 @@ function Invoke-DotNetStep {
     }
 }
 
+function Resolve-MSBuild {
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path -LiteralPath $vswhere)) {
+        throw 'Visual Studio MSBuild discovery tool is missing.'
+    }
+
+    $visualStudio = & $vswhere -latest -requires Microsoft.Component.MSBuild -property installationPath
+    $candidate = Join-Path $visualStudio 'MSBuild\Current\Bin\MSBuild.exe'
+    if (-not (Test-Path -LiteralPath $candidate)) {
+        throw 'Visual Studio MSBuild is required to build the packaging project.'
+    }
+
+    return $candidate
+}
+
+function Invoke-MSBuildStep {
+    param(
+        [Parameter(Mandatory)]
+        [string] $Name,
+
+        [Parameter(Mandatory)]
+        [string[]] $Arguments
+    )
+
+    Write-Host "==> $Name" -ForegroundColor Cyan
+    & $script:MSBuild @Arguments
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Name failed with exit code $LASTEXITCODE."
+    }
+}
+
 if (-not (Test-Path -LiteralPath $solution)) {
     throw "Missing solution: $solution"
 }
+
+if (-not (Test-Path -LiteralPath $packageProject)) {
+    throw "Missing packaging project: $packageProject"
+}
+
+$script:MSBuild = Resolve-MSBuild
 
 foreach ($testProject in @($architectureTests, $coreTests, $cliTests, $providerTests, $platformWindowsTests)) {
     if (-not (Test-Path -LiteralPath $testProject)) {
@@ -88,19 +127,14 @@ try {
         '--verbosity', 'minimal'
     )
 
-    Invoke-DotNetStep 'Restore' @(
-        'restore',
+    Invoke-MSBuildStep 'Solution and package build' @(
         $solution,
-        "-p:Platform=$Platform"
-    )
-
-    Invoke-DotNetStep 'Solution build' @(
-        'build',
-        $solution,
-        '--configuration', $Configuration,
-        "-p:Platform=$Platform",
-        '--no-restore',
-        '--verbosity', 'minimal'
+        '/restore',
+        "/p:Configuration=$Configuration",
+        "/p:Platform=$Platform",
+        '/p:GenerateAppxPackageOnBuild=true',
+        '/verbosity:minimal',
+        '/nologo'
     )
 }
 finally {

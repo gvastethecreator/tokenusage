@@ -260,7 +260,7 @@ public sealed class LimitsCliProcessTests
         bool forceRefresh = false,
         string? codexExecutableOverride = null)
     {
-        string executablePath = Path.Combine(AppContext.BaseDirectory, "WOpenUsage.Cli.exe");
+        string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
         var startInfo = new ProcessStartInfo(executablePath)
         {
             UseShellExecute = false,

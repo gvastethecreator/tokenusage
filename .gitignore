@@ -14,6 +14,13 @@ artifacts/ticket-*-retry*/
 # WinUI and .NET build output.
 bin/
 obj/
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.appxsym
+*.msix
+*.msixbundle
 .vs/
 
 # User-specific project state.
