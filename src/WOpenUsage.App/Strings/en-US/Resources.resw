@@ -366,4 +366,32 @@
   <data name="DashboardLayoutNewerVersionFormat" xml:space="preserve"><value>Layout format {0} is newer. Update TokenUsage before changing it.</value></data>
   <data name="DashboardLayoutUnavailable" xml:space="preserve"><value>Layout settings cannot be read. Changes are disabled.</value></data>
   <data name="DashboardLayoutSaveFailed" xml:space="preserve"><value>Layout settings could not be saved. Your previous settings remain.</value></data>
+  <data name="AppearanceExpander.Header" xml:space="preserve"><value>Appearance</value></data>
+  <data name="AppearanceThemeLabel.Text" xml:space="preserve"><value>Theme</value></data>
+  <data name="AppearanceDensityLabel.Text" xml:space="preserve"><value>Density</value></data>
+  <data name="AppearanceTransparencyLabel.Text" xml:space="preserve"><value>Increase transparency</value></data>
+  <data name="AppearanceUsageLabel.Text" xml:space="preserve"><value>Show usage as</value></data>
+  <data name="AppearanceResetTimeLabel.Text" xml:space="preserve"><value>Reset times</value></data>
+  <data name="AppearanceThemeSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Theme</value></data>
+  <data name="AppearanceDensitySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Density</value></data>
+  <data name="AppearanceTransparencyToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Increase transparency</value></data>
+  <data name="AppearanceUsageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show usage as</value></data>
+  <data name="AppearanceResetTimeSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset times</value></data>
+  <data name="AppearanceThemeSystem" xml:space="preserve"><value>System</value></data>
+  <data name="AppearanceThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="AppearanceThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="AppearanceDensityRegular" xml:space="preserve"><value>Default</value></data>
+  <data name="AppearanceDensityCompact" xml:space="preserve"><value>Compact</value></data>
+  <data name="AppearanceUsageRemaining" xml:space="preserve"><value>Remaining</value></data>
+  <data name="AppearanceUsageUsed" xml:space="preserve"><value>Used</value></data>
+  <data name="AppearanceResetRelative" xml:space="preserve"><value>Relative</value></data>
+  <data name="AppearanceResetExact" xml:space="preserve"><value>Exact</value></data>
+  <data name="AppearanceRecoveredFormat" xml:space="preserve"><value>Invalid appearance settings were moved to {0}. Defaults were loaded.</value></data>
+  <data name="AppearanceNewerVersionFormat" xml:space="preserve"><value>Appearance format {0} is newer. Update TokenUsage before changing it.</value></data>
+  <data name="AppearanceUnavailable" xml:space="preserve"><value>Appearance settings cannot be read. Changes are disabled.</value></data>
+  <data name="AppearanceSaveFailed" xml:space="preserve"><value>Appearance settings could not be saved.</value></data>
+  <data name="AppearanceRemainingPercentFormat" xml:space="preserve"><value>{0:0.#}% remaining</value></data>
+  <data name="AppearanceUsedPercentFormat" xml:space="preserve"><value>{0:0.#}% used</value></data>
+  <data name="AppearanceResetExactFormat" xml:space="preserve"><value>Resets {0}</value></data>
+  <data name="AppearanceResetExactUnavailable" xml:space="preserve"><value>Exact reset unavailable</value></data>
 </root>

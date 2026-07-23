@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
+using Windows.UI.ViewManagement;
+using WOpenUsage.Core.Appearance;
 using WOpenUsage.Platform.Windows.Display;
 using WOpenUsage.Platform.Windows.Placement;
 using WOpenUsage.Platform.Windows.Tray;
@@ -16,14 +19,21 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly ResourceLoader _resources = new();
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _activationGuardTimer;
     private readonly nint _windowHandle;
+    private readonly double _preferredWidthDips;
     private TrayIconHost? _trayIcon;
     private bool _isFlyoutVisible;
+    private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
     private bool _disposed;
 
-    public MainWindow(bool showForTest = false, bool useSampleForTest = false)
+    public MainWindow(
+        bool showForTest = false,
+        bool useSampleForTest = false,
+        double? preferredWidthDipsForTest = null)
     {
         InitializeComponent();
+
+        _preferredWidthDips = preferredWidthDipsForTest ?? FlyoutSizePolicy.WidthDips;
 
         _activationGuardTimer = DispatcherQueue.CreateTimer();
         _activationGuardTimer.Interval = TimeSpan.FromMilliseconds(500);
@@ -33,6 +43,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _windowHandle = WindowNative.GetWindowHandle(this);
         ConfigureFlyoutWindow();
         RootPage.ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        ApplyAppearance();
         UpdateStatusText();
         RootPage.HideRequested += OnHideRequested;
         Activated += OnWindowActivated;
@@ -133,6 +144,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private void ShowFlyout(bool focusPrimaryAction)
     {
         BeginActivationGuard();
+        ApplyAppearance();
         PositionFlyout();
         _isFlyoutVisible = true;
         AppWindow.Show();
@@ -177,7 +189,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ? iconRect
             : null;
         var display = MonitorPlacementContextProvider.Resolve(iconBounds);
-        var desiredHeightDips = MeasureDesiredHeightDips(FlyoutSizePolicy.WidthDips);
+        var desiredHeightDips = MeasureDesiredHeightDips(_preferredWidthDips);
 
         var initialHeightDips = FlyoutSizePolicy.ClampHeightDips(
             desiredHeightDips,
@@ -186,7 +198,7 @@ public sealed partial class MainWindow : Window, IDisposable
         var initialPlacement = FlyoutPlacementCalculator.Calculate(
             iconBounds,
             display.WorkArea,
-            FlyoutSizePolicy.WidthDips,
+            _preferredWidthDips,
             initialHeightDips,
             96,
             display.FallbackAnchor);
@@ -194,7 +206,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
         var effectiveDpi = MonitorPlacementContextProvider.GetWindowDpi(_windowHandle);
         var finalWidthDips = FlyoutSizePolicy.ClampWidthDips(
-            FlyoutSizePolicy.WidthDips,
+            _preferredWidthDips,
             display.WorkArea,
             effectiveDpi);
         desiredHeightDips = MeasureDesiredHeightDips(finalWidthDips);
@@ -240,6 +252,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        bool appearanceChanged = string.Equals(
+            e.PropertyName,
+            nameof(RootPage.ViewModel.Appearance),
+            StringComparison.Ordinal);
         bool surfaceChanged = string.Equals(
             e.PropertyName,
             nameof(RootPage.ViewModel.SurfaceState),
@@ -248,6 +264,15 @@ public sealed partial class MainWindow : Window, IDisposable
             e.PropertyName,
             nameof(RootPage.ViewModel.IsRefreshing),
             StringComparison.Ordinal);
+        if (appearanceChanged)
+        {
+            ApplyAppearance();
+            if (_isFlyoutVisible)
+            {
+                SchedulePositionAfterLayout();
+            }
+        }
+
         if (!surfaceChanged && !refreshChanged)
         {
             return;
@@ -260,6 +285,26 @@ public sealed partial class MainWindow : Window, IDisposable
             BeginActivationGuard();
             SchedulePositionAfterLayout();
         }
+    }
+
+    private void ApplyAppearance()
+    {
+        AppearanceSettings settings = RootPage.ViewModel.Appearance;
+        var accessibility = new AccessibilitySettings();
+        var uiSettings = new UISettings();
+        bool transparencyActive = settings.IncreaseTransparency
+            && !accessibility.HighContrast
+            && uiSettings.AdvancedEffectsEnabled;
+
+        if (transparencyActive != _isTransparencyActive)
+        {
+            SystemBackdrop = transparencyActive
+                ? new DesktopAcrylicBackdrop()
+                : null;
+            _isTransparencyActive = transparencyActive;
+        }
+
+        RootPage.ApplyAppearance(settings, transparencyActive);
     }
 
     private void UpdateStatusText()

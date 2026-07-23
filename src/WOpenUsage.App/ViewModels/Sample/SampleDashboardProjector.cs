@@ -85,6 +85,7 @@ public static class SampleDashboardProjector
             ResetText = resetText,
             AutomationName = $"{provider.Name}, {windows[0].Title}: {remainingText}. {resetText}",
             IsNearLimit = remaining <= 15d,
+            ResetAtUtc = progress.ResetsAtUtc,
         };
 
         return provider with { Windows = windows };
