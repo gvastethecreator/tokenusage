@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "wusage.usage.v1",
+  "generatedAt": "2026-07-22T15:00:00+00:00",
+  "range": {
+    "from": "2026-06-23",
+    "to": "2026-07-22",
+    "days": 30
+  },
+  "events": 3,
+  "tokens": {
+    "total": 53080,
+    "unpriced": 9460
+  },
+  "costUsd": {
+    "reported": 1.84,
+    "estimated": 0.62
+  }
+}
