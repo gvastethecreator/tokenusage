@@ -36,6 +36,8 @@ function Open-Options([string]$TraySelector) {
     }
     if (-not $menu) { throw 'Tray menu not found.' }
     winapp ui invoke '2' -w $menu.hwnd 2>$null | Out-Null
+    winapp ui wait-for 'OptionsGeneralButton' -a $AppPid -t 3000 2>$null | Out-Null
+    winapp ui invoke 'OptionsGeneralButton' -a $AppPid 2>$null | Out-Null
     winapp ui wait-for 'CloseWhenInactiveToggle' -a $AppPid -t 3000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Options did not open.' }
 }
@@ -74,6 +76,7 @@ if ($existingCard.matchCount -eq 0) {
     if ($originalCloseToggle -ne 'Off') {
         winapp ui invoke 'CloseWhenInactiveToggle' -a $AppPid 2>$null | Out-Null
     }
+    winapp ui invoke 'OptionsBackButton' -a $AppPid 2>$null | Out-Null
     winapp ui invoke 'OptionsBackButton' -a $AppPid 2>$null | Out-Null
 }
 
@@ -140,8 +143,11 @@ $results | ConvertTo-Json -Depth 4 |
 
 if ($originalCloseToggle -eq 'On') {
     winapp ui invoke 'FooterOptionsButton' -a $AppPid 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0 -and (Read-CloseToggle) -ne 'On') {
-        winapp ui invoke 'CloseWhenInactiveToggle' -a $AppPid 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        winapp ui invoke 'OptionsGeneralButton' -a $AppPid 2>$null | Out-Null
+        if ((Read-CloseToggle) -ne 'On') {
+            winapp ui invoke 'CloseWhenInactiveToggle' -a $AppPid 2>$null | Out-Null
+        }
     }
 }
 

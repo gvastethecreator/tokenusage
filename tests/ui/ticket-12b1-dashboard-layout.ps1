@@ -43,8 +43,8 @@ function Wait-ForElement([string]$AutomationId, [int]$Timeout = 5000) {
 
 function Open-LayoutOptions {
     Invoke-Element "FooterOptionsButton"
-    Wait-ForElement "OptionsProvidersButton"
-    Invoke-Element "OptionsProvidersButton"
+    Wait-ForElement "OptionsPersonalizationButton"
+    Invoke-Element "OptionsPersonalizationButton"
     Wait-ForElement "DashboardLayoutExpander"
     winapp ui scroll-into-view "DashboardLayoutExpander" -a $AppPid 2>$null | Out-Null
     Invoke-Element "DashboardLayoutExpander"
@@ -136,6 +136,7 @@ if ($Phase -eq "Configure") {
     }
 
     Test-Ui "Dashboard applies hidden and highlighted state" {
+        Invoke-Element "OptionsBackButton"
         Invoke-Element "OptionsBackButton"
         winapp ui wait-for "SampleProvider.Antigravity" -a $AppPid --gone -t 5000 2>$null | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Antigravity card remained visible." }

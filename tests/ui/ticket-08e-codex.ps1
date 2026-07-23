@@ -116,11 +116,14 @@ Test-Ui "Live Codex surface renders without synthetic spend or account data" {
     & winapp ui invoke "2" -w $menuHwnd 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Options menu command failed." }
     Start-Sleep -Milliseconds 100
+    Wait-ForElement "OptionsGeneralButton"
+    Invoke-AppElement "OptionsGeneralButton"
     Wait-ForElement "CloseWhenInactiveToggle"
     & winapp ui invoke "CloseWhenInactiveToggle" -a $AppPid 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Close-when-inactive could not be disabled." }
     & winapp ui wait-for "CloseWhenInactiveToggle" -a $AppPid --value "Off" -t 1000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Close-when-inactive did not turn off." }
+    & winapp ui invoke "OptionsBackButton" -a $AppPid 2>$null | Out-Null
     & winapp ui invoke "OptionsBackButton" -a $AppPid 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Options could not close." }
 
@@ -154,11 +157,13 @@ Test-Ui "Live Codex surface renders without synthetic spend or account data" {
 
 Test-Ui "Sample dashboard remains available after live quota" {
     Invoke-AppElement "FooterOptionsButton"
+    Invoke-AppElement "OptionsGeneralButton"
     Wait-ForElement "SampleModeToggle"
     Invoke-AppElement "SampleModeToggle"
     & winapp ui wait-for "SampleModeToggle" -a $AppPid --value "On" -t 1000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Sample mode did not turn on." }
 
+    Invoke-AppElement "OptionsBackButton"
     Invoke-AppElement "OptionsBackButton"
     Wait-ForElement "SampleSpendDonut" 3000
     Assert-VisibleText '$48.12'
