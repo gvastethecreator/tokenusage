@@ -71,6 +71,14 @@ public abstract class MetricSnapshot
     public DataProvenance Provenance { get; }
 }
 
+public enum ProgressResetCadence
+{
+    Daily,
+    Weekly,
+    Monthly,
+    Never,
+}
+
 public sealed class ProgressMetricSnapshot : MetricSnapshot
 {
     public ProgressMetricSnapshot(
@@ -78,7 +86,10 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
         decimal used,
         decimal limit,
         DateTimeOffset? resetsAtUtc,
-        DataProvenance provenance)
+        DataProvenance provenance,
+        string? unit = null,
+        ProgressResetCadence? resetCadence = null,
+        bool? isActive = null)
         : base(id, provenance)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(used);
@@ -88,9 +99,23 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
             UtcTimestamp.Require(resetsAtUtc.Value, nameof(resetsAtUtc));
         }
 
+
+        if (unit is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(unit);
+        }
+
+        if (resetCadence is not null && !Enum.IsDefined(resetCadence.Value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(resetCadence));
+        }
+
         Used = used;
         Limit = limit;
         ResetsAtUtc = resetsAtUtc;
+        Unit = unit;
+        ResetCadence = resetCadence;
+        IsActive = isActive;
     }
 
     public decimal Used { get; }
@@ -100,6 +125,12 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
     public decimal RemainingPercent => Math.Clamp((1m - (Used / Limit)) * 100m, 0m, 100m);
 
     public DateTimeOffset? ResetsAtUtc { get; }
+
+    public string? Unit { get; }
+
+    public ProgressResetCadence? ResetCadence { get; }
+
+    public bool? IsActive { get; }
 }
 
 public sealed class ScalarMetricSnapshot : MetricSnapshot

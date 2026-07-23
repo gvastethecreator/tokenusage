@@ -42,18 +42,22 @@ public sealed class VercelGatewayProviderRuntime : IProviderRuntime
     private const string TransientMessage = "Vercel AI Gateway temporarily failed.";
     private const string ContractMessage = "Vercel AI Gateway returned an unexpected response.";
     private const string OverflowMessage = "Vercel AI Gateway report aggregation overflowed.";
+    private const string QuotaWarningMessage = "Vercel AI Gateway key budget is unavailable.";
 
     private static readonly TimeSpan DefaultThrottleRetry = TimeSpan.FromMinutes(5);
 
     private readonly IVercelGatewayConnectionSource _connectionSource;
     private readonly IVercelGatewayReportClient _reportClient;
+    private readonly IVercelGatewayQuotaClient _quotaClient;
 
     public VercelGatewayProviderRuntime(
         IVercelGatewayConnectionSource connectionSource,
-        IVercelGatewayReportClient reportClient)
+        IVercelGatewayReportClient reportClient,
+        IVercelGatewayQuotaClient quotaClient)
     {
         _connectionSource = connectionSource ?? throw new ArgumentNullException(nameof(connectionSource));
         _reportClient = reportClient ?? throw new ArgumentNullException(nameof(reportClient));
+        _quotaClient = quotaClient ?? throw new ArgumentNullException(nameof(quotaClient));
     }
 
     public ProviderDescriptor Descriptor { get; } = new ProviderDescriptor(
@@ -111,7 +115,44 @@ public sealed class VercelGatewayProviderRuntime : IProviderRuntime
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
-            var mapped = VercelGatewaySnapshotMapper.Map(report, utcNow);
+            VercelGatewayQuotaLookupResult? quotaResult = null;
+            ProviderWarning? quotaWarning = null;
+            ProviderCapabilityState quotaState = ProviderCapabilityState.NotRequested;
+            if (connection.KeyId is not null)
+            {
+                try
+                {
+                    quotaResult = await _quotaClient
+                        .GetQuotaAsync(
+                            connection.ApiKey,
+                            connection.KeyId,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    quotaState = quotaResult switch
+                    {
+                        VercelGatewayQuotaLookupResult.Found =>
+                            ProviderCapabilityState.Available,
+                        VercelGatewayQuotaLookupResult.NoBudget =>
+                            ProviderCapabilityState.NotConfigured,
+                        _ => ProviderCapabilityState.Degraded,
+                    };
+                }
+                catch (VercelGatewayQuotaException)
+                {
+                    quotaState = ProviderCapabilityState.Degraded;
+                    quotaWarning = new ProviderWarning(
+                        ProviderWarningCode.SourceDegraded,
+                        QuotaWarningMessage);
+                }
+            }
+
+            var mapped = VercelGatewaySnapshotMapper.Map(
+                report,
+                quotaResult,
+                quotaState,
+                utcNow,
+                quotaWarning);
 
             if (mapped.Warnings.Count > 0)
             {
