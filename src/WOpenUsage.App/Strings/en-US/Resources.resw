@@ -254,4 +254,55 @@
   <data name="SampleTokenThousandsFormat" xml:space="preserve"><value>{0:0.##}K tokens</value></data>
   <data name="SampleTokenMillionsFormat" xml:space="preserve"><value>{0:0.##}M tokens</value></data>
   <data name="SampleTokenExactFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
+  <data name="VercelExperimental" xml:space="preserve"><value>Experimental</value></data>
+  <data name="VercelCapabilityReport" xml:space="preserve"><value>Account-wide spend and tokens · Last 30 days</value></data>
+  <data name="VercelReportLagNotice" xml:space="preserve"><value>Vercel reports can lag by several minutes.</value></data>
+  <data name="VercelPartialReportNotice" xml:space="preserve"><value>Some report fields are missing. Vercel reports can lag by several minutes.</value></data>
+  <data name="VercelSourceValue" xml:space="preserve"><value>Official Vercel AI Gateway report · Manual key · Account-wide</value></data>
+  <data name="VercelMetricTotalSpend" xml:space="preserve"><value>Gateway spend</value></data>
+  <data name="VercelMetricMarketValue" xml:space="preserve"><value>Market value</value></data>
+  <data name="VercelMetricSurcharge" xml:space="preserve"><value>Surcharge</value></data>
+  <data name="VercelMetricGatewayFee" xml:space="preserve"><value>Gateway fee</value></data>
+  <data name="VercelMetricInputTokens" xml:space="preserve"><value>Input tokens</value></data>
+  <data name="VercelMetricOutputTokens" xml:space="preserve"><value>Output tokens</value></data>
+  <data name="VercelMetricCachedInputTokens" xml:space="preserve"><value>Cached input tokens</value></data>
+  <data name="VercelMetricCacheCreationTokens" xml:space="preserve"><value>Cache creation tokens</value></data>
+  <data name="VercelMetricReasoningTokens" xml:space="preserve"><value>Reasoning tokens</value></data>
+  <data name="VercelMetricRequests" xml:space="preserve"><value>Requests</value></data>
+  <data name="LiveDashboardHeading" xml:space="preserve"><value>Provider usage</value></data>
+  <data name="LiveDashboardPeriod" xml:space="preserve"><value>Live provider data</value></data>
+  <data name="VercelSectionTitle.Text" xml:space="preserve"><value>Vercel AI Gateway</value></data>
+  <data name="VercelExperimentalBadge.Text" xml:space="preserve"><value>Experimental</value></data>
+  <data name="VercelSectionDescription.Text" xml:space="preserve"><value>Official beta report for account-wide spend and tokens. TokenUsage reuses reports for 10 minutes.</value></data>
+  <data name="VercelRiskInfo.Title" xml:space="preserve"><value>High-privilege key</value></data>
+  <data name="VercelRiskInfo.Message" xml:space="preserve"><value>This key can run models and the report covers its whole account. Each report call costs about $0.005. Create a dedicated key with a $1 budget and expiry. TokenUsage stores it in Windows Credential Locker.</value></data>
+  <data name="VercelApiKeyBox.Header" xml:space="preserve"><value>AI Gateway API key</value></data>
+  <data name="VercelApiKeyBox.PlaceholderText" xml:space="preserve"><value>Paste a dedicated key</value></data>
+  <data name="VercelApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key</value></data>
+  <data name="VercelConsentCheckBox.Content" xml:space="preserve"><value>I understand this key can run models and exposes account-wide report data.</value></data>
+  <data name="VercelConsentCheckBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Accept Vercel AI Gateway key risk</value></data>
+  <data name="VercelConnectButton.Content" xml:space="preserve"><value>Connect and load report</value></data>
+  <data name="VercelConnectButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Connect Vercel AI Gateway and load its report</value></data>
+  <data name="VercelDisconnectButton.Content" xml:space="preserve"><value>Disconnect and clear report</value></data>
+  <data name="VercelDisconnectButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Disconnect Vercel AI Gateway and clear its cached report</value></data>
+  <data name="VercelStatusChecking" xml:space="preserve"><value>Checking the Windows Credential Locker.</value></data>
+  <data name="VercelStatusNotConfigured" xml:space="preserve"><value>No Vercel AI Gateway key is connected.</value></data>
+  <data name="VercelStatusConnecting" xml:space="preserve"><value>Saving the key and clearing any prior account report.</value></data>
+  <data name="VercelStatusRefreshing" xml:space="preserve"><value>Loading the Vercel AI Gateway report.</value></data>
+  <data name="VercelStatusCachedRefreshing" xml:space="preserve"><value>Showing the saved report while checking for an update.</value></data>
+  <data name="VercelStatusConnected" xml:space="preserve"><value>Connected. The account-wide report is up to date.</value></data>
+  <data name="VercelStatusPartial" xml:space="preserve"><value>Connected. Some report fields are unavailable.</value></data>
+  <data name="VercelStatusThrottled" xml:space="preserve"><value>Vercel asked TokenUsage to retry later. Saved data remains visible.</value></data>
+  <data name="VercelStatusAuthenticationRejected" xml:space="preserve"><value>Vercel rejected the stored key. Disconnect it, then connect a new key.</value></data>
+  <data name="VercelStatusUnsupportedAccount" xml:space="preserve"><value>This report requires a supported Vercel plan.</value></data>
+  <data name="VercelStatusTransientFailure" xml:space="preserve"><value>Vercel could not return the report. Saved data remains visible.</value></data>
+  <data name="VercelStatusContractFailure" xml:space="preserve"><value>Vercel returned an unsupported report format. Update TokenUsage before retrying.</value></data>
+  <data name="VercelStatusDisconnecting" xml:space="preserve"><value>Removing the key and its cached account report.</value></data>
+  <data name="VercelStatusDisconnected" xml:space="preserve"><value>Disconnected. The key and cached report were removed.</value></data>
+  <data name="VercelStatusCacheQuarantined" xml:space="preserve"><value>The unreadable report cache was quarantined. Try the action again.</value></data>
+  <data name="VercelStatusCacheFutureVersion" xml:space="preserve"><value>A newer TokenUsage cache format blocked this change. Update TokenUsage and retry.</value></data>
+  <data name="VercelStatusCacheCleanupFailed" xml:space="preserve"><value>The credential changed, but local report cleanup needs attention.</value></data>
+  <data name="VercelStatusCacheWriteFailed" xml:space="preserve"><value>The report loaded, but TokenUsage could not save it locally.</value></data>
+  <data name="VercelStatusLocalFailure" xml:space="preserve"><value>Windows could not complete the credential or cache operation.</value></data>
+  <data name="VercelStatusRecoveryConnect" xml:space="preserve"><value>Connect a dedicated key in this section.</value></data>
 </root>

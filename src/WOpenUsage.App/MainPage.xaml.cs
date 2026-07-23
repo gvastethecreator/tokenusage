@@ -14,12 +14,20 @@ using WOpenUsage.App.ViewModels;
 using WOpenUsage.Providers.Claude;
 using WOpenUsage.Providers.Grok;
 using WOpenUsage.Providers.OpenCode;
+using WOpenUsage.Providers.VercelAiGateway;
+using WOpenUsage.Core.Cache;
 using WOpenUsage.Runtime.Windows.Codex;
+using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.App;
 
 public sealed partial class MainPage : Page
 {
+    private static readonly HttpClient VercelHttpClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(30),
+    };
+
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
 
     public MainPage()
@@ -38,6 +46,11 @@ public sealed partial class MainPage : Page
             ApplicationData.Current.LocalFolder.Path,
             "scanner",
             "usage.v1.db");
+        string vercelCacheDirectory = Path.Combine(
+            ApplicationData.Current.LocalFolder.Path,
+            "cache",
+            "providers",
+            "vercel-ai-gateway");
         var codexClientFactory = new CodexAppServerQuotaClientFactory(clock);
         ViewModel = new FlyoutViewModel(
             new SampleRefreshCoordinator(sampleCacheDirectory, clock),
@@ -49,7 +62,8 @@ public sealed partial class MainPage : Page
                     new GrokUsageEventSource(TimeZoneInfo.Local.Id),
                     new OpenCodeUsageEventSource(TimeZoneInfo.Local.Id),
                 ],
-                clock));
+                clock),
+            CreateVercelCoordinator(vercelCacheDirectory, clock));
         InitializeComponent();
         ApplyTextScaleLayout();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -178,13 +192,53 @@ public sealed partial class MainPage : Page
         ViewModel.ReportLanguageRestartFailure();
     }
 
+    private void OnVercelApiKeyPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is PasswordBox passwordBox)
+        {
+            ViewModel.Vercel.SetApiKeyInputPresence(passwordBox.Password);
+        }
+    }
+
+    private async void OnVercelConnectClicked(object sender, RoutedEventArgs e)
+    {
+        string apiKey = VercelApiKeyBox.Password;
+        Task connection = ViewModel.Vercel.ConnectAsync(apiKey);
+        VercelApiKeyBox.Password = string.Empty;
+        await connection;
+    }
+
     private static string GetLanguageRestartArguments()
     {
-#if DEBUG
+#if DEBUG || UI_TEST_FIXTURES
         return AppLanguageRestartArguments.Create(Environment.GetCommandLineArgs()[1..]);
 #else
         return string.Empty;
 #endif
+    }
+
+    private static VercelGatewayRefreshCoordinator CreateVercelCoordinator(
+        string cacheDirectory,
+        TimeProvider clock)
+    {
+#if DEBUG || UI_TEST_FIXTURES
+        if (Environment.GetCommandLineArgs().Contains(
+                "--test-vercel-fake",
+                StringComparer.OrdinalIgnoreCase))
+        {
+            return new VercelGatewayRefreshCoordinator(
+                new SnapshotStore(
+                    Path.Combine(cacheDirectory, SnapshotStore.DefaultFileName),
+                    clock),
+                new DebugVercelCredentialStore(),
+                new DebugVercelReportClient(),
+                clock);
+        }
+#endif
+        return new VercelGatewayRefreshCoordinator(
+            cacheDirectory,
+            clock,
+            VercelHttpClient);
     }
 
     private void ScheduleSampleReveal()
@@ -211,4 +265,69 @@ public sealed partial class MainPage : Page
             PlaySampleReveal(VisualTreeHelper.GetChild(root, index), token);
         }
     }
+
+#if DEBUG || UI_TEST_FIXTURES
+    private sealed class DebugVercelCredentialStore : IVercelGatewayCredentialStore
+    {
+        private string? _apiKey;
+
+        public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_apiKey is not null);
+        }
+
+        public Task<VercelGatewayConnection?> ReadAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(
+                _apiKey is null ? null : new VercelGatewayConnection(_apiKey));
+        }
+
+        public Task SaveAsync(string apiKey, CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+            cancellationToken.ThrowIfCancellationRequested();
+            _apiKey = apiKey;
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> DeleteAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            bool removed = _apiKey is not null;
+            _apiKey = null;
+            return Task.FromResult(removed);
+        }
+    }
+
+    private sealed class DebugVercelReportClient : IVercelGatewayReportClient
+    {
+        public Task<VercelGatewayReport> GetDailyReportAsync(
+            string apiKey,
+            DateOnly startDate,
+            DateOnly endDate,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new VercelGatewayReport(
+            [
+                new VercelGatewayDailyReportRow(
+                    endDate,
+                    TotalCost: 12.5m,
+                    MarketCost: 11m,
+                    SurchargeCost: 1m,
+                    GatewayCost: 0.5m,
+                    InputTokens: 1000,
+                    OutputTokens: 250,
+                    CachedInputTokens: 100,
+                    CacheCreationInputTokens: 50,
+                    ReasoningTokens: 25,
+                    RequestCount: 7),
+            ]));
+        }
+    }
+#endif
 }
