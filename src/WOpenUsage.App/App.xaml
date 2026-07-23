@@ -26,6 +26,10 @@
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="QuotaHealthyBrush" ResourceKey="SystemFillColorSuccessBrush" />
+                    <StaticResource x:Key="QuotaCautionBrush" ResourceKey="SystemFillColorCautionBrush" />
+                    <SolidColorBrush x:Key="QuotaWarningBrush" Color="#FFF7630C" />
+                    <StaticResource x:Key="QuotaCriticalBrush" ResourceKey="SystemFillColorCriticalBrush" />
                     <LinearGradientBrush x:Key="ProviderAntigravityBrush" MappingMode="RelativeToBoundingBox" StartPoint="0,0" EndPoint="1,1">
                         <GradientStop Color="{StaticResource ProviderAntigravityColorDark}" Offset="0" />
                         <GradientStop Color="{StaticResource ProviderAntigravityColor}" Offset="1" />
@@ -53,6 +57,10 @@
                     <StaticResource x:Key="ProviderFallbackBrush" ResourceKey="TextFillColorSecondaryBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="QuotaHealthyBrush" ResourceKey="SystemFillColorSuccessBrush" />
+                    <StaticResource x:Key="QuotaCautionBrush" ResourceKey="SystemFillColorCautionBrush" />
+                    <SolidColorBrush x:Key="QuotaWarningBrush" Color="#FFFF8C42" />
+                    <StaticResource x:Key="QuotaCriticalBrush" ResourceKey="SystemFillColorCriticalBrush" />
                     <LinearGradientBrush x:Key="ProviderAntigravityBrush" MappingMode="RelativeToBoundingBox" StartPoint="0,0" EndPoint="1,1">
                         <GradientStop Color="{StaticResource ProviderAntigravityColorDark}" Offset="0" />
                         <GradientStop Color="{StaticResource ProviderAntigravityColor}" Offset="1" />
@@ -80,6 +88,10 @@
                     <StaticResource x:Key="ProviderFallbackBrush" ResourceKey="TextFillColorSecondaryBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
+                    <StaticResource x:Key="QuotaHealthyBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="QuotaCautionBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="QuotaWarningBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="QuotaCriticalBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ProviderAntigravityBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ProviderClaudeBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ProviderCodexBrush" ResourceKey="SystemColorHighlightColorBrush" />

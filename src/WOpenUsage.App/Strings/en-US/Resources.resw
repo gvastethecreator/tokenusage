@@ -337,6 +337,8 @@
   <data name="DashboardProviderHighlightButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Highlight</value></data>
   <data name="DashboardProviderHighlightedLabel" xml:space="preserve"><value>Highlighted</value></data>
   <data name="DashboardProviderMetricsAutomationNameFormat" xml:space="preserve"><value>Metrics for {0}</value></data>
+  <data name="DashboardProviderColorAutomationNameFormat" xml:space="preserve"><value>Change color for {0}</value></data>
+  <data name="DashboardProviderColorButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Provider color</value></data>
   <data name="DashboardProviderMetricsExpander.Header" xml:space="preserve"><value>Metrics</value></data>
   <data name="DashboardMetricMoveUpAutomationNameFormat" xml:space="preserve"><value>Move {0} up</value></data>
   <data name="DashboardMetricMoveUpButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Move metric up</value></data>

@@ -56,8 +56,10 @@ public sealed class AppearanceDashboardProjectorTests
             Text).Providers);
 
         Assert.Equal(80, Assert.Single(result.Windows).RemainingPercent);
+        Assert.Equal(20, Assert.Single(result.Windows).ColorRemainingPercent);
         Assert.Equal("80% used", Assert.Single(result.Windows).RemainingText);
         Assert.Equal(35, Assert.Single(result.SecondaryWindowItems).RemainingPercent);
+        Assert.Equal(65, Assert.Single(result.SecondaryWindowItems).ColorRemainingPercent);
         Assert.Equal("35% used", Assert.Single(result.SecondaryWindowItems).RemainingText);
         string expectedReset = $"Resets {reset.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)}";
         Assert.Equal(expectedReset, Assert.Single(result.Windows).ResetText);

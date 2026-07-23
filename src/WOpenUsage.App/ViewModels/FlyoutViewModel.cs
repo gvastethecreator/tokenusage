@@ -736,7 +736,7 @@ public partial class FlyoutViewModel : ObservableObject
                 cancellationToken);
             if (refreshVersion == _refreshVersion && !cancellationToken.IsCancellationRequested)
             {
-                LocalUsage = card;
+                LocalUsage = ApplyProviderColors(card);
                 RebuildProviderStatuses();
                 _hasLocalUsage = true;
                 OnPropertyChanged(nameof(IsLocalUsageVisible));
@@ -1117,6 +1117,15 @@ public partial class FlyoutViewModel : ObservableObject
             layout.SetProviderHighlighted(id, isHighlighted));
     }
 
+    public Task SetDashboardProviderColorAsync(string providerId, string colorHex)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(colorHex);
+        return MutateDashboardLayoutAsync(layout => layout.SetProviderColor(
+            new ProviderId(providerId),
+            colorHex));
+    }
+
     public Task MoveDashboardMetricAsync(
         string providerId,
         string metricId,
@@ -1487,7 +1496,8 @@ public partial class FlyoutViewModel : ObservableObject
                 GetString("DashboardProviderMoveDownAutomationNameFormat"),
                 GetString("DashboardProviderVisibilityAutomationNameFormat"),
                 GetString("DashboardProviderHighlightAutomationNameFormat"),
-                GetString("DashboardProviderMetricsAutomationNameFormat")),
+                GetString("DashboardProviderMetricsAutomationNameFormat"),
+                GetString("DashboardProviderColorAutomationNameFormat")),
             new DashboardMetricActionNameFormats(
                 GetString("DashboardMetricMoveUpAutomationNameFormat"),
                 GetString("DashboardMetricMoveDownAutomationNameFormat"),
@@ -1499,6 +1509,7 @@ public partial class FlyoutViewModel : ObservableObject
                 GetString("DashboardMetricMoveToOnDemandAutomationNameFormat")));
         _dashboardLayout = projection.Layout;
         ActiveSample = projection.Dashboard;
+        LocalUsage = ApplyProviderColors(LocalUsage);
         DashboardLayoutProviders = projection.Providers
             .Select(row => row with
             {
@@ -1506,6 +1517,28 @@ public partial class FlyoutViewModel : ObservableObject
             })
             .ToArray();
         OnPropertyChanged(nameof(AreAllDashboardProvidersHidden));
+    }
+
+    private LocalUsageCard ApplyProviderColors(LocalUsageCard card)
+    {
+        Dictionary<string, string?> colors = _dashboardLayout.Providers.ToDictionary(
+            provider => provider.ProviderId.Value,
+            provider => provider.ColorHex,
+            StringComparer.Ordinal);
+        SampleSpendSlice[] slices = card.SpendBreakdown.AgentSlices
+            .Select(slice => slice with
+            {
+                ColorHex = colors.GetValueOrDefault(slice.ProviderId),
+            })
+            .ToArray();
+
+        return card with
+        {
+            SpendBreakdown = card.SpendBreakdown with
+            {
+                AgentSlices = slices,
+            },
+        };
     }
 
     public void SetDashboardProviderMetricsExpanded(string providerId, bool isExpanded)

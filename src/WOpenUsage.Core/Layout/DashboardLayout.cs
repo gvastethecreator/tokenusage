@@ -109,6 +109,22 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
         return new DashboardLayout(next);
     }
 
+    public DashboardLayout SetProviderColor(ProviderId providerId, string? colorHex)
+    {
+        ArgumentNullException.ThrowIfNull(providerId);
+        string? normalized = ProviderColorPreference.Normalize(colorHex);
+        var index = IndexOfProvider(providerId);
+        var current = _providers[index];
+        if (string.Equals(current.ColorHex, normalized, StringComparison.Ordinal))
+        {
+            return this;
+        }
+
+        var next = (ProviderLayoutPreference[])_providers.Clone();
+        next[index] = current.WithColor(normalized);
+        return new DashboardLayout(next);
+    }
+
     public DashboardLayout MoveMetric(ProviderId providerId, MetricId metricId, int offset)
     {
         ArgumentNullException.ThrowIfNull(providerId);
@@ -496,13 +512,15 @@ public sealed class ProviderLayoutPreference : IEquatable<ProviderLayoutPreferen
     public ProviderId ProviderId { get; }
     public bool IsVisible { get; }
     public bool IsHighlighted { get; }
+    public string? ColorHex { get; }
     public IReadOnlyList<MetricLayoutPreference> Metrics => _metricView;
 
     public ProviderLayoutPreference(
         ProviderId providerId,
         bool isVisible,
         bool isHighlighted,
-        IEnumerable<MetricLayoutPreference> metrics)
+        IEnumerable<MetricLayoutPreference> metrics,
+        string? colorHex = null)
     {
         ArgumentNullException.ThrowIfNull(providerId);
         ArgumentNullException.ThrowIfNull(metrics);
@@ -541,6 +559,7 @@ public sealed class ProviderLayoutPreference : IEquatable<ProviderLayoutPreferen
         ProviderId = providerId;
         IsVisible = isVisible;
         IsHighlighted = isHighlighted;
+        ColorHex = ProviderColorPreference.Normalize(colorHex);
         _metrics = list.ToArray();
         _metricView = Array.AsReadOnly(_metrics);
     }
@@ -560,13 +579,16 @@ public sealed class ProviderLayoutPreference : IEquatable<ProviderLayoutPreferen
     }
 
     internal ProviderLayoutPreference WithVisibility(bool isVisible) =>
-        new(ProviderId, isVisible, IsHighlighted, _metrics);
+        new(ProviderId, isVisible, IsHighlighted, _metrics, ColorHex);
 
     internal ProviderLayoutPreference WithHighlighted(bool isHighlighted) =>
-        new(ProviderId, IsVisible, isHighlighted, _metrics);
+        new(ProviderId, IsVisible, isHighlighted, _metrics, ColorHex);
+
+    internal ProviderLayoutPreference WithColor(string? colorHex) =>
+        new(ProviderId, IsVisible, IsHighlighted, _metrics, colorHex);
 
     internal ProviderLayoutPreference WithMetrics(IEnumerable<MetricLayoutPreference> metrics) =>
-        new(ProviderId, IsVisible, IsHighlighted, metrics);
+        new(ProviderId, IsVisible, IsHighlighted, metrics, ColorHex);
 
     public bool Equals(ProviderLayoutPreference? other)
     {
@@ -583,6 +605,7 @@ public sealed class ProviderLayoutPreference : IEquatable<ProviderLayoutPreferen
         if (!string.Equals(ProviderId.Value, other.ProviderId.Value, StringComparison.Ordinal)
             || IsVisible != other.IsVisible
             || IsHighlighted != other.IsHighlighted
+            || !string.Equals(ColorHex, other.ColorHex, StringComparison.Ordinal)
             || _metrics.Length != other._metrics.Length)
         {
             return false;
@@ -607,6 +630,7 @@ public sealed class ProviderLayoutPreference : IEquatable<ProviderLayoutPreferen
         hash.Add(ProviderId.Value, StringComparer.Ordinal);
         hash.Add(IsVisible);
         hash.Add(IsHighlighted);
+        hash.Add(ColorHex, StringComparer.Ordinal);
         foreach (var metric in _metrics)
         {
             hash.Add(metric);

@@ -5,10 +5,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     AutomationProperties.AccessibilityView="Raw"
     IsTabStop="False">
-    <ProgressBar
-        x:Name="FillBar"
-        AutomationProperties.Name="{x:Bind AutomationName, Mode=OneWay}"
-        Foreground="{x:Bind Foreground, Mode=OneWay}"
-        Maximum="100"
-        Value="0" />
+    <Grid>
+        <Grid IsHitTestVisible="False" Visibility="Collapsed">
+            <Border x:Name="HealthyBrushProxy" Background="{ThemeResource QuotaHealthyBrush}" />
+            <Border x:Name="CautionBrushProxy" Background="{ThemeResource QuotaCautionBrush}" />
+            <Border x:Name="WarningBrushProxy" Background="{ThemeResource QuotaWarningBrush}" />
+            <Border x:Name="CriticalBrushProxy" Background="{ThemeResource QuotaCriticalBrush}" />
+        </Grid>
+        <ProgressBar
+            x:Name="FillBar"
+            AutomationProperties.Name="{x:Bind AutomationName, Mode=OneWay}"
+            Maximum="100"
+            Value="0" />
+    </Grid>
 </UserControl>

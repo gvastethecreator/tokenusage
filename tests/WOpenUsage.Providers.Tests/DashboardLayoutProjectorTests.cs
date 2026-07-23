@@ -56,6 +56,28 @@ public sealed class DashboardLayoutProjectorTests
     }
 
     [Fact]
+    public void SavedProviderColorFlowsToCardRowAndSpendSlice()
+    {
+        SampleDashboardSnapshot source = Dashboard(Card("codex", "Codex")) with
+        {
+            SpendSlices = [new SampleSpendSlice("codex", "Codex", 12.3, "$12.30")],
+        };
+        var saved = new DashboardLayout(
+        [
+            Preference("codex", isVisible: true, isHighlighted: false, colorHex: "#123ABC"),
+        ]);
+
+        DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
+            source,
+            saved,
+            "Highlighted");
+
+        Assert.Equal("#123ABC", Assert.Single(result.Providers).ColorHex);
+        Assert.Equal("#123ABC", Assert.Single(result.Dashboard.Providers).ProviderColorHex);
+        Assert.Equal("#123ABC", Assert.Single(result.Dashboard.SpendSlices).ColorHex);
+    }
+
+    [Fact]
     public void UnknownSavedProviderStaysInLayoutOnly()
     {
         SampleDashboardSnapshot source = Dashboard(Card("codex", "Codex"));
@@ -319,8 +341,9 @@ public sealed class DashboardLayoutProjectorTests
     private static ProviderLayoutPreference Preference(
         string providerId,
         bool isVisible,
-        bool isHighlighted) =>
-        new(new ProviderId(providerId), isVisible, isHighlighted, []);
+        bool isHighlighted,
+        string? colorHex = null) =>
+        new(new ProviderId(providerId), isVisible, isHighlighted, [], colorHex);
 
     private static string Id(ProviderLayoutPreference preference) =>
         preference.ProviderId.Value;

@@ -9,7 +9,7 @@ namespace WOpenUsage.Core.Layout;
 
 public sealed class DashboardLayoutStore
 {
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
     public const string DefaultFileName = "dashboard-layout.v1.json";
     public const int MaxDocumentBytes = 64 * 1024;
     public const int MaxJsonDepth = 16;
@@ -84,7 +84,7 @@ public sealed class DashboardLayoutStore
                 return new DashboardLayoutLoadResult.UnsupportedVersion(version);
             }
 
-            if (version != SchemaVersion)
+            if (version is not 1 and not SchemaVersion)
             {
                 return QuarantineCorrupt();
             }
@@ -150,7 +150,7 @@ public sealed class DashboardLayoutStore
                 RemoveUtf8Preamble(bytes),
                 new JsonDocumentOptions { MaxDepth = MaxJsonDepth });
             int version = ReadSchemaVersion(parsed.RootElement);
-            if (version == SchemaVersion)
+            if (version is 1 or SchemaVersion)
             {
                 LayoutDocumentV1? document = JsonSerializer.Deserialize<LayoutDocumentV1>(
                     RemoveUtf8Preamble(bytes).Span,
@@ -239,7 +239,8 @@ public sealed class DashboardLayoutStore
                 new ProviderId(provider.ProviderId),
                 provider.IsVisible,
                 provider.IsHighlighted,
-                metrics));
+                metrics,
+                provider.ColorHex));
         }
 
         return new DashboardLayout(providers);
@@ -253,6 +254,7 @@ public sealed class DashboardLayoutStore
             ProviderId = provider.ProviderId.Value,
             IsVisible = provider.IsVisible,
             IsHighlighted = provider.IsHighlighted,
+            ColorHex = provider.ColorHex,
             Metrics = provider.Metrics.Select(metric => new MetricPreferenceV1
             {
                 MetricId = metric.MetricId.Value,
@@ -416,6 +418,8 @@ public sealed class DashboardLayoutStore
         public bool IsVisible { get; set; }
 
         public bool IsHighlighted { get; set; }
+
+        public string? ColorHex { get; set; }
 
         public List<MetricPreferenceV1>? Metrics { get; set; }
     }

@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using WOpenUsage.Core.Usage;
 
 namespace WOpenUsage.App.Controls;
 
@@ -23,10 +24,18 @@ public sealed partial class AnimatedProgressBar : UserControl
             typeof(AnimatedProgressBar),
             new PropertyMetadata(0d));
 
+    public static readonly DependencyProperty RemainingValueProperty =
+        DependencyProperty.Register(
+            nameof(RemainingValue),
+            typeof(double),
+            typeof(AnimatedProgressBar),
+            new PropertyMetadata(0d));
+
     public AnimatedProgressBar()
     {
         InitializeComponent();
         Unloaded += OnUnloaded;
+        ActualThemeChanged += OnActualThemeChanged;
     }
 
     public string AutomationName
@@ -41,6 +50,12 @@ public sealed partial class AnimatedProgressBar : UserControl
         set => SetValue(TargetValueProperty, value);
     }
 
+    public double RemainingValue
+    {
+        get => (double)GetValue(RemainingValueProperty);
+        set => SetValue(RemainingValueProperty, value);
+    }
+
     public void PlayReveal(int token)
     {
         if (token == _lastRevealToken)
@@ -52,6 +67,7 @@ public sealed partial class AnimatedProgressBar : UserControl
         _storyboard?.Stop();
 
         double target = SpendDonutGeometry.ClampPercent(TargetValue);
+        UpdateForeground(SpendDonutGeometry.ClampPercent(RemainingValue));
         if (!MotionSettings.AreAnimationsEnabled() || target <= 0)
         {
             FillBar.Value = target;
@@ -79,5 +95,20 @@ public sealed partial class AnimatedProgressBar : UserControl
     {
         _storyboard?.Stop();
         _storyboard = null;
+    }
+
+    private void OnActualThemeChanged(FrameworkElement sender, object args) =>
+        UpdateForeground(SpendDonutGeometry.ClampPercent(RemainingValue));
+
+    private void UpdateForeground(double remainingPercent)
+    {
+        FillBar.Foreground = QuotaUsageLevelPolicy.Evaluate((decimal)remainingPercent) switch
+        {
+            QuotaUsageLevel.Healthy => HealthyBrushProxy.Background,
+            QuotaUsageLevel.Caution => CautionBrushProxy.Background,
+            QuotaUsageLevel.Warning => WarningBrushProxy.Background,
+            QuotaUsageLevel.Critical => CriticalBrushProxy.Background,
+            _ => throw new InvalidOperationException("Unknown quota usage level."),
+        };
     }
 }

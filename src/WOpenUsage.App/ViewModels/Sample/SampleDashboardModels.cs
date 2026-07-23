@@ -6,7 +6,8 @@ public sealed record SampleSpendSlice(
     string ProviderId,
     string ProviderName,
     double Amount,
-    string AmountText);
+    string AmountText,
+    string? ColorHex = null);
 
 public sealed record SampleQuotaWindow(
     string Title,
@@ -21,7 +22,8 @@ public sealed record SampleQuotaWindow(
     string LayoutMetricId = "",
     bool IsHighlighted = false,
     string HighlightLabel = "",
-    DateTimeOffset? ResetAtUtc = null)
+    DateTimeOffset? ResetAtUtc = null,
+    double? QuotaRemainingPercent = null)
 {
     public bool IsWithinLimit => !IsNearLimit;
 
@@ -36,6 +38,8 @@ public sealed record SampleQuotaWindow(
     public string DisplayAutomationName => HasHighlight
         ? $"{AutomationName}. {HighlightLabel}"
         : AutomationName;
+
+    public double ColorRemainingPercent => QuotaRemainingPercent ?? RemainingPercent;
 }
 
 public sealed record SampleMetric(
@@ -78,6 +82,8 @@ public sealed class SampleDashboardMetricItem
     public string Title => Window?.Title ?? string.Empty;
 
     public double RemainingPercent => Window?.RemainingPercent ?? 0d;
+
+    public double ColorRemainingPercent => Window?.ColorRemainingPercent ?? 0d;
 
     public string RemainingText => Window?.RemainingText ?? string.Empty;
 
@@ -126,7 +132,8 @@ public sealed record SampleProviderCard(
     string HighlightLabel = "",
     IReadOnlyList<SampleQuotaWindow>? SecondaryWindows = null,
     IReadOnlyList<SampleDashboardMetricItem>? OrderedPrimaryMetrics = null,
-    IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null) : INotifyPropertyChanged
+    IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null,
+    string? ProviderColorHex = null) : INotifyPropertyChanged
 {
     private bool _isOnDemandMetricsExpanded;
 

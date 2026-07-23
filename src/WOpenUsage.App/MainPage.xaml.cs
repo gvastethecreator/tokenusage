@@ -338,6 +338,44 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void OnDashboardProviderColorClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button
+            {
+                Tag: DashboardProviderLayoutRow row,
+                Flyout: Flyout { Content: ColorPicker picker },
+            })
+        {
+            picker.Color = ProviderColorPalette.Parse(
+                ProviderColorPalette.GetEffectiveHex(row.ProviderId, row.ColorHex));
+        }
+    }
+
+    private async void OnDashboardProviderColorFlyoutClosed(object sender, object e)
+    {
+        if (sender is Flyout
+            {
+                Content: ColorPicker
+                {
+                    Tag: DashboardProviderLayoutRow row,
+                } picker,
+            })
+        {
+            string selectedColor = ProviderColorPalette.ToHex(picker.Color);
+            string currentColor = ProviderColorPalette.GetEffectiveHex(
+                row.ProviderId,
+                row.ColorHex);
+            if (string.Equals(selectedColor, currentColor, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await ViewModel.SetDashboardProviderColorAsync(
+                row.ProviderId,
+                selectedColor);
+        }
+    }
+
     private async void OnDashboardMetricMoveUpClicked(object sender, RoutedEventArgs e)
     {
         if (TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))

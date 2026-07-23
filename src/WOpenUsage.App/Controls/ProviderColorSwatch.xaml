@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WOpenUsage.App.Controls.ProviderColorSwatch"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    AutomationProperties.AccessibilityView="Raw"
+    IsTabStop="False">
+    <Grid>
+        <Grid IsHitTestVisible="False" Visibility="Collapsed">
+            <Border x:Name="AntigravityBrushProxy" Background="{ThemeResource ProviderAntigravityBrush}" />
+            <Border x:Name="ClaudeBrushProxy" Background="{ThemeResource ProviderClaudeBrush}" />
+            <Border x:Name="CodexBrushProxy" Background="{ThemeResource ProviderCodexBrush}" />
+            <Border x:Name="GrokBrushProxy" Background="{ThemeResource ProviderGrokBrush}" />
+            <Border x:Name="OpenCodeBrushProxy" Background="{ThemeResource ProviderOpenCodeBrush}" />
+            <Border x:Name="FallbackBrushProxy" Background="{ThemeResource ProviderFallbackBrush}" />
+        </Grid>
+        <Ellipse x:Name="Swatch" />
+    </Grid>
+</UserControl>
