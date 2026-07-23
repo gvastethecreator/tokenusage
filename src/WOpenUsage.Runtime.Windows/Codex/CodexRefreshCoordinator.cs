@@ -2,7 +2,7 @@ using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Providers.Codex;
 
-namespace WOpenUsage.App.Services;
+namespace WOpenUsage.Runtime.Windows.Codex;
 
 public sealed class CodexRefreshCoordinator
 {

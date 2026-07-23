@@ -24,6 +24,10 @@
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
+    <Project Path="src/WOpenUsage.Runtime.Windows/WOpenUsage.Runtime.Windows.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WOpenUsage.Architecture.Tests/WOpenUsage.Architecture.Tests.csproj">

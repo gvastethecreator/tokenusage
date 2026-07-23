@@ -46,9 +46,11 @@ public static class CliApplication
                 commandArguments,
                 standardOutput,
                 standardError,
-                (force, token) => LocalLimitsCliAccess.ReadAsync(
+                (providerId, force, token) => LocalLimitsCliAccess.ReadAsync(
                     fullDataDirectory,
+                    providerId,
                     force,
+                    clock,
                     token),
                 clock,
                 cancellationToken).ConfigureAwait(false),

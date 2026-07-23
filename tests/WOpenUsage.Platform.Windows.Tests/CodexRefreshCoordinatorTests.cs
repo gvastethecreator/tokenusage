@@ -1,9 +1,9 @@
-using WOpenUsage.App.Services;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Providers.Codex;
+using WOpenUsage.Runtime.Windows.Codex;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace WOpenUsage.Platform.Windows.Tests;
 
 public sealed class CodexRefreshCoordinatorTests
 {
