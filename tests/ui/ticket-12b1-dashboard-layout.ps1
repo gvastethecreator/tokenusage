@@ -43,6 +43,8 @@ function Wait-ForElement([string]$AutomationId, [int]$Timeout = 5000) {
 
 function Open-LayoutOptions {
     Invoke-Element "FooterOptionsButton"
+    Wait-ForElement "OptionsProvidersButton"
+    Invoke-Element "OptionsProvidersButton"
     Wait-ForElement "DashboardLayoutExpander"
     winapp ui scroll-into-view "DashboardLayoutExpander" -a $AppPid 2>$null | Out-Null
     Invoke-Element "DashboardLayoutExpander"
