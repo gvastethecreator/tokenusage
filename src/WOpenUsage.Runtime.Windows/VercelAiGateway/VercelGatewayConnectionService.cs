@@ -15,6 +15,36 @@ public enum VercelGatewayCacheCleanupStatus
     Rejected,
 }
 
+public sealed record VercelGatewayConnectResult
+{
+    public VercelGatewayConnectResult(
+        bool credentialSaved,
+        VercelGatewayCacheCleanupStatus cacheStatus,
+        string? quarantineFileName = null,
+        int? unsupportedSchemaVersion = null)
+    {
+        VercelGatewayCacheCleanupMetadata.Validate(
+            cacheStatus,
+            quarantineFileName,
+            unsupportedSchemaVersion);
+        CredentialSaved = credentialSaved;
+        CacheStatus = cacheStatus;
+        QuarantineFileName = quarantineFileName;
+        UnsupportedSchemaVersion = unsupportedSchemaVersion;
+    }
+
+    public bool CredentialSaved { get; }
+
+    public VercelGatewayCacheCleanupStatus CacheStatus { get; }
+
+    public string? QuarantineFileName { get; }
+
+    public int? UnsupportedSchemaVersion { get; }
+
+    public bool IsComplete => CredentialSaved
+        && VercelGatewayCacheCleanupMetadata.IsClear(CacheStatus);
+}
+
 public sealed record VercelGatewayDisconnectResult
 {
     public VercelGatewayDisconnectResult(
@@ -23,43 +53,10 @@ public sealed record VercelGatewayDisconnectResult
         string? quarantineFileName = null,
         int? unsupportedSchemaVersion = null)
     {
-        if (!Enum.IsDefined(cacheStatus))
-        {
-            throw new ArgumentOutOfRangeException(nameof(cacheStatus));
-        }
-
-        if (quarantineFileName is not null
-            && !string.Equals(
-                quarantineFileName,
-                Path.GetFileName(quarantineFileName),
-                StringComparison.Ordinal))
-        {
-            throw new ArgumentException(
-                "The quarantine value must contain a file name only.",
-                nameof(quarantineFileName));
-        }
-
-        if (cacheStatus == VercelGatewayCacheCleanupStatus.Quarantined
-            != (quarantineFileName is not null))
-        {
-            throw new ArgumentException(
-                "Quarantined cache cleanup requires a quarantine file name only.",
-                nameof(quarantineFileName));
-        }
-
-        if (cacheStatus == VercelGatewayCacheCleanupStatus.RefusedUnsupportedVersion
-            != unsupportedSchemaVersion.HasValue)
-        {
-            throw new ArgumentException(
-                "Unsupported cache cleanup requires its schema version.",
-                nameof(unsupportedSchemaVersion));
-        }
-
-        if (unsupportedSchemaVersion <= SnapshotStore.CurrentSchemaVersion)
-        {
-            throw new ArgumentOutOfRangeException(nameof(unsupportedSchemaVersion));
-        }
-
+        VercelGatewayCacheCleanupMetadata.Validate(
+            cacheStatus,
+            quarantineFileName,
+            unsupportedSchemaVersion);
         CredentialRemoved = credentialRemoved;
         CacheStatus = cacheStatus;
         QuarantineFileName = quarantineFileName;
@@ -74,8 +71,7 @@ public sealed record VercelGatewayDisconnectResult
 
     public int? UnsupportedSchemaVersion { get; }
 
-    public bool IsComplete => CacheStatus is VercelGatewayCacheCleanupStatus.Removed
-        or VercelGatewayCacheCleanupStatus.Missing;
+    public bool IsComplete => VercelGatewayCacheCleanupMetadata.IsClear(CacheStatus);
 }
 
 public sealed class VercelGatewayConnectionService
@@ -110,53 +106,151 @@ public sealed class VercelGatewayConnectionService
             .DeleteAsync(CancellationToken.None)
             .ConfigureAwait(false);
 
+        CacheCleanupOutcome cleanup = await RemoveCachedProviderAsync().ConfigureAwait(false);
+        return cleanup.ToDisconnectResult(credentialRemoved);
+    }
+
+    public async Task<bool> IsConfiguredAsync(CancellationToken cancellationToken = default)
+    {
+        await using IAsyncDisposable lease = await _operationGate
+            .EnterAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return await _credentialStore
+            .IsConfiguredAsync(CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<VercelGatewayConnectResult> ConnectAsync(
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+        await using IAsyncDisposable lease = await _operationGate
+            .EnterAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        CacheCleanupOutcome cleanup = await RemoveCachedProviderAsync().ConfigureAwait(false);
+        if (!VercelGatewayCacheCleanupMetadata.IsClear(cleanup.Status))
+        {
+            return cleanup.ToConnectResult(credentialSaved: false);
+        }
+
+        await _credentialStore
+            .SaveAsync(apiKey, CancellationToken.None)
+            .ConfigureAwait(false);
+        return cleanup.ToConnectResult(credentialSaved: true);
+    }
+
+    private async Task<CacheCleanupOutcome> RemoveCachedProviderAsync()
+    {
         try
         {
             SnapshotCacheRemoveResult cacheResult = await _snapshotStore
                 .RemoveProviderAsync(ProviderId, CancellationToken.None)
                 .ConfigureAwait(false);
-            return MapResult(credentialRemoved, cacheResult);
+            return MapResult(cacheResult);
         }
         catch (IOException)
         {
-            return Failure(credentialRemoved, VercelGatewayCacheCleanupStatus.IoFailure);
+            return new(VercelGatewayCacheCleanupStatus.IoFailure);
         }
         catch (UnauthorizedAccessException)
         {
-            return Failure(credentialRemoved, VercelGatewayCacheCleanupStatus.AccessDenied);
+            return new(VercelGatewayCacheCleanupStatus.AccessDenied);
         }
         catch (TimeoutException)
         {
-            return Failure(credentialRemoved, VercelGatewayCacheCleanupStatus.LockTimedOut);
+            return new(VercelGatewayCacheCleanupStatus.LockTimedOut);
         }
         catch (InvalidOperationException)
         {
-            return Failure(credentialRemoved, VercelGatewayCacheCleanupStatus.Rejected);
+            return new(VercelGatewayCacheCleanupStatus.Rejected);
         }
     }
 
-    private static VercelGatewayDisconnectResult MapResult(
-        bool credentialRemoved,
+    private static CacheCleanupOutcome MapResult(
         SnapshotCacheRemoveResult cacheResult) => cacheResult switch
         {
             SnapshotCacheRemoveResult.Removed =>
-                new(credentialRemoved, VercelGatewayCacheCleanupStatus.Removed),
+                new(VercelGatewayCacheCleanupStatus.Removed),
             SnapshotCacheRemoveResult.Missing =>
-                new(credentialRemoved, VercelGatewayCacheCleanupStatus.Missing),
+                new(VercelGatewayCacheCleanupStatus.Missing),
             SnapshotCacheRemoveResult.Unreadable unreadable =>
                 new(
-                    credentialRemoved,
                     VercelGatewayCacheCleanupStatus.Quarantined,
-                    quarantineFileName: unreadable.QuarantineFileName),
+                    QuarantineFileName: unreadable.QuarantineFileName),
             SnapshotCacheRemoveResult.RefusedUnsupportedVersion unsupported =>
                 new(
-                    credentialRemoved,
                     VercelGatewayCacheCleanupStatus.RefusedUnsupportedVersion,
-                    unsupportedSchemaVersion: unsupported.SchemaVersion),
-            _ => Failure(credentialRemoved, VercelGatewayCacheCleanupStatus.Rejected),
+                    UnsupportedSchemaVersion: unsupported.SchemaVersion),
+            _ => new(VercelGatewayCacheCleanupStatus.Rejected),
         };
 
-    private static VercelGatewayDisconnectResult Failure(
-        bool credentialRemoved,
-        VercelGatewayCacheCleanupStatus status) => new(credentialRemoved, status);
+    private sealed record CacheCleanupOutcome(
+        VercelGatewayCacheCleanupStatus Status,
+        string? QuarantineFileName = null,
+        int? UnsupportedSchemaVersion = null)
+    {
+        public VercelGatewayConnectResult ToConnectResult(bool credentialSaved) => new(
+            credentialSaved,
+            Status,
+            QuarantineFileName,
+            UnsupportedSchemaVersion);
+
+        public VercelGatewayDisconnectResult ToDisconnectResult(bool credentialRemoved) => new(
+            credentialRemoved,
+            Status,
+            QuarantineFileName,
+            UnsupportedSchemaVersion);
+    }
+}
+
+internal static class VercelGatewayCacheCleanupMetadata
+{
+    public static bool IsClear(VercelGatewayCacheCleanupStatus status) =>
+        status is VercelGatewayCacheCleanupStatus.Removed
+            or VercelGatewayCacheCleanupStatus.Missing;
+
+    public static void Validate(
+        VercelGatewayCacheCleanupStatus status,
+        string? quarantineFileName,
+        int? unsupportedSchemaVersion)
+    {
+        if (!Enum.IsDefined(status))
+        {
+            throw new ArgumentOutOfRangeException(nameof(status));
+        }
+
+        if (quarantineFileName is not null
+            && !string.Equals(
+                quarantineFileName,
+                Path.GetFileName(quarantineFileName),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "The quarantine value must contain a file name only.",
+                nameof(quarantineFileName));
+        }
+
+        if (status == VercelGatewayCacheCleanupStatus.Quarantined
+            != (quarantineFileName is not null))
+        {
+            throw new ArgumentException(
+                "Quarantined cache cleanup requires a quarantine file name only.",
+                nameof(quarantineFileName));
+        }
+
+        if (status == VercelGatewayCacheCleanupStatus.RefusedUnsupportedVersion
+            != unsupportedSchemaVersion.HasValue)
+        {
+            throw new ArgumentException(
+                "Unsupported cache cleanup requires its schema version.",
+                nameof(unsupportedSchemaVersion));
+        }
+
+        if (unsupportedSchemaVersion <= SnapshotStore.CurrentSchemaVersion)
+        {
+            throw new ArgumentOutOfRangeException(nameof(unsupportedSchemaVersion));
+        }
+    }
 }
