@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Windows.ApplicationModel.Resources;
+using System.ComponentModel;
 using System.Data.Common;
 using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
@@ -8,6 +9,7 @@ using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Runtime.Windows.Codex;
+using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.App.ViewModels;
 
@@ -26,11 +28,13 @@ public partial class FlyoutViewModel : ObservableObject
     private DateTimeOffset? _retryAtUtc;
     private bool _hasLocalUsage;
     private ProviderOutcome? _lastCodexOutcome;
+    private ProviderSnapshot? _lastCodexSnapshot;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
         CodexRefreshCoordinator codexRefreshCoordinator,
-        LocalUsageCoordinator localUsageCoordinator)
+        LocalUsageCoordinator localUsageCoordinator,
+        VercelGatewayRefreshCoordinator vercelGatewayCoordinator)
     {
         _sampleRefreshCoordinator = sampleRefreshCoordinator
             ?? throw new ArgumentNullException(nameof(sampleRefreshCoordinator));
@@ -38,6 +42,11 @@ public partial class FlyoutViewModel : ObservableObject
             ?? throw new ArgumentNullException(nameof(codexRefreshCoordinator));
         _localUsageCoordinator = localUsageCoordinator
             ?? throw new ArgumentNullException(nameof(localUsageCoordinator));
+        Vercel = new VercelGatewaySettingsViewModel(
+            vercelGatewayCoordinator
+                ?? throw new ArgumentNullException(nameof(vercelGatewayCoordinator)),
+            GetString);
+        Vercel.PropertyChanged += OnVercelPropertyChanged;
         LanguageOptions =
         [
             new(AppLanguageCatalog.EnglishUnitedStates, GetString("LanguageEnglish")),
@@ -63,6 +72,7 @@ public partial class FlyoutViewModel : ObservableObject
         RetryAutomationName = GetString("CodexRetry");
         RebuildSamplePreview();
         _ = RefreshDashboardAsync(scenario: null, forceRefresh: false);
+        _ = Vercel.InitializeAsync();
     }
 
     [ObservableProperty]
@@ -137,6 +147,7 @@ public partial class FlyoutViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
+    [NotifyPropertyChangedFor(nameof(IsRefreshing))]
     public partial bool IsSampleRefreshing { get; set; }
 
     [ObservableProperty]
@@ -182,8 +193,10 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsSampleScenarioEnabled => IsSampleModeEnabled;
 
+    public bool IsRefreshing => IsSampleRefreshing || Vercel.IsBusy;
+
     public string DashboardHeading => GetString(
-        IsSampleModeEnabled ? "SampleTotalSpendHeading" : "CodexQuotaTitle");
+        IsSampleModeEnabled ? "SampleTotalSpendHeading" : "LiveDashboardHeading");
 
     public bool IsLiveDataStateVisible => !IsSampleModeEnabled && IsSample;
 
@@ -227,14 +240,18 @@ public partial class FlyoutViewModel : ObservableObject
 
     public IReadOnlyList<AppLanguageOption> LanguageOptions { get; }
 
+    public VercelGatewaySettingsViewModel Vercel { get; }
+
     public string PendingLanguageTag => SelectedLanguage.LanguageTag;
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
-    private Task RefreshAsync() => RefreshDashboardAsync(
-        IsSampleModeEnabled ? SelectedSampleScenario.Value : null,
-        forceRefresh: true);
+    private Task RefreshAsync() => IsSampleModeEnabled
+        ? RefreshDashboardAsync(SelectedSampleScenario.Value, forceRefresh: true)
+        : Task.WhenAll(
+            RefreshDashboardAsync(scenario: null, forceRefresh: true),
+            Vercel.RefreshAsync(forceRefresh: true));
 
-    private bool CanRefresh() => !IsLoading && !IsSampleRefreshing;
+    private bool CanRefresh() => !IsLoading && !IsRefreshing;
 
     [RelayCommand(CanExecute = nameof(CanOpenOptions))]
     private void OpenOptions()
@@ -298,6 +315,40 @@ public partial class FlyoutViewModel : ObservableObject
         else
         {
             RebuildSamplePreview();
+        }
+    }
+
+    private void OnVercelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (string.Equals(e.PropertyName, nameof(Vercel.IsBusy), StringComparison.Ordinal))
+        {
+            OnPropertyChanged(nameof(IsRefreshing));
+            RefreshCommand.NotifyCanExecuteChanged();
+        }
+
+        if (string.Equals(e.PropertyName, nameof(Vercel.ProviderCard), StringComparison.Ordinal)
+            || string.Equals(e.PropertyName, nameof(Vercel.State), StringComparison.Ordinal)
+            || string.Equals(e.PropertyName, nameof(Vercel.IsConfigured), StringComparison.Ordinal))
+        {
+            RebuildProviderStatuses();
+        }
+
+        if (string.Equals(e.PropertyName, nameof(Vercel.ProviderCard), StringComparison.Ordinal)
+            && !IsSampleModeEnabled)
+        {
+            if (!PublishCombinedLiveDashboard(reveal: true) && _hasLocalUsage)
+            {
+                ActiveSample = new SampleDashboardSnapshot(
+                    SampleScenario.Normal,
+                    string.Empty,
+                    GetString("LiveDashboardPeriod"),
+                    string.Empty,
+                    [],
+                    []);
+                _hasPublishedDashboard = true;
+                _resultSurface = FlyoutSurfaceState.Sample;
+                ApplyResultSurfaceIfVisible();
+            }
         }
     }
 
@@ -520,10 +571,58 @@ public partial class FlyoutViewModel : ObservableObject
         bool reveal)
     {
         _publishedObservedAtUtc = snapshot.SourceObservedAtUtc;
-        ActiveSample = scenario is SampleScenario sampleScenario
-            ? SampleDashboardProjector.Create(sampleScenario, snapshot, GetString)
-            : CodexDashboardProjector.Create(snapshot, _codexRefreshCoordinator.Clock, GetString);
+        if (scenario is SampleScenario sampleScenario)
+        {
+            ActiveSample = SampleDashboardProjector.Create(sampleScenario, snapshot, GetString);
+        }
+        else
+        {
+            _lastCodexSnapshot = snapshot;
+            if (!PublishCombinedLiveDashboard(reveal))
+            {
+                return;
+            }
+        }
+
         _activeScenario = scenario;
+        _hasPublishedDashboard = true;
+        _resultSurface = FlyoutSurfaceState.Sample;
+        ApplyResultSurfaceIfVisible();
+        if (reveal && scenario is not null)
+        {
+            SampleRevealToken++;
+        }
+    }
+
+    private bool PublishCombinedLiveDashboard(bool reveal)
+    {
+        var providers = new List<SampleProviderCard>();
+        if (_lastCodexSnapshot is not null)
+        {
+            providers.AddRange(CodexDashboardProjector.Create(
+                _lastCodexSnapshot,
+                _codexRefreshCoordinator.Clock,
+                GetString).Providers);
+        }
+
+        if (Vercel.ProviderCard is SampleProviderCard vercelCard)
+        {
+            providers.Add(vercelCard);
+        }
+
+        if (providers.Count == 0)
+        {
+            return false;
+        }
+
+        ActiveSample = new SampleDashboardSnapshot(
+            SampleScenario.Normal,
+            string.Empty,
+            GetString("LiveDashboardPeriod"),
+            string.Empty,
+            [],
+            providers);
+        _activeScenario = null;
         _hasPublishedDashboard = true;
         _resultSurface = FlyoutSurfaceState.Sample;
         ApplyResultSurfaceIfVisible();
@@ -531,6 +630,8 @@ public partial class FlyoutViewModel : ObservableObject
         {
             SampleRevealToken++;
         }
+
+        return true;
     }
 
     private void PublishUnavailable(ProviderOutcome? outcome)
@@ -541,6 +642,16 @@ public partial class FlyoutViewModel : ObservableObject
         }
 
         _hasPublishedDashboard = false;
+        if (!IsSampleModeEnabled)
+        {
+            _lastCodexSnapshot = null;
+            if (PublishCombinedLiveDashboard(reveal: false))
+            {
+                SetDataState(SampleDataState.Unavailable);
+                return;
+            }
+        }
+
         _resultSurface = FlyoutSurfaceState.SampleUnavailable;
         SetDataState(SampleDataState.Unavailable);
 
@@ -634,6 +745,7 @@ public partial class FlyoutViewModel : ObservableObject
                 ],
                 "ProviderStatus.codex"),
         };
+        statuses.Add(Vercel.CreateStatusRow());
         statuses.AddRange(LocalUsage.ProviderStatuses);
         ProviderStatuses = statuses;
     }

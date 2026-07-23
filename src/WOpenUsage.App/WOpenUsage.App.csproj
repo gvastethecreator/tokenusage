@@ -14,6 +14,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <DefineConstants Condition="'$(EnableUiTestFixtures)' == 'true'">$(DefineConstants);UI_TEST_FIXTURES</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

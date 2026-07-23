@@ -1,0 +1,30 @@
+[
+  {
+    "status": "PASS",
+    "name": "Disconnected state exposes risk and guarded input"
+  },
+  {
+    "status": "PASS",
+    "name": "Consent and key enable connect"
+  },
+  {
+    "status": "PASS",
+    "name": "Connect loads synthetic report through real composition"
+  },
+  {
+    "status": "PASS",
+    "name": "Provider status exposes independent capability rows"
+  },
+  {
+    "status": "PASS",
+    "name": "Dashboard shows Vercel spend and token card"
+  },
+  {
+    "status": "PASS",
+    "name": "Disconnect clears credential state and report card"
+  },
+  {
+    "status": "PASS",
+    "name": "Interactive controls keep AutomationIds"
+  }
+]
