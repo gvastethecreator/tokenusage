@@ -5,9 +5,5 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:WOpenUsage.App"
     Title="TokenUsage">
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
-
     <local:MainPage x:Name="RootPage" />
 </Window>
