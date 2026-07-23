@@ -15,9 +15,10 @@ Usar C#, WinUI 3 y Windows App SDK en una app MSIX de confianza plena. Mantener 
 ## Solución
 
 ```text
-WOpenUsage.sln
+WOpenUsage.slnx
 ├─ src/
 │  ├─ WOpenUsage.App/                WinUI, XAML, ViewModels y composición
+│  ├─ WOpenUsage.Package/            manifest MSIX, App, CLI y alias wusage.exe
 │  ├─ WOpenUsage.Core/               dominio, coordinación, caché y contratos
 │  ├─ WOpenUsage.Providers/          adaptadores y scanners por proveedor
 │  ├─ WOpenUsage.Platform.Windows/   bandeja, ventanas, procesos, archivos y secretos
@@ -29,17 +30,20 @@ WOpenUsage.sln
 │  ├─ WOpenUsage.Platform.Windows.Tests/
 │  ├─ WOpenUsage.Architecture.Tests/
 │  └─ WOpenUsage.App.UiTests/
-├─ packaging/                        iconos, manifiesto y perfiles de publicación
 └─ docs/
 ```
 
-La app se crea con `dotnet new winui-mvvm -n WOpenUsage.App`. La solución conserva el manifiesto generado. Cada paquete NuGet se agrega sin fijar una versión manual para que el CLI elija la versión estable compatible. Todo build usa una arquitectura concreta; se excluye `AnyCPU`.
+La app nació con `dotnet new winui-mvvm -n WOpenUsage.App`. Un Windows
+Application Packaging Project conserva el manifiesto e incluye App y CLI. Todo
+build usa una arquitectura concreta; se excluye `AnyCPU`.
 
 ## Dependencias
 
 ```mermaid
 flowchart TD
-    App["WOpenUsage.App"] --> Core["WOpenUsage.Core"]
+    Package["WOpenUsage.Package"] --> App["WOpenUsage.App"]
+    Package --> CLI["WOpenUsage.Cli"]
+    App --> Core["WOpenUsage.Core"]
     App --> Providers["WOpenUsage.Providers"]
     App --> Windows["WOpenUsage.Platform.Windows"]
     App --> Runtime["WOpenUsage.Runtime.Windows"]
@@ -425,14 +429,16 @@ El modo debug es temporal y advierte su mayor detalle. Aun en debug se redaktan 
 - paquete MSIX con identidad propia;
 - confianza plena para archivos del usuario y procesos locales;
 - `x64` y `ARM64`;
-- alias de ejecución para CLI;
-- StartupTask declarado en manifiesto;
+- alias `wusage.exe` para CLI;
+- StartupTask cuando cierre su ticket;
 - protocolos o activaciones solo cuando una función los necesita;
 - firma de prueba en CI y firma de producción fuera del repo;
 - canales beta y estable con identidades separadas o estrategia que evite reemplazos accidentales;
 - avisos de terceros y licencia MIT en el paquete.
 
-El repo conserva `Package.appxmanifest`. La build y el lanzamiento de desarrollo usan el script generado por la plantilla WinUI. El ejecutable empaquetado no se abre de forma directa.
+El repo conserva `Package.appxmanifest` bajo `WOpenUsage.Package`. La build y el
+lanzamiento de desarrollo usan `BuildAndRun.ps1`, Visual Studio MSBuild y la
+identidad de paquete. El ejecutable empaquetado no se abre de forma directa.
 
 ## Seguridad
 

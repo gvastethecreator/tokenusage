@@ -15,10 +15,10 @@ stdout, stderr y códigos de salida. El corte debe migrar el empaquetado a un
 Windows Application Packaging Project y mantener ambos proyectos de aplicación
 como referencias x64/ARM64.
 
-El alias debe usar `windows.appExecutionAlias`, apuntar de forma explícita a
-`wusage.exe`, declarar `Windows.FullTrustApplication` y registrar
-`wusage.exe`. No se debe dirigir el alias al ejecutable WinUI: un `WinExe` no
-cumple el contrato de consola.
+El alias debe usar `windows.appExecutionAlias`, apuntar de forma explícita al
+payload `WOpenUsage.Cli\wusage.exe`, declarar `Windows.FullTrustApplication` y
+registrar `wusage.exe`. El ejecutable WinUI sigue siendo la entrada visual; un
+`WinExe` no cumple el contrato de consola.
 
 ## Fuentes primarias
 
@@ -49,9 +49,10 @@ cumple el contrato de consola.
    mediante paquete firmado o identidad de desarrollo; nunca iniciar el
    ejecutable empaquetado por ruta directa.
 
-## Riesgo pendiente
+## Resultado implementado
 
-La migración cambia el dueño del manifest y del package graph. Debe conservar
-identidad, recursos, `runFullTrust`, localización, StartupTask y el flujo de
-`BuildAndRun.ps1`. Un build de la solución por sí solo no prueba que Windows
-registró el alias; el smoke empaquetado sigue siendo un gate separado.
+`WOpenUsage.Package` posee el manifest y referencia App y CLI. Builds Debug x64,
+Debug ARM64 y Release x64 generaron ambos ejecutables. Un registro dev Release
+inició la app por AUMID y ejecutó `wusage providers --format json` mediante el
+alias de Windows. La evidencia completa está en
+`docs/evidence/ticket-25d2-msix-cli-alias.md`.
