@@ -1,5 +1,10 @@
 <Project>
   <PropertyGroup>
+    <Product>TokenUsage</Product>
+    <Description>Windows quota, token usage, and spend tracking for AI coding tools.</Description>
+    <Authors>TokenUsage contributors</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/gvastethecreator/wopenusage</RepositoryUrl>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>x64;ARM64</Platforms>

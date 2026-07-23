@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest a focused product or provider improvement.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need should this change solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed result
+      description: Describe the smallest useful result.
+    validations:
+      required: true
+  - type: textarea
+    id: data-source
+    attributes:
+      label: Provider data source
+      description: For provider work, link the public contract or describe the approved local aggregate. Do not include credentials or private data.
+  - type: textarea
+    id: limits
+    attributes:
+      label: Limits and alternatives
+      description: Note known gaps, privacy concerns, or other approaches.
