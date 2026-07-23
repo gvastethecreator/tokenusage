@@ -1,5 +1,14 @@
 namespace WOpenUsage.Providers.VercelAiGateway;
 
+public interface IVercelGatewayReportClient
+{
+    Task<VercelGatewayReport> GetDailyReportAsync(
+        string apiKey,
+        DateOnly startDate,
+        DateOnly endDate,
+        CancellationToken cancellationToken = default);
+}
+
 public enum VercelGatewayReportErrorKind
 {
     Authentication,
