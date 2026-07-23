@@ -103,6 +103,18 @@ function Invoke-AppElement {
     Activate-App
     & winapp ui invoke $Selector -a $AppPid 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not invoke '$Selector'." }
+
+    if ($Selector -eq 'FooterOptionsButton') {
+        & winapp ui wait-for 'OptionsGeneralButton' -a $AppPid -t 2000 2>$null | Out-Null
+        & winapp ui invoke 'OptionsGeneralButton' -a $AppPid 2>$null | Out-Null
+    }
+    elseif ($Selector -eq 'OptionsBackButton') {
+        $homeView = & winapp ui search 'OptionsGeneralButton' -a $AppPid --json 2>$null |
+            ConvertFrom-Json
+        if ($homeView.matchCount -gt 0) {
+            & winapp ui invoke 'OptionsBackButton' -a $AppPid 2>$null | Out-Null
+        }
+    }
 }
 
 function Wait-ForElement {

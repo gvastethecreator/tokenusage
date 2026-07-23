@@ -146,10 +146,14 @@ public partial class FlyoutViewModel : ObservableObject
     public partial bool CloseWhenInactive { get; set; } = true;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOptionsHome))]
     [NotifyPropertyChangedFor(nameof(IsGeneralOptionsSection))]
     [NotifyPropertyChangedFor(nameof(IsAppearanceOptionsSection))]
+    [NotifyPropertyChangedFor(nameof(IsPersonalizationOptionsSection))]
     [NotifyPropertyChangedFor(nameof(IsProvidersOptionsSection))]
-    public partial OptionsSection ActiveOptionsSection { get; set; } = OptionsSection.General;
+    [NotifyPropertyChangedFor(nameof(IsVercelOptionsSection))]
+    [NotifyPropertyChangedFor(nameof(IsProviderStatusOptionsSection))]
+    public partial OptionsSection ActiveOptionsSection { get; set; } = OptionsSection.Home;
 
     [ObservableProperty]
     public partial AppearanceSettings Appearance { get; private set; } = AppearanceSettings.Default;
@@ -282,11 +286,19 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsUsageSurface => !IsOptions;
 
+    public bool IsOptionsHome => ActiveOptionsSection == OptionsSection.Home;
+
     public bool IsGeneralOptionsSection => ActiveOptionsSection == OptionsSection.General;
 
     public bool IsAppearanceOptionsSection => ActiveOptionsSection == OptionsSection.Appearance;
 
+    public bool IsPersonalizationOptionsSection => ActiveOptionsSection == OptionsSection.Personalization;
+
     public bool IsProvidersOptionsSection => ActiveOptionsSection == OptionsSection.Providers;
+
+    public bool IsVercelOptionsSection => ActiveOptionsSection == OptionsSection.Vercel;
+
+    public bool IsProviderStatusOptionsSection => ActiveOptionsSection == OptionsSection.ProviderStatus;
 
     public bool IsLocalUsageVisible =>
         _hasLocalUsage && !IsSampleModeEnabled && IsUsageSurface;
@@ -391,7 +403,7 @@ public partial class FlyoutViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanOpenOptions))]
     private void OpenOptions()
     {
-        ActiveOptionsSection = OptionsSection.General;
+        ActiveOptionsSection = OptionsSection.Home;
         SurfaceState = FlyoutSurfaceState.Options;
     }
 
@@ -406,13 +418,36 @@ public partial class FlyoutViewModel : ObservableObject
     private bool CanCloseOptions() => IsOptions;
 
     [RelayCommand]
+    private void NavigateBackOptions()
+    {
+        if (ActiveOptionsSection == OptionsSection.Home)
+        {
+            CloseOptions();
+            return;
+        }
+
+        ActiveOptionsSection = ActiveOptionsSection is OptionsSection.Vercel or OptionsSection.ProviderStatus
+            ? OptionsSection.Providers
+            : OptionsSection.Home;
+    }
+
+    [RelayCommand]
     private void ShowGeneralOptions() => ActiveOptionsSection = OptionsSection.General;
 
     [RelayCommand]
     private void ShowAppearanceOptions() => ActiveOptionsSection = OptionsSection.Appearance;
 
     [RelayCommand]
+    private void ShowPersonalizationOptions() => ActiveOptionsSection = OptionsSection.Personalization;
+
+    [RelayCommand]
     private void ShowProvidersOptions() => ActiveOptionsSection = OptionsSection.Providers;
+
+    [RelayCommand]
+    private void ShowVercelOptions() => ActiveOptionsSection = OptionsSection.Vercel;
+
+    [RelayCommand]
+    private void ShowProviderStatusOptions() => ActiveOptionsSection = OptionsSection.ProviderStatus;
 
     partial void OnSelectedLanguageChanged(AppLanguageOption value)
     {

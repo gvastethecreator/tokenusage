@@ -39,8 +39,8 @@ function Wait-ForElement([string]$AutomationId, [int]$Timeout = 5000) {
 
 function Open-MetricOptions {
     Invoke-Element "FooterOptionsButton"
-    Wait-ForElement "OptionsProvidersButton"
-    Invoke-Element "OptionsProvidersButton"
+    Wait-ForElement "OptionsPersonalizationButton"
+    Invoke-Element "OptionsPersonalizationButton"
     Wait-ForElement "DashboardLayoutExpander"
     winapp ui scroll-into-view "DashboardLayoutExpander" -a $AppPid 2>$null | Out-Null
     Invoke-Element "DashboardLayoutExpander"
@@ -140,6 +140,7 @@ if ($Phase -eq "Configure") {
     }
 
     Test-Ui "Dashboard applies primary hidden and highlighted metrics" {
+        Invoke-Element "OptionsBackButton"
         Invoke-Element "OptionsBackButton"
         Wait-ForElement "CodexUsage.Today"
         Assert-ControlName "CodexUsage.Today" "Highlighted|Destacado"

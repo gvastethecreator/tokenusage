@@ -22,12 +22,33 @@
   <data name="ProviderHeader.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="HeaderRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update</value></data>
   <data name="OptionsHeader.Text" xml:space="preserve"><value>Options</value></data>
+  <data name="OptionsHomeDescription.Text" xml:space="preserve"><value>Choose what you want to change.</value></data>
   <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
+  <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Language, window behavior, and sample data</value></data>
   <data name="OptionsGeneralButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
   <data name="OptionsAppearanceLabel.Text" xml:space="preserve"><value>Appearance</value></data>
+  <data name="OptionsAppearanceDescription.Text" xml:space="preserve"><value>Theme, density, and usage formats</value></data>
   <data name="OptionsAppearanceButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Appearance options</value></data>
+  <data name="OptionsPersonalizationLabel.Text" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="OptionsPersonalizationDescription.Text" xml:space="preserve"><value>Provider order, visibility, metrics, and colors</value></data>
+  <data name="OptionsPersonalizationButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Dashboard options</value></data>
   <data name="OptionsProvidersLabel.Text" xml:space="preserve"><value>Providers</value></data>
+  <data name="OptionsProvidersDescription.Text" xml:space="preserve"><value>Connections and source health</value></data>
   <data name="OptionsProvidersButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
+  <data name="GeneralSectionTitle.Text" xml:space="preserve"><value>General</value></data>
+  <data name="GeneralSectionDescription.Text" xml:space="preserve"><value>Set the app language and default flyout behavior.</value></data>
+  <data name="AppearanceSectionTitle.Text" xml:space="preserve"><value>Appearance</value></data>
+  <data name="AppearanceSectionDescription.Text" xml:space="preserve"><value>Changes apply to the dashboard as soon as you select them.</value></data>
+  <data name="PersonalizationSectionTitle.Text" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="PersonalizationSectionDescription.Text" xml:space="preserve"><value>Choose which providers and metrics get the most space.</value></data>
+  <data name="ProvidersSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
+  <data name="ProvidersSectionDescription.Text" xml:space="preserve"><value>Manage connections and inspect each source.</value></data>
+  <data name="OptionsVercelLabel.Text" xml:space="preserve"><value>Vercel connection</value></data>
+  <data name="OptionsVercelDescription.Text" xml:space="preserve"><value>Connect or remove an experimental Vercel account</value></data>
+  <data name="OptionsVercelButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel connection options</value></data>
+  <data name="OptionsProviderStatusLabel.Text" xml:space="preserve"><value>Source status</value></data>
+  <data name="OptionsProviderStatusDescription.Text" xml:space="preserve"><value>Availability, access, freshness, and errors</value></data>
+  <data name="OptionsProviderStatusButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider source status</value></data>
   <data name="OptionsBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
   <data name="LoadingProgressRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Updating usage</value></data>
   <data name="LoadingLabel.Text" xml:space="preserve"><value>Looking for local usage data…</value></data>

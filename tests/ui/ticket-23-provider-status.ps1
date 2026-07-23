@@ -51,12 +51,17 @@ function Open-FlyoutOptions {
 }
 
 Open-FlyoutOptions
-winapp ui wait-for 'ProviderStatusSection' -a $AppPid -t 10000 2>$null | Out-Null
+winapp ui wait-for 'OptionsGeneralButton' -a $AppPid -t 10000 2>$null | Out-Null
+winapp ui invoke 'OptionsGeneralButton' -a $AppPid 2>$null | Out-Null
 $closeState = (winapp ui get-value 'CloseWhenInactiveToggle' -a $AppPid --json 2>$null |
     ConvertFrom-Json).text
 if ($closeState -ne 'Off') {
     winapp ui invoke 'CloseWhenInactiveToggle' -a $AppPid 2>$null | Out-Null
 }
+winapp ui invoke 'OptionsBackButton' -a $AppPid 2>$null | Out-Null
+winapp ui invoke 'OptionsProvidersButton' -a $AppPid 2>$null | Out-Null
+winapp ui invoke 'OptionsProviderStatusButton' -a $AppPid 2>$null | Out-Null
+winapp ui wait-for 'ProviderStatusSection' -a $AppPid -t 10000 2>$null | Out-Null
 
 Test-Ui 'Provider status section appears' {
     winapp ui wait-for 'ProviderStatusRefreshButton' -a $AppPid -t 3000
@@ -102,6 +107,9 @@ $results | ConvertTo-Json -Depth 4 |
     Set-Content (Join-Path $artifactDirectory 'ui-results.json')
 
 if ($closeState -eq 'On') {
+    winapp ui invoke 'OptionsBackButton' -a $AppPid 2>$null | Out-Null
+    winapp ui invoke 'OptionsBackButton' -a $AppPid 2>$null | Out-Null
+    winapp ui invoke 'OptionsGeneralButton' -a $AppPid 2>$null | Out-Null
     winapp ui invoke 'CloseWhenInactiveToggle' -a $AppPid 2>$null | Out-Null
 }
 

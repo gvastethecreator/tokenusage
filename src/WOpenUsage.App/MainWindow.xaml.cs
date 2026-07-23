@@ -276,6 +276,10 @@ public sealed partial class MainWindow : Window, IDisposable
             e.PropertyName,
             nameof(RootPage.ViewModel.SurfaceState),
             StringComparison.Ordinal);
+        bool optionsSectionChanged = string.Equals(
+            e.PropertyName,
+            nameof(RootPage.ViewModel.ActiveOptionsSection),
+            StringComparison.Ordinal);
         bool refreshChanged = string.Equals(
             e.PropertyName,
             nameof(RootPage.ViewModel.IsRefreshing),
@@ -290,14 +294,17 @@ public sealed partial class MainWindow : Window, IDisposable
             }
         }
 
-        if (!surfaceChanged && !refreshChanged)
+        if (!surfaceChanged && !refreshChanged && !optionsSectionChanged)
         {
             return;
         }
 
-        UpdateStatusText();
+        if (surfaceChanged || refreshChanged)
+        {
+            UpdateStatusText();
+        }
 
-        if (surfaceChanged && _isFlyoutVisible)
+        if ((surfaceChanged || optionsSectionChanged) && _isFlyoutVisible)
         {
             BeginActivationGuard();
             SchedulePositionAfterLayout();

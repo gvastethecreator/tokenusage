@@ -129,7 +129,7 @@ public sealed partial class MainPage : Page
     {
         UIElement target = ViewModel.SurfaceState switch
         {
-            FlyoutSurfaceState.Options => CloseWhenInactiveToggle,
+            FlyoutSurfaceState.Options => GetOptionsPrimaryAction(),
             FlyoutSurfaceState.Loading => FooterOptionsButton,
             FlyoutSurfaceState.Sample => HeaderRefreshButton,
             FlyoutSurfaceState.SampleUnavailable => SampleRetryButton,
@@ -138,6 +138,19 @@ public sealed partial class MainPage : Page
 
         _ = target.Focus(FocusState.Programmatic);
     }
+
+    private UIElement GetOptionsPrimaryAction() => ViewModel.ActiveOptionsSection switch
+    {
+        OptionsSection.General => CloseWhenInactiveToggle,
+        OptionsSection.Appearance => AppearanceThemeSelector,
+        OptionsSection.Personalization => DashboardLayoutExpander,
+        OptionsSection.Providers => OptionsVercelButton,
+        OptionsSection.Vercel => ViewModel.Vercel.IsConnectFormVisible
+            ? VercelApiKeyBox
+            : VercelDisconnectButton,
+        OptionsSection.ProviderStatus => ProviderStatusRefreshButton,
+        _ => OptionsGeneralButton,
+    };
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
@@ -163,7 +176,7 @@ public sealed partial class MainPage : Page
 
         if (ViewModel.IsOptions)
         {
-            ViewModel.CloseOptionsCommand.Execute(null);
+            ViewModel.NavigateBackOptionsCommand.Execute(null);
         }
         else
         {
@@ -175,12 +188,26 @@ public sealed partial class MainPage : Page
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (string.Equals(e.PropertyName, nameof(ViewModel.SurfaceState), StringComparison.Ordinal))
+        bool surfaceChanged = string.Equals(
+            e.PropertyName,
+            nameof(ViewModel.SurfaceState),
+            StringComparison.Ordinal);
+        bool optionsSectionChanged = string.Equals(
+            e.PropertyName,
+            nameof(ViewModel.ActiveOptionsSection),
+            StringComparison.Ordinal);
+        if (surfaceChanged || optionsSectionChanged)
         {
             _ = DispatcherQueue.TryEnqueue(() =>
-                BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
+            {
+                BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
+                if (ViewModel.IsOptions)
+                {
+                    FocusPrimaryAction();
+                }
+            });
 
-            if (ViewModel.IsSample)
+            if (surfaceChanged && ViewModel.IsSample)
             {
                 ScheduleSampleReveal();
             }

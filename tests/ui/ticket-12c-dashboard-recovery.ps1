@@ -58,8 +58,8 @@ function Send-KeyTo([string]$Selector, [string]$Keys) {
 
 function Open-DashboardLayout {
     Invoke-Element "FooterOptionsButton"
-    Wait-ForElement "OptionsProvidersButton"
-    Invoke-Element "OptionsProvidersButton"
+    Wait-ForElement "OptionsPersonalizationButton"
+    Invoke-Element "OptionsPersonalizationButton"
     Wait-ForElement "DashboardLayoutExpander"
     winapp ui scroll-into-view "DashboardLayoutExpander" -a $AppPid 2>$null | Out-Null
     Invoke-Element "DashboardLayoutExpander"

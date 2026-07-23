@@ -164,6 +164,7 @@ Test-Ui "Native context menu exposes all commands" {
 
 Test-Ui "Options state opens and toggle is real" {
     Start-Sleep -Milliseconds 100
+    Invoke-Element "OptionsGeneralButton"
     & winapp ui invoke "CloseWhenInactiveToggle" -a $AppPid 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Close-when-inactive could not be toggled."
@@ -178,6 +179,7 @@ Test-Ui "Options state opens and toggle is real" {
 }
 
 Test-Ui "Empty state renders and opens from options" {
+    Invoke-Element "OptionsBackButton"
     Invoke-Element "OptionsBackButton"
     Wait-ForElement "EmptyOpenOptionsButton"
     & winapp ui screenshot -a $AppPid -o (Join-Path $ArtifactDirectory "01-empty.png") 2>$null | Out-Null
