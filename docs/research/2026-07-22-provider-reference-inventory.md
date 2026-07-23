@@ -1,6 +1,6 @@
 # Inventario de cobertura de proveedores de referencia
 
-Fecha de corte: 2026-07-22
+Fecha de corte: 2026-07-23
 
 Decisión: ampliar el alcance con Kilo Code y Zed; conservar Kimi Code y Cursor
 en sus gates existentes; abrir una siguiente ola de investigación, sin crear
@@ -35,10 +35,21 @@ primarias separadas.
 
 ## Hallazgos de las referencias
 
-OpenUsage enumera Claude, Codex, Copilot, Cursor, Devin, Grok y OpenCode, con
-otros proveedores documentados por separado. CodeBurn enumera Kilo Code, Kimi
-Code CLI y Zed junto con Gemini CLI, Kiro, Roo Code y Goose. AgentsView también
-registra Kilo, Kimi, Zed, Gemini, Kiro y Roo Code.
+OpenUsage documenta Antigravity, Claude, Codex, Copilot, Cursor, Devin, Grok,
+OpenCode, OpenRouter y Z.ai. Todos ya están en la matriz. CodeBurn añade una
+lista más amplia de fuentes de gasto local. Entre ellas están Gemini CLI,
+Kiro, Roo Code, Goose, Kimi CLI y Cursor Agent. También incluye Kilo Code,
+Kimi Code, Zed y los proveedores que TokenUsage ya tenía.
+
+AgentsView confirma la presencia de Gemini, Kiro, Roo Code, Kilo, Kimi y Zed.
+La coincidencia entre referencias sube la prioridad de los tres primeros, pero
+no valida sus rutas ni su política.
+
+La comparación de los índices completos encontró seis coincidencias que no
+estaban en el alcance: Forge, Hermes Agent, OpenClaw, Pi, Qwen y Warp. AgentsView
+también tiene muchos parsers que CodeBurn no enumera. Estos quedan fuera por
+ahora porque una sola implementación de referencia aporta poca señal de demanda
+y ninguna prueba de uso permitido.
 
 CodeBurn y AgentsView obtienen gasto desde datos locales de sesión. Ese enfoque
 puede contener prompts, respuestas, comandos, rutas y credenciales. TokenUsage
@@ -46,15 +57,24 @@ no adopta esas rutas solo por aparecer en una referencia.
 
 ## Prioridad siguiente
 
-La siguiente ola de gates queda en Ticket 60:
+Ticket 60 se divide en gates pequeños:
 
-1. Gemini CLI, por presencia en ambas referencias y uso Windows conocido.
-2. Kiro, por presencia en ambas referencias y una familia de CLI/IDE distinta.
-3. Roo Code, por frecuencia de la familia Cline y necesidad de separar su
+1. Gemini CLI, Ticket 61, por presencia en ambas referencias y uso Windows conocido.
+2. Kiro, Ticket 62, por presencia en ambas referencias y una familia de CLI/IDE distinta.
+3. Roo Code, Ticket 63, por frecuencia de la familia Cline y necesidad de separar su
    almacenamiento de tareas del uso agregado.
-4. Goose, por presencia en CodeBurn y posible ruta local multiplataforma.
+4. Goose, Ticket 64, por presencia en CodeBurn y posible ruta local multiplataforma.
+5. Kimi CLI, Ticket 65, porque CodeBurn lo trata como fuente distinta de Kimi Code.
+6. Cursor Agent, Ticket 66, porque CodeBurn lo separa del editor Cursor.
+7. Forge, Ticket 67, presente en ambas referencias.
+8. Hermes Agent, Ticket 68, presente en ambas referencias.
+9. OpenClaw, Ticket 69, presente en ambas referencias.
+10. Pi, Ticket 70, presente en ambas referencias y relacionado con OMP.
+11. Qwen, Ticket 71, presente en ambas referencias y distinto del proveedor de modelos.
+12. Warp, Ticket 72, presente en ambas referencias y con datos de terminal sensibles.
 
-Aider, Amp, Cursor Agent, Windsurf, Crush, Forge, OpenClaw, Pi y otros agentes
+Aider, Amp, Windsurf, Crush, CodeWhale, Droid, IBM Bob, LingTai TUI, Mistral
+Vibe, OMP, Quick Desktop, Zerostack y otros agentes
 de referencia quedan como candidatos posteriores. Antes de sumarlos a M9 se
 debe evaluar demanda, soporte Windows y una fuente que no cruce el límite de
 privacidad.
@@ -63,6 +83,10 @@ privacidad.
 
 - Kilo Code y Zed quedan representados en la matriz y M9 con estado de gate.
 - Kimi Code y Cursor quedan cubiertos por sus tickets actuales.
+- Kimi CLI y Cursor Agent se investigan por separado; no heredan los contratos
+  de Kimi Code ni Cursor Admin API.
+- Forge, Hermes Agent, OpenClaw, Pi, Qwen y Warp reciben gates propios por su
+  presencia en ambas referencias.
 - Ningún candidato de la siguiente ola recibe descriptor, logo, scanner,
   credencial o tarjeta antes de su gate de fuente.
 - La investigación futura debe mantener separado el uso del agente, la cuota

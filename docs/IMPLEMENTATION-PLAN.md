@@ -578,6 +578,18 @@ Orden y alcance:
     y sesiones locales.
 13. Zed, bloqueado por Ticket 58: los hilos locales mezclan transcripción y
     contadores; solo se reabre con una fuente agregada oficial para terceros.
+14. Gemini CLI, gate de fuente en Ticket 61.
+15. Kiro, gate separado para CLI, IDE y cuenta en Ticket 62.
+16. Roo Code, gate de privacidad y deduplicación en Ticket 63.
+17. Goose, gate Windows y de fuente agregada en Ticket 64.
+18. Kimi CLI, identidad separada de Kimi Code en Ticket 65.
+19. Cursor Agent, identidad separada de Cursor Admin API en Ticket 66.
+20. Forge, gate Windows y de almacenamiento en Ticket 67.
+21. Hermes Agent, gate de identidad y atribución en Ticket 68.
+22. OpenClaw, gate de fuente agregada en Ticket 69.
+23. Pi, gate de identidad y deduplicación con OMP en Ticket 70.
+24. Qwen Code, gate separado del proveedor de modelos Qwen en Ticket 71.
+25. Warp, gate que excluye historial y comandos de terminal en Ticket 72.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
@@ -596,6 +608,15 @@ Gate Cline: [investigación de fuente Cline](research/2026-07-22-cline-source-ga
 Gates nuevos: [Kilo Code](research/2026-07-22-kilo-code-source-gate.md),
 [Zed](research/2026-07-22-zed-source-gate.md) e [inventario de cobertura]
 (research/2026-07-22-provider-reference-inventory.md).
+
+El inventario local también abrió los Tickets 61–66. Gemini CLI, Kiro, Roo
+Code y Goose forman la siguiente ola. Kimi CLI y Cursor Agent quedan como
+identidades propias para evitar que sus datos se mezclen con Kimi Code o
+Cursor Admin API.
+
+Una segunda comparación abrió los Tickets 67–72 para Forge, Hermes Agent,
+OpenClaw, Pi, Qwen y Warp. Los seis aparecen en CodeBurn y AgentsView. Su
+presencia repetida solo define el orden de investigación.
 
 Cada proveedor se divide en commits:
 
