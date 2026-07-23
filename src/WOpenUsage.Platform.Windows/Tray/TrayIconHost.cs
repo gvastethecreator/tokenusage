@@ -15,6 +15,8 @@ public sealed class TrayIconHost : IDisposable
 
     private readonly nint _windowHandle;
     private readonly uint _windowThreadId;
+    private readonly uint _taskbarCreatedMessage;
+    private readonly string _tooltip;
     private readonly TrayMenuLabels _menuLabels;
     private readonly NativeMethods.SubclassProcedure _subclassProcedure;
     private nint _iconHandle;
@@ -65,8 +67,15 @@ public sealed class TrayIconHost : IDisposable
 
         _windowHandle = windowHandle;
         _windowThreadId = windowThreadId;
+        _tooltip = tooltip;
         _menuLabels = menuLabels;
         _subclassProcedure = WindowSubclassProcedure;
+
+        _taskbarCreatedMessage = NativeMethods.RegisterWindowMessage("TaskbarCreated");
+        if (_taskbarCreatedMessage == 0)
+        {
+            throw CreateWin32Exception("The Explorer restart message could not be registered.");
+        }
 
         try
         {
@@ -156,9 +165,15 @@ public sealed class TrayIconHost : IDisposable
 
         _subclassInstalled = true;
 
+        AddIcon(tooltip);
+    }
+
+    private void AddIcon(string tooltip)
+    {
         var data = CreateNotifyIconData(tooltip);
         if (!NativeMethods.Shell_NotifyIcon(NativeMethods.NimAdd, ref data))
         {
+            _iconAdded = false;
             throw CreateWin32Exception("The tray icon could not be added.");
         }
 
@@ -208,6 +223,15 @@ public sealed class TrayIconHost : IDisposable
                 HandleTrayMessage(wParam, lParam);
                 return 0;
             }
+
+            if (TrayIconRecoveryPolicy.ShouldRecover(
+                    message,
+                    _taskbarCreatedMessage,
+                    _disposed))
+            {
+                RecoverIcon();
+                return 0;
+            }
         }
         catch (Exception)
         {
@@ -215,6 +239,15 @@ public sealed class TrayIconHost : IDisposable
         }
 
         return NativeMethods.DefSubclassProc(window, message, wParam, lParam);
+    }
+
+    private void RecoverIcon()
+    {
+        // Explorer discarded its notification area state before broadcasting
+        // TaskbarCreated. Keep the loaded icon and subclass, then rebuild only
+        // the missing notification entry.
+        _iconAdded = false;
+        AddIcon(_tooltip);
     }
 
     private void HandleTrayMessage(nuint wParam, nint lParam)
