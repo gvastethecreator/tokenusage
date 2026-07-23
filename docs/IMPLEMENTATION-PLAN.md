@@ -569,16 +569,21 @@ Orden y alcance:
 10. Command Code, bloqueado por Ticket 52 hasta publicar una API o exportación
     de solo lectura, documentada para terceros, sin sesiones ni credenciales y
     autorizada para consultas automáticas.
-11. Cline, mediante datos locales o API pública con consentimiento explícito.
+11. Cline, solo mediante API pública de lectura y una API key propia aportada
+    de forma explícita, después de fijar schema y permiso; quedan excluidos
+    datos locales de tareas.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
 
 ZCode, Kimi Code y Command Code cerraron su investigación con estado bloqueado
-en los Tickets 48, 50 y 52. Cline entra primero como investigación. Cada
-proveedor debe confirmar el nombre canónico, editor o CLI objetivo, rutas
-Windows, contrato de cuota/uso/gasto, licencia y política antes de escribir un
-adapter.
+en los Tickets 48, 50 y 52. Cline cerró Ticket 54; el provider sigue bloqueado:
+la API Enterprise candidata carece de schema publicado y permiso de monitor
+probado. Ticket 55 queda en `needs-info`. Cada proveedor debe confirmar el
+nombre canónico, editor o CLI objetivo, rutas Windows, contrato de cuota, uso
+y gasto, licencia y política antes de escribir un adapter.
+
+Gate Cline: [investigación de fuente Cline](research/2026-07-22-cline-source-gate.md).
 
 Cada proveedor se divide en commits:
 

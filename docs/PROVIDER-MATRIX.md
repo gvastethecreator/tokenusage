@@ -1,6 +1,6 @@
 # Matriz de proveedores
 
-Fecha de corte: 2026-07-21
+Fecha de corte: 2026-07-22
 
 Upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 
@@ -30,7 +30,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | ZCode | Bloqueada sin API pública | Bloqueados sin esquema local seguro | Sin fuente apta | Bloqueado | M9; Ticket 48 cerrado, Ticket 49 `needs-info` |
 | Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
 | Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
-| Cline | Pendiente de investigación | Pendiente de investigación | Sin elegir | Gate | M9; Tickets 54–55 |
+| Cline | API manual pendiente de contrato | Bloqueados por contenido de tareas | API Enterprise candidata | Bloqueado | M9; Ticket 54 cerrado, Ticket 55 `needs-info` |
 | Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
 | Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
 
@@ -298,6 +298,35 @@ solo lectura, documentada para terceros, sin sesiones ni credenciales y
 autorizada para consultas automáticas.
 
 Gate completo: [investigación de fuente Command Code](research/2026-07-22-command-code-source-gate.md).
+
+## Cline
+
+### Fuente evaluada
+
+Cline publica una API Enterprise con endpoints GET para perfil, balance, uso,
+métricas y uso de organización. Una API key creada por la persona propietaria
+sería una posible fuente manual. La app no toma tokens de sesión ni busca keys
+en otra aplicación.
+
+La documentación actual no publica schemas, unidades, filtros, paginación,
+errores ni un permiso de solo lectura para balance y uso. La key sirve también
+para la API de inferencia y la API Enterprise enumera operaciones mutables. El
+OpenAPI anunciado devolvió HTTP 404 en el gate. Por tanto no existe aún un
+contrato seguro para implementar el cliente.
+
+Las tareas locales de Cline contienen conversaciones completas, cambios,
+archivos, comandos, entradas y salidas de herramientas. El coste local es una
+estimación que puede diferir de la factura de BYOK. No se leen tareas,
+historial, sesiones, logs, `providers.json`, tokens ni exports.
+
+### Salida
+
+Sin adapter por ahora. La futura ruta manual requiere esquema o fixture
+saneado, permiso explícito para la key, smoke Windows con GET y revocación, y
+estados de error antes de activar la build pública. ClinePass y BYOK conservan
+sus fuentes y reglas de facturación independientes.
+
+Gate completo: [investigación de fuente Cline](research/2026-07-22-cline-source-gate.md).
 
 ## Cursor
 

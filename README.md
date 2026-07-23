@@ -93,6 +93,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Gate de fuente ZCode](docs/research/2026-07-22-zcode-source-gate.md)
 - [Gate de fuente Kimi Code](docs/research/2026-07-22-kimi-code-source-gate.md)
 - [Gate de fuente Command Code](docs/research/2026-07-22-command-code-source-gate.md)
+- [Gate de fuente Cline](docs/research/2026-07-22-cline-source-gate.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)
 - [Gate de fuente Devin](docs/research/2026-07-21-devin-source-gate.md)
