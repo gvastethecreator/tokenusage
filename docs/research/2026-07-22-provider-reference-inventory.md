@@ -107,9 +107,22 @@ Claude, Copilot, Kiro y Antigravity se resuelven dentro de sus familias antes
 de abrir IDs propios.
 
 CodeBurn conserva como candidatos posteriores Crush, Droid, IBM Bob, LingTai
-TUI, Mux, Open Design, Quick Desktop y Zerostack. OMP queda bajo el gate de Pi.
-DeepSeek TUI y CodeWhale comparten rutas candidatas y reciben un único gate de
-identidad antes de decidir si necesitan uno o dos providers.
+TUI, Mux, Open Design, Quick Desktop y Zerostack. Reciben los Tickets 86-93.
+OMP queda bajo el gate de Pi. DeepSeek TUI y CodeWhale comparten rutas
+candidatas y reciben un único gate de identidad antes de decidir si necesitan
+uno o dos providers.
+
+La revisión completa de `internal/parser/types.go` y la tabla de descubrimiento
+de AgentsView encontró además Zencoder, Qoder, Cortex Code, gptme, iFlow,
+IcodeMate, MiMoCode, Posit Assistant, Positron Assistant, QClaw, QwenPaw,
+Reasonix, Shelley, WorkBuddy, OpenClaude y Claude Cowork. Los Tickets 94-109
+fijan gates pequeños. VS Code Copilot y Visual Studio Copilot quedan en la
+familia GitHub Copilot; Kiro IDE queda bajo Kiro; Antigravity IDE y CLI siguen
+bajo su familia; `vibe` corresponde a Mistral Vibe.
+
+AgentsView también contiene `ChatGPT` y `Claude.ai` como fuentes de importación.
+No representan un agente local ni una cuota medible, por lo que no reciben
+provider ID ni ticket de integración.
 
 ## Decisión de producto
 
@@ -124,7 +137,12 @@ identidad antes de decidir si necesitan uno o dos providers.
   Mistral Vibe recibe otro por su presencia en ambas referencias.
 - DeepSeek/CodeWhale, Windsurf, Trae, Aider, OpenHands, Amp, Codebuff y Piebald
   reciben gates de investigación en los Tickets 77–84. Una sola referencia
-  fija el orden de estudio, no autoriza soporte.
+fija el orden de estudio, no autoriza soporte.
+- ZooCode entra en Ticket 63 como sucesor candidato de Roo Code. La referencia
+  registra el cierre de Roo Code y un fork activo, pero no autoriza crear un ID
+  nuevo ni heredar rutas.
+- Los candidatos restantes reciben los Tickets 86-109. El Ticket 85 valida
+  primero identidad, familia y prioridad para evitar IDs duplicados.
 - Ningún candidato de la siguiente ola recibe descriptor, logo, scanner,
   credencial o tarjeta antes de su gate de fuente.
 - La investigación futura debe mantener separado el uso del agente, la cuota
