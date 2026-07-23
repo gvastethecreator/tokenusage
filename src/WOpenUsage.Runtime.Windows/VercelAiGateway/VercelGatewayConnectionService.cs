@@ -1,5 +1,6 @@
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
+using WOpenUsage.Providers.VercelAiGateway;
 
 namespace WOpenUsage.Runtime.Windows.VercelAiGateway;
 
@@ -120,11 +121,24 @@ public sealed class VercelGatewayConnectionService
             .ConfigureAwait(false);
     }
 
-    public async Task<VercelGatewayConnectResult> ConnectAsync(
+    public Task<VercelGatewayConnectResult> ConnectAsync(
         string apiKey,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        ConnectCoreAsync(apiKey, keyId: null, cancellationToken);
+
+    public Task<VercelGatewayConnectResult> ConnectAsync(
+        string apiKey,
+        string keyId,
+        CancellationToken cancellationToken = default) =>
+        ConnectCoreAsync(apiKey, keyId, cancellationToken);
+
+    private async Task<VercelGatewayConnectResult> ConnectCoreAsync(
+        string apiKey,
+        string? keyId,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+        _ = new VercelGatewayConnection(apiKey, keyId);
         await using IAsyncDisposable lease = await _operationGate
             .EnterAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -135,9 +149,18 @@ public sealed class VercelGatewayConnectionService
             return cleanup.ToConnectResult(credentialSaved: false);
         }
 
-        await _credentialStore
-            .SaveAsync(apiKey, CancellationToken.None)
-            .ConfigureAwait(false);
+        if (keyId is null)
+        {
+            await _credentialStore
+                .SaveAsync(apiKey, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            await _credentialStore
+                .SaveAsync(apiKey, keyId, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
         return cleanup.ToConnectResult(credentialSaved: true);
     }
 

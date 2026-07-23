@@ -8,8 +8,6 @@ namespace WOpenUsage.Providers.VercelAiGateway;
 public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
 {
     private const int MaximumResponseBytes = 64 * 1024;
-    private const string EntityPrefix = "api_key_id_";
-
     private static readonly Uri QuotaEndpoint =
         new("https://ai-gateway.vercel.sh/v1/quotas", UriKind.Absolute);
 
@@ -31,10 +29,10 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
-        ValidateKeyId(keyId);
+        VercelGatewayKeyIdValidation.Validate(keyId, nameof(keyId));
         cancellationToken.ThrowIfCancellationRequested();
 
-        string entityId = EntityPrefix + keyId;
+        string entityId = VercelGatewayKeyIdValidation.EntityPrefix + keyId;
         using var request = new HttpRequestMessage(HttpMethod.Get, BuildRequestUri(entityId));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
@@ -90,23 +88,6 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
                 "Vercel AI Gateway timed out while reading the API key budget.");
         }
     }
-
-    private static void ValidateKeyId(string keyId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(keyId);
-        if (keyId.Length > 256
-            || keyId.StartsWith(EntityPrefix, StringComparison.Ordinal)
-            || keyId.Any(character =>
-                !IsAsciiLetterOrDigit(character) && character is not '_' and not '-'))
-        {
-            throw new ArgumentException("The Vercel API key ID has an unsupported format.", nameof(keyId));
-        }
-    }
-
-    private static bool IsAsciiLetterOrDigit(char value) =>
-        value is >= 'a' and <= 'z'
-        || value is >= 'A' and <= 'Z'
-        || value is >= '0' and <= '9';
 
     private static Uri BuildRequestUri(string entityId)
     {
