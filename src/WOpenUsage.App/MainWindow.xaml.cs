@@ -18,6 +18,9 @@ public sealed partial class MainWindow : Window, IDisposable
 {
     private readonly ResourceLoader _resources = new();
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _activationGuardTimer;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _systemVisualSettingsTimer;
+    private readonly AccessibilitySettings _accessibilitySettings = new();
+    private readonly UISettings _uiSettings = new();
     private readonly nint _windowHandle;
     private readonly double _preferredWidthDips;
     private TrayIconHost? _trayIcon;
@@ -25,6 +28,9 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
     private bool _disposed;
+    private bool _lastHighContrast;
+    private Windows.UI.Color _lastSystemBackground;
+    private Windows.UI.Color _lastSystemForeground;
 
     public MainWindow(
         bool showForTest = false,
@@ -39,6 +45,12 @@ public sealed partial class MainWindow : Window, IDisposable
         _activationGuardTimer.Interval = TimeSpan.FromMilliseconds(500);
         _activationGuardTimer.IsRepeating = false;
         _activationGuardTimer.Tick += OnActivationGuardElapsed;
+
+        _systemVisualSettingsTimer = DispatcherQueue.CreateTimer();
+        _systemVisualSettingsTimer.Interval = TimeSpan.FromSeconds(1);
+        _systemVisualSettingsTimer.IsRepeating = true;
+        _systemVisualSettingsTimer.Tick += OnSystemVisualSettingsTimerElapsed;
+        CaptureSystemVisualSettings();
 
         _windowHandle = WindowNative.GetWindowHandle(this);
         ConfigureFlyoutWindow();
@@ -67,11 +79,13 @@ public sealed partial class MainWindow : Window, IDisposable
             throw new InvalidOperationException("The default window presenter is unavailable.");
         }
 
-        presenter.SetBorderAndTitleBar(false, false);
         presenter.IsResizable = false;
         presenter.IsMaximizable = false;
         presenter.IsMinimizable = false;
         presenter.IsAlwaysOnTop = false;
+        presenter.SetBorderAndTitleBar(false, false);
+
+        ApplyBorderlessChrome();
 
         AppWindow.IsShownInSwitchers = false;
         AppWindow.Title = GetString("AppTitle");
@@ -148,6 +162,8 @@ public sealed partial class MainWindow : Window, IDisposable
         PositionFlyout();
         _isFlyoutVisible = true;
         AppWindow.Show();
+        ApplyBorderlessChrome();
+        _systemVisualSettingsTimer.Start();
         Activate();
 
         _ = DispatcherQueue.TryEnqueue(() =>
@@ -267,6 +283,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (appearanceChanged)
         {
             ApplyAppearance();
+            ApplyBorderlessChrome();
             if (_isFlyoutVisible)
             {
                 SchedulePositionAfterLayout();
@@ -290,11 +307,9 @@ public sealed partial class MainWindow : Window, IDisposable
     private void ApplyAppearance()
     {
         AppearanceSettings settings = RootPage.ViewModel.Appearance;
-        var accessibility = new AccessibilitySettings();
-        var uiSettings = new UISettings();
         bool transparencyActive = settings.IncreaseTransparency
-            && !accessibility.HighContrast
-            && uiSettings.AdvancedEffectsEnabled;
+            && !_accessibilitySettings.HighContrast
+            && _uiSettings.AdvancedEffectsEnabled;
 
         if (transparencyActive != _isTransparencyActive)
         {
@@ -354,6 +369,8 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
     {
+        ApplyBorderlessChrome();
+
         if (_suppressDeactivateHide || !_isFlyoutVisible)
         {
             return;
@@ -366,6 +383,61 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
+    private void ApplyBorderlessChrome()
+    {
+        _ = _accessibilitySettings.HighContrast
+            ? WindowBorderStyle.TryRestoreAccessibleFrame(_windowHandle)
+            : WindowBorderStyle.TryRemoveNonClientFrame(_windowHandle);
+        MatchSystemBorderToSurface();
+    }
+
+    private void MatchSystemBorderToSurface()
+    {
+        AppThemeMode theme = RootPage.ViewModel.Appearance.Theme;
+        Windows.UI.Color color = _accessibilitySettings.HighContrast
+            ? _uiSettings.GetColorValue(UIColorType.Foreground)
+            : theme switch
+            {
+                AppThemeMode.Dark => Windows.UI.Color.FromArgb(255, 39, 39, 39),
+                AppThemeMode.Light => Windows.UI.Color.FromArgb(255, 249, 249, 249),
+                _ => _uiSettings.GetColorValue(UIColorType.Background),
+            };
+
+        _ = WindowBorderStyle.TryMatchSystemBorder(
+            _windowHandle,
+            color.R,
+            color.G,
+            color.B);
+    }
+
+    private void OnSystemVisualSettingsTimerElapsed(
+        Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
+        object args)
+    {
+        bool highContrast = _accessibilitySettings.HighContrast;
+        Windows.UI.Color background = _uiSettings.GetColorValue(UIColorType.Background);
+        Windows.UI.Color foreground = _uiSettings.GetColorValue(UIColorType.Foreground);
+        if (highContrast == _lastHighContrast
+            && background == _lastSystemBackground
+            && foreground == _lastSystemForeground)
+        {
+            return;
+        }
+
+        _lastHighContrast = highContrast;
+        _lastSystemBackground = background;
+        _lastSystemForeground = foreground;
+        ApplyAppearance();
+        ApplyBorderlessChrome();
+    }
+
+    private void CaptureSystemVisualSettings()
+    {
+        _lastHighContrast = _accessibilitySettings.HighContrast;
+        _lastSystemBackground = _uiSettings.GetColorValue(UIColorType.Background);
+        _lastSystemForeground = _uiSettings.GetColorValue(UIColorType.Foreground);
+    }
+
     private void HideFlyout()
     {
         if (!_isFlyoutVisible)
@@ -376,6 +448,7 @@ public sealed partial class MainWindow : Window, IDisposable
         AppWindow.Hide();
         _isFlyoutVisible = false;
         _activationGuardTimer.Stop();
+        _systemVisualSettingsTimer.Stop();
         _suppressDeactivateHide = false;
     }
 
@@ -390,6 +463,7 @@ public sealed partial class MainWindow : Window, IDisposable
         Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
         object args)
     {
+        MatchSystemBorderToSurface();
         _suppressDeactivateHide = false;
         if (_isFlyoutVisible
             && RootPage.ViewModel.CloseWhenInactive
@@ -409,6 +483,8 @@ public sealed partial class MainWindow : Window, IDisposable
         _disposed = true;
         _activationGuardTimer.Stop();
         _activationGuardTimer.Tick -= OnActivationGuardElapsed;
+        _systemVisualSettingsTimer.Stop();
+        _systemVisualSettingsTimer.Tick -= OnSystemVisualSettingsTimerElapsed;
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
         DisposeTrayIcon();
