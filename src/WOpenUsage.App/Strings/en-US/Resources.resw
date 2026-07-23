@@ -255,7 +255,7 @@
   <data name="SampleTokenMillionsFormat" xml:space="preserve"><value>{0:0.##}M tokens</value></data>
   <data name="SampleTokenExactFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
   <data name="VercelExperimental" xml:space="preserve"><value>Experimental</value></data>
-  <data name="VercelCapabilityReport" xml:space="preserve"><value>Account-wide spend and tokens · Last 30 days</value></data>
+  <data name="VercelCapabilityReport" xml:space="preserve"><value>Account-wide report · Optional per-key budget</value></data>
   <data name="VercelReportLagNotice" xml:space="preserve"><value>Vercel reports can lag by several minutes.</value></data>
   <data name="VercelPartialReportNotice" xml:space="preserve"><value>Some report fields are missing. Vercel reports can lag by several minutes.</value></data>
   <data name="VercelSourceValue" xml:space="preserve"><value>Official Vercel AI Gateway report · Manual key · Account-wide</value></data>
@@ -273,12 +273,17 @@
   <data name="LiveDashboardPeriod" xml:space="preserve"><value>Live provider data</value></data>
   <data name="VercelSectionTitle.Text" xml:space="preserve"><value>Vercel AI Gateway</value></data>
   <data name="VercelExperimentalBadge.Text" xml:space="preserve"><value>Experimental</value></data>
-  <data name="VercelSectionDescription.Text" xml:space="preserve"><value>Official beta report for account-wide spend and tokens. TokenUsage reuses reports for 10 minutes.</value></data>
+  <data name="VercelSectionDescription.Text" xml:space="preserve"><value>Official beta report for account-wide spend and tokens, plus an optional per-key budget. TokenUsage reuses data for 10 minutes.</value></data>
   <data name="VercelRiskInfo.Title" xml:space="preserve"><value>High-privilege key</value></data>
   <data name="VercelRiskInfo.Message" xml:space="preserve"><value>This key can run models and the report covers its whole account. Each report call costs about $0.005. Create a dedicated key with a $1 budget and expiry. TokenUsage stores it in Windows Credential Locker.</value></data>
   <data name="VercelApiKeyBox.Header" xml:space="preserve"><value>AI Gateway API key</value></data>
   <data name="VercelApiKeyBox.PlaceholderText" xml:space="preserve"><value>Paste a dedicated key</value></data>
   <data name="VercelApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key</value></data>
+  <data name="VercelKeyIdBox.Header" xml:space="preserve"><value>API key ID (optional)</value></data>
+  <data name="VercelKeyIdBox.PlaceholderText" xml:space="preserve"><value>Example: key_abc123</value></data>
+  <data name="VercelKeyIdBox.Description" xml:space="preserve"><value>Add the raw ID to check this key's budget. Do not include api_key_id_.</value></data>
+  <data name="VercelKeyIdBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key ID</value></data>
+  <data name="VercelKeyIdError.Text" xml:space="preserve"><value>Use the raw key ID with letters, digits, underscores, or hyphens.</value></data>
   <data name="VercelConsentCheckBox.Content" xml:space="preserve"><value>I understand this key can run models and exposes account-wide report data.</value></data>
   <data name="VercelConsentCheckBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Accept Vercel AI Gateway key risk</value></data>
   <data name="VercelConnectButton.Content" xml:space="preserve"><value>Connect and load report</value></data>
@@ -291,7 +296,7 @@
   <data name="VercelStatusRefreshing" xml:space="preserve"><value>Loading the Vercel AI Gateway report.</value></data>
   <data name="VercelStatusCachedRefreshing" xml:space="preserve"><value>Showing the saved report while checking for an update.</value></data>
   <data name="VercelStatusConnected" xml:space="preserve"><value>Connected. The account-wide report is up to date.</value></data>
-  <data name="VercelStatusPartial" xml:space="preserve"><value>Connected. Some report fields are unavailable.</value></data>
+  <data name="VercelStatusPartial" xml:space="preserve"><value>Connected. Some Vercel data is unavailable.</value></data>
   <data name="VercelStatusThrottled" xml:space="preserve"><value>Vercel asked TokenUsage to retry later. Saved data remains visible.</value></data>
   <data name="VercelStatusAuthenticationRejected" xml:space="preserve"><value>Vercel rejected the stored key. Disconnect it, then connect a new key.</value></data>
   <data name="VercelStatusUnsupportedAccount" xml:space="preserve"><value>This report requires a supported Vercel plan.</value></data>
@@ -305,4 +310,17 @@
   <data name="VercelStatusCacheWriteFailed" xml:space="preserve"><value>The report loaded, but TokenUsage could not save it locally.</value></data>
   <data name="VercelStatusLocalFailure" xml:space="preserve"><value>Windows could not complete the credential or cache operation.</value></data>
   <data name="VercelStatusRecoveryConnect" xml:space="preserve"><value>Connect a dedicated key in this section.</value></data>
+  <data name="VercelMetricKeyBudget" xml:space="preserve"><value>Key budget</value></data>
+  <data name="VercelQuotaTitle" xml:space="preserve"><value>API key budget</value></data>
+  <data name="VercelQuotaRemainingFormat" xml:space="preserve"><value>${0:N2} left of ${1:N2}</value></data>
+  <data name="VercelQuotaAutomationFormat" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
+  <data name="VercelQuotaResetDaily" xml:space="preserve"><value>Resets daily (UTC)</value></data>
+  <data name="VercelQuotaResetWeekly" xml:space="preserve"><value>Resets weekly (UTC)</value></data>
+  <data name="VercelQuotaResetMonthly" xml:space="preserve"><value>Resets monthly (UTC)</value></data>
+  <data name="VercelQuotaResetNever" xml:space="preserve"><value>No reset</value></data>
+  <data name="VercelQuotaStatusKeyIdMissing" xml:space="preserve"><value>Add a key ID to check</value></data>
+  <data name="VercelQuotaStatusNoBudget" xml:space="preserve"><value>No budget set</value></data>
+  <data name="VercelQuotaStatusDegraded" xml:space="preserve"><value>Budget unavailable</value></data>
+  <data name="VercelQuotaStatusInactive" xml:space="preserve"><value>Budget inactive</value></data>
+  <data name="VercelQuotaDegradedNotice" xml:space="preserve"><value>The account report is current. The key budget could not be checked.</value></data>
 </root>

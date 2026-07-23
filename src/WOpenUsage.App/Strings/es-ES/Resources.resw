@@ -255,7 +255,7 @@
   <data name="SampleTokenMillionsFormat" xml:space="preserve"><value>{0:0.##} M tokens</value></data>
   <data name="SampleTokenExactFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
   <data name="VercelExperimental" xml:space="preserve"><value>Experimental</value></data>
-  <data name="VercelCapabilityReport" xml:space="preserve"><value>Gasto y tokens de toda la cuenta · Últimos 30 días</value></data>
+  <data name="VercelCapabilityReport" xml:space="preserve"><value>Reporte de cuenta · Presupuesto opcional por clave</value></data>
   <data name="VercelReportLagNotice" xml:space="preserve"><value>Los reportes de Vercel pueden tardar varios minutos en reflejar la actividad.</value></data>
   <data name="VercelPartialReportNotice" xml:space="preserve"><value>Faltan algunos campos del reporte. Vercel puede tardar varios minutos en reflejar la actividad.</value></data>
   <data name="VercelSourceValue" xml:space="preserve"><value>Reporte oficial de Vercel AI Gateway · Clave manual · Toda la cuenta</value></data>
@@ -273,12 +273,17 @@
   <data name="LiveDashboardPeriod" xml:space="preserve"><value>Datos reales de proveedores</value></data>
   <data name="VercelSectionTitle.Text" xml:space="preserve"><value>Vercel AI Gateway</value></data>
   <data name="VercelExperimentalBadge.Text" xml:space="preserve"><value>Experimental</value></data>
-  <data name="VercelSectionDescription.Text" xml:space="preserve"><value>Reporte beta oficial de gasto y tokens de toda la cuenta. TokenUsage reutiliza los reportes durante 10 minutos.</value></data>
+  <data name="VercelSectionDescription.Text" xml:space="preserve"><value>Reporte beta oficial de gasto y tokens de toda la cuenta, más un presupuesto opcional por clave. TokenUsage reutiliza los datos durante 10 minutos.</value></data>
   <data name="VercelRiskInfo.Title" xml:space="preserve"><value>Clave con permisos altos</value></data>
   <data name="VercelRiskInfo.Message" xml:space="preserve"><value>Esta clave puede ejecutar modelos y el reporte cubre toda su cuenta. Cada consulta cuesta cerca de 0,005 US$. Crea una clave exclusiva con presupuesto de 1 US$ y vencimiento. TokenUsage la guarda en el Administrador de credenciales de Windows.</value></data>
   <data name="VercelApiKeyBox.Header" xml:space="preserve"><value>Clave API de AI Gateway</value></data>
   <data name="VercelApiKeyBox.PlaceholderText" xml:space="preserve"><value>Pega una clave exclusiva</value></data>
   <data name="VercelApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Clave API de Vercel AI Gateway</value></data>
+  <data name="VercelKeyIdBox.Header" xml:space="preserve"><value>ID de clave API (opcional)</value></data>
+  <data name="VercelKeyIdBox.PlaceholderText" xml:space="preserve"><value>Ejemplo: key_abc123</value></data>
+  <data name="VercelKeyIdBox.Description" xml:space="preserve"><value>Agrega el ID sin prefijo para consultar el presupuesto de esta clave. No incluyas api_key_id_.</value></data>
+  <data name="VercelKeyIdBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>ID de clave API de Vercel AI Gateway</value></data>
+  <data name="VercelKeyIdError.Text" xml:space="preserve"><value>Usa el ID sin prefijo, con letras, números, guiones bajos o guiones.</value></data>
   <data name="VercelConsentCheckBox.Content" xml:space="preserve"><value>Entiendo que esta clave puede ejecutar modelos y expone datos del reporte de toda la cuenta.</value></data>
   <data name="VercelConsentCheckBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Aceptar el riesgo de la clave de Vercel AI Gateway</value></data>
   <data name="VercelConnectButton.Content" xml:space="preserve"><value>Conectar y cargar reporte</value></data>
@@ -291,7 +296,7 @@
   <data name="VercelStatusRefreshing" xml:space="preserve"><value>Cargando el reporte de Vercel AI Gateway.</value></data>
   <data name="VercelStatusCachedRefreshing" xml:space="preserve"><value>Mostrando el reporte guardado mientras se busca una actualización.</value></data>
   <data name="VercelStatusConnected" xml:space="preserve"><value>Conectado. El reporte de toda la cuenta está actualizado.</value></data>
-  <data name="VercelStatusPartial" xml:space="preserve"><value>Conectado. Algunos campos del reporte no están disponibles.</value></data>
+  <data name="VercelStatusPartial" xml:space="preserve"><value>Conectado. Algunos datos de Vercel no están disponibles.</value></data>
   <data name="VercelStatusThrottled" xml:space="preserve"><value>Vercel pidió reintentar más tarde. Los datos guardados siguen visibles.</value></data>
   <data name="VercelStatusAuthenticationRejected" xml:space="preserve"><value>Vercel rechazó la clave guardada. Desconéctala y conecta una nueva.</value></data>
   <data name="VercelStatusUnsupportedAccount" xml:space="preserve"><value>Este reporte requiere un plan de Vercel compatible.</value></data>
@@ -305,4 +310,17 @@
   <data name="VercelStatusCacheWriteFailed" xml:space="preserve"><value>El reporte se cargó, pero TokenUsage no pudo guardarlo localmente.</value></data>
   <data name="VercelStatusLocalFailure" xml:space="preserve"><value>Windows no pudo completar la operación de credencial o caché.</value></data>
   <data name="VercelStatusRecoveryConnect" xml:space="preserve"><value>Conecta una clave exclusiva en esta sección.</value></data>
+  <data name="VercelMetricKeyBudget" xml:space="preserve"><value>Presupuesto de clave</value></data>
+  <data name="VercelQuotaTitle" xml:space="preserve"><value>Presupuesto de clave API</value></data>
+  <data name="VercelQuotaRemainingFormat" xml:space="preserve"><value>Quedan {0:N2} US$ de {1:N2} US$</value></data>
+  <data name="VercelQuotaAutomationFormat" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
+  <data name="VercelQuotaResetDaily" xml:space="preserve"><value>Reinicio diario (UTC)</value></data>
+  <data name="VercelQuotaResetWeekly" xml:space="preserve"><value>Reinicio semanal (UTC)</value></data>
+  <data name="VercelQuotaResetMonthly" xml:space="preserve"><value>Reinicio mensual (UTC)</value></data>
+  <data name="VercelQuotaResetNever" xml:space="preserve"><value>Sin reinicio</value></data>
+  <data name="VercelQuotaStatusKeyIdMissing" xml:space="preserve"><value>Agrega un ID para consultar</value></data>
+  <data name="VercelQuotaStatusNoBudget" xml:space="preserve"><value>Sin presupuesto configurado</value></data>
+  <data name="VercelQuotaStatusDegraded" xml:space="preserve"><value>Presupuesto no disponible</value></data>
+  <data name="VercelQuotaStatusInactive" xml:space="preserve"><value>Presupuesto inactivo</value></data>
+  <data name="VercelQuotaDegradedNotice" xml:space="preserve"><value>El reporte de la cuenta está actualizado. No se pudo consultar el presupuesto de la clave.</value></data>
 </root>

@@ -309,6 +309,19 @@
                                                 AutomationProperties.AutomationId="VercelApiKeyBox"
                                                 IsEnabled="{x:Bind ViewModel.Vercel.IsInputEnabled, Mode=OneWay}"
                                                 PasswordChanged="OnVercelApiKeyPasswordChanged" />
+                                            <TextBox
+                                                x:Name="VercelKeyIdBox"
+                                                x:Uid="VercelKeyIdBox"
+                                                AutomationProperties.AutomationId="VercelKeyIdBox"
+                                                IsEnabled="{x:Bind ViewModel.Vercel.IsInputEnabled, Mode=OneWay}"
+                                                TextChanged="OnVercelKeyIdTextChanged" />
+                                            <TextBlock
+                                                x:Uid="VercelKeyIdError"
+                                                AutomationProperties.AutomationId="VercelKeyIdError"
+                                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords"
+                                                Visibility="{x:Bind ViewModel.Vercel.IsKeyIdErrorVisible, Mode=OneWay}" />
                                             <CheckBox
                                                 x:Name="VercelConsentCheckBox"
                                                 x:Uid="VercelConsentCheckBox"
