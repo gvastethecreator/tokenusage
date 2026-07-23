@@ -270,6 +270,7 @@ public sealed partial class MainPage : Page
     private sealed class DebugVercelCredentialStore : IVercelGatewayCredentialStore
     {
         private string? _apiKey;
+        private string? _keyId;
 
         public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken = default)
         {
@@ -282,7 +283,7 @@ public sealed partial class MainPage : Page
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(
-                _apiKey is null ? null : new VercelGatewayConnection(_apiKey));
+                _apiKey is null ? null : new VercelGatewayConnection(_apiKey, _keyId));
         }
 
         public Task SaveAsync(string apiKey, CancellationToken cancellationToken = default)
@@ -290,6 +291,19 @@ public sealed partial class MainPage : Page
             ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
             cancellationToken.ThrowIfCancellationRequested();
             _apiKey = apiKey;
+            _keyId = null;
+            return Task.CompletedTask;
+        }
+
+        public Task SaveAsync(
+            string apiKey,
+            string keyId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+            cancellationToken.ThrowIfCancellationRequested();
+            _apiKey = apiKey;
+            _keyId = keyId;
             return Task.CompletedTask;
         }
 
@@ -298,6 +312,7 @@ public sealed partial class MainPage : Page
             cancellationToken.ThrowIfCancellationRequested();
             bool removed = _apiKey is not null;
             _apiKey = null;
+            _keyId = null;
             return Task.FromResult(removed);
         }
     }
