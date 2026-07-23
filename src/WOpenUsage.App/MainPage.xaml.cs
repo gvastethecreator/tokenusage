@@ -232,6 +232,7 @@ public sealed partial class MainPage : Page
                     clock),
                 new DebugVercelCredentialStore(),
                 new DebugVercelReportClient(),
+                new DebugVercelQuotaClient(),
                 clock);
         }
 #endif
@@ -342,6 +343,19 @@ public sealed partial class MainPage : Page
                     ReasoningTokens: 25,
                     RequestCount: 7),
             ]));
+        }
+    }
+
+    private sealed class DebugVercelQuotaClient : IVercelGatewayQuotaClient
+    {
+        public Task<VercelGatewayQuotaLookupResult> GetQuotaAsync(
+            string apiKey,
+            string keyId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<VercelGatewayQuotaLookupResult>(
+                VercelGatewayQuotaLookupResult.NoBudget.Instance);
         }
     }
 #endif
