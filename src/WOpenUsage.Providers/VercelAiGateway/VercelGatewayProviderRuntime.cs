@@ -6,7 +6,9 @@ public sealed class VercelGatewayConnection
 {
     public string ApiKey { get; }
 
-    public VercelGatewayConnection(string apiKey)
+    public string? KeyId { get; }
+
+    public VercelGatewayConnection(string apiKey, string? keyId = null)
     {
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -14,6 +16,12 @@ public sealed class VercelGatewayConnection
         }
 
         ApiKey = apiKey;
+        if (keyId is not null)
+        {
+            VercelGatewayKeyIdValidation.Validate(keyId, nameof(keyId));
+        }
+
+        KeyId = keyId;
     }
 }
 

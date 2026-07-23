@@ -21,6 +21,18 @@ public sealed class VercelGatewayProviderRuntimeTests
     }
 
     [Fact]
+    public void ConnectionPreservesOptionalValidatedKeyId()
+    {
+        var legacy = new VercelGatewayConnection(SecretApiKey);
+        var current = new VercelGatewayConnection(SecretApiKey, "key_abc-123");
+
+        Assert.Null(legacy.KeyId);
+        Assert.Equal("key_abc-123", current.KeyId);
+        Assert.Throws<ArgumentException>(() =>
+            new VercelGatewayConnection(SecretApiKey, "bad/key"));
+    }
+
+    [Fact]
     public async Task DetectAsyncWhenConnectionPresentReturnsAvailable()
     {
         var runtime = CreateRuntime(new FakeConnectionSource(CreateConnection()), new FakeReportClient());

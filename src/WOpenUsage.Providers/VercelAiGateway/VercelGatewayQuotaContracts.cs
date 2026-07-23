@@ -79,3 +79,27 @@ public abstract record VercelGatewayQuotaLookupResult
         public static NoBudget Instance { get; } = new();
     }
 }
+
+internal static class VercelGatewayKeyIdValidation
+{
+    public const string EntityPrefix = "api_key_id_";
+
+    public static void Validate(string keyId, string paramName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyId, paramName);
+        if (keyId.Length > 256
+            || keyId.StartsWith(EntityPrefix, StringComparison.Ordinal)
+            || keyId.Any(character =>
+                !IsAsciiLetterOrDigit(character) && character is not '_' and not '-'))
+        {
+            throw new ArgumentException(
+                "The Vercel API key ID has an unsupported format.",
+                paramName);
+        }
+    }
+
+    private static bool IsAsciiLetterOrDigit(char value) =>
+        value is >= 'a' and <= 'z'
+        || value is >= 'A' and <= 'Z'
+        || value is >= '0' and <= '9';
+}
