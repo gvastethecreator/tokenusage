@@ -8,25 +8,25 @@ public sealed class FlyoutSizePolicyTests
     [Fact]
     public void UsesRoomForDashboardHierarchy()
     {
-        Assert.Equal(400, FlyoutSizePolicy.WidthDips);
+        Assert.Equal(440, FlyoutSizePolicy.WidthDips);
     }
 
     [Fact]
     public void ClampWidthUsesDesiredWidthWhenItFits()
     {
         double width = FlyoutSizePolicy.ClampWidthDips(
-            400,
+            440,
             new PlatformRect(0, 0, 1920, 1080),
             144);
 
-        Assert.Equal(400, width);
+        Assert.Equal(440, width);
     }
 
     [Fact]
     public void ClampWidthFitsNarrowHighDpiWorkArea()
     {
         double width = FlyoutSizePolicy.ClampWidthDips(
-            400,
+            440,
             new PlatformRect(0, 0, 600, 1000),
             192);
 

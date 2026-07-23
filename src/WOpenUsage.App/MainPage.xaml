@@ -19,7 +19,13 @@
             x:Key="DashboardAmountTextBlockStyle"
             BasedOn="{StaticResource BodyStrongTextBlockStyle}"
             TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style
+            x:Key="DashboardHeadingTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style
             x:Key="DashboardCompactStrongTextBlockStyle"
@@ -29,14 +35,74 @@
         </Style>
     </Page.Resources>
 
-    <Border
-        x:Name="FlyoutChrome"
-        Padding="14"
-        Background="{ThemeResource LayerFillColorDefaultBrush}"
-        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-        BorderThickness="1"
-        CornerRadius="{ThemeResource OverlayCornerRadius}">
-        <Grid RowSpacing="10">
+    <Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="AppearanceDensityStates">
+                <VisualState x:Name="RegularDensity">
+                    <VisualState.Setters>
+                        <Setter Target="FlyoutChrome.Padding" Value="16" />
+                        <Setter Target="RootLayout.RowSpacing" Value="12" />
+                        <Setter Target="EmptyStateStack.Spacing" Value="12" />
+                        <Setter Target="UnavailableStateStack.Spacing" Value="12" />
+                        <Setter Target="OptionsStack.Spacing" Value="12" />
+                        <Setter Target="DashboardStack.Spacing" Value="12" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="CompactDensity">
+                    <VisualState.Setters>
+                        <Setter Target="FlyoutChrome.Padding" Value="12" />
+                        <Setter Target="RootLayout.RowSpacing" Value="8" />
+                        <Setter Target="EmptyStateStack.Spacing" Value="8" />
+                        <Setter Target="UnavailableStateStack.Spacing" Value="8" />
+                        <Setter Target="OptionsStack.Spacing" Value="8" />
+                        <Setter Target="DashboardStack.Spacing" Value="8" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+            <VisualStateGroup x:Name="AppearanceLayoutStates">
+                <VisualState x:Name="NarrowAppearanceLayout" />
+                <VisualState x:Name="WideAppearanceLayout">
+                    <VisualState.Setters>
+                        <Setter Target="AppearanceSettingsGrid.ColumnSpacing" Value="12" />
+                        <Setter Target="AppearanceSettingsValueColumn.Width" Value="Auto" />
+                        <Setter Target="AppearanceDensityLabel.(Grid.Row)" Value="1" />
+                        <Setter Target="AppearanceDensitySelector.(Grid.Row)" Value="1" />
+                        <Setter Target="AppearanceDensitySelector.(Grid.Column)" Value="1" />
+                        <Setter Target="AppearanceDensitySelector.MinWidth" Value="144" />
+                        <Setter Target="AppearanceTransparencyLabel.(Grid.Row)" Value="2" />
+                        <Setter Target="AppearanceTransparencyToggle.(Grid.Row)" Value="2" />
+                        <Setter Target="AppearanceTransparencyToggle.(Grid.Column)" Value="1" />
+                        <Setter Target="AppearanceTransparencyToggle.HorizontalAlignment" Value="Right" />
+                        <Setter Target="AppearanceUsageLabel.(Grid.Row)" Value="3" />
+                        <Setter Target="AppearanceUsageSelector.(Grid.Row)" Value="3" />
+                        <Setter Target="AppearanceUsageSelector.(Grid.Column)" Value="1" />
+                        <Setter Target="AppearanceUsageSelector.MinWidth" Value="144" />
+                        <Setter Target="AppearanceResetTimeLabel.(Grid.Row)" Value="4" />
+                        <Setter Target="AppearanceResetTimeSelector.(Grid.Row)" Value="4" />
+                        <Setter Target="AppearanceResetTimeSelector.(Grid.Column)" Value="1" />
+                        <Setter Target="AppearanceResetTimeSelector.MinWidth" Value="144" />
+                        <Setter Target="AppearanceThemeSelector.(Grid.Row)" Value="0" />
+                        <Setter Target="AppearanceThemeSelector.(Grid.Column)" Value="1" />
+                        <Setter Target="AppearanceThemeSelector.MinWidth" Value="144" />
+                        <Setter Target="AppearanceStatus.(Grid.Row)" Value="5" />
+                        <Setter Target="AppearanceStatus.(Grid.ColumnSpan)" Value="2" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Border
+            x:Name="OpaqueSurface"
+            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+            IsHitTestVisible="False" />
+        <Border
+            x:Name="FlyoutChrome"
+            SizeChanged="OnFlyoutChromeSizeChanged"
+            Padding="14"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{ThemeResource OverlayCornerRadius}">
+        <Grid x:Name="RootLayout" RowSpacing="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -88,7 +154,7 @@
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
                     <FontIcon
                         AutomationProperties.AccessibilityView="Raw"
-                        FontSize="16"
+                        FontSize="14"
                         IsTextScaleFactorEnabled="False"
                         Glyph="&#xE72C;" />
                 </Button>
@@ -103,7 +169,7 @@
                     Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
                     <FontIcon
                         AutomationProperties.AccessibilityView="Raw"
-                        FontSize="16"
+                        FontSize="14"
                         IsTextScaleFactorEnabled="False"
                         Glyph="&#xE72B;" />
                 </Button>
@@ -152,6 +218,7 @@
                             </StackPanel>
 
                             <StackPanel
+                                x:Name="EmptyStateStack"
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
                                 <TextBlock
@@ -174,6 +241,7 @@
                             </StackPanel>
 
                             <StackPanel
+                                x:Name="UnavailableStateStack"
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsSampleUnavailable, Mode=OneWay}">
                                 <TextBlock
@@ -197,12 +265,132 @@
                             </StackPanel>
 
                             <StackPanel
+                                x:Name="OptionsStack"
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
                                 <Border
+                                    AutomationProperties.AutomationId="AppearanceSection"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                                    Padding="10,4">
+                                    <Expander
+                                        x:Uid="AppearanceExpander"
+                                        AutomationProperties.AutomationId="AppearanceExpander"
+                                        IsEnabled="{x:Bind ViewModel.IsAppearanceEditable, Mode=OneWay}"
+                                        IsExpanded="False">
+                                        <Grid x:Name="AppearanceSettingsGrid" RowSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition x:Name="AppearanceSettingsValueColumn" Width="0" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock
+                                                x:Name="AppearanceThemeLabel"
+                                                x:Uid="AppearanceThemeLabel"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords"
+                                                VerticalAlignment="Center" />
+                                            <ComboBox
+                                                x:Name="AppearanceThemeSelector"
+                                                x:Uid="AppearanceThemeSelector"
+                                                AutomationProperties.AutomationId="AppearanceThemeSelector"
+                                                DisplayMemberPath="DisplayName"
+                                                Grid.Row="1"
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Bind ViewModel.ThemeOptions}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}" />
+                                            <TextBlock
+                                                x:Name="AppearanceDensityLabel"
+                                                x:Uid="AppearanceDensityLabel"
+                                                Grid.Row="2"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords"
+                                                VerticalAlignment="Center" />
+                                            <ComboBox
+                                                x:Name="AppearanceDensitySelector"
+                                                x:Uid="AppearanceDensitySelector"
+                                                Grid.Row="3"
+                                                AutomationProperties.AutomationId="AppearanceDensitySelector"
+                                                DisplayMemberPath="DisplayName"
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Bind ViewModel.DensityOptions}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedDensity, Mode=TwoWay}" />
+                                            <TextBlock
+                                                x:Name="AppearanceTransparencyLabel"
+                                                x:Uid="AppearanceTransparencyLabel"
+                                                Grid.Row="4"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords"
+                                                VerticalAlignment="Center" />
+                                            <ToggleSwitch
+                                                x:Name="AppearanceTransparencyToggle"
+                                                x:Uid="AppearanceTransparencyToggle"
+                                                Grid.Row="5"
+                                                AutomationProperties.AutomationId="AppearanceTransparencyToggle"
+                                                HorizontalAlignment="Left"
+                                                IsOn="{x:Bind ViewModel.IncreaseTransparency, Mode=TwoWay}"
+                                                OffContent=""
+                                                OnContent="" />
+                                            <TextBlock
+                                                x:Name="AppearanceUsageLabel"
+                                                x:Uid="AppearanceUsageLabel"
+                                                Grid.Row="6"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords"
+                                                VerticalAlignment="Center" />
+                                            <ComboBox
+                                                x:Name="AppearanceUsageSelector"
+                                                x:Uid="AppearanceUsageSelector"
+                                                Grid.Row="7"
+                                                AutomationProperties.AutomationId="AppearanceUsageSelector"
+                                                DisplayMemberPath="DisplayName"
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Bind ViewModel.UsageDisplayOptions}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedUsageDisplay, Mode=TwoWay}" />
+                                            <TextBlock
+                                                x:Name="AppearanceResetTimeLabel"
+                                                x:Uid="AppearanceResetTimeLabel"
+                                                Grid.Row="8"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords"
+                                                VerticalAlignment="Center" />
+                                            <ComboBox
+                                                x:Name="AppearanceResetTimeSelector"
+                                                x:Uid="AppearanceResetTimeSelector"
+                                                Grid.Row="9"
+                                                AutomationProperties.AutomationId="AppearanceResetTimeSelector"
+                                                DisplayMemberPath="DisplayName"
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Bind ViewModel.ResetTimeDisplayOptions}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedResetTimeDisplay, Mode=TwoWay}" />
+                                            <InfoBar
+                                                x:Name="AppearanceStatus"
+                                                Grid.Row="10"
+                                                AutomationProperties.AutomationId="AppearanceStatus"
+                                                AutomationProperties.LiveSetting="Polite"
+                                                IsClosable="False"
+                                                IsOpen="{x:Bind ViewModel.IsAppearanceStatusVisible, Mode=OneWay}"
+                                                Message="{x:Bind ViewModel.AppearanceStatusText, Mode=OneWay}"
+                                                Severity="Warning" />
+                                        </Grid>
+                                    </Expander>
+                                </Border>
+                                <Border
                                     AutomationProperties.AutomationId="LanguageSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    CornerRadius="8"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
                                     Padding="10,8">
                                     <StackPanel Spacing="8">
                                         <TextBlock
@@ -767,7 +955,8 @@
                     </Border>
 
                     <StackPanel
-                        Spacing="16"
+                        x:Name="DashboardStack"
+                        Spacing="12"
                         Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}">
                         <Grid Margin="4,0" ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -776,7 +965,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Spacing="2">
                                 <TextBlock
-                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Style="{StaticResource DashboardHeadingTextBlockStyle}"
                                     Text="{x:Bind ViewModel.DashboardHeading, Mode=OneWay}" />
                                 <Grid>
                                     <TextBlock
@@ -821,7 +1010,7 @@
                             x:Name="SampleTotalSpendCard"
                             x:Load="{x:Bind ViewModel.ActiveSample.HasSpend, Mode=OneWay}"
                             AutomationProperties.AutomationId="SampleTotalSpendCard"
-                            Padding="12"
+                            Padding="12,8"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
@@ -894,7 +1083,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Spacing="1">
                                         <TextBlock
-                                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                                            Style="{StaticResource DashboardHeadingTextBlockStyle}"
                                             Text="{x:Bind ViewModel.LocalUsage.Title, Mode=OneWay}" />
                                         <TextBlock
                                             AutomationProperties.AutomationId="UsageProductCard.DataOrigin"
@@ -1118,7 +1307,7 @@
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="sample:SampleProviderCard">
-                                    <StackPanel Margin="0,0,0,16" Spacing="6">
+                                    <StackPanel Margin="0,0,0,12" Spacing="8">
                                         <Grid Margin="4,0" ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="18" />
@@ -1152,13 +1341,18 @@
                                                     VerticalAlignment="Center"
                                                     Visibility="{x:Bind HasHighlight}" />
                                             </Grid>
-                                            <TextBlock
+                                            <Border
                                                 Grid.Column="2"
-                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{x:Bind PlanLabel}"
-                                                TextTrimming="CharacterEllipsis"
-                                                VerticalAlignment="Center" />
+                                                Padding="8,4"
+                                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                                CornerRadius="{ThemeResource ControlCornerRadius}"
+                                                VerticalAlignment="Center">
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind PlanLabel}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </Border>
                                             <Button
                                                 Grid.Column="3"
                                                 AutomationProperties.AutomationId="{x:Bind DetailsAutomationId}"
@@ -1211,12 +1405,12 @@
                                         <Border
                                             AutomationProperties.AutomationId="{x:Bind AutomationId}"
                                             AutomationProperties.Name="{x:Bind CardAutomationName}"
-                                            Padding="12"
+                                            Padding="12,8"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             CornerRadius="{StaticResource DashboardCardCornerRadius}">
-                                            <StackPanel Spacing="10">
+                                            <StackPanel Spacing="8">
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -1415,5 +1609,6 @@
                 </Button>
             </Grid>
         </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </Page>

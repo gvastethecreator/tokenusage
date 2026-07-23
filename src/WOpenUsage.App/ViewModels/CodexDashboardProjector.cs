@@ -134,7 +134,8 @@ public static class CodexDashboardProjector
             paceText,
             isPaceBehind,
             $"CodexPace.{metric.Id.Value}",
-            LayoutMetricId: metric.Id.Value);
+            LayoutMetricId: metric.Id.Value,
+            ResetAtUtc: metric.ResetsAtUtc);
     }
 
     private static IReadOnlyList<SampleMetric> CreateUsageMetrics(

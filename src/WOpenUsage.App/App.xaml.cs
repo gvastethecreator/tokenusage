@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
+using System.Globalization;
 using WOpenUsage.App.Localization;
 
 namespace WOpenUsage.App;
@@ -69,11 +70,13 @@ public partial class App : Application
         bool useSampleForTest = launchArguments.Contains(
             "--test-use-sample",
             StringComparer.OrdinalIgnoreCase);
+        double? flyoutWidthForTest = GetFlyoutWidthForTest(launchArguments);
 #else
         const bool showForTest = false;
         const bool useSampleForTest = false;
+        double? flyoutWidthForTest = null;
 #endif
-        Window = new MainWindow(showForTest, useSampleForTest);
+        Window = new MainWindow(showForTest, useSampleForTest, flyoutWidthForTest);
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         bool showRedirectedActivation;
@@ -109,4 +112,28 @@ public partial class App : Application
         _ = dispatcherQueue.TryEnqueue(
             () => ((MainWindow)Window).ShowFromExternalActivation());
     }
+
+#if DEBUG || UI_TEST_FIXTURES
+    private static double? GetFlyoutWidthForTest(IEnumerable<string> launchArguments)
+    {
+        const string prefix = "--test-flyout-width=";
+        string? argument = launchArguments.FirstOrDefault(value =>
+            value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        if (argument is null)
+        {
+            return null;
+        }
+
+        return double.TryParse(
+            argument[prefix.Length..],
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out double width)
+            && double.IsFinite(width)
+            && width >= 240d
+            && width <= 800d
+                ? width
+                : null;
+    }
+#endif
 }

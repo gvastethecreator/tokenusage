@@ -18,7 +18,8 @@ public sealed record SampleQuotaWindow(
     string PaceAutomationId = "",
     string LayoutMetricId = "",
     bool IsHighlighted = false,
-    string HighlightLabel = "")
+    string HighlightLabel = "",
+    DateTimeOffset? ResetAtUtc = null)
 {
     public bool IsWithinLimit => !IsNearLimit;
 

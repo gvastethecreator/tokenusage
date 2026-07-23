@@ -6,6 +6,7 @@ using System.Data.Common;
 using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels.Sample;
+using WOpenUsage.Core.Appearance;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Layout;
 using WOpenUsage.Core.Providers;
@@ -21,7 +22,9 @@ public partial class FlyoutViewModel : ObservableObject
     private readonly CodexRefreshCoordinator _codexRefreshCoordinator;
     private readonly LocalUsageCoordinator _localUsageCoordinator;
     private readonly DashboardLayoutStore _dashboardLayoutStore;
+    private readonly AppearanceSettingsStore _appearanceSettingsStore;
     private readonly Task _dashboardLayoutInitialization;
+    private readonly Task _appearanceInitialization;
     private CancellationTokenSource? _refreshCancellation;
     private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
     private SampleScenario? _activeScenario;
@@ -37,12 +40,15 @@ public partial class FlyoutViewModel : ObservableObject
     private bool _isDashboardLayoutReadOnly;
     private readonly HashSet<string> _expandedDashboardMetricProviders = new(StringComparer.Ordinal);
     private readonly DashboardLayoutSessionHistory _dashboardLayoutHistory = new();
+    private bool _isApplyingAppearance;
+    private bool _isAppearanceReadOnly;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
         CodexRefreshCoordinator codexRefreshCoordinator,
         LocalUsageCoordinator localUsageCoordinator,
         DashboardLayoutStore dashboardLayoutStore,
+        AppearanceSettingsStore appearanceSettingsStore,
         VercelGatewayRefreshCoordinator vercelGatewayCoordinator)
     {
         _sampleRefreshCoordinator = sampleRefreshCoordinator
@@ -53,6 +59,8 @@ public partial class FlyoutViewModel : ObservableObject
             ?? throw new ArgumentNullException(nameof(localUsageCoordinator));
         _dashboardLayoutStore = dashboardLayoutStore
             ?? throw new ArgumentNullException(nameof(dashboardLayoutStore));
+        _appearanceSettingsStore = appearanceSettingsStore
+            ?? throw new ArgumentNullException(nameof(appearanceSettingsStore));
         Vercel = new VercelGatewaySettingsViewModel(
             vercelGatewayCoordinator
                 ?? throw new ArgumentNullException(nameof(vercelGatewayCoordinator)),
@@ -67,6 +75,32 @@ public partial class FlyoutViewModel : ObservableObject
             option.LanguageTag,
             AppLanguageRuntime.ActiveLanguageTag,
             StringComparison.OrdinalIgnoreCase));
+        IsAppearanceBusy = true;
+        ThemeOptions =
+        [
+            new(AppThemeMode.System, GetString("AppearanceThemeSystem")),
+            new(AppThemeMode.Light, GetString("AppearanceThemeLight")),
+            new(AppThemeMode.Dark, GetString("AppearanceThemeDark")),
+        ];
+        DensityOptions =
+        [
+            new(AppDensityMode.Regular, GetString("AppearanceDensityRegular")),
+            new(AppDensityMode.Compact, GetString("AppearanceDensityCompact")),
+        ];
+        UsageDisplayOptions =
+        [
+            new(UsageDisplayMode.Remaining, GetString("AppearanceUsageRemaining")),
+            new(UsageDisplayMode.Used, GetString("AppearanceUsageUsed")),
+        ];
+        ResetTimeDisplayOptions =
+        [
+            new(ResetTimeDisplayMode.Relative, GetString("AppearanceResetRelative")),
+            new(ResetTimeDisplayMode.Exact, GetString("AppearanceResetExact")),
+        ];
+        SelectedTheme = ThemeOptions[0];
+        SelectedDensity = DensityOptions[0];
+        SelectedUsageDisplay = UsageDisplayOptions[0];
+        SelectedResetTimeDisplay = ResetTimeDisplayOptions[0];
         SampleScenarios =
         [
             new(SampleScenario.Normal, GetString("SampleScenarioNormal")),
@@ -84,6 +118,7 @@ public partial class FlyoutViewModel : ObservableObject
         RebuildSamplePreview();
         IsDashboardLayoutBusy = true;
         _dashboardLayoutInitialization = InitializeDashboardLayoutAsync();
+        _appearanceInitialization = InitializeAppearanceAsync();
         _ = RefreshDashboardAsync(scenario: null, forceRefresh: false);
         _ = Vercel.InitializeAsync();
     }
@@ -109,6 +144,32 @@ public partial class FlyoutViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool CloseWhenInactive { get; set; } = true;
+
+    [ObservableProperty]
+    public partial AppearanceSettings Appearance { get; private set; } = AppearanceSettings.Default;
+
+    [ObservableProperty]
+    public partial AppearanceOption<AppThemeMode> SelectedTheme { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<AppDensityMode> SelectedDensity { get; set; }
+
+    [ObservableProperty]
+    public partial bool IncreaseTransparency { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<UsageDisplayMode> SelectedUsageDisplay { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<ResetTimeDisplayMode> SelectedResetTimeDisplay { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAppearanceEditable))]
+    public partial bool IsAppearanceBusy { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAppearanceStatusVisible))]
+    public partial string AppearanceStatusText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial AppLanguageOption SelectedLanguage { get; set; }
@@ -236,6 +297,11 @@ public partial class FlyoutViewModel : ObservableObject
     public bool CanUndoDashboardLayout =>
         IsDashboardLayoutEditable && _dashboardLayoutHistory.CanUndo;
 
+    public bool IsAppearanceEditable => !_isAppearanceReadOnly && !IsAppearanceBusy;
+
+    public bool IsAppearanceStatusVisible =>
+        !string.IsNullOrWhiteSpace(AppearanceStatusText);
+
     public string DashboardLayoutResetTitle => GetString("DashboardLayoutResetTitle");
 
     public string DashboardLayoutResetBody => GetString("DashboardLayoutResetBody");
@@ -289,6 +355,14 @@ public partial class FlyoutViewModel : ObservableObject
 
     public IReadOnlyList<AppLanguageOption> LanguageOptions { get; }
 
+    public IReadOnlyList<AppearanceOption<AppThemeMode>> ThemeOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<AppDensityMode>> DensityOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<UsageDisplayMode>> UsageDisplayOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<ResetTimeDisplayMode>> ResetTimeDisplayOptions { get; }
+
     public VercelGatewaySettingsViewModel Vercel { get; }
 
     public string PendingLanguageTag => SelectedLanguage.LanguageTag;
@@ -327,6 +401,166 @@ public partial class FlyoutViewModel : ObservableObject
 
         IsLanguageRestartRequired = AppLanguageRuntime.RequiresRestart(value.LanguageTag);
         IsLanguageRestartErrorVisible = false;
+    }
+
+    partial void OnSelectedThemeChanged(AppearanceOption<AppThemeMode> value) =>
+        QueueAppearanceSave();
+
+    partial void OnSelectedDensityChanged(AppearanceOption<AppDensityMode> value) =>
+        QueueAppearanceSave();
+
+    partial void OnIncreaseTransparencyChanged(bool value) =>
+        QueueAppearanceSave();
+
+    partial void OnSelectedUsageDisplayChanged(AppearanceOption<UsageDisplayMode> value) =>
+        QueueAppearanceSave();
+
+    partial void OnSelectedResetTimeDisplayChanged(
+        AppearanceOption<ResetTimeDisplayMode> value) =>
+        QueueAppearanceSave();
+
+    private void QueueAppearanceSave()
+    {
+        if (_isApplyingAppearance
+            || IsAppearanceBusy
+            || _isAppearanceReadOnly
+            || SelectedTheme is null
+            || SelectedDensity is null
+            || SelectedUsageDisplay is null
+            || SelectedResetTimeDisplay is null)
+        {
+            return;
+        }
+
+        Appearance = CreateAppearanceSettings();
+        if (_rawDashboard is not null)
+        {
+            PublishActiveDashboard(_rawDashboard);
+        }
+
+        IsAppearanceBusy = true;
+        _ = SaveAppearanceAsync(Appearance);
+    }
+
+    private AppearanceSettings CreateAppearanceSettings() => new(
+        SelectedTheme.Value,
+        SelectedDensity.Value,
+        IncreaseTransparency,
+        SelectedUsageDisplay.Value,
+        SelectedResetTimeDisplay.Value);
+
+    private async Task InitializeAppearanceAsync()
+    {
+        AppearanceSettings settings = AppearanceSettings.Default;
+        bool requiresMigration = false;
+        try
+        {
+            AppearanceSettingsLoadResult result = await _appearanceSettingsStore.LoadAsync();
+            switch (result)
+            {
+                case AppearanceSettingsLoadResult.Loaded loaded:
+                    settings = loaded.Settings;
+                    requiresMigration = loaded.RequiresMigration;
+                    break;
+                case AppearanceSettingsLoadResult.Corrupt corrupt:
+                    AppearanceStatusText = string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        GetString("AppearanceRecoveredFormat"),
+                        corrupt.QuarantineFileName);
+                    break;
+                case AppearanceSettingsLoadResult.UnsupportedVersion unsupported:
+                    _isAppearanceReadOnly = true;
+                    AppearanceStatusText = string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        GetString("AppearanceNewerVersionFormat"),
+                        unsupported.SchemaVersion);
+                    break;
+                case AppearanceSettingsLoadResult.Defaults:
+                    break;
+            }
+
+            ApplyAppearanceSettings(settings);
+            if (requiresMigration && !_isAppearanceReadOnly)
+            {
+                AppearanceSettingsSaveResult save =
+                    await _appearanceSettingsStore.SaveAsync(settings);
+                if (save is AppearanceSettingsSaveResult.RefusedUnsupportedVersion unsupported)
+                {
+                    _isAppearanceReadOnly = true;
+                    AppearanceStatusText = string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        GetString("AppearanceNewerVersionFormat"),
+                        unsupported.SchemaVersion);
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or TimeoutException)
+        {
+            _isAppearanceReadOnly = true;
+            ApplyAppearanceSettings(settings);
+            AppearanceStatusText = GetString("AppearanceUnavailable");
+        }
+        finally
+        {
+            IsAppearanceBusy = false;
+            OnPropertyChanged(nameof(IsAppearanceEditable));
+        }
+    }
+
+    private void ApplyAppearanceSettings(AppearanceSettings settings)
+    {
+        _isApplyingAppearance = true;
+        try
+        {
+            SelectedTheme = ThemeOptions.Single(option => option.Value == settings.Theme);
+            SelectedDensity = DensityOptions.Single(option => option.Value == settings.Density);
+            IncreaseTransparency = settings.IncreaseTransparency;
+            SelectedUsageDisplay = UsageDisplayOptions.Single(
+                option => option.Value == settings.UsageDisplay);
+            SelectedResetTimeDisplay = ResetTimeDisplayOptions.Single(
+                option => option.Value == settings.ResetTimeDisplay);
+            Appearance = settings;
+        }
+        finally
+        {
+            _isApplyingAppearance = false;
+        }
+    }
+
+    private async Task SaveAppearanceAsync(AppearanceSettings settings)
+    {
+        await _appearanceInitialization;
+        try
+        {
+            AppearanceSettingsSaveResult save =
+                await _appearanceSettingsStore.SaveAsync(settings);
+            if (save is AppearanceSettingsSaveResult.RefusedUnsupportedVersion unsupported)
+            {
+                _isAppearanceReadOnly = true;
+                AppearanceStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    GetString("AppearanceNewerVersionFormat"),
+                    unsupported.SchemaVersion);
+                return;
+            }
+
+            AppearanceStatusText = string.Empty;
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or TimeoutException)
+        {
+            AppearanceStatusText = GetString("AppearanceSaveFailed");
+        }
+        finally
+        {
+            IsAppearanceBusy = false;
+            OnPropertyChanged(nameof(IsAppearanceEditable));
+        }
     }
 
     public void ReportLanguageRestartFailure()
@@ -820,6 +1054,12 @@ public partial class FlyoutViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(LiveDataStateText));
         }
+
+        if (_rawDashboard is not null
+            && Appearance.ResetTimeDisplay == ResetTimeDisplayMode.Relative)
+        {
+            PublishActiveDashboard(_rawDashboard);
+        }
     }
 
     private void ApplyResultSurfaceIfVisible()
@@ -1233,8 +1473,13 @@ public partial class FlyoutViewModel : ObservableObject
     private void PublishActiveDashboard(SampleDashboardSnapshot dashboard)
     {
         _rawDashboard = dashboard;
-        DashboardLayoutProjection projection = DashboardLayoutProjector.Apply(
+        SampleDashboardSnapshot appearanceDashboard = AppearanceDashboardProjector.Apply(
             dashboard,
+            Appearance,
+            GetClock(IsSampleModeEnabled ? _activeScenario : null).GetUtcNow(),
+            GetString);
+        DashboardLayoutProjection projection = DashboardLayoutProjector.Apply(
+            appearanceDashboard,
             _dashboardLayout,
             GetString("DashboardProviderHighlightedLabel"),
             new DashboardProviderActionNameFormats(

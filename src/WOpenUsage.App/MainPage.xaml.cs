@@ -19,6 +19,7 @@ using WOpenUsage.Providers.Claude;
 using WOpenUsage.Providers.Grok;
 using WOpenUsage.Providers.OpenCode;
 using WOpenUsage.Providers.VercelAiGateway;
+using WOpenUsage.Core.Appearance;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Layout;
 using WOpenUsage.Runtime.Windows.Codex;
@@ -58,6 +59,8 @@ public sealed partial class MainPage : Page
             "vercel-ai-gateway");
         string dashboardLayoutPath = GetDashboardLayoutPath(
             ApplicationData.Current.LocalFolder.Path);
+        string appearanceSettingsPath = GetAppearanceSettingsPath(
+            ApplicationData.Current.LocalFolder.Path);
         var codexClientFactory = new CodexAppServerQuotaClientFactory(clock);
         ViewModel = new FlyoutViewModel(
             new SampleRefreshCoordinator(sampleCacheDirectory, clock),
@@ -71,6 +74,7 @@ public sealed partial class MainPage : Page
                 ],
                 clock),
             new DashboardLayoutStore(dashboardLayoutPath, clock),
+            new AppearanceSettingsStore(appearanceSettingsPath, clock),
             CreateVercelCoordinator(vercelCacheDirectory, clock));
         InitializeComponent();
         ApplyTextScaleLayout();
@@ -87,6 +91,38 @@ public sealed partial class MainPage : Page
     public FlyoutViewModel ViewModel { get; }
 
     public FrameworkElement MeasureRoot => FlyoutChrome;
+
+    public void ApplyAppearance(
+        AppearanceSettings settings,
+        bool transparencyActive)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        RequestedTheme = settings.Theme switch
+        {
+            AppThemeMode.Light => ElementTheme.Light,
+            AppThemeMode.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default,
+        };
+        OpaqueSurface.Visibility = transparencyActive
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        _ = VisualStateManager.GoToState(
+            this,
+            settings.Density == AppDensityMode.Compact
+                ? "CompactDensity"
+                : "RegularDensity",
+            useTransitions: false);
+    }
+
+    private void OnFlyoutChromeSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        _ = VisualStateManager.GoToState(
+            this,
+            e.NewSize.Width >= 360d
+                ? "WideAppearanceLayout"
+                : "NarrowAppearanceLayout",
+            useTransitions: false);
+    }
 
     public void FocusPrimaryAction()
     {
@@ -460,6 +496,19 @@ public sealed partial class MainPage : Page
         }
 #endif
         return Path.Combine(localFolderPath, DashboardLayoutStore.DefaultFileName);
+    }
+
+    private static string GetAppearanceSettingsPath(string localFolderPath)
+    {
+#if DEBUG || UI_TEST_FIXTURES
+        string? overrideArgument = Environment.GetCommandLineArgs().FirstOrDefault(argument =>
+            argument.StartsWith("--test-appearance-path=", StringComparison.OrdinalIgnoreCase));
+        if (overrideArgument is not null)
+        {
+            return overrideArgument[(overrideArgument.IndexOf('=') + 1)..];
+        }
+#endif
+        return Path.Combine(localFolderPath, AppearanceSettingsStore.DefaultFileName);
     }
 
     private void ScheduleSampleReveal()
