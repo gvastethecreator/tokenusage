@@ -3,8 +3,8 @@
 Fecha de corte: 2026-07-23
 
 Decisión: ampliar el alcance con Kilo Code y Zed; conservar Kimi Code y Cursor
-en sus gates existentes; abrir gates para Vercel AI Gateway y Mistral Vibe;
-mantener el resto como inventario, sin crear adaptadores todavía.
+en sus gates existentes; abrir gates para Vercel AI Gateway y Mistral Vibe; y
+abrir una segunda ola Windows-first sin crear adaptadores todavía.
 
 ## Pregunta
 
@@ -89,6 +89,15 @@ Ticket 60 se divide en gates pequeños:
 13. Vercel AI Gateway, Ticket 73, por su candidato de reporte agregado con clave manual.
 14. Mistral Vibe, Ticket 75, por presencia en ambas referencias y necesidad de
     excluir mensajes, herramientas y comandos.
+15. DeepSeek TUI / CodeWhale, Ticket 77, para resolver si las rutas heredadas
+    representan una migración o dos identidades.
+16. Windsurf, Ticket 78, por sus rutas Windows explícitas en AgentsView.
+17. Trae, Ticket 79, por sus variantes Windows y la falta de una fuente agregada.
+18. Aider, Ticket 80, para fijar consentimiento, raíces y límite de privacidad.
+19. OpenHands CLI, Ticket 81, para separar el agente local de servicios remotos.
+20. Amp, Ticket 82, como gate de baja prioridad para una fuente local apta.
+21. Codebuff, Ticket 83, para evaluar su contabilidad agregada sin leer chats.
+22. Piebald, Ticket 84, por su ruta Windows y almacenamiento local propio.
 
 AgentsView registra 53 identidades. Aider, Amp, Windsurf, OpenHands CLI,
 Zencoder, Trae, Qoder, Cortex Code, DeepSeek TUI, gptme, iFlow, IcodeMate,
@@ -97,11 +106,10 @@ Reasonix, Shelley y WorkBuddy quedan como candidatos posteriores. Variantes de
 Claude, Copilot, Kiro y Antigravity se resuelven dentro de sus familias antes
 de abrir IDs propios.
 
-CodeBurn conserva como candidatos posteriores Codebuff, Crush, CodeWhale,
-Droid, IBM Bob, LingTai TUI, Mux, Open Design, Quick Desktop y Zerostack. OMP
-queda bajo el gate de Pi. DeepSeek TUI y CodeWhale comparten rutas candidatas y
-necesitan una decisión de identidad. Antes de sumarlos a M9 se debe evaluar
-demanda, soporte Windows y una fuente que no cruce el límite de privacidad.
+CodeBurn conserva como candidatos posteriores Crush, Droid, IBM Bob, LingTai
+TUI, Mux, Open Design, Quick Desktop y Zerostack. OMP queda bajo el gate de Pi.
+DeepSeek TUI y CodeWhale comparten rutas candidatas y reciben un único gate de
+identidad antes de decidir si necesitan uno o dos providers.
 
 ## Decisión de producto
 
@@ -114,6 +122,9 @@ demanda, soporte Windows y una fuente que no cruce el límite de privacidad.
   presencia en ambas referencias.
 - Vercel AI Gateway recibe un gate propio por su reporte agregado candidato;
   Mistral Vibe recibe otro por su presencia en ambas referencias.
+- DeepSeek/CodeWhale, Windsurf, Trae, Aider, OpenHands, Amp, Codebuff y Piebald
+  reciben gates de investigación en los Tickets 77–84. Una sola referencia
+  fija el orden de estudio, no autoriza soporte.
 - Ningún candidato de la siguiente ola recibe descriptor, logo, scanner,
   credencial o tarjeta antes de su gate de fuente.
 - La investigación futura debe mantener separado el uso del agente, la cuota
