@@ -1244,7 +1244,8 @@
                             CornerRadius="{StaticResource DashboardCardCornerRadius}">
                             <Grid
                                 ColumnSpacing="12"
-                                Loaded="OnSampleSpendLayoutLoaded">
+                                Loaded="OnSampleSpendLayoutLoaded"
+                                SizeChanged="OnSampleSpendLayoutSizeChanged">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -1253,6 +1254,7 @@
                                 <controls:SpendDonutChart
                                     x:Name="SampleSpendDonutChart"
                                     AccessibleName="{x:Bind ViewModel.ActiveSample.SpendAccessibleName, Mode=OneWay}"
+                                    AutomationProperties.AutomationId="SampleSpendDonut"
                                     CenterValue="{x:Bind ViewModel.ActiveSample.DonutCenterAmount, Mode=OneWay}"
                                     Slices="{x:Bind ViewModel.ActiveSample.SpendSlices, Mode=OneWay}" />
 
@@ -1284,7 +1286,7 @@
                                                     Grid.Column="2"
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                     Style="{StaticResource DashboardCaptionTextBlockStyle}"
-                                                    Text="{x:Bind AmountText}"
+                                                    Text="{x:Bind LegendAmountText}"
                                                     VerticalAlignment="Center" />
                                             </Grid>
                                         </DataTemplate>
@@ -1295,18 +1297,19 @@
 
                         <Border
                             x:Name="UsageProductCard"
-                            x:Load="{x:Bind ViewModel.IsLocalUsageVisible, Mode=OneWay}"
                             AutomationProperties.AutomationId="UsageProductCard"
                             AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.Title, Mode=OneWay}"
                             Padding="12"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
-                            CornerRadius="{StaticResource DashboardCardCornerRadius}">
+                            CornerRadius="{StaticResource DashboardCardCornerRadius}"
+                            Visibility="{x:Bind ViewModel.IsLocalUsageVisible, Mode=OneWay}">
                             <StackPanel Spacing="8">
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Spacing="1">
@@ -1327,13 +1330,43 @@
                                         Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                         Text="{x:Bind ViewModel.LocalUsage.PeriodLabel, Mode=OneWay}"
                                         TextWrapping="WrapWholeWords" />
+                                    <ToggleButton
+                                        x:Name="LocalUsageDetailsToggle"
+                                        x:Uid="ProviderSecondaryMetricsToggle"
+                                        Grid.Column="2"
+                                        AutomationProperties.AutomationId="UsageProductCard.DetailsToggle"
+                                        Checked="OnLocalUsageDetailsChecked"
+                                        IsChecked="False"
+                                        MinHeight="32"
+                                        MinWidth="32"
+                                        Padding="6"
+                                        Unchecked="OnLocalUsageDetailsUnchecked"
+                                        VerticalAlignment="Center">
+                                        <FontIcon
+                                            AutomationProperties.AccessibilityView="Raw"
+                                            FontSize="14"
+                                            Glyph="&#xE9D2;"
+                                            IsTextScaleFactorEnabled="False" />
+                                    </ToggleButton>
                                 </Grid>
 
                                 <TextBlock
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    AutomationProperties.AutomationId="UsageProductCard.AttentionNotice"
+                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
                                     Style="{StaticResource DashboardCaptionTextBlockStyle}"
                                     Text="{x:Bind ViewModel.LocalUsage.NoticeText, Mode=OneWay}"
-                                    TextWrapping="WrapWholeWords" />
+                                    TextWrapping="WrapWholeWords"
+                                    Visibility="{x:Bind ViewModel.LocalUsage.IsNoticeImportant, Mode=OneWay}" />
+
+                                <StackPanel
+                                    x:Name="UsageProductDetailsPanel"
+                                    Spacing="8"
+                                    Visibility="Collapsed">
+                                    <TextBlock
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource DashboardCaptionTextBlockStyle}"
+                                        Text="{x:Bind ViewModel.LocalUsage.ExpandedNoticeText, Mode=OneWay}"
+                                        TextWrapping="WrapWholeWords" />
 
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.LocalUsage.OtherPeriods, Mode=OneWay}">
                                     <ItemsControl.ItemTemplate>
@@ -1448,6 +1481,7 @@
                                             AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
                                             ColumnSpacing="10"
                                             Loaded="OnSampleSpendLayoutLoaded"
+                                            SizeChanged="OnSampleSpendLayoutSizeChanged"
                                             Visibility="{x:Bind ViewModel.LocalUsage.SpendBreakdown.HasAgentSpend, Mode=OneWay}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -1455,6 +1489,7 @@
                                             </Grid.ColumnDefinitions>
                                             <controls:SpendDonutChart
                                                 AccessibleName="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
+                                                AutomationProperties.AutomationId="UsageProductCard.AgentSpendDonut"
                                                 CenterValue="{x:Bind ViewModel.LocalUsage.SpendBreakdown.DonutCenterText, Mode=OneWay}"
                                                 Height="88"
                                                 Slices="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AgentSlices, Mode=OneWay}"
@@ -1491,7 +1526,7 @@
                                                                 Grid.Column="1"
                                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                 Style="{StaticResource DashboardCaptionTextBlockStyle}"
-                                                                Text="{x:Bind AmountText, Mode=OneTime}"
+                                                                Text="{x:Bind LegendAmountText, Mode=OneTime}"
                                                                 TextWrapping="WrapWholeWords" />
                                                         </Grid>
                                                     </DataTemplate>
@@ -1538,7 +1573,8 @@
                                             </ListView.ItemTemplate>
                                         </ListView>
                                     </StackPanel>
-                                </Expander>
+                                    </Expander>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 

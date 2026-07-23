@@ -33,6 +33,8 @@
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\FlyoutSurfaceState.cs" Link="Codex\FlyoutSurfaceState.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\Services\LocalUsageCoordinator.cs" Link="Usage\LocalUsageCoordinator.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\LocalUsageCardProjector.cs" Link="Usage\LocalUsageCardProjector.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\LiveDashboardComposer.cs" Link="Dashboard\LiveDashboardComposer.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="VercelAiGateway\VercelGatewayCardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\UsageHeatmapProjector.cs" Link="Usage\UsageHeatmapProjector.cs" />
   </ItemGroup>
 

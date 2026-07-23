@@ -33,6 +33,7 @@ public partial class FlyoutViewModel : ObservableObject
     private DateTimeOffset? _publishedObservedAtUtc;
     private DateTimeOffset? _retryAtUtc;
     private bool _hasLocalUsage;
+    private LocalUsageCard? _rawLocalUsage;
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
     private DashboardLayout _dashboardLayout = DashboardLayout.Empty;
@@ -310,7 +311,8 @@ public partial class FlyoutViewModel : ObservableObject
     public bool HasDashboardLayoutProviders => DashboardLayoutProviders.Count > 0;
 
     public bool AreAllDashboardProvidersHidden =>
-        DashboardLayoutProviders.Count > 0 && ActiveSample.Providers.Count == 0;
+        DashboardLayoutProviders.Count > 0
+        && DashboardLayoutProviders.All(provider => !provider.IsVisible);
 
     public bool IsDashboardLayoutStatusVisible =>
         !string.IsNullOrWhiteSpace(DashboardLayoutStatusText);
@@ -341,13 +343,15 @@ public partial class FlyoutViewModel : ObservableObject
 
     public bool IsSampleDataStateVisible => IsSampleModeEnabled && IsSample;
 
-    public string LiveDataStateText => CodexLiveStateFormatter.Format(
-        CurrentSampleDataState,
-        IsSampleModeEnabled,
-        _publishedObservedAtUtc,
-        _retryAtUtc,
-        _codexRefreshCoordinator.Clock.GetUtcNow(),
-        GetString);
+    public string LiveDataStateText => _hasLocalUsage && ActiveSample.HasSpend
+        ? ActiveSample.PeriodLabel
+        : CodexLiveStateFormatter.Format(
+            CurrentSampleDataState,
+            IsSampleModeEnabled,
+            _publishedObservedAtUtc,
+            _retryAtUtc,
+            _codexRefreshCoordinator.Clock.GetUtcNow(),
+            GetString);
 
     public string SampleDataStateText => GetString(CurrentSampleDataState switch
     {
@@ -793,10 +797,15 @@ public partial class FlyoutViewModel : ObservableObject
                 cancellationToken);
             if (refreshVersion == _refreshVersion && !cancellationToken.IsCancellationRequested)
             {
-                LocalUsage = ApplyProviderColors(card);
+                _rawLocalUsage = card;
+                LocalUsage = ApplyDashboardLayoutToLocalUsage(card);
                 RebuildProviderStatuses();
                 _hasLocalUsage = true;
                 OnPropertyChanged(nameof(IsLocalUsageVisible));
+                if (!IsSampleModeEnabled)
+                {
+                    PublishCombinedLiveDashboard(reveal: true);
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -806,15 +815,20 @@ public partial class FlyoutViewModel : ObservableObject
         {
             if (refreshVersion == _refreshVersion)
             {
-                LocalUsage = LocalUsageCardProjector.CreateUnavailable(
+                _rawLocalUsage = LocalUsageCardProjector.CreateUnavailable(
                     GetString,
                     _localUsageCoordinator.SourceKind) with
                 {
                     ProviderStatuses = LocalUsage.ProviderStatuses,
                 };
+                LocalUsage = ApplyDashboardLayoutToLocalUsage(_rawLocalUsage);
                 RebuildProviderStatuses();
                 _hasLocalUsage = true;
                 OnPropertyChanged(nameof(IsLocalUsageVisible));
+                if (!IsSampleModeEnabled)
+                {
+                    PublishCombinedLiveDashboard(reveal: false);
+                }
             }
         }
     }
@@ -951,18 +965,23 @@ public partial class FlyoutViewModel : ObservableObject
             providers.Add(vercelCard);
         }
 
-        if (providers.Count == 0)
+        IReadOnlyList<SampleSpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
+            ? _rawLocalUsage.SpendBreakdown.AgentSlices
+            : [];
+        IReadOnlyList<SampleSpendSlice> additionalSpendSlices = Vercel.SpendSlice is { } vercelSpend
+            ? [vercelSpend]
+            : [];
+        if (providers.Count == 0 && spendSlices.Count == 0 && additionalSpendSlices.Count == 0)
         {
             return false;
         }
 
-        PublishActiveDashboard(new SampleDashboardSnapshot(
-            SampleScenario.Normal,
-            string.Empty,
+        PublishActiveDashboard(LiveDashboardComposer.Create(
+            providers,
+            _hasLocalUsage ? _rawLocalUsage : null,
+            additionalSpendSlices,
             GetString("LiveDashboardPeriod"),
-            string.Empty,
-            [],
-            providers));
+            CreateDashboardSpendSummary));
         _activeScenario = null;
         _hasPublishedDashboard = true;
         _resultSurface = FlyoutSurfaceState.Sample;
@@ -1563,10 +1582,15 @@ public partial class FlyoutViewModel : ObservableObject
                 GetString("DashboardMetricAlwaysVisibleSection"),
                 GetString("DashboardMetricOnDemandSection"),
                 GetString("DashboardMetricMoveToAlwaysVisibleAutomationNameFormat"),
-                GetString("DashboardMetricMoveToOnDemandAutomationNameFormat")));
+                GetString("DashboardMetricMoveToOnDemandAutomationNameFormat")),
+            CreateDashboardSpendSummary);
         _dashboardLayout = projection.Layout;
         ActiveSample = projection.Dashboard;
-        LocalUsage = ApplyProviderColors(LocalUsage);
+        OnPropertyChanged(nameof(LiveDataStateText));
+        if (_rawLocalUsage is not null)
+        {
+            LocalUsage = ApplyDashboardLayoutToLocalUsage(_rawLocalUsage);
+        }
         DashboardLayoutProviders = projection.Providers
             .Select(row => row with
             {
@@ -1576,26 +1600,63 @@ public partial class FlyoutViewModel : ObservableObject
         OnPropertyChanged(nameof(AreAllDashboardProvidersHidden));
     }
 
-    private LocalUsageCard ApplyProviderColors(LocalUsageCard card)
+    private LocalUsageCard ApplyDashboardLayoutToLocalUsage(LocalUsageCard card)
     {
-        Dictionary<string, string?> colors = _dashboardLayout.Providers.ToDictionary(
-            provider => provider.ProviderId.Value,
-            provider => provider.ColorHex,
-            StringComparer.Ordinal);
-        SampleSpendSlice[] slices = card.SpendBreakdown.AgentSlices
-            .Select(slice => slice with
-            {
-                ColorHex = colors.GetValueOrDefault(slice.ProviderId),
-            })
-            .ToArray();
+        LocalUsageCard projected = DashboardLayoutProjector.ApplyToLocalUsage(card, _dashboardLayout);
+        DashboardSpendSummary spend = CreateDashboardSpendSummary(projected.SpendBreakdown.AgentSlices);
+        int providerCount = projected.SpendBreakdown.Models
+            .Select(model => model.AgentId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        string summary = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            GetString("LocalUsageBreakdownSummaryFormat"),
+            providerCount,
+            projected.SpendBreakdown.Models.Count);
+        string accessibleName = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            GetString("LocalUsageBreakdownAccessibleFormat"),
+            spend.TotalAmount,
+            summary);
 
-        return card with
+        return projected with
         {
-            SpendBreakdown = card.SpendBreakdown with
+            SpendBreakdown = projected.SpendBreakdown with
             {
-                AgentSlices = slices,
+                SummaryText = summary,
+                TotalText = spend.TotalAmount,
+                CompactTotalText = spend.CompactTotalAmount,
+                AccessibleName = accessibleName,
             },
         };
+    }
+
+    private DashboardSpendSummary CreateDashboardSpendSummary(
+        IReadOnlyList<SampleSpendSlice> slices)
+    {
+        if (slices.Count == 0)
+        {
+            return new DashboardSpendSummary(string.Empty, string.Empty, string.Empty);
+        }
+
+        double total = slices.Sum(slice => slice.Amount);
+        string totalText = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            GetString("LocalUsageUsdFormat"),
+            total);
+        string compactTotalText = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            GetString("LocalUsageUsdCompactFormat"),
+            total);
+        string details = string.Join(", ", slices.Select(slice =>
+            $"{slice.ProviderName} {slice.LegendAmountText}"));
+        string accessibleName = string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            GetString("SampleSpendAccessibleNameFormat"),
+            totalText,
+            slices.Count,
+            details);
+        return new DashboardSpendSummary(totalText, compactTotalText, accessibleName);
     }
 
     public void SetDashboardProviderMetricsExpanded(string providerId, bool isExpanded)

@@ -224,26 +224,56 @@ public sealed partial class MainPage : Page
 
     private void OnSampleSpendLayoutLoaded(object sender, RoutedEventArgs e)
     {
-        if (sender is not Grid layout || new UISettings().TextScaleFactor < 1.5)
+        if (sender is Grid layout)
         {
-            return;
+            UpdateSampleSpendLayout(layout);
         }
+    }
+
+    private void OnSampleSpendLayoutSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is Grid layout)
+        {
+            UpdateSampleSpendLayout(layout);
+        }
+    }
+
+    private static void UpdateSampleSpendLayout(Grid layout)
+    {
+        bool useStackedLayout = layout.ActualWidth < 300
+            || new UISettings().TextScaleFactor >= 1.5;
 
         layout.ColumnDefinitions.Clear();
-        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         layout.RowDefinitions.Clear();
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowSpacing = 8;
+        if (useStackedLayout)
+        {
+            layout.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            layout.ColumnSpacing = 0;
+            layout.RowSpacing = 8;
+        }
+        else
+        {
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            layout.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            layout.ColumnSpacing = 12;
+            layout.RowSpacing = 0;
+        }
 
         for (int index = 0; index < layout.Children.Count; index++)
         {
             FrameworkElement child = (FrameworkElement)layout.Children[index];
-            Grid.SetColumn(child, 0);
-            Grid.SetRow(child, index);
+            Grid.SetColumn(child, useStackedLayout ? 0 : index);
+            Grid.SetRow(child, useStackedLayout ? index : 0);
             if (child is SpendDonutChart chart)
             {
-                chart.HorizontalAlignment = HorizontalAlignment.Center;
+                chart.HorizontalAlignment = useStackedLayout
+                    ? HorizontalAlignment.Center
+                    : HorizontalAlignment.Stretch;
             }
         }
     }
@@ -598,6 +628,25 @@ public sealed partial class MainPage : Page
 
     private void OnUsageDetailsExpanding(Expander sender, ExpanderExpandingEventArgs args) =>
         ScheduleDetailReveal(sender);
+
+    private void OnLocalUsageDetailsChecked(object sender, RoutedEventArgs e)
+    {
+        if (UsageProductDetailsPanel is null)
+        {
+            return;
+        }
+
+        UsageProductDetailsPanel.Visibility = Visibility.Visible;
+        ScheduleDetailReveal(UsageProductDetailsPanel);
+    }
+
+    private void OnLocalUsageDetailsUnchecked(object sender, RoutedEventArgs e)
+    {
+        if (UsageProductDetailsPanel is not null)
+        {
+            UsageProductDetailsPanel.Visibility = Visibility.Collapsed;
+        }
+    }
 
     private void ScheduleDetailReveal(DependencyObject root)
     {

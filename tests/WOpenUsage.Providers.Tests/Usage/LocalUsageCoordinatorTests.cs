@@ -163,6 +163,7 @@ public sealed class LocalUsageCoordinatorTests
             today: today);
 
         SampleSpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
+        Assert.False(string.IsNullOrWhiteSpace(slice.LegendAmountText));
         Assert.Equal("claude", slice.ProviderId);
         Assert.Equal(3d, slice.Amount);
         Assert.Equal(3, card.SpendBreakdown.Models.Count);
@@ -209,6 +210,8 @@ public sealed class LocalUsageCoordinatorTests
             UsageSourceReadStatus.Partial);
 
         Assert.Equal("LocalUsageClaudePartialNotice", card.NoticeText);
+        Assert.True(card.IsNoticeImportant);
+        Assert.Empty(card.ExpandedNoticeText);
     }
 
     [Fact]
@@ -221,6 +224,7 @@ public sealed class LocalUsageCoordinatorTests
             UsageSourceReadStatus.NoData);
 
         Assert.Equal("LocalUsageClaudeNoDataNotice", card.NoticeText);
+        Assert.True(card.IsNoticeImportant);
     }
 
     [Fact]

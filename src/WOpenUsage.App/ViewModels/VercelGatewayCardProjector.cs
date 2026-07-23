@@ -115,6 +115,45 @@ public static class VercelGatewayCardProjector
                 snapshot.DisplayName));
     }
 
+    public static SampleSpendSlice? CreateSpendSlice(
+        ProviderSnapshot snapshot,
+        Func<string, string> getString)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(getString);
+        if (!string.Equals(snapshot.ProviderId.Value, ProviderId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "The Vercel AI Gateway spend slice requires its provider ID.",
+                nameof(snapshot));
+        }
+
+        decimal? total = snapshot.Metrics
+            .OfType<ScalarMetricSnapshot>()
+            .FirstOrDefault(metric => string.Equals(
+                metric.Id.Value,
+                "spend.gateway.total.30d",
+                StringComparison.Ordinal))
+            ?.Value;
+        if (total is null or <= 0m)
+        {
+            return null;
+        }
+
+        return new SampleSpendSlice(
+            ProviderId,
+            snapshot.DisplayName,
+            decimal.ToDouble(total.Value),
+            string.Format(
+                CultureInfo.CurrentCulture,
+                getString("LocalUsageUsdFormat"),
+                total.Value),
+            CompactAmountText: string.Format(
+                CultureInfo.CurrentCulture,
+                getString("LocalUsageUsdCompactFormat"),
+                total.Value));
+    }
+
     private static IReadOnlyList<SampleQuotaWindow> CreateQuotaWindows(
         ProgressMetricSnapshot? quota,
         ProviderCapabilityState? quotaState,

@@ -22,7 +22,9 @@ public sealed partial class SpendDonutChart : UserControl
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly Dictionary<string, string> _customColors = new(StringComparer.Ordinal);
     private SpendDonutArc[] _arcs = [];
+    private SliceVisualState[] _sliceVisualState = [];
     private Storyboard? _storyboard;
+    private bool _isLoaded;
     private int _lastRevealToken = int.MinValue;
 
     public static readonly DependencyProperty AccessibleNameProperty =
@@ -56,6 +58,7 @@ public sealed partial class SpendDonutChart : UserControl
     public SpendDonutChart()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += OnActualThemeChanged;
     }
@@ -92,6 +95,11 @@ public sealed partial class SpendDonutChart : UserControl
         }
 
         _lastRevealToken = token;
+        BeginReveal();
+    }
+
+    private void BeginReveal()
+    {
         _storyboard?.Stop();
 
         if (!MotionSettings.AreAnimationsEnabled() || Slices is null || Slices.Count == 0)
@@ -127,11 +135,21 @@ public sealed partial class SpendDonutChart : UserControl
         DependencyPropertyChangedEventArgs args)
     {
         var chart = (SpendDonutChart)dependencyObject;
-        chart._arcs = chart.Slices is null
+        SliceVisualState[] nextState = chart.Slices is null
             ? []
-            : SpendDonutGeometry.CreateArcs(
-                chart.Slices.Select(slice =>
-                    new SpendDonutInput(slice.ProviderId, slice.Amount))).ToArray();
+            : chart.Slices.Select(slice => new SliceVisualState(
+                slice.ProviderId,
+                slice.Amount,
+                slice.ColorHex)).ToArray();
+        if (nextState.SequenceEqual(chart._sliceVisualState))
+        {
+            return;
+        }
+
+        chart._sliceVisualState = nextState;
+        chart._arcs = SpendDonutGeometry.CreateArcs(
+            nextState.Select(slice =>
+                new SpendDonutInput(slice.ProviderId, slice.Amount))).ToArray();
         chart._customColors.Clear();
         if (chart.Slices is not null)
         {
@@ -146,6 +164,10 @@ public sealed partial class SpendDonutChart : UserControl
         chart.RebuildArcVisuals();
         chart.RevealProgress = MotionSettings.AreAnimationsEnabled() ? 0 : 1;
         chart.UpdateArcVisuals();
+        if (chart._isLoaded)
+        {
+            _ = chart.DispatcherQueue.TryEnqueue(chart.BeginReveal);
+        }
     }
 
     private void OnChartSizeChanged(object sender, SizeChangedEventArgs e) => UpdateArcVisuals();
@@ -314,10 +336,21 @@ public sealed partial class SpendDonutChart : UserControl
         _ => FallbackBrushProxy,
     };
 
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _isLoaded = true;
+        if (Slices is { Count: > 0 } && RevealProgress < 1)
+        {
+            BeginReveal();
+        }
+    }
+
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _isLoaded = false;
         _storyboard?.Stop();
         _storyboard = null;
+        RevealProgress = Slices is { Count: > 0 } ? 1 : 0;
     }
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => RebuildArcVisuals();
@@ -329,4 +362,9 @@ public sealed partial class SpendDonutChart : UserControl
         ArcSegment Segment,
         PathFigure ShadowFigure,
         ArcSegment ShadowSegment);
+
+    private sealed record SliceVisualState(
+        string ProviderId,
+        double Amount,
+        string? ColorHex);
 }

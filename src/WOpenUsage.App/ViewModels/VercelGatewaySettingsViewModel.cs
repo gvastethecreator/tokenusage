@@ -81,6 +81,9 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial SampleProviderCard? ProviderCard { get; private set; }
 
+    [ObservableProperty]
+    public partial SampleSpendSlice? SpendSlice { get; private set; }
+
     public bool IsConnectFormVisible => !IsConfigured;
 
     public bool IsDisconnectVisible => IsConfigured && !IsBusy;
@@ -221,6 +224,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
             VercelGatewayDisconnectResult result = await _coordinator.Connections
                 .DisconnectAsync(cancellation.Token);
             IsConfigured = false;
+            SpendSlice = null;
             ProviderCard = null;
             _lastSnapshot = null;
             IsConsentAccepted = false;
@@ -341,8 +345,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
                     ProviderSnapshot? cached = FindSnapshot(cache.Snapshots);
                     if (cached is not null)
                     {
-                        _lastSnapshot = cached;
-                        ProviderCard = VercelGatewayCardProjector.Create(cached, _getString);
+                        PublishSnapshot(cached);
                         SetState(VercelGatewayUiState.Refreshing, "VercelStatusCachedRefreshing");
                     }
 
@@ -369,8 +372,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
         };
         if (snapshot is not null)
         {
-            _lastSnapshot = snapshot;
-            ProviderCard = VercelGatewayCardProjector.Create(snapshot, _getString);
+            PublishSnapshot(snapshot);
         }
 
         switch (completed.Outcome)
@@ -404,6 +406,7 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
                     .IsConfiguredAsync(cancellationToken);
                 if (!IsConfigured)
                 {
+                    SpendSlice = null;
                     ProviderCard = null;
                     _lastSnapshot = null;
                 }
@@ -427,6 +430,13 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
             snapshot.ProviderId.Value,
             "vercel-ai-gateway",
             StringComparison.Ordinal));
+
+    private void PublishSnapshot(ProviderSnapshot snapshot)
+    {
+        _lastSnapshot = snapshot;
+        SpendSlice = VercelGatewayCardProjector.CreateSpendSlice(snapshot, _getString);
+        ProviderCard = VercelGatewayCardProjector.Create(snapshot, _getString);
+    }
 
     private CancellationTokenSource BeginOperation()
     {

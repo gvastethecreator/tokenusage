@@ -7,7 +7,13 @@ public sealed record SampleSpendSlice(
     string ProviderName,
     double Amount,
     string AmountText,
-    string? ColorHex = null);
+    string? ColorHex = null,
+    string CompactAmountText = "")
+{
+    public string LegendAmountText => string.IsNullOrWhiteSpace(CompactAmountText)
+        ? AmountText
+        : CompactAmountText;
+}
 
 public sealed record UsageHeatmapCell(
     DateOnly Date,
@@ -259,13 +265,16 @@ public sealed record LocalUsageCard(
     IReadOnlyList<LocalUsagePeriodRow> OtherPeriods,
     LocalUsageSpendBreakdown SpendBreakdown,
     IReadOnlyList<ProviderStatusRow> ProviderStatuses,
-    UsageHeatmapModel? ActivityHeatmap = null)
+    UsageHeatmapModel? ActivityHeatmap = null,
+    bool IsNoticeImportant = false)
 {
     public bool HasData => Metrics.Count > 0;
 
     public UsageHeatmapModel Heatmap => ActivityHeatmap ?? UsageHeatmapModel.Empty;
 
     public bool HasUsageDetails => SpendBreakdown.HasContent || Heatmap.HasData;
+
+    public string ExpandedNoticeText => IsNoticeImportant ? string.Empty : NoticeText;
 }
 
 public sealed record ProviderCapabilityRow(
