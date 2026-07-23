@@ -351,6 +351,16 @@
   <data name="DashboardMetricMoveToOnDemandAutomationNameFormat" xml:space="preserve"><value>Show {0} on demand</value></data>
   <data name="DashboardMetricSectionButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Change metric section</value></data>
   <data name="DashboardMetricHighlightLimitReached" xml:space="preserve"><value>You can highlight up to two metrics per provider.</value></data>
+  <data name="DashboardLayoutUndoButton.Content" xml:space="preserve"><value>Undo</value></data>
+  <data name="DashboardLayoutUndoButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Undo last dashboard change</value></data>
+  <data name="DashboardLayoutUndoButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Undo last dashboard change (Ctrl+Z)</value></data>
+  <data name="DashboardLayoutResetButton.Content" xml:space="preserve"><value>Reset</value></data>
+  <data name="DashboardLayoutResetButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset dashboard layout</value></data>
+  <data name="DashboardLayoutResetButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Restore the default dashboard layout</value></data>
+  <data name="DashboardLayoutResetTitle" xml:space="preserve"><value>Reset dashboard layout?</value></data>
+  <data name="DashboardLayoutResetBody" xml:space="preserve"><value>This restores the default provider and metric layout. You can undo it while TokenUsage stays open.</value></data>
+  <data name="DashboardLayoutResetConfirm" xml:space="preserve"><value>Reset dashboard</value></data>
+  <data name="DashboardLayoutResetCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="DashboardAllProvidersHidden.Text" xml:space="preserve"><value>All provider cards are hidden. Open Options to show one.</value></data>
   <data name="DashboardLayoutRecoveredFormat" xml:space="preserve"><value>Invalid layout settings were moved to {0}. You can save new settings.</value></data>
   <data name="DashboardLayoutNewerVersionFormat" xml:space="preserve"><value>Layout format {0} is newer. Update TokenUsage before changing it.</value></data>

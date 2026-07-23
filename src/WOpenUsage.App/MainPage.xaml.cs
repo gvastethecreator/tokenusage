@@ -1,13 +1,16 @@
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Input;
 using Microsoft.Windows.AppLifecycle;
 using Windows.Storage;
 using Windows.System;
 using Windows.UI.ViewManagement;
+using Windows.UI.Core;
 using WOpenUsage.App.Controls;
 using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
@@ -101,6 +104,21 @@ public sealed partial class MainPage : Page
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
+        bool isControlDown = (InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control)
+            & CoreVirtualKeyStates.Down) == CoreVirtualKeyStates.Down;
+        object? focusedElement = FocusManager.GetFocusedElement(XamlRoot);
+        bool isEditingText = focusedElement is TextBox or PasswordBox or RichEditBox;
+        if (e.Key == VirtualKey.Z
+            && isControlDown
+            && ViewModel.IsOptions
+            && ViewModel.CanUndoDashboardLayout
+            && !isEditingText)
+        {
+            _ = ViewModel.UndoDashboardLayoutAsync();
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key != VirtualKey.Escape)
         {
             return;
@@ -228,6 +246,31 @@ public sealed partial class MainPage : Page
         if (sender is FrameworkElement { Tag: string providerId })
         {
             await ViewModel.MoveDashboardProviderAsync(providerId, -1);
+        }
+    }
+
+    private async void OnDashboardLayoutUndoClicked(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.UndoDashboardLayoutAsync();
+    }
+
+    private async void OnDashboardLayoutResetClicked(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = ViewModel.DashboardLayoutResetTitle,
+            Content = ViewModel.DashboardLayoutResetBody,
+            PrimaryButtonText = ViewModel.DashboardLayoutResetConfirm,
+            CloseButtonText = ViewModel.DashboardLayoutResetCancel,
+            DefaultButton = ContentDialogButton.Close,
+        };
+        AutomationProperties.SetAutomationId(dialog, "DashboardLayoutResetDialog");
+        AutomationProperties.SetName(dialog, ViewModel.DashboardLayoutResetTitle);
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            await ViewModel.ResetDashboardLayoutAsync();
         }
     }
 
