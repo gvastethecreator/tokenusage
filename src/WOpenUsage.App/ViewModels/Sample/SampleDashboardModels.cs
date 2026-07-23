@@ -75,9 +75,14 @@ public sealed record SampleDashboardSnapshot(
     string PeriodLabel,
     string SpendAccessibleName,
     IReadOnlyList<SampleSpendSlice> SpendSlices,
-    IReadOnlyList<SampleProviderCard> Providers)
+    IReadOnlyList<SampleProviderCard> Providers,
+    string CompactTotalSpendAmount = "")
 {
     public bool HasSpend => SpendSlices.Count > 0;
+
+    public string DonutCenterAmount => string.IsNullOrWhiteSpace(CompactTotalSpendAmount)
+        ? TotalSpendAmount
+        : CompactTotalSpendAmount;
 }
 
 public sealed record LocalUsageCard(
@@ -136,11 +141,16 @@ public sealed record LocalUsageSpendBreakdown(
     string TotalText,
     string AccessibleName,
     IReadOnlyList<SampleSpendSlice> AgentSlices,
-    IReadOnlyList<LocalUsageModelRow> Models)
+    IReadOnlyList<LocalUsageModelRow> Models,
+    string CompactTotalText = "")
 {
     public bool HasAgentSpend => AgentSlices.Count > 0;
 
     public bool HasModels => Models.Count > 0;
 
     public bool HasContent => HasAgentSpend || HasModels;
+
+    public string DonutCenterText => string.IsNullOrWhiteSpace(CompactTotalText)
+        ? TotalText
+        : CompactTotalText;
 }

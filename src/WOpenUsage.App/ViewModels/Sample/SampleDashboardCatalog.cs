@@ -41,11 +41,11 @@ public static class SampleDashboardCatalog
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(100, 5, false, text), Weekly(36, 1, 6, false, text)),
                 MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), null, "1.24M", "$7.10", text),
+                    text("SampleCapabilityLocalSpend"), null, 1_240_000, 7.10, text),
                 MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), null, "860K", "$5.92", text),
+                    text("SampleCapabilityLocalSpend"), null, 860_000, 5.92, text),
                 MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
-                    text("SampleCapabilityLocal"), text("SampleNoticeNoQuota"), "120K", "$0.40", text),
+                    text("SampleCapabilityLocal"), text("SampleNoticeNoQuota"), 120_000, 0.40, text),
             ]);
     }
 
@@ -70,9 +70,9 @@ public static class SampleDashboardCatalog
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(12, 2, true, text), Weekly(5, 0, 8, true, text)),
                 MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), text("SampleNoticeHighSpend"), "4.10M", "$18.90", text),
+                    text("SampleCapabilityLocalSpend"), text("SampleNoticeHighSpend"), 4_100_000, 18.90, text),
                 MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), null, "2.20M", "$15.80", text),
+                    text("SampleCapabilityLocalSpend"), null, 2_200_000, 15.80, text),
                 QuotaProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"), text,
                     SoftBudget(11, 3, true, text)),
             ]);
@@ -99,11 +99,11 @@ public static class SampleDashboardCatalog
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     text("SampleNoticePartial"), Weekly(36, 1, 6, false, text)),
                 MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), text("SampleNoticePartial"), "720K", "$4.25", text),
+                    text("SampleCapabilityLocalSpend"), text("SampleNoticePartial"), 720_000, 4.25, text),
                 MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), null, "640K", "$4.80", text),
+                    text("SampleCapabilityLocalSpend"), null, 640_000, 4.80, text),
                 MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
-                    text("SampleCapabilityPolicy"), text("SampleNoticePolicy"), "64K", null, text),
+                    text("SampleCapabilityPolicy"), text("SampleNoticePolicy"), 64_000, null, text),
             ]);
     }
 
@@ -128,11 +128,11 @@ public static class SampleDashboardCatalog
                 QuotaProvider("claude", "SampleProvider.Claude", "Claude", text("SamplePlanPro"), text,
                     Session(100, 5, false, text), Weekly(36, 1, 6, false, text)),
                 MetricProvider("grok", "SampleProvider.GrokBuild", "Grok Build", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), null, "1.24M", "$7.10", text),
+                    text("SampleCapabilityLocalSpend"), null, 1_240_000, 7.10, text),
                 MetricProvider("opencode", "SampleProvider.OpenCode", "OpenCode", text("SamplePlanLocal"),
-                    text("SampleCapabilityLocalSpend"), null, "860K", "$5.92", text),
+                    text("SampleCapabilityLocalSpend"), null, 860_000, 5.92, text),
                 MetricProvider("antigravity", "SampleProvider.Antigravity", "Antigravity CLI", text("SamplePlanExperimental"),
-                    text("SampleCapabilityLocal"), text("SampleNoticeNoQuota"), "120K", "$0.40", text),
+                    text("SampleCapabilityLocal"), text("SampleNoticeNoQuota"), 120_000, 0.40, text),
             ]);
     }
 
@@ -160,10 +160,13 @@ public static class SampleDashboardCatalog
         IReadOnlyList<SampleSpendSlice> slices,
         IReadOnlyList<SampleProviderCard> providers)
     {
-        string totalText = Money(total);
+        SampleSpendSlice[] localizedSlices = slices
+            .Select(slice => slice with { AmountText = Money(slice.Amount, text) })
+            .ToArray();
+        string totalText = Money(total, text);
         string details = string.Join(
             ", ",
-            slices.Select(slice => $"{slice.ProviderName} {slice.AmountText}"));
+            localizedSlices.Select(slice => $"{slice.ProviderName} {slice.AmountText}"));
 
         return new(
             scenario,
@@ -176,16 +179,17 @@ public static class SampleDashboardCatalog
                 SampleScenario.Error => "SamplePeriodError",
                 _ => "SamplePeriodNormal",
             }),
-            Format(text, "SampleSpendAccessibleNameFormat", totalText, slices.Count, details),
-            slices,
-            providers);
+            Format(text, "SampleSpendAccessibleNameFormat", totalText, localizedSlices.Length, details),
+            localizedSlices,
+            providers,
+            Format(text, "SampleUsdCompactFormat", total));
     }
 
     private static SampleSpendSlice Spend(
         string providerId,
         string provider,
         double amount) =>
-        new(providerId, provider, amount, Money(amount));
+        new(providerId, provider, amount, string.Empty);
 
     private static SampleProviderCard QuotaProvider(
         string providerId,
@@ -224,14 +228,15 @@ public static class SampleDashboardCatalog
         string plan,
         string capability,
         string? notice,
-        string tokens,
-        string? spend,
+        long tokens,
+        double? spend,
         Func<string, string> text)
     {
-        List<SampleMetric> metrics = [new(text("SampleMetricTokens"), tokens)];
+        List<SampleMetric> metrics =
+            [new(text("SampleMetricTokens"), CompactTokens(tokens, includeUnit: false, text))];
         if (spend is not null)
         {
-            metrics.Add(new SampleMetric(text("SampleMetricSpend"), spend));
+            metrics.Add(new SampleMetric(text("SampleMetricSpend"), Money(spend.Value, text)));
         }
 
         return WithSampleDetails(
@@ -279,9 +284,24 @@ public static class SampleDashboardCatalog
             .ToArray();
         IReadOnlyList<SampleMetric> metrics = scenario switch
         {
-            SampleScenario.NearLimit => UsageMetrics("490K tokens", "420K tokens", "3.2M tokens", "12.4M tokens", text),
-            SampleScenario.Partial => UsageMetrics("0 tokens", text("CodexUsageMissing"), "820K tokens", text("CodexUsageMissing"), text),
-            _ => UsageMetrics("185K tokens", "162K tokens", "1.24M tokens", "5.82M tokens", text),
+            SampleScenario.NearLimit => UsageMetrics(
+                CompactTokens(490_000, includeUnit: true, text),
+                CompactTokens(420_000, includeUnit: true, text),
+                CompactTokens(3_200_000, includeUnit: true, text),
+                CompactTokens(12_400_000, includeUnit: true, text),
+                text),
+            SampleScenario.Partial => UsageMetrics(
+                CompactTokens(0, includeUnit: true, text),
+                text("CodexUsageMissing"),
+                CompactTokens(820_000, includeUnit: true, text),
+                text("CodexUsageMissing"),
+                text),
+            _ => UsageMetrics(
+                CompactTokens(185_000, includeUnit: true, text),
+                CompactTokens(162_000, includeUnit: true, text),
+                CompactTokens(1_240_000, includeUnit: true, text),
+                CompactTokens(5_820_000, includeUnit: true, text),
+                text),
         };
 
         return provider with
@@ -368,6 +388,32 @@ public static class SampleDashboardCatalog
     private static string Format(Func<string, string> text, string key, params object[] args) =>
         string.Format(CultureInfo.CurrentCulture, text(key), args);
 
-    private static string Money(double value) =>
-        value.ToString("$0.00", CultureInfo.InvariantCulture);
+    private static string Money(double value, Func<string, string> text) =>
+        Format(text, "SampleUsdFormat", value);
+
+    private static string CompactTokens(
+        long value,
+        bool includeUnit,
+        Func<string, string> text)
+    {
+        if (value >= 1_000_000)
+        {
+            return Format(
+                text,
+                includeUnit ? "SampleTokenMillionsFormat" : "SampleCompactMillionsFormat",
+                value / 1_000_000d);
+        }
+
+        if (value >= 1_000)
+        {
+            return Format(
+                text,
+                includeUnit ? "SampleTokenThousandsFormat" : "SampleCompactThousandsFormat",
+                value / 1_000d);
+        }
+
+        return includeUnit
+            ? Format(text, "SampleTokenExactFormat", value)
+            : value.ToString("N0", CultureInfo.CurrentCulture);
+    }
 }

@@ -180,6 +180,48 @@
                             <StackPanel
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
+                                <Border
+                                    AutomationProperties.AutomationId="LanguageSection"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="8"
+                                    Padding="10,8">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock
+                                            x:Uid="LanguageSectionTitle"
+                                            Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <ComboBox
+                                            x:Name="LanguageSelector"
+                                            x:Uid="LanguageSelector"
+                                            AutomationProperties.AutomationId="LanguageSelector"
+                                            DisplayMemberPath="DisplayName"
+                                            HorizontalAlignment="Stretch"
+                                            ItemsSource="{x:Bind ViewModel.LanguageOptions}"
+                                            SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
+                                        <InfoBar
+                                            x:Name="LanguageRestartNotice"
+                                            x:Uid="LanguageRestartNotice"
+                                            AutomationProperties.AutomationId="LanguageRestartNotice"
+                                            AutomationProperties.LiveSetting="Polite"
+                                            IsClosable="False"
+                                            IsOpen="{x:Bind ViewModel.IsLanguageRestartRequired, Mode=OneWay}"
+                                            Severity="Informational">
+                                            <InfoBar.ActionButton>
+                                                <Button
+                                                    x:Uid="LanguageRestartButton"
+                                                    AutomationProperties.AutomationId="LanguageRestartButton"
+                                                    Click="OnRestartForLanguageClicked" />
+                                            </InfoBar.ActionButton>
+                                        </InfoBar>
+                                        <InfoBar
+                                            x:Name="LanguageRestartError"
+                                            x:Uid="LanguageRestartError"
+                                            AutomationProperties.AutomationId="LanguageRestartError"
+                                            AutomationProperties.LiveSetting="Assertive"
+                                            IsClosable="False"
+                                            IsOpen="{x:Bind ViewModel.IsLanguageRestartErrorVisible, Mode=OneWay}"
+                                            Severity="Error" />
+                                    </StackPanel>
+                                </Border>
                                 <ToggleSwitch
                                     x:Name="CloseWhenInactiveToggle"
                                     x:Uid="CloseWhenInactiveToggle"
@@ -394,7 +436,7 @@
                                 <controls:SpendDonutChart
                                     x:Name="SampleSpendDonutChart"
                                     AccessibleName="{x:Bind ViewModel.ActiveSample.SpendAccessibleName, Mode=OneWay}"
-                                    CenterValue="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
+                                    CenterValue="{x:Bind ViewModel.ActiveSample.DonutCenterAmount, Mode=OneWay}"
                                     Slices="{x:Bind ViewModel.ActiveSample.SpendSlices, Mode=OneWay}" />
 
                                 <ItemsControl
@@ -573,7 +615,7 @@
                                             </Grid.ColumnDefinitions>
                                             <controls:SpendDonutChart
                                                 AccessibleName="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
-                                                CenterValue="{x:Bind ViewModel.LocalUsage.SpendBreakdown.TotalText, Mode=OneWay}"
+                                                CenterValue="{x:Bind ViewModel.LocalUsage.SpendBreakdown.DonutCenterText, Mode=OneWay}"
                                                 Height="88"
                                                 Slices="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AgentSlices, Mode=OneWay}"
                                                 Width="88" />

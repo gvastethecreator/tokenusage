@@ -20,6 +20,8 @@ Investigación, plan, scaffold WinUI y límites de arquitectura listos. La app e
 - Gasto local: periodos Hoy, Ayer, 7 días, 30 días y Mes actual, con coste
   informado/estimado, cobertura, anillo por agente y detalle por modelo.
 - Antigravity CLI: solo lectura pasiva de datos locales en fase experimental; la app no usa su login ni consulta servicios privados.
+- Idioma: Opciones permite inglés (`en-US`) y español (`es-ES`); el cambio se
+  aplica tras reiniciar la instancia y mantiene formatos de moneda y tokens.
 
 ## Scaffold WinUI
 
@@ -86,6 +88,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia del scanner Grok Build local](docs/evidence/ticket-18-grok-local-usage.md)
 - [Evidencia del scanner OpenCode local](docs/evidence/ticket-19-opencode-local-usage.md)
 - [Evidencia del gasto agregado real](docs/evidence/ticket-20-real-spend.md)
+- [Evidencia de i18n inicial](docs/evidence/ticket-47-i18n.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente Cursor](docs/research/2026-07-21-cursor-windows-source.md)
 - [Gate de fuente GitHub Copilot](docs/research/2026-07-21-copilot-source-gate.md)

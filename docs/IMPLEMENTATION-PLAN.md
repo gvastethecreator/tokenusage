@@ -487,6 +487,10 @@ Esfuerzo: 5–8 días.
 - `M7.12` Cerrar i18n inicial para `en-US` y `es-ES`: selector persistente,
   paridad de recursos, formatos por cultura, fallback y prueba de texto largo.
 
+Estado 2026-07-22: Ticket 47 completó `M7.12` con selector persistente,
+fallback canónico, formatos por cultura, prueba empaquetada en ambos idiomas y
+evidencia en `docs/evidence/ticket-47-i18n.md`.
+
 ### Pruebas
 
 - migración de ajustes;

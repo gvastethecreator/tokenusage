@@ -1,3 +1,4 @@
+using System.Globalization;
 using WOpenUsage.Cli;
 using WOpenUsage.Core.Usage;
 using WOpenUsage.Providers.Fakes;
@@ -6,9 +7,12 @@ namespace WOpenUsage.Cli.Tests;
 
 public sealed class LocalUsageCliAccessTests
 {
-    [Fact]
-    public async Task CliReadsTheSameSeparatedRollupsAsTheApp()
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("es-ES")]
+    public async Task CliReadsTheSameSeparatedRollupsAsTheAppInEitherCulture(string cultureName)
     {
+        using var culture = new CultureScope(cultureName);
         string directory = Path.Combine(
             Path.GetTempPath(),
             "wopenusage-cli-tests",
@@ -43,5 +47,24 @@ public sealed class LocalUsageCliAccessTests
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class CultureScope : IDisposable
+    {
+        private readonly CultureInfo _originalCulture = CultureInfo.CurrentCulture;
+        private readonly CultureInfo _originalUiCulture = CultureInfo.CurrentUICulture;
+
+        public CultureScope(string cultureName)
+        {
+            CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+        }
+
+        public void Dispose()
+        {
+            CultureInfo.CurrentCulture = _originalCulture;
+            CultureInfo.CurrentUICulture = _originalUiCulture;
+        }
     }
 }
