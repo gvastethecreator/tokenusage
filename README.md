@@ -22,9 +22,10 @@ Investigación, plan, scaffold WinUI y límites de arquitectura listos. La app e
 - Antigravity CLI: solo lectura pasiva de datos locales en fase experimental; la app no usa su login ni consulta servicios privados.
 - Idioma: Opciones permite inglés (`en-US`) y español (`es-ES`); el cambio se
   aplica tras reiniciar la instancia y mantiene formatos de moneda y tokens.
-- CLI: el primer corte real admite `usage --days N --format human|json`, lee la
-  misma SQLite que la app y publica el contrato `wusage.usage.v1`. Los comandos
-  `limits`, `providers` y `doctor` siguen en desarrollo.
+- CLI: `usage --days N --format human|json` lee la SQLite compartida y
+  `limits [provider-id] --format human|json` lee la caché real de Codex. Publica
+  `wusage.usage.v1` y `wusage.limits.v1`. El refresco `limits --force`,
+  `providers` y `doctor` siguen en desarrollo.
 
 ## Scaffold WinUI
 
@@ -93,6 +94,7 @@ El control rechaza `AnyCPU` y `x86`. La evidencia está en [Ticket 04](docs/evid
 - [Evidencia del gasto agregado real](docs/evidence/ticket-20-real-spend.md)
 - [Evidencia de i18n inicial](docs/evidence/ticket-47-i18n.md)
 - [Evidencia del primer corte CLI](docs/evidence/ticket-25a-usage-cli.md)
+- [Evidencia de límites desde la CLI](docs/evidence/ticket-25b-limits-cli.md)
 - [Gate de cuota Z.ai](docs/research/2026-07-21-zai-gate.md)
 - [Gate de fuente ZCode](docs/research/2026-07-22-zcode-source-gate.md)
 - [Gate de fuente Kilo Code](docs/research/2026-07-22-kilo-code-source-gate.md)
