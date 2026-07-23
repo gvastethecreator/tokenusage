@@ -1273,8 +1273,9 @@
                                 <Expander
                                     AutomationProperties.AutomationId="UsageProductCard.Breakdown30Days"
                                     AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
+                                    Expanding="OnUsageDetailsExpanding"
                                     IsExpanded="False"
-                                    Visibility="{x:Bind ViewModel.LocalUsage.SpendBreakdown.HasContent, Mode=OneWay}">
+                                    Visibility="{x:Bind ViewModel.LocalUsage.HasUsageDetails, Mode=OneWay}">
                                     <Expander.Header>
                                         <StackPanel Spacing="1">
                                             <TextBlock
@@ -1289,6 +1290,27 @@
                                         </StackPanel>
                                     </Expander.Header>
                                     <StackPanel Padding="0,6,0,0" Spacing="8">
+                                        <StackPanel
+                                            AutomationProperties.AutomationId="UsageProductCard.Heatmap"
+                                            AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.Heatmap.AccessibleName, Mode=OneWay}"
+                                            Spacing="4"
+                                            Visibility="{x:Bind ViewModel.LocalUsage.Heatmap.HasData, Mode=OneWay}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Style="{StaticResource DashboardCompactStrongTextBlockStyle}"
+                                                    Text="{x:Bind ViewModel.LocalUsage.Heatmap.Title, Mode=OneWay}" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource DashboardCaptionTextBlockStyle}"
+                                                    Text="{x:Bind ViewModel.LocalUsage.Heatmap.Summary, Mode=OneWay}" />
+                                            </Grid>
+                                            <controls:UsageHeatmap Data="{x:Bind ViewModel.LocalUsage.Heatmap, Mode=OneWay}" />
+                                        </StackPanel>
                                         <Grid
                                             AutomationProperties.AutomationId="UsageProductCard.AgentRing30Days"
                                             AutomationProperties.Name="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AccessibleName, Mode=OneWay}"
@@ -1502,6 +1524,7 @@
                                                 x:Uid="ProviderSecondaryMetricsToggle"
                                                 Grid.Column="3"
                                                 AutomationProperties.AutomationId="{x:Bind SecondaryMetricsAutomationId}"
+                                                Checked="OnProviderUsageDetailsChecked"
                                                 IsChecked="{x:Bind IsOnDemandMetricsExpanded, Mode=TwoWay}"
                                                 MinHeight="32"
                                                 MinWidth="32"
@@ -1648,6 +1671,22 @@
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
+                                                <StackPanel
+                                                    AutomationProperties.AutomationId="{x:Bind Heatmap.AutomationId}"
+                                                    AutomationProperties.Name="{x:Bind Heatmap.AccessibleName}"
+                                                    Margin="0,4,0,0"
+                                                    Spacing="4"
+                                                    Visibility="{x:Bind IsHeatmapExpanded, Mode=OneWay}">
+                                                    <Grid ColumnSpacing="8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Heatmap.Title}" />
+                                                        <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource DashboardCaptionTextBlockStyle}" Text="{x:Bind Heatmap.Summary}" />
+                                                    </Grid>
+                                                    <controls:UsageHeatmap Data="{x:Bind Heatmap}" />
+                                                </StackPanel>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>

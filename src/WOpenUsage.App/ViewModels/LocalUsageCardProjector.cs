@@ -95,7 +95,8 @@ public static class LocalUsageCardProjector
             metrics,
             otherPeriods,
             breakdown,
-            providerStatuses);
+            providerStatuses,
+            UsageHeatmapProjector.Create(rollups, currentDate, getString));
     }
 
     public static LocalUsageCard CreateUnavailable(

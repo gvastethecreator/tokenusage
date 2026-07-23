@@ -200,6 +200,12 @@
   <data name="LocalUsagePeriodAccessibleFormat" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
   <data name="LocalUsagePeriodEmptyAccessibleFormat" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="LocalUsageBreakdownTitle" xml:space="preserve"><value>30-day breakdown</value></data>
+  <data name="UsageHeatmapTitle" xml:space="preserve"><value>Daily activity</value></data>
+  <data name="UsageHeatmapSummaryFormat" xml:space="preserve"><value>{0} active days · last {1}</value></data>
+  <data name="UsageHeatmapEmptyDayFormat" xml:space="preserve"><value>{0}: no activity</value></data>
+  <data name="UsageHeatmapDayFormat" xml:space="preserve"><value>{0}: {1} tokens across {2} events; {3}</value></data>
+  <data name="UsageHeatmapCostFormat" xml:space="preserve"><value>US${0:0.00}</value></data>
+  <data name="UsageHeatmapCostUnavailable" xml:space="preserve"><value>spend unavailable</value></data>
   <data name="LocalUsageBreakdownSummaryFormat" xml:space="preserve"><value>{0} agents · {1} models</value></data>
   <data name="LocalUsageBreakdownAccessibleFormat" xml:space="preserve"><value>Reported and estimated spend distribution: {0}. {1}</value></data>
   <data name="LocalUsageModelReportedFormat" xml:space="preserve"><value>Reported {0}</value></data>
