@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Windows.ApplicationModel.Resources;
 using System.Data.Common;
+using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
@@ -36,6 +37,15 @@ public partial class FlyoutViewModel : ObservableObject
             ?? throw new ArgumentNullException(nameof(codexRefreshCoordinator));
         _localUsageCoordinator = localUsageCoordinator
             ?? throw new ArgumentNullException(nameof(localUsageCoordinator));
+        LanguageOptions =
+        [
+            new(AppLanguageCatalog.EnglishUnitedStates, GetString("LanguageEnglish")),
+            new(AppLanguageCatalog.SpanishSpain, GetString("LanguageSpanish")),
+        ];
+        SelectedLanguage = LanguageOptions.Single(option => string.Equals(
+            option.LanguageTag,
+            AppLanguageRuntime.ActiveLanguageTag,
+            StringComparison.OrdinalIgnoreCase));
         SampleScenarios =
         [
             new(SampleScenario.Normal, GetString("SampleScenarioNormal")),
@@ -75,6 +85,15 @@ public partial class FlyoutViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool CloseWhenInactive { get; set; } = true;
+
+    [ObservableProperty]
+    public partial AppLanguageOption SelectedLanguage { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLanguageRestartRequired { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLanguageRestartErrorVisible { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSampleScenarioEnabled))]
@@ -205,6 +224,10 @@ public partial class FlyoutViewModel : ObservableObject
 
     public IReadOnlyList<SampleScenarioOption> SampleScenarios { get; }
 
+    public IReadOnlyList<AppLanguageOption> LanguageOptions { get; }
+
+    public string PendingLanguageTag => SelectedLanguage.LanguageTag;
+
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private Task RefreshAsync() => RefreshDashboardAsync(
         IsSampleModeEnabled ? SelectedSampleScenario.Value : null,
@@ -227,6 +250,22 @@ public partial class FlyoutViewModel : ObservableObject
     }
 
     private bool CanCloseOptions() => IsOptions;
+
+    partial void OnSelectedLanguageChanged(AppLanguageOption value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        IsLanguageRestartRequired = AppLanguageRuntime.RequiresRestart(value.LanguageTag);
+        IsLanguageRestartErrorVisible = false;
+    }
+
+    public void ReportLanguageRestartFailure()
+    {
+        IsLanguageRestartErrorVisible = true;
+    }
 
     partial void OnIsSampleModeEnabledChanged(bool value)
     {

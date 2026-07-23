@@ -1,3 +1,4 @@
+using System.Globalization;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Providers.Fakes;
@@ -20,6 +21,7 @@ public sealed class SampleDashboardProjectorTests
         string expectedTotal,
         double expectedRemaining)
     {
+        using var culture = new CultureScope("en-US");
         var runtime = new FakeProviderRuntime(providerScenario, descriptor: Codex);
         ProviderOutcome outcome = await runtime.RefreshAsync(
             new RefreshContext(new FixedTimeProvider(Now)),
@@ -64,6 +66,30 @@ public sealed class SampleDashboardProjectorTests
             GetString));
     }
 
+    [Theory]
+    [InlineData("en-US", "$48.12", "1.24M", "$7.10", "185K tokens")]
+    [InlineData("es-ES", "48,12 US$", "1,24 M", "7,10 US$", "185 mil tokens")]
+    public void SampleCatalogFormatsMoneyAndCompactTokensForCulture(
+        string cultureName,
+        string expectedTotal,
+        string expectedGrokTokens,
+        string expectedGrokSpend,
+        string expectedCodexToday)
+    {
+        using var culture = new CultureScope(cultureName);
+
+        SampleDashboardSnapshot dashboard = SampleDashboardCatalog.Create(
+            SampleScenario.Normal,
+            GetString);
+        SampleProviderCard grok = dashboard.Providers.Single(provider => provider.ProviderId == "grok");
+        SampleProviderCard codex = dashboard.Providers.Single(provider => provider.ProviderId == "codex");
+
+        Assert.Equal(expectedTotal, dashboard.TotalSpendAmount);
+        Assert.Equal(expectedGrokTokens, grok.Metrics[0].Value);
+        Assert.Equal(expectedGrokSpend, grok.Metrics[1].Value);
+        Assert.Equal(expectedCodexToday, codex.SecondaryMetricItems[0].Value);
+    }
+
     private static string GetString(string key) =>
         key switch
         {
@@ -78,8 +104,40 @@ public sealed class SampleDashboardProjectorTests
             "ProviderObservedNow" => "Now",
             "ProviderDetailsTooltipFormat" => "Source: {0}. Updated: {1}.",
             "ProviderDetailsAutomationNameFormat" => "Details for {0}",
+            "SampleUsdFormat" when CultureInfo.CurrentCulture.Name == "es-ES" => "{0:N2} US$",
+            "SampleUsdFormat" => "${0:N2}",
+            "SampleUsdCompactFormat" when CultureInfo.CurrentCulture.Name == "es-ES" => "{0:N2}$",
+            "SampleUsdCompactFormat" => "${0:N2}",
+            "SampleCompactThousandsFormat" when CultureInfo.CurrentCulture.Name == "es-ES" => "{0:0.##} mil",
+            "SampleCompactThousandsFormat" => "{0:0.##}K",
+            "SampleCompactMillionsFormat" when CultureInfo.CurrentCulture.Name == "es-ES" => "{0:0.##} M",
+            "SampleCompactMillionsFormat" => "{0:0.##}M",
+            "SampleTokenThousandsFormat" when CultureInfo.CurrentCulture.Name == "es-ES" => "{0:0.##} mil tokens",
+            "SampleTokenThousandsFormat" => "{0:0.##}K tokens",
+            "SampleTokenMillionsFormat" when CultureInfo.CurrentCulture.Name == "es-ES" => "{0:0.##} M tokens",
+            "SampleTokenMillionsFormat" => "{0:0.##}M tokens",
+            "SampleTokenExactFormat" => "{0:N0} tokens",
             _ => key,
         };
+
+    private sealed class CultureScope : IDisposable
+    {
+        private readonly CultureInfo _originalCulture = CultureInfo.CurrentCulture;
+        private readonly CultureInfo _originalUiCulture = CultureInfo.CurrentUICulture;
+
+        public CultureScope(string cultureName)
+        {
+            CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+        }
+
+        public void Dispose()
+        {
+            CultureInfo.CurrentCulture = _originalCulture;
+            CultureInfo.CurrentUICulture = _originalUiCulture;
+        }
+    }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {

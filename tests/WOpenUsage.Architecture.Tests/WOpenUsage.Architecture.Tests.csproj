@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\WOpenUsage.App\Localization\AppLanguageCatalog.cs"
+             Link="AppLanguageCatalog.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\Localization\AppLanguageRestartArguments.cs"
+             Link="AppLanguageRestartArguments.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\Controls\SpendDonutGeometry.cs"
              Link="SpendDonutGeometry.cs" />
   </ItemGroup>
