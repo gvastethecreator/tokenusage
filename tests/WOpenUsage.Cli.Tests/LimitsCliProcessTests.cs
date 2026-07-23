@@ -10,6 +10,10 @@ public sealed class LimitsCliProcessTests
 {
     private const string FakeModeEnvironmentVariable = "WOPENUSAGE_FAKE_CODEX_MODE";
     private const string FakeNowEnvironmentVariable = "WOPENUSAGE_FAKE_NOW_UTC";
+    private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(45);
+    private static readonly decimal[] AllowedSessionUsage = [20m, 90m];
+    private static readonly DateTimeOffset SnapshotNow =
+        new(2026, 7, 23, 3, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task ConcurrentProcessesReadSharedCacheWithoutDamage()
@@ -59,6 +63,96 @@ public sealed class LimitsCliProcessTests
                 Path.GetDirectoryName(cachePath)!,
                 "*.corrupt-*",
                 SearchOption.TopDirectoryOnly));
+        }
+        finally
+        {
+            Directory.Delete(dataRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task WriterAndCliShareCacheWithoutCorruption()
+    {
+        string dataRoot = Path.Combine(
+            Path.GetTempPath(),
+            "tokenusage-limits-writer-cli-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dataRoot);
+
+        try
+        {
+            string cachePath = Path.Combine(
+                dataRoot,
+                "cache",
+                "providers",
+                "codex",
+                SnapshotStore.DefaultFileName);
+            var store = new SnapshotStore(cachePath);
+            ProviderSnapshot snapshotA = CreateCodexSnapshot(20m);
+            ProviderSnapshot snapshotB = CreateCodexSnapshot(90m);
+            await store.UpsertLastGoodAsync(snapshotA);
+
+            using var stopWriter = new CancellationTokenSource(ProcessTimeout);
+            var firstWrite = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            Task writer = Task.Run(async () =>
+            {
+                int iteration = 0;
+                while (!stopWriter.IsCancellationRequested)
+                {
+                    await store.UpsertLastGoodAsync(
+                        iteration++ % 2 == 0 ? snapshotB : snapshotA);
+                    firstWrite.TrySetResult();
+                    await Task.Yield();
+                }
+            });
+
+            ProcessResult[] results;
+            try
+            {
+                await firstWrite.Task.WaitAsync(ProcessTimeout);
+                results = await Task.WhenAll(
+                    RunLimitsProcessAsync(dataRoot),
+                    RunLimitsProcessAsync(dataRoot));
+            }
+            finally
+            {
+                stopWriter.Cancel();
+                await writer.WaitAsync(ProcessTimeout);
+            }
+
+            foreach (ProcessResult result in results)
+            {
+                Assert.Equal(0, result.ExitCode);
+                Assert.Equal(string.Empty, result.StandardError);
+                using JsonDocument document = JsonDocument.Parse(result.StandardOutput);
+                Assert.Equal(
+                    "wusage.limits.v1",
+                    document.RootElement.GetProperty("schemaVersion").GetString());
+                JsonElement provider = Assert.Single(document.RootElement
+                    .GetProperty("providers")
+                    .EnumerateArray());
+                Assert.Equal("codex", provider.GetProperty("id").GetString());
+                decimal used = provider.GetProperty("metrics")
+                    .EnumerateArray()
+                    .Single(metric => metric.GetProperty("id").GetString() == "session")
+                    .GetProperty("used")
+                    .GetDecimal();
+                Assert.Contains(used, AllowedSessionUsage);
+            }
+
+            SnapshotCacheReadResult.Loaded loaded =
+                Assert.IsType<SnapshotCacheReadResult.Loaded>(await store.LoadAsync());
+            ProviderSnapshot finalSnapshot = Assert.Single(loaded.Snapshots);
+            decimal finalUsed = Assert.IsType<ProgressMetricSnapshot>(
+                finalSnapshot.Metrics.Single(metric => metric.Id.Value == "session")).Used;
+            Assert.Contains(finalUsed, AllowedSessionUsage);
+            using JsonDocument finalDocument = JsonDocument.Parse(
+                await File.ReadAllTextAsync(cachePath));
+            Assert.Equal(1, finalDocument.RootElement.GetProperty("schemaVersion").GetInt32());
+            string cacheDirectory = Path.GetDirectoryName(cachePath)!;
+            Assert.Empty(Directory.EnumerateFiles(cacheDirectory, "*.corrupt-*"));
+            Assert.Empty(Directory.EnumerateFiles(cacheDirectory, "*.tmp"));
         }
         finally
         {
@@ -195,11 +289,54 @@ public sealed class LimitsCliProcessTests
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("The CLI process did not start.");
-        string standardOutput = await process.StandardOutput.ReadToEndAsync();
-        string standardError = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(ProcessTimeout);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+            throw new TimeoutException("The CLI process did not exit within 45 seconds.");
+        }
+
+        string standardOutput = await standardOutputTask;
+        string standardError = await standardErrorTask;
         return new ProcessResult(process.ExitCode, standardOutput, standardError);
     }
+
+    private static ProviderSnapshot CreateCodexSnapshot(decimal used) =>
+        new(
+            new ProviderId("codex"),
+            "Codex",
+            "Plus",
+            SnapshotNow,
+            SnapshotNow.AddMinutes(-5),
+            "UTC",
+            [
+                new ScalarMetricSnapshot(
+                    new MetricId("spend-usd"),
+                    12.34m,
+                    "USD",
+                    new DataProvenance(
+                        SourceKind.LocalLog,
+                        MeasurementKind.Estimated,
+                        "concurrency-test/1")),
+                new ProgressMetricSnapshot(
+                    new MetricId("session"),
+                    used,
+                    100m,
+                    SnapshotNow.AddHours(3),
+                    new DataProvenance(
+                        SourceKind.OfficialLocalApi,
+                        MeasurementKind.ProviderReported,
+                        "concurrency-test/1")),
+            ],
+            CoverageKind.Complete,
+            1);
 
     private static string GetFakeCodexPath()
     {
