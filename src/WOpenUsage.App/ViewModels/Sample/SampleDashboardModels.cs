@@ -9,6 +9,29 @@ public sealed record SampleSpendSlice(
     string AmountText,
     string? ColorHex = null);
 
+public sealed record UsageHeatmapCell(
+    DateOnly Date,
+    int Level,
+    long TotalTokens,
+    int EventCount,
+    string AutomationId,
+    string AccessibleName)
+{
+    public bool HasActivity => Level > 0;
+}
+
+public sealed record UsageHeatmapModel(
+    string Title,
+    string Summary,
+    string AccessibleName,
+    string AutomationId,
+    IReadOnlyList<UsageHeatmapCell> Cells)
+{
+    public static UsageHeatmapModel Empty { get; } = new("", "", "", "", []);
+
+    public bool HasData => Cells.Count > 0;
+}
+
 public sealed record SampleQuotaWindow(
     string Title,
     double RemainingPercent,
@@ -133,7 +156,8 @@ public sealed record SampleProviderCard(
     IReadOnlyList<SampleQuotaWindow>? SecondaryWindows = null,
     IReadOnlyList<SampleDashboardMetricItem>? OrderedPrimaryMetrics = null,
     IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null,
-    string? ProviderColorHex = null) : INotifyPropertyChanged
+    string? ProviderColorHex = null,
+    UsageHeatmapModel? ActivityHeatmap = null) : INotifyPropertyChanged
 {
     private bool _isOnDemandMetricsExpanded;
 
@@ -153,6 +177,12 @@ public sealed record SampleProviderCard(
             PropertyChanged?.Invoke(
                 this,
                 new PropertyChangedEventArgs(nameof(IsOnDemandMetricsExpanded)));
+            if (HasHeatmap)
+            {
+                PropertyChanged?.Invoke(
+                    this,
+                    new PropertyChangedEventArgs(nameof(IsHeatmapExpanded)));
+            }
         }
     }
 
@@ -178,7 +208,13 @@ public sealed record SampleProviderCard(
 
     public bool HasSecondaryWindows => SecondaryWindowItems.Count > 0;
 
-    public bool HasOnDemandMetrics => OnDemandMetricItems.Count > 0;
+    public UsageHeatmapModel Heatmap => ActivityHeatmap ?? UsageHeatmapModel.Empty;
+
+    public bool HasHeatmap => Heatmap.HasData;
+
+    public bool IsHeatmapExpanded => IsOnDemandMetricsExpanded && HasHeatmap;
+
+    public bool HasOnDemandMetrics => OnDemandMetricItems.Count > 0 || HasHeatmap;
 
     public bool HasDetails =>
         !string.IsNullOrWhiteSpace(SourceValue) || !string.IsNullOrWhiteSpace(ObservedValue);
@@ -222,9 +258,14 @@ public sealed record LocalUsageCard(
     IReadOnlyList<SampleMetric> Metrics,
     IReadOnlyList<LocalUsagePeriodRow> OtherPeriods,
     LocalUsageSpendBreakdown SpendBreakdown,
-    IReadOnlyList<ProviderStatusRow> ProviderStatuses)
+    IReadOnlyList<ProviderStatusRow> ProviderStatuses,
+    UsageHeatmapModel? ActivityHeatmap = null)
 {
     public bool HasData => Metrics.Count > 0;
+
+    public UsageHeatmapModel Heatmap => ActivityHeatmap ?? UsageHeatmapModel.Empty;
+
+    public bool HasUsageDetails => SpendBreakdown.HasContent || Heatmap.HasData;
 }
 
 public sealed record ProviderCapabilityRow(

@@ -103,7 +103,7 @@ public sealed class LocalUsageCoordinator
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(
-            Min(today.AddDays(-29), new DateOnly(today.Year, today.Month, 1)),
+            Min(today.AddDays(-34), new DateOnly(today.Year, today.Month, 1)),
             today,
             cancellationToken).ConfigureAwait(false);
         return LocalUsageCardProjector.Create(
