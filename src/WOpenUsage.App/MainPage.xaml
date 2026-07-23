@@ -8,6 +8,7 @@
     xmlns:controls="using:WOpenUsage.App.Controls"
     xmlns:converters="using:WOpenUsage.App.Converters"
     xmlns:sample="using:WOpenUsage.App.ViewModels.Sample"
+    xmlns:viewModels="using:WOpenUsage.App.ViewModels"
     Background="Transparent"
     mc:Ignorable="d">
 
@@ -253,6 +254,142 @@
                                     IsEnabled="{x:Bind ViewModel.IsSampleScenarioEnabled, Mode=OneWay}"
                                     ItemsSource="{x:Bind ViewModel.SampleScenarios}"
                                     SelectedItem="{x:Bind ViewModel.SelectedSampleScenario, Mode=TwoWay}" />
+
+                                <Border
+                                    x:Name="DashboardLayoutSection"
+                                    AutomationProperties.AutomationId="DashboardLayoutSection"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                                    Padding="10,4">
+                                    <Expander
+                                        x:Uid="DashboardLayoutExpander"
+                                        AutomationProperties.AutomationId="DashboardLayoutExpander"
+                                        IsExpanded="False">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock
+                                                x:Uid="DashboardLayoutDescription"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                TextWrapping="WrapWholeWords" />
+                                            <InfoBar
+                                                x:Name="DashboardLayoutStatus"
+                                                AutomationProperties.AutomationId="DashboardLayoutStatus"
+                                                AutomationProperties.LiveSetting="Polite"
+                                                IsClosable="False"
+                                                IsOpen="{x:Bind ViewModel.IsDashboardLayoutStatusVisible, Mode=OneWay}"
+                                                Message="{x:Bind ViewModel.DashboardLayoutStatusText, Mode=OneWay}"
+                                                Severity="Warning" />
+                                            <ItemsControl
+                                                AutomationProperties.AutomationId="DashboardLayoutProviderList"
+                                                IsEnabled="{x:Bind ViewModel.IsDashboardLayoutEditable, Mode=OneWay}"
+                                                ItemsSource="{x:Bind ViewModel.DashboardLayoutProviders, Mode=OneWay}"
+                                                Visibility="{x:Bind ViewModel.HasDashboardLayoutProviders, Mode=OneWay}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="viewModels:DashboardProviderLayoutRow">
+                                                        <Border
+                                                            AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                                            AutomationProperties.Name="{x:Bind Name}"
+                                                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                                            BorderThickness="0,1,0,0"
+                                                            Padding="0,4">
+                                                            <Grid ColumnSpacing="4" MinHeight="36">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="16" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="28" />
+                                                                    <ColumnDefinition Width="28" />
+                                                                    <ColumnDefinition Width="28" />
+                                                                    <ColumnDefinition Width="28" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <controls:ProviderMarkImage
+                                                                    Height="16"
+                                                                    ProviderId="{x:Bind ProviderId}"
+                                                                    VerticalAlignment="Center"
+                                                                    Width="16" />
+                                                                <TextBlock
+                                                                    Grid.Column="1"
+                                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                                    Text="{x:Bind Name}"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                    VerticalAlignment="Center" />
+                                                                <Button
+                                                                 x:Uid="DashboardProviderMoveUpButton"
+                                                                 Grid.Column="2"
+                                                                 AutomationProperties.AutomationId="{x:Bind MoveUpAutomationId}"
+                                                                 AutomationProperties.Name="{x:Bind MoveUpAutomationName}"
+                                                                Click="OnDashboardProviderMoveUpClicked"
+                                                                IsEnabled="{x:Bind CanMoveUp}"
+                                                                MinHeight="28"
+                                                                MinWidth="28"
+                                                                Padding="6"
+                                                                Style="{StaticResource SubtleButtonStyle}"
+                                                                Tag="{x:Bind ProviderId}">
+                                                                <FontIcon
+                                                                    AutomationProperties.AccessibilityView="Raw"
+                                                                    FontSize="12"
+                                                                    Glyph="&#xE74A;"
+                                                                    IsTextScaleFactorEnabled="False" />
+                                                                </Button>
+                                                                <Button
+                                                                 x:Uid="DashboardProviderMoveDownButton"
+                                                                 Grid.Column="3"
+                                                                 AutomationProperties.AutomationId="{x:Bind MoveDownAutomationId}"
+                                                                 AutomationProperties.Name="{x:Bind MoveDownAutomationName}"
+                                                                Click="OnDashboardProviderMoveDownClicked"
+                                                                IsEnabled="{x:Bind CanMoveDown}"
+                                                                MinHeight="28"
+                                                                MinWidth="28"
+                                                                Padding="6"
+                                                                Style="{StaticResource SubtleButtonStyle}"
+                                                                Tag="{x:Bind ProviderId}">
+                                                                <FontIcon
+                                                                    AutomationProperties.AccessibilityView="Raw"
+                                                                    FontSize="12"
+                                                                    Glyph="&#xE74B;"
+                                                                    IsTextScaleFactorEnabled="False" />
+                                                                </Button>
+                                                                <ToggleButton
+                                                                 x:Uid="DashboardProviderVisibilityButton"
+                                                                 Grid.Column="4"
+                                                                 AutomationProperties.AutomationId="{x:Bind VisibilityAutomationId}"
+                                                                 AutomationProperties.Name="{x:Bind VisibilityAutomationName}"
+                                                                Click="OnDashboardProviderVisibilityClicked"
+                                                                IsChecked="{x:Bind IsVisible, Mode=OneTime}"
+                                                                MinHeight="28"
+                                                                MinWidth="28"
+                                                                Padding="6"
+                                                                Tag="{x:Bind ProviderId}">
+                                                                <FontIcon
+                                                                    AutomationProperties.AccessibilityView="Raw"
+                                                                    FontSize="12"
+                                                                    Glyph="&#xE890;"
+                                                                    IsTextScaleFactorEnabled="False" />
+                                                                </ToggleButton>
+                                                                <ToggleButton
+                                                                 x:Uid="DashboardProviderHighlightButton"
+                                                                 Grid.Column="5"
+                                                                 AutomationProperties.AutomationId="{x:Bind HighlightAutomationId}"
+                                                                 AutomationProperties.Name="{x:Bind HighlightAutomationName}"
+                                                                Click="OnDashboardProviderHighlightClicked"
+                                                                IsChecked="{x:Bind IsHighlighted, Mode=OneTime}"
+                                                                MinHeight="28"
+                                                                MinWidth="28"
+                                                                Padding="6"
+                                                                Tag="{x:Bind ProviderId}">
+                                                                <FontIcon
+                                                                    AutomationProperties.AccessibilityView="Raw"
+                                                                    FontSize="12"
+                                                                    Glyph="&#xE734;"
+                                                                    IsTextScaleFactorEnabled="False" />
+                                                                </ToggleButton>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Expander>
+                                </Border>
 
                                 <Border
                                     AutomationProperties.AutomationId="VercelConnectionSection"
@@ -808,6 +945,19 @@
                             </StackPanel>
                         </Border>
 
+                        <Border
+                            AutomationProperties.AutomationId="DashboardAllProvidersHidden"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="{ThemeResource ControlCornerRadius}"
+                            Padding="10,8"
+                            Visibility="{x:Bind ViewModel.AreAllDashboardProvidersHidden, Mode=OneWay}">
+                            <TextBlock
+                                x:Uid="DashboardAllProvidersHidden"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                TextWrapping="WrapWholeWords" />
+                        </Border>
+
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="sample:SampleProviderCard">
@@ -824,12 +974,27 @@
                                                 ProviderId="{x:Bind ProviderId, Mode=OneTime}"
                                                 VerticalAlignment="Center"
                                                 Width="18" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                Text="{x:Bind Name}"
-                                                TextTrimming="CharacterEllipsis"
-                                                VerticalAlignment="Center" />
+                                            <Grid Grid.Column="1" ColumnSpacing="4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                    Text="{x:Bind Name}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    VerticalAlignment="Center" />
+                                                <FontIcon
+                                                    Grid.Column="1"
+                                                    AutomationProperties.AccessibilityView="Raw"
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                                    Glyph="&#xE734;"
+                                                    IsTextScaleFactorEnabled="False"
+                                                    ToolTipService.ToolTip="{x:Bind HighlightLabel}"
+                                                    VerticalAlignment="Center"
+                                                    Visibility="{x:Bind HasHighlight}" />
+                                            </Grid>
                                             <TextBlock
                                                 Grid.Column="2"
                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -888,7 +1053,7 @@
 
                                         <Border
                                             AutomationProperties.AutomationId="{x:Bind AutomationId}"
-                                            AutomationProperties.Name="{x:Bind Name}"
+                                            AutomationProperties.Name="{x:Bind CardAutomationName}"
                                             Padding="12"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
