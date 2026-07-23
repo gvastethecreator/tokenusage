@@ -29,6 +29,8 @@ function Open-Options {
     if ($existing.matchCount -gt 0) { return }
 
     winapp ui invoke 'FooterOptionsButton' -a $script:CurrentPid 2>$null | Out-Null
+    winapp ui wait-for 'OptionsGeneralButton' -a $script:CurrentPid -t 5000 2>$null | Out-Null
+    winapp ui invoke 'OptionsGeneralButton' -a $script:CurrentPid 2>$null | Out-Null
     winapp ui wait-for 'LanguageSelector' -a $script:CurrentPid -t 5000 2>$null | Out-Null
 }
 
@@ -143,6 +145,7 @@ function Select-SampleScenarioByOffset([int]$DownCount) {
 function Capture-ErrorState([string]$FileName, [string]$StateText, [string]$NoticeText) {
     Select-SampleScenarioByOffset 4
     winapp ui invoke 'OptionsBackButton' -a $script:CurrentPid 2>$null | Out-Null
+    winapp ui invoke 'OptionsBackButton' -a $script:CurrentPid 2>$null | Out-Null
     winapp ui wait-for 'SampleStateError' -a $script:CurrentPid -t 5000 2>$null | Out-Null
     Assert-UiTextContains $StateText
     Assert-UiTextContains $NoticeText
@@ -152,11 +155,13 @@ function Capture-ErrorState([string]$FileName, [string]$StateText, [string]$Noti
 
     Select-SampleScenarioByOffset 0
     winapp ui invoke 'OptionsBackButton' -a $script:CurrentPid 2>$null | Out-Null
+    winapp ui invoke 'OptionsBackButton' -a $script:CurrentPid 2>$null | Out-Null
     winapp ui wait-for 'SampleStateFresh' -a $script:CurrentPid -t 5000 2>$null | Out-Null
 }
 
 function Capture-Sample([string]$FileName) {
     Open-Options
+    winapp ui invoke 'OptionsBackButton' -a $script:CurrentPid 2>$null | Out-Null
     winapp ui invoke 'OptionsBackButton' -a $script:CurrentPid 2>$null | Out-Null
     winapp ui wait-for 'HeaderRefreshButton' -a $script:CurrentPid -t 5000 2>$null | Out-Null
     winapp ui scroll 'BodyScrollViewer' -a $script:CurrentPid --to top 2>$null | Out-Null

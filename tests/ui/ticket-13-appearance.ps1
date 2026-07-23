@@ -70,9 +70,6 @@ function Open-Appearance {
     Invoke-Element "FooterOptionsButton"
     Wait-ForElement "OptionsAppearanceButton"
     Invoke-Element "OptionsAppearanceButton"
-    Wait-ForElement "AppearanceExpander"
-    winapp ui scroll-into-view "AppearanceExpander" -a $AppPid 2>$null | Out-Null
-    Invoke-Element "AppearanceExpander"
     foreach ($selector in @(
         "AppearanceThemeSelector",
         "AppearanceDensitySelector",
@@ -173,6 +170,7 @@ if ($Phase -eq "Configure") {
 
     Test-Ui "Used and exact formats reach the dashboard" {
         Invoke-Element "OptionsBackButton"
+        Invoke-Element "OptionsBackButton"
         Wait-ForElement "SampleSpendDonut"
         Assert-AnyVisibleText @("42% used", "42% usado")
         Assert-AnyVisibleText @("Resets", "Se reinicia el")
@@ -194,6 +192,7 @@ else {
     }
 
     Test-Ui "Restored formats reach the dashboard" {
+        Invoke-Element "OptionsBackButton"
         Invoke-Element "OptionsBackButton"
         Wait-ForElement "SampleSpendDonut"
         Assert-AnyVisibleText @("42% used", "42% usado")

@@ -172,7 +172,7 @@
                     x:Uid="OptionsBackButton"
                     Grid.Column="1"
                     AutomationProperties.AutomationId="OptionsBackButton"
-                    Command="{x:Bind ViewModel.CloseOptionsCommand}"
+                    Command="{x:Bind ViewModel.NavigateBackOptionsCommand}"
                     Padding="8"
                     Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
                     <FontIcon
@@ -276,65 +276,124 @@
                                 x:Name="OptionsStack"
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
-                                <Grid
+                                <StackPanel
                                     AutomationProperties.AutomationId="OptionsSectionNavigation"
-                                    ColumnSpacing="4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
+                                    Spacing="6"
+                                    Visibility="{x:Bind ViewModel.IsOptionsHome, Mode=OneWay}">
+                                    <TextBlock
+                                        x:Uid="OptionsHomeDescription"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Margin="2,0,2,4"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        TextWrapping="WrapWholeWords" />
                                     <Button
                                         x:Name="OptionsGeneralButton"
                                         x:Uid="OptionsGeneralButton"
                                         AutomationProperties.AutomationId="OptionsGeneralButton"
                                         Command="{x:Bind ViewModel.ShowGeneralOptionsCommand}"
                                         HorizontalAlignment="Stretch"
-                                        MinHeight="36">
-                                        <StackPanel HorizontalAlignment="Center" Spacing="3">
-                                            <TextBlock x:Uid="OptionsGeneralLabel" />
-                                            <Border Height="2" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="1" Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}" />
-                                        </StackPanel>
+                                        HorizontalContentAlignment="Stretch"
+                                        MinHeight="56"
+                                        Padding="12,8">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="16" Glyph="&#xE713;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="1">
+                                                <TextBlock x:Uid="OptionsGeneralLabel" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock x:Uid="OptionsGeneralDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" AutomationProperties.AccessibilityView="Raw" FontSize="12" Glyph="&#xE76C;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                        </Grid>
                                     </Button>
                                     <Button
                                         x:Name="OptionsAppearanceButton"
                                         x:Uid="OptionsAppearanceButton"
-                                        Grid.Column="1"
                                         AutomationProperties.AutomationId="OptionsAppearanceButton"
                                         Command="{x:Bind ViewModel.ShowAppearanceOptionsCommand}"
                                         HorizontalAlignment="Stretch"
-                                        MinHeight="36">
-                                        <StackPanel HorizontalAlignment="Center" Spacing="3">
-                                            <TextBlock x:Uid="OptionsAppearanceLabel" />
-                                            <Border Height="2" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="1" Visibility="{x:Bind ViewModel.IsAppearanceOptionsSection, Mode=OneWay}" />
-                                        </StackPanel>
+                                        HorizontalContentAlignment="Stretch"
+                                        MinHeight="56"
+                                        Padding="12,8">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="16" Glyph="&#xE790;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="1">
+                                                <TextBlock x:Uid="OptionsAppearanceLabel" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock x:Uid="OptionsAppearanceDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" AutomationProperties.AccessibilityView="Raw" FontSize="12" Glyph="&#xE76C;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
+                                    <Button
+                                        x:Name="OptionsPersonalizationButton"
+                                        x:Uid="OptionsPersonalizationButton"
+                                        AutomationProperties.AutomationId="OptionsPersonalizationButton"
+                                        Command="{x:Bind ViewModel.ShowPersonalizationOptionsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        MinHeight="56"
+                                        Padding="12,8">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="16" Glyph="&#xE9D9;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="1">
+                                                <TextBlock x:Uid="OptionsPersonalizationLabel" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock x:Uid="OptionsPersonalizationDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" AutomationProperties.AccessibilityView="Raw" FontSize="12" Glyph="&#xE76C;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                        </Grid>
                                     </Button>
                                     <Button
                                         x:Name="OptionsProvidersButton"
                                         x:Uid="OptionsProvidersButton"
-                                        Grid.Column="2"
                                         AutomationProperties.AutomationId="OptionsProvidersButton"
                                         Command="{x:Bind ViewModel.ShowProvidersOptionsCommand}"
                                         HorizontalAlignment="Stretch"
-                                        MinHeight="36">
-                                        <StackPanel HorizontalAlignment="Center" Spacing="3">
-                                            <TextBlock x:Uid="OptionsProvidersLabel" />
-                                            <Border Height="2" Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="1" Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}" />
-                                        </StackPanel>
+                                        HorizontalContentAlignment="Stretch"
+                                        MinHeight="56"
+                                        Padding="12,8">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="16" Glyph="&#xE8B7;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="1">
+                                                <TextBlock x:Uid="OptionsProvidersLabel" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock x:Uid="OptionsProvidersDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" AutomationProperties.AccessibilityView="Raw" FontSize="12" Glyph="&#xE76C;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                        </Grid>
                                     </Button>
-                                </Grid>
+                                </StackPanel>
                                 <Border
                                     AutomationProperties.AutomationId="AppearanceSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
-                                    Padding="10,4"
+                                    Padding="12,10"
                                     Visibility="{x:Bind ViewModel.IsAppearanceOptionsSection, Mode=OneWay}">
-                                    <Expander
-                                        x:Uid="AppearanceExpander"
-                                        AutomationProperties.AutomationId="AppearanceExpander"
-                                        IsEnabled="{x:Bind ViewModel.IsAppearanceEditable, Mode=OneWay}"
-                                        IsExpanded="False">
-                                        <Grid x:Name="AppearanceSettingsGrid" RowSpacing="8">
+                                    <StackPanel Spacing="10">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock x:Uid="AppearanceSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <TextBlock x:Uid="AppearanceSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                        </StackPanel>
+                                        <ContentControl IsEnabled="{x:Bind ViewModel.IsAppearanceEditable, Mode=OneWay}">
+                                        <Grid
+                                            x:Name="AppearanceSettingsGrid"
+                                            RowSpacing="8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition x:Name="AppearanceSettingsValueColumn" Width="0" />
@@ -441,8 +500,16 @@
                                                 Message="{x:Bind ViewModel.AppearanceStatusText, Mode=OneWay}"
                                                 Severity="Warning" />
                                         </Grid>
-                                    </Expander>
+                                        </ContentControl>
+                                    </StackPanel>
                                 </Border>
+                                <StackPanel
+                                    Margin="2,0,2,0"
+                                    Spacing="2"
+                                    Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}">
+                                    <TextBlock x:Uid="GeneralSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock x:Uid="GeneralSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                </StackPanel>
                                 <Border
                                     AutomationProperties.AutomationId="LanguageSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
@@ -515,14 +582,22 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedSampleScenario, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.IsGeneralOptionsSection, Mode=OneWay}" />
 
+                                <StackPanel
+                                    Margin="2,0,2,0"
+                                    Spacing="2"
+                                    Visibility="{x:Bind ViewModel.IsPersonalizationOptionsSection, Mode=OneWay}">
+                                    <TextBlock x:Uid="PersonalizationSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock x:Uid="PersonalizationSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                </StackPanel>
                                 <Border
                                     x:Name="DashboardLayoutSection"
                                     AutomationProperties.AutomationId="DashboardLayoutSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
                                     Padding="10,4"
-                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
+                                    Visibility="{x:Bind ViewModel.IsPersonalizationOptionsSection, Mode=OneWay}">
                                     <Expander
+                                        x:Name="DashboardLayoutExpander"
                                         x:Uid="DashboardLayoutExpander"
                                         AutomationProperties.AutomationId="DashboardLayoutExpander"
                                         IsExpanded="False">
@@ -829,12 +904,68 @@
                                     </Expander>
                                 </Border>
 
+                                <StackPanel
+                                    AutomationProperties.AutomationId="ProvidersSectionNavigation"
+                                    Spacing="6"
+                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
+                                    <StackPanel Margin="2,0,2,4" Spacing="2">
+                                        <TextBlock x:Uid="ProvidersSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock x:Uid="ProvidersSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                    </StackPanel>
+                                    <Button
+                                        x:Name="OptionsVercelButton"
+                                        x:Uid="OptionsVercelButton"
+                                        AutomationProperties.AutomationId="OptionsVercelButton"
+                                        Command="{x:Bind ViewModel.ShowVercelOptionsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        MinHeight="56"
+                                        Padding="12,8">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="16" Glyph="&#xE774;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="1">
+                                                <TextBlock x:Uid="OptionsVercelLabel" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock x:Uid="OptionsVercelDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" AutomationProperties.AccessibilityView="Raw" FontSize="12" Glyph="&#xE76C;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
+                                    <Button
+                                        x:Name="OptionsProviderStatusButton"
+                                        x:Uid="OptionsProviderStatusButton"
+                                        AutomationProperties.AutomationId="OptionsProviderStatusButton"
+                                        Command="{x:Bind ViewModel.ShowProviderStatusOptionsCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        MinHeight="56"
+                                        Padding="12,8">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="16" Glyph="&#xE9D2;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="1">
+                                                <TextBlock x:Uid="OptionsProviderStatusLabel" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock x:Uid="OptionsProviderStatusDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" AutomationProperties.AccessibilityView="Raw" FontSize="12" Glyph="&#xE76C;" IsTextScaleFactorEnabled="False" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
+
                                 <Border
                                     AutomationProperties.AutomationId="VercelConnectionSection"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="{ThemeResource ControlCornerRadius}"
                                     Padding="10,8"
-                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
+                                    Visibility="{x:Bind ViewModel.IsVercelOptionsSection, Mode=OneWay}">
                                     <StackPanel Spacing="8">
                                         <Grid ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
@@ -936,7 +1067,7 @@
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                     CornerRadius="8"
                                     Padding="10,8"
-                                    Visibility="{x:Bind ViewModel.IsProvidersOptionsSection, Mode=OneWay}">
+                                    Visibility="{x:Bind ViewModel.IsProviderStatusOptionsSection, Mode=OneWay}">
                                     <StackPanel Spacing="8">
                                         <Grid ColumnSpacing="8" RowSpacing="2">
                                             <Grid.ColumnDefinitions>
@@ -952,6 +1083,7 @@
                                                 Style="{StaticResource BodyStrongTextBlockStyle}"
                                                 VerticalAlignment="Center" />
                                             <Button
+                                                x:Name="ProviderStatusRefreshButton"
                                                 x:Uid="ProviderStatusRefreshButton"
                                                 Grid.Column="1"
                                                 AutomationProperties.AutomationId="ProviderStatusRefreshButton"
