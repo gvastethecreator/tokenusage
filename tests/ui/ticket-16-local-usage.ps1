@@ -83,6 +83,12 @@ if ($existingCard.matchCount -eq 0) {
 Test-Ui 'Local usage card appears' {
     winapp ui wait-for 'UsageProductCard' -a $AppPid -t 10000
 }
+$usageDetails = winapp ui search 'UsageProductCard.DetailsToggle' -a $AppPid --json 2>$null |
+    ConvertFrom-Json
+if (($usageDetails.matches | Select-Object -First 1).toggleState -ne 'on') {
+    winapp ui invoke 'UsageProductCard.DetailsToggle' -a $AppPid 2>$null | Out-Null
+}
+winapp ui wait-for 'UsageProductCard.ReportedCost' -a $AppPid -t 3000 2>$null | Out-Null
 Test-Ui 'SQLite origin is visible' {
     winapp ui wait-for 'UsageProductCard.DataOrigin' -a $AppPid --value 'SQLite' --contains -t 3000
 }

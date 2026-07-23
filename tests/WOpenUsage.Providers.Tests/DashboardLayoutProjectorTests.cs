@@ -78,6 +78,146 @@ public sealed class DashboardLayoutProjectorTests
     }
 
     [Fact]
+    public void SpendOnlyProvidersJoinLayoutAndFollowSavedOrder()
+    {
+        SampleDashboardSnapshot source = Dashboard() with
+        {
+            SpendSlices =
+            [
+                new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
+                new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+            ],
+        };
+        var saved = new DashboardLayout(
+        [
+            Preference("grok", isVisible: true, isHighlighted: false, colorHex: "#112233"),
+            Preference("claude", isVisible: true, isHighlighted: false),
+        ]);
+
+        DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
+            source,
+            saved,
+            "Highlighted");
+
+        Assert.Empty(result.Dashboard.Providers);
+        Assert.Equal(["grok", "claude"], result.Providers.Select(RowId));
+        Assert.Equal(["grok", "claude"], result.Dashboard.SpendSlices.Select(slice => slice.ProviderId));
+        Assert.Equal("#112233", result.Dashboard.SpendSlices[0].ColorHex);
+        Assert.All(result.Providers, row => Assert.False(row.HasMetrics));
+    }
+
+    [Fact]
+    public void HiddenSpendProviderLeavesTheDonutAndRecomputesItsSummary()
+    {
+        SampleDashboardSnapshot source = Dashboard() with
+        {
+            TotalSpendAmount = "$10.00",
+            CompactTotalSpendAmount = "$10",
+            SpendAccessibleName = "All providers",
+            SpendSlices =
+            [
+                new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
+                new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+            ],
+        };
+        var saved = new DashboardLayout(
+        [
+            Preference("claude", isVisible: false, isHighlighted: false),
+            Preference("grok", isVisible: true, isHighlighted: false),
+        ]);
+
+        DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
+            source,
+            saved,
+            "Highlighted",
+            spendSummaryFormatter: slices => new DashboardSpendSummary(
+                string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "${0:0.00}",
+                    slices.Sum(slice => slice.Amount)),
+                string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "${0:0}",
+                    slices.Sum(slice => slice.Amount)),
+                $"Visible providers: {slices.Count}"));
+
+        SampleSpendSlice visible = Assert.Single(result.Dashboard.SpendSlices);
+        Assert.Equal("grok", visible.ProviderId);
+        Assert.Equal("$3.00", result.Dashboard.TotalSpendAmount);
+        Assert.Equal("$3", result.Dashboard.CompactTotalSpendAmount);
+        Assert.Equal("Visible providers: 1", result.Dashboard.SpendAccessibleName);
+    }
+
+    [Fact]
+    public void PureSpendReorderRecomputesTheAccessibleSummary()
+    {
+        SampleDashboardSnapshot source = Dashboard() with
+        {
+            SpendAccessibleName = "Claude, Grok Build",
+            SpendSlices =
+            [
+                new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
+                new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+            ],
+        };
+        var saved = new DashboardLayout(
+        [
+            Preference("grok", isVisible: true, isHighlighted: false),
+            Preference("claude", isVisible: true, isHighlighted: false),
+        ]);
+
+        DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
+            source,
+            saved,
+            "Highlighted",
+            spendSummaryFormatter: slices => new DashboardSpendSummary(
+                "$10.00",
+                "$10",
+                string.Join(", ", slices.Select(slice => slice.ProviderName))));
+
+        Assert.Equal(["grok", "claude"], result.Dashboard.SpendSlices.Select(slice => slice.ProviderId));
+        Assert.Equal("Grok Build, Claude", result.Dashboard.SpendAccessibleName);
+    }
+
+    [Fact]
+    public void LocalUsageDetailsFollowProviderOrderVisibilityAndColor()
+    {
+        var card = new LocalUsageCard(
+            "Local usage",
+            "Local logs",
+            "Last 30 days",
+            "",
+            [],
+            [],
+            new LocalUsageSpendBreakdown(
+                "Spend",
+                "2 agents",
+                "$10.00",
+                "Spend details",
+                [
+                    new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
+                    new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+                ],
+                [
+                    Model("claude", "claude-sonnet"),
+                    Model("grok", "grok-4.5"),
+                ]),
+            []);
+        var layout = new DashboardLayout(
+        [
+            Preference("grok", isVisible: true, isHighlighted: false, colorHex: "#123ABC"),
+            Preference("claude", isVisible: false, isHighlighted: false),
+        ]);
+
+        LocalUsageCard result = DashboardLayoutProjector.ApplyToLocalUsage(card, layout);
+
+        SampleSpendSlice slice = Assert.Single(result.SpendBreakdown.AgentSlices);
+        Assert.Equal("grok", slice.ProviderId);
+        Assert.Equal("#123ABC", slice.ColorHex);
+        Assert.Equal("grok", Assert.Single(result.SpendBreakdown.Models).AgentId);
+    }
+
+    [Fact]
     public void UnknownSavedProviderStaysInLayoutOnly()
     {
         SampleDashboardSnapshot source = Dashboard(Card("codex", "Codex"));
@@ -330,6 +470,9 @@ public sealed class DashboardLayoutProjectorTests
             "Session: 50% remaining",
             IsNearLimit: false,
             LayoutMetricId: metricId);
+
+    private static LocalUsageModelRow Model(string agentId, string modelId) =>
+        new(agentId, agentId, modelId, "$1", "$0", "100%", $"Model.{agentId}.{modelId}", modelId, modelId);
 
     private static MetricLayoutPreference Metric(
         string metricId,
