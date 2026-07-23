@@ -54,7 +54,7 @@ Consultadas el 2026-07-22:
 | [Comandos](https://zcode.z.ai/en/docs/commands) | Fija `/goal`, `/compact` y comandos Markdown como funciones del agente. |
 | [Usage Stats](https://zcode.z.ai/en/docs/usage-stats) | Separa `App Usage` local de `Coding Plan` remoto y enumera sus métricas. |
 | [Connect Models & Plans](https://zcode.z.ai/en/docs/configuration) | Documenta endpoints de inferencia para API key; no un contrato de cuota, uso acumulado o facturación para terceros. |
-| [Feedback & Support](https://zcode.z.ai/en/docs/feedback) | Documenta `%USERPROFILE%\\.zcode\\logs` en Windows para soporte. |
+| [Feedback & Support](https://zcode.z.ai/en/docs/feedback) | Documenta `%USERPROFILE%\.zcode\logs` en Windows para soporte. |
 
 ## Clasificación de fuentes
 
@@ -74,7 +74,7 @@ probar rutas no documentadas.
 
 TokenUsage no debe abrir, indexar ni usar:
 
-- `%USERPROFILE%\\.zcode\\logs` ni un escaneo amplio de `.zcode`;
+- `%USERPROFILE%\.zcode\logs` ni un escaneo amplio de `.zcode`;
 - `AGENTS.md`, comandos, skills, subagentes, configuración de MCP o archivos
   `.zcode` de un workspace;
 - conversaciones, prompts, respuestas, adjuntos, archivos, código, comandos de
