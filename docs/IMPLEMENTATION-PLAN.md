@@ -580,7 +580,8 @@ Orden y alcance:
     contadores; solo se reabre con una fuente agregada oficial para terceros.
 14. Gemini CLI, gate de fuente en Ticket 61.
 15. Kiro, gate separado para CLI, IDE y cuenta en Ticket 62.
-16. Roo Code, gate de privacidad y deduplicación en Ticket 63.
+16. Roo Code y su sucesor candidato ZooCode, gate de identidad, privacidad y
+    deduplicación en Ticket 63.
 17. Goose, gate Windows y de fuente agregada en Ticket 64.
 18. Kimi CLI, identidad separada de Kimi Code en Ticket 65.
 19. Cursor Agent, identidad separada de Cursor Admin API en Ticket 66.
@@ -602,6 +603,30 @@ Orden y alcance:
 33. Amp, gate de baja prioridad para threads locales en Ticket 82.
 34. Codebuff, gate de contabilidad agregada en Ticket 83.
 35. Piebald, gate Windows y de almacenamiento en Ticket 84.
+36. Crush, gate de identidad y fuente Windows en Ticket 86.
+37. Droid, gate de identidad canónica en Ticket 87.
+38. IBM Bob, gate de producto vigente y exportación mínima en Ticket 88.
+39. LingTai TUI, gate de identidad y soporte Windows en Ticket 89.
+40. Mux, gate de fuente agregada en Ticket 90.
+41. Open Design, gate que decide si es agente o formato auxiliar en Ticket 91.
+42. Quick Desktop, gate del identificador `quickdesk` en Ticket 92.
+43. Zerostack, gate de producto y contrato de métricas en Ticket 93.
+44. Zencoder, gate de identidad y fuente apta en Ticket 94.
+45. Qoder, gate que excluye transcripciones de proyecto en Ticket 95.
+46. Cortex Code, gate separado de la facturación Snowflake en Ticket 96.
+47. gptme, gate Windows y de salida agregada en Ticket 97.
+48. iFlow, gate de identidad y fuente en Ticket 98.
+49. IcodeMate, gate de producto vigente en Ticket 99.
+50. MiMoCode, gate separado de los modelos MiMo en Ticket 100.
+51. Posit Assistant, gate separado de Positron en Ticket 101.
+52. Positron Assistant, gate Windows en Ticket 102.
+53. QClaw, gate de relación y deduplicación con OpenClaw en Ticket 103.
+54. QwenPaw, gate separado de Qwen Code en Ticket 104.
+55. Reasonix, gate Windows que excluye sesiones en Ticket 105.
+56. Shelley, gate de base y soporte Windows en Ticket 106.
+57. WorkBuddy, gate de identidad y fuente agregada en Ticket 107.
+58. OpenClaude, gate de relación con Claude Code en Ticket 108.
+59. Claude Cowork, gate dentro de la familia Claude en Ticket 109.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
@@ -633,6 +658,12 @@ La revisión completa de los registros abrió los Tickets 73–76. Vercel AI
 Gateway tiene un candidato de reporte agregado con clave manual en CodeBurn;
 Mistral Vibe aparece en CodeBurn y AgentsView, pero sus adapters leen sesiones.
 Ambos requieren fuentes primarias y un gate antes de crear un descriptor.
+
+La última pasada de los índices fijados abrió el Ticket 85 para resolver
+familias y prioridad, y los Tickets 86–109 para candidatos restantes. Las
+variantes de Copilot, Kiro y Antigravity siguen bajo sus familias. ChatGPT y
+Claude.ai quedan fuera: las referencias los tratan como importaciones de
+historial, sin identidad de agente local ni contrato de cuota.
 
 La segunda revisión abrió los Tickets 77–84. Prioriza rutas Windows y una
 decisión de identidad para DeepSeek TUI / CodeWhale. Estos tickets solo
