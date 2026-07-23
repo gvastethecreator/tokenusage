@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
+using Windows.UI.ViewManagement;
 using WOpenUsage.App.ViewModels.Sample;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -18,6 +19,8 @@ public sealed partial class SpendDonutChart : UserControl
     private const double GapWidth = 1.6;
 
     private readonly List<ArcVisual> _arcVisuals = [];
+    private readonly AccessibilitySettings _accessibilitySettings = new();
+    private readonly Dictionary<string, string> _customColors = new(StringComparer.Ordinal);
     private SpendDonutArc[] _arcs = [];
     private Storyboard? _storyboard;
     private int _lastRevealToken = int.MinValue;
@@ -54,6 +57,7 @@ public sealed partial class SpendDonutChart : UserControl
     {
         InitializeComponent();
         Unloaded += OnUnloaded;
+        ActualThemeChanged += OnActualThemeChanged;
     }
 
     public string AccessibleName
@@ -128,6 +132,17 @@ public sealed partial class SpendDonutChart : UserControl
             : SpendDonutGeometry.CreateArcs(
                 chart.Slices.Select(slice =>
                     new SpendDonutInput(slice.ProviderId, slice.Amount))).ToArray();
+        chart._customColors.Clear();
+        if (chart.Slices is not null)
+        {
+            foreach (SampleSpendSlice slice in chart.Slices)
+            {
+                if (slice.ColorHex is not null)
+                {
+                    chart._customColors[slice.ProviderId] = slice.ColorHex;
+                }
+            }
+        }
         chart.RebuildArcVisuals();
         chart.RevealProgress = MotionSettings.AreAnimationsEnabled() ? 0 : 1;
         chart.UpdateArcVisuals();
@@ -186,13 +201,21 @@ public sealed partial class SpendDonutChart : UserControl
                 StrokeStartLineCap = PenLineCap.Round,
                 Visibility = Visibility.Collapsed,
             };
-            path.SetBinding(
-                Shape.StrokeProperty,
-                new Binding
-                {
-                    Source = ResolveBrushProxy(arc.ProviderId),
-                    Path = new PropertyPath(nameof(Border.Background)),
-                });
+            if (!_accessibilitySettings.HighContrast
+                && _customColors.TryGetValue(arc.ProviderId, out string? colorHex))
+            {
+                path.Stroke = ProviderColorPalette.CreateGradient(colorHex);
+            }
+            else
+            {
+                path.SetBinding(
+                    Shape.StrokeProperty,
+                    new Binding
+                    {
+                        Source = ResolveBrushProxy(arc.ProviderId),
+                        Path = new PropertyPath(nameof(Border.Background)),
+                    });
+            }
             shadowPath.SetBinding(
                 Shape.StrokeProperty,
                 new Binding
@@ -296,6 +319,8 @@ public sealed partial class SpendDonutChart : UserControl
         _storyboard?.Stop();
         _storyboard = null;
     }
+
+    private void OnActualThemeChanged(FrameworkElement sender, object args) => RebuildArcVisuals();
 
     private sealed record ArcVisual(
         XamlPath Path,

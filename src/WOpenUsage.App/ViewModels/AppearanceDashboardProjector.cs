@@ -54,6 +54,7 @@ public static class AppearanceDashboardProjector
         return window with
         {
             RemainingPercent = displayPercent,
+            QuotaRemainingPercent = remaining,
             RemainingText = usageText,
             ResetText = resetText,
             AutomationName = $"{window.Title}: {usageText}. {resetText}",

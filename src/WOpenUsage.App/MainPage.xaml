@@ -532,6 +532,7 @@
                                                                     <ColumnDefinition Width="32" />
                                                                     <ColumnDefinition Width="32" />
                                                                     <ColumnDefinition Width="32" />
+                                                                    <ColumnDefinition Width="32" />
                                                                 </Grid.ColumnDefinitions>
                                                                 <controls:ProviderMarkImage
                                                                     Height="16"
@@ -614,6 +615,37 @@
                                                                     Glyph="&#xE734;"
                                                                     IsTextScaleFactorEnabled="False" />
                                                                 </ToggleButton>
+                                                                <Button
+                                                                    x:Uid="DashboardProviderColorButton"
+                                                                    Grid.Column="6"
+                                                                    AutomationProperties.AutomationId="{x:Bind ColorAutomationId}"
+                                                                    AutomationProperties.Name="{x:Bind ColorAutomationName}"
+                                                                    Click="OnDashboardProviderColorClicked"
+                                                                    MinHeight="32"
+                                                                    MinWidth="32"
+                                                                    Padding="6"
+                                                                    Style="{StaticResource SubtleButtonStyle}"
+                                                                    Tag="{x:Bind Self}">
+                                                                    <FontIcon
+                                                                        AutomationProperties.AccessibilityView="Raw"
+                                                                        FontSize="12"
+                                                                        Glyph="&#xE790;"
+                                                                        IsTextScaleFactorEnabled="False" />
+                                                                    <Button.Flyout>
+                                                                        <Flyout Closed="OnDashboardProviderColorFlyoutClosed">
+                                                                            <ColorPicker
+                                                                                AutomationProperties.AutomationId="{x:Bind ColorPickerAutomationId}"
+                                                                                AutomationProperties.Name="{x:Bind ColorAutomationName}"
+                                                                                IsAlphaEnabled="False"
+                                                                                IsAlphaSliderVisible="False"
+                                                                                IsAlphaTextInputVisible="False"
+                                                                                IsColorChannelTextInputVisible="False"
+                                                                                IsMoreButtonVisible="False"
+                                                                                MinWidth="240"
+                                                                                Tag="{x:Bind Self}" />
+                                                                        </Flyout>
+                                                                    </Button.Flyout>
+                                                                </Button>
                                                             </Grid>
                                                             <Expander
                                                                 x:Name="ProviderMetricsExpander"
@@ -1049,7 +1081,8 @@
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <controls:ProviderMarkImage
+                                                <controls:ProviderColorSwatch
+                                                    ColorHex="{x:Bind ColorHex}"
                                                     Height="12"
                                                     ProviderId="{x:Bind ProviderId, Mode=OneTime}"
                                                     VerticalAlignment="Center"
@@ -1232,7 +1265,8 @@
                                                                 <RowDefinition Height="Auto" />
                                                                 <RowDefinition Height="Auto" />
                                                             </Grid.RowDefinitions>
-                                                            <controls:ProviderMarkImage
+                                                            <controls:ProviderColorSwatch
+                                                                ColorHex="{x:Bind ColorHex, Mode=OneTime}"
                                                                 Grid.RowSpan="2"
                                                                 Height="12"
                                                                 ProviderId="{x:Bind ProviderId, Mode=OneTime}"
@@ -1422,7 +1456,7 @@
                                                 <FontIcon
                                                     AutomationProperties.AccessibilityView="Raw"
                                                     FontSize="14"
-                                                    Glyph="&#xE70D;"
+                                                    Glyph="&#xE9D2;"
                                                     IsTextScaleFactorEnabled="False" />
                                             </ToggleButton>
                                         </Grid>
@@ -1457,14 +1491,8 @@
                                                                     <controls:AnimatedProgressBar
                                                                         AutomationName="{x:Bind WindowAutomationName}"
                                                                         Height="5"
-                                                                        TargetValue="{x:Bind RemainingPercent}"
-                                                                        Visibility="{x:Bind IsWithinLimit}" />
-                                                                    <controls:AnimatedProgressBar
-                                                                        AutomationName="{x:Bind WindowAutomationName}"
-                                                                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                                                        Height="5"
-                                                                        TargetValue="{x:Bind RemainingPercent}"
-                                                                        Visibility="{x:Bind IsNearLimit}" />
+                                                                        RemainingValue="{x:Bind ColorRemainingPercent}"
+                                                                        TargetValue="{x:Bind RemainingPercent}" />
                                                                     <Grid ColumnSpacing="8">
                                                                         <Grid.ColumnDefinitions>
                                                                             <ColumnDefinition Width="*" />
@@ -1511,14 +1539,8 @@
                                                                     <controls:AnimatedProgressBar
                                                                         AutomationName="{x:Bind WindowAutomationName}"
                                                                         Height="5"
-                                                                        TargetValue="{x:Bind RemainingPercent}"
-                                                                        Visibility="{x:Bind IsWithinLimit}" />
-                                                                    <controls:AnimatedProgressBar
-                                                                        AutomationName="{x:Bind WindowAutomationName}"
-                                                                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                                                        Height="5"
-                                                                        TargetValue="{x:Bind RemainingPercent}"
-                                                                        Visibility="{x:Bind IsNearLimit}" />
+                                                                        RemainingValue="{x:Bind ColorRemainingPercent}"
+                                                                        TargetValue="{x:Bind RemainingPercent}" />
                                                                     <Grid ColumnSpacing="8">
                                                                         <Grid.ColumnDefinitions>
                                                                             <ColumnDefinition Width="*" />

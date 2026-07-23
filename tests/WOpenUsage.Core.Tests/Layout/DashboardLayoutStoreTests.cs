@@ -224,6 +224,29 @@ public sealed class DashboardLayoutStoreTests
     }
 
     [Fact]
+    public async Task LoadAsyncVersionOneMigratesWithoutProviderColors()
+    {
+        using var dir = new TempDirectory();
+        var path = Path.Combine(dir.Path, DashboardLayoutStore.DefaultFileName);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {"schemaVersion":1,"providers":[{"providerId":"provider-a","isVisible":true,"isHighlighted":false,"metrics":[{"metricId":"metric-x","isVisible":true,"isHighlighted":false,"isOnDemand":false}]}]}
+            """,
+            new UTF8Encoding(false));
+
+        var store = new DashboardLayoutStore(path);
+        var loaded = Assert.IsType<DashboardLayoutLoadResult.Loaded>(await store.LoadAsync());
+        ProviderLayoutPreference provider = Assert.Single(loaded.Layout.Providers);
+
+        Assert.Equal(ProviderA, provider.ProviderId);
+        Assert.Null(provider.ColorHex);
+        Assert.IsType<DashboardLayoutSaveResult.Saved>(await store.SaveAsync(loaded.Layout));
+        using JsonDocument migrated = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        Assert.Equal(2, migrated.RootElement.GetProperty("schemaVersion").GetInt32());
+    }
+
+    [Fact]
     public async Task SaveAsyncFutureVersionDocumentRefusesWithoutByteChanges()
     {
         using var dir = new TempDirectory();
@@ -359,7 +382,7 @@ public sealed class DashboardLayoutStoreTests
         using var document = JsonDocument.Parse(first);
         var root = document.RootElement;
         Assert.Equal(JsonValueKind.Object, root.ValueKind);
-        Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
 
         // camelCase property names only
         Assert.True(root.TryGetProperty("providers", out var providers));
@@ -407,7 +430,7 @@ public sealed class DashboardLayoutStoreTests
     [Fact]
     public void SchemaConstantsMatchContract()
     {
-        Assert.Equal(1, DashboardLayoutStore.SchemaVersion);
+        Assert.Equal(2, DashboardLayoutStore.SchemaVersion);
         Assert.Equal("dashboard-layout.v1.json", DashboardLayoutStore.DefaultFileName);
         Assert.Equal(64 * 1024, DashboardLayoutStore.MaxDocumentBytes);
         Assert.Equal(16, DashboardLayoutStore.MaxJsonDepth);
@@ -424,7 +447,8 @@ public sealed class DashboardLayoutStoreTests
                 [
                     new MetricLayoutPreference(MetricX, true, false),
                     new MetricLayoutPreference(MetricY, false, true, isOnDemand: true),
-                ]),
+                ],
+                colorHex: "#10A37F"),
             new ProviderLayoutPreference(
                 ProviderB,
                 isVisible: false,
