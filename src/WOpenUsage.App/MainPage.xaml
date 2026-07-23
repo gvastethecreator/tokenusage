@@ -15,6 +15,18 @@
     <Page.Resources>
         <converters:VercelGatewayStatusSeverityConverter
             x:Key="VercelGatewayStatusSeverityConverter" />
+        <Style
+            x:Key="DashboardAmountTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+        </Style>
+        <Style
+            x:Key="DashboardCompactStrongTextBlockStyle"
+            BasedOn="{StaticResource CaptionTextBlockStyle}"
+            TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
     </Page.Resources>
 
     <Border
@@ -279,6 +291,29 @@
                                                 IsOpen="{x:Bind ViewModel.IsDashboardLayoutStatusVisible, Mode=OneWay}"
                                                 Message="{x:Bind ViewModel.DashboardLayoutStatusText, Mode=OneWay}"
                                                 Severity="Warning" />
+                                            <Grid ColumnSpacing="6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button
+                                                    x:Uid="DashboardLayoutUndoButton"
+                                                    Grid.Column="1"
+                                                    AutomationProperties.AutomationId="DashboardLayoutUndoButton"
+                                                    Click="OnDashboardLayoutUndoClicked"
+                                                    IsEnabled="{x:Bind ViewModel.CanUndoDashboardLayout, Mode=OneWay}"
+                                                    MinHeight="32"
+                                                    Padding="10,5" />
+                                                <Button
+                                                    x:Uid="DashboardLayoutResetButton"
+                                                    Grid.Column="2"
+                                                    AutomationProperties.AutomationId="DashboardLayoutResetButton"
+                                                    Click="OnDashboardLayoutResetClicked"
+                                                    IsEnabled="{x:Bind ViewModel.IsDashboardLayoutEditable, Mode=OneWay}"
+                                                    MinHeight="32"
+                                                    Padding="10,5" />
+                                            </Grid>
                                             <ItemsControl
                                                 AutomationProperties.AutomationId="DashboardLayoutProviderList"
                                                 IsEnabled="{x:Bind ViewModel.IsDashboardLayoutEditable, Mode=OneWay}"
@@ -297,10 +332,10 @@
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="16" />
                                                                     <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="28" />
-                                                                    <ColumnDefinition Width="28" />
-                                                                    <ColumnDefinition Width="28" />
-                                                                    <ColumnDefinition Width="28" />
+                                                                    <ColumnDefinition Width="32" />
+                                                                    <ColumnDefinition Width="32" />
+                                                                    <ColumnDefinition Width="32" />
+                                                                    <ColumnDefinition Width="32" />
                                                                 </Grid.ColumnDefinitions>
                                                                 <controls:ProviderMarkImage
                                                                     Height="16"
@@ -320,8 +355,8 @@
                                                                  AutomationProperties.Name="{x:Bind MoveUpAutomationName}"
                                                                 Click="OnDashboardProviderMoveUpClicked"
                                                                 IsEnabled="{x:Bind CanMoveUp}"
-                                                                MinHeight="28"
-                                                                MinWidth="28"
+                                                                MinHeight="32"
+                                                                MinWidth="32"
                                                                 Padding="6"
                                                                 Style="{StaticResource SubtleButtonStyle}"
                                                                 Tag="{x:Bind ProviderId}">
@@ -338,8 +373,8 @@
                                                                  AutomationProperties.Name="{x:Bind MoveDownAutomationName}"
                                                                 Click="OnDashboardProviderMoveDownClicked"
                                                                 IsEnabled="{x:Bind CanMoveDown}"
-                                                                MinHeight="28"
-                                                                MinWidth="28"
+                                                                MinHeight="32"
+                                                                MinWidth="32"
                                                                 Padding="6"
                                                                 Style="{StaticResource SubtleButtonStyle}"
                                                                 Tag="{x:Bind ProviderId}">
@@ -356,8 +391,8 @@
                                                                  AutomationProperties.Name="{x:Bind VisibilityAutomationName}"
                                                                 Click="OnDashboardProviderVisibilityClicked"
                                                                 IsChecked="{x:Bind IsVisible, Mode=OneTime}"
-                                                                MinHeight="28"
-                                                                MinWidth="28"
+                                                                MinHeight="32"
+                                                                MinWidth="32"
                                                                 Padding="6"
                                                                 Tag="{x:Bind ProviderId}">
                                                                 <FontIcon
@@ -373,8 +408,8 @@
                                                                  AutomationProperties.Name="{x:Bind HighlightAutomationName}"
                                                                 Click="OnDashboardProviderHighlightClicked"
                                                                 IsChecked="{x:Bind IsHighlighted, Mode=OneTime}"
-                                                                MinHeight="28"
-                                                                MinWidth="28"
+                                                                MinHeight="32"
+                                                                MinWidth="32"
                                                                 Padding="6"
                                                                 Tag="{x:Bind ProviderId}">
                                                                 <FontIcon
@@ -732,7 +767,7 @@
                     </Border>
 
                     <StackPanel
-                        Spacing="12"
+                        Spacing="16"
                         Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}">
                         <Grid Margin="4,0" ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -774,7 +809,7 @@
                                     Visibility="{x:Bind ViewModel.IsSampleRefreshing, Mode=OneWay}"
                                     Width="14" />
                                 <TextBlock
-                                    Style="{StaticResource SubtitleTextBlockStyle}"
+                                    Style="{StaticResource DashboardAmountTextBlockStyle}"
                                     Text="{x:Bind ViewModel.ActiveSample.TotalSpendAmount, Mode=OneWay}"
                                     TextWrapping="WrapWholeWords"
                                     VerticalAlignment="Center"
@@ -1083,7 +1118,7 @@
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="sample:SampleProviderCard">
-                                    <StackPanel Margin="0,0,0,12" Spacing="4">
+                                    <StackPanel Margin="0,0,0,16" Spacing="6">
                                         <Grid Margin="4,0" ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="18" />
@@ -1102,7 +1137,7 @@
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock
-                                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                    Style="{StaticResource DashboardCompactStrongTextBlockStyle}"
                                                     Text="{x:Bind Name}"
                                                     TextTrimming="CharacterEllipsis"
                                                     VerticalAlignment="Center" />
@@ -1129,8 +1164,8 @@
                                                 AutomationProperties.AutomationId="{x:Bind DetailsAutomationId}"
                                                 AutomationProperties.HelpText="{x:Bind DetailsTooltip}"
                                                 AutomationProperties.Name="{x:Bind DetailsAutomationName}"
-                                                MinHeight="28"
-                                                MinWidth="28"
+                                                MinHeight="32"
+                                                MinWidth="32"
                                                 Padding="6"
                                                 Style="{StaticResource SubtleButtonStyle}"
                                                 ToolTipService.ToolTip="{x:Bind DetailsTooltip}"
@@ -1181,7 +1216,7 @@
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             CornerRadius="{StaticResource DashboardCardCornerRadius}">
-                                            <StackPanel Spacing="8">
+                                            <StackPanel Spacing="10">
                                                 <TextBlock
                                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -1199,7 +1234,7 @@
                                                         <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
                                                             <StackPanel>
                                                                 <StackPanel Margin="0,0,0,8" Spacing="4" Visibility="{x:Bind IsQuotaWindow}">
-                                                                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Title}" />
+                                                                    <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Title}" />
                                                                     <controls:AnimatedProgressBar
                                                                         AutomationName="{x:Bind WindowAutomationName}"
                                                                         Height="5"
@@ -1256,7 +1291,7 @@
                                                             <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
                                                                 <StackPanel>
                                                                 <StackPanel Margin="0,0,0,8" Spacing="4" Visibility="{x:Bind IsQuotaWindow}">
-                                                                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Title}" />
+                                                                    <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Title}" />
                                                                     <controls:AnimatedProgressBar
                                                                         AutomationName="{x:Bind WindowAutomationName}"
                                                                         Height="5"
