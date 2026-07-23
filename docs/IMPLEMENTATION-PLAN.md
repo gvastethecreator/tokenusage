@@ -563,16 +563,18 @@ Orden y alcance:
 7. Devin ACUs de organización por API v3 en canal experimental.
 8. ZCode, bloqueado por Ticket 48 hasta publicar una fuente apta y política que
    permita su uso.
-9. Kimi Code, con prioridad para uso local pasivo y sin reutilizar login.
+9. Kimi Code, bloqueado por Ticket 50 hasta publicar una API o exportación de
+   solo lectura, documentada para terceros, sin sesiones ni credenciales y
+   autorizada para consultas automáticas.
 10. Command Code, tras fijar identidad, formatos y límites de lectura.
 11. Cline, mediante datos locales o API pública con consentimiento explícito.
 
 GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
 33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
 
-ZCode cerró su investigación en Ticket 48 con estado bloqueado. Kimi Code,
-Command Code y Cline entran primero como investigación. Cada uno debe confirmar
-el nombre canónico, editor o CLI objetivo, rutas Windows, contrato de
+ZCode y Kimi Code cerraron su investigación con estado bloqueado en los Tickets
+48 y 50. Command Code y Cline entran primero como investigación. Cada uno debe
+confirmar el nombre canónico, editor o CLI objetivo, rutas Windows, contrato de
 cuota/uso/gasto, licencia y política antes de escribir un adapter.
 
 Cada proveedor se divide en commits:
