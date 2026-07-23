@@ -61,6 +61,13 @@ public sealed class LocalUsageCoordinator
                 "Local usage sources must use one grouping time zone per refresh.");
         }
 
+        string groupingTimeZoneId = groupingTimeZoneIds.Length == 0
+            ? TimeZoneInfo.Local.Id
+            : groupingTimeZoneIds[0];
+        TimeZoneInfo groupingTimeZone = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
+        DateOnly today = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), groupingTimeZone).DateTime);
+
         for (int index = 0; index < _sources.Count; index++)
         {
             IUsageEventSource source = _sources[index];
@@ -72,6 +79,42 @@ public sealed class LocalUsageCoordinator
                     await repository.ReplaceAgentEventsAsync(
                         snapshotSource.AgentId,
                         result.Events,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else if (source is IWindowedSnapshotUsageEventSource windowedSource)
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThan(
+                    windowedSource.ReconciliationWindowDays,
+                    1);
+                DateOnly reconcileFrom = today.AddDays(
+                    -(windowedSource.ReconciliationWindowDays - 1));
+                UsageEvent[] eventsInWindow = result.Events.Where(usageEvent =>
+                {
+                    DateOnly eventDate = DateOnly.FromDateTime(
+                        TimeZoneInfo.ConvertTime(
+                            usageEvent.OccurredAtUtc,
+                            groupingTimeZone).DateTime);
+                    return eventDate >= reconcileFrom && eventDate <= today;
+                }).ToArray();
+                bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete
+                    || (result.Status == UsageSourceReadStatus.NoData
+                        && result.Issue == UsageSourceIssueKind.Empty);
+                if (isAuthoritative)
+                {
+                    await repository.ReconcileAgentEventRangeAsync(
+                        windowedSource.AgentId,
+                        windowedSource.EventParserVersion,
+                        reconcileFrom,
+                        today,
+                        eventsInWindow,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                else if (eventsInWindow.Length > 0)
+                {
+                    await repository.UpsertAgentEventsAsync(
+                        windowedSource.AgentId,
+                        eventsInWindow,
                         cancellationToken).ConfigureAwait(false);
                 }
             }
@@ -92,12 +135,6 @@ public sealed class LocalUsageCoordinator
                         ? UsageSourceReadStatus.Partial
                     : UsageSourceReadStatus.Complete;
 
-        string groupingTimeZoneId = groupingTimeZoneIds.Length == 0
-            ? TimeZoneInfo.Local.Id
-            : groupingTimeZoneIds[0];
-        TimeZoneInfo groupingTimeZone = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
-        DateOnly today = DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), groupingTimeZone).DateTime);
         await repository.ApplyRetentionAsync(
                 _clock.GetUtcNow().ToUniversalTime(),
                 cancellationToken: cancellationToken)
@@ -118,7 +155,8 @@ public sealed class LocalUsageCoordinator
                     source.AgentId,
                     readResults[index].Status,
                     readResults[index].Issue,
-                    source is ISnapshotUsageEventSource)).ToArray());
+                    source is ISnapshotUsageEventSource
+                        or IWindowedSnapshotUsageEventSource)).ToArray());
     }
 
     private static DateOnly Min(DateOnly left, DateOnly right) =>
