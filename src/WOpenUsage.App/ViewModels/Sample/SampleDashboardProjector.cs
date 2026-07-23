@@ -31,7 +31,7 @@ public static class SampleDashboardProjector
                 ? slice with
                 {
                     Amount = spendAmount,
-                    AmountText = Money(spendAmount),
+                    AmountText = Money(spendAmount, getString),
                 }
                 : slice)
             .ToArray();
@@ -41,7 +41,7 @@ public static class SampleDashboardProjector
                 : provider)
             .ToArray();
         double total = slices.Sum(slice => slice.Amount);
-        string totalText = Money(total);
+        string totalText = Money(total, getString);
         string details = string.Join(
             ", ",
             slices.Select(slice => $"{slice.ProviderName} {slice.AmountText}"));
@@ -57,6 +57,7 @@ public static class SampleDashboardProjector
                 details),
             SpendSlices = slices,
             Providers = providers,
+            CompactTotalSpendAmount = Format(getString, "SampleUsdCompactFormat", total),
         };
     }
 
@@ -98,6 +99,6 @@ public static class SampleDashboardProjector
     private static string Format(Func<string, string> text, string key, params object[] args) =>
         string.Format(CultureInfo.CurrentCulture, text(key), args);
 
-    private static string Money(double value) =>
-        value.ToString("$0.00", CultureInfo.InvariantCulture);
+    private static string Money(double value, Func<string, string> text) =>
+        Format(text, "SampleUsdFormat", value);
 }

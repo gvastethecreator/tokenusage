@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Initial language is supported",
+    "status": "PASS"
+  },
+  {
+    "name": "English selection persists after restart",
+    "status": "PASS"
+  },
+  {
+    "name": "Restart keeps every supplied debug harness argument",
+    "status": "PASS"
+  },
+  {
+    "name": "English options copy is active",
+    "status": "PASS"
+  },
+  {
+    "name": "English tray menu is localized",
+    "status": "PASS"
+  },
+  {
+    "name": "English sample formats currency and period",
+    "status": "PASS"
+  },
+  {
+    "name": "English error state is localized",
+    "status": "PASS"
+  },
+  {
+    "name": "Spanish selection persists after restart",
+    "status": "PASS"
+  },
+  {
+    "name": "Spanish options copy is active",
+    "status": "PASS"
+  },
+  {
+    "name": "Spanish tray menu is localized",
+    "status": "PASS"
+  },
+  {
+    "name": "Spanish sample formats currency and period",
+    "status": "PASS"
+  },
+  {
+    "name": "Spanish error state is localized",
+    "status": "PASS"
+  },
+  {
+    "name": "Language controls expose automation IDs",
+    "status": "PASS"
+  },
+  {
+    "name": "Visible Spanish text stays inside the flyout",
+    "status": "PASS"
+  },
+  {
+    "name": "Original language is restored",
+    "status": "PASS"
+  }
+]
