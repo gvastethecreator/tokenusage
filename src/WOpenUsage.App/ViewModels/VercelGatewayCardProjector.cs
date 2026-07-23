@@ -67,7 +67,8 @@ public static class VercelGatewayCardProjector
                 new SampleMetric(
                     getString("VercelMetricKeyBudget"),
                     QuotaStatus(quota, quotaState, getString),
-                    "VercelGateway.KeyBudgetState"),
+                    "VercelGateway.KeyBudgetState",
+                    "quota.gateway.key.budget.status"),
                 CountMetric(
                     "VercelMetricInputTokens",
                     "VercelGateway.InputTokens30Days",
@@ -142,7 +143,8 @@ public static class VercelGatewayCardProjector
                     title,
                     remaining,
                     reset),
-                IsNearLimit: quota.RemainingPercent <= 20m),
+                IsNearLimit: quota.RemainingPercent <= 20m,
+                LayoutMetricId: "quota.gateway.key.budget"),
         ];
     }
 
@@ -194,7 +196,8 @@ public static class VercelGatewayCardProjector
             metrics.TryGetValue(metricId, out decimal value)
                 ? string.Format(CultureInfo.CurrentCulture, getString("LocalUsageUsdFormat"), value)
                 : missing,
-            automationId);
+            automationId,
+            metricId);
 
     private static SampleMetric CountMetric(
         string labelKey,
@@ -207,5 +210,6 @@ public static class VercelGatewayCardProjector
             metrics.TryGetValue(metricId, out decimal value)
                 ? value.ToString("N0", CultureInfo.CurrentCulture)
                 : missing,
-            automationId);
+            automationId,
+            metricId);
 }

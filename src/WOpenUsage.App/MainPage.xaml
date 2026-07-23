@@ -1072,86 +1072,54 @@
                                                     TextWrapping="WrapWholeWords"
                                                     Visibility="{x:Bind HasNotice}" />
 
-                                                <ItemsControl ItemsSource="{x:Bind Windows}">
+                                                <ItemsControl ItemsSource="{x:Bind PrimaryMetricItems}">
                                                     <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="sample:SampleQuotaWindow">
-                                                            <StackPanel Margin="0,0,0,8" Spacing="4">
-                                                                <TextBlock
-                                                                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                                    Text="{x:Bind Title}" />
-                                                                <controls:AnimatedProgressBar
-                                                                    AutomationName="{x:Bind AutomationName}"
-                                                                    Height="5"
-                                                                    TargetValue="{x:Bind RemainingPercent}"
-                                                                    Visibility="{x:Bind IsWithinLimit}" />
-                                                                <controls:AnimatedProgressBar
-                                                                    AutomationName="{x:Bind AutomationName}"
-                                                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                                                    Height="5"
-                                                                    TargetValue="{x:Bind RemainingPercent}"
-                                                                    Visibility="{x:Bind IsNearLimit}" />
-                                                                <Grid ColumnSpacing="8">
+                                                        <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
+                                                            <StackPanel>
+                                                                <StackPanel Margin="0,0,0,8" Spacing="4" Visibility="{x:Bind IsQuotaWindow}">
+                                                                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Title}" />
+                                                                    <controls:AnimatedProgressBar
+                                                                        AutomationName="{x:Bind WindowAutomationName}"
+                                                                        Height="5"
+                                                                        TargetValue="{x:Bind RemainingPercent}"
+                                                                        Visibility="{x:Bind IsWithinLimit}" />
+                                                                    <controls:AnimatedProgressBar
+                                                                        AutomationName="{x:Bind WindowAutomationName}"
+                                                                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                                        Height="5"
+                                                                        TargetValue="{x:Bind RemainingPercent}"
+                                                                        Visibility="{x:Bind IsNearLimit}" />
+                                                                    <Grid ColumnSpacing="8">
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*" />
+                                                                            <ColumnDefinition Width="Auto" />
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind RemainingText}" TextWrapping="WrapWholeWords" />
+                                                                        <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ResetText}" TextAlignment="Right" TextWrapping="WrapWholeWords" />
+                                                                    </Grid>
+                                                                    <TextBlock
+                                                                        AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
+                                                                        AutomationProperties.Name="{x:Bind PaceAutomationName}"
+                                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Text="{x:Bind PaceText}"
+                                                                        TextWrapping="WrapWholeWords"
+                                                                        Visibility="{x:Bind HasPace}" />
+                                                                </StackPanel>
+                                                                <Grid
+                                                                    AutomationProperties.AutomationId="{x:Bind MetricAutomationId}"
+                                                                    AutomationProperties.Name="{x:Bind MetricAutomationName}"
+                                                                    Margin="0,0,0,4"
+                                                                    ColumnSpacing="8"
+                                                                    Visibility="{x:Bind IsScalarMetric}">
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="*" />
                                                                         <ColumnDefinition Width="Auto" />
                                                                     </Grid.ColumnDefinitions>
-                                                                    <TextBlock
-                                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                                                        Text="{x:Bind RemainingText}"
-                                                                        TextWrapping="WrapWholeWords" />
-                                                                    <TextBlock
-                                                                        Grid.Column="1"
-                                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                        Style="{StaticResource CaptionTextBlockStyle}"
-                                                                        Text="{x:Bind ResetText}"
-                                                                        TextAlignment="Right"
-                                                                        TextWrapping="WrapWholeWords" />
+                                                                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Value}" TextWrapping="WrapWholeWords" />
                                                                 </Grid>
-                                                                <TextBlock
-                                                                    AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
-                                                                    AutomationProperties.Name="{x:Bind PaceAutomationName}"
-                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                                                    Text="{x:Bind PaceText}"
-                                                                    TextWrapping="WrapWholeWords"
-                                                                    Visibility="{x:Bind IsPaceWithinLimit}" />
-                                                                <TextBlock
-                                                                    AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
-                                                                    AutomationProperties.Name="{x:Bind PaceAutomationName}"
-                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                                                    Text="{x:Bind PaceText}"
-                                                                    TextWrapping="WrapWholeWords"
-                                                                    Visibility="{x:Bind IsPaceBehind}" />
                                                             </StackPanel>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-
-                                                <ItemsControl ItemsSource="{x:Bind Metrics}">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="sample:SampleMetric">
-                                                            <Grid
-                                                                AutomationProperties.AutomationId="{x:Bind AutomationId}"
-                                                                AutomationProperties.Name="{x:Bind AutomationName}"
-                                                                Margin="0,0,0,4"
-                                                                ColumnSpacing="8">
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock
-                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                                                    Text="{x:Bind Label}"
-                                                                    TextTrimming="CharacterEllipsis" />
-                                                                <TextBlock
-                                                                    Grid.Column="1"
-                                                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                                                    Text="{x:Bind Value}"
-                                                                    TextWrapping="WrapWholeWords" />
-                                                            </Grid>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -1160,15 +1128,57 @@
                                                     x:Uid="ProviderSecondaryMetricsExpander"
                                                     AutomationProperties.AutomationId="{x:Bind SecondaryMetricsAutomationId}"
                                                     IsExpanded="False"
-                                                    Visibility="{x:Bind HasSecondaryMetrics}">
-                                                    <ItemsControl ItemsSource="{x:Bind SecondaryMetricItems}">
+                                                    Visibility="{x:Bind HasOnDemandMetrics}">
+                                                    <ItemsControl ItemsSource="{x:Bind OnDemandMetricItems}">
                                                         <ItemsControl.ItemTemplate>
-                                                            <DataTemplate x:DataType="sample:SampleMetric">
+                                                            <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
+                                                                <StackPanel>
+                                                                <StackPanel Margin="0,0,0,8" Spacing="4" Visibility="{x:Bind IsQuotaWindow}">
+                                                                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Title}" />
+                                                                    <controls:AnimatedProgressBar
+                                                                        AutomationName="{x:Bind WindowAutomationName}"
+                                                                        Height="5"
+                                                                        TargetValue="{x:Bind RemainingPercent}"
+                                                                        Visibility="{x:Bind IsWithinLimit}" />
+                                                                    <controls:AnimatedProgressBar
+                                                                        AutomationName="{x:Bind WindowAutomationName}"
+                                                                        Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                                        Height="5"
+                                                                        TargetValue="{x:Bind RemainingPercent}"
+                                                                        Visibility="{x:Bind IsNearLimit}" />
+                                                                    <Grid ColumnSpacing="8">
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*" />
+                                                                            <ColumnDefinition Width="Auto" />
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock
+                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                                            Text="{x:Bind RemainingText}"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                        <TextBlock
+                                                                            Grid.Column="1"
+                                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                                                            Text="{x:Bind ResetText}"
+                                                                            TextAlignment="Right"
+                                                                            TextWrapping="WrapWholeWords" />
+                                                                    </Grid>
+                                                                    <TextBlock
+                                                                        AutomationProperties.AutomationId="{x:Bind PaceAutomationId}"
+                                                                        AutomationProperties.Name="{x:Bind PaceAutomationName}"
+                                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                                                        Text="{x:Bind PaceText}"
+                                                                        TextWrapping="WrapWholeWords"
+                                                                        Visibility="{x:Bind HasPace}" />
+                                                                </StackPanel>
                                                                 <Grid
-                                                                    AutomationProperties.AutomationId="{x:Bind AutomationId}"
-                                                                    AutomationProperties.Name="{x:Bind AutomationName}"
+                                                                    AutomationProperties.AutomationId="{x:Bind MetricAutomationId}"
+                                                                    AutomationProperties.Name="{x:Bind MetricAutomationName}"
                                                                     Margin="0,0,0,4"
-                                                                    ColumnSpacing="8">
+                                                                    ColumnSpacing="8"
+                                                                    Visibility="{x:Bind IsScalarMetric}">
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="*" />
                                                                         <ColumnDefinition Width="Auto" />
@@ -1184,6 +1194,7 @@
                                                                         Text="{x:Bind Value}"
                                                                         TextWrapping="WrapWholeWords" />
                                                                 </Grid>
+                                                                </StackPanel>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>

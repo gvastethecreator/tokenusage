@@ -133,7 +133,8 @@ public static class CodexDashboardProjector
             remaining <= 15d,
             paceText,
             isPaceBehind,
-            $"CodexPace.{metric.Id.Value}");
+            $"CodexPace.{metric.Id.Value}",
+            LayoutMetricId: metric.Id.Value);
     }
 
     private static IReadOnlyList<SampleMetric> CreateUsageMetrics(
@@ -160,7 +161,8 @@ public static class CodexDashboardProjector
                     value == 1m ? "CodexTokenCountSingular" : "CodexTokenCountFormat",
                     value)
                 : text("CodexUsageMissing"),
-            automationId);
+            automationId,
+            metricId);
 
     private static (string? Text, bool IsBehind) CreatePace(
         ProgressMetricSnapshot metric,

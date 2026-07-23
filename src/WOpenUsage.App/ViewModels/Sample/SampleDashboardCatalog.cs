@@ -233,10 +233,18 @@ public static class SampleDashboardCatalog
         Func<string, string> text)
     {
         List<SampleMetric> metrics =
-            [new(text("SampleMetricTokens"), CompactTokens(tokens, includeUnit: false, text))];
+            [new(
+                text("SampleMetricTokens"),
+                CompactTokens(tokens, includeUnit: false, text),
+                $"{id}.Tokens",
+                "usage.tokens.30d")];
         if (spend is not null)
         {
-            metrics.Add(new SampleMetric(text("SampleMetricSpend"), Money(spend.Value, text)));
+            metrics.Add(new SampleMetric(
+                text("SampleMetricSpend"),
+                Money(spend.Value, text),
+                $"{id}.Spend",
+                "spend.total.30d"));
         }
 
         return WithSampleDetails(
@@ -340,10 +348,10 @@ public static class SampleDashboardCatalog
         string last30Days,
         Func<string, string> text) =>
         [
-            new(text("CodexUsageToday"), today, "CodexUsage.Today"),
-            new(text("CodexUsageYesterday"), yesterday, "CodexUsage.Yesterday"),
-            new(text("CodexUsageLast7Days"), last7Days, "CodexUsage.Last7Days"),
-            new(text("CodexUsageLast30Days"), last30Days, "CodexUsage.Last30Days"),
+            new(text("CodexUsageToday"), today, "CodexUsage.Today", "usage.tokens.today"),
+            new(text("CodexUsageYesterday"), yesterday, "CodexUsage.Yesterday", "usage.tokens.yesterday"),
+            new(text("CodexUsageLast7Days"), last7Days, "CodexUsage.Last7Days", "usage.tokens.7d"),
+            new(text("CodexUsageLast30Days"), last30Days, "CodexUsage.Last30Days", "usage.tokens.30d"),
         ];
 
     private static SampleQuotaWindow Session(
@@ -351,7 +359,7 @@ public static class SampleDashboardCatalog
         int resetHours,
         bool nearLimit,
         Func<string, string> text) =>
-        Window(text("SampleWindowSession"), remaining, Format(text, "SampleResetHoursFormat", resetHours), nearLimit, text);
+        Window(text("SampleWindowSession"), remaining, Format(text, "SampleResetHoursFormat", resetHours), nearLimit, "quota.session", text);
 
     private static SampleQuotaWindow Weekly(
         int remaining,
@@ -359,20 +367,21 @@ public static class SampleDashboardCatalog
         int resetHours,
         bool nearLimit,
         Func<string, string> text) =>
-        Window(text("SampleWindowWeekly"), remaining, Format(text, "SampleResetDaysHoursFormat", resetDays, resetHours), nearLimit, text);
+        Window(text("SampleWindowWeekly"), remaining, Format(text, "SampleResetDaysHoursFormat", resetDays, resetHours), nearLimit, "quota.weekly", text);
 
     private static SampleQuotaWindow SoftBudget(
         int remaining,
         int resetDays,
         bool nearLimit,
         Func<string, string> text) =>
-        Window(text("SampleWindowSoftBudget"), remaining, Format(text, "SampleResetDaysFormat", resetDays), nearLimit, text);
+        Window(text("SampleWindowSoftBudget"), remaining, Format(text, "SampleResetDaysFormat", resetDays), nearLimit, "quota.soft-budget", text);
 
     private static SampleQuotaWindow Window(
         string title,
         int remaining,
         string reset,
         bool nearLimit,
+        string layoutMetricId,
         Func<string, string> text)
     {
         var remainingText = Format(text, "SampleRemainingFormat", remaining);
@@ -382,7 +391,8 @@ public static class SampleDashboardCatalog
             remainingText,
             reset,
             $"{title}: {remainingText}",
-            nearLimit);
+            nearLimit,
+            LayoutMetricId: layoutMetricId);
     }
 
     private static string Format(Func<string, string> text, string key, params object[] args) =>

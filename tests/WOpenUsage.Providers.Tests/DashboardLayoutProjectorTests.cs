@@ -160,6 +160,101 @@ public sealed class DashboardLayoutProjectorTests
         Assert.IsNotType<List<SampleProviderCard>>(result.Dashboard.Providers);
     }
 
+    [Fact]
+    public void MetricPreferencesApplyAcrossQuotaPrimaryAndOnDemandSections()
+    {
+        SampleProviderCard sourceCard = CardWithMetrics();
+        SampleDashboardSnapshot source = Dashboard(sourceCard);
+        var saved = new DashboardLayout(
+        [
+            new ProviderLayoutPreference(
+                new ProviderId("codex"),
+                isVisible: true,
+                isHighlighted: false,
+                [
+                    Metric("usage.secondary", isVisible: true, isHighlighted: false, isOnDemand: false),
+                    Metric("quota.session", isVisible: true, isHighlighted: true, isOnDemand: false),
+                    Metric("usage.primary", isVisible: false, isHighlighted: false, isOnDemand: false),
+                ]),
+        ]);
+
+        DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
+            source,
+            saved,
+            "Highlighted");
+
+        SampleProviderCard card = Assert.Single(result.Dashboard.Providers);
+        Assert.Equal("usage.secondary", Assert.Single(card.Metrics).LayoutMetricId);
+        Assert.Empty(card.SecondaryMetricItems);
+        Assert.Empty(card.SecondaryWindowItems);
+        SampleQuotaWindow quota = Assert.Single(card.Windows);
+        Assert.Equal("quota.session", quota.LayoutMetricId);
+        Assert.True(quota.IsHighlighted);
+        Assert.Equal("Session: 50% remaining. Highlighted", quota.DisplayAutomationName);
+        Assert.Collection(
+            card.PrimaryMetricItems,
+            item => Assert.Equal("usage.secondary", Assert.IsType<SampleMetric>(item.Metric).LayoutMetricId),
+            item => Assert.Equal("quota.session", Assert.IsType<SampleQuotaWindow>(item.Window).LayoutMetricId));
+
+        DashboardProviderLayoutRow providerRow = Assert.Single(result.Providers);
+        Assert.Equal(
+            ["usage.secondary", "quota.session", "usage.primary"],
+            providerRow.Metrics.Select(metric => metric.MetricId));
+        Assert.False(providerRow.Metrics[0].CanMoveUp);
+        Assert.True(providerRow.Metrics[0].CanMoveDown);
+        Assert.False(providerRow.Metrics[2].CanMoveDown);
+    }
+
+    [Fact]
+    public void UnknownSavedMetricStaysInLayoutWithoutAConfigurationRow()
+    {
+        var saved = new DashboardLayout(
+        [
+            new ProviderLayoutPreference(
+                new ProviderId("codex"),
+                isVisible: true,
+                isHighlighted: false,
+                [
+                    Metric("legacy.metric", true, false, false),
+                    Metric("quota.session", true, false, false),
+                ]),
+        ]);
+
+        DashboardLayoutProjection result = DashboardLayoutProjector.Apply(
+            Dashboard(CardWithMetrics()),
+            saved,
+            "Highlighted");
+
+        Assert.Contains(result.Layout.Providers[0].Metrics, metric => metric.MetricId.Value == "legacy.metric");
+        DashboardMetricLayoutRow row = Assert.Single(
+            result.Providers[0].Metrics,
+            metric => metric.MetricId == "quota.session");
+        Assert.False(row.CanMoveUp);
+    }
+
+    [Fact]
+    public void MissingOrDuplicateLayoutMetricIdsFailClosed()
+    {
+        SampleProviderCard missing = Card("codex", "Codex") with
+        {
+            Metrics = [new SampleMetric("Usage", "10")],
+        };
+        Assert.Throws<ArgumentException>(() => DashboardLayoutProjector.Apply(
+            Dashboard(missing),
+            DashboardLayout.Empty,
+            "Highlighted"));
+
+        SampleProviderCard duplicate = Card("codex", "Codex") with
+        {
+            Windows = [Window("quota.same")],
+            Metrics = [new SampleMetric("Usage", "10", LayoutMetricId: "quota.same")],
+        };
+        Assert.Throws<ArgumentException>(() => DashboardLayoutProjector.Apply(
+            Dashboard(duplicate),
+            DashboardLayout.Empty,
+            "Highlighted"));
+    }
+
     private static SampleDashboardSnapshot Dashboard(params SampleProviderCard[] providers) =>
         new(
             SampleScenario.Normal,
@@ -179,6 +274,31 @@ public sealed class DashboardLayoutProjectorTests
             null,
             [],
             []);
+
+    private static SampleProviderCard CardWithMetrics() =>
+        Card("codex", "Codex") with
+        {
+            Windows = [Window("quota.session")],
+            Metrics = [new SampleMetric("Primary", "10", LayoutMetricId: "usage.primary")],
+            SecondaryMetrics = [new SampleMetric("Secondary", "20", LayoutMetricId: "usage.secondary")],
+        };
+
+    private static SampleQuotaWindow Window(string metricId) =>
+        new(
+            "Session",
+            50,
+            "50% remaining",
+            "Resets in 1 h",
+            "Session: 50% remaining",
+            IsNearLimit: false,
+            LayoutMetricId: metricId);
+
+    private static MetricLayoutPreference Metric(
+        string metricId,
+        bool isVisible,
+        bool isHighlighted,
+        bool isOnDemand) =>
+        new(new MetricId(metricId), isVisible, isHighlighted, isOnDemand);
 
     private static ProviderLayoutPreference Preference(
         string providerId,

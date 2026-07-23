@@ -68,10 +68,10 @@ public sealed class CodexDashboardProjectorTests
         Assert.Equal("Details for Codex", card.DetailsAutomationName);
         Assert.Collection(
             card.SecondaryMetricItems,
-            metric => Assert.Equal(new SampleMetric("Today", "No data", "CodexUsage.Today"), metric),
-            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday"), metric),
-            metric => Assert.Equal(new SampleMetric("Last 7 days", "No data", "CodexUsage.Last7Days"), metric),
-            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days"), metric));
+            metric => Assert.Equal(new SampleMetric("Today", "No data", "CodexUsage.Today", "usage.tokens.today"), metric),
+            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
+            metric => Assert.Equal(new SampleMetric("Last 7 days", "No data", "CodexUsage.Last7Days", "usage.tokens.7d"), metric),
+            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
 
         string rendered = string.Join('\n',
         [
@@ -177,15 +177,16 @@ public sealed class CodexDashboardProjectorTests
         Assert.Empty(card.Metrics);
         Assert.Collection(
             card.SecondaryMetricItems,
-            metric => Assert.Equal(new SampleMetric("Today", "0 tokens", "CodexUsage.Today"), metric),
-            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday"), metric),
+            metric => Assert.Equal(new SampleMetric("Today", "0 tokens", "CodexUsage.Today", "usage.tokens.today"), metric),
+            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
             metric => Assert.Equal(
                 new SampleMetric(
                     "Last 7 days",
                     $"{1234567m.ToString("N0", CultureInfo.CurrentCulture)} tokens",
-                    "CodexUsage.Last7Days"),
+                    "CodexUsage.Last7Days",
+                    "usage.tokens.7d"),
                 metric),
-            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days"), metric));
+            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
     }
 
     [Fact]
