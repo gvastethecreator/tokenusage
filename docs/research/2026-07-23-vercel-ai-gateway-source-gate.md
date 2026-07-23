@@ -4,6 +4,10 @@ Fecha: 2026-07-23
 Estado: aprobado con límites
 Ticket: 73
 
+La página primaria de API Key Budgets se volvió a comprobar el 2026-07-23. Su
+frontmatter indicaba `last_updated: 2026-06-20`; el endpoint, los campos, los
+períodos y la respuesta sin presupuesto seguían iguales.
+
 ## Decisión
 
 TokenUsage puede integrar Vercel AI Gateway como proveedor manual y experimental.
