@@ -15,7 +15,10 @@ public sealed record SampleQuotaWindow(
     bool IsNearLimit,
     string? PaceText = null,
     bool IsPaceBehind = false,
-    string PaceAutomationId = "")
+    string PaceAutomationId = "",
+    string LayoutMetricId = "",
+    bool IsHighlighted = false,
+    string HighlightLabel = "")
 {
     public bool IsWithinLimit => !IsNearLimit;
 
@@ -24,14 +27,80 @@ public sealed record SampleQuotaWindow(
     public bool IsPaceWithinLimit => HasPace && !IsPaceBehind;
 
     public string PaceAutomationName => $"{Title}: {PaceText}";
+
+    public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
+
+    public string DisplayAutomationName => HasHighlight
+        ? $"{AutomationName}. {HighlightLabel}"
+        : AutomationName;
 }
 
 public sealed record SampleMetric(
     string Label,
     string Value,
-    string AutomationId = "")
+    string AutomationId = "",
+    string LayoutMetricId = "",
+    bool IsHighlighted = false,
+    string HighlightLabel = "")
 {
-    public string AutomationName => $"{Label}: {Value}";
+    public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
+
+    public string AutomationName => HasHighlight
+        ? $"{Label}: {Value}. {HighlightLabel}"
+        : $"{Label}: {Value}";
+}
+
+public sealed class SampleDashboardMetricItem
+{
+    private SampleDashboardMetricItem(SampleQuotaWindow? window, SampleMetric? metric)
+    {
+        Window = window;
+        Metric = metric;
+    }
+
+    public SampleQuotaWindow? Window { get; }
+
+    public SampleMetric? Metric { get; }
+
+    public static SampleDashboardMetricItem FromWindow(SampleQuotaWindow window) =>
+        new(window ?? throw new ArgumentNullException(nameof(window)), null);
+
+    public static SampleDashboardMetricItem FromMetric(SampleMetric metric) =>
+        new(null, metric ?? throw new ArgumentNullException(nameof(metric)));
+
+    public bool IsQuotaWindow => Window is not null;
+
+    public bool IsScalarMetric => Metric is not null;
+
+    public string Title => Window?.Title ?? string.Empty;
+
+    public double RemainingPercent => Window?.RemainingPercent ?? 0d;
+
+    public string RemainingText => Window?.RemainingText ?? string.Empty;
+
+    public string ResetText => Window?.ResetText ?? string.Empty;
+
+    public string WindowAutomationName => Window?.DisplayAutomationName ?? string.Empty;
+
+    public bool IsWithinLimit => Window?.IsWithinLimit ?? false;
+
+    public bool IsNearLimit => Window?.IsNearLimit ?? false;
+
+    public string PaceText => Window?.PaceText ?? string.Empty;
+
+    public string PaceAutomationId => Window?.PaceAutomationId ?? string.Empty;
+
+    public string PaceAutomationName => Window?.PaceAutomationName ?? string.Empty;
+
+    public bool HasPace => Window?.HasPace ?? false;
+
+    public string Label => Metric?.Label ?? string.Empty;
+
+    public string Value => Metric?.Value ?? string.Empty;
+
+    public string MetricAutomationId => Metric?.AutomationId ?? string.Empty;
+
+    public string MetricAutomationName => Metric?.AutomationName ?? string.Empty;
 }
 
 public sealed record SampleProviderCard(
@@ -51,13 +120,34 @@ public sealed record SampleProviderCard(
     string DetailsTooltip = "",
     string DetailsAutomationName = "",
     bool IsHighlighted = false,
-    string HighlightLabel = "")
+    string HighlightLabel = "",
+    IReadOnlyList<SampleQuotaWindow>? SecondaryWindows = null,
+    IReadOnlyList<SampleDashboardMetricItem>? OrderedPrimaryMetrics = null,
+    IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null)
 {
     public bool HasNotice => !string.IsNullOrWhiteSpace(NoticeText);
 
     public IReadOnlyList<SampleMetric> SecondaryMetricItems => SecondaryMetrics ?? [];
 
+    public IReadOnlyList<SampleQuotaWindow> SecondaryWindowItems => SecondaryWindows ?? [];
+
+    public IReadOnlyList<SampleDashboardMetricItem> PrimaryMetricItems =>
+        OrderedPrimaryMetrics
+        ?? Windows.Select(SampleDashboardMetricItem.FromWindow)
+            .Concat(Metrics.Select(SampleDashboardMetricItem.FromMetric))
+            .ToArray();
+
+    public IReadOnlyList<SampleDashboardMetricItem> OnDemandMetricItems =>
+        OrderedOnDemandMetrics
+        ?? SecondaryWindowItems.Select(SampleDashboardMetricItem.FromWindow)
+            .Concat(SecondaryMetricItems.Select(SampleDashboardMetricItem.FromMetric))
+            .ToArray();
+
     public bool HasSecondaryMetrics => SecondaryMetricItems.Count > 0;
+
+    public bool HasSecondaryWindows => SecondaryWindowItems.Count > 0;
+
+    public bool HasOnDemandMetrics => OnDemandMetricItems.Count > 0;
 
     public bool HasDetails =>
         !string.IsNullOrWhiteSpace(SourceValue) || !string.IsNullOrWhiteSpace(ObservedValue);

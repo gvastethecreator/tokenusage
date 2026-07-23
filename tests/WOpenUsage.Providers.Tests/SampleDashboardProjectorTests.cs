@@ -90,6 +90,27 @@ public sealed class SampleDashboardProjectorTests
         Assert.Equal(expectedCodexToday, codex.SecondaryMetricItems[0].Value);
     }
 
+    [Theory]
+    [InlineData(SampleScenario.Normal)]
+    [InlineData(SampleScenario.NearLimit)]
+    [InlineData(SampleScenario.Partial)]
+    public void ProviderMetricsExposeStableUniqueLayoutIds(SampleScenario scenario)
+    {
+        SampleDashboardSnapshot dashboard = SampleDashboardCatalog.Create(scenario, GetString);
+
+        foreach (SampleProviderCard provider in dashboard.Providers)
+        {
+            string[] ids = provider.Windows.Select(item => item.LayoutMetricId)
+                .Concat(provider.Metrics.Select(item => item.LayoutMetricId))
+                .Concat(provider.SecondaryMetricItems.Select(item => item.LayoutMetricId))
+                .Concat(provider.SecondaryWindowItems.Select(item => item.LayoutMetricId))
+                .ToArray();
+
+            Assert.All(ids, id => Assert.False(string.IsNullOrWhiteSpace(id)));
+            Assert.Equal(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());
+        }
+    }
+
     private static string GetString(string key) =>
         key switch
         {
