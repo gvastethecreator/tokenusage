@@ -6,7 +6,9 @@ namespace WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 public sealed class VercelGatewayRefreshCoordinator
 {
+    private readonly SnapshotStore _store;
     private readonly ProviderOperationGate _operationGate;
+    private readonly IProviderRuntime _provider;
     private readonly CacheFirstRefresh _refresh;
 
     public VercelGatewayRefreshCoordinator(
@@ -36,12 +38,13 @@ public sealed class VercelGatewayRefreshCoordinator
         ArgumentNullException.ThrowIfNull(quotaClient);
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
+        _store = snapshotStore;
         _operationGate = new ProviderOperationGate();
-        var provider = new ResilientProviderRuntime(
+        _provider = new ResilientProviderRuntime(
             new VercelGatewayProviderRuntime(credentialStore, reportClient, quotaClient));
         _refresh = new CacheFirstRefresh(
             snapshotStore,
-            [provider],
+            [_provider],
             clock,
             _operationGate);
         Connections = new VercelGatewayConnectionService(
@@ -53,6 +56,9 @@ public sealed class VercelGatewayRefreshCoordinator
     public TimeProvider Clock { get; }
 
     public VercelGatewayConnectionService Connections { get; }
+
+    public ProviderRefreshRegistration CreateRegistration() =>
+        new(_provider, _store, _operationGate);
 
     public IAsyncEnumerable<CacheFirstEvent> RunAsync(
         bool forceRefresh,

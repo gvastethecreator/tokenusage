@@ -1,4 +1,5 @@
 using System.Globalization;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Providers.Fakes;
@@ -33,7 +34,7 @@ public sealed class SampleDashboardProjectorTests
             _ => throw new InvalidOperationException("The test scenario did not return a snapshot."),
         };
 
-        SampleDashboardSnapshot dashboard = SampleDashboardProjector.Create(
+        DashboardSnapshot dashboard = SampleDashboardProjector.Create(
             sampleScenario,
             snapshot,
             GetString);
@@ -41,7 +42,7 @@ public sealed class SampleDashboardProjectorTests
         Assert.Equal(expectedTotal, dashboard.TotalSpendAmount);
         Assert.Equal(5, dashboard.SpendSlices.Count);
         Assert.Equal(5, dashboard.Providers.Count);
-        SampleProviderCard codex = dashboard.Providers.Single(provider => provider.ProviderId == "codex");
+        ProviderCard codex = dashboard.Providers.Single(provider => provider.ProviderId == "codex");
         Assert.Equal(expectedRemaining, codex.Windows[0].RemainingPercent);
         Assert.Contains("Codex", codex.Windows[0].AutomationName, StringComparison.Ordinal);
         Assert.Contains(codex.Windows[0].ResetText, codex.Windows[0].AutomationName, StringComparison.Ordinal);
@@ -78,11 +79,11 @@ public sealed class SampleDashboardProjectorTests
     {
         using var culture = new CultureScope(cultureName);
 
-        SampleDashboardSnapshot dashboard = SampleDashboardCatalog.Create(
+        DashboardSnapshot dashboard = SampleDashboardCatalog.Create(
             SampleScenario.Normal,
             GetString);
-        SampleProviderCard grok = dashboard.Providers.Single(provider => provider.ProviderId == "grok");
-        SampleProviderCard codex = dashboard.Providers.Single(provider => provider.ProviderId == "codex");
+        ProviderCard grok = dashboard.Providers.Single(provider => provider.ProviderId == "grok");
+        ProviderCard codex = dashboard.Providers.Single(provider => provider.ProviderId == "codex");
 
         Assert.Equal(expectedTotal, dashboard.TotalSpendAmount);
         Assert.Equal(expectedGrokTokens, grok.Metrics[0].Value);
@@ -96,9 +97,9 @@ public sealed class SampleDashboardProjectorTests
     [InlineData(SampleScenario.Partial)]
     public void ProviderMetricsExposeStableUniqueLayoutIds(SampleScenario scenario)
     {
-        SampleDashboardSnapshot dashboard = SampleDashboardCatalog.Create(scenario, GetString);
+        DashboardSnapshot dashboard = SampleDashboardCatalog.Create(scenario, GetString);
 
-        foreach (SampleProviderCard provider in dashboard.Providers)
+        foreach (ProviderCard provider in dashboard.Providers)
         {
             string[] ids = provider.Windows.Select(item => item.LayoutMetricId)
                 .Concat(provider.Metrics.Select(item => item.LayoutMetricId))

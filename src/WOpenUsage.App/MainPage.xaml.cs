@@ -12,29 +12,19 @@ using Windows.Storage;
 using Windows.System;
 using Windows.UI.ViewManagement;
 using Windows.UI.Core;
+using WOpenUsage.App.Composition;
 using WOpenUsage.App.Controls;
 using WOpenUsage.App.Localization;
-using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
-using WOpenUsage.Providers.Claude;
-using WOpenUsage.Providers.Grok;
-using WOpenUsage.Providers.OpenCode;
 using WOpenUsage.Providers.VercelAiGateway;
 using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Layout;
-using WOpenUsage.Runtime.Windows.Codex;
 using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.App;
 
 public sealed partial class MainPage : Page
 {
-    private static readonly HttpClient VercelHttpClient = new()
-    {
-        Timeout = TimeSpan.FromSeconds(30),
-    };
-
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
     private int _detailRevealToken;
     private Storyboard? _viewTransitionStoryboard;
@@ -45,43 +35,17 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         TimeProvider clock = TimeProvider.System;
-        string sampleCacheDirectory = Path.Combine(
-            ApplicationData.Current.LocalFolder.Path,
-            "cache",
-            "sample");
-        string codexCacheDirectory = Path.Combine(
-            ApplicationData.Current.LocalFolder.Path,
-            "cache",
-            "providers",
-            "codex");
-        string usageDatabasePath = Path.Combine(
-            ApplicationData.Current.LocalFolder.Path,
-            "scanner",
-            "usage.v1.db");
+        string localFolderPath = ApplicationData.Current.LocalFolder.Path;
         string vercelCacheDirectory = Path.Combine(
-            ApplicationData.Current.LocalFolder.Path,
+            localFolderPath,
             "cache",
             "providers",
             "vercel-ai-gateway");
-        string dashboardLayoutPath = GetDashboardLayoutPath(
-            ApplicationData.Current.LocalFolder.Path);
-        string appearanceSettingsPath = GetAppearanceSettingsPath(
-            ApplicationData.Current.LocalFolder.Path);
-        var codexClientFactory = new CodexAppServerQuotaClientFactory(clock);
-        ViewModel = new FlyoutViewModel(
-            new SampleRefreshCoordinator(sampleCacheDirectory, clock),
-            new CodexRefreshCoordinator(codexCacheDirectory, clock, codexClientFactory),
-            new LocalUsageCoordinator(
-                usageDatabasePath,
-                [
-                    new ClaudeUsageEventSource(TimeZoneInfo.Local.Id),
-                    new GrokUsageEventSource(TimeZoneInfo.Local.Id),
-                    new OpenCodeUsageEventSource(TimeZoneInfo.Local.Id),
-                ],
-                clock),
-            new DashboardLayoutStore(dashboardLayoutPath, clock),
-            new AppearanceSettingsStore(appearanceSettingsPath, clock),
-            CreateVercelCoordinator(vercelCacheDirectory, clock));
+        var options = new AppCompositionOptions(
+            DashboardLayoutPath: GetDashboardLayoutPath(localFolderPath),
+            AppearanceSettingsPath: GetAppearanceSettingsPath(localFolderPath),
+            VercelCoordinator: TryCreateDebugVercelCoordinator(vercelCacheDirectory, clock));
+        ViewModel = AppComposition.CreateFlyoutViewModel(localFolderPath, clock, options);
         InitializeComponent();
         _lastSurfaceState = ViewModel.SurfaceState;
         _lastOptionsSection = ViewModel.ActiveOptionsSection;
@@ -674,7 +638,7 @@ public sealed partial class MainPage : Page
 #endif
     }
 
-    private static VercelGatewayRefreshCoordinator CreateVercelCoordinator(
+    private static VercelGatewayRefreshCoordinator? TryCreateDebugVercelCoordinator(
         string cacheDirectory,
         TimeProvider clock)
     {
@@ -683,20 +647,15 @@ public sealed partial class MainPage : Page
                 "--test-vercel-fake",
                 StringComparer.OrdinalIgnoreCase))
         {
-            return new VercelGatewayRefreshCoordinator(
-                new SnapshotStore(
-                    Path.Combine(cacheDirectory, SnapshotStore.DefaultFileName),
-                    clock),
+            return AppComposition.CreateVercelCoordinator(
+                cacheDirectory,
+                clock,
                 new DebugVercelCredentialStore(),
                 new DebugVercelReportClient(),
-                new DebugVercelQuotaClient(),
-                clock);
+                new DebugVercelQuotaClient());
         }
 #endif
-        return new VercelGatewayRefreshCoordinator(
-            cacheDirectory,
-            clock,
-            VercelHttpClient);
+        return null;
     }
 
     private static string GetDashboardLayoutPath(string localFolderPath)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 
@@ -13,7 +14,7 @@ public sealed class VercelGatewayCardProjectorTests
     [Fact]
     public void CompleteSnapshotMapsAccountScopeSpendTokensAndProvenanceCopy()
     {
-        SampleProviderCard card = VercelGatewayCardProjector.Create(
+        ProviderCard card = VercelGatewayCardProjector.Create(
             CreateSnapshot(CoverageKind.Complete),
             Strings);
 
@@ -46,14 +47,14 @@ public sealed class VercelGatewayCardProjectorTests
     [Fact]
     public void AvailableBudgetMapsAnimatedWindowAndUsdRemaining()
     {
-        SampleProviderCard card = VercelGatewayCardProjector.Create(
+        ProviderCard card = VercelGatewayCardProjector.Create(
             CreateSnapshot(
                 CoverageKind.Complete,
                 quotaState: ProviderCapabilityState.Available,
                 includeBudget: true),
             Strings);
 
-        SampleQuotaWindow window = Assert.Single(card.Windows);
+        QuotaWindow window = Assert.Single(card.Windows);
         Assert.Equal(65d, window.RemainingPercent);
         Assert.Equal(
             string.Format(CultureInfo.CurrentCulture, "${0:N2} left of ${1:N2}", 6.5m, 10m),
@@ -68,7 +69,7 @@ public sealed class VercelGatewayCardProjectorTests
     [Fact]
     public void DegradedBudgetKeepsReportNoticeScopedToBudget()
     {
-        SampleProviderCard card = VercelGatewayCardProjector.Create(
+        ProviderCard card = VercelGatewayCardProjector.Create(
             CreateSnapshot(
                 CoverageKind.Complete,
                 quotaState: ProviderCapabilityState.Degraded),
@@ -84,7 +85,7 @@ public sealed class VercelGatewayCardProjectorTests
     [Fact]
     public void MissingBudgetKeepsReportWithoutProgressWindow()
     {
-        SampleProviderCard card = VercelGatewayCardProjector.Create(
+        ProviderCard card = VercelGatewayCardProjector.Create(
             CreateSnapshot(
                 CoverageKind.Complete,
                 quotaState: ProviderCapabilityState.NotConfigured),
@@ -99,7 +100,7 @@ public sealed class VercelGatewayCardProjectorTests
     [Fact]
     public void InactiveBudgetDoesNotRenderAProgressWindow()
     {
-        SampleProviderCard card = VercelGatewayCardProjector.Create(
+        ProviderCard card = VercelGatewayCardProjector.Create(
             CreateSnapshot(
                 CoverageKind.Complete,
                 quotaState: ProviderCapabilityState.Available,
@@ -118,7 +119,7 @@ public sealed class VercelGatewayCardProjectorTests
     {
         ProviderSnapshot snapshot = CreateSnapshot(CoverageKind.Partial, includeOutput: false);
 
-        SampleProviderCard card = VercelGatewayCardProjector.Create(snapshot, Strings);
+        ProviderCard card = VercelGatewayCardProjector.Create(snapshot, Strings);
 
         Assert.Contains("missing", card.NoticeText, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Missing", Metric(card, "VercelGateway.OutputTokens30Days").Value);
@@ -133,7 +134,7 @@ public sealed class VercelGatewayCardProjectorTests
             VercelGatewayCardProjector.Create(snapshot, Strings));
     }
 
-    private static SampleMetric Metric(SampleProviderCard card, string automationId) =>
+    private static DashboardMetric Metric(ProviderCard card, string automationId) =>
         Assert.Single(card.Metrics, metric => metric.AutomationId == automationId);
 
     private static ProviderSnapshot CreateSnapshot(

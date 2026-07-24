@@ -1,10 +1,12 @@
 using System.Globalization;
 
+using WOpenUsage.App.ViewModels.Dashboard;
+
 namespace WOpenUsage.App.ViewModels.Sample;
 
 public static class SampleDashboardCatalog
 {
-    public static SampleDashboardSnapshot Create(
+    public static DashboardSnapshot Create(
         SampleScenario scenario,
         Func<string, string> getString)
     {
@@ -20,7 +22,7 @@ public static class SampleDashboardCatalog
         };
     }
 
-    private static SampleDashboardSnapshot CreateNormal(Func<string, string> text)
+    private static DashboardSnapshot CreateNormal(Func<string, string> text)
     {
         const double total = 48.12;
 
@@ -49,7 +51,7 @@ public static class SampleDashboardCatalog
             ]);
     }
 
-    private static SampleDashboardSnapshot CreateNearLimit(Func<string, string> text)
+    private static DashboardSnapshot CreateNearLimit(Func<string, string> text)
     {
         const double total = 96.40;
 
@@ -78,7 +80,7 @@ public static class SampleDashboardCatalog
             ]);
     }
 
-    private static SampleDashboardSnapshot CreatePartial(Func<string, string> text)
+    private static DashboardSnapshot CreatePartial(Func<string, string> text)
     {
         const double total = 31.05;
 
@@ -107,7 +109,7 @@ public static class SampleDashboardCatalog
             ]);
     }
 
-    private static SampleDashboardSnapshot CreateStale(Func<string, string> text)
+    private static DashboardSnapshot CreateStale(Func<string, string> text)
     {
         const double total = 48.12;
 
@@ -136,10 +138,10 @@ public static class SampleDashboardCatalog
             ]);
     }
 
-    private static SampleDashboardSnapshot CreateError(Func<string, string> text)
+    private static DashboardSnapshot CreateError(Func<string, string> text)
     {
-        SampleDashboardSnapshot normal = CreateNormal(text);
-        SampleProviderCard[] providers = normal.Providers
+        DashboardSnapshot normal = CreateNormal(text);
+        ProviderCard[] providers = normal.Providers
             .Select(provider => provider.ProviderId == "codex"
                 ? provider with { NoticeText = text("SampleNoticeError") }
                 : provider)
@@ -153,14 +155,14 @@ public static class SampleDashboardCatalog
         };
     }
 
-    private static SampleDashboardSnapshot Snapshot(
+    private static DashboardSnapshot Snapshot(
         SampleScenario scenario,
         double total,
         Func<string, string> text,
-        IReadOnlyList<SampleSpendSlice> slices,
-        IReadOnlyList<SampleProviderCard> providers)
+        IReadOnlyList<SpendSlice> slices,
+        IReadOnlyList<ProviderCard> providers)
     {
-        SampleSpendSlice[] localizedSlices = slices
+        SpendSlice[] localizedSlices = slices
             .Select(slice => slice with { AmountText = Money(slice.Amount, text) })
             .ToArray();
         string totalText = Money(total, text);
@@ -185,29 +187,29 @@ public static class SampleDashboardCatalog
             Format(text, "SampleUsdCompactFormat", total));
     }
 
-    private static SampleSpendSlice Spend(
+    private static SpendSlice Spend(
         string providerId,
         string provider,
         double amount) =>
         new(providerId, provider, amount, string.Empty);
 
-    private static SampleProviderCard QuotaProvider(
+    private static ProviderCard QuotaProvider(
         string providerId,
         string id,
         string name,
         string plan,
         Func<string, string> text,
-        params SampleQuotaWindow[] windows) =>
+        params QuotaWindow[] windows) =>
         QuotaProvider(providerId, id, name, plan, text, null, windows);
 
-    private static SampleProviderCard QuotaProvider(
+    private static ProviderCard QuotaProvider(
         string providerId,
         string id,
         string name,
         string plan,
         Func<string, string> text,
         string? notice,
-        params SampleQuotaWindow[] windows) =>
+        params QuotaWindow[] windows) =>
         WithSampleDetails(new(
             providerId,
             id,
@@ -221,7 +223,7 @@ public static class SampleDashboardCatalog
             }).ToArray(),
             []), text);
 
-    private static SampleProviderCard MetricProvider(
+    private static ProviderCard MetricProvider(
         string providerId,
         string id,
         string name,
@@ -232,7 +234,7 @@ public static class SampleDashboardCatalog
         double? spend,
         Func<string, string> text)
     {
-        List<SampleMetric> metrics =
+        List<DashboardMetric> metrics =
             [new(
                 text("SampleMetricTokens"),
                 CompactTokens(tokens, includeUnit: false, text),
@@ -240,7 +242,7 @@ public static class SampleDashboardCatalog
                 "usage.tokens.30d")];
         if (spend is not null)
         {
-            metrics.Add(new SampleMetric(
+            metrics.Add(new DashboardMetric(
                 text("SampleMetricSpend"),
                 Money(spend.Value, text),
                 $"{id}.Spend",
@@ -248,18 +250,18 @@ public static class SampleDashboardCatalog
         }
 
         return WithSampleDetails(
-            new SampleProviderCard(providerId, id, name, plan, capability, notice, [], metrics),
+            new ProviderCard(providerId, id, name, plan, capability, notice, [], metrics),
             text);
     }
 
-    private static SampleProviderCard CodexProvider(
+    private static ProviderCard CodexProvider(
         SampleScenario scenario,
         string plan,
         Func<string, string> text,
         string? notice,
-        params SampleQuotaWindow[] windows)
+        params QuotaWindow[] windows)
     {
-        SampleProviderCard provider = QuotaProvider(
+        ProviderCard provider = QuotaProvider(
             "codex",
             "SampleProvider.Codex",
             "Codex",
@@ -282,7 +284,7 @@ public static class SampleDashboardCatalog
                 Format(text, "CodexPaceOnTrackFormat", 96),
             ],
         };
-        SampleQuotaWindow[] pacedWindows = provider.Windows
+        QuotaWindow[] pacedWindows = provider.Windows
             .Select((window, index) => window with
             {
                 PaceText = index < pace.Length ? pace[index] : null,
@@ -290,7 +292,7 @@ public static class SampleDashboardCatalog
                 PaceAutomationId = index == 0 ? "CodexPace.Session" : "CodexPace.Weekly",
             })
             .ToArray();
-        IReadOnlyList<SampleMetric> metrics = scenario switch
+        IReadOnlyList<DashboardMetric> metrics = scenario switch
         {
             SampleScenario.NearLimit => UsageMetrics(
                 CompactTokens(490_000, includeUnit: true, text),
@@ -321,8 +323,8 @@ public static class SampleDashboardCatalog
         };
     }
 
-    private static SampleProviderCard WithSampleDetails(
-        SampleProviderCard provider,
+    private static ProviderCard WithSampleDetails(
+        ProviderCard provider,
         Func<string, string> text)
     {
         string source = text("ProviderSourceSample");
@@ -392,7 +394,7 @@ public static class SampleDashboardCatalog
             cells);
     }
 
-    private static IReadOnlyList<SampleMetric> UsageMetrics(
+    private static IReadOnlyList<DashboardMetric> UsageMetrics(
         string today,
         string yesterday,
         string last7Days,
@@ -405,14 +407,14 @@ public static class SampleDashboardCatalog
             new(text("CodexUsageLast30Days"), last30Days, "CodexUsage.Last30Days", "usage.tokens.30d"),
         ];
 
-    private static SampleQuotaWindow Session(
+    private static QuotaWindow Session(
         int remaining,
         int resetHours,
         bool nearLimit,
         Func<string, string> text) =>
         Window(text("SampleWindowSession"), remaining, Format(text, "SampleResetHoursFormat", resetHours), nearLimit, "quota.session", text);
 
-    private static SampleQuotaWindow Weekly(
+    private static QuotaWindow Weekly(
         int remaining,
         int resetDays,
         int resetHours,
@@ -420,14 +422,14 @@ public static class SampleDashboardCatalog
         Func<string, string> text) =>
         Window(text("SampleWindowWeekly"), remaining, Format(text, "SampleResetDaysHoursFormat", resetDays, resetHours), nearLimit, "quota.weekly", text);
 
-    private static SampleQuotaWindow SoftBudget(
+    private static QuotaWindow SoftBudget(
         int remaining,
         int resetDays,
         bool nearLimit,
         Func<string, string> text) =>
         Window(text("SampleWindowSoftBudget"), remaining, Format(text, "SampleResetDaysFormat", resetDays), nearLimit, "quota.soft-budget", text);
 
-    private static SampleQuotaWindow Window(
+    private static QuotaWindow Window(
         string title,
         int remaining,
         string reset,
@@ -436,7 +438,7 @@ public static class SampleDashboardCatalog
         Func<string, string> text)
     {
         var remainingText = Format(text, "SampleRemainingFormat", remaining);
-        return new SampleQuotaWindow(
+        return new QuotaWindow(
             title,
             remaining,
             remainingText,

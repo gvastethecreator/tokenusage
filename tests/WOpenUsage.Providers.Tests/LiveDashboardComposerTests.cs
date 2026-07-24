@@ -1,4 +1,5 @@
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 
 namespace WOpenUsage.Providers.Tests;
@@ -8,7 +9,7 @@ public sealed class LiveDashboardComposerTests
     [Fact]
     public void LocalSpendFlowsIntoTheTopLevelLiveSummary()
     {
-        SampleSpendSlice[] slices =
+        SpendSlice[] slices =
         [
             new("claude", "Claude", 4.25, "$4.25"),
             new("grok", "Grok Build", 1.75, "$1.75"),
@@ -30,7 +31,7 @@ public sealed class LiveDashboardComposerTests
                 "$6.00"),
             []);
 
-        SampleDashboardSnapshot result = LiveDashboardComposer.Create(
+        DashboardSnapshot result = LiveDashboardComposer.Create(
             [],
             localUsage,
             [],
@@ -47,7 +48,7 @@ public sealed class LiveDashboardComposerTests
     [Fact]
     public void QuotaOnlyDashboardKeepsTheFallbackPeriod()
     {
-        SampleDashboardSnapshot result = LiveDashboardComposer.Create(
+        DashboardSnapshot result = LiveDashboardComposer.Create(
             [],
             localUsage: null,
             [],
@@ -74,16 +75,16 @@ public sealed class LiveDashboardComposerTests
                 "1 agent",
                 "$4.00",
                 "Local spend",
-                [new SampleSpendSlice("claude", "Claude", 4, "$4.00")],
+                [new SpendSlice("claude", "Claude", 4, "$4.00")],
                 []),
             []);
 
-        SampleDashboardSnapshot result = LiveDashboardComposer.Create(
+        DashboardSnapshot result = LiveDashboardComposer.Create(
             [],
             localUsage,
             [
-                new SampleSpendSlice("vercel-ai-gateway", "Vercel AI Gateway", 6, "$6.00"),
-                new SampleSpendSlice("claude", "Claude account", 99, "$99.00"),
+                new SpendSlice("vercel-ai-gateway", "Vercel AI Gateway", 6, "$6.00"),
+                new SpendSlice("claude", "Claude account", 99, "$99.00"),
             ],
             "Live",
             Summarize);
@@ -94,7 +95,7 @@ public sealed class LiveDashboardComposerTests
         Assert.Equal("2 providers, $10.00", result.SpendAccessibleName);
     }
 
-    private static DashboardSpendSummary Summarize(IReadOnlyList<SampleSpendSlice> slices)
+    private static DashboardSpendSummary Summarize(IReadOnlyList<SpendSlice> slices)
     {
         double total = slices.Sum(slice => slice.Amount);
         return new DashboardSpendSummary(

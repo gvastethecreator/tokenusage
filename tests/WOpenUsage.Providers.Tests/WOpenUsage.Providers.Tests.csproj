@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleScenario.cs" Link="Sample\SampleScenario.cs" />
-    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardModels.cs" Link="Sample\SampleDashboardModels.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Dashboard\DashboardModels.cs" Link="Dashboard\DashboardModels.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardCatalog.cs" Link="Sample\SampleDashboardCatalog.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardProjector.cs" Link="Sample\SampleDashboardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\Services\SampleRefreshCoordinator.cs" Link="Sample\SampleRefreshCoordinator.cs" />
@@ -32,6 +32,9 @@
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\AppearanceDashboardProjector.cs" Link="Dashboard\AppearanceDashboardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\FlyoutSurfaceState.cs" Link="Codex\FlyoutSurfaceState.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\Services\LocalUsageCoordinator.cs" Link="Usage\LocalUsageCoordinator.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\AppearanceSession.cs" Link="Sessions\AppearanceSession.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\DashboardLayoutEditor.cs" Link="Sessions\DashboardLayoutEditor.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\SampleDashboardSession.cs" Link="Sessions\SampleDashboardSession.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\LocalUsageCardProjector.cs" Link="Usage\LocalUsageCardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\LiveDashboardComposer.cs" Link="Dashboard\LiveDashboardComposer.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="VercelAiGateway\VercelGatewayCardProjector.cs" />

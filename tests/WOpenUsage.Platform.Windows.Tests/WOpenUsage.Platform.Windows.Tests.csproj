@@ -25,7 +25,7 @@
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\CodexDashboardProjector.cs" Link="Composition\CodexDashboardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="Composition\VercelGatewayCardProjector.cs" />
     <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleScenario.cs" Link="Composition\SampleScenario.cs" />
-    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Sample\SampleDashboardModels.cs" Link="Composition\SampleDashboardModels.cs" />
+    <Compile Include="..\..\src\WOpenUsage.App\ViewModels\Dashboard\DashboardModels.cs" Link="Dashboard\DashboardModels.cs" />
   </ItemGroup>
 
   <ItemGroup>

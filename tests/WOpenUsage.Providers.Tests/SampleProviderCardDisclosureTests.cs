@@ -1,13 +1,14 @@
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 
 namespace WOpenUsage.Providers.Tests;
 
-public sealed class SampleProviderCardDisclosureTests
+public sealed class ProviderCardDisclosureTests
 {
     [Fact]
     public void OnDemandMetricsDisclosureStartsClosedAndNotifiesOnlyOnChange()
     {
-        var card = new SampleProviderCard(
+        var card = new ProviderCard(
             "codex",
             "SampleProvider.Codex",
             "Codex",
@@ -26,7 +27,7 @@ public sealed class SampleProviderCardDisclosureTests
         card.IsOnDemandMetricsExpanded = false;
 
         Assert.Equal(
-            [nameof(SampleProviderCard.IsOnDemandMetricsExpanded), nameof(SampleProviderCard.IsOnDemandMetricsExpanded)],
+            [nameof(ProviderCard.IsOnDemandMetricsExpanded), nameof(ProviderCard.IsOnDemandMetricsExpanded)],
             changedProperties);
     }
 }

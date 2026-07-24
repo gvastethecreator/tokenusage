@@ -70,12 +70,21 @@ public sealed class ArchitectureRulesTests
             repoRoot,
             "src",
             "WOpenUsage.App",
-            "MainPage.xaml.cs"));
+            "Composition",
+            "AppComposition.cs"));
 
         Assert.Contains("new ClaudeUsageEventSource", composition, StringComparison.Ordinal);
         Assert.Contains("new GrokUsageEventSource", composition, StringComparison.Ordinal);
         Assert.Contains("new OpenCodeUsageEventSource", composition, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticUsageEventSource", composition, StringComparison.Ordinal);
+
+        string mainPage = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "WOpenUsage.App",
+            "MainPage.xaml.cs"));
+        Assert.Contains("AppComposition.CreateFlyoutViewModel", mainPage, StringComparison.Ordinal);
+        Assert.DoesNotContain("new FlyoutViewModel(", mainPage, StringComparison.Ordinal);
     }
 
     [Fact]

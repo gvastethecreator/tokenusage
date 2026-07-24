@@ -1,11 +1,17 @@
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Runtime.Windows.Codex;
+using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.Cli;
 
 public static class LocalLimitsCliAccess
 {
+    private static readonly HttpClient SharedHttpClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(30),
+    };
+
     public static async Task<IReadOnlyList<ProviderSnapshot>> ReadAsync(
         string dataDirectory,
         string? providerId,
@@ -18,44 +24,79 @@ public static class LocalLimitsCliAccess
         cancellationToken.ThrowIfCancellationRequested();
 
         if (providerId is not null
-            && !string.Equals(providerId, "codex", StringComparison.Ordinal))
+            && !IsKnownProvider(providerId))
         {
             return [];
         }
 
-        string cacheDirectory = Path.Combine(
-            Path.GetFullPath(dataDirectory),
-            "cache",
-            "providers",
-            "codex");
+        string root = Path.GetFullPath(dataDirectory);
+        ProviderRefreshHost host = CreateLiveHost(root, clock);
         if (forceRefresh)
         {
-            var factory = new CodexAppServerQuotaClientFactory(clock);
-            var coordinator = new CodexRefreshCoordinator(cacheDirectory, clock, factory);
             return await SelectForceResultAsync(
-                coordinator.RunAsync(forceRefresh: true, cancellationToken),
+                host.RunAsync(forceRefresh: true, cancellationToken),
+                providerId,
                 cancellationToken).ConfigureAwait(false);
         }
 
-        string cachePath = Path.Combine(cacheDirectory, SnapshotStore.DefaultFileName);
-        var store = new SnapshotStore(cachePath, clock);
-        SnapshotCacheReadResult result = await store.LoadAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var snapshots = new List<ProviderSnapshot>();
+        foreach (ProviderRefreshRegistration registration in host.Registrations)
+        {
+            if (providerId is not null
+                && !string.Equals(
+                    registration.Provider.Descriptor.Id.Value,
+                    providerId,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
 
-        return result is SnapshotCacheReadResult.Loaded loaded
-            ? SelectCodex(loaded.Snapshots)
-            : [];
+            SnapshotCacheReadResult result = await registration.Store
+                .LoadAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (result is SnapshotCacheReadResult.Loaded loaded)
+            {
+                snapshots.AddRange(SelectProviders(loaded.Snapshots, providerId));
+            }
+        }
+
+        return snapshots;
+    }
+
+    internal static ProviderRefreshHost CreateLiveHost(string dataDirectory, TimeProvider clock)
+    {
+        string codexCacheDirectory = Path.Combine(dataDirectory, "cache", "providers", "codex");
+        string vercelCacheDirectory = Path.Combine(
+            dataDirectory,
+            "cache",
+            "providers",
+            "vercel-ai-gateway");
+        var codexCoordinator = new CodexRefreshCoordinator(
+            codexCacheDirectory,
+            clock,
+            new CodexAppServerQuotaClientFactory(clock));
+        var vercelCoordinator = new VercelGatewayRefreshCoordinator(
+            vercelCacheDirectory,
+            clock,
+            SharedHttpClient);
+        return new ProviderRefreshHost(
+            [
+                codexCoordinator.CreateRegistration(),
+                vercelCoordinator.CreateRegistration(),
+            ],
+            clock);
     }
 
     internal static async Task<IReadOnlyList<ProviderSnapshot>> SelectForceResultAsync(
         IAsyncEnumerable<CacheFirstEvent> events,
+        string? providerId,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(events);
         cancellationToken.ThrowIfCancellationRequested();
 
-        ProviderSnapshot? cached = null;
-        ProviderSnapshot? result = null;
+        var cached = new Dictionary<string, ProviderSnapshot>(StringComparer.Ordinal);
+        var results = new Dictionary<string, ProviderSnapshot>(StringComparer.Ordinal);
         await foreach (CacheFirstEvent item in events
                            .WithCancellation(cancellationToken)
                            .ConfigureAwait(false))
@@ -63,31 +104,58 @@ public static class LocalLimitsCliAccess
             switch (item)
             {
                 case CacheFirstEvent.CachePublished published:
-                    cached = SelectCodex(published.Snapshots).SingleOrDefault();
-                    result ??= cached;
+                    foreach (ProviderSnapshot snapshot in SelectProviders(published.Snapshots, providerId))
+                    {
+                        cached[snapshot.ProviderId.Value] = snapshot;
+                        results.TryAdd(snapshot.ProviderId.Value, snapshot);
+                    }
+
                     break;
 
                 case CacheFirstEvent.ProviderCompleted completed
-                    when string.Equals(
-                        completed.ProviderId.Value,
-                        "codex",
-                        StringComparison.Ordinal):
-                    result = SelectOutcomeSnapshot(completed.Outcome) ?? cached;
+                    when providerId is null
+                         || string.Equals(
+                             completed.ProviderId.Value,
+                             providerId,
+                             StringComparison.Ordinal):
+                    ProviderSnapshot? fromOutcome = SelectOutcomeSnapshot(completed.Outcome);
+                    if (fromOutcome is not null)
+                    {
+                        results[completed.ProviderId.Value] = fromOutcome;
+                    }
+                    else if (cached.TryGetValue(completed.ProviderId.Value, out ProviderSnapshot? lastGood))
+                    {
+                        results[completed.ProviderId.Value] = lastGood;
+                    }
+
                     break;
             }
         }
 
-        return result is null ? [] : [result];
+        return results.Values
+            .OrderBy(snapshot => snapshot.ProviderId.Value, StringComparer.Ordinal)
+            .ToArray();
     }
 
-    private static ProviderSnapshot[] SelectCodex(
-        IEnumerable<ProviderSnapshot> snapshots) =>
+    // Back-compat for existing tests that call the codex-only selector.
+    internal static Task<IReadOnlyList<ProviderSnapshot>> SelectForceResultAsync(
+        IAsyncEnumerable<CacheFirstEvent> events,
+        CancellationToken cancellationToken) =>
+        SelectForceResultAsync(events, providerId: "codex", cancellationToken);
+
+    private static bool IsKnownProvider(string providerId) =>
+        string.Equals(providerId, "codex", StringComparison.Ordinal)
+        || string.Equals(providerId, "vercel-ai-gateway", StringComparison.Ordinal);
+
+    private static ProviderSnapshot[] SelectProviders(
+        IEnumerable<ProviderSnapshot> snapshots,
+        string? providerId) =>
         snapshots
-            .Where(snapshot => string.Equals(
-                snapshot.ProviderId.Value,
-                "codex",
-                StringComparison.Ordinal))
-            .Take(1)
+            .Where(snapshot => providerId is null
+                || string.Equals(
+                    snapshot.ProviderId.Value,
+                    providerId,
+                    StringComparison.Ordinal))
             .ToArray();
 
     private static ProviderSnapshot? SelectOutcomeSnapshot(ProviderOutcome outcome) => outcome switch

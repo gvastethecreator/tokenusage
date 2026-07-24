@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
@@ -79,10 +80,10 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
         VercelGatewayUiState.Checking;
 
     [ObservableProperty]
-    public partial SampleProviderCard? ProviderCard { get; private set; }
+    public partial ProviderCard? ProviderCard { get; private set; }
 
     [ObservableProperty]
-    public partial SampleSpendSlice? SpendSlice { get; private set; }
+    public partial SpendSlice? SpendSlice { get; private set; }
 
     public bool IsConnectFormVisible => !IsConfigured;
 
@@ -331,6 +332,21 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
     }
 
     private bool CanDisconnect() => IsConfigured && !IsBusy;
+
+    public void ApplyHostCacheSnapshot(ProviderSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        PublishSnapshot(snapshot);
+        SetState(VercelGatewayUiState.Refreshing, "VercelStatusCachedRefreshing");
+    }
+
+    public Task ApplyHostProviderCompletedAsync(
+        CacheFirstEvent.ProviderCompleted completed,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(completed);
+        return PublishOutcomeAsync(completed, cancellationToken);
+    }
 
     private async Task RefreshCoreAsync(bool forceRefresh, CancellationToken cancellationToken)
     {

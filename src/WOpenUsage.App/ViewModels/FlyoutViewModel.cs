@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Data.Common;
 using WOpenUsage.App.Localization;
 using WOpenUsage.App.Services;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Appearance;
 using WOpenUsage.Core.Cache;
@@ -18,18 +19,16 @@ namespace WOpenUsage.App.ViewModels;
 public partial class FlyoutViewModel : ObservableObject
 {
     private readonly ResourceLoader _resources = new();
-    private readonly SampleRefreshCoordinator _sampleRefreshCoordinator;
-    private readonly CodexRefreshCoordinator _codexRefreshCoordinator;
-    private readonly LocalUsageCoordinator _localUsageCoordinator;
-    private readonly DashboardLayoutStore _dashboardLayoutStore;
-    private readonly AppearanceSettingsStore _appearanceSettingsStore;
+    private readonly SampleDashboardSession _sampleSession;
+    private readonly LiveDashboardSession _liveSession;
+    private readonly AppearanceSession _appearanceSession;
+    private readonly DashboardLayoutEditor _layoutEditor;
     private readonly Task _dashboardLayoutInitialization;
     private readonly Task _appearanceInitialization;
     private CancellationTokenSource? _refreshCancellation;
     private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
     private SampleScenario? _activeScenario;
     private bool _hasPublishedDashboard;
-    private int _refreshVersion;
     private DateTimeOffset? _publishedObservedAtUtc;
     private DateTimeOffset? _retryAtUtc;
     private bool _hasLocalUsage;
@@ -37,31 +36,27 @@ public partial class FlyoutViewModel : ObservableObject
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
     private DashboardLayout _dashboardLayout = DashboardLayout.Empty;
-    private SampleDashboardSnapshot? _rawDashboard;
-    private bool _isDashboardLayoutReadOnly;
+    private DashboardSnapshot? _rawDashboard;
     private readonly HashSet<string> _expandedDashboardMetricProviders = new(StringComparer.Ordinal);
-    private readonly DashboardLayoutSessionHistory _dashboardLayoutHistory = new();
     private bool _isApplyingAppearance;
-    private bool _isAppearanceReadOnly;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator sampleRefreshCoordinator,
-        CodexRefreshCoordinator codexRefreshCoordinator,
+        ProviderRefreshHost liveRefreshHost,
         LocalUsageCoordinator localUsageCoordinator,
         DashboardLayoutStore dashboardLayoutStore,
         AppearanceSettingsStore appearanceSettingsStore,
         VercelGatewayRefreshCoordinator vercelGatewayCoordinator)
     {
-        _sampleRefreshCoordinator = sampleRefreshCoordinator
-            ?? throw new ArgumentNullException(nameof(sampleRefreshCoordinator));
-        _codexRefreshCoordinator = codexRefreshCoordinator
-            ?? throw new ArgumentNullException(nameof(codexRefreshCoordinator));
-        _localUsageCoordinator = localUsageCoordinator
-            ?? throw new ArgumentNullException(nameof(localUsageCoordinator));
-        _dashboardLayoutStore = dashboardLayoutStore
-            ?? throw new ArgumentNullException(nameof(dashboardLayoutStore));
-        _appearanceSettingsStore = appearanceSettingsStore
-            ?? throw new ArgumentNullException(nameof(appearanceSettingsStore));
+        ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
+        ArgumentNullException.ThrowIfNull(liveRefreshHost);
+        ArgumentNullException.ThrowIfNull(localUsageCoordinator);
+        ArgumentNullException.ThrowIfNull(dashboardLayoutStore);
+        ArgumentNullException.ThrowIfNull(appearanceSettingsStore);
+        _sampleSession = new SampleDashboardSession(sampleRefreshCoordinator);
+        _liveSession = new LiveDashboardSession(liveRefreshHost, localUsageCoordinator);
+        _appearanceSession = new AppearanceSession(appearanceSettingsStore);
+        _layoutEditor = new DashboardLayoutEditor(dashboardLayoutStore);
         Vercel = new VercelGatewaySettingsViewModel(
             vercelGatewayCoordinator
                 ?? throw new ArgumentNullException(nameof(vercelGatewayCoordinator)),
@@ -208,7 +203,7 @@ public partial class FlyoutViewModel : ObservableObject
     public partial SampleScenarioOption SelectedSampleScenario { get; set; }
 
     [ObservableProperty]
-    public partial SampleDashboardSnapshot ActiveSample { get; set; } = null!;
+    public partial DashboardSnapshot ActiveSample { get; set; } = null!;
 
     [ObservableProperty]
     public partial LocalUsageCard LocalUsage { get; set; } = new(
@@ -318,12 +313,12 @@ public partial class FlyoutViewModel : ObservableObject
         !string.IsNullOrWhiteSpace(DashboardLayoutStatusText);
 
     public bool IsDashboardLayoutEditable =>
-        !_isDashboardLayoutReadOnly && !IsDashboardLayoutBusy;
+        _layoutEditor.IsEditable && !IsDashboardLayoutBusy;
 
     public bool CanUndoDashboardLayout =>
-        IsDashboardLayoutEditable && _dashboardLayoutHistory.CanUndo;
+        IsDashboardLayoutEditable && _layoutEditor.CanUndo;
 
-    public bool IsAppearanceEditable => !_isAppearanceReadOnly && !IsAppearanceBusy;
+    public bool IsAppearanceEditable => _appearanceSession.IsEditable;
 
     public bool IsAppearanceStatusVisible =>
         !string.IsNullOrWhiteSpace(AppearanceStatusText);
@@ -350,7 +345,7 @@ public partial class FlyoutViewModel : ObservableObject
             IsSampleModeEnabled,
             _publishedObservedAtUtc,
             _retryAtUtc,
-            _codexRefreshCoordinator.Clock.GetUtcNow(),
+            _liveSession.Clock.GetUtcNow(),
             GetString);
 
     public string SampleDataStateText => GetString(CurrentSampleDataState switch
@@ -484,7 +479,7 @@ public partial class FlyoutViewModel : ObservableObject
     {
         if (_isApplyingAppearance
             || IsAppearanceBusy
-            || _isAppearanceReadOnly
+            || _appearanceSession.IsReadOnly
             || SelectedTheme is null
             || SelectedDensity is null
             || SelectedUsageDisplay is null
@@ -512,57 +507,25 @@ public partial class FlyoutViewModel : ObservableObject
 
     private async Task InitializeAppearanceAsync()
     {
-        AppearanceSettings settings = AppearanceSettings.Default;
-        bool requiresMigration = false;
         try
         {
-            AppearanceSettingsLoadResult result = await _appearanceSettingsStore.LoadAsync();
-            switch (result)
+            await _appearanceSession.InitializeAsync().ConfigureAwait(true);
+            ApplyAppearanceSettings(_appearanceSession.Settings);
+            AppearanceStatusText = _appearanceSession.LastLoadKind switch
             {
-                case AppearanceSettingsLoadResult.Loaded loaded:
-                    settings = loaded.Settings;
-                    requiresMigration = loaded.RequiresMigration;
-                    break;
-                case AppearanceSettingsLoadResult.Corrupt corrupt:
-                    AppearanceStatusText = string.Format(
+                AppearanceSessionLoadKind.Corrupt when _appearanceSession.QuarantineFileName is string name =>
+                    string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
                         GetString("AppearanceRecoveredFormat"),
-                        corrupt.QuarantineFileName);
-                    break;
-                case AppearanceSettingsLoadResult.UnsupportedVersion unsupported:
-                    _isAppearanceReadOnly = true;
-                    AppearanceStatusText = string.Format(
+                        name),
+                AppearanceSessionLoadKind.UnsupportedVersion when _appearanceSession.UnsupportedSchemaVersion is int version =>
+                    string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
                         GetString("AppearanceNewerVersionFormat"),
-                        unsupported.SchemaVersion);
-                    break;
-                case AppearanceSettingsLoadResult.Defaults:
-                    break;
-            }
-
-            ApplyAppearanceSettings(settings);
-            if (requiresMigration && !_isAppearanceReadOnly)
-            {
-                AppearanceSettingsSaveResult save =
-                    await _appearanceSettingsStore.SaveAsync(settings);
-                if (save is AppearanceSettingsSaveResult.RefusedUnsupportedVersion unsupported)
-                {
-                    _isAppearanceReadOnly = true;
-                    AppearanceStatusText = string.Format(
-                        System.Globalization.CultureInfo.CurrentCulture,
-                        GetString("AppearanceNewerVersionFormat"),
-                        unsupported.SchemaVersion);
-                }
-            }
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or InvalidOperationException
-            or TimeoutException)
-        {
-            _isAppearanceReadOnly = true;
-            ApplyAppearanceSettings(settings);
-            AppearanceStatusText = GetString("AppearanceUnavailable");
+                        version),
+                AppearanceSessionLoadKind.Unavailable => GetString("AppearanceUnavailable"),
+                _ => string.Empty,
+            };
         }
         finally
         {
@@ -596,26 +559,20 @@ public partial class FlyoutViewModel : ObservableObject
         await _appearanceInitialization;
         try
         {
-            AppearanceSettingsSaveResult save =
-                await _appearanceSettingsStore.SaveAsync(settings);
-            if (save is AppearanceSettingsSaveResult.RefusedUnsupportedVersion unsupported)
+            AppearanceSessionSaveKind kind = await _appearanceSession
+                .SaveAsync(settings)
+                .ConfigureAwait(true);
+            AppearanceStatusText = kind switch
             {
-                _isAppearanceReadOnly = true;
-                AppearanceStatusText = string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    GetString("AppearanceNewerVersionFormat"),
-                    unsupported.SchemaVersion);
-                return;
-            }
-
-            AppearanceStatusText = string.Empty;
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or InvalidOperationException
-            or TimeoutException)
-        {
-            AppearanceStatusText = GetString("AppearanceSaveFailed");
+                AppearanceSessionSaveKind.RefusedUnsupportedVersion
+                    when _appearanceSession.UnsupportedSchemaVersion is int version =>
+                    string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        GetString("AppearanceNewerVersionFormat"),
+                        version),
+                AppearanceSessionSaveKind.Failed => GetString("AppearanceSaveFailed"),
+                _ => string.Empty,
+            };
         }
         finally
         {
@@ -682,7 +639,7 @@ public partial class FlyoutViewModel : ObservableObject
         {
             if (!PublishCombinedLiveDashboard(reveal: true) && _hasLocalUsage)
             {
-                PublishActiveDashboard(new SampleDashboardSnapshot(
+                PublishActiveDashboard(new DashboardSnapshot(
                     SampleScenario.Normal,
                     string.Empty,
                     GetString("LiveDashboardPeriod"),
@@ -700,14 +657,12 @@ public partial class FlyoutViewModel : ObservableObject
         SampleScenario? scenario,
         bool forceRefresh)
     {
-        int refreshVersion = ++_refreshVersion;
         _refreshCancellation?.Cancel();
+        _sampleSession.Cancel();
+        _liveSession.Cancel();
         var cancellation = new CancellationTokenSource();
         _refreshCancellation = cancellation;
         IsSampleRefreshing = true;
-        Task localUsageRefresh = scenario is null
-            ? RefreshLocalUsageAsync(refreshVersion, cancellation.Token)
-            : Task.CompletedTask;
 
         if (!_hasPublishedDashboard)
         {
@@ -717,119 +672,100 @@ public partial class FlyoutViewModel : ObservableObject
 
         try
         {
-            IAsyncEnumerable<CacheFirstEvent> events = scenario is SampleScenario sampleScenario
-                ? _sampleRefreshCoordinator.RunAsync(
+            if (scenario is SampleScenario sampleScenario)
+            {
+                await _sampleSession.RunAsync(
                     sampleScenario,
                     forceRefresh,
-                    cancellation.Token)
-                : _codexRefreshCoordinator.RunAsync(forceRefresh, cancellation.Token);
-
-            await foreach (CacheFirstEvent refreshEvent in events)
+                    GetString,
+                    OnSampleSessionChanged,
+                    cancellation.Token).ConfigureAwait(true);
+            }
+            else
             {
-                if (refreshVersion != _refreshVersion || cancellation.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                switch (refreshEvent)
-                {
-                    case CacheFirstEvent.CachePublished cache:
-                        PublishCachedDashboard(scenario, cache);
-                        break;
-                    case CacheFirstEvent.ProviderCompleted provider:
-                        PublishProviderOutcome(scenario, provider);
-                        break;
-                }
+                await _liveSession.RunAsync(
+                    forceRefresh,
+                    GetString,
+                    Vercel,
+                    OnLiveSessionChanged,
+                    cancellation.Token).ConfigureAwait(true);
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
         }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or TimeoutException)
-        {
-            if (refreshVersion == _refreshVersion)
-            {
-                PublishUnavailable(outcome: null);
-            }
-        }
         finally
         {
-            await localUsageRefresh.ConfigureAwait(true);
-            if (refreshVersion == _refreshVersion
-                && scenario is null
-                && _hasLocalUsage
-                && _resultSurface == FlyoutSurfaceState.SampleUnavailable)
-            {
-                PublishActiveDashboard(new SampleDashboardSnapshot(
-                    SampleScenario.Normal,
-                    string.Empty,
-                    string.Empty,
-                    string.Empty,
-                    [],
-                    []));
-                _resultSurface = FlyoutSurfaceState.Sample;
-                ApplyResultSurfaceIfVisible();
-            }
-
-            if (refreshVersion == _refreshVersion)
+            if (ReferenceEquals(_refreshCancellation, cancellation))
             {
                 IsSampleRefreshing = false;
-                if (ReferenceEquals(_refreshCancellation, cancellation))
-                {
-                    _refreshCancellation = null;
-                }
+                _refreshCancellation = null;
             }
 
             cancellation.Dispose();
         }
     }
 
-    private async Task RefreshLocalUsageAsync(
-        int refreshVersion,
-        CancellationToken cancellationToken)
+    private void OnSampleSessionChanged(SampleDashboardSession session)
     {
-        try
+        _activeScenario = session.ActiveScenario;
+        _publishedObservedAtUtc = session.PublishedObservedAtUtc;
+        _retryAtUtc = session.RetryAtUtc;
+        CurrentSampleDataState = session.DataState;
+        if (session.LastDashboard is not null)
         {
-            LocalUsageCard card = await _localUsageCoordinator.RefreshAsync(
-                GetString,
-                cancellationToken);
-            if (refreshVersion == _refreshVersion && !cancellationToken.IsCancellationRequested)
-            {
-                _rawLocalUsage = card;
-                LocalUsage = ApplyDashboardLayoutToLocalUsage(card);
-                RebuildProviderStatuses();
-                _hasLocalUsage = true;
-                OnPropertyChanged(nameof(IsLocalUsageVisible));
-                if (!IsSampleModeEnabled)
-                {
-                    PublishCombinedLiveDashboard(reveal: true);
-                }
-            }
+            PublishActiveDashboard(session.LastDashboard);
+            _hasPublishedDashboard = true;
+            _resultSurface = FlyoutSurfaceState.Sample;
+            ApplyResultSurfaceIfVisible();
+            SampleRevealToken++;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        else if (!session.HasPublished)
         {
+            PublishUnavailable(outcome: null);
         }
-        catch (Exception)
+    }
+
+    private void OnLiveSessionChanged(LiveDashboardSession session)
+    {
+        _lastCodexSnapshot = session.LastCodexSnapshot;
+        _lastCodexOutcome = session.LastCodexOutcome;
+        _publishedObservedAtUtc = session.PublishedObservedAtUtc;
+        _retryAtUtc = session.RetryAtUtc;
+        CurrentSampleDataState = session.DataState;
+        if (session.RawLocalUsage is not null)
         {
-            if (refreshVersion == _refreshVersion)
+            _rawLocalUsage = session.RawLocalUsage;
+            LocalUsage = ApplyDashboardLayoutToLocalUsage(session.RawLocalUsage);
+            _hasLocalUsage = session.HasLocalUsage;
+            RebuildProviderStatuses();
+            OnPropertyChanged(nameof(IsLocalUsageVisible));
+        }
+
+        if (session.LastCodexSnapshot is null
+            && session.HasLocalUsage
+            && Vercel.ProviderCard is null
+            && (session.RawLocalUsage is null
+                || session.RawLocalUsage.SpendBreakdown.AgentSlices.Count == 0))
+        {
+            if (!session.HasPublished && _lastCodexOutcome is not null)
             {
-                _rawLocalUsage = LocalUsageCardProjector.CreateUnavailable(
-                    GetString,
-                    _localUsageCoordinator.SourceKind) with
-                {
-                    ProviderStatuses = LocalUsage.ProviderStatuses,
-                };
-                LocalUsage = ApplyDashboardLayoutToLocalUsage(_rawLocalUsage);
-                RebuildProviderStatuses();
-                _hasLocalUsage = true;
-                OnPropertyChanged(nameof(IsLocalUsageVisible));
-                if (!IsSampleModeEnabled)
-                {
-                    PublishCombinedLiveDashboard(reveal: false);
-                }
+                PublishUnavailable(_lastCodexOutcome);
             }
+
+            return;
+        }
+
+        if (PublishCombinedLiveDashboard(reveal: true))
+        {
+            _hasPublishedDashboard = true;
+            _resultSurface = FlyoutSurfaceState.Sample;
+            ApplyResultSurfaceIfVisible();
+        }
+        else if (session.LastCodexOutcome is not null
+            && session.LastCodexSnapshot is null)
+        {
+            PublishUnavailable(session.LastCodexOutcome);
         }
     }
 
@@ -837,10 +773,31 @@ public partial class FlyoutViewModel : ObservableObject
         SampleScenario? scenario,
         CacheFirstEvent.CachePublished cache)
     {
+        if (scenario is null)
+        {
+            ProviderSnapshot? vercelCached = cache.Snapshots.FirstOrDefault(candidate =>
+                string.Equals(
+                    candidate.ProviderId.Value,
+                    "vercel-ai-gateway",
+                    StringComparison.Ordinal));
+            if (vercelCached is not null)
+            {
+                Vercel.ApplyHostCacheSnapshot(vercelCached);
+            }
+        }
+
         ProviderSnapshot? snapshot = cache.Snapshots.FirstOrDefault(candidate =>
             string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
         if (snapshot is null)
         {
+            if (scenario is null
+                && (Vercel.ProviderCard is not null
+                    || (_hasLocalUsage && _rawLocalUsage is not null)))
+            {
+                PublishCombinedLiveDashboard(reveal: !_hasPublishedDashboard);
+                return;
+            }
+
             if (!_hasPublishedDashboard)
             {
                 _resultSurface = FlyoutSurfaceState.Loading;
@@ -951,24 +908,24 @@ public partial class FlyoutViewModel : ObservableObject
 
     private bool PublishCombinedLiveDashboard(bool reveal)
     {
-        var providers = new List<SampleProviderCard>();
+        var providers = new List<ProviderCard>();
         if (_lastCodexSnapshot is not null)
         {
             providers.AddRange(CodexDashboardProjector.Create(
                 _lastCodexSnapshot,
-                _codexRefreshCoordinator.Clock,
+                _liveSession.Clock,
                 GetString).Providers);
         }
 
-        if (Vercel.ProviderCard is SampleProviderCard vercelCard)
+        if (Vercel.ProviderCard is ProviderCard vercelCard)
         {
             providers.Add(vercelCard);
         }
 
-        IReadOnlyList<SampleSpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
+        IReadOnlyList<SpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
             ? _rawLocalUsage.SpendBreakdown.AgentSlices
             : [];
-        IReadOnlyList<SampleSpendSlice> additionalSpendSlices = Vercel.SpendSlice is { } vercelSpend
+        IReadOnlyList<SpendSlice> additionalSpendSlices = Vercel.SpendSlice is { } vercelSpend
             ? [vercelSpend]
             : [];
         if (providers.Count == 0 && spendSlices.Count == 0 && additionalSpendSlices.Count == 0)
@@ -1118,7 +1075,7 @@ public partial class FlyoutViewModel : ObservableObject
         }
 
         if (_retryAtUtc is DateTimeOffset retryAtUtc
-            && retryAtUtc <= _codexRefreshCoordinator.Clock.GetUtcNow().ToUniversalTime()
+            && retryAtUtc <= _liveSession.Clock.GetUtcNow().ToUniversalTime()
             && !IsSampleRefreshing)
         {
             _retryAtUtc = null;
@@ -1148,7 +1105,8 @@ public partial class FlyoutViewModel : ObservableObject
 
     private void CancelRefresh()
     {
-        _refreshVersion++;
+        _sampleSession.Cancel();
+        _liveSession.Cancel();
         _refreshCancellation?.Cancel();
         _refreshCancellation = null;
         IsSampleRefreshing = false;
@@ -1280,7 +1238,7 @@ public partial class FlyoutViewModel : ObservableObject
     public async Task UndoDashboardLayoutAsync()
     {
         await _dashboardLayoutInitialization;
-        if (IsDashboardLayoutBusy)
+        if (IsDashboardLayoutBusy || _rawDashboard is null)
         {
             return;
         }
@@ -1288,49 +1246,21 @@ public partial class FlyoutViewModel : ObservableObject
         IsDashboardLayoutBusy = true;
         try
         {
-            if (_isDashboardLayoutReadOnly
-                || _rawDashboard is null
-                || !_dashboardLayoutHistory.TryPeek(out DashboardLayout? target)
-                || target is null)
+            DashboardLayoutEditorSaveKind kind = await _layoutEditor
+                .UndoAsync()
+                .ConfigureAwait(true);
+            ApplyLayoutEditorSave(kind);
+            if (kind is DashboardLayoutEditorSaveKind.Saved)
             {
-                return;
-            }
-
-            DashboardLayoutSaveResult save = await _dashboardLayoutStore.SaveAsync(target);
-            if (save is DashboardLayoutSaveResult.RefusedUnsupportedVersion unsupported)
-            {
-                SetDashboardLayoutReadOnly(string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    GetString("DashboardLayoutNewerVersionFormat"),
-                    unsupported.SchemaVersion));
-                PublishActiveDashboard(_rawDashboard);
-                return;
-            }
-
-            if (!_dashboardLayoutHistory.CommitUndo(target))
-            {
-                throw new InvalidOperationException("Dashboard undo history changed unexpectedly.");
-            }
-
-            _dashboardLayout = target;
-            DashboardLayoutStatusText = string.Empty;
-            PublishActiveDashboard(_rawDashboard);
-            OnPropertyChanged(nameof(CanUndoDashboardLayout));
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or InvalidOperationException
-            or TimeoutException)
-        {
-            DashboardLayoutStatusText = GetString("DashboardLayoutSaveFailed");
-            if (_rawDashboard is not null)
-            {
+                _dashboardLayout = _layoutEditor.Layout;
                 PublishActiveDashboard(_rawDashboard);
             }
         }
         finally
         {
             IsDashboardLayoutBusy = false;
+            OnPropertyChanged(nameof(CanUndoDashboardLayout));
+            OnPropertyChanged(nameof(IsDashboardLayoutEditable));
         }
     }
 
@@ -1338,44 +1268,36 @@ public partial class FlyoutViewModel : ObservableObject
     {
         try
         {
-            DashboardLayoutLoadResult result = await _dashboardLayoutStore.LoadAsync();
-            switch (result)
+            await _layoutEditor.InitializeAsync().ConfigureAwait(true);
+            _dashboardLayout = _layoutEditor.Layout;
+            DashboardLayoutStatusText = _layoutEditor.LastLoadKind switch
             {
-                case DashboardLayoutLoadResult.Loaded loaded:
-                    _dashboardLayout = loaded.Layout;
-                    break;
-                case DashboardLayoutLoadResult.Corrupt corrupt:
-                    _dashboardLayout = DashboardLayout.Empty;
-                    DashboardLayoutStatusText = string.Format(
+                DashboardLayoutEditorLoadKind.Corrupt when _layoutEditor.QuarantineFileName is string name =>
+                    string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
                         GetString("DashboardLayoutRecoveredFormat"),
-                        corrupt.QuarantineFileName);
-                    break;
-                case DashboardLayoutLoadResult.UnsupportedVersion unsupported:
-                    _dashboardLayout = DashboardLayout.Empty;
-                    SetDashboardLayoutReadOnly(string.Format(
+                        name),
+                DashboardLayoutEditorLoadKind.UnsupportedVersion
+                    when _layoutEditor.UnsupportedSchemaVersion is int version =>
+                    string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
                         GetString("DashboardLayoutNewerVersionFormat"),
-                        unsupported.SchemaVersion));
-                    break;
-                case DashboardLayoutLoadResult.Empty:
-                    _dashboardLayout = DashboardLayout.Empty;
-                    break;
+                        version),
+                DashboardLayoutEditorLoadKind.Unavailable => GetString("DashboardLayoutUnavailable"),
+                _ => string.Empty,
+            };
+        }
+        finally
+        {
+            if (_rawDashboard is not null)
+            {
+                PublishActiveDashboard(_rawDashboard);
             }
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or TimeoutException)
-        {
-            SetDashboardLayoutReadOnly(GetString("DashboardLayoutUnavailable"));
-        }
 
-        if (_rawDashboard is not null)
-        {
-            PublishActiveDashboard(_rawDashboard);
+            IsDashboardLayoutBusy = false;
+            OnPropertyChanged(nameof(IsDashboardLayoutEditable));
+            OnPropertyChanged(nameof(CanUndoDashboardLayout));
         }
-
-        IsDashboardLayoutBusy = false;
     }
 
     private async Task MutateDashboardLayoutAsync(
@@ -1383,7 +1305,7 @@ public partial class FlyoutViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(mutation);
         await _dashboardLayoutInitialization;
-        if (IsDashboardLayoutBusy)
+        if (IsDashboardLayoutBusy || _rawDashboard is null)
         {
             return;
         }
@@ -1391,50 +1313,54 @@ public partial class FlyoutViewModel : ObservableObject
         IsDashboardLayoutBusy = true;
         try
         {
-            if (_isDashboardLayoutReadOnly || _rawDashboard is null)
+            DashboardLayoutEditorSaveKind kind = await _layoutEditor
+                .MutateAsync(mutation)
+                .ConfigureAwait(true);
+            ApplyLayoutEditorSave(kind);
+            if (kind is DashboardLayoutEditorSaveKind.Saved
+                or DashboardLayoutEditorSaveKind.Unchanged)
             {
-                return;
-            }
+                _dashboardLayout = _layoutEditor.Layout;
+                if (kind is DashboardLayoutEditorSaveKind.Saved)
+                {
+                    DashboardLayoutStatusText = string.Empty;
+                }
 
-            DashboardLayout next = mutation(_dashboardLayout);
-            if (next.Equals(_dashboardLayout))
-            {
-                PublishActiveDashboard(_rawDashboard);
-                return;
-            }
-
-            DashboardLayoutSaveResult save = await _dashboardLayoutStore.SaveAsync(next);
-            if (save is DashboardLayoutSaveResult.RefusedUnsupportedVersion unsupported)
-            {
-                SetDashboardLayoutReadOnly(string.Format(
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    GetString("DashboardLayoutNewerVersionFormat"),
-                    unsupported.SchemaVersion));
-                PublishActiveDashboard(_rawDashboard);
-                return;
-            }
-
-            DashboardLayout previous = _dashboardLayout;
-            _dashboardLayout = next;
-            _dashboardLayoutHistory.Record(previous);
-            DashboardLayoutStatusText = string.Empty;
-            PublishActiveDashboard(_rawDashboard);
-            OnPropertyChanged(nameof(CanUndoDashboardLayout));
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or InvalidOperationException
-            or TimeoutException)
-        {
-            DashboardLayoutStatusText = GetString("DashboardLayoutSaveFailed");
-            if (_rawDashboard is not null)
-            {
                 PublishActiveDashboard(_rawDashboard);
             }
         }
         finally
         {
             IsDashboardLayoutBusy = false;
+            OnPropertyChanged(nameof(CanUndoDashboardLayout));
+            OnPropertyChanged(nameof(IsDashboardLayoutEditable));
+        }
+    }
+
+    private void ApplyLayoutEditorSave(DashboardLayoutEditorSaveKind kind)
+    {
+        switch (kind)
+        {
+            case DashboardLayoutEditorSaveKind.RefusedUnsupportedVersion
+                when _layoutEditor.UnsupportedSchemaVersion is int version:
+                DashboardLayoutStatusText = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    GetString("DashboardLayoutNewerVersionFormat"),
+                    version);
+                if (_rawDashboard is not null)
+                {
+                    PublishActiveDashboard(_rawDashboard);
+                }
+
+                break;
+            case DashboardLayoutEditorSaveKind.Failed:
+                DashboardLayoutStatusText = GetString("DashboardLayoutSaveFailed");
+                if (_rawDashboard is not null)
+                {
+                    PublishActiveDashboard(_rawDashboard);
+                }
+
+                break;
         }
     }
 
@@ -1555,10 +1481,10 @@ public partial class FlyoutViewModel : ObservableObject
             $"Metric '{metricId.Value}' is absent from provider '{provider.ProviderId.Value}'.");
     }
 
-    private void PublishActiveDashboard(SampleDashboardSnapshot dashboard)
+    private void PublishActiveDashboard(DashboardSnapshot dashboard)
     {
         _rawDashboard = dashboard;
-        SampleDashboardSnapshot appearanceDashboard = AppearanceDashboardProjector.Apply(
+        DashboardSnapshot appearanceDashboard = AppearanceDashboardProjector.Apply(
             dashboard,
             Appearance,
             GetClock(IsSampleModeEnabled ? _activeScenario : null).GetUtcNow(),
@@ -1632,7 +1558,7 @@ public partial class FlyoutViewModel : ObservableObject
     }
 
     private DashboardSpendSummary CreateDashboardSpendSummary(
-        IReadOnlyList<SampleSpendSlice> slices)
+        IReadOnlyList<SpendSlice> slices)
     {
         if (slices.Count == 0)
         {
@@ -1675,14 +1601,14 @@ public partial class FlyoutViewModel : ObservableObject
 
     private void SetDashboardLayoutReadOnly(string statusText)
     {
-        _isDashboardLayoutReadOnly = true;
+        _layoutEditor.MarkReadOnly();
         DashboardLayoutStatusText = statusText;
         OnPropertyChanged(nameof(IsDashboardLayoutEditable));
         OnPropertyChanged(nameof(CanUndoDashboardLayout));
     }
 
     private TimeProvider GetClock(SampleScenario? scenario) =>
-        scenario is null ? _codexRefreshCoordinator.Clock : _sampleRefreshCoordinator.Clock;
+        scenario is null ? _liveSession.Clock : _sampleSession.Clock;
 
     private string GetString(string key)
     {

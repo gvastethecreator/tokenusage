@@ -1,4 +1,5 @@
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 
@@ -9,7 +10,7 @@ public sealed class VercelGatewayCardProjectorTests
     [Fact]
     public void PositiveAccountSpendCreatesALiveDashboardSlice()
     {
-        SampleSpendSlice slice = Assert.IsType<SampleSpendSlice>(
+        SpendSlice slice = Assert.IsType<SpendSlice>(
             VercelGatewayCardProjector.CreateSpendSlice(Snapshot(12.34m), Strings));
 
         Assert.Equal("vercel-ai-gateway", slice.ProviderId);

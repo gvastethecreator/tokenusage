@@ -1,4 +1,5 @@
 using System.Globalization;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
@@ -27,7 +28,7 @@ public static class LocalUsageCardProjector
         Totals totals30Days = Sum(rollups, currentDate.AddDays(-29), currentDate);
         string missing = getString("CodexUsageMissing");
 
-        SampleMetric[] metrics = CreateMetrics(totals30Days, missing, getString);
+        DashboardMetric[] metrics = CreateMetrics(totals30Days, missing, getString);
         LocalUsagePeriodRow[] otherPeriods =
         [
             CreatePeriod(
@@ -110,7 +111,7 @@ public static class LocalUsageCardProjector
             IsNoticeImportant = true,
         };
 
-    private static SampleMetric[] CreateMetrics(
+    private static DashboardMetric[] CreateMetrics(
         Totals totals,
         string missing,
         Func<string, string> getString) =>
@@ -189,7 +190,7 @@ public static class LocalUsageCardProjector
         string missing,
         Func<string, string> getString)
     {
-        SampleSpendSlice[] agentSlices = rollups
+        SpendSlice[] agentSlices = rollups
             .GroupBy(rollup => rollup.AgentId)
             .Select(group =>
             {
@@ -204,7 +205,7 @@ public static class LocalUsageCardProjector
             .Where(item => item.Amount > 0m)
             .OrderByDescending(item => item.Amount)
             .ThenBy(item => item.Agent.Value, StringComparer.Ordinal)
-            .Select(item => new SampleSpendSlice(
+            .Select(item => new SpendSlice(
                 item.Agent.Value,
                 GetAgentName(item.Agent.Value, getString),
                 decimal.ToDouble(item.Amount),
