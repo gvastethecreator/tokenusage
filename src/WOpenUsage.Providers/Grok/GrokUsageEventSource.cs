@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
+using WOpenUsage.Providers.LocalScan;
 
 namespace WOpenUsage.Providers.Grok;
 
@@ -14,9 +15,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
     private const decimal TicksPerUsd = 10_000_000_000m;
     private readonly string _groupingTimeZoneId;
     private readonly string _grokHome;
-    private readonly int _maximumFiles;
-    private readonly long _maximumFileBytes;
-    private readonly int _maximumLineBytes;
+    private readonly LocalScanBudget _budget;
 
     public GrokUsageEventSource(
         string groupingTimeZoneId,
@@ -28,18 +27,13 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFiles, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFileBytes, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumLineCharacters, 1);
 
         string userHome = homeDirectory
             ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string? configured = grokHomeOverride ?? Environment.GetEnvironmentVariable("GROK_HOME");
         _grokHome = ResolveHome(configured, userHome);
         _groupingTimeZoneId = groupingTimeZoneId;
-        _maximumFiles = maximumFiles;
-        _maximumFileBytes = maximumFileBytes;
-        _maximumLineBytes = maximumLineCharacters;
+        _budget = new LocalScanBudget(maximumFiles, maximumFileBytes, maximumLineCharacters);
     }
 
     public SourceKind SourceKind => SourceKind.LocalLog;
@@ -63,7 +57,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                 UsageSourceIssueKind.RootUnavailable);
         }
 
-        var state = new ScanState();
+        var state = new LocalScanState(_budget);
         var sessionEvents = new List<UsageEvent>();
         string sessionsRoot = Path.Combine(_grokHome, "sessions");
         if (Directory.Exists(sessionsRoot))
@@ -75,7 +69,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                          cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++state.FilesRead > _maximumFiles)
+                if (++state.FilesRead > _budget.MaximumFiles)
                 {
                     state.IsPartial = true;
                     break;
@@ -88,7 +82,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                     continue;
                 }
 
-                if (++state.FilesRead > _maximumFiles)
+                if (++state.FilesRead > _budget.MaximumFiles)
                 {
                     state.IsPartial = true;
                     break;
@@ -114,7 +108,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
             string unifiedPath = Path.Combine(_grokHome, "logs", "unified.jsonl");
             if (File.Exists(unifiedPath))
             {
-                if (++state.FilesRead > _maximumFiles)
+                if (++state.FilesRead > _budget.MaximumFiles)
                 {
                     state.IsPartial = true;
                 }
@@ -140,7 +134,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
 
     private SummaryInfo ReadSummary(
         string path,
-        ScanState state,
+        LocalScanState state,
         CancellationToken cancellationToken)
     {
         try
@@ -168,7 +162,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
     private Snapshot? ReadLatestSnapshot(
         string path,
         SummaryInfo summary,
-        ScanState state,
+        LocalScanState state,
         CancellationToken cancellationToken)
     {
         Snapshot? latest = null;
@@ -197,7 +191,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
 
     private List<UsageEvent> ReadUnified(
         string path,
-        ScanState state,
+        LocalScanState state,
         CancellationToken cancellationToken)
     {
         var events = new List<UsageEvent>();
@@ -464,7 +458,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         {
             var info = new FileInfo(path);
             if (!info.Exists
-                || info.Length > _maximumFileBytes
+                || info.Length > _budget.MaximumFileBytes
                 || (info.Attributes & FileAttributes.ReparsePoint) != 0)
             {
                 return false;
@@ -493,7 +487,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                     {
                         int newline = remaining.IndexOf((byte)'\n');
                         ReadOnlySpan<byte> segment = newline < 0 ? remaining : remaining[..newline];
-                        if (!tooLong && line.WrittenCount + segment.Length <= _maximumLineBytes)
+                        if (!tooLong && line.WrittenCount + segment.Length <= _budget.MaximumLineBytes)
                         {
                             line.Write(segment);
                         }
@@ -570,7 +564,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
     {
         var info = new FileInfo(path);
         if (!info.Exists
-            || info.Length > _maximumFileBytes
+            || info.Length > _budget.MaximumFileBytes
             || (info.Attributes & FileAttributes.ReparsePoint) != 0)
         {
             throw new IOException("The metadata file cannot be read safely.");
@@ -603,7 +597,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
     private static IEnumerable<string> EnumerateNamedFiles(
         string root,
         string fileName,
-        ScanState state,
+        LocalScanState state,
         CancellationToken cancellationToken)
     {
         var pending = new Stack<string>();
@@ -818,10 +812,4 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         IReadOnlyDictionary<string, Counters> Models,
         bool HasInvalidModelCounters);
 
-    private sealed class ScanState
-    {
-        public bool IsPartial { get; set; }
-
-        public int FilesRead { get; set; }
-    }
 }

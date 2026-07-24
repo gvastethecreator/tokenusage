@@ -1,11 +1,13 @@
 using System.Globalization;
 using WOpenUsage.Core.Providers;
 
+using WOpenUsage.App.ViewModels.Dashboard;
+
 namespace WOpenUsage.App.ViewModels.Sample;
 
 public static class SampleDashboardProjector
 {
-    public static SampleDashboardSnapshot Create(
+    public static DashboardSnapshot Create(
         SampleScenario scenario,
         ProviderSnapshot codexSnapshot,
         Func<string, string> getString)
@@ -17,7 +19,7 @@ public static class SampleDashboardProjector
             throw new ArgumentException("The sample overlay requires the Codex provider ID.", nameof(codexSnapshot));
         }
 
-        SampleDashboardSnapshot baseline = SampleDashboardCatalog.Create(scenario, getString);
+        DashboardSnapshot baseline = SampleDashboardCatalog.Create(scenario, getString);
         ProgressMetricSnapshot progress = codexSnapshot.Metrics
             .OfType<ProgressMetricSnapshot>()
             .Single(metric => metric.Id.Value == "session");
@@ -26,7 +28,7 @@ public static class SampleDashboardProjector
             .Single(metric => metric.Id.Value == "spend-usd");
 
         double spendAmount = decimal.ToDouble(spend.Value);
-        SampleSpendSlice[] slices = baseline.SpendSlices
+        SpendSlice[] slices = baseline.SpendSlices
             .Select(slice => slice.ProviderId == "codex"
                 ? slice with
                 {
@@ -35,7 +37,7 @@ public static class SampleDashboardProjector
                 }
                 : slice)
             .ToArray();
-        SampleProviderCard[] providers = baseline.Providers
+        ProviderCard[] providers = baseline.Providers
             .Select(provider => provider.ProviderId == "codex"
                 ? ApplyProgress(provider, progress, codexSnapshot, getString)
                 : provider)
@@ -61,13 +63,13 @@ public static class SampleDashboardProjector
         };
     }
 
-    private static SampleProviderCard ApplyProgress(
-        SampleProviderCard provider,
+    private static ProviderCard ApplyProgress(
+        ProviderCard provider,
         ProgressMetricSnapshot progress,
         ProviderSnapshot snapshot,
         Func<string, string> text)
     {
-        SampleQuotaWindow[] windows = provider.Windows.ToArray();
+        QuotaWindow[] windows = provider.Windows.ToArray();
         if (windows.Length == 0)
         {
             throw new InvalidOperationException("The Codex sample card has no quota window.");

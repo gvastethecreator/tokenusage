@@ -6,6 +6,8 @@ using Microsoft.UI.Xaml.Media.Animation;
 using WOpenUsage.App.ViewModels.Sample;
 using Windows.UI.ViewManagement;
 
+using WOpenUsage.App.ViewModels.Dashboard;
+
 namespace WOpenUsage.App.Controls;
 
 public sealed partial class UsageHeatmap : UserControl

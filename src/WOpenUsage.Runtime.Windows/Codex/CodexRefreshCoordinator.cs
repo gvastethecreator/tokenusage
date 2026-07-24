@@ -6,6 +6,8 @@ namespace WOpenUsage.Runtime.Windows.Codex;
 
 public sealed class CodexRefreshCoordinator
 {
+    private readonly SnapshotStore _store;
+    private readonly IProviderRuntime _provider;
     private readonly CacheFirstRefresh _refresh;
 
     public CodexRefreshCoordinator(
@@ -20,12 +22,15 @@ public sealed class CodexRefreshCoordinator
         string cachePath = Path.Combine(
             Path.GetFullPath(cacheDirectory),
             SnapshotStore.DefaultFileName);
-        var store = new SnapshotStore(cachePath, clock);
-        var provider = new ResilientProviderRuntime(new CodexProviderRuntime(clientFactory));
-        _refresh = new CacheFirstRefresh(store, [provider], clock);
+        _store = new SnapshotStore(cachePath, clock);
+        _provider = new ResilientProviderRuntime(new CodexProviderRuntime(clientFactory));
+        _refresh = new CacheFirstRefresh(_store, [_provider], clock);
     }
 
     public TimeProvider Clock { get; }
+
+    public ProviderRefreshRegistration CreateRegistration() =>
+        new(_provider, _store);
 
     public IAsyncEnumerable<CacheFirstEvent> RunAsync(
         bool forceRefresh,

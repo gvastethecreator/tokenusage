@@ -1,10 +1,9 @@
-using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WOpenUsage.Core.Cache.Internal;
 using WOpenUsage.Core.Providers;
+using WOpenUsage.Core.Storage;
 
 namespace WOpenUsage.Core.Cache;
 
@@ -14,7 +13,6 @@ public sealed class SnapshotStore
     public const string DefaultFileName = "snapshots.v1.json";
 
     private const int MaximumDocumentBytes = 4 * 1024 * 1024;
-    private static readonly TimeSpan MutexTimeout = TimeSpan.FromSeconds(30);
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -24,7 +22,7 @@ public sealed class SnapshotStore
     };
 
     private readonly TimeProvider _clock;
-    private readonly string _mutexName;
+    private readonly VersionedDocumentFile _document;
 
     public SnapshotStore(string documentPath)
         : this(documentPath, TimeProvider.System)
@@ -35,30 +33,27 @@ public sealed class SnapshotStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(documentPath);
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-
-        DocumentPath = Path.GetFullPath(documentPath);
-        if (string.IsNullOrWhiteSpace(Path.GetFileName(DocumentPath)))
-        {
-            throw new ArgumentException("The cache path must include a file name.", nameof(documentPath));
-        }
-
-        _mutexName = CreateMutexName(DocumentPath);
+        _document = new VersionedDocumentFile(
+            documentPath,
+            mutexNamePrefix: "WOpenUsage.SnapshotStore",
+            clock,
+            lockTimeoutMessage: "Timed out while waiting for the snapshot cache lock.");
     }
 
-    public string DocumentPath { get; }
+    public string DocumentPath => _document.DocumentPath;
 
     public Task<SnapshotCacheReadResult> LoadAsync(CancellationToken cancellationToken = default) =>
-        RunLocked(LoadCore, cancellationToken);
+        _document.RunLockedAsync(LoadCore, cancellationToken);
 
     public Task<SnapshotCacheProbeResult> ProbeAsync(CancellationToken cancellationToken = default) =>
-        RunLocked(() => ProbeCore(requiredProvider: null), cancellationToken);
+        _document.RunLockedAsync(() => ProbeCore(requiredProvider: null), cancellationToken);
 
     public Task<SnapshotCacheProbeResult> ProbeProviderAsync(
         ProviderId providerId,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(providerId);
-        return RunLocked(() => ProbeCore(providerId), cancellationToken);
+        return _document.RunLockedAsync(() => ProbeCore(providerId), cancellationToken);
     }
 
     public Task<SnapshotCacheSaveResult> UpsertLastGoodAsync(
@@ -91,7 +86,7 @@ public sealed class SnapshotStore
                 nameof(snapshots));
         }
 
-        return RunLocked(() => SaveCore(snapshotArray), cancellationToken);
+        return _document.RunLockedAsync(() => SaveCore(snapshotArray), cancellationToken);
     }
 
     public Task<SnapshotCacheRemoveResult> RemoveProviderAsync(
@@ -99,33 +94,20 @@ public sealed class SnapshotStore
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(providerId);
-        return RunLocked(() => RemoveProviderCore(providerId), cancellationToken);
+        return _document.RunLockedAsync(() => RemoveProviderCore(providerId), cancellationToken);
     }
 
     private SnapshotCacheReadResult LoadCore()
     {
-        if (!File.Exists(DocumentPath))
+        if (!_document.Exists)
         {
             return new SnapshotCacheReadResult.Empty();
         }
 
         try
         {
-            var file = new FileInfo(DocumentPath);
-            if (file.Length is <= 0 or > MaximumDocumentBytes)
-            {
-                return QuarantineCorrupt();
-            }
-
-            byte[] bytes = File.ReadAllBytes(DocumentPath);
-            if (bytes.Length is <= 0 or > MaximumDocumentBytes)
-            {
-                return QuarantineCorrupt();
-            }
-
-            ReadOnlyMemory<byte> jsonBytes = HasUtf8Preamble(bytes)
-                ? bytes.AsMemory(Encoding.UTF8.Preamble.Length)
-                : bytes;
+            byte[] bytes = _document.ReadBoundedBytes(MaximumDocumentBytes);
+            ReadOnlyMemory<byte> jsonBytes = VersionedDocumentFile.RemoveUtf8Preamble(bytes);
 
             using JsonDocument parsed = JsonDocument.Parse(
                 jsonBytes,
@@ -165,28 +147,15 @@ public sealed class SnapshotStore
 
     private SnapshotCacheProbeResult ProbeCore(ProviderId? requiredProvider)
     {
-        if (!File.Exists(DocumentPath))
+        if (!_document.Exists)
         {
             return new SnapshotCacheProbeResult.Missing();
         }
 
         try
         {
-            var file = new FileInfo(DocumentPath);
-            if (file.Length is <= 0 or > MaximumDocumentBytes)
-            {
-                return new SnapshotCacheProbeResult.Unreadable();
-            }
-
-            byte[] bytes = File.ReadAllBytes(DocumentPath);
-            if (bytes.Length is <= 0 or > MaximumDocumentBytes)
-            {
-                return new SnapshotCacheProbeResult.Unreadable();
-            }
-
-            ReadOnlyMemory<byte> jsonBytes = HasUtf8Preamble(bytes)
-                ? bytes.AsMemory(Encoding.UTF8.Preamble.Length)
-                : bytes;
+            byte[] bytes = _document.ReadBoundedBytes(MaximumDocumentBytes);
+            ReadOnlyMemory<byte> jsonBytes = VersionedDocumentFile.RemoveUtf8Preamble(bytes);
             using JsonDocument parsed = JsonDocument.Parse(
                 jsonBytes,
                 new JsonDocumentOptions { MaxDepth = SerializerOptions.MaxDepth });
@@ -292,143 +261,16 @@ public sealed class SnapshotStore
             snapshots,
             _clock.GetUtcNow().ToUniversalTime());
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(document, SerializerOptions);
-        if (bytes.Length > MaximumDocumentBytes)
-        {
-            throw new InvalidOperationException(
-                $"The cache document exceeds the {MaximumDocumentBytes}-byte limit.");
-        }
-
-        WriteAtomically(bytes);
+        _document.WriteAtomically(bytes, MaximumDocumentBytes);
     }
 
-    private SnapshotCacheReadResult.Corrupt QuarantineCorrupt()
-    {
-        string directory = GetDocumentDirectory();
-        string fileName = Path.GetFileName(DocumentPath);
-        string stamp = _clock.GetUtcNow()
-            .ToUniversalTime()
-            .ToString("yyyyMMddTHHmmssfffZ", CultureInfo.InvariantCulture);
-        string quarantineFileName = $"{fileName}.corrupt-{stamp}-{Guid.NewGuid():N}";
-        string quarantinePath = Path.Combine(directory, quarantineFileName);
-
-        File.Move(DocumentPath, quarantinePath);
-        return new SnapshotCacheReadResult.Corrupt(quarantineFileName);
-    }
-
-    private void WriteAtomically(byte[] bytes)
-    {
-        string directory = GetDocumentDirectory();
-        Directory.CreateDirectory(directory);
-        string temporaryPath = Path.Combine(
-            directory,
-            $"{Path.GetFileName(DocumentPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
-
-        try
-        {
-            using (var stream = new FileStream(
-                temporaryPath,
-                new FileStreamOptions
-                {
-                    Mode = FileMode.CreateNew,
-                    Access = FileAccess.Write,
-                    Share = FileShare.None,
-                    BufferSize = 4096,
-                    Options = FileOptions.WriteThrough,
-                }))
-            {
-                stream.Write(bytes);
-                stream.Flush(flushToDisk: true);
-            }
-
-            File.Move(temporaryPath, DocumentPath, overwrite: true);
-        }
-        finally
-        {
-            if (File.Exists(temporaryPath))
-            {
-                File.Delete(temporaryPath);
-            }
-        }
-    }
-
-    private Task<TResult> RunLocked<TResult>(
-        Func<TResult> operation,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(operation);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var mutex = new Mutex(initiallyOwned: false, _mutexName);
-            bool ownsMutex = false;
-
-            try
-            {
-                try
-                {
-                    if (cancellationToken.CanBeCanceled)
-                    {
-                        int signaled = WaitHandle.WaitAny(
-                            [mutex, cancellationToken.WaitHandle],
-                            MutexTimeout);
-                        if (signaled == 1)
-                        {
-                            throw new OperationCanceledException(cancellationToken);
-                        }
-
-                        if (signaled == WaitHandle.WaitTimeout)
-                        {
-                            throw new TimeoutException("Timed out while waiting for the snapshot cache lock.");
-                        }
-
-                        ownsMutex = true;
-                    }
-                    else
-                    {
-                        ownsMutex = mutex.WaitOne(MutexTimeout);
-                        if (!ownsMutex)
-                        {
-                            throw new TimeoutException("Timed out while waiting for the snapshot cache lock.");
-                        }
-                    }
-                }
-                catch (AbandonedMutexException)
-                {
-                    ownsMutex = true;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                return operation();
-            }
-            finally
-            {
-                if (ownsMutex)
-                {
-                    mutex.ReleaseMutex();
-                }
-            }
-        });
-    }
-
-    private string GetDocumentDirectory() =>
-        Path.GetDirectoryName(DocumentPath)
-        ?? throw new InvalidOperationException("The cache path has no parent directory.");
-
-    private static string CreateMutexName(string documentPath)
-    {
-        string normalizedPath = Path.GetFullPath(documentPath).ToUpperInvariant();
-        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
-        return $"Local\\WOpenUsage.SnapshotStore.{Convert.ToHexString(hash.AsSpan(0, 16))}";
-    }
-
-    private static bool HasUtf8Preamble(ReadOnlySpan<byte> bytes) =>
-        bytes.StartsWith(Encoding.UTF8.Preamble);
+    private SnapshotCacheReadResult.Corrupt QuarantineCorrupt() =>
+        new(_document.QuarantineCorrupt());
 
     private static bool IsInvalidDocument(Exception exception) =>
         exception is JsonException
             or SnapshotCacheFormatException
+            or VersionedDocumentFormatException
             or ArgumentException
             or InvalidOperationException
             or NotSupportedException

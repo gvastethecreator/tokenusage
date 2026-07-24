@@ -1,15 +1,16 @@
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 
 namespace WOpenUsage.App.ViewModels;
 
 public static class LiveDashboardComposer
 {
-    public static SampleDashboardSnapshot Create(
-        IReadOnlyList<SampleProviderCard> providers,
+    public static DashboardSnapshot Create(
+        IReadOnlyList<ProviderCard> providers,
         LocalUsageCard? localUsage,
-        IReadOnlyList<SampleSpendSlice> additionalSpendSlices,
+        IReadOnlyList<SpendSlice> additionalSpendSlices,
         string fallbackPeriodLabel,
-        Func<IReadOnlyList<SampleSpendSlice>, DashboardSpendSummary> spendSummaryFormatter)
+        Func<IReadOnlyList<SpendSlice>, DashboardSpendSummary> spendSummaryFormatter)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(additionalSpendSlices);
@@ -17,7 +18,7 @@ public static class LiveDashboardComposer
         ArgumentNullException.ThrowIfNull(spendSummaryFormatter);
 
         LocalUsageSpendBreakdown? spend = localUsage?.SpendBreakdown;
-        SampleSpendSlice[] slices = (spend?.AgentSlices ?? [])
+        SpendSlice[] slices = (spend?.AgentSlices ?? [])
             .Concat(additionalSpendSlices.Where(additional =>
                 !(spend?.AgentSlices ?? []).Any(local => string.Equals(
                     local.ProviderId,
@@ -29,7 +30,7 @@ public static class LiveDashboardComposer
             ? spendSummaryFormatter(slices)
             : new DashboardSpendSummary(string.Empty, string.Empty, string.Empty);
 
-        return new SampleDashboardSnapshot(
+        return new DashboardSnapshot(
             SampleScenario.Normal,
             summary.TotalAmount,
             hasSpend && !string.IsNullOrWhiteSpace(localUsage?.PeriodLabel)

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using WOpenUsage.App.Services;
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
@@ -184,7 +185,7 @@ public sealed class LocalUsageCoordinatorTests
             Strings,
             today: today);
 
-        SampleSpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
+        SpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
         Assert.False(string.IsNullOrWhiteSpace(slice.LegendAmountText));
         Assert.Equal("claude", slice.ProviderId);
         Assert.Equal(3d, slice.Amount);

@@ -1,7 +1,5 @@
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using WOpenUsage.Core.Storage;
 
 namespace WOpenUsage.Core.Appearance;
 
@@ -12,57 +10,41 @@ public sealed class AppearanceSettingsStore
     public const int MaxDocumentBytes = 16 * 1024;
     public const int MaxJsonDepth = 8;
 
-    private static readonly TimeSpan MutexTimeout = TimeSpan.FromSeconds(30);
-    private readonly TimeProvider _clock;
-    private readonly string _mutexName;
+    private readonly VersionedDocumentFile _document;
 
     public AppearanceSettingsStore(string documentPath, TimeProvider? clock = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(documentPath);
-        if (Path.EndsInDirectorySeparator(documentPath))
-        {
-            throw new ArgumentException(
-                "The appearance settings path must include a file name.",
-                nameof(documentPath));
-        }
-
-        DocumentPath = Path.GetFullPath(documentPath);
-        if (Directory.Exists(DocumentPath)
-            || string.IsNullOrWhiteSpace(Path.GetFileName(DocumentPath)))
-        {
-            throw new ArgumentException(
-                "The appearance settings path must include a file name.",
-                nameof(documentPath));
-        }
-
-        _clock = clock ?? TimeProvider.System;
-        _mutexName = CreateMutexName(DocumentPath);
+        _document = new VersionedDocumentFile(
+            documentPath,
+            mutexNamePrefix: "WOpenUsage.AppearanceSettingsStore",
+            clock ?? TimeProvider.System,
+            lockTimeoutMessage: "Timed out while waiting for the appearance settings lock.");
     }
 
-    public string DocumentPath { get; }
+    public string DocumentPath => _document.DocumentPath;
 
     public Task<AppearanceSettingsLoadResult> LoadAsync(
         CancellationToken cancellationToken = default) =>
-        RunLocked(LoadCore, cancellationToken);
+        _document.RunLockedAsync(LoadCore, cancellationToken);
 
     public Task<AppearanceSettingsSaveResult> SaveAsync(
         AppearanceSettings settings,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        return RunLocked(() => SaveCore(settings), cancellationToken);
+        return _document.RunLockedAsync(() => SaveCore(settings), cancellationToken);
     }
 
     private AppearanceSettingsLoadResult LoadCore()
     {
-        if (!File.Exists(DocumentPath))
+        if (!_document.Exists)
         {
             return AppearanceSettingsLoadResult.Defaults.Instance;
         }
 
         try
         {
-            byte[] bytes = ReadBoundedDocument();
+            byte[] bytes = _document.ReadBoundedBytes(MaxDocumentBytes);
             using JsonDocument parsed = Parse(bytes);
             int version = ReadSchemaVersion(parsed.RootElement);
             if (version > SchemaVersion)
@@ -96,26 +78,20 @@ public sealed class AppearanceSettingsStore
         }
 
         byte[] bytes = Serialize(settings);
-        if (bytes.Length is <= 0 or > MaxDocumentBytes)
-        {
-            throw new InvalidOperationException(
-                $"The appearance settings exceed the {MaxDocumentBytes}-byte limit.");
-        }
-
-        WriteAtomically(bytes);
+        _document.WriteAtomically(bytes, MaxDocumentBytes);
         return AppearanceSettingsSaveResult.Saved.Instance;
     }
 
     private int? ProbeExistingSchemaVersion()
     {
-        if (!File.Exists(DocumentPath))
+        if (!_document.Exists)
         {
             return null;
         }
 
         try
         {
-            byte[] bytes = ReadBoundedDocument();
+            byte[] bytes = _document.ReadBoundedBytes(MaxDocumentBytes);
             using JsonDocument parsed = Parse(bytes);
             int version = ReadSchemaVersion(parsed.RootElement);
             _ = version switch
@@ -277,157 +253,17 @@ public sealed class AppearanceSettingsStore
         where TEnum : struct, Enum =>
         value.ToString().ToLowerInvariant();
 
-    private byte[] ReadBoundedDocument()
-    {
-        var file = new FileInfo(DocumentPath);
-        if (file.Length is <= 0 or > MaxDocumentBytes)
-        {
-            throw new AppearanceDocumentFormatException();
-        }
-
-        byte[] bytes = File.ReadAllBytes(DocumentPath);
-        if (bytes.Length is <= 0 or > MaxDocumentBytes)
-        {
-            throw new AppearanceDocumentFormatException();
-        }
-
-        return bytes;
-    }
-
     private static JsonDocument Parse(byte[] bytes) => JsonDocument.Parse(
-        RemoveUtf8Preamble(bytes),
+        VersionedDocumentFile.RemoveUtf8Preamble(bytes),
         new JsonDocumentOptions { MaxDepth = MaxJsonDepth });
 
-    private AppearanceSettingsLoadResult.Corrupt QuarantineCorrupt()
-    {
-        string directory = GetDocumentDirectory();
-        string fileName = Path.GetFileName(DocumentPath);
-        string stamp = _clock.GetUtcNow()
-            .ToUniversalTime()
-            .ToString("yyyyMMddTHHmmssfffZ", CultureInfo.InvariantCulture);
-        string quarantineFileName = $"{fileName}.corrupt-{stamp}-{Guid.NewGuid():N}";
-        File.Move(DocumentPath, Path.Combine(directory, quarantineFileName));
-        return new AppearanceSettingsLoadResult.Corrupt(quarantineFileName);
-    }
-
-    private void WriteAtomically(byte[] bytes)
-    {
-        string directory = GetDocumentDirectory();
-        Directory.CreateDirectory(directory);
-        string temporaryPath = Path.Combine(
-            directory,
-            $"{Path.GetFileName(DocumentPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
-
-        try
-        {
-            using (var stream = new FileStream(
-                temporaryPath,
-                new FileStreamOptions
-                {
-                    Mode = FileMode.CreateNew,
-                    Access = FileAccess.Write,
-                    Share = FileShare.None,
-                    BufferSize = 4096,
-                    Options = FileOptions.WriteThrough,
-                }))
-            {
-                stream.Write(bytes);
-                stream.Flush(flushToDisk: true);
-            }
-
-            File.Move(temporaryPath, DocumentPath, overwrite: true);
-        }
-        finally
-        {
-            if (File.Exists(temporaryPath))
-            {
-                File.Delete(temporaryPath);
-            }
-        }
-    }
-
-    private Task<TResult> RunLocked<TResult>(
-        Func<TResult> operation,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(operation);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var mutex = new Mutex(initiallyOwned: false, _mutexName);
-            bool ownsMutex = false;
-            try
-            {
-                try
-                {
-                    if (cancellationToken.CanBeCanceled)
-                    {
-                        int signaled = WaitHandle.WaitAny(
-                            [mutex, cancellationToken.WaitHandle],
-                            MutexTimeout);
-                        if (signaled == 1)
-                        {
-                            throw new OperationCanceledException(cancellationToken);
-                        }
-
-                        if (signaled == WaitHandle.WaitTimeout)
-                        {
-                            throw new TimeoutException(
-                                "Timed out while waiting for the appearance settings lock.");
-                        }
-
-                        ownsMutex = true;
-                    }
-                    else
-                    {
-                        ownsMutex = mutex.WaitOne(MutexTimeout);
-                        if (!ownsMutex)
-                        {
-                            throw new TimeoutException(
-                                "Timed out while waiting for the appearance settings lock.");
-                        }
-                    }
-                }
-                catch (AbandonedMutexException)
-                {
-                    ownsMutex = true;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                return operation();
-            }
-            finally
-            {
-                if (ownsMutex)
-                {
-                    mutex.ReleaseMutex();
-                }
-            }
-        });
-    }
-
-    private string GetDocumentDirectory() =>
-        Path.GetDirectoryName(DocumentPath)
-        ?? throw new InvalidOperationException(
-            "The appearance settings path has no parent directory.");
-
-    private static string CreateMutexName(string documentPath)
-    {
-        string normalized = Path.GetFullPath(documentPath).ToUpperInvariant();
-        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
-        return $"Local\\WOpenUsage.AppearanceSettingsStore.{Convert.ToHexString(hash.AsSpan(0, 16))}";
-    }
-
-    private static ReadOnlyMemory<byte> RemoveUtf8Preamble(byte[] bytes) =>
-        bytes.AsSpan().StartsWith(Encoding.UTF8.Preamble)
-            ? bytes.AsMemory(Encoding.UTF8.Preamble.Length)
-            : bytes;
+    private AppearanceSettingsLoadResult.Corrupt QuarantineCorrupt() =>
+        new(_document.QuarantineCorrupt());
 
     private static bool IsInvalidDocument(Exception exception) => exception is
         JsonException
         or AppearanceDocumentFormatException
+        or VersionedDocumentFormatException
         or ArgumentException
         or InvalidOperationException
         or NotSupportedException
