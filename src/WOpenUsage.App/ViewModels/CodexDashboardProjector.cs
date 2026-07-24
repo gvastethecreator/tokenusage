@@ -1,4 +1,5 @@
 using System.Globalization;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Providers.Codex;
@@ -10,7 +11,7 @@ public static class CodexDashboardProjector
     private const decimal SessionMaximumMinutes = 12 * 60;
     private const decimal WeeklyMinimumMinutes = 24 * 60;
 
-    public static SampleDashboardSnapshot Create(
+    public static DashboardSnapshot Create(
         ProviderSnapshot snapshot,
         TimeProvider clock,
         Func<string, string> getString)
@@ -50,7 +51,7 @@ public static class CodexDashboardProjector
         }
 
         var additionalWindow = 0;
-        var windows = new List<SampleQuotaWindow>(progressMetrics.Length);
+        var windows = new List<QuotaWindow>(progressMetrics.Length);
         foreach (ProgressMetricSnapshot metric in progressMetrics)
         {
             windows.Add(CreateWindow(
@@ -61,7 +62,7 @@ public static class CodexDashboardProjector
                 ref additionalWindow));
         }
         string plan = snapshot.PlanLabel ?? getString("CodexPlanUnknown");
-        var provider = new SampleProviderCard(
+        var provider = new ProviderCard(
             "codex",
             "Provider.Codex",
             snapshot.DisplayName,
@@ -90,7 +91,7 @@ public static class CodexDashboardProjector
                 "ProviderDetailsAutomationNameFormat",
                 snapshot.DisplayName));
 
-        return new SampleDashboardSnapshot(
+        return new DashboardSnapshot(
             SampleScenario.Normal,
             TotalSpendAmount: string.Empty,
             PeriodLabel: getString("CodexQuotaPeriod"),
@@ -99,7 +100,7 @@ public static class CodexDashboardProjector
             Providers: [provider]);
     }
 
-    private static SampleQuotaWindow CreateWindow(
+    private static QuotaWindow CreateWindow(
         ProgressMetricSnapshot metric,
         decimal durationMinutes,
         TimeProvider clock,
@@ -124,7 +125,7 @@ public static class CodexDashboardProjector
             clock,
             text);
 
-        return new SampleQuotaWindow(
+        return new QuotaWindow(
             title,
             remaining,
             usage,
@@ -138,7 +139,7 @@ public static class CodexDashboardProjector
             ResetAtUtc: metric.ResetsAtUtc);
     }
 
-    private static IReadOnlyList<SampleMetric> CreateUsageMetrics(
+    private static IReadOnlyList<DashboardMetric> CreateUsageMetrics(
         IReadOnlyDictionary<string, decimal> scalars,
         Func<string, string> text) =>
         [
@@ -148,7 +149,7 @@ public static class CodexDashboardProjector
             CreateUsageMetric("CodexUsageLast30Days", "CodexUsage.Last30Days", CodexUsageMetricIds.Last30Days, scalars, text),
         ];
 
-    private static SampleMetric CreateUsageMetric(
+    private static DashboardMetric CreateUsageMetric(
         string labelKey,
         string automationId,
         string metricId,

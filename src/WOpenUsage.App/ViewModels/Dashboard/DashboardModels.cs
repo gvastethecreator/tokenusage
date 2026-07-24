@@ -1,8 +1,12 @@
 using System.ComponentModel;
 
-namespace WOpenUsage.App.ViewModels.Sample;
+using WOpenUsage.App.ViewModels.Sample;
 
-public sealed record SampleSpendSlice(
+namespace WOpenUsage.App.ViewModels.Dashboard;
+
+// Live + sample dashboard projection models (neutral names).
+
+public sealed record SpendSlice(
     string ProviderId,
     string ProviderName,
     double Amount,
@@ -38,7 +42,7 @@ public sealed record UsageHeatmapModel(
     public bool HasData => Cells.Count > 0;
 }
 
-public sealed record SampleQuotaWindow(
+public sealed record QuotaWindow(
     string Title,
     double RemainingPercent,
     string RemainingText,
@@ -71,7 +75,7 @@ public sealed record SampleQuotaWindow(
     public double ColorRemainingPercent => QuotaRemainingPercent ?? RemainingPercent;
 }
 
-public sealed record SampleMetric(
+public sealed record DashboardMetric(
     string Label,
     string Value,
     string AutomationId = "",
@@ -86,22 +90,22 @@ public sealed record SampleMetric(
         : $"{Label}: {Value}";
 }
 
-public sealed class SampleDashboardMetricItem
+public sealed class DashboardMetricItem
 {
-    private SampleDashboardMetricItem(SampleQuotaWindow? window, SampleMetric? metric)
+    private DashboardMetricItem(QuotaWindow? window, DashboardMetric? metric)
     {
         Window = window;
         Metric = metric;
     }
 
-    public SampleQuotaWindow? Window { get; }
+    public QuotaWindow? Window { get; }
 
-    public SampleMetric? Metric { get; }
+    public DashboardMetric? Metric { get; }
 
-    public static SampleDashboardMetricItem FromWindow(SampleQuotaWindow window) =>
+    public static DashboardMetricItem FromWindow(QuotaWindow window) =>
         new(window ?? throw new ArgumentNullException(nameof(window)), null);
 
-    public static SampleDashboardMetricItem FromMetric(SampleMetric metric) =>
+    public static DashboardMetricItem FromMetric(DashboardMetric metric) =>
         new(null, metric ?? throw new ArgumentNullException(nameof(metric)));
 
     public bool IsQuotaWindow => Window is not null;
@@ -141,16 +145,16 @@ public sealed class SampleDashboardMetricItem
     public string MetricAutomationName => Metric?.AutomationName ?? string.Empty;
 }
 
-public sealed record SampleProviderCard(
+public sealed record ProviderCard(
     string ProviderId,
     string AutomationId,
     string Name,
     string PlanLabel,
     string CapabilityLabel,
     string? NoticeText,
-    IReadOnlyList<SampleQuotaWindow> Windows,
-    IReadOnlyList<SampleMetric> Metrics,
-    IReadOnlyList<SampleMetric>? SecondaryMetrics = null,
+    IReadOnlyList<QuotaWindow> Windows,
+    IReadOnlyList<DashboardMetric> Metrics,
+    IReadOnlyList<DashboardMetric>? SecondaryMetrics = null,
     string SourceLabel = "",
     string SourceValue = "",
     string ObservedLabel = "",
@@ -159,9 +163,9 @@ public sealed record SampleProviderCard(
     string DetailsAutomationName = "",
     bool IsHighlighted = false,
     string HighlightLabel = "",
-    IReadOnlyList<SampleQuotaWindow>? SecondaryWindows = null,
-    IReadOnlyList<SampleDashboardMetricItem>? OrderedPrimaryMetrics = null,
-    IReadOnlyList<SampleDashboardMetricItem>? OrderedOnDemandMetrics = null,
+    IReadOnlyList<QuotaWindow>? SecondaryWindows = null,
+    IReadOnlyList<DashboardMetricItem>? OrderedPrimaryMetrics = null,
+    IReadOnlyList<DashboardMetricItem>? OrderedOnDemandMetrics = null,
     string? ProviderColorHex = null,
     UsageHeatmapModel? ActivityHeatmap = null) : INotifyPropertyChanged
 {
@@ -194,20 +198,20 @@ public sealed record SampleProviderCard(
 
     public bool HasNotice => !string.IsNullOrWhiteSpace(NoticeText);
 
-    public IReadOnlyList<SampleMetric> SecondaryMetricItems => SecondaryMetrics ?? [];
+    public IReadOnlyList<DashboardMetric> SecondaryMetricItems => SecondaryMetrics ?? [];
 
-    public IReadOnlyList<SampleQuotaWindow> SecondaryWindowItems => SecondaryWindows ?? [];
+    public IReadOnlyList<QuotaWindow> SecondaryWindowItems => SecondaryWindows ?? [];
 
-    public IReadOnlyList<SampleDashboardMetricItem> PrimaryMetricItems =>
+    public IReadOnlyList<DashboardMetricItem> PrimaryMetricItems =>
         OrderedPrimaryMetrics
-        ?? Windows.Select(SampleDashboardMetricItem.FromWindow)
-            .Concat(Metrics.Select(SampleDashboardMetricItem.FromMetric))
+        ?? Windows.Select(DashboardMetricItem.FromWindow)
+            .Concat(Metrics.Select(DashboardMetricItem.FromMetric))
             .ToArray();
 
-    public IReadOnlyList<SampleDashboardMetricItem> OnDemandMetricItems =>
+    public IReadOnlyList<DashboardMetricItem> OnDemandMetricItems =>
         OrderedOnDemandMetrics
-        ?? SecondaryWindowItems.Select(SampleDashboardMetricItem.FromWindow)
-            .Concat(SecondaryMetricItems.Select(SampleDashboardMetricItem.FromMetric))
+        ?? SecondaryWindowItems.Select(DashboardMetricItem.FromWindow)
+            .Concat(SecondaryMetricItems.Select(DashboardMetricItem.FromMetric))
             .ToArray();
 
     public bool HasSecondaryMetrics => SecondaryMetricItems.Count > 0;
@@ -240,13 +244,13 @@ public sealed record SampleProviderCard(
         : Name;
 }
 
-public sealed record SampleDashboardSnapshot(
+public sealed record DashboardSnapshot(
     SampleScenario Scenario,
     string TotalSpendAmount,
     string PeriodLabel,
     string SpendAccessibleName,
-    IReadOnlyList<SampleSpendSlice> SpendSlices,
-    IReadOnlyList<SampleProviderCard> Providers,
+    IReadOnlyList<SpendSlice> SpendSlices,
+    IReadOnlyList<ProviderCard> Providers,
     string CompactTotalSpendAmount = "")
 {
     public bool HasSpend => SpendSlices.Count > 0;
@@ -261,7 +265,7 @@ public sealed record LocalUsageCard(
     string SourceLabel,
     string PeriodLabel,
     string NoticeText,
-    IReadOnlyList<SampleMetric> Metrics,
+    IReadOnlyList<DashboardMetric> Metrics,
     IReadOnlyList<LocalUsagePeriodRow> OtherPeriods,
     LocalUsageSpendBreakdown SpendBreakdown,
     IReadOnlyList<ProviderStatusRow> ProviderStatuses,
@@ -319,7 +323,7 @@ public sealed record LocalUsageSpendBreakdown(
     string SummaryText,
     string TotalText,
     string AccessibleName,
-    IReadOnlyList<SampleSpendSlice> AgentSlices,
+    IReadOnlyList<SpendSlice> AgentSlices,
     IReadOnlyList<LocalUsageModelRow> Models,
     string CompactTotalText = "")
 {

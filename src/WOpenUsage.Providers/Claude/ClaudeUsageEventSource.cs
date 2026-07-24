@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
+using WOpenUsage.Providers.LocalScan;
 
 namespace WOpenUsage.Providers.Claude;
 
@@ -14,9 +15,7 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
     private readonly string _homeDirectory;
     private readonly string? _configDirectoryOverride;
     private readonly string _groupingTimeZoneId;
-    private readonly int _maximumFiles;
-    private readonly long _maximumFileBytes;
-    private readonly int _maximumLineBytes;
+    private readonly LocalScanBudget _budget;
 
     public ClaudeUsageEventSource(
         string groupingTimeZoneId,
@@ -28,18 +27,13 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFiles, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFileBytes, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumLineCharacters, 1);
 
         _groupingTimeZoneId = groupingTimeZoneId;
         _homeDirectory = homeDirectory
             ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _configDirectoryOverride = configDirectoryOverride
             ?? Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
-        _maximumFiles = maximumFiles;
-        _maximumFileBytes = maximumFileBytes;
-        _maximumLineBytes = maximumLineCharacters;
+        _budget = new LocalScanBudget(maximumFiles, maximumFileBytes, maximumLineCharacters);
     }
 
     public SourceKind SourceKind => SourceKind.LocalLog;
@@ -73,8 +67,7 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
         }
 
         var candidates = new List<Candidate>();
-        var scanState = new ScanState();
-        int fileCount = 0;
+        var scanState = new LocalScanState(_budget);
         foreach (string projectDirectory in projectDirectories)
         {
             foreach (string file in EnumerateJsonlFiles(
@@ -83,15 +76,14 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
                          cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++fileCount > _maximumFiles)
+                if (!scanState.TryConsumeFile())
                 {
-                    scanState.IsPartial = true;
                     return CreateResult(candidates, scanState);
                 }
 
                 if (!ReadFile(file, candidates, cancellationToken))
                 {
-                    scanState.IsPartial = true;
+                    scanState.MarkPartial();
                 }
             }
         }
@@ -107,7 +99,7 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
         try
         {
             var info = new FileInfo(path);
-            if (!info.Exists || info.Length > _maximumFileBytes)
+            if (!info.Exists || info.Length > _budget.MaximumFileBytes)
             {
                 return false;
             }
@@ -138,7 +130,7 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
                             ? remaining[..newlineIndex]
                             : remaining;
                         if (!lineTooLong
-                            && lineBuffer.WrittenCount + segment.Length <= _maximumLineBytes)
+                            && lineBuffer.WrittenCount + segment.Length <= _budget.MaximumLineBytes)
                         {
                             lineBuffer.Write(segment);
                         }
@@ -248,7 +240,7 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
 
     private static IEnumerable<string> EnumerateJsonlFiles(
         string root,
-        ScanState scanState,
+        LocalScanState scanState,
         CancellationToken cancellationToken)
     {
         var pending = new Stack<string>();
@@ -318,7 +310,7 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
 
     private UsageSourceReadResult CreateResult(
         List<Candidate> candidates,
-        ScanState scanState)
+        LocalScanState scanState)
     {
         List<UsageEvent> events = CreateEvents(Deduplicate(candidates));
         UsageSourceReadStatus status = scanState.IsPartial
@@ -693,8 +685,4 @@ public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
         bool IsFast,
         string SourceOrdinal);
 
-    private sealed class ScanState
-    {
-        public bool IsPartial { get; set; }
-    }
 }

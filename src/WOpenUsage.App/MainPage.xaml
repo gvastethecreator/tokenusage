@@ -8,6 +8,7 @@
     xmlns:controls="using:WOpenUsage.App.Controls"
     xmlns:converters="using:WOpenUsage.App.Converters"
     xmlns:sample="using:WOpenUsage.App.ViewModels.Sample"
+    xmlns:dashboard="using:WOpenUsage.App.ViewModels.Dashboard"
     xmlns:viewModels="using:WOpenUsage.App.ViewModels"
     Background="Transparent"
     mc:Ignorable="d">
@@ -1113,7 +1114,7 @@
                                             AutomationProperties.AutomationId="ProviderStatusList"
                                             ItemsSource="{x:Bind ViewModel.ProviderStatuses, Mode=OneWay}">
                                             <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="sample:ProviderStatusRow">
+                                                <DataTemplate x:DataType="dashboard:ProviderStatusRow">
                                                     <Border
                                                         AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
                                                         AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
@@ -1145,7 +1146,7 @@
                                                             </Grid>
                                                             <ItemsControl ItemsSource="{x:Bind Capabilities, Mode=OneTime}">
                                                                 <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate x:DataType="sample:ProviderCapabilityRow">
+                                                                    <DataTemplate x:DataType="dashboard:ProviderCapabilityRow">
                                                                         <Grid
                                                                             AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
                                                                             AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
@@ -1266,7 +1267,7 @@
                                     ItemsSource="{x:Bind ViewModel.ActiveSample.SpendSlices, Mode=OneWay}"
                                     VerticalAlignment="Center">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="sample:SampleSpendSlice">
+                                        <DataTemplate x:DataType="dashboard:SpendSlice">
                                             <Grid MinHeight="20" ColumnSpacing="6">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="12" />
@@ -1395,7 +1396,7 @@
 
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.LocalUsage.OtherPeriods, Mode=OneWay}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="sample:LocalUsagePeriodRow">
+                                        <DataTemplate x:DataType="dashboard:LocalUsagePeriodRow">
                                             <Border
                                                 AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
                                                 AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
@@ -1435,7 +1436,7 @@
 
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.LocalUsage.Metrics, Mode=OneWay}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="sample:SampleMetric">
+                                        <DataTemplate x:DataType="dashboard:DashboardMetric">
                                             <Grid
                                                 AutomationProperties.AutomationId="{x:Bind AutomationId}"
                                                 AutomationProperties.Name="{x:Bind AutomationName}"
@@ -1503,7 +1504,7 @@
                                                 ItemsSource="{x:Bind ViewModel.LocalUsage.SpendBreakdown.AgentSlices, Mode=OneWay}"
                                                 VerticalAlignment="Center">
                                                 <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="sample:SampleSpendSlice">
+                                                    <DataTemplate x:DataType="dashboard:SpendSlice">
                                                         <Grid MinHeight="32" ColumnSpacing="6" RowSpacing="0">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="12" />
@@ -1546,7 +1547,7 @@
                                             SelectionMode="None"
                                             Visibility="{x:Bind ViewModel.LocalUsage.SpendBreakdown.HasModels, Mode=OneWay}">
                                             <ListView.ItemTemplate>
-                                                <DataTemplate x:DataType="sample:LocalUsageModelRow">
+                                                <DataTemplate x:DataType="dashboard:LocalUsageModelRow">
                                                     <Grid
                                                         AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
                                                         AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
@@ -1597,7 +1598,7 @@
 
                         <ItemsControl ItemsSource="{x:Bind ViewModel.ActiveSample.Providers, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="sample:SampleProviderCard">
+                                <DataTemplate x:DataType="dashboard:ProviderCard">
                                     <StackPanel Margin="0,0,0,10" Spacing="6">
                                         <Grid Margin="4,0" ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
@@ -1734,7 +1735,7 @@
 
                                                 <ItemsControl ItemsSource="{x:Bind PrimaryMetricItems}">
                                                     <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
+                                                        <DataTemplate x:DataType="dashboard:DashboardMetricItem">
                                                             <StackPanel>
                                                                 <StackPanel Margin="0,0,0,10" Spacing="3" Visibility="{x:Bind IsQuotaWindow}">
                                                                     <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Title}" />
@@ -1782,7 +1783,7 @@
                                                     ItemsSource="{x:Bind OnDemandMetricItems}"
                                                     Visibility="{x:Bind IsOnDemandMetricsExpanded, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
-                                                            <DataTemplate x:DataType="sample:SampleDashboardMetricItem">
+                                                            <DataTemplate x:DataType="dashboard:DashboardMetricItem">
                                                                 <StackPanel>
                                                                 <StackPanel Margin="0,0,0,10" Spacing="3" Visibility="{x:Bind IsQuotaWindow}">
                                                                     <TextBlock Style="{StaticResource DashboardCompactStrongTextBlockStyle}" Text="{x:Bind Title}" />

@@ -1,4 +1,5 @@
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Layout;
 using WOpenUsage.Core.Providers;
@@ -10,7 +11,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void EmptyLayoutUsesCatalogOrderAndVisibleDefaults()
     {
-        SampleDashboardSnapshot source = Dashboard(
+        DashboardSnapshot source = Dashboard(
             Card("codex", "Codex"),
             Card("grok", "Grok Build"));
 
@@ -33,7 +34,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void SavedOrderVisibilityAndHighlightAreApplied()
     {
-        SampleDashboardSnapshot source = Dashboard(
+        DashboardSnapshot source = Dashboard(
             Card("codex", "Codex"),
             Card("grok", "Grok Build"));
         var saved = new DashboardLayout(
@@ -48,7 +49,7 @@ public sealed class DashboardLayoutProjectorTests
             "Highlighted");
 
         Assert.Equal(["grok", "codex"], result.Providers.Select(RowId));
-        SampleProviderCard card = Assert.Single(result.Dashboard.Providers);
+        ProviderCard card = Assert.Single(result.Dashboard.Providers);
         Assert.Equal("codex", card.ProviderId);
         Assert.True(card.IsHighlighted);
         Assert.Equal("Highlighted", card.HighlightLabel);
@@ -58,9 +59,9 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void SavedProviderColorFlowsToCardRowAndSpendSlice()
     {
-        SampleDashboardSnapshot source = Dashboard(Card("codex", "Codex")) with
+        DashboardSnapshot source = Dashboard(Card("codex", "Codex")) with
         {
-            SpendSlices = [new SampleSpendSlice("codex", "Codex", 12.3, "$12.30")],
+            SpendSlices = [new SpendSlice("codex", "Codex", 12.3, "$12.30")],
         };
         var saved = new DashboardLayout(
         [
@@ -80,12 +81,12 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void SpendOnlyProvidersJoinLayoutAndFollowSavedOrder()
     {
-        SampleDashboardSnapshot source = Dashboard() with
+        DashboardSnapshot source = Dashboard() with
         {
             SpendSlices =
             [
-                new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
-                new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+                new SpendSlice("claude", "Claude", 7, "$7.00"),
+                new SpendSlice("grok", "Grok Build", 3, "$3.00"),
             ],
         };
         var saved = new DashboardLayout(
@@ -109,15 +110,15 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void HiddenSpendProviderLeavesTheDonutAndRecomputesItsSummary()
     {
-        SampleDashboardSnapshot source = Dashboard() with
+        DashboardSnapshot source = Dashboard() with
         {
             TotalSpendAmount = "$10.00",
             CompactTotalSpendAmount = "$10",
             SpendAccessibleName = "All providers",
             SpendSlices =
             [
-                new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
-                new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+                new SpendSlice("claude", "Claude", 7, "$7.00"),
+                new SpendSlice("grok", "Grok Build", 3, "$3.00"),
             ],
         };
         var saved = new DashboardLayout(
@@ -141,7 +142,7 @@ public sealed class DashboardLayoutProjectorTests
                     slices.Sum(slice => slice.Amount)),
                 $"Visible providers: {slices.Count}"));
 
-        SampleSpendSlice visible = Assert.Single(result.Dashboard.SpendSlices);
+        SpendSlice visible = Assert.Single(result.Dashboard.SpendSlices);
         Assert.Equal("grok", visible.ProviderId);
         Assert.Equal("$3.00", result.Dashboard.TotalSpendAmount);
         Assert.Equal("$3", result.Dashboard.CompactTotalSpendAmount);
@@ -151,13 +152,13 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void PureSpendReorderRecomputesTheAccessibleSummary()
     {
-        SampleDashboardSnapshot source = Dashboard() with
+        DashboardSnapshot source = Dashboard() with
         {
             SpendAccessibleName = "Claude, Grok Build",
             SpendSlices =
             [
-                new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
-                new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+                new SpendSlice("claude", "Claude", 7, "$7.00"),
+                new SpendSlice("grok", "Grok Build", 3, "$3.00"),
             ],
         };
         var saved = new DashboardLayout(
@@ -195,8 +196,8 @@ public sealed class DashboardLayoutProjectorTests
                 "$10.00",
                 "Spend details",
                 [
-                    new SampleSpendSlice("claude", "Claude", 7, "$7.00"),
-                    new SampleSpendSlice("grok", "Grok Build", 3, "$3.00"),
+                    new SpendSlice("claude", "Claude", 7, "$7.00"),
+                    new SpendSlice("grok", "Grok Build", 3, "$3.00"),
                 ],
                 [
                     Model("claude", "claude-sonnet"),
@@ -211,7 +212,7 @@ public sealed class DashboardLayoutProjectorTests
 
         LocalUsageCard result = DashboardLayoutProjector.ApplyToLocalUsage(card, layout);
 
-        SampleSpendSlice slice = Assert.Single(result.SpendBreakdown.AgentSlices);
+        SpendSlice slice = Assert.Single(result.SpendBreakdown.AgentSlices);
         Assert.Equal("grok", slice.ProviderId);
         Assert.Equal("#123ABC", slice.ColorHex);
         Assert.Equal("grok", Assert.Single(result.SpendBreakdown.Models).AgentId);
@@ -220,7 +221,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void UnknownSavedProviderStaysInLayoutOnly()
     {
-        SampleDashboardSnapshot source = Dashboard(Card("codex", "Codex"));
+        DashboardSnapshot source = Dashboard(Card("codex", "Codex"));
         var saved = new DashboardLayout(
         [
             Preference("legacy", isVisible: true, isHighlighted: true),
@@ -240,7 +241,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void NewCatalogProviderAppendsAfterSavedProviders()
     {
-        SampleDashboardSnapshot source = Dashboard(
+        DashboardSnapshot source = Dashboard(
             Card("codex", "Codex"),
             Card("grok", "Grok Build"));
         var saved = new DashboardLayout(
@@ -261,7 +262,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void DuplicateDashboardProviderIdsFail()
     {
-        SampleDashboardSnapshot source = Dashboard(
+        DashboardSnapshot source = Dashboard(
             Card("codex", "Codex"),
             Card("codex", "Codex duplicate"));
 
@@ -274,7 +275,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void NullDashboardProviderFails()
     {
-        SampleDashboardSnapshot source = Dashboard([null!]);
+        DashboardSnapshot source = Dashboard([null!]);
 
         Assert.Throws<ArgumentException>(() => DashboardLayoutProjector.Apply(
             source,
@@ -285,7 +286,7 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void NullDashboardProviderCollectionFails()
     {
-        var source = new SampleDashboardSnapshot(
+        var source = new DashboardSnapshot(
             SampleScenario.Normal,
             "$10.00",
             "30 days",
@@ -302,9 +303,9 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void ProjectionLeavesSourceUnchangedAndHidesMutableLists()
     {
-        SampleProviderCard codex = Card("codex", "Codex");
-        SampleProviderCard grok = Card("grok", "Grok Build");
-        SampleDashboardSnapshot source = Dashboard(codex, grok);
+        ProviderCard codex = Card("codex", "Codex");
+        ProviderCard grok = Card("grok", "Grok Build");
+        DashboardSnapshot source = Dashboard(codex, grok);
         var saved = new DashboardLayout(
         [
             Preference("grok", isVisible: false, isHighlighted: false),
@@ -319,14 +320,14 @@ public sealed class DashboardLayoutProjectorTests
         Assert.Equal([codex, grok], source.Providers);
         Assert.False(codex.IsHighlighted);
         Assert.IsNotType<List<DashboardProviderLayoutRow>>(result.Providers);
-        Assert.IsNotType<List<SampleProviderCard>>(result.Dashboard.Providers);
+        Assert.IsNotType<List<ProviderCard>>(result.Dashboard.Providers);
     }
 
     [Fact]
     public void MetricPreferencesApplyAcrossQuotaPrimaryAndOnDemandSections()
     {
-        SampleProviderCard sourceCard = CardWithMetrics();
-        SampleDashboardSnapshot source = Dashboard(sourceCard);
+        ProviderCard sourceCard = CardWithMetrics();
+        DashboardSnapshot source = Dashboard(sourceCard);
         var saved = new DashboardLayout(
         [
             new ProviderLayoutPreference(
@@ -355,18 +356,18 @@ public sealed class DashboardLayoutProjectorTests
                 "Always action {0}",
                 "Demand action {0}"));
 
-        SampleProviderCard card = Assert.Single(result.Dashboard.Providers);
+        ProviderCard card = Assert.Single(result.Dashboard.Providers);
         Assert.Equal("usage.secondary", Assert.Single(card.Metrics).LayoutMetricId);
         Assert.Empty(card.SecondaryMetricItems);
         Assert.Empty(card.SecondaryWindowItems);
-        SampleQuotaWindow quota = Assert.Single(card.Windows);
+        QuotaWindow quota = Assert.Single(card.Windows);
         Assert.Equal("quota.session", quota.LayoutMetricId);
         Assert.True(quota.IsHighlighted);
         Assert.Equal("Session: 50% remaining. Highlighted", quota.DisplayAutomationName);
         Assert.Collection(
             card.PrimaryMetricItems,
-            item => Assert.Equal("usage.secondary", Assert.IsType<SampleMetric>(item.Metric).LayoutMetricId),
-            item => Assert.Equal("quota.session", Assert.IsType<SampleQuotaWindow>(item.Window).LayoutMetricId));
+            item => Assert.Equal("usage.secondary", Assert.IsType<DashboardMetric>(item.Metric).LayoutMetricId),
+            item => Assert.Equal("quota.session", Assert.IsType<QuotaWindow>(item.Window).LayoutMetricId));
 
         DashboardProviderLayoutRow providerRow = Assert.Single(result.Providers);
         Assert.Equal(
@@ -413,19 +414,19 @@ public sealed class DashboardLayoutProjectorTests
     [Fact]
     public void MissingOrDuplicateLayoutMetricIdsFailClosed()
     {
-        SampleProviderCard missing = Card("codex", "Codex") with
+        ProviderCard missing = Card("codex", "Codex") with
         {
-            Metrics = [new SampleMetric("Usage", "10")],
+            Metrics = [new DashboardMetric("Usage", "10")],
         };
         Assert.Throws<ArgumentException>(() => DashboardLayoutProjector.Apply(
             Dashboard(missing),
             DashboardLayout.Empty,
             "Highlighted"));
 
-        SampleProviderCard duplicate = Card("codex", "Codex") with
+        ProviderCard duplicate = Card("codex", "Codex") with
         {
             Windows = [Window("quota.same")],
-            Metrics = [new SampleMetric("Usage", "10", LayoutMetricId: "quota.same")],
+            Metrics = [new DashboardMetric("Usage", "10", LayoutMetricId: "quota.same")],
         };
         Assert.Throws<ArgumentException>(() => DashboardLayoutProjector.Apply(
             Dashboard(duplicate),
@@ -433,7 +434,7 @@ public sealed class DashboardLayoutProjectorTests
             "Highlighted"));
     }
 
-    private static SampleDashboardSnapshot Dashboard(params SampleProviderCard[] providers) =>
+    private static DashboardSnapshot Dashboard(params ProviderCard[] providers) =>
         new(
             SampleScenario.Normal,
             "$10.00",
@@ -442,7 +443,7 @@ public sealed class DashboardLayoutProjectorTests
             [],
             providers);
 
-    private static SampleProviderCard Card(string providerId, string name) =>
+    private static ProviderCard Card(string providerId, string name) =>
         new(
             providerId,
             $"Provider.{name.Replace(" ", string.Empty, StringComparison.Ordinal)}",
@@ -453,15 +454,15 @@ public sealed class DashboardLayoutProjectorTests
             [],
             []);
 
-    private static SampleProviderCard CardWithMetrics() =>
+    private static ProviderCard CardWithMetrics() =>
         Card("codex", "Codex") with
         {
             Windows = [Window("quota.session")],
-            Metrics = [new SampleMetric("Primary", "10", LayoutMetricId: "usage.primary")],
-            SecondaryMetrics = [new SampleMetric("Secondary", "20", LayoutMetricId: "usage.secondary")],
+            Metrics = [new DashboardMetric("Primary", "10", LayoutMetricId: "usage.primary")],
+            SecondaryMetrics = [new DashboardMetric("Secondary", "20", LayoutMetricId: "usage.secondary")],
         };
 
-    private static SampleQuotaWindow Window(string metricId) =>
+    private static QuotaWindow Window(string metricId) =>
         new(
             "Session",
             50,
@@ -491,7 +492,7 @@ public sealed class DashboardLayoutProjectorTests
     private static string Id(ProviderLayoutPreference preference) =>
         preference.ProviderId.Value;
 
-    private static string CardId(SampleProviderCard card) => card.ProviderId;
+    private static string CardId(ProviderCard card) => card.ProviderId;
 
     private static string RowId(DashboardProviderLayoutRow row) => row.ProviderId;
 }

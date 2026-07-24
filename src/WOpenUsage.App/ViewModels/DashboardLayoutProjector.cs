@@ -1,3 +1,4 @@
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Layout;
 using WOpenUsage.Core.Providers;
@@ -77,7 +78,7 @@ public sealed record DashboardProviderActionNameFormats(
 
 public sealed record DashboardLayoutProjection(
     DashboardLayout Layout,
-    SampleDashboardSnapshot Dashboard,
+    DashboardSnapshot Dashboard,
     IReadOnlyList<DashboardProviderLayoutRow> Providers);
 
 public sealed record DashboardSpendSummary(
@@ -88,12 +89,12 @@ public sealed record DashboardSpendSummary(
 public static class DashboardLayoutProjector
 {
     public static DashboardLayoutProjection Apply(
-        SampleDashboardSnapshot dashboard,
+        DashboardSnapshot dashboard,
         DashboardLayout savedLayout,
         string highlightLabel,
         DashboardProviderActionNameFormats? actionNameFormats = null,
         DashboardMetricActionNameFormats? metricActionNameFormats = null,
-        Func<IReadOnlyList<SampleSpendSlice>, DashboardSpendSummary>? spendSummaryFormatter = null)
+        Func<IReadOnlyList<SpendSlice>, DashboardSpendSummary>? spendSummaryFormatter = null)
     {
         ArgumentNullException.ThrowIfNull(dashboard);
         ArgumentNullException.ThrowIfNull(savedLayout);
@@ -145,7 +146,7 @@ public static class DashboardLayoutProjector
         }
 
         var seenSpend = new HashSet<string>(StringComparer.Ordinal);
-        foreach (SampleSpendSlice slice in dashboard.SpendSlices)
+        foreach (SpendSlice slice in dashboard.SpendSlices)
         {
             if (slice is null)
             {
@@ -183,8 +184,8 @@ public static class DashboardLayoutProjector
         }
 
         var rows = new List<DashboardProviderLayoutRow>(currentPrefs.Count);
-        var cards = new List<SampleProviderCard>();
-        var cardById = new Dictionary<string, SampleProviderCard>(StringComparer.Ordinal);
+        var cards = new List<ProviderCard>();
+        var cardById = new Dictionary<string, ProviderCard>(StringComparer.Ordinal);
         foreach (var card in dashboard.Providers)
         {
             cardById[card.ProviderId] = card;
@@ -255,7 +256,7 @@ public static class DashboardLayoutProjector
                 continue;
             }
 
-            if (cardById.TryGetValue(id, out SampleProviderCard? sourceCard))
+            if (cardById.TryGetValue(id, out ProviderCard? sourceCard))
             {
                 cards.Add(ProjectCard(
                     sourceCard,
@@ -272,7 +273,7 @@ public static class DashboardLayoutProjector
         var spendByProvider = dashboard.SpendSlices.ToDictionary(
             slice => slice.ProviderId,
             StringComparer.Ordinal);
-        SampleSpendSlice[] spendSlices = currentPrefs
+        SpendSlice[] spendSlices = currentPrefs
             .Where(preference => preference.IsVisible
                 && spendByProvider.ContainsKey(preference.ProviderId.Value))
             .Select(preference => spendByProvider[preference.ProviderId.Value] with
@@ -318,7 +319,7 @@ public static class DashboardLayoutProjector
             ? entry.Rank
             : int.MaxValue;
 
-        SampleSpendSlice[] slices = card.SpendBreakdown.AgentSlices
+        SpendSlice[] slices = card.SpendBreakdown.AgentSlices
             .Select((slice, index) => (slice, index))
             .Where(item => IsVisible(item.slice.ProviderId))
             .OrderBy(item => Rank(item.slice.ProviderId))
@@ -349,7 +350,7 @@ public static class DashboardLayoutProjector
     }
 
     private static (IReadOnlyList<MetricLayoutCatalogEntry> Entries, IReadOnlyDictionary<string, MetricSource> Sources)
-        CreateMetricCatalog(SampleProviderCard card, SampleDashboardSnapshot dashboard)
+        CreateMetricCatalog(ProviderCard card, DashboardSnapshot dashboard)
     {
         if (card.Windows is null || card.Metrics is null || card.SecondaryMetricItems is null)
         {
@@ -359,7 +360,7 @@ public static class DashboardLayoutProjector
         var entries = new List<MetricLayoutCatalogEntry>();
         var sources = new Dictionary<string, MetricSource>(StringComparer.Ordinal);
 
-        void Add(string layoutMetricId, string label, SampleQuotaWindow? window, SampleMetric? metric, bool isOnDemand)
+        void Add(string layoutMetricId, string label, QuotaWindow? window, DashboardMetric? metric, bool isOnDemand)
         {
             if (string.IsNullOrWhiteSpace(layoutMetricId))
             {
@@ -379,7 +380,7 @@ public static class DashboardLayoutProjector
             entries.Add(new MetricLayoutCatalogEntry(metricId, isOnDemand));
         }
 
-        foreach (SampleQuotaWindow window in card.Windows)
+        foreach (QuotaWindow window in card.Windows)
         {
             if (window is null)
             {
@@ -389,7 +390,7 @@ public static class DashboardLayoutProjector
             Add(window.LayoutMetricId, window.Title, window, null, isOnDemand: false);
         }
 
-        foreach (SampleMetric metric in card.Metrics)
+        foreach (DashboardMetric metric in card.Metrics)
         {
             if (metric is null)
             {
@@ -399,7 +400,7 @@ public static class DashboardLayoutProjector
             Add(metric.LayoutMetricId, metric.Label, null, metric, isOnDemand: false);
         }
 
-        foreach (SampleMetric metric in card.SecondaryMetricItems)
+        foreach (DashboardMetric metric in card.SecondaryMetricItems)
         {
             if (metric is null)
             {
@@ -409,7 +410,7 @@ public static class DashboardLayoutProjector
             Add(metric.LayoutMetricId, metric.Label, null, metric, isOnDemand: true);
         }
 
-        foreach (SampleQuotaWindow window in card.SecondaryWindowItems)
+        foreach (QuotaWindow window in card.SecondaryWindowItems)
         {
             if (window is null)
             {
@@ -422,18 +423,18 @@ public static class DashboardLayoutProjector
         return (entries.AsReadOnly(), sources);
     }
 
-    private static SampleProviderCard ProjectCard(
-        SampleProviderCard source,
+    private static ProviderCard ProjectCard(
+        ProviderCard source,
         ProviderLayoutPreference preference,
         IReadOnlyDictionary<string, MetricSource> sources,
         string highlightLabel)
     {
-        var windows = new List<SampleQuotaWindow>();
-        var secondaryWindows = new List<SampleQuotaWindow>();
-        var metrics = new List<SampleMetric>();
-        var secondaryMetrics = new List<SampleMetric>();
-        var orderedPrimaryMetrics = new List<SampleDashboardMetricItem>();
-        var orderedOnDemandMetrics = new List<SampleDashboardMetricItem>();
+        var windows = new List<QuotaWindow>();
+        var secondaryWindows = new List<QuotaWindow>();
+        var metrics = new List<DashboardMetric>();
+        var secondaryMetrics = new List<DashboardMetric>();
+        var orderedPrimaryMetrics = new List<DashboardMetricItem>();
+        var orderedOnDemandMetrics = new List<DashboardMetricItem>();
 
         foreach (MetricLayoutPreference metricPreference in preference.Metrics)
         {
@@ -446,25 +447,25 @@ public static class DashboardLayoutProjector
             string metricHighlightLabel = metricPreference.IsHighlighted ? highlightLabel : string.Empty;
             if (sourceMetric.Window is { } window)
             {
-                SampleQuotaWindow projected = window with
+                QuotaWindow projected = window with
                 {
                     IsHighlighted = metricPreference.IsHighlighted,
                     HighlightLabel = metricHighlightLabel,
                 };
                 (metricPreference.IsOnDemand ? secondaryWindows : windows).Add(projected);
                 (metricPreference.IsOnDemand ? orderedOnDemandMetrics : orderedPrimaryMetrics)
-                    .Add(SampleDashboardMetricItem.FromWindow(projected));
+                    .Add(DashboardMetricItem.FromWindow(projected));
             }
             else if (sourceMetric.Metric is { } metric)
             {
-                SampleMetric projected = metric with
+                DashboardMetric projected = metric with
                 {
                     IsHighlighted = metricPreference.IsHighlighted,
                     HighlightLabel = metricHighlightLabel,
                 };
                 (metricPreference.IsOnDemand ? secondaryMetrics : metrics).Add(projected);
                 (metricPreference.IsOnDemand ? orderedOnDemandMetrics : orderedPrimaryMetrics)
-                    .Add(SampleDashboardMetricItem.FromMetric(projected));
+                    .Add(DashboardMetricItem.FromMetric(projected));
             }
         }
 
@@ -484,6 +485,6 @@ public static class DashboardLayoutProjector
 
     private sealed record MetricSource(
         string Label,
-        SampleQuotaWindow? Window,
-        SampleMetric? Metric);
+        QuotaWindow? Window,
+        DashboardMetric? Metric);
 }

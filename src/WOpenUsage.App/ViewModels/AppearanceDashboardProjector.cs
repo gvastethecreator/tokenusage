@@ -1,4 +1,5 @@
 using System.Globalization;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Appearance;
 
@@ -6,8 +7,8 @@ namespace WOpenUsage.App.ViewModels;
 
 public static class AppearanceDashboardProjector
 {
-    public static SampleDashboardSnapshot Apply(
-        SampleDashboardSnapshot dashboard,
+    public static DashboardSnapshot Apply(
+        DashboardSnapshot dashboard,
         AppearanceSettings settings,
         DateTimeOffset nowUtc,
         Func<string, string> getString)
@@ -16,7 +17,7 @@ public static class AppearanceDashboardProjector
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(getString);
 
-        SampleProviderCard[] providers = dashboard.Providers
+        ProviderCard[] providers = dashboard.Providers
             .Select(provider => provider with
             {
                 Windows = TransformWindows(provider.Windows, settings, nowUtc, getString),
@@ -30,15 +31,15 @@ public static class AppearanceDashboardProjector
         return dashboard with { Providers = providers };
     }
 
-    private static SampleQuotaWindow[] TransformWindows(
-        IReadOnlyList<SampleQuotaWindow> windows,
+    private static QuotaWindow[] TransformWindows(
+        IReadOnlyList<QuotaWindow> windows,
         AppearanceSettings settings,
         DateTimeOffset nowUtc,
         Func<string, string> getString) =>
         windows.Select(window => TransformWindow(window, settings, nowUtc, getString)).ToArray();
 
-    private static SampleQuotaWindow TransformWindow(
-        SampleQuotaWindow window,
+    private static QuotaWindow TransformWindow(
+        QuotaWindow window,
         AppearanceSettings settings,
         DateTimeOffset nowUtc,
         Func<string, string> getString)
@@ -62,7 +63,7 @@ public static class AppearanceDashboardProjector
     }
 
     private static string FormatReset(
-        SampleQuotaWindow window,
+        QuotaWindow window,
         AppearanceSettings settings,
         DateTimeOffset nowUtc,
         Func<string, string> getString)

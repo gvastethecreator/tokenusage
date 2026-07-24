@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 using Windows.UI.ViewManagement;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -51,7 +52,7 @@ public sealed partial class SpendDonutChart : UserControl
     public static readonly DependencyProperty SlicesProperty =
         DependencyProperty.Register(
             nameof(Slices),
-            typeof(IReadOnlyList<SampleSpendSlice>),
+            typeof(IReadOnlyList<SpendSlice>),
             typeof(SpendDonutChart),
             new PropertyMetadata(null, OnSlicesChanged));
 
@@ -81,9 +82,9 @@ public sealed partial class SpendDonutChart : UserControl
         set => SetValue(RevealProgressProperty, value);
     }
 
-    public IReadOnlyList<SampleSpendSlice>? Slices
+    public IReadOnlyList<SpendSlice>? Slices
     {
-        get => (IReadOnlyList<SampleSpendSlice>?)GetValue(SlicesProperty);
+        get => (IReadOnlyList<SpendSlice>?)GetValue(SlicesProperty);
         set => SetValue(SlicesProperty, value);
     }
 
@@ -153,7 +154,7 @@ public sealed partial class SpendDonutChart : UserControl
         chart._customColors.Clear();
         if (chart.Slices is not null)
         {
-            foreach (SampleSpendSlice slice in chart.Slices)
+            foreach (SpendSlice slice in chart.Slices)
             {
                 if (slice.ColorHex is not null)
                 {

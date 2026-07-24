@@ -1,4 +1,5 @@
 using System.Globalization;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 
@@ -8,7 +9,7 @@ public static class VercelGatewayCardProjector
 {
     private const string ProviderId = "vercel-ai-gateway";
 
-    public static SampleProviderCard Create(
+    public static ProviderCard Create(
         ProviderSnapshot snapshot,
         Func<string, string> getString)
     {
@@ -43,7 +44,7 @@ public static class VercelGatewayCardProjector
             getString("ProviderObservedValueFormat"),
             snapshot.SourceObservedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
 
-        return new SampleProviderCard(
+        return new ProviderCard(
             ProviderId,
             "Provider.VercelAiGateway",
             snapshot.DisplayName,
@@ -64,7 +65,7 @@ public static class VercelGatewayCardProjector
                     metrics,
                     missing,
                     getString),
-                new SampleMetric(
+                new DashboardMetric(
                     getString("VercelMetricKeyBudget"),
                     QuotaStatus(quota, quotaState, getString),
                     "VercelGateway.KeyBudgetState",
@@ -115,7 +116,7 @@ public static class VercelGatewayCardProjector
                 snapshot.DisplayName));
     }
 
-    public static SampleSpendSlice? CreateSpendSlice(
+    public static SpendSlice? CreateSpendSlice(
         ProviderSnapshot snapshot,
         Func<string, string> getString)
     {
@@ -140,7 +141,7 @@ public static class VercelGatewayCardProjector
             return null;
         }
 
-        return new SampleSpendSlice(
+        return new SpendSlice(
             ProviderId,
             snapshot.DisplayName,
             decimal.ToDouble(total.Value),
@@ -154,7 +155,7 @@ public static class VercelGatewayCardProjector
                 total.Value));
     }
 
-    private static IReadOnlyList<SampleQuotaWindow> CreateQuotaWindows(
+    private static IReadOnlyList<QuotaWindow> CreateQuotaWindows(
         ProgressMetricSnapshot? quota,
         ProviderCapabilityState? quotaState,
         Func<string, string> getString)
@@ -171,7 +172,7 @@ public static class VercelGatewayCardProjector
         string reset = ResetText(quota.ResetCadence, getString);
         return
         [
-            new SampleQuotaWindow(
+            new QuotaWindow(
                 title,
                 (double)quota.RemainingPercent,
                 remaining,
@@ -224,7 +225,7 @@ public static class VercelGatewayCardProjector
             _ => "ProviderStatusUnavailable",
         });
 
-    private static SampleMetric CurrencyMetric(
+    private static DashboardMetric CurrencyMetric(
         string labelKey,
         string automationId,
         string metricId,
@@ -238,7 +239,7 @@ public static class VercelGatewayCardProjector
             automationId,
             metricId);
 
-    private static SampleMetric CountMetric(
+    private static DashboardMetric CountMetric(
         string labelKey,
         string automationId,
         string metricId,

@@ -24,6 +24,21 @@ public static class LocalUsageCliAccess
             fromInclusive,
             toInclusive,
             cancellationToken).ConfigureAwait(false);
+        return Summarize(rollups);
+    }
+
+    /// <summary>
+    /// Formats a domain local-usage refresh result into the CLI summary contract.
+    /// </summary>
+    public static UsageCliSummary FromRefreshResult(LocalUsageRefreshResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return Summarize(result.Rollups);
+    }
+
+    public static UsageCliSummary Summarize(IEnumerable<DailyUsageRollup> rollups)
+    {
+        ArgumentNullException.ThrowIfNull(rollups);
 
         int eventCount = 0;
         long totalTokens = 0;

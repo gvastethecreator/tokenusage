@@ -1,4 +1,5 @@
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
@@ -61,11 +62,11 @@ public sealed class CodexLiveCompositionTests
                 Assert.IsType<ProviderOutcome.Success>(completed.Outcome);
             Assert.Equal(CacheUpdateStatus.Updated, completed.CacheStatus);
 
-            SampleDashboardSnapshot dashboard = CodexDashboardProjector.Create(
+            DashboardSnapshot dashboard = CodexDashboardProjector.Create(
                 success.Snapshot,
                 clock,
                 GetString);
-            SampleProviderCard card = Assert.Single(dashboard.Providers);
+            ProviderCard card = Assert.Single(dashboard.Providers);
             Assert.False(dashboard.HasSpend);
             Assert.Equal("Plus", card.PlanLabel);
             Assert.Equal(2, card.Windows.Count);
