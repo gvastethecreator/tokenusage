@@ -1,5 +1,6 @@
 using System.Globalization;
 using WOpenUsage.App.ViewModels;
+using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Providers.Codex;
@@ -30,7 +31,7 @@ public sealed class CodexDashboardProjectorTests
             CodexSnapshotMappingResult.Available>(
                 CodexRateLimitsSnapshotMapper.Map(source, Now, "UTC"));
 
-        SampleDashboardSnapshot dashboard = CodexDashboardProjector.Create(
+        DashboardSnapshot dashboard = CodexDashboardProjector.Create(
             mapped.Snapshot,
             new FixedTimeProvider(Now),
             GetString);
@@ -38,7 +39,7 @@ public sealed class CodexDashboardProjectorTests
         Assert.False(dashboard.HasSpend);
         Assert.Empty(dashboard.SpendSlices);
         Assert.Equal(string.Empty, dashboard.TotalSpendAmount);
-        SampleProviderCard card = Assert.Single(dashboard.Providers);
+        ProviderCard card = Assert.Single(dashboard.Providers);
         Assert.Equal("Codex", card.Name);
         Assert.Equal("Plus", card.PlanLabel);
         Assert.Equal(3, card.Windows.Count);
@@ -68,10 +69,10 @@ public sealed class CodexDashboardProjectorTests
         Assert.Equal("Details for Codex", card.DetailsAutomationName);
         Assert.Collection(
             card.SecondaryMetricItems,
-            metric => Assert.Equal(new SampleMetric("Today", "No data", "CodexUsage.Today", "usage.tokens.today"), metric),
-            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
-            metric => Assert.Equal(new SampleMetric("Last 7 days", "No data", "CodexUsage.Last7Days", "usage.tokens.7d"), metric),
-            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
+            metric => Assert.Equal(new DashboardMetric("Today", "No data", "CodexUsage.Today", "usage.tokens.today"), metric),
+            metric => Assert.Equal(new DashboardMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
+            metric => Assert.Equal(new DashboardMetric("Last 7 days", "No data", "CodexUsage.Last7Days", "usage.tokens.7d"), metric),
+            metric => Assert.Equal(new DashboardMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
 
         string rendered = string.Join('\n',
         [
@@ -87,11 +88,11 @@ public sealed class CodexDashboardProjectorTests
     [Fact]
     public void MissingDurationOrResetHidesPaceWithoutHidingQuota()
     {
-        SampleQuotaWindow missingDuration = Assert.Single(CreateCard(
+        QuotaWindow missingDuration = Assert.Single(CreateCard(
             used: 25m,
             reset: Now.AddHours(3),
             durationMinutes: null).Windows);
-        SampleQuotaWindow missingReset = Assert.Single(CreateCard(
+        QuotaWindow missingReset = Assert.Single(CreateCard(
             used: 25m,
             reset: null,
             durationMinutes: 300m).Windows);
@@ -109,11 +110,11 @@ public sealed class CodexDashboardProjectorTests
     [Fact]
     public void OnTrackAndExhaustedPaceMapToDistinctPresentationStates()
     {
-        SampleQuotaWindow onTrack = Assert.Single(CreateCard(
+        QuotaWindow onTrack = Assert.Single(CreateCard(
             used: 50m,
             reset: Now.AddHours(2.5),
             durationMinutes: 300m).Windows);
-        SampleQuotaWindow exhausted = Assert.Single(CreateCard(
+        QuotaWindow exhausted = Assert.Single(CreateCard(
             used: 100m,
             reset: Now.AddHours(2.5),
             durationMinutes: 300m).Windows);
@@ -168,7 +169,7 @@ public sealed class CodexDashboardProjectorTests
             CoverageKind.Partial,
             1);
 
-        SampleProviderCard card = Assert.Single(CodexDashboardProjector.Create(
+        ProviderCard card = Assert.Single(CodexDashboardProjector.Create(
             snapshot,
             new FixedTimeProvider(Now),
             GetString).Providers);
@@ -177,16 +178,16 @@ public sealed class CodexDashboardProjectorTests
         Assert.Empty(card.Metrics);
         Assert.Collection(
             card.SecondaryMetricItems,
-            metric => Assert.Equal(new SampleMetric("Today", "0 tokens", "CodexUsage.Today", "usage.tokens.today"), metric),
-            metric => Assert.Equal(new SampleMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
+            metric => Assert.Equal(new DashboardMetric("Today", "0 tokens", "CodexUsage.Today", "usage.tokens.today"), metric),
+            metric => Assert.Equal(new DashboardMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
             metric => Assert.Equal(
-                new SampleMetric(
+                new DashboardMetric(
                     "Last 7 days",
                     $"{1234567m.ToString("N0", CultureInfo.CurrentCulture)} tokens",
                     "CodexUsage.Last7Days",
                     "usage.tokens.7d"),
                 metric),
-            metric => Assert.Equal(new SampleMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
+            metric => Assert.Equal(new DashboardMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
     }
 
     [Fact]
@@ -209,7 +210,7 @@ public sealed class CodexDashboardProjectorTests
             GetString));
     }
 
-    private static SampleProviderCard CreateCard(
+    private static ProviderCard CreateCard(
         decimal used,
         DateTimeOffset? reset,
         decimal? durationMinutes)

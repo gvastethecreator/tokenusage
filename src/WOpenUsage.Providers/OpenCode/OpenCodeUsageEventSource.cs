@@ -5,6 +5,7 @@ using System.Globalization;
 using Microsoft.Data.Sqlite;
 using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
+using WOpenUsage.Providers.LocalScan;
 
 namespace WOpenUsage.Providers.OpenCode;
 
@@ -13,8 +14,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     public const string ParserVersion = "opencode-local/1";
     private readonly string _dataRoot;
     private readonly string _groupingTimeZoneId;
-    private readonly int _maximumFiles;
-    private readonly long _maximumFileBytes;
+    private readonly LocalScanBudget _budget;
     private readonly int _maximumRows;
 
     public OpenCodeUsageEventSource(
@@ -28,8 +28,6 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFiles, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFileBytes, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumRows, 1);
 
         string home = homeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -37,8 +35,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         string? xdg = xdgDataHomeOverride ?? Environment.GetEnvironmentVariable("XDG_DATA_HOME");
         _dataRoot = ResolveRoot(configured, xdg, home);
         _groupingTimeZoneId = groupingTimeZoneId;
-        _maximumFiles = maximumFiles;
-        _maximumFileBytes = maximumFileBytes;
+        _budget = new LocalScanBudget(maximumFiles, maximumFileBytes);
         _maximumRows = maximumRows;
     }
 
@@ -60,7 +57,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
                 UsageSourceIssueKind.RootUnavailable);
         }
 
-        var state = new ScanState();
+        var state = new LocalScanState(_budget);
         var databaseEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
         var aggregateEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
         var databaseSessions = new HashSet<string>(StringComparer.Ordinal);
@@ -114,7 +111,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
                     : null);
     }
 
-    private string[] EnumerateDatabaseFiles(ScanState state, CancellationToken cancellationToken)
+    private string[] EnumerateDatabaseFiles(LocalScanState state, CancellationToken cancellationToken)
     {
         try
         {
@@ -136,7 +133,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         Dictionary<string, Candidate> messages,
         Dictionary<string, Candidate> aggregates,
         HashSet<string> sessions,
-        ScanState state,
+        LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
     {
@@ -231,7 +228,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
         HashSet<string> sessions,
-        ScanState state,
+        LocalScanState state,
         int maximumRows,
         bool hasPartFallback,
         CancellationToken cancellationToken)
@@ -331,7 +328,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
         HashSet<string> sessions,
-        ScanState state,
+        LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
     {
@@ -371,7 +368,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     private void ReadLegacyJson(
         HashSet<string> databaseSessions,
         Dictionary<string, Candidate> output,
-        ScanState state,
+        LocalScanState state,
         CancellationToken cancellationToken)
     {
         string sessionRoot = Path.Combine(_dataRoot, "storage", "session");
@@ -418,7 +415,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         string sessionId,
         string partRoot,
         JsonFields message,
-        ScanState state,
+        LocalScanState state,
         CancellationToken cancellationToken,
         out Candidate candidate)
     {
@@ -460,7 +457,7 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         return TryJsonCandidate(sessionId, message, out candidate);
     }
 
-    private static string[] EnumerateJson(string root, SearchOption option, ScanState state)
+    private static string[] EnumerateJson(string root, SearchOption option, LocalScanState state)
     {
         try
         {
@@ -477,13 +474,13 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         catch (Exception exception) when (IsFileFailure(exception)) { state.IsPartial = true; return []; }
     }
 
-    private bool TryReadAllowedJson(string path, out JsonFields fields, ScanState state, CancellationToken cancellationToken)
+    private bool TryReadAllowedJson(string path, out JsonFields fields, LocalScanState state, CancellationToken cancellationToken)
     {
         fields = new JsonFields();
         try
         {
             var info = new FileInfo(path);
-            if (!info.Exists || info.Length > _maximumFileBytes || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            if (!info.Exists || info.Length > _budget.MaximumFileBytes || (info.Attributes & FileAttributes.ReparsePoint) != 0)
             {
                 state.IsPartial = true;
                 return false;
@@ -609,9 +606,9 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
         catch (Exception exception) when (exception is InvalidCastException or FormatException or OverflowException) { return false; }
     }
 
-    private bool CountFile(ScanState state)
+    private bool CountFile(LocalScanState state)
     {
-        if (++state.FilesRead <= _maximumFiles) return true;
+        if (++state.FilesRead <= _budget.MaximumFiles) return true;
         state.IsPartial = true;
         return false;
     }
@@ -633,13 +630,6 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     private static bool IsFileFailure(Exception exception) => exception is IOException or UnauthorizedAccessException or System.Security.SecurityException;
 
     private sealed record Candidate(string SessionId, string MessageId, DateTimeOffset Timestamp, string Model, TokenBreakdown Tokens, decimal? Cost, string? Provider = null);
-    private sealed class ScanState
-    {
-        public int FilesRead { get; set; }
-        public bool IsPartial { get; set; }
-        public bool UnsupportedSchema { get; set; }
-    }
-
     private sealed class JsonFields
     {
         public string? Id { get; private set; }
