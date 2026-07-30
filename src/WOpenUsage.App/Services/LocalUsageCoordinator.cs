@@ -53,6 +53,26 @@ public sealed class LocalUsageCoordinator
             sourceDiagnostics: result.SourceDiagnostics);
     }
 
+    public async Task<LocalUsageCard?> ReadCachedAsync(
+        Func<string, string> getString,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(getString);
+        LocalUsageRefreshResult? result = await _refresh
+            .ReadCachedAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return result is null
+            ? null
+            : LocalUsageCardProjector.Create(
+                result.Rollups,
+                getString,
+                result.SourceKind,
+                result.OverallStatus,
+                hasMultipleRealSources: result.HasMultipleRealSources,
+                today: result.ToInclusive,
+                sourceDiagnostics: result.SourceDiagnostics);
+    }
+
     public Task<LocalUsageRefreshResult> RefreshDomainAsync(
         CancellationToken cancellationToken = default) =>
         _refresh.RefreshAsync(cancellationToken);

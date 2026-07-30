@@ -193,15 +193,15 @@
   <data name="LocalUsageTitle" xml:space="preserve"><value>Local usage</value></data>
   <data name="LocalUsageSourceSynthetic" xml:space="preserve"><value>Synthetic fixture · Local SQLite</value></data>
   <data name="LocalUsageSourceClaude" xml:space="preserve"><value>Claude Code · Local logs</value></data>
-  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Claude + Grok Build + OpenCode · Local data</value></data>
+  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Claude + Codex + Grok Build + OpenCode · Local data</value></data>
   <data name="LocalUsagePeriod30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="LocalUsageNotice" xml:space="preserve"><value>Local test data</value></data>
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Saved sessions on this device only. Estimated cost uses API list prices and does not represent your plan charge.</value></data>
   <data name="LocalUsageClaudePartialNotice" xml:space="preserve"><value>Partial read: some files could not be processed. Visible totals may be lower.</value></data>
   <data name="LocalUsageClaudeNoDataNotice" xml:space="preserve"><value>No new Claude sessions were found. The last local total may remain.</value></data>
-  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Observed local usage. Estimated cost uses API rates and is not your plan charge. Grok quota is blocked.</value></data>
-  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Partial read: the last reliable total is kept. The API estimate is not your plan charge. Grok quota is blocked.</value></data>
-  <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>No new sessions; the last local total is kept. The API estimate is not your plan charge. Grok quota is blocked.</value></data>
+  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Observed local usage. Codex uses official daily totals and an estimated model mix; cost can differ from your plan charge. Grok quota is unavailable.</value></data>
+  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Partial read: valid data is kept. Codex uses an estimated model mix; cost can differ from your plan charge. Grok quota is unavailable.</value></data>
+  <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>No new sessions; the last local total is kept. Cost uses API rates and can differ from your plan charge. Grok quota is unavailable.</value></data>
   <data name="LocalUsageUnavailable" xml:space="preserve"><value>Local usage could not be read.</value></data>
   <data name="LocalUsageReportedCost" xml:space="preserve"><value>Reported cost</value></data>
   <data name="LocalUsageEstimatedCost" xml:space="preserve"><value>Estimated cost</value></data>

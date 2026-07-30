@@ -1,6 +1,8 @@
 # Matriz de proveedores
 
-Fecha de corte: 2026-07-23
+Fecha de corte: 2026-07-28
+
+Estado temporal: Vercel AI Gateway queda fuera del catálogo activo desde el Ticket 117. Su implementación se conserva para reactivarla en una entrega posterior.
 
 Upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 
@@ -237,12 +239,12 @@ Fuente upstream de comparación: [provider OpenCode](https://github.com/robinebe
 
 ### Fuente local
 
-- `GROK_HOME/sessions` con `summary.json`, `signals.json` y `updates.jsonl`;
-- `GROK_HOME/logs/unified.jsonl` como fallback;
+- `GROK_HOME/logs/unified.jsonl` como fuente principal;
+- `GROK_HOME/sessions` con `summary.json` y `updates.jsonl` como compatibilidad;
 - `params.update.usage`, desglose por modelo y `costUsdTicks` cuando existan;
 - estimación por catálogo solo cuando la fuente no informa coste.
 
-La fuente de sesión tiene prioridad. El fallback no suma eventos ya cubiertos por una sesión.
+El log unificado tiene prioridad, igual que en OpenUsage. La ruta de sesiones se usa cuando el log no aporta eventos válidos y no se suma a la fuente principal.
 
 ### Cuota
 
@@ -250,7 +252,7 @@ OpenUsage usa autenticación local y un endpoint de billing no documentado. xAI 
 
 ### Salida
 
-Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.106`, sesiones y el log unificado sin abrir la credencial.
+Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.112`, sesiones y el log unificado sin abrir la credencial.
 
 Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
 

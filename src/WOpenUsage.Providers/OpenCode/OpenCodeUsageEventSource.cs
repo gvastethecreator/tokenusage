@@ -9,9 +9,12 @@ using WOpenUsage.Providers.LocalScan;
 
 namespace WOpenUsage.Providers.OpenCode;
 
-public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
+public sealed class OpenCodeUsageEventSource :
+    IWindowedSnapshotUsageEventSource,
+    IRootDetectingUsageEventSource
 {
     public const string ParserVersion = "opencode-local/1";
+    private const int LookbackDays = 35;
     private readonly string _dataRoot;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
@@ -41,6 +44,10 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
 
     public SourceKind SourceKind => SourceKind.LocalDatabase;
     public AgentId AgentId { get; } = new("opencode");
+
+    public string EventParserVersion => ParserVersion;
+
+    public int ReconciliationWindowDays => LookbackDays;
 
     public bool IsRootAvailable => Directory.Exists(_dataRoot);
 
@@ -267,7 +274,9 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
             WHERE m.time_created >= $cutoff AND json_valid(m.data)
             LIMIT $limit
             """;
-        command.Parameters.AddWithValue("$cutoff", DateTimeOffset.UtcNow.AddDays(-400).ToUnixTimeMilliseconds());
+        command.Parameters.AddWithValue(
+            "$cutoff",
+            DateTimeOffset.UtcNow.AddDays(-LookbackDays).ToUnixTimeMilliseconds());
         command.Parameters.AddWithValue("$limit", checked(maximumRows + 1L));
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
@@ -334,7 +343,9 @@ public sealed class OpenCodeUsageEventSource : ISnapshotUsageEventSource
     {
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT id,time_updated,model,cost,tokens_input,tokens_output,tokens_reasoning,tokens_cache_read,tokens_cache_write FROM session WHERE time_updated >= $cutoff LIMIT $limit";
-        command.Parameters.AddWithValue("$cutoff", DateTimeOffset.UtcNow.AddDays(-400).ToUnixTimeMilliseconds());
+        command.Parameters.AddWithValue(
+            "$cutoff",
+            DateTimeOffset.UtcNow.AddDays(-LookbackDays).ToUnixTimeMilliseconds());
         command.Parameters.AddWithValue("$limit", checked(maximumRows + 1L));
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();

@@ -301,6 +301,7 @@ public static class LocalUsageCardProjector
         agentId switch
         {
             "claude" => getString("LocalUsageAgentClaude"),
+            "codex" => getString("LocalUsageAgentCodex"),
             "grok" => getString("LocalUsageAgentGrok"),
             "opencode" => getString("LocalUsageAgentOpenCode"),
             _ => agentId,
@@ -312,7 +313,7 @@ public static class LocalUsageCardProjector
         string missing,
         Func<string, string> getString) =>
         diagnostics
-            .Where(item => item.AgentId.Value is "claude" or "grok" or "opencode")
+            .Where(item => item.AgentId.Value is "claude" or "codex" or "grok" or "opencode")
             .Select(item =>
             {
                 Totals totals = Sum(rollups.Where(rollup => rollup.AgentId == item.AgentId));

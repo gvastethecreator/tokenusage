@@ -87,6 +87,11 @@ public interface IUsageEventSource
         CancellationToken cancellationToken = default);
 }
 
+public interface IRootDetectingUsageEventSource : IUsageEventSource
+{
+    bool IsRootAvailable { get; }
+}
+
 public interface ISnapshotUsageEventSource : IUsageEventSource
 {
 }
