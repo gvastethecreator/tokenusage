@@ -36,11 +36,11 @@ public static class CliApplication
                 commandArguments,
                 standardOutput,
                 standardError,
-                (from, to, token) => LocalUsageCliAccess.ReadAsync(
-                    Path.Combine(fullDataDirectory, "scanner", "usage.v1.db"),
-                    from,
-                    to,
-                    token),
+                (from, to, token) => new UsageQuery(Path.Combine(
+                        fullDataDirectory,
+                        "scanner",
+                        "usage.v1.db"))
+                    .ReadAsync(from, to, token),
                 clock,
                 cancellationToken).ConfigureAwait(false),
             "limits" => await LimitsCommand.RunAsync(

@@ -6,6 +6,7 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 using Windows.UI.ViewManagement;
 using WOpenUsage.Core.Appearance;
+using WOpenUsage.Core.Session;
 using WOpenUsage.Platform.Windows.Display;
 using WOpenUsage.Platform.Windows.Placement;
 using WOpenUsage.Platform.Windows.Tray;
@@ -131,10 +132,9 @@ public sealed partial class MainWindow : Window, IDisposable
     private async Task RefreshFromTrayAsync()
     {
         ShowFlyout(false);
-        if (RootPage.ViewModel.RefreshCommand.CanExecute(null))
-        {
-            await RootPage.ViewModel.RefreshCommand.ExecuteAsync(null);
-        }
+        await RootPage.SessionHost.RefreshAsync(
+            AppSessionRefreshReason.Manual,
+            forceRefresh: true);
     }
 
     private void OnTraySettingsRequested(object? sender, EventArgs e)
@@ -493,11 +493,17 @@ public sealed partial class MainWindow : Window, IDisposable
         _systemVisualSettingsTimer.Tick -= OnSystemVisualSettingsTimerElapsed;
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
+        RootPage.Dispose();
         DisposeTrayIcon();
         GC.SuppressFinalize(this);
     }
 
-    private void OnWindowClosed(object sender, WindowEventArgs args) => Dispose();
+    private async void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        RootPage.Dispose();
+        await RootPage.SessionHost.DisposeAsync();
+        Dispose();
+    }
 
     private void DisposeTrayIcon()
     {
