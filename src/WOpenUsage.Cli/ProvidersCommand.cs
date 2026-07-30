@@ -4,9 +4,6 @@ using System.Text.Json;
 
 namespace WOpenUsage.Cli;
 
-public delegate Task<ProviderDiagnosticsSnapshot> ProviderDiagnosticsReader(
-    CancellationToken cancellationToken);
-
 public static class ProvidersCommand
 {
     public const string SchemaVersion = "wusage.providers.v1";
@@ -76,9 +73,12 @@ public static class ProvidersCommand
         {
             foreach (ProviderDiagnostic provider in providers)
             {
+                string capabilities = string.Join(
+                    ",",
+                    provider.Capabilities.Select(ToLowerCamelCase));
                 await standardOutput.WriteLineAsync(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{provider.Id}: {ToLowerCamelCase(provider.Detection)}; data {ToLowerCamelCase(provider.Data)}; {ToLowerCamelCase(provider.Capabilities[0])}"))
+                        $"{provider.Id}: {ToLowerCamelCase(provider.Detection)}; data {ToLowerCamelCase(provider.Data)}; {capabilities}"))
                     .ConfigureAwait(false);
             }
         }

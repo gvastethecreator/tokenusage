@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WOpenUsage.App.Views.Options.ProviderStatusView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:WOpenUsage.App.Controls"
+    xmlns:converters="using:WOpenUsage.App.Converters"
+    xmlns:dashboard="using:WOpenUsage.App.ViewModels.Dashboard"
+    xmlns:viewModels="using:WOpenUsage.App.ViewModels"
+    mc:Ignorable="d">
+
+    <Border
+        AutomationProperties.AutomationId="ProviderStatusSection"
+        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+        CornerRadius="8"
+        Padding="10,8">
+        <StackPanel Spacing="8">
+            <Grid ColumnSpacing="8" RowSpacing="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    x:Uid="ProviderStatusSectionTitle"
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    VerticalAlignment="Center" />
+                <Button
+                    x:Name="ProviderStatusRefreshButton"
+                    x:Uid="ProviderStatusRefreshButton"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="ProviderStatusRefreshButton"
+                    Command="{x:Bind ViewModel.RefreshCommand}"
+                    Padding="7"
+                    Style="{StaticResource SubtleButtonStyle}">
+                    <FontIcon
+                        AutomationProperties.AccessibilityView="Raw"
+                        FontSize="14"
+                        Glyph="&#xE72C;"
+                        IsTextScaleFactorEnabled="False" />
+                </Button>
+                <TextBlock
+                    x:Uid="ProviderStatusSectionDescription"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords" />
+            </Grid>
+    
+            <ItemsControl
+                x:Name="ProviderStatusList"
+                AutomationProperties.AutomationId="ProviderStatusList"
+                ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="dashboard:ProviderStatusRow">
+                        <Border
+                            AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
+                            AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="0,8,0,6">
+                            <StackPanel Spacing="5">
+                                <Grid ColumnSpacing="7">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <controls:ProviderMarkImage
+                                        Height="16"
+                                        ProviderId="{x:Bind ProviderId, Mode=OneTime}"
+                                        VerticalAlignment="Center"
+                                        Width="16" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                                        Text="{x:Bind Name, Mode=OneTime}" />
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Text="{x:Bind RootState, Mode=OneTime}"
+                                        TextWrapping="WrapWholeWords" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{x:Bind Capabilities, Mode=OneTime}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="dashboard:ProviderCapabilityRow">
+                                            <Grid
+                                                AutomationProperties.AutomationId="{x:Bind AutomationId, Mode=OneTime}"
+                                                AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
+                                                ColumnSpacing="8"
+                                                MinHeight="20">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Label, Mode=OneTime}" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind Value, Mode=OneTime}"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind RecoveryText, Mode=OneTime}"
+                                    TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -15,7 +15,9 @@
       "id": "codex",
       "name": "Codex",
       "capabilities": [
-        "limits"
+        "limits",
+        "localUsage",
+        "spend"
       ],
       "detection": "detected",
       "data": "present"

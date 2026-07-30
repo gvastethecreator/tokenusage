@@ -52,7 +52,7 @@ public sealed class OpenCodeUsageEventSourceTests
             StartInfo = new ProcessStartInfo
             {
                 FileName = "opencode",
-                Arguments = "stats --pure --days 400 --tools 0",
+                Arguments = "stats --pure --days 35 --tools 0",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -343,6 +343,28 @@ public sealed class OpenCodeUsageEventSourceTests
 
         Assert.Single(result.Events);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+    }
+
+    [Fact]
+    public async Task CurrentDatabaseSkipsRowsOutsideTheDashboardWindow()
+    {
+        using var corpus = new OpenCodeCorpus();
+        corpus.CreateCurrentDatabase((
+            "old-session",
+            DateTimeOffset.UtcNow.AddDays(-36).ToUnixTimeMilliseconds(),
+            "openai/gpt-5",
+            1m,
+            10L,
+            2L,
+            0L,
+            0L,
+            0L));
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+
+        Assert.Empty(result.Events);
+        Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
+        Assert.Equal(UsageSourceIssueKind.Empty, result.Issue);
     }
 
     private static string Message(string id, string model, long input, long output, long reasoning, long cacheRead, long cacheWrite, decimal? cost) =>

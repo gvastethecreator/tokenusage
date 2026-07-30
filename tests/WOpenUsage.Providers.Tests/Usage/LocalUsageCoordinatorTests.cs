@@ -9,6 +9,7 @@ using WOpenUsage.Core.Providers;
 using WOpenUsage.Core.Usage;
 using WOpenUsage.Providers.Fakes;
 using WOpenUsage.Providers.Claude;
+using WOpenUsage.Providers.Codex;
 using System.Text.Json;
 
 namespace WOpenUsage.Providers.Tests.Usage;
@@ -362,6 +363,67 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public async Task CodexCorpusFlowsThroughSqliteIntoTheSpendDonut()
+    {
+        using var folder = new TemporaryFolder();
+        string codexRoot = folder.Path;
+        string sessions = Directory.CreateDirectory(Path.Combine(codexRoot, "sessions")).FullName;
+        File.WriteAllLines(
+            Path.Combine(sessions, "session.jsonl"),
+            [
+                JsonSerializer.Serialize(new
+                {
+                    timestamp = "2026-07-22T12:00:00Z",
+                    type = "turn_context",
+                    payload = new { model = "gpt-5.5", summary = "private fixture summary" },
+                }),
+                JsonSerializer.Serialize(new
+                {
+                    timestamp = "2026-07-22T12:01:00Z",
+                    type = "event_msg",
+                    payload = new
+                    {
+                        type = "token_count",
+                        info = new
+                        {
+                            last_token_usage = new
+                            {
+                                input_tokens = 1_000L,
+                                cached_input_tokens = 200L,
+                                output_tokens = 100L,
+                                reasoning_output_tokens = 40L,
+                                total_tokens = 1_100L,
+                            },
+                            total_token_usage = new
+                            {
+                                input_tokens = 1_000L,
+                                cached_input_tokens = 200L,
+                                output_tokens = 100L,
+                                reasoning_output_tokens = 40L,
+                                total_tokens = 1_100L,
+                            },
+                        },
+                    },
+                }),
+            ]);
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            new CodexUsageEventSource("UTC", codexHomeOverride: codexRoot),
+            new FixedTimeProvider(Now));
+
+        LocalUsageCard card = await coordinator.RefreshAsync(Strings);
+
+        SpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
+        Assert.Equal("codex", slice.ProviderId);
+        Assert.Equal(0.0071d, slice.Amount, precision: 6);
+        ProviderStatusRow codex = Assert.Single(
+            card.ProviderStatuses,
+            row => row.ProviderId == "codex");
+        Assert.Equal("ProviderStatusComplete", Capability(codex, "ProviderStatus.codex.Usage"));
+        Assert.Equal("ProviderStatusEstimated", Capability(codex, "ProviderStatus.codex.Spend"));
+    }
+
+    [Fact]
     public async Task ClaudeRefreshReplacesStreamingCountersInsteadOfAddingThem()
     {
         using var folder = new TemporaryFolder();
@@ -509,6 +571,26 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
+    public async Task CachedCardLoadsWithoutWaitingForAProviderRead()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(Result(321, UsageSourceReadStatus.Complete).Events);
+        var source = new CountingUsageSource();
+        var coordinator = new LocalUsageCoordinator(
+            folder.DatabasePath,
+            source,
+            new FixedTimeProvider(Now));
+
+        LocalUsageCard? card = await coordinator.ReadCachedAsync(Strings);
+
+        Assert.NotNull(card);
+        Assert.Equal(0, source.ReadCount);
+        LocalUsageModelRow model = Assert.Single(card.SpendBreakdown.Models);
+        Assert.Equal("grok", model.AgentId);
+    }
+
+    [Fact]
     public async Task ConflictingGroupingTimeZonesFailBeforeWritingACombinedSnapshot()
     {
         using var folder = new TemporaryFolder();
@@ -611,6 +693,7 @@ public sealed class LocalUsageCoordinatorTests
         "UsageHeatmapCostFormat" => "{0:0.00} US$",
         "UsageHeatmapCostUnavailable" => "gasto no disponible",
         "LocalUsageAgentClaude" => "Claude",
+        "LocalUsageAgentCodex" => "Codex",
         "LocalUsageAgentGrok" => "Grok Build",
         "LocalUsageAgentOpenCode" => "OpenCode",
         _ => key,
@@ -653,6 +736,22 @@ public sealed class LocalUsageCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(results[Math.Min(_index++, results.Count - 1)]);
+        }
+    }
+
+    private sealed class CountingUsageSource : IUsageEventSource
+    {
+        public int ReadCount { get; private set; }
+
+        public AgentId AgentId { get; } = new("grok");
+
+        public SourceKind SourceKind => SourceKind.LocalLog;
+
+        public Task<UsageSourceReadResult> ReadAsync(
+            CancellationToken cancellationToken = default)
+        {
+            ReadCount++;
+            throw new InvalidOperationException("A cached read must not call the provider.");
         }
     }
 
