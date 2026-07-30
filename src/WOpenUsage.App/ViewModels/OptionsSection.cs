@@ -7,6 +7,5 @@ public enum OptionsSection
     Appearance,
     Personalization,
     Providers,
-    Vercel,
     ProviderStatus,
 }

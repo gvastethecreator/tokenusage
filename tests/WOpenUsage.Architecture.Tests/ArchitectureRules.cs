@@ -23,7 +23,13 @@ public static class ArchitectureRules
                 "WOpenUsage.Core",
                 "WOpenUsage.Providers",
                 "WOpenUsage.Runtime.Windows"),
+            ["WOpenUsage.LocalApi"] = CreateSet(
+                "WOpenUsage.Core",
+                "WOpenUsage.Runtime.Windows"),
         };
+
+    private static readonly IReadOnlySet<string> OptionalProjects = CreateSet(
+        "WOpenUsage.LocalApi");
 
     public static IReadOnlyList<string> FindForbiddenEdges(ProjectReferenceGraph graph)
     {
@@ -31,6 +37,8 @@ public static class ArchitectureRules
 
         foreach (string missing in AllowedReferences.Keys.Except(
                      graph.Projects,
+                     StringComparer.OrdinalIgnoreCase).Except(
+                     OptionalProjects,
                      StringComparer.OrdinalIgnoreCase))
         {
             violations.Add($"Missing product project: {missing}");

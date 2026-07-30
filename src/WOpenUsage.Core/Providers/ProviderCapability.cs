@@ -1,5 +1,12 @@
 namespace WOpenUsage.Core.Providers;
 
+public enum ProviderCapability
+{
+    Limits,
+    LocalUsage,
+    Spend,
+}
+
 public sealed record CapabilityId
 {
     public CapabilityId(string value)

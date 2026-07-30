@@ -85,6 +85,84 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
+    public async Task ReadsCurrentSessionUpdateMethodAndUnixTimestamp()
+    {
+        using var corpus = new GrokCorpus();
+        long timestamp = new DateTimeOffset(
+            2026,
+            7,
+            27,
+            12,
+            0,
+            0,
+            TimeSpan.Zero).ToUnixTimeSeconds();
+        corpus.WriteSession(
+            "session-current",
+            JsonSerializer.Serialize(new Dictionary<string, object?>
+            {
+                ["method"] = "_x.ai/session/update",
+                ["timestamp"] = timestamp,
+                ["params"] = new Dictionary<string, object?>
+                {
+                    ["update"] = new Dictionary<string, object?>
+                    {
+                        ["usage"] = new Dictionary<string, object?>
+                        {
+                            ["inputTokens"] = 100L,
+                            ["outputTokens"] = 20L,
+                            ["cachedReadTokens"] = 30L,
+                            ["costUsdTicks"] = 1_250_000_000L,
+                            ["current_model_id"] = "grok-4.5-build",
+                            ["usageIsIncomplete"] = false,
+                        },
+                    },
+                },
+            }));
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(
+            DateTimeOffset.FromUnixTimeSeconds(timestamp),
+            usageEvent.OccurredAtUtc);
+        Assert.Equal(new TokenBreakdown(70, 20, 0, 30, 0), usageEvent.Tokens);
+        Assert.Equal(0.125m, usageEvent.Cost.ReportedCostUsd);
+    }
+
+    [Fact]
+    public async Task IncompleteCurrentSnapshotKeepsDataAndMarksReadPartial()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession(
+            "session-incomplete",
+            JsonSerializer.Serialize(new
+            {
+                method = "_x.ai/session/update",
+                timestamp = 1_774_785_600L,
+                @params = new
+                {
+                    update = new
+                    {
+                        usage = new
+                        {
+                            inputTokens = 100L,
+                            outputTokens = 20L,
+                            costUsdTicks = 1_000_000L,
+                            current_model_id = "grok-4.5-build",
+                            usageIsIncomplete = true,
+                        },
+                    },
+                },
+            }));
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+
+        Assert.Single(result.Events);
+        Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+    }
+
+    [Fact]
     public async Task UsesTotalsWhenModelUsageIsEmptyAndKeepsKeysStable()
     {
         using var corpus = new GrokCorpus();
@@ -125,7 +203,7 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
-    public async Task SessionEventsSuppressUnifiedFallback()
+    public async Task UnifiedLogTakesPriorityOverSessionSnapshots()
     {
         using var corpus = new GrokCorpus();
         corpus.WriteSession(
@@ -137,11 +215,11 @@ public sealed class GrokUsageEventSourceTests
 
         UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
-        Assert.Equal("grok-session-model", usageEvent.ModelId.Value);
+        Assert.Equal("grok-fallback-model", usageEvent.ModelId.Value);
     }
 
     [Fact]
-    public async Task ReadsUnifiedOnlyWhenNoSessionProducedUsage()
+    public async Task ReadsAndPricesUnifiedAsPrimarySource()
     {
         using var corpus = new GrokCorpus();
         corpus.WriteUnified(
@@ -153,8 +231,12 @@ public sealed class GrokUsageEventSourceTests
 
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal(new TokenBreakdown(70, 20, 5, 30, 0), usageEvent.Tokens);
-        Assert.Equal(CostKind.Unavailable, usageEvent.Cost.Kind);
-        Assert.Equal(CoverageKind.Unpriced, usageEvent.Coverage);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(0.000126m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(GrokPricingCatalog.Version, usageEvent.Cost.CatalogVersion);
+        Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
+        Assert.Equal(GrokUsageEventSource.ParserVersion, corpus.CreateSource().EventParserVersion);
+        Assert.Equal(35, corpus.CreateSource().ReconciliationWindowDays);
     }
 
     [Fact]
@@ -193,6 +275,32 @@ public sealed class GrokUsageEventSourceTests
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => source.ReadAsync(cancellation.Token));
+    }
+
+    [Fact]
+    public async Task LargeSessionUsesTheLatestSnapshotFromTheBoundedTail()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession(
+            "session-large-tail",
+            Snapshot("2026-07-22T10:00:00Z", 10, 2, model: "old-model"),
+            new string('x', 5 * 1024 * 1024),
+            Snapshot(
+                "2026-07-22T11:00:00Z",
+                25,
+                4,
+                model: "latest-model",
+                modelUsage: new Dictionary<string, object?>
+                {
+                    ["latest-model"] = ModelUsage(25, 4, 0),
+                }));
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal("latest-model", usageEvent.ModelId.Value);
+        Assert.Equal(new TokenBreakdown(25, 4, 0, 0, 0), usageEvent.Tokens);
     }
 
     [Fact]

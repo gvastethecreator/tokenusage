@@ -8,7 +8,7 @@ public sealed class CodexRefreshCoordinator
 {
     private readonly SnapshotStore _store;
     private readonly IProviderRuntime _provider;
-    private readonly CacheFirstRefresh _refresh;
+    private readonly ProviderRefreshHost _refreshHost;
 
     public CodexRefreshCoordinator(
         string cacheDirectory,
@@ -24,7 +24,7 @@ public sealed class CodexRefreshCoordinator
             SnapshotStore.DefaultFileName);
         _store = new SnapshotStore(cachePath, clock);
         _provider = new ResilientProviderRuntime(new CodexProviderRuntime(clientFactory));
-        _refresh = new CacheFirstRefresh(_store, [_provider], clock);
+        _refreshHost = new ProviderRefreshHost([CreateRegistration()], clock);
     }
 
     public TimeProvider Clock { get; }
@@ -35,5 +35,5 @@ public sealed class CodexRefreshCoordinator
     public IAsyncEnumerable<CacheFirstEvent> RunAsync(
         bool forceRefresh,
         CancellationToken cancellationToken) =>
-        _refresh.RunAsync(forceRefresh, cancellationToken);
+        _refreshHost.RunAsync(forceRefresh, cancellationToken);
 }

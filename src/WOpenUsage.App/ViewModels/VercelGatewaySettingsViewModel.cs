@@ -2,44 +2,31 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WOpenUsage.App.ViewModels.Dashboard;
 using WOpenUsage.App.ViewModels.Sample;
+using WOpenUsage.App.ViewModels.Surfaces;
 using WOpenUsage.Core.Cache;
 using WOpenUsage.Core.Providers;
+using WOpenUsage.Core.Session;
 using WOpenUsage.Providers.VercelAiGateway;
 using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.App.ViewModels;
 
-public enum VercelGatewayUiState
+public partial class VercelGatewaySettingsViewModel : ObservableObject, IVercelDashboardModule
 {
-    Checking,
-    NotConfigured,
-    Connecting,
-    Refreshing,
-    Connected,
-    Partial,
-    Throttled,
-    AuthenticationRejected,
-    UnsupportedAccount,
-    TransientFailure,
-    ContractFailure,
-    Disconnecting,
-    Disconnected,
-    CleanupPartial,
-    LocalFailure,
-}
-
-public partial class VercelGatewaySettingsViewModel : ObservableObject
-{
+    private static readonly ProviderId VercelProviderId = new("vercel-ai-gateway");
     private readonly VercelGatewayRefreshCoordinator _coordinator;
+    private readonly AppSessionHost _sessionHost;
     private readonly Func<string, string> _getString;
     private CancellationTokenSource? _operationCancellation;
     private ProviderSnapshot? _lastSnapshot;
 
     public VercelGatewaySettingsViewModel(
         VercelGatewayRefreshCoordinator coordinator,
+        AppSessionHost sessionHost,
         Func<string, string> getString)
     {
         _coordinator = coordinator ?? throw new ArgumentNullException(nameof(coordinator));
+        _sessionHost = sessionHost ?? throw new ArgumentNullException(nameof(sessionHost));
         _getString = getString ?? throw new ArgumentNullException(nameof(getString));
         StatusText = _getString("VercelStatusChecking");
     }
@@ -144,9 +131,12 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
                 .IsConfiguredAsync(cancellation.Token);
             if (IsConfigured)
             {
-                await RefreshCoreAsync(forceRefresh: false, cancellation.Token);
+                if (ProviderCard is null)
+                {
+                    SetState(VercelGatewayUiState.Refreshing, "VercelStatusRefreshing");
+                }
             }
-            else
+            else if (ProviderCard is null)
             {
                 SetState(VercelGatewayUiState.NotConfigured, "VercelStatusNotConfigured");
             }
@@ -351,26 +341,11 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject
     private async Task RefreshCoreAsync(bool forceRefresh, CancellationToken cancellationToken)
     {
         SetState(VercelGatewayUiState.Refreshing, "VercelStatusRefreshing");
-        await foreach (CacheFirstEvent refreshEvent in _coordinator.RunAsync(
-                           forceRefresh,
-                           cancellationToken))
-        {
-            switch (refreshEvent)
-            {
-                case CacheFirstEvent.CachePublished cache:
-                    ProviderSnapshot? cached = FindSnapshot(cache.Snapshots);
-                    if (cached is not null)
-                    {
-                        PublishSnapshot(cached);
-                        SetState(VercelGatewayUiState.Refreshing, "VercelStatusCachedRefreshing");
-                    }
-
-                    break;
-                case CacheFirstEvent.ProviderCompleted completed:
-                    await PublishOutcomeAsync(completed, cancellationToken);
-                    break;
-            }
-        }
+        await _sessionHost.RefreshAsync(
+            AppSessionRefreshReason.ProviderAction,
+            forceRefresh,
+            VercelProviderId,
+            cancellationToken);
     }
 
     private async Task PublishOutcomeAsync(

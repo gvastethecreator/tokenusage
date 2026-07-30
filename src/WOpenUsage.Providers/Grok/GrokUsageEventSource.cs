@@ -9,10 +9,14 @@ using WOpenUsage.Providers.LocalScan;
 
 namespace WOpenUsage.Providers.Grok;
 
-public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
+public sealed class GrokUsageEventSource :
+    IWindowedSnapshotUsageEventSource,
+    IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "grok-local/1";
+    public const string ParserVersion = "grok-local/3";
     private const decimal TicksPerUsd = 10_000_000_000m;
+    private const int SnapshotTailBytes = 1024 * 1024;
+    private const int SnapshotFullFallbackBytes = 4 * 1024 * 1024;
     private readonly string _groupingTimeZoneId;
     private readonly string _grokHome;
     private readonly LocalScanBudget _budget;
@@ -40,6 +44,10 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
 
     public AgentId AgentId { get; } = new("grok");
 
+    public string EventParserVersion => ParserVersion;
+
+    public int ReconciliationWindowDays => 35;
+
     public bool IsRootAvailable => Directory.Exists(_grokHome);
 
     public async Task<UsageSourceReadResult> ReadAsync(
@@ -58,6 +66,21 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         }
 
         var state = new LocalScanState(_budget);
+        string unifiedPath = Path.Combine(_grokHome, "logs", "unified.jsonl");
+        if (File.Exists(unifiedPath))
+        {
+            state.FilesRead++;
+            List<UsageEvent> unifiedEvents = ReadUnified(
+                unifiedPath,
+                DateTimeOffset.UtcNow.AddDays(-ReconciliationWindowDays),
+                state,
+                cancellationToken);
+            if (unifiedEvents.Count > 0 || state.IsPartial)
+            {
+                return CreateResult(unifiedEvents, state);
+            }
+        }
+
         var sessionEvents = new List<UsageEvent>();
         string sessionsRoot = Path.Combine(_grokHome, "sessions");
         if (Directory.Exists(sessionsRoot))
@@ -102,23 +125,13 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
             }
         }
 
-        List<UsageEvent> events = sessionEvents;
-        if (events.Count == 0 && !state.IsPartial)
-        {
-            string unifiedPath = Path.Combine(_grokHome, "logs", "unified.jsonl");
-            if (File.Exists(unifiedPath))
-            {
-                if (++state.FilesRead > _budget.MaximumFiles)
-                {
-                    state.IsPartial = true;
-                }
-                else
-                {
-                    events = ReadUnified(unifiedPath, state, cancellationToken);
-                }
-            }
-        }
+        return CreateResult(sessionEvents, state);
+    }
 
+    private static UsageSourceReadResult CreateResult(
+        List<UsageEvent> events,
+        LocalScanState state)
+    {
         UsageSourceReadStatus status = state.IsPartial
             ? UsageSourceReadStatus.Partial
             : events.Count == 0
@@ -166,7 +179,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         CancellationToken cancellationToken)
     {
         Snapshot? latest = null;
-        bool complete = ReadLines(
+        bool complete = ReadRecentLines(
             path,
             (line, lineNumber) =>
             {
@@ -183,14 +196,48 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
 
                 return false;
             },
-            cancellationToken);
+            cancellationToken,
+            out bool readWholeFile);
+        if (latest is null && !readWholeFile)
+        {
+            long fileLength = GetFileLength(path);
+            if (fileLength >= 0 && fileLength <= SnapshotFullFallbackBytes)
+            {
+                complete &= ReadLines(
+                    path,
+                    (line, lineNumber) =>
+                    {
+                        if (line.Span.IndexOf("\"usage\""u8) < 0)
+                        {
+                            return true;
+                        }
+
+                        if (TryParseSnapshot(line, summary, out Snapshot? parsed)
+                            && parsed is not null)
+                        {
+                            latest = parsed;
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    cancellationToken);
+            }
+            else
+            {
+                complete = false;
+            }
+        }
+
         state.IsPartial |= !complete;
         state.IsPartial |= latest?.HasInvalidModelCounters == true;
+        state.IsPartial |= latest?.HasIncompleteUsage == true;
         return latest;
     }
 
     private List<UsageEvent> ReadUnified(
         string path,
+        DateTimeOffset sinceUtc,
         LocalScanState state,
         CancellationToken cancellationToken)
     {
@@ -202,7 +249,8 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                 line,
                 lineNumber,
                 modelsByProcess,
-                events),
+                events,
+                sinceUtc),
             cancellationToken);
         state.IsPartial |= !complete;
         return events;
@@ -212,7 +260,8 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         ReadOnlyMemory<byte> utf8,
         int lineNumber,
         Dictionary<long, string> modelsByProcess,
-        List<UsageEvent> events)
+        List<UsageEvent> events,
+        DateTimeOffset sinceUtc)
     {
         ReadOnlySpan<byte> bytes = utf8.Span;
         if (bytes.IndexOf("inference_done"u8) < 0 && bytes.IndexOf("model"u8) < 0)
@@ -251,6 +300,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                 || processId is null
                 || !modelsByProcess.TryGetValue(processId.Value, out model)
                 || !TryGetUtcTimestamp(root, "ts", out DateTimeOffset timestamp)
+                || timestamp < sinceUtc
                 || !TryGetNonNegativeInt64(context, "prompt_tokens", out long input))
             {
                 return true;
@@ -260,12 +310,13 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
             long output = GetNonNegativeInt64OrZero(context, "completion_tokens");
             long reasoning = GetNonNegativeInt64OrZero(context, "reasoning_tokens");
             cacheRead = Math.Min(cacheRead, input);
+            TokenBreakdown tokens = new(input - cacheRead, output, reasoning, cacheRead, 0);
             events.Add(CreateEvent(
                 $"grok-unified\0{lineNumber}",
                 model,
                 timestamp,
-                new TokenBreakdown(input - cacheRead, output, reasoning, cacheRead, 0),
-                reportedCostUsd: null));
+                tokens,
+                GrokPricingCatalog.Resolve(model, tokens)));
             return true;
         }
         catch (Exception exception) when (IsDataFailure(exception))
@@ -282,23 +333,35 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                          pair => pair.Key,
                          StringComparer.Ordinal))
             {
+                CostObservation cost = counters.CostUsdTicks is long modelTicks
+                    ? CostObservation.ProviderReported(decimal.Round(
+                        ToUsd(modelTicks),
+                        6,
+                        MidpointRounding.AwayFromZero))
+                    : GrokPricingCatalog.Resolve(model, counters.Tokens);
                 yield return CreateEvent(
                     $"grok-session\0{sessionKey}\0{model.ToLowerInvariant()}",
                     model,
                     snapshot.Timestamp,
                     counters.Tokens,
-                    ToUsd(counters.CostUsdTicks));
+                    cost);
             }
 
             yield break;
         }
 
+        CostObservation totalCost = snapshot.Totals.CostUsdTicks is long totalTicks
+            ? CostObservation.ProviderReported(decimal.Round(
+                ToUsd(totalTicks),
+                6,
+                MidpointRounding.AwayFromZero))
+            : GrokPricingCatalog.Resolve(snapshot.Model, snapshot.Totals.Tokens);
         yield return CreateEvent(
             $"grok-session\0{sessionKey}\0{snapshot.Model.ToLowerInvariant()}",
             snapshot.Model,
             snapshot.Timestamp,
             snapshot.Totals.Tokens,
-            ToUsd(snapshot.Totals.CostUsdTicks));
+            totalCost);
     }
 
     private UsageEvent CreateEvent(
@@ -306,14 +369,14 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         string model,
         DateTimeOffset timestamp,
         TokenBreakdown tokens,
-        decimal? reportedCostUsd)
+        CostObservation cost)
     {
-        CostObservation cost = reportedCostUsd is null
-            ? CostObservation.Unavailable()
-            : CostObservation.ProviderReported(decimal.Round(
-                reportedCostUsd.Value,
-                6,
-                MidpointRounding.AwayFromZero));
+        CoverageKind coverage = cost.Kind switch
+        {
+            CostKind.ProviderReported => CoverageKind.Complete,
+            CostKind.CatalogEstimated => CoverageKind.Partial,
+            _ => CoverageKind.Unpriced,
+        };
         return new UsageEvent(
             new UsageEventKey(Hash(identity)),
             AgentId,
@@ -324,7 +387,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
             tokens,
             cost,
             ParserVersion,
-            reportedCostUsd is null ? CoverageKind.Unpriced : CoverageKind.Complete);
+            coverage);
     }
 
     private static bool TryParseSnapshot(
@@ -338,7 +401,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
             using JsonDocument document = JsonDocument.Parse(utf8);
             JsonElement root = document.RootElement;
             if (!TryGetString(root, "method", out string? method)
-                || !string.Equals(method, "params.update", StringComparison.Ordinal)
+                || method is not ("params.update" or "_x.ai/session/update")
                 || !root.TryGetProperty("params", out JsonElement parameters)
                 || parameters.ValueKind != JsonValueKind.Object
                 || !parameters.TryGetProperty("update", out JsonElement update)
@@ -394,6 +457,11 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                 hasInvalidModelCounters = true;
             }
 
+            bool hasIncompleteUsage = usage.TryGetProperty(
+                    "usageIsIncomplete",
+                    out JsonElement incomplete)
+                && incomplete.ValueKind == JsonValueKind.True;
+
             if (models.Count == 0 && (totals is null || string.IsNullOrWhiteSpace(model)))
             {
                 return false;
@@ -404,7 +472,8 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                 model ?? "unknown",
                 totals ?? new Counters(new TokenBreakdown(0, 0, 0, 0, 0), null),
                 models,
-                hasInvalidModelCounters);
+                hasInvalidModelCounters,
+                hasIncompleteUsage);
             return true;
         }
         catch (Exception exception) when (IsDataFailure(exception))
@@ -528,6 +597,138 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
                                            or System.Security.SecurityException)
         {
             return false;
+        }
+    }
+
+    private bool ReadRecentLines(
+        string path,
+        Func<ReadOnlyMemory<byte>, int, bool> processLine,
+        CancellationToken cancellationToken,
+        out bool readWholeFile)
+    {
+        readWholeFile = false;
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists
+                || info.Length > _budget.MaximumFileBytes
+                || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                return false;
+            }
+
+            int bytesToRead = checked((int)Math.Min(info.Length, SnapshotTailBytes));
+            long startOffset = info.Length - bytesToRead;
+            readWholeFile = startOffset == 0;
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                64 * 1024,
+                FileOptions.RandomAccess);
+            stream.Seek(startOffset, SeekOrigin.Begin);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(bytesToRead, 1));
+            try
+            {
+                int bytesRead = 0;
+                while (bytesRead < bytesToRead)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = stream.Read(buffer, bytesRead, bytesToRead - bytesRead);
+                    if (count == 0)
+                    {
+                        break;
+                    }
+
+                    bytesRead += count;
+                }
+
+                int position = 0;
+                if (!readWholeFile)
+                {
+                    int firstNewline = buffer.AsSpan(0, bytesRead).IndexOf((byte)'\n');
+                    if (firstNewline < 0)
+                    {
+                        return false;
+                    }
+
+                    position = firstNewline + 1;
+                }
+
+                int lineNumber = 0;
+                bool complete = true;
+                while (position < bytesRead)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int newline = buffer.AsSpan(position, bytesRead - position)
+                        .IndexOf((byte)'\n');
+                    int lineLength = newline < 0 ? bytesRead - position : newline;
+                    if (lineLength > 0 && buffer[position + lineLength - 1] == (byte)'\r')
+                    {
+                        lineLength--;
+                    }
+
+                    int lineStart = position;
+                    if (readWholeFile
+                        && lineNumber == 0
+                        && lineLength >= 3
+                        && buffer[lineStart] == 0xEF
+                        && buffer[lineStart + 1] == 0xBB
+                        && buffer[lineStart + 2] == 0xBF)
+                    {
+                        lineStart += 3;
+                        lineLength -= 3;
+                    }
+
+                    lineNumber++;
+                    if (lineLength > _budget.MaximumLineBytes)
+                    {
+                        complete = false;
+                    }
+                    else
+                    {
+                        complete &= processLine(
+                            buffer.AsMemory(lineStart, lineLength),
+                            lineNumber);
+                    }
+
+                    if (newline < 0)
+                    {
+                        break;
+                    }
+
+                    position += newline + 1;
+                }
+
+                return complete;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or NotSupportedException
+                                           or System.Security.SecurityException)
+        {
+            return false;
+        }
+    }
+
+    private static long GetFileLength(string path)
+    {
+        try
+        {
+            return new FileInfo(path).Length;
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or NotSupportedException
+                                           or System.Security.SecurityException)
+        {
+            return -1;
         }
     }
 
@@ -732,13 +933,27 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         out DateTimeOffset timestamp)
     {
         timestamp = default;
-        return TryGetString(element, propertyName, out string? text)
-               && DateTimeOffset.TryParse(
-                   text,
-                   CultureInfo.InvariantCulture,
-                   DateTimeStyles.RoundtripKind,
-                   out timestamp)
-               && timestamp.Offset == TimeSpan.Zero;
+        if (TryGetString(element, propertyName, out string? text))
+        {
+            return DateTimeOffset.TryParse(
+                       text,
+                       CultureInfo.InvariantCulture,
+                       DateTimeStyles.RoundtripKind,
+                       out timestamp)
+                   && timestamp.Offset == TimeSpan.Zero;
+        }
+
+        if (element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty(propertyName, out JsonElement property)
+            || property.ValueKind != JsonValueKind.Number
+            || !property.TryGetInt64(out long unixSeconds)
+            || unixSeconds is < -62_135_596_800 or > 253_402_300_799)
+        {
+            return false;
+        }
+
+        timestamp = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+        return true;
     }
 
     private static bool TryGetNonNegativeInt64(
@@ -774,7 +989,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         return 0;
     }
 
-    private static decimal? ToUsd(long? ticks) => ticks is null ? null : ticks.Value / TicksPerUsd;
+    private static decimal ToUsd(long ticks) => ticks / TicksPerUsd;
 
     private static ModelId CreateModelId(string model)
     {
@@ -810,6 +1025,7 @@ public sealed class GrokUsageEventSource : ISnapshotUsageEventSource
         string Model,
         Counters Totals,
         IReadOnlyDictionary<string, Counters> Models,
-        bool HasInvalidModelCounters);
+        bool HasInvalidModelCounters,
+        bool HasIncompleteUsage);
 
 }

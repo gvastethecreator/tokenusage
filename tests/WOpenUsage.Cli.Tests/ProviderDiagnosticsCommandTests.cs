@@ -1,4 +1,5 @@
 using System.Globalization;
+using WOpenUsage.Core.Providers;
 
 namespace WOpenUsage.Cli.Tests;
 
@@ -59,7 +60,7 @@ public sealed class ProviderDiagnosticsCommandTests
 
         Assert.Equal(
             "claude: missing; data absent; localUsage\n"
-            + "codex: detected; data present; limits\n"
+            + "codex: detected; data present; limits,localUsage,spend\n"
             + "grok: detected; data present; localUsage\n"
             + "opencode: unavailable; data unreadable; localUsage\n",
             providers.ToString().Replace("\r\n", "\n", StringComparison.Ordinal));
@@ -229,7 +230,12 @@ public sealed class ProviderDiagnosticsCommandTests
                 ProviderDetectionStatus.Unavailable, ProviderDataStatus.Unreadable),
             new("grok", "Grok Build", [ProviderCapability.LocalUsage],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
-            new("codex", "Codex", [ProviderCapability.Limits],
+            new("codex", "Codex",
+                [
+                    ProviderCapability.Limits,
+                    ProviderCapability.LocalUsage,
+                    ProviderCapability.Spend,
+                ],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             new("claude", "Claude", [ProviderCapability.LocalUsage],
                 ProviderDetectionStatus.Missing, ProviderDataStatus.Absent),

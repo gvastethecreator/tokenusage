@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WOpenUsage.App.Views.Options.AppearanceOptionsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:WOpenUsage.App.Controls"
+    xmlns:converters="using:WOpenUsage.App.Converters"
+    xmlns:dashboard="using:WOpenUsage.App.ViewModels.Dashboard"
+    xmlns:viewModels="using:WOpenUsage.App.ViewModels"
+    mc:Ignorable="d">
+
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="AppearanceLayoutStates">
+            <VisualState x:Name="NarrowAppearanceLayout" />
+            <VisualState x:Name="WideAppearanceLayout">
+                <VisualState.Setters>
+                    <Setter Target="AppearanceSettingsGrid.ColumnSpacing" Value="12" />
+                    <Setter Target="AppearanceSettingsValueColumn.Width" Value="Auto" />
+                    <Setter Target="AppearanceDensityLabel.(Grid.Row)" Value="1" />
+                    <Setter Target="AppearanceDensitySelector.(Grid.Row)" Value="1" />
+                    <Setter Target="AppearanceDensitySelector.(Grid.Column)" Value="1" />
+                    <Setter Target="AppearanceDensitySelector.MinWidth" Value="144" />
+                    <Setter Target="AppearanceTransparencyLabel.(Grid.Row)" Value="2" />
+                    <Setter Target="AppearanceTransparencyToggle.(Grid.Row)" Value="2" />
+                    <Setter Target="AppearanceTransparencyToggle.(Grid.Column)" Value="1" />
+                    <Setter Target="AppearanceTransparencyToggle.HorizontalAlignment" Value="Right" />
+                    <Setter Target="AppearanceUsageLabel.(Grid.Row)" Value="3" />
+                    <Setter Target="AppearanceUsageSelector.(Grid.Row)" Value="3" />
+                    <Setter Target="AppearanceUsageSelector.(Grid.Column)" Value="1" />
+                    <Setter Target="AppearanceUsageSelector.MinWidth" Value="144" />
+                    <Setter Target="AppearanceResetTimeLabel.(Grid.Row)" Value="4" />
+                    <Setter Target="AppearanceResetTimeSelector.(Grid.Row)" Value="4" />
+                    <Setter Target="AppearanceResetTimeSelector.(Grid.Column)" Value="1" />
+                    <Setter Target="AppearanceResetTimeSelector.MinWidth" Value="144" />
+                    <Setter Target="AppearanceThemeSelector.(Grid.Row)" Value="0" />
+                    <Setter Target="AppearanceThemeSelector.(Grid.Column)" Value="1" />
+                    <Setter Target="AppearanceThemeSelector.MinWidth" Value="144" />
+                    <Setter Target="AppearanceStatus.(Grid.Row)" Value="5" />
+                    <Setter Target="AppearanceStatus.(Grid.ColumnSpan)" Value="2" />
+                </VisualState.Setters>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+
+    <Border
+        AutomationProperties.AutomationId="AppearanceSection"
+        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+        CornerRadius="{ThemeResource ControlCornerRadius}"
+        Padding="12,10">
+        <StackPanel Spacing="10">
+            <StackPanel Spacing="2">
+                <TextBlock x:Uid="AppearanceSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBlock x:Uid="AppearanceSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+            </StackPanel>
+            <ContentControl IsEnabled="{x:Bind ViewModel.IsEditable, Mode=OneWay}">
+            <Grid
+                x:Name="AppearanceSettingsGrid"
+                RowSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="AppearanceSettingsValueColumn" Width="0" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    x:Name="AppearanceThemeLabel"
+                    x:Uid="AppearanceThemeLabel"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords"
+                    VerticalAlignment="Center" />
+                <ComboBox
+                    x:Name="AppearanceThemeSelector"
+                    x:Uid="AppearanceThemeSelector"
+                    AutomationProperties.AutomationId="AppearanceThemeSelector"
+                    DisplayMemberPath="DisplayName"
+                    Grid.Row="1"
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{x:Bind ViewModel.ThemeOptions}"
+                    SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}" />
+                <TextBlock
+                    x:Name="AppearanceDensityLabel"
+                    x:Uid="AppearanceDensityLabel"
+                    Grid.Row="2"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords"
+                    VerticalAlignment="Center" />
+                <ComboBox
+                    x:Name="AppearanceDensitySelector"
+                    x:Uid="AppearanceDensitySelector"
+                    Grid.Row="3"
+                    AutomationProperties.AutomationId="AppearanceDensitySelector"
+                    DisplayMemberPath="DisplayName"
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{x:Bind ViewModel.DensityOptions}"
+                    SelectedItem="{x:Bind ViewModel.SelectedDensity, Mode=TwoWay}" />
+                <TextBlock
+                    x:Name="AppearanceTransparencyLabel"
+                    x:Uid="AppearanceTransparencyLabel"
+                    Grid.Row="4"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords"
+                    VerticalAlignment="Center" />
+                <ToggleSwitch
+                    x:Name="AppearanceTransparencyToggle"
+                    x:Uid="AppearanceTransparencyToggle"
+                    Grid.Row="5"
+                    AutomationProperties.AutomationId="AppearanceTransparencyToggle"
+                    HorizontalAlignment="Left"
+                    IsOn="{x:Bind ViewModel.IncreaseTransparency, Mode=TwoWay}"
+                    OffContent=""
+                    OnContent="" />
+                <TextBlock
+                    x:Name="AppearanceUsageLabel"
+                    x:Uid="AppearanceUsageLabel"
+                    Grid.Row="6"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords"
+                    VerticalAlignment="Center" />
+                <ComboBox
+                    x:Name="AppearanceUsageSelector"
+                    x:Uid="AppearanceUsageSelector"
+                    Grid.Row="7"
+                    AutomationProperties.AutomationId="AppearanceUsageSelector"
+                    DisplayMemberPath="DisplayName"
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{x:Bind ViewModel.UsageDisplayOptions}"
+                    SelectedItem="{x:Bind ViewModel.SelectedUsageDisplay, Mode=TwoWay}" />
+                <TextBlock
+                    x:Name="AppearanceResetTimeLabel"
+                    x:Uid="AppearanceResetTimeLabel"
+                    Grid.Row="8"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords"
+                    VerticalAlignment="Center" />
+                <ComboBox
+                    x:Name="AppearanceResetTimeSelector"
+                    x:Uid="AppearanceResetTimeSelector"
+                    Grid.Row="9"
+                    AutomationProperties.AutomationId="AppearanceResetTimeSelector"
+                    DisplayMemberPath="DisplayName"
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{x:Bind ViewModel.ResetTimeDisplayOptions}"
+                    SelectedItem="{x:Bind ViewModel.SelectedResetTimeDisplay, Mode=TwoWay}" />
+                <InfoBar
+                    x:Name="AppearanceStatus"
+                    Grid.Row="10"
+                    AutomationProperties.AutomationId="AppearanceStatus"
+                    AutomationProperties.LiveSetting="Polite"
+                    IsClosable="False"
+                    IsOpen="{x:Bind ViewModel.IsStatusVisible, Mode=OneWay}"
+                    Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                    Severity="Warning" />
+            </Grid>
+            </ContentControl>
+        </StackPanel>
+    </Border>
+</UserControl>

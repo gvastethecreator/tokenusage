@@ -1,25 +1,21 @@
+using WOpenUsage.Runtime.Windows.Providers;
+
 namespace WOpenUsage.Cli;
 
 internal static class ProviderDiagnosticsValidator
 {
-    private static readonly IReadOnlyDictionary<string, ExpectedProvider> ExpectedProviders =
-        new Dictionary<string, ExpectedProvider>(StringComparer.Ordinal)
-        {
-            ["claude"] = new("Claude", ProviderCapability.LocalUsage),
-            ["codex"] = new("Codex", ProviderCapability.Limits),
-            ["grok"] = new("Grok Build", ProviderCapability.LocalUsage),
-            ["opencode"] = new("OpenCode", ProviderCapability.LocalUsage),
-        };
+    private static readonly IReadOnlyDictionary<string, WindowsProviderCatalogEntry>
+        ExpectedProviders = WindowsProviderCatalog.Entries.ToDictionary(
+            entry => entry.Id.Value,
+            StringComparer.Ordinal);
 
-    private static readonly string[] ExpectedChecks =
-    [
-        "codex-cache",
-        "codex-cli",
-        "local-usage-claude",
-        "local-usage-grok",
-        "local-usage-opencode",
-        "usage-db",
-    ];
+    private static readonly string[] ExpectedChecks = WindowsProviderCatalog.Entries
+        .SelectMany(entry => entry.DetectionCheckId is null
+            ? [entry.DataCheckId]
+            : new[] { entry.DetectionCheckId, entry.DataCheckId })
+        .Append("usage-db")
+        .OrderBy(id => id, StringComparer.Ordinal)
+        .ToArray();
 
     internal static ProviderDiagnostic[] ValidateProviders(ProviderDiagnosticsSnapshot snapshot)
     {
@@ -43,11 +39,10 @@ internal static class ProviderDiagnosticsValidator
 
         foreach (ProviderDiagnostic provider in ordered)
         {
-            ExpectedProvider expected = ExpectedProviders[provider.Id];
-            if (!string.Equals(provider.Name, expected.Name, StringComparison.Ordinal)
+            WindowsProviderCatalogEntry expected = ExpectedProviders[provider.Id];
+            if (!string.Equals(provider.Name, expected.DisplayName, StringComparison.Ordinal)
                 || provider.Capabilities is null
-                || provider.Capabilities.Count != 1
-                || provider.Capabilities[0] != expected.Capability
+                || !provider.Capabilities.SequenceEqual(expected.Capabilities)
                 || !Enum.IsDefined(provider.Detection)
                 || !Enum.IsDefined(provider.Data))
             {
@@ -85,6 +80,4 @@ internal static class ProviderDiagnosticsValidator
 
         return ordered;
     }
-
-    private sealed record ExpectedProvider(string Name, ProviderCapability Capability);
 }

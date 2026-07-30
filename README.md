@@ -4,13 +4,11 @@ TokenUsage is a Windows app for viewing AI coding-tool quota, token use, and spe
 
 > TokenUsage is in active pre-release development. Project names and namespaces still use `WOpenUsage` while the product name changes.
 
-![TokenUsage provider dashboard](artifacts/ticket-74e3/02-connected-dashboard.png)
-
 ## What works today
 
 - Codex quota and reset windows through the official local `app-server` process.
 - Local usage and cost views for Codex, Claude, Grok Build, and OpenCode.
-- Vercel AI Gateway quota and spend with keys stored in Windows Credential Locker.
+- Vercel AI Gateway code is retained but its provider is temporarily disabled.
 - Daily usage heatmaps, provider details, configurable colors, and quota alerts.
 - English and Spanish UI.
 - A packaged `wusage` command for usage, limits, provider status, and diagnostics.

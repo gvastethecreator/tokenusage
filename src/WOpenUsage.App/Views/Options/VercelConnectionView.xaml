@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="WOpenUsage.App.Views.Options.VercelConnectionView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:WOpenUsage.App.Controls"
+    xmlns:converters="using:WOpenUsage.App.Converters"
+    xmlns:dashboard="using:WOpenUsage.App.ViewModels.Dashboard"
+    xmlns:viewModels="using:WOpenUsage.App.ViewModels"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <converters:VercelGatewayStatusSeverityConverter x:Key="VercelGatewayStatusSeverityConverter" />
+    </UserControl.Resources>
+
+    <Border
+        AutomationProperties.AutomationId="VercelConnectionSection"
+        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+        CornerRadius="{ThemeResource ControlCornerRadius}"
+        Padding="10,8">
+        <StackPanel Spacing="8">
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock
+                        x:Uid="VercelSectionTitle"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        VerticalAlignment="Center" />
+                    <Border
+                        Padding="6,2"
+                        Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                        CornerRadius="{ThemeResource ControlCornerRadius}">
+                        <TextBlock
+                            x:Uid="VercelExperimentalBadge"
+                            Style="{StaticResource CaptionTextBlockStyle}" />
+                    </Border>
+                </StackPanel>
+                <ProgressRing
+                    x:Name="VercelBusyIndicator"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="VercelBusyIndicator"
+                    Height="20"
+                    IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                    Width="20" />
+            </Grid>
+            <TextBlock
+                x:Uid="VercelSectionDescription"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                TextWrapping="WrapWholeWords" />
+            <InfoBar
+                x:Name="VercelRiskInfo"
+                x:Uid="VercelRiskInfo"
+                AutomationProperties.AutomationId="VercelRiskInfo"
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.IsConnectFormVisible, Mode=OneWay}"
+                Severity="Warning" />
+            <StackPanel
+                Spacing="8"
+                Visibility="{x:Bind ViewModel.IsConnectFormVisible, Mode=OneWay}">
+                <PasswordBox
+                    x:Name="VercelApiKeyBox"
+                    x:Uid="VercelApiKeyBox"
+                    AutomationProperties.AutomationId="VercelApiKeyBox"
+                    IsEnabled="{x:Bind ViewModel.IsInputEnabled, Mode=OneWay}"
+                    PasswordChanged="OnVercelApiKeyPasswordChanged" />
+                <TextBox
+                    x:Name="VercelKeyIdBox"
+                    x:Uid="VercelKeyIdBox"
+                    AutomationProperties.AutomationId="VercelKeyIdBox"
+                    IsEnabled="{x:Bind ViewModel.IsInputEnabled, Mode=OneWay}"
+                    TextChanged="OnVercelKeyIdTextChanged" />
+                <TextBlock
+                    x:Uid="VercelKeyIdError"
+                    AutomationProperties.AutomationId="VercelKeyIdError"
+                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="WrapWholeWords"
+                    Visibility="{x:Bind ViewModel.IsKeyIdErrorVisible, Mode=OneWay}" />
+                <CheckBox
+                    x:Name="VercelConsentCheckBox"
+                    x:Uid="VercelConsentCheckBox"
+                    AutomationProperties.AutomationId="VercelConsentCheckBox"
+                    IsChecked="{x:Bind ViewModel.IsConsentAccepted, Mode=TwoWay}" />
+                <Button
+                    x:Name="VercelConnectButton"
+                    x:Uid="VercelConnectButton"
+                    AutomationProperties.AutomationId="VercelConnectButton"
+                    Click="OnVercelConnectClicked"
+                    HorizontalAlignment="Left"
+                    IsEnabled="{x:Bind ViewModel.CanSubmitConnection, Mode=OneWay}"
+                    Style="{StaticResource AccentButtonStyle}" />
+            </StackPanel>
+            <InfoBar
+                x:Name="VercelConnectionStatus"
+                AutomationProperties.AutomationId="VercelConnectionStatus"
+                AutomationProperties.LiveSetting="Polite"
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.IsStatusOpen, Mode=OneWay}"
+                Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                Severity="{x:Bind ViewModel.State, Mode=OneWay, Converter={StaticResource VercelGatewayStatusSeverityConverter}}" />
+            <Button
+                x:Name="VercelDisconnectButton"
+                x:Uid="VercelDisconnectButton"
+                AutomationProperties.AutomationId="VercelDisconnectButton"
+                Command="{x:Bind ViewModel.DisconnectCommand}"
+                HorizontalAlignment="Left"
+                Style="{StaticResource DefaultButtonStyle}"
+                Visibility="{x:Bind ViewModel.IsDisconnectVisible, Mode=OneWay}" />
+        </StackPanel>
+    </Border>
+</UserControl>

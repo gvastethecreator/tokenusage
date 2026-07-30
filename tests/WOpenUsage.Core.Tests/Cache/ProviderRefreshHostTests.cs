@@ -8,7 +8,7 @@ public sealed class ProviderRefreshHostTests
     private static readonly DateTimeOffset Now = new(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task RunPublishesMergedCacheThenCompletesEachProviderInOrder()
+    public async Task RunPublishesMergedCacheThenCompletesEachProvider()
     {
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(Now);
@@ -51,18 +51,98 @@ public sealed class ProviderRefreshHostTests
         Assert.True(await events.MoveNextAsync());
         CacheFirstEvent.ProviderCompleted first =
             Assert.IsType<CacheFirstEvent.ProviderCompleted>(events.Current);
-        Assert.Equal("codex", first.ProviderId.Value);
-        Assert.Equal(1, codexProvider.RefreshCalls);
-        Assert.True(codexProvider.LastContext?.ForceRefresh);
 
         Assert.True(await events.MoveNextAsync());
         CacheFirstEvent.ProviderCompleted second =
             Assert.IsType<CacheFirstEvent.ProviderCompleted>(events.Current);
-        Assert.Equal("vercel-ai-gateway", second.ProviderId.Value);
+        Assert.Equal(
+            ["codex", "vercel-ai-gateway"],
+            new[] { first.ProviderId.Value, second.ProviderId.Value }
+                .OrderBy(id => id, StringComparer.Ordinal));
+        Assert.Equal(1, codexProvider.RefreshCalls);
         Assert.Equal(1, vercelProvider.RefreshCalls);
+        Assert.True(codexProvider.LastContext?.ForceRefresh);
         Assert.True(vercelProvider.LastContext?.ForceRefresh);
 
         Assert.False(await events.MoveNextAsync());
+    }
+
+    [Fact]
+    public async Task RunPublishesFastProviderWhileAnotherProviderRemainsBlocked()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var slow = new ControlledProvider(new ProviderId("slow"), CreateSnapshot("slow", 10m));
+        var fast = new ControlledProvider(new ProviderId("fast"), CreateSnapshot("fast", 90m));
+        var host = new ProviderRefreshHost(
+            [
+                new ProviderRefreshRegistration(
+                    slow,
+                    new SnapshotStore(
+                        Path.Combine(folder.Root, "slow", SnapshotStore.DefaultFileName),
+                        clock)),
+                new ProviderRefreshRegistration(
+                    fast,
+                    new SnapshotStore(
+                        Path.Combine(folder.Root, "fast", SnapshotStore.DefaultFileName),
+                        clock)),
+            ],
+            clock);
+        await using IAsyncEnumerator<CacheFirstEvent> events = host.RunAsync().GetAsyncEnumerator();
+
+        Assert.True(await events.MoveNextAsync());
+        Task<bool> firstProvider = events.MoveNextAsync().AsTask();
+        await Task.WhenAll(slow.Started.Task, fast.Started.Task).WaitAsync(TimeSpan.FromSeconds(2));
+
+        fast.Release();
+        Assert.True(await firstProvider.WaitAsync(TimeSpan.FromSeconds(2)));
+        CacheFirstEvent.ProviderCompleted completed =
+            Assert.IsType<CacheFirstEvent.ProviderCompleted>(events.Current);
+        Assert.Equal("fast", completed.ProviderId.Value);
+        Assert.False(slow.Completion.IsCompleted);
+
+        slow.Release();
+        Assert.True(await events.MoveNextAsync());
+        Assert.Equal(
+            "slow",
+            Assert.IsType<CacheFirstEvent.ProviderCompleted>(events.Current).ProviderId.Value);
+        Assert.False(await events.MoveNextAsync());
+    }
+
+    [Fact]
+    public async Task RunProviderRefreshesOnlySelectedRegistration()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var first = new RecordingProvider(
+            new ProviderId("first"),
+            "First",
+            new ProviderOutcome.Success(CreateSnapshot("first", 10m)));
+        var selected = new RecordingProvider(
+            new ProviderId("selected"),
+            "Selected",
+            new ProviderOutcome.Success(CreateSnapshot("selected", 20m)));
+        var host = new ProviderRefreshHost(
+            [
+                new ProviderRefreshRegistration(first, new SnapshotStore(
+                    Path.Combine(folder.Root, "first", SnapshotStore.DefaultFileName), clock)),
+                new ProviderRefreshRegistration(selected, new SnapshotStore(
+                    Path.Combine(folder.Root, "selected", SnapshotStore.DefaultFileName), clock)),
+            ],
+            clock);
+
+        IReadOnlyList<CacheFirstEvent> events = await CollectAsync(host.RunProviderAsync(
+            selected.Descriptor.Id,
+            forceRefresh: true));
+
+        Assert.Equal(0, first.RefreshCalls);
+        Assert.Equal(1, selected.RefreshCalls);
+        Assert.Collection(
+            events,
+            item => Assert.IsType<CacheFirstEvent.CachePublished>(item),
+            item => Assert.Equal(
+                "selected",
+                Assert.IsType<CacheFirstEvent.ProviderCompleted>(item).ProviderId.Value));
     }
 
     [Fact]
@@ -181,5 +261,43 @@ public sealed class ProviderRefreshHostTests
             LastContext = context;
             return Task.FromResult(_outcome);
         }
+    }
+
+    private sealed class ControlledProvider : IProviderRuntime
+    {
+        private readonly ProviderSnapshot _snapshot;
+        private readonly TaskCompletionSource _release = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ControlledProvider(ProviderId id, ProviderSnapshot snapshot)
+        {
+            Descriptor = new ProviderDescriptor(id, "Provider " + id.Value);
+            _snapshot = snapshot;
+        }
+
+        public ProviderDescriptor Descriptor { get; }
+
+        public TaskCompletionSource Started { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Completion { get; private set; } = Task.CompletedTask;
+
+        public void Release() => _release.TrySetResult();
+
+        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
+
+        public async Task<ProviderOutcome> RefreshAsync(
+            RefreshContext context,
+            CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+            Completion = CompleteAsync(cancellationToken);
+            await Completion;
+            return new ProviderOutcome.Success(_snapshot);
+        }
+
+        private Task CompleteAsync(CancellationToken cancellationToken) =>
+            _release.Task.WaitAsync(cancellationToken);
     }
 }

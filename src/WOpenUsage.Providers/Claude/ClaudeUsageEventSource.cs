@@ -9,7 +9,9 @@ using WOpenUsage.Providers.LocalScan;
 
 namespace WOpenUsage.Providers.Claude;
 
-public sealed class ClaudeUsageEventSource : IWindowedSnapshotUsageEventSource
+public sealed class ClaudeUsageEventSource :
+    IWindowedSnapshotUsageEventSource,
+    IRootDetectingUsageEventSource
 {
     public const string ParserVersion = "claude-jsonl/2";
     private readonly string _homeDirectory;

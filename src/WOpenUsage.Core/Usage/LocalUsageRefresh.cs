@@ -95,6 +95,67 @@ public sealed class LocalUsageRefresh
         ? SourceKind.LocalLog
         : _sources[0].SourceKind;
 
+    public async Task<LocalUsageRefreshResult?> ReadCachedAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(_databasePath))
+        {
+            return null;
+        }
+
+        UsageRepository repository;
+        try
+        {
+            repository = await UsageRepository.OpenReadOnlyAsync(
+                _databasePath,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+
+        TimeZoneInfo groupingTimeZone = TimeZoneInfo.Local;
+        DateOnly today = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), groupingTimeZone).DateTime);
+        DateOnly fromInclusive = Min(today.AddDays(-34), new DateOnly(today.Year, today.Month, 1));
+        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(
+            fromInclusive,
+            today,
+            cancellationToken).ConfigureAwait(false);
+        if (rollups.Count == 0)
+        {
+            return null;
+        }
+
+        HashSet<AgentId> cachedAgents = rollups
+            .Select(rollup => rollup.AgentId)
+            .ToHashSet();
+        UsageSourceDiagnostic[] diagnostics = _sources.Select(source =>
+            new UsageSourceDiagnostic(
+                source.AgentId,
+                cachedAgents.Contains(source.AgentId)
+                    ? UsageSourceReadStatus.Complete
+                    : UsageSourceReadStatus.NoData,
+                cachedAgents.Contains(source.AgentId)
+                    ? UsageSourceIssueKind.None
+                    : UsageSourceIssueKind.Empty,
+                RetainsLastReliableSnapshot: true)).ToArray();
+        UsageSourceReadStatus status = diagnostics.All(diagnostic =>
+            diagnostic.Status == UsageSourceReadStatus.Complete)
+                ? UsageSourceReadStatus.Complete
+                : UsageSourceReadStatus.Partial;
+
+        return new LocalUsageRefreshResult(
+            rollups,
+            fromInclusive,
+            today,
+            SourceKind,
+            status,
+            diagnostics,
+            hasMultipleRealSources: SourceKind == SourceKind.LocalLog && _sources.Count > 1);
+    }
+
     public async Task<LocalUsageRefreshResult> RefreshAsync(
         CancellationToken cancellationToken = default)
     {

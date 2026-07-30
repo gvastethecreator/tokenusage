@@ -19,33 +19,29 @@ using WOpenUsage.App.ViewModels;
 using WOpenUsage.Providers.VercelAiGateway;
 using WOpenUsage.Core.Appearance;
 using WOpenUsage.Core.Layout;
+using WOpenUsage.Core.Session;
 using WOpenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace WOpenUsage.App;
 
-public sealed partial class MainPage : Page
+public sealed partial class MainPage : Page, IDisposable
 {
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
-    private int _detailRevealToken;
     private Storyboard? _viewTransitionStoryboard;
     private int _viewTransitionToken;
     private FlyoutSurfaceState _lastSurfaceState;
     private OptionsSection _lastOptionsSection;
+    private bool _disposed;
 
     public MainPage()
     {
         TimeProvider clock = TimeProvider.System;
         string localFolderPath = ApplicationData.Current.LocalFolder.Path;
-        string vercelCacheDirectory = Path.Combine(
-            localFolderPath,
-            "cache",
-            "providers",
-            "vercel-ai-gateway");
         var options = new AppCompositionOptions(
             DashboardLayoutPath: GetDashboardLayoutPath(localFolderPath),
-            AppearanceSettingsPath: GetAppearanceSettingsPath(localFolderPath),
-            VercelCoordinator: TryCreateDebugVercelCoordinator(vercelCacheDirectory, clock));
+            AppearanceSettingsPath: GetAppearanceSettingsPath(localFolderPath));
         ViewModel = AppComposition.CreateFlyoutViewModel(localFolderPath, clock, options);
+        SessionHost = ViewModel.SessionHost;
         InitializeComponent();
         _lastSurfaceState = ViewModel.SurfaceState;
         _lastOptionsSection = ViewModel.ActiveOptionsSection;
@@ -54,15 +50,39 @@ public sealed partial class MainPage : Page
         KeyDown += OnKeyDown;
         _relativeTimeTimer = DispatcherQueue.CreateTimer();
         _relativeTimeTimer.Interval = TimeSpan.FromSeconds(30);
-        _relativeTimeTimer.Tick += (_, _) => ViewModel.RefreshRelativeTime();
+        _relativeTimeTimer.Tick += OnRelativeTimeTimerElapsed;
         _relativeTimeTimer.Start();
+        _ = ViewModel.StartAsync();
     }
 
     public event EventHandler? HideRequested;
 
     public FlyoutViewModel ViewModel { get; }
 
+    public AppSessionHost SessionHost { get; }
+
     public FrameworkElement MeasureRoot => FlyoutChrome;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _relativeTimeTimer.Stop();
+        _relativeTimeTimer.Tick -= OnRelativeTimeTimerElapsed;
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        KeyDown -= OnKeyDown;
+        _viewTransitionStoryboard?.Stop();
+        ViewModel.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnRelativeTimeTimerElapsed(
+        Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
+        object args) => ViewModel.RefreshRelativeTime();
 
     public void ApplyAppearance(
         AppearanceSettings settings,
@@ -84,44 +104,35 @@ public sealed partial class MainPage : Page
                 ? "CompactDensity"
                 : "RegularDensity",
             useTransitions: false);
+        OptionsSurfaceView.ApplyAppearance(settings, FlyoutChrome.ActualWidth);
+        DashboardSurfaceView.ApplyAppearance(settings);
     }
 
     private void OnFlyoutChromeSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        _ = VisualStateManager.GoToState(
-            this,
-            e.NewSize.Width >= 360d
-                ? "WideAppearanceLayout"
-                : "NarrowAppearanceLayout",
-            useTransitions: false);
+        OptionsSurfaceView.ApplyAppearance(ViewModel.Appearance, e.NewSize.Width);
     }
 
-    public void FocusPrimaryAction()
+    public void FocusPrimaryAction() => FocusPrimaryAction(remainingAttempts: 2);
+
+    private void FocusPrimaryAction(int remainingAttempts)
     {
         UIElement target = ViewModel.SurfaceState switch
         {
-            FlyoutSurfaceState.Options => GetOptionsPrimaryAction(),
+            FlyoutSurfaceState.Options => OptionsSurfaceView.GetPrimaryAction(
+                ViewModel.ActiveOptionsSection),
             FlyoutSurfaceState.Loading => FooterOptionsButton,
             FlyoutSurfaceState.Sample => HeaderRefreshButton,
             FlyoutSurfaceState.SampleUnavailable => SampleRetryButton,
             _ => EmptyOpenOptionsButton,
         };
 
-        _ = target.Focus(FocusState.Programmatic);
+        if (!target.Focus(FocusState.Programmatic) && remainingAttempts > 0)
+        {
+            _ = DispatcherQueue.TryEnqueue(
+                () => FocusPrimaryAction(remainingAttempts - 1));
+        }
     }
-
-    private UIElement GetOptionsPrimaryAction() => ViewModel.ActiveOptionsSection switch
-    {
-        OptionsSection.General => CloseWhenInactiveToggle,
-        OptionsSection.Appearance => AppearanceThemeSelector,
-        OptionsSection.Personalization => DashboardLayoutExpander,
-        OptionsSection.Providers => OptionsVercelButton,
-        OptionsSection.Vercel => ViewModel.Vercel.IsConnectFormVisible
-            ? VercelApiKeyBox
-            : VercelDisconnectButton,
-        OptionsSection.ProviderStatus => ProviderStatusRefreshButton,
-        _ => OptionsGeneralButton,
-    };
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
@@ -132,10 +143,10 @@ public sealed partial class MainPage : Page
         if (e.Key == VirtualKey.Z
             && isControlDown
             && ViewModel.IsOptions
-            && ViewModel.CanUndoDashboardLayout
+            && ViewModel.Personalization.CanUndo
             && !isEditingText)
         {
-            _ = ViewModel.UndoDashboardLayoutAsync();
+            _ = ViewModel.Personalization.UndoAsync();
             e.Handled = true;
             return;
         }
@@ -147,7 +158,7 @@ public sealed partial class MainPage : Page
 
         if (ViewModel.IsOptions)
         {
-            ViewModel.NavigateBackOptionsCommand.Execute(null);
+            ViewModel.OptionsNavigation.NavigateBackCommand.Execute(null);
         }
         else
         {
@@ -197,7 +208,7 @@ public sealed partial class MainPage : Page
                 {
                     PlayViewTransition(transitionOffset);
                 }
-                if (ViewModel.IsOptions)
+                if (isNavigationChange)
                 {
                     FocusPrimaryAction();
                 }
@@ -300,65 +311,9 @@ public sealed partial class MainPage : Page
     private static int GetOptionsDepth(OptionsSection section) => section switch
     {
         OptionsSection.Home => 0,
-        OptionsSection.Vercel or OptionsSection.ProviderStatus => 2,
+        OptionsSection.ProviderStatus => 2,
         _ => 1,
     };
-
-    private void OnSampleSpendLayoutLoaded(object sender, RoutedEventArgs e)
-    {
-        if (sender is Grid layout)
-        {
-            UpdateSampleSpendLayout(layout);
-        }
-    }
-
-    private void OnSampleSpendLayoutSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        if (sender is Grid layout)
-        {
-            UpdateSampleSpendLayout(layout);
-        }
-    }
-
-    private static void UpdateSampleSpendLayout(Grid layout)
-    {
-        bool useStackedLayout = layout.ActualWidth < 300
-            || new UISettings().TextScaleFactor >= 1.5;
-
-        layout.ColumnDefinitions.Clear();
-        layout.RowDefinitions.Clear();
-        if (useStackedLayout)
-        {
-            layout.ColumnDefinitions.Add(
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            layout.ColumnSpacing = 0;
-            layout.RowSpacing = 8;
-        }
-        else
-        {
-            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            layout.ColumnDefinitions.Add(
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            layout.ColumnSpacing = 12;
-            layout.RowSpacing = 0;
-        }
-
-        for (int index = 0; index < layout.Children.Count; index++)
-        {
-            FrameworkElement child = (FrameworkElement)layout.Children[index];
-            Grid.SetColumn(child, useStackedLayout ? 0 : index);
-            Grid.SetRow(child, useStackedLayout ? index : 0);
-            if (child is SpendDonutChart chart)
-            {
-                chart.HorizontalAlignment = useStackedLayout
-                    ? HorizontalAlignment.Center
-                    : HorizontalAlignment.Stretch;
-            }
-        }
-    }
 
     private void ApplyTextScaleLayout()
     {
@@ -371,271 +326,6 @@ public sealed partial class MainPage : Page
         FlyoutFooterIdentity.Visibility = Visibility.Collapsed;
         FlyoutStatusText.Opacity = 0;
         FlyoutStatusText.IsHitTestVisible = false;
-    }
-
-    private void OnRestartForLanguageClicked(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            AppLanguageRuntime.RestartWithLanguage(
-                ViewModel.PendingLanguageTag,
-                GetLanguageRestartArguments());
-        }
-        catch (Exception exception) when (exception is ArgumentException
-            or InvalidOperationException
-            or UnauthorizedAccessException
-            or System.Runtime.InteropServices.COMException)
-        {
-        }
-
-        ViewModel.ReportLanguageRestartFailure();
-    }
-
-    private void OnVercelApiKeyPasswordChanged(object sender, RoutedEventArgs e)
-    {
-        if (sender is PasswordBox passwordBox)
-        {
-            ViewModel.Vercel.SetApiKeyInputPresence(passwordBox.Password);
-        }
-    }
-
-    private void OnVercelKeyIdTextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (sender is TextBox textBox)
-        {
-            ViewModel.Vercel.SetKeyIdInput(textBox.Text);
-        }
-    }
-
-    private async void OnVercelConnectClicked(object sender, RoutedEventArgs e)
-    {
-        string apiKey = VercelApiKeyBox.Password;
-        string keyId = VercelKeyIdBox.Text;
-        Task connection = ViewModel.Vercel.ConnectAsync(apiKey, keyId);
-        VercelApiKeyBox.Password = string.Empty;
-        VercelKeyIdBox.Text = string.Empty;
-        await connection;
-    }
-
-    private async void OnDashboardProviderMoveUpClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: string providerId })
-        {
-            await ViewModel.MoveDashboardProviderAsync(providerId, -1);
-        }
-    }
-
-    private async void OnDashboardLayoutUndoClicked(object sender, RoutedEventArgs e)
-    {
-        await ViewModel.UndoDashboardLayoutAsync();
-    }
-
-    private async void OnDashboardLayoutResetClicked(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = ViewModel.DashboardLayoutResetTitle,
-            Content = ViewModel.DashboardLayoutResetBody,
-            PrimaryButtonText = ViewModel.DashboardLayoutResetConfirm,
-            CloseButtonText = ViewModel.DashboardLayoutResetCancel,
-            DefaultButton = ContentDialogButton.Close,
-        };
-        AutomationProperties.SetAutomationId(dialog, "DashboardLayoutResetDialog");
-        AutomationProperties.SetName(dialog, ViewModel.DashboardLayoutResetTitle);
-
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-        {
-            await ViewModel.ResetDashboardLayoutAsync();
-        }
-    }
-
-    private async void OnDashboardProviderMoveDownClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { Tag: string providerId })
-        {
-            await ViewModel.MoveDashboardProviderAsync(providerId, 1);
-        }
-    }
-
-    private async void OnDashboardProviderVisibilityClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is ToggleButton { Tag: string providerId } toggle)
-        {
-            await ViewModel.SetDashboardProviderVisibleAsync(
-                providerId,
-                toggle.IsChecked is true);
-        }
-    }
-
-    private async void OnDashboardProviderHighlightClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is ToggleButton { Tag: string providerId } toggle)
-        {
-            await ViewModel.SetDashboardProviderHighlightedAsync(
-                providerId,
-                toggle.IsChecked is true);
-        }
-    }
-
-    private void OnDashboardProviderColorClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button
-            {
-                Tag: DashboardProviderLayoutRow row,
-                Flyout: Flyout { Content: ColorPicker picker },
-            })
-        {
-            picker.Color = ProviderColorPalette.Parse(
-                ProviderColorPalette.GetEffectiveHex(row.ProviderId, row.ColorHex));
-        }
-    }
-
-    private async void OnDashboardProviderColorFlyoutClosed(object sender, object e)
-    {
-        if (sender is Flyout
-            {
-                Content: ColorPicker
-                {
-                    Tag: DashboardProviderLayoutRow row,
-                } picker,
-            })
-        {
-            string selectedColor = ProviderColorPalette.ToHex(picker.Color);
-            string currentColor = ProviderColorPalette.GetEffectiveHex(
-                row.ProviderId,
-                row.ColorHex);
-            if (string.Equals(selectedColor, currentColor, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            await ViewModel.SetDashboardProviderColorAsync(
-                row.ProviderId,
-                selectedColor);
-        }
-    }
-
-    private async void OnDashboardMetricMoveUpClicked(object sender, RoutedEventArgs e)
-    {
-        if (TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
-        {
-            await ViewModel.MoveDashboardMetricAsync(providerId, metricId, -1);
-        }
-    }
-
-    private async void OnDashboardMetricMoveDownClicked(object sender, RoutedEventArgs e)
-    {
-        if (TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
-        {
-            await ViewModel.MoveDashboardMetricAsync(providerId, metricId, 1);
-        }
-    }
-
-    private async void OnDashboardMetricVisibilityClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is ToggleButton toggle
-            && TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
-        {
-            await ViewModel.SetDashboardMetricVisibleAsync(
-                providerId,
-                metricId,
-                toggle.IsChecked is true);
-        }
-    }
-
-    private async void OnDashboardMetricHighlightClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is ToggleButton toggle
-            && TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
-        {
-            await ViewModel.SetDashboardMetricHighlightedAsync(
-                providerId,
-                metricId,
-                toggle.IsChecked is true);
-        }
-    }
-
-    private async void OnDashboardMetricSectionClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is ToggleButton toggle
-            && TryGetDashboardMetricTarget(sender, out string providerId, out string metricId))
-        {
-            await ViewModel.SetDashboardMetricOnDemandAsync(
-                providerId,
-                metricId,
-                toggle.IsChecked is true);
-        }
-    }
-
-    private static bool TryGetDashboardMetricTarget(
-        object sender,
-        out string providerId,
-        out string metricId)
-    {
-        if (sender is ButtonBase
-            {
-                Tag: string provider,
-                CommandParameter: string metric,
-            }
-            && !string.IsNullOrWhiteSpace(provider)
-            && !string.IsNullOrWhiteSpace(metric))
-        {
-            providerId = provider;
-            metricId = metric;
-            return true;
-        }
-
-        providerId = string.Empty;
-        metricId = string.Empty;
-        return false;
-    }
-
-    private void OnDashboardProviderMetricsExpanding(object sender, ExpanderExpandingEventArgs e)
-    {
-        SetDashboardProviderMetricsExpanded(sender, isExpanded: true);
-        SetDashboardProviderMetricItems(sender, loadItems: true);
-    }
-
-    private void OnDashboardProviderMetricsCollapsed(object sender, ExpanderCollapsedEventArgs e)
-    {
-        SetDashboardProviderMetricsExpanded(sender, isExpanded: false);
-        SetDashboardProviderMetricItems(sender, loadItems: false);
-    }
-
-    private void SetDashboardProviderMetricsExpanded(object sender, bool isExpanded)
-    {
-        if (sender is FrameworkElement { Tag: DashboardProviderLayoutRow row }
-            && (isExpanded || ViewModel.DashboardLayoutProviders.Any(current =>
-                ReferenceEquals(current, row))))
-        {
-            ViewModel.SetDashboardProviderMetricsExpanded(row.ProviderId, isExpanded);
-        }
-    }
-
-    private static void SetDashboardProviderMetricItems(object sender, bool loadItems)
-    {
-        if (sender is not Expander
-            {
-                Tag: DashboardProviderLayoutRow row,
-                Content: ItemsControl items,
-            })
-        {
-            return;
-        }
-
-        items.ItemsSource = loadItems
-            ? row.Metrics
-            : null;
-    }
-
-    private static string GetLanguageRestartArguments()
-    {
-#if DEBUG || UI_TEST_FIXTURES
-        return AppLanguageRestartArguments.Create(Environment.GetCommandLineArgs()[1..]);
-#else
-        return string.Empty;
-#endif
     }
 
     private static VercelGatewayRefreshCoordinator? TryCreateDebugVercelCoordinator(
@@ -685,74 +375,7 @@ public sealed partial class MainPage : Page
     }
 
     private void ScheduleSampleReveal()
-    {
-        int token = ViewModel.SampleRevealToken;
-        _ = DispatcherQueue.TryEnqueue(() =>
-            _ = DispatcherQueue.TryEnqueue(() => PlaySampleReveal(this, token)));
-    }
-
-    private void OnProviderUsageDetailsChecked(object sender, RoutedEventArgs e)
-    {
-        if (sender is not ToggleButton toggle)
-        {
-            return;
-        }
-
-        DependencyObject header = VisualTreeHelper.GetParent(toggle);
-        DependencyObject provider = VisualTreeHelper.GetParent(header);
-        ScheduleDetailReveal(provider);
-    }
-
-    private void OnUsageDetailsExpanding(Expander sender, ExpanderExpandingEventArgs args) =>
-        ScheduleDetailReveal(sender);
-
-    private void OnLocalUsageDetailsChecked(object sender, RoutedEventArgs e)
-    {
-        if (UsageProductDetailsPanel is null)
-        {
-            return;
-        }
-
-        UsageProductDetailsPanel.Visibility = Visibility.Visible;
-        ScheduleDetailReveal(UsageProductDetailsPanel);
-    }
-
-    private void OnLocalUsageDetailsUnchecked(object sender, RoutedEventArgs e)
-    {
-        if (UsageProductDetailsPanel is not null)
-        {
-            UsageProductDetailsPanel.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void ScheduleDetailReveal(DependencyObject root)
-    {
-        int token = unchecked(++_detailRevealToken);
-        _ = DispatcherQueue.TryEnqueue(() =>
-            _ = DispatcherQueue.TryEnqueue(() => PlaySampleReveal(root, token)));
-    }
-
-    private static void PlaySampleReveal(DependencyObject root, int token)
-    {
-        if (root is SpendDonutChart donut)
-        {
-            donut.PlayReveal(token);
-        }
-        else if (root is AnimatedProgressBar progressBar)
-        {
-            progressBar.PlayReveal(token);
-        }
-        else if (root is UsageHeatmap heatmap)
-        {
-            heatmap.PlayReveal(token);
-        }
-
-        int childCount = VisualTreeHelper.GetChildrenCount(root);
-        for (int index = 0; index < childCount; index++)
-        {
-            PlaySampleReveal(VisualTreeHelper.GetChild(root, index), token);
-        }
-    }
+        => DashboardSurfaceView.ScheduleReveal();
 
 #if DEBUG || UI_TEST_FIXTURES
     private sealed class DebugVercelCredentialStore : IVercelGatewayCredentialStore
