@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Runtime.Windows.Providers;
+using TokenUsage.Core.Providers;
+using TokenUsage.Runtime.Windows.Providers;
 
-namespace WOpenUsage.Platform.Windows.Tests.Providers;
+namespace TokenUsage.Platform.Windows.Tests.Providers;
 
 public sealed class WindowsProviderCatalogTests
 {
@@ -11,7 +11,7 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] entries = WindowsProviderCatalog.Entries.ToArray();
 
         Assert.Equal(
-            ["claude", "codex", "grok", "opencode"],
+            ["claude", "codex", "grok", "opencode", "antigravity"],
             entries.Select(entry => entry.Id.Value));
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.Equal(
@@ -44,7 +44,7 @@ public sealed class WindowsProviderCatalogTests
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
-            ["claude", "codex", "grok", "opencode"],
+            ["claude", "codex", "grok", "opencode", "antigravity"],
             composition.LocalUsageSources.Select(source => source.AgentId.Value));
         Assert.Equal(
             SourceKind.OfficialLocalApi,
@@ -83,7 +83,7 @@ public sealed class WindowsProviderCatalogTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-provider-catalog-tests",
+                "tokenusage-provider-catalog-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

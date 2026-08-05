@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Usage;
+namespace TokenUsage.Core.Usage;
 
 public sealed record LocalUsageRefreshResult
 {
@@ -91,9 +91,13 @@ public sealed class LocalUsageRefresh
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
-    public SourceKind SourceKind => _sources.All(source => source.SourceKind == SourceKind.LocalLog)
+    public SourceKind SourceKind => HasMultipleRealSources
         ? SourceKind.LocalLog
         : _sources[0].SourceKind;
+
+    private bool HasMultipleRealSources => _sources.Count > 1
+        && _sources.All(source => source.SourceKind is
+            SourceKind.OfficialLocalApi or SourceKind.LocalLog or SourceKind.LocalDatabase);
 
     public async Task<LocalUsageRefreshResult?> ReadCachedAsync(
         CancellationToken cancellationToken = default)
@@ -153,7 +157,7 @@ public sealed class LocalUsageRefresh
             SourceKind,
             status,
             diagnostics,
-            hasMultipleRealSources: SourceKind == SourceKind.LocalLog && _sources.Count > 1);
+            hasMultipleRealSources: HasMultipleRealSources);
     }
 
     public async Task<LocalUsageRefreshResult> RefreshAsync(
@@ -163,7 +167,8 @@ public sealed class LocalUsageRefresh
             _databasePath,
             cancellationToken).ConfigureAwait(false);
         UsageSourceReadResult[] readResults = await Task.WhenAll(
-            _sources.Select(source => source.ReadAsync(cancellationToken))).ConfigureAwait(false);
+            _sources.Select(source => ReadSourceSafelyAsync(source, cancellationToken)))
+            .ConfigureAwait(false);
         UsageEvent[] events = readResults.SelectMany(result => result.Events).ToArray();
         string[] groupingTimeZoneIds = events
             .Select(usageEvent => usageEvent.GroupingTimeZoneId)
@@ -275,9 +280,30 @@ public sealed class LocalUsageRefresh
             SourceKind,
             readStatus,
             diagnostics,
-            hasMultipleRealSources: SourceKind == SourceKind.LocalLog && _sources.Count > 1);
+            hasMultipleRealSources: HasMultipleRealSources);
     }
 
     private static DateOnly Min(DateOnly left, DateOnly right) =>
         left <= right ? left : right;
+
+    private static async Task<UsageSourceReadResult> ReadSourceSafelyAsync(
+        IUsageEventSource source,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await source.ReadAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return new UsageSourceReadResult(
+                [],
+                UsageSourceReadStatus.NoData,
+                UsageSourceIssueKind.AccessBlocked);
+        }
+    }
 }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using WOpenUsage.Core.Layout;
+using TokenUsage.Core.Layout;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 /// <summary>
 /// Bounded undo stack of dashboard layouts, oldest-to-newest.

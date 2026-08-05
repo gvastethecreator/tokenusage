@@ -2,14 +2,14 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Windows.ApplicationModel.Resources;
-using WOpenUsage.App.Localization;
-using WOpenUsage.App.Services;
-using WOpenUsage.App.ViewModels.Surfaces;
-using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Session;
+using TokenUsage.App.Localization;
+using TokenUsage.App.Services;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Session;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public partial class FlyoutViewModel : ObservableObject, IDisposable
 {

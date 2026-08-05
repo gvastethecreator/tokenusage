@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Cache.Internal;
+namespace TokenUsage.Core.Cache.Internal;
 
 internal static class SnapshotCacheMapper
 {

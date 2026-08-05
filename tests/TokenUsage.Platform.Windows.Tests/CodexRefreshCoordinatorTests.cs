@@ -1,9 +1,9 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.Codex;
-using WOpenUsage.Runtime.Windows.Codex;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Runtime.Windows.Codex;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class CodexRefreshCoordinatorTests
 {
@@ -164,7 +164,7 @@ public sealed class CodexRefreshCoordinatorTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-codex-coordinator-tests",
+                "tokenusage-codex-coordinator-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

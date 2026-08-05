@@ -1,9 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using WOpenUsage.App.Localization;
-using WOpenUsage.App.ViewModels.Surfaces;
+using TokenUsage.App.Localization;
+using TokenUsage.App.ViewModels.Surfaces;
 
-namespace WOpenUsage.App.Views.Options;
+namespace TokenUsage.App.Views.Options;
 
 public sealed partial class GeneralOptionsView : UserControl
 {

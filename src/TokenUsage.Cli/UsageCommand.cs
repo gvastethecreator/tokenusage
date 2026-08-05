@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public delegate Task<UsageCliSummary> UsageSummaryReader(
     DateOnly fromInclusive,
@@ -11,9 +11,9 @@ public delegate Task<UsageCliSummary> UsageSummaryReader(
 
 public static class UsageCommand
 {
-    public const string SchemaVersion = "wusage.usage.v1";
+    public const string SchemaVersion = "tokenusage.usage.v1";
     public const string UsageText =
-        "Usage: wusage usage [--days 1-3650] [--format human|json]";
+        "Usage: tokenusage usage [--days 1-3650] [--format human|json]";
 
     public const int SuccessExitCode = 0;
     public const int InvalidUsageExitCode = 2;

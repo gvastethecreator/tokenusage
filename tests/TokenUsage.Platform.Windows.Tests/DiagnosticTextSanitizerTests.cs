@@ -1,6 +1,6 @@
-using WOpenUsage.Platform.Windows.Processes;
+using TokenUsage.Platform.Windows.Processes;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class DiagnosticTextSanitizerTests
 {

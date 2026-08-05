@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Appearance;
+using TokenUsage.Core.Appearance;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public enum AppearanceSessionLoadKind
 {

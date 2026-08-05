@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "wusage.usage.v1",
+  "schemaVersion": "tokenusage.usage.v1",
   "generatedAt": "2026-07-22T15:00:00+00:00",
   "range": {
     "from": "2026-06-23",

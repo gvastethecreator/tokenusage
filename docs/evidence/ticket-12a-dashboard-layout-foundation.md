@@ -24,7 +24,7 @@ WinUI controls; Tickets 12B and 12C will connect it to the dashboard.
 ## Delegation and review
 
 Grok Build worked in
-`D:\DEV\wopenusage\.snapshots\grok-build\ticket-12a-layout-foundation`.
+`D:\DEV\tokenusage\.snapshots\grok-build\ticket-12a-layout-foundation`.
 The first run failed while reading files. The retry produced a draft but timed
 out before a valid result. The parent applied the declared outputs, removed the
 used snapshot and kept the redacted run records under

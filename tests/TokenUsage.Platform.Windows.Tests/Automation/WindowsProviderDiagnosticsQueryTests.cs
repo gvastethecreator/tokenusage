@@ -1,9 +1,9 @@
-using WOpenUsage.Core.Automation;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.Codex;
-using WOpenUsage.Runtime.Windows.Automation;
+using TokenUsage.Core.Automation;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Runtime.Windows.Automation;
 
-namespace WOpenUsage.Platform.Windows.Tests.Automation;
+namespace TokenUsage.Platform.Windows.Tests.Automation;
 
 public sealed class WindowsProviderDiagnosticsQueryTests
 {
@@ -21,8 +21,9 @@ public sealed class WindowsProviderDiagnosticsQueryTests
 
         ProviderDiagnosticsSnapshot result = await query.ExecuteAsync();
 
-        Assert.Equal(4, result.Providers.Count);
-        Assert.Equal(6, result.Checks.Count);
+        Assert.Equal(5, result.Providers.Count);
+        Assert.Equal(7, result.Checks.Count);
+        Assert.Contains(result.Checks, check => check.Id == "local-usage-antigravity");
         Assert.DoesNotContain(
             result.Providers,
             provider => provider.Id == "vercel-ai-gateway");

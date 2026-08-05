@@ -1,13 +1,13 @@
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class ProviderDiagnosticsCliProcessTests
 {
     [Theory]
-    [InlineData("providers", "wusage.providers.v1", 4)]
-    [InlineData("doctor", "wusage.doctor.v1", 6)]
+    [InlineData("providers", "tokenusage.providers.v1", 4)]
+    [InlineData("doctor", "tokenusage.doctor.v1", 6)]
     public async Task RealCommandsDetectWithoutStartingCodexOrCreatingAppData(
         string command,
         string schemaVersion,
@@ -59,7 +59,7 @@ public sealed class ProviderDiagnosticsCliProcessTests
         string markerPath,
         string missingProviderRoot)
     {
-        string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
+        string executablePath = Path.Combine(AppContext.BaseDirectory, "tokenusage.exe");
         string fakeCodexPath = Path.Combine(AppContext.BaseDirectory, "FakeCodex", "codex.exe");
         var startInfo = new ProcessStartInfo(executablePath)
         {
@@ -72,8 +72,8 @@ public sealed class ProviderDiagnosticsCliProcessTests
         startInfo.ArgumentList.Add("--format");
         startInfo.ArgumentList.Add("json");
         startInfo.Environment["TOKENUSAGE_DATA_DIR"] = dataRoot;
-        startInfo.Environment["WOPENUSAGE_CODEX_EXECUTABLE"] = fakeCodexPath;
-        startInfo.Environment["WOPENUSAGE_FAKE_PATH_MARKER"] = markerPath;
+        startInfo.Environment["TOKENUSAGE_CODEX_EXECUTABLE"] = fakeCodexPath;
+        startInfo.Environment["TOKENUSAGE_FAKE_PATH_MARKER"] = markerPath;
         startInfo.Environment["CLAUDE_CONFIG_DIR"] = missingProviderRoot;
         startInfo.Environment["GROK_HOME"] = missingProviderRoot;
         startInfo.Environment["OPENCODE_DATA_DIR"] = missingProviderRoot;

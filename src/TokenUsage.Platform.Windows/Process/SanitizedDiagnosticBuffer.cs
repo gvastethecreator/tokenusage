@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 internal sealed class SanitizedDiagnosticBuffer
 {

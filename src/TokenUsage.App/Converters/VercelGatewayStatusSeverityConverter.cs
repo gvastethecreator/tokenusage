@@ -1,8 +1,8 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using WOpenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels;
 
-namespace WOpenUsage.App.Converters;
+namespace TokenUsage.App.Converters;
 
 public sealed class VercelGatewayStatusSeverityConverter : IValueConverter
 {

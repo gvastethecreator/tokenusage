@@ -1,0 +1,299 @@
+{
+  "schemaVersion": "tokenusage.report.v1",
+  "generatedAt": "2026-07-22T15:00:00+00:00",
+  "range": {
+    "from": "2026-06-23",
+    "to": "2026-07-22",
+    "days": 30
+  },
+  "filter": {
+    "agent": null
+  },
+  "totals": {
+    "events": 4,
+    "tokens": {
+      "input": 1800,
+      "output": 600,
+      "reasoning": 50,
+      "cacheRead": 400,
+      "cacheWrite": 50,
+      "total": 2900,
+      "unpriced": 300
+    },
+    "costUsd": {
+      "total": 2.00,
+      "reported": 1.25,
+      "estimated": 0.75
+    },
+    "unavailableCostEvents": 1,
+    "coverage": "unpriced",
+    "priceCoveragePercent": 89.7
+  },
+  "byAgent": [
+    {
+      "agent": "codex",
+      "metrics": {
+        "events": 3,
+        "tokens": {
+          "input": 1200,
+          "output": 300,
+          "reasoning": 50,
+          "cacheRead": 300,
+          "cacheWrite": 0,
+          "total": 1850,
+          "unpriced": 300
+        },
+        "costUsd": {
+          "total": 1.25,
+          "reported": 1.25,
+          "estimated": null
+        },
+        "unavailableCostEvents": 1,
+        "coverage": "unpriced",
+        "priceCoveragePercent": 83.8
+      }
+    },
+    {
+      "agent": "opencode",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 600,
+          "output": 300,
+          "reasoning": 0,
+          "cacheRead": 100,
+          "cacheWrite": 50,
+          "total": 1050,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 0.75,
+          "reported": null,
+          "estimated": 0.75
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "partial",
+        "priceCoveragePercent": 100
+      }
+    }
+  ],
+  "models": [
+    {
+      "agent": "codex",
+      "provider": "openai",
+      "model": "gpt-5",
+      "metrics": {
+        "events": 2,
+        "tokens": {
+          "input": 1000,
+          "output": 200,
+          "reasoning": 50,
+          "cacheRead": 300,
+          "cacheWrite": 0,
+          "total": 1550,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 1.25,
+          "reported": 1.25,
+          "estimated": null
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "complete",
+        "priceCoveragePercent": 100
+      }
+    },
+    {
+      "agent": "opencode",
+      "provider": "anthropic",
+      "model": "claude-sonnet",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 600,
+          "output": 300,
+          "reasoning": 0,
+          "cacheRead": 100,
+          "cacheWrite": 50,
+          "total": 1050,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 0.75,
+          "reported": null,
+          "estimated": 0.75
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "partial",
+        "priceCoveragePercent": 100
+      }
+    },
+    {
+      "agent": "codex",
+      "provider": "openai",
+      "model": "unknown-model",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 200,
+          "output": 100,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 300,
+          "unpriced": 300
+        },
+        "costUsd": {
+          "total": 0,
+          "reported": null,
+          "estimated": null
+        },
+        "unavailableCostEvents": 1,
+        "coverage": "unpriced",
+        "priceCoveragePercent": 0
+      }
+    }
+  ],
+  "highestCostDays": [
+    {
+      "date": "2026-07-21",
+      "metrics": {
+        "events": 2,
+        "tokens": {
+          "input": 1000,
+          "output": 200,
+          "reasoning": 50,
+          "cacheRead": 300,
+          "cacheWrite": 0,
+          "total": 1550,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 1.25,
+          "reported": 1.25,
+          "estimated": null
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "complete",
+        "priceCoveragePercent": 100
+      }
+    },
+    {
+      "date": "2026-07-22",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 600,
+          "output": 300,
+          "reasoning": 0,
+          "cacheRead": 100,
+          "cacheWrite": 50,
+          "total": 1050,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 0.75,
+          "reported": null,
+          "estimated": 0.75
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "partial",
+        "priceCoveragePercent": 100
+      }
+    },
+    {
+      "date": "2026-07-20",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 200,
+          "output": 100,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 300,
+          "unpriced": 300
+        },
+        "costUsd": {
+          "total": 0,
+          "reported": null,
+          "estimated": null
+        },
+        "unavailableCostEvents": 1,
+        "coverage": "unpriced",
+        "priceCoveragePercent": 0
+      }
+    }
+  ],
+  "daily": [
+    {
+      "date": "2026-07-20",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 200,
+          "output": 100,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 300,
+          "unpriced": 300
+        },
+        "costUsd": {
+          "total": 0,
+          "reported": null,
+          "estimated": null
+        },
+        "unavailableCostEvents": 1,
+        "coverage": "unpriced",
+        "priceCoveragePercent": 0
+      }
+    },
+    {
+      "date": "2026-07-21",
+      "metrics": {
+        "events": 2,
+        "tokens": {
+          "input": 1000,
+          "output": 200,
+          "reasoning": 50,
+          "cacheRead": 300,
+          "cacheWrite": 0,
+          "total": 1550,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 1.25,
+          "reported": 1.25,
+          "estimated": null
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "complete",
+        "priceCoveragePercent": 100
+      }
+    },
+    {
+      "date": "2026-07-22",
+      "metrics": {
+        "events": 1,
+        "tokens": {
+          "input": 600,
+          "output": 300,
+          "reasoning": 0,
+          "cacheRead": 100,
+          "cacheWrite": 50,
+          "total": 1050,
+          "unpriced": 0
+        },
+        "costUsd": {
+          "total": 0.75,
+          "reported": null,
+          "estimated": 0.75
+        },
+        "unavailableCostEvents": 0,
+        "coverage": "partial",
+        "priceCoveragePercent": 100
+      }
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 using System.Globalization;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Usage;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Usage;
 
-using WOpenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Dashboard;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public static class UsageHeatmapProjector
 {

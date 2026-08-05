@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "wusage.doctor.v1",
+  "schemaVersion": "tokenusage.doctor.v1",
   "generatedAt": "2026-07-23T04:00:00+00:00",
   "checks": [
     {
@@ -9,6 +9,10 @@
     {
       "id": "codex-cli",
       "status": "detected"
+    },
+    {
+      "id": "local-usage-antigravity",
+      "status": "present"
     },
     {
       "id": "local-usage-claude",

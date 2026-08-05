@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public enum CodexAccountKind
 {

@@ -12,17 +12,17 @@ using Windows.Storage;
 using Windows.System;
 using Windows.UI.ViewManagement;
 using Windows.UI.Core;
-using WOpenUsage.App.Composition;
-using WOpenUsage.App.Controls;
-using WOpenUsage.App.Localization;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.Providers.VercelAiGateway;
-using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Session;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.App.Composition;
+using TokenUsage.App.Controls;
+using TokenUsage.App.Localization;
+using TokenUsage.App.ViewModels;
+using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Session;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.App;
+namespace TokenUsage.App;
 
 public sealed partial class MainPage : Page, IDisposable
 {

@@ -1,8 +1,8 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Runtime.Windows.Codex;
+namespace TokenUsage.Runtime.Windows.Codex;
 
 public sealed class CodexRefreshCoordinator
 {

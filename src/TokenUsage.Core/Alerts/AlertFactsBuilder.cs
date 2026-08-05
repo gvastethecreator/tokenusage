@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Alerts;
+namespace TokenUsage.Core.Alerts;
 
 /// <summary>
 /// Builds alert facts from provider snapshots and outcomes without UI types.

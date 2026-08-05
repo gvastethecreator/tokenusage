@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Core.Automation;
+namespace TokenUsage.Core.Automation;
 
 public sealed record UsageSummary(
     int EventCount,

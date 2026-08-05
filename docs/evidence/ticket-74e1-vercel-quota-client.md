@@ -34,7 +34,7 @@ quota in the app. Those changes remain in 74E2 and 74E3.
 Focused quota client gate:
 
 ```text
-dotnet test tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj \
+dotnet test tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj \
   -c Release --no-restore \
   --filter "FullyQualifiedName~VercelGatewayQuotaClientTests"
 
@@ -44,7 +44,7 @@ Passed: 30 | Failed: 0 | Skipped: 0
 All Vercel provider tests:
 
 ```text
-dotnet test tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj \
+dotnet test tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj \
   -c Release --no-restore \
   --filter "FullyQualifiedName~VercelAiGateway"
 

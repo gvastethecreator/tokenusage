@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Appearance;
+using TokenUsage.Core.Appearance;
 
-namespace WOpenUsage.Core.Tests.Appearance;
+namespace TokenUsage.Core.Tests.Appearance;
 
 public sealed class AppearanceSettingsTests
 {

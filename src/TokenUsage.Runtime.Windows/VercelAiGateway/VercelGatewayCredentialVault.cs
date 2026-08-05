@@ -1,6 +1,6 @@
 using Windows.Security.Credentials;
 
-namespace WOpenUsage.Runtime.Windows.VercelAiGateway;
+namespace TokenUsage.Runtime.Windows.VercelAiGateway;
 
 public interface IVercelGatewayCredentialVault
 {

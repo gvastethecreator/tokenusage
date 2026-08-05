@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
-using WOpenUsage.Core.Alerts;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Alerts;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Session;
+namespace TokenUsage.Core.Session;
 
 public enum AppSessionRefreshReason
 {

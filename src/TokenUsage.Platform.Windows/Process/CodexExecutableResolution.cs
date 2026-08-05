@@ -1,4 +1,4 @@
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 public abstract record CodexExecutableResolution
 {

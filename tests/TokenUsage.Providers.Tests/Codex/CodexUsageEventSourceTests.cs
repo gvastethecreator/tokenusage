@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace TokenUsage.Providers.Tests.Codex;
 
 public sealed class CodexUsageEventSourceTests
 {
@@ -301,7 +301,7 @@ public sealed class CodexUsageEventSourceTests
     {
         private readonly string _path = Path.Combine(
             Path.GetTempPath(),
-            "wopenusage-codex-corpus",
+            "tokenusage-codex-corpus",
             Guid.NewGuid().ToString("N"));
 
         public CodexCorpus() => Directory.CreateDirectory(Path.Combine(_path, "sessions"));

@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests.Cache;
+namespace TokenUsage.Core.Tests.Cache;
 
 public sealed class ProviderRefreshHostTests
 {

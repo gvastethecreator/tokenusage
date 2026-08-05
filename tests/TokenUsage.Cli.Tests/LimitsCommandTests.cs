@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
-using WOpenUsage.Cli;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Cli;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class LimitsCommandTests
 {
@@ -29,7 +29,7 @@ public sealed class LimitsCommandTests
         string goldenPath = Path.Combine(
             AppContext.BaseDirectory,
             "Golden",
-            "wusage.limits.v1.json");
+            "tokenusage.limits.v1.json");
         Assert.Equal(
             NormalizeNewlines(await File.ReadAllTextAsync(goldenPath)),
             NormalizeNewlines(output.ToString()));

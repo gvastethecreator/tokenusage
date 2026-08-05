@@ -1,9 +1,9 @@
-using WOpenUsage.Core.Alerts;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Session;
+using TokenUsage.Core.Alerts;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Session;
 
-namespace WOpenUsage.Core.Tests.Session;
+namespace TokenUsage.Core.Tests.Session;
 
 public sealed class AppSessionHostTests
 {
@@ -338,7 +338,7 @@ public sealed class AppSessionHostTests
         {
             Root = Path.Combine(
                 Path.GetTempPath(),
-                "wopenusage-app-session-tests",
+                "tokenusage-app-session-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Root);
         }

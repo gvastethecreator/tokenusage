@@ -2,7 +2,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 
-namespace WOpenUsage.App;
+namespace TokenUsage.App;
 
 internal static class Program
 {

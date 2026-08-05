@@ -1,6 +1,6 @@
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace TokenUsage.Providers.Tests.Codex;
 
 public sealed class CodexDailyUsageAggregatorTests
 {

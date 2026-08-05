@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests;
+namespace TokenUsage.Core.Tests;
 
 public sealed class QuotaPaceTests
 {

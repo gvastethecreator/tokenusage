@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public delegate Task<IReadOnlyList<ProviderSnapshot>> LimitsSnapshotReader(
     string? providerId,
@@ -12,7 +12,7 @@ public delegate Task<IReadOnlyList<ProviderSnapshot>> LimitsSnapshotReader(
 public static class LimitsCommand
 {
     public const string UsageText =
-        "Usage: wusage limits [provider-id] [--force] [--format human|json]";
+        "Usage: tokenusage limits [provider-id] [--force] [--format human|json]";
 
     [SuppressMessage(
         "Design",

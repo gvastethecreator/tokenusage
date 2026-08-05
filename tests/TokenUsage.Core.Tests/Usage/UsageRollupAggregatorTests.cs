@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Core.Tests.Usage;
+namespace TokenUsage.Core.Tests.Usage;
 
 public sealed class UsageRollupAggregatorTests
 {

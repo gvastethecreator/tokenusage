@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using WOpenUsage.App.Localization;
-using WOpenUsage.App.ViewModels.Sample;
+using TokenUsage.App.Localization;
+using TokenUsage.App.ViewModels.Sample;
 
-namespace WOpenUsage.App.ViewModels.Surfaces;
+namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class GeneralOptionsViewModel : ObservableObject
 {

@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.Fakes;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Fakes;
 
-namespace WOpenUsage.Providers.Tests;
+namespace TokenUsage.Providers.Tests;
 
 public sealed class FakeProviderRuntimeTests
 {

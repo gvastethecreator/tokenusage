@@ -2,12 +2,12 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using WOpenUsage.App.Controls;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Surfaces;
-using WOpenUsage.Core.Layout;
+using TokenUsage.App.Controls;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Layout;
 
-namespace WOpenUsage.App.Views.Options;
+namespace TokenUsage.App.Views.Options;
 
 public sealed partial class PersonalizationOptionsView : UserControl
 {

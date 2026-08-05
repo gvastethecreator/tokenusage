@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Providers.Fakes;
+namespace TokenUsage.Providers.Fakes;
 
 public enum FakeProviderScenario
 {

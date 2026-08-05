@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using WOpenUsage.Platform.Windows.Native;
-using WOpenUsage.Platform.Windows.Placement;
+using TokenUsage.Platform.Windows.Native;
+using TokenUsage.Platform.Windows.Placement;
 
-namespace WOpenUsage.Platform.Windows.Display;
+namespace TokenUsage.Platform.Windows.Display;
 
 public static class MonitorPlacementContextProvider
 {

@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Core.Tests.Usage;
+namespace TokenUsage.Core.Tests.Usage;
 
 public sealed class LocalUsageRefreshTests
 {
@@ -97,6 +97,41 @@ public sealed class LocalUsageRefreshTests
         Assert.Equal(1, second.Rollups.Sum(r => r.EventCount));
         Assert.Equal(30, second.Rollups.Sum(r => r.Tokens.Total));
         Assert.Equal(0.20m, second.Rollups.Sum(r => r.ReportedCostUsd ?? 0m));
+    }
+
+    [Fact]
+    public async Task OneBrokenSourceDoesNotDiscardOtherLocalUsage()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var healthy = new ScriptedUsageEventSource(
+            new AgentId("healthy"),
+            SourceKind.LocalDatabase,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "healthy",
+                        "healthy-event",
+                        new DateTimeOffset(2026, 7, 21, 12, 0, 0, TimeSpan.Zero),
+                        input: 12,
+                        output: 3,
+                        CostObservation.ProviderReported(0.25m)),
+                ],
+                UsageSourceReadStatus.Complete));
+        var broken = new ThrowingUsageEventSource(new AgentId("broken"));
+
+        var refresh = new LocalUsageRefresh(folder.DatabasePath, [broken, healthy], clock);
+        LocalUsageRefreshResult result = await refresh.RefreshAsync();
+
+        Assert.Equal(UsageSourceReadStatus.Partial, result.OverallStatus);
+        Assert.Equal(SourceKind.LocalLog, result.SourceKind);
+        Assert.True(result.HasMultipleRealSources);
+        Assert.Equal(15, result.Rollups.Sum(rollup => rollup.Tokens.Total));
+        UsageSourceDiagnostic diagnostic = Assert.Single(
+            result.SourceDiagnostics,
+            item => item.AgentId.Value == "broken");
+        Assert.Equal(UsageSourceReadStatus.NoData, diagnostic.Status);
+        Assert.Equal(UsageSourceIssueKind.AccessBlocked, diagnostic.Issue);
     }
 
     private static UsageEvent CreateEvent(
@@ -211,5 +246,16 @@ public sealed class LocalUsageRefreshTests
 
         public Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(_result);
+    }
+
+    private sealed class ThrowingUsageEventSource(AgentId agentId) : IUsageEventSource
+    {
+        public AgentId AgentId { get; } = agentId;
+
+        public SourceKind SourceKind => SourceKind.LocalLog;
+
+        public Task<UsageSourceReadResult> ReadAsync(
+            CancellationToken cancellationToken = default) =>
+            throw new IOException("Synthetic provider failure.");
     }
 }

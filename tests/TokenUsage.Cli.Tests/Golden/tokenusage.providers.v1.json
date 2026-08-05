@@ -1,7 +1,17 @@
 {
-  "schemaVersion": "wusage.providers.v1",
+  "schemaVersion": "tokenusage.providers.v1",
   "generatedAt": "2026-07-23T04:00:00+00:00",
   "providers": [
+    {
+      "id": "antigravity",
+      "name": "Antigravity",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "detected",
+      "data": "present"
+    },
     {
       "id": "claude",
       "name": "Claude",

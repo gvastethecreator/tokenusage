@@ -1,7 +1,7 @@
 using System.Globalization;
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {

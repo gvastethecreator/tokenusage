@@ -3,11 +3,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Fakes;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Fakes;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class UsageCliProcessTests
 {
@@ -31,7 +31,7 @@ public sealed class UsageCliProcessTests
             var source = new SyntheticUsageEventSource(clock, "Argentina Standard Time");
             await repository.IngestAsync((await source.ReadAsync()).Events);
 
-            string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
+            string executablePath = Path.Combine(AppContext.BaseDirectory, "tokenusage.exe");
             var startInfo = new ProcessStartInfo(executablePath)
             {
                 UseShellExecute = false,
@@ -56,7 +56,7 @@ public sealed class UsageCliProcessTests
             Assert.Equal(string.Empty, standardError);
             using JsonDocument document = JsonDocument.Parse(standardOutput);
             Assert.Equal(
-                "wusage.usage.v1",
+                "tokenusage.usage.v1",
                 document.RootElement.GetProperty("schemaVersion").GetString());
             Assert.Equal(3, document.RootElement.GetProperty("events").GetInt32());
             Assert.Equal(
@@ -159,7 +159,7 @@ public sealed class UsageCliProcessTests
                 Assert.Equal(string.Empty, result.StandardError);
                 using JsonDocument document = JsonDocument.Parse(result.StandardOutput);
                 Assert.Equal(
-                    "wusage.usage.v1",
+                    "tokenusage.usage.v1",
                     document.RootElement.GetProperty("schemaVersion").GetString());
                 int eventCount = document.RootElement.GetProperty("events").GetInt32();
                 Assert.InRange(eventCount, 1, finalEventCount);
@@ -195,7 +195,7 @@ public sealed class UsageCliProcessTests
 
     private static async Task<ProcessResult> RunUsageProcessAsync(string dataRoot)
     {
-        string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
+        string executablePath = Path.Combine(AppContext.BaseDirectory, "tokenusage.exe");
         var startInfo = new ProcessStartInfo(executablePath)
         {
             UseShellExecute = false,

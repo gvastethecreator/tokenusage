@@ -1,4 +1,4 @@
-namespace WOpenUsage.Providers.Claude;
+namespace TokenUsage.Providers.Claude;
 
 public static class ClaudeConfigLocator
 {

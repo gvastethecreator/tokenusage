@@ -1,9 +1,9 @@
 {
   "profiles": {
-    "WOpenUsage.App (Package)": {
+    "TokenUsage.App (Package)": {
       "commandName": "MsixPackage"
     },
-    "WOpenUsage.App (Unpackaged)": {
+    "TokenUsage.App (Unpackaged)": {
       "commandName": "Project"
     }
   }

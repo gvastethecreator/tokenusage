@@ -1,4 +1,4 @@
-namespace WOpenUsage.App.ViewModels.Surfaces;
+namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed class OptionsSurfaceViewModel
 {

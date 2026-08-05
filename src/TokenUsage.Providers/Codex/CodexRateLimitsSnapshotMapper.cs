@@ -1,7 +1,7 @@
 using System.Text;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public abstract class CodexSnapshotMappingResult
 {

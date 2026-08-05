@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Automation;
+namespace TokenUsage.Core.Automation;
 
 public enum ProviderDetectionStatus
 {

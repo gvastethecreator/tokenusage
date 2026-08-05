@@ -1,6 +1,6 @@
-using WOpenUsage.App.Controls;
+using TokenUsage.App.Controls;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed class SpendDonutGeometryTests
 {

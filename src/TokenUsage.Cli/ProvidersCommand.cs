@@ -2,12 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public static class ProvidersCommand
 {
-    public const string SchemaVersion = "wusage.providers.v1";
-    public const string UsageText = "Usage: wusage providers [--format human|json]";
+    public const string SchemaVersion = "tokenusage.providers.v1";
+    public const string UsageText = "Usage: tokenusage providers [--format human|json]";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

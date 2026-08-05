@@ -1,8 +1,8 @@
 using System.Globalization;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests.Layout;
+namespace TokenUsage.Core.Tests.Layout;
 
 public sealed class DashboardLayoutTests
 {

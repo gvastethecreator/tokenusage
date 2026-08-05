@@ -4,13 +4,13 @@ Date: 2026-07-23
 
 ## Outcome
 
-`wusage limits --force --format json` inicia Codex mediante el mismo runtime de
+`tokenusage limits --force --format json` inicia Codex mediante el mismo runtime de
 proceso y protocolo que usa WinUI. El refresco escribe
 `cache/providers/codex/snapshots.v1.json` con `SnapshotStore` y devuelve el
 snapshot nuevo.
 
-La fábrica y el coordinador salieron de `WOpenUsage.App`. El proyecto nuevo
-`WOpenUsage.Runtime.Windows` es la única copia de esa composición y la comparten
+La fábrica y el coordinador salieron de `TokenUsage.App`. El proyecto nuevo
+`TokenUsage.Runtime.Windows` es la única copia de esa composición y la comparten
 app y CLI. Los tests dejaron de compilar esos archivos mediante links.
 
 ## Failure contract
@@ -29,8 +29,8 @@ Codex no esté disponible en ese momento.
 
 ## Evidence
 
-- `dotnet test tests/WOpenUsage.Cli.Tests/WOpenUsage.Cli.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 51/51.
-- Un child process ejecuta `WOpenUsage.Cli.exe limits codex --force --format json`
+- `dotnet test tests/TokenUsage.Cli.Tests/TokenUsage.Cli.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 51/51.
+- Un child process ejecuta `TokenUsage.Cli.exe limits codex --force --format json`
   contra Fake Codex, completa handshake y RPC, devuelve cuota y crea la caché.
 - Otro child process usa un override inválido con caché previa: devuelve el
   last-good vencido, código `0` y ninguna ruta privada.
@@ -38,10 +38,10 @@ Codex no esté disponible en ese momento.
   caché, ausencia total y cancelación.
 - El provider ID llega al lector; `grok --force` devuelve sin crear el
   directorio Codex ni iniciar su proceso.
-- `WOpenUsage.Platform.Windows.Tests`: 58/58.
-- `WOpenUsage.Providers.Tests`: 167/167.
-- `WOpenUsage.Architecture.Tests`: 59/59.
-- `dotnet build WOpenUsage.slnx -c Release -p:Platform=x64 --no-restore`:
+- `TokenUsage.Platform.Windows.Tests`: 58/58.
+- `TokenUsage.Providers.Tests`: 167/167.
+- `TokenUsage.Architecture.Tests`: 59/59.
+- `dotnet build TokenUsage.slnx -c Release -p:Platform=x64 --no-restore`:
   0 warnings, 0 errors.
 
 ## Grok review

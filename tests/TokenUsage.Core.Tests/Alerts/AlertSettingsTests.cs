@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Alerts;
+using TokenUsage.Core.Alerts;
 
-namespace WOpenUsage.Core.Tests.Alerts;
+namespace TokenUsage.Core.Tests.Alerts;
 
 public sealed class AlertSettingsTests
 {

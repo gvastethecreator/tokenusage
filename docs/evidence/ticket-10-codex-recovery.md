@@ -45,8 +45,8 @@ proof did not take a screenshot because that would store real quota data.
 Run the real smoke explicitly:
 
 ```powershell
-$env:WOPENUSAGE_RUN_REAL_CODEX_SMOKE = '1'
-dotnet test tests/WOpenUsage.Platform.Windows.Tests/WOpenUsage.Platform.Windows.Tests.csproj `
+$env:TOKENUSAGE_RUN_REAL_CODEX_SMOKE = '1'
+dotnet test tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj `
   -p:Platform=x64 `
   --filter FullyQualifiedName~RealCodexRecoverySmokeRestartsAfterAControlledClose
 ```

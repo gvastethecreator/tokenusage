@@ -1,17 +1,17 @@
-using WOpenUsage.App.Services;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.App.ViewModels.Surfaces;
-using WOpenUsage.Core.Alerts;
-using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Session;
-using WOpenUsage.Core.Usage;
+using TokenUsage.App.Services;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Alerts;
+using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Session;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Providers.Tests.Sessions;
+namespace TokenUsage.Providers.Tests.Sessions;
 
 public sealed class SessionModuleTests
 {

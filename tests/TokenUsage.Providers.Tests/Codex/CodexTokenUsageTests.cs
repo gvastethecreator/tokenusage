@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace TokenUsage.Providers.Tests.Codex;
 
 public sealed class CodexTokenUsageTests
 {

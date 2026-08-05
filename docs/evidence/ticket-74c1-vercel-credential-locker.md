@@ -32,7 +32,7 @@ parent implemented and reviewed the slice locally.
 ## Proof
 
 ```text
-dotnet test tests\WOpenUsage.Platform.Windows.Tests\WOpenUsage.Platform.Windows.Tests.csproj \
+dotnet test tests\TokenUsage.Platform.Windows.Tests\TokenUsage.Platform.Windows.Tests.csproj \
   -c Release -p:Platform=x64 --no-restore
 
 Passed: 71, Failed: 0, Skipped: 0

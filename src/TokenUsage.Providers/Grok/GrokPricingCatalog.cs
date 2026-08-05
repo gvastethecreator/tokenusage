@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Providers.Grok;
+namespace TokenUsage.Providers.Grok;
 
 /// <summary>
 /// Local Grok CLI cost estimates using the same model aliases and rates as the

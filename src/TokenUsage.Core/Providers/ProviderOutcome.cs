@@ -1,4 +1,4 @@
-namespace WOpenUsage.Core.Providers;
+namespace TokenUsage.Core.Providers;
 
 public enum ProviderWarningCode
 {

@@ -1,4 +1,4 @@
-namespace WOpenUsage.Core.Usage;
+namespace TokenUsage.Core.Usage;
 
 public enum QuotaUsageLevel
 {

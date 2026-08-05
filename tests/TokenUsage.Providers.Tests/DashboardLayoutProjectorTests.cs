@@ -1,10 +1,10 @@
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Providers;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Providers.Tests;
+namespace TokenUsage.Providers.Tests;
 
 public sealed class DashboardLayoutProjectorTests
 {

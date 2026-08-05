@@ -27,9 +27,9 @@ Parent review rejected two parts of the proposal before implementation:
 
 ## Automated proof
 
-- `dotnet test tests/WOpenUsage.Platform.Windows.Tests/WOpenUsage.Platform.Windows.Tests.csproj -p:Platform=x64 --nologo`: 21/21 passed.
-- `dotnet test tests/WOpenUsage.Architecture.Tests/WOpenUsage.Architecture.Tests.csproj -p:Platform=x64 --nologo`: 3/3 passed.
-- `dotnet build src/WOpenUsage.App/WOpenUsage.App.csproj -p:Platform=ARM64 --nologo`: 0 warnings, 0 errors.
+- `dotnet test tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj -p:Platform=x64 --nologo`: 21/21 passed.
+- `dotnet test tests/TokenUsage.Architecture.Tests/TokenUsage.Architecture.Tests.csproj -p:Platform=x64 --nologo`: 3/3 passed.
+- `dotnet build src/TokenUsage.App/TokenUsage.App.csproj -p:Platform=ARM64 --nologo`: 0 warnings, 0 errors.
 - `BuildAndRun.ps1 -SkipRun /p:Platform=x64`: 0 warnings, 0 errors, including Windows App SDK analyzers.
 - `tests/ui/ticket-05-flyout.ps1`: 12/12 checks passed.
 

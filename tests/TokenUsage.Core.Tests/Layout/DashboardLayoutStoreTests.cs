@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests.Layout;
+namespace TokenUsage.Core.Tests.Layout;
 
 public sealed class DashboardLayoutStoreTests
 {
@@ -465,7 +465,7 @@ public sealed class DashboardLayoutStoreTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-layout-tests",
+                "tokenusage-layout-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

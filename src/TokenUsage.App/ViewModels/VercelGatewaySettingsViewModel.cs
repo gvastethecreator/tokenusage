@@ -1,15 +1,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.App.ViewModels.Surfaces;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Session;
-using WOpenUsage.Providers.VercelAiGateway;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Session;
+using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public partial class VercelGatewaySettingsViewModel : ObservableObject, IVercelDashboardModule
 {

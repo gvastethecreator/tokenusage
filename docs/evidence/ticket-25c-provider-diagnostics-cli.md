@@ -4,15 +4,15 @@ Fecha: 2026-07-23
 
 ## Resultado
 
-`wusage providers` publica el catálogo activo de Claude, Codex, Grok Build y
+`tokenusage providers` publica el catálogo activo de Claude, Codex, Grok Build y
 OpenCode. Cada fila separa capacidad, detección de la fuente y presencia de
 datos históricos propios. No anuncia providers bloqueados o futuros.
 
-`wusage doctor` publica seis checks cerrados para la caché Codex, el CLI Codex,
+`tokenusage doctor` publica seis checks cerrados para la caché Codex, el CLI Codex,
 las tres fuentes locales y `usage.v1.db`. Ningún resultado incluye rutas,
 cuentas, credenciales, texto de errores o contenido del cliente.
 
-Los contratos JSON son `wusage.providers.v1` y `wusage.doctor.v1`. Una salida
+Los contratos JSON son `tokenusage.providers.v1` y `tokenusage.doctor.v1`. Una salida
 válida usa código 0, argumentos inválidos usan 2 y un fallo total de lectura o
 contrato usa 4. La cancelación se propaga al host.
 

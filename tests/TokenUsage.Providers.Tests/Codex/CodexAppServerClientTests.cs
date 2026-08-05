@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace TokenUsage.Providers.Tests.Codex;
 
 public sealed class CodexAppServerClientTests
 {
@@ -62,7 +62,7 @@ public sealed class CodexAppServerClientTests
         Assert.Equal(1, initialize.RootElement.GetProperty("id").GetInt64());
         Assert.Equal("initialize", initialize.RootElement.GetProperty("method").GetString());
         Assert.Equal(
-            "wopenusage",
+            "tokenusage",
             initialize.RootElement.GetProperty("params").GetProperty("clientInfo").GetProperty("name").GetString());
         Assert.False(
             initialize.RootElement.GetProperty("params").GetProperty("capabilities").GetProperty("experimentalApi").GetBoolean());

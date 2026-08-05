@@ -1,10 +1,10 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Surfaces;
-using WOpenUsage.Core.Appearance;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Appearance;
 
-namespace WOpenUsage.App.Views.Options;
+namespace TokenUsage.App.Views.Options;
 
 public sealed partial class OptionsView : UserControl
 {

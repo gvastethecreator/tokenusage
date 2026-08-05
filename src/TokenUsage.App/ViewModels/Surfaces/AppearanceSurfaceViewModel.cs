@@ -1,8 +1,8 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
-using WOpenUsage.Core.Appearance;
+using TokenUsage.Core.Appearance;
 
-namespace WOpenUsage.App.ViewModels.Surfaces;
+namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 {

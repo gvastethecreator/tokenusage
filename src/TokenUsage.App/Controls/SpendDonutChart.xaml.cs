@@ -8,11 +8,11 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 using Windows.UI.ViewManagement;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 public sealed partial class SpendDonutChart : UserControl
 {

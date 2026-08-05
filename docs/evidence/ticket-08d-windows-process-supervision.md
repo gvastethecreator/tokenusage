@@ -10,7 +10,7 @@ composition, a live Codex account call, cache wiring, and UI remain in 08E.
 `CodexExecutableResolver` returns one closed result: resolved, missing, or
 invalid explicit override.
 
-- `WOPENUSAGE_CODEX_EXECUTABLE` accepts one existing, non-empty, absolute local
+- `TOKENUSAGE_CODEX_EXECUTABLE` accepts one existing, non-empty, absolute local
   `.exe` path.
 - A set but invalid override fails closed. It never falls back to `PATH`.
 - Normal discovery checks absolute `PATH` entries without a working-directory
@@ -35,7 +35,7 @@ inheritance can leak sensitive process resources:
 - <https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute>
 - <https://learn.microsoft.com/windows/win32/procthread/inheritance>
 
-The child starts suspended. WOpenUsage configures a Job Object with
+The child starts suspended. TokenUsage configures a Job Object with
 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, assigns the child, creates the parent
 streams, and only then resumes its primary thread. Assignment failure stops the
 still-suspended process. Microsoft documents that closing the last handle of a
@@ -79,7 +79,7 @@ scripts/check.ps1 -Platform x64:
 scripts/check.ps1 -Platform ARM64:
   Architecture 22/22, Core 32/32, Providers 64/64,
   Platform.Windows 46/46 on the x64 test host, ARM64 build 0 warnings/errors
-dotnet format WOpenUsage.slnx --verify-no-changes --no-restore: passed
+dotnet format TokenUsage.slnx --verify-no-changes --no-restore: passed
 git diff --check: passed
 ```
 

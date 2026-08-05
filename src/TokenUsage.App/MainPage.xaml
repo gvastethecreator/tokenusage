@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Page
-    x:Class="WOpenUsage.App.MainPage"
+    x:Class="TokenUsage.App.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:controls="using:WOpenUsage.App.Controls"
-    xmlns:converters="using:WOpenUsage.App.Converters"
-    xmlns:sample="using:WOpenUsage.App.ViewModels.Sample"
-    xmlns:dashboard="using:WOpenUsage.App.ViewModels.Dashboard"
-    xmlns:viewModels="using:WOpenUsage.App.ViewModels"
-    xmlns:optionViews="using:WOpenUsage.App.Views.Options"
-    xmlns:dashboardViews="using:WOpenUsage.App.Views.Dashboard"
+    xmlns:controls="using:TokenUsage.App.Controls"
+    xmlns:converters="using:TokenUsage.App.Converters"
+    xmlns:sample="using:TokenUsage.App.ViewModels.Sample"
+    xmlns:dashboard="using:TokenUsage.App.ViewModels.Dashboard"
+    xmlns:viewModels="using:TokenUsage.App.ViewModels"
+    xmlns:optionViews="using:TokenUsage.App.Views.Options"
+    xmlns:dashboardViews="using:TokenUsage.App.Views.Dashboard"
     Background="Transparent"
     mc:Ignorable="d">
 

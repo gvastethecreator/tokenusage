@@ -7,8 +7,8 @@ Fecha: 2026-07-23
 TokenUsage usa un Windows Application Packaging Project que incluye dos
 ejecutables de confianza plena:
 
-- `WOpenUsage.App\WOpenUsage.App.exe`, entrada WinUI;
-- `WOpenUsage.Cli\wusage.exe`, consola registrada como alias `wusage.exe`.
+- `TokenUsage.App\TokenUsage.App.exe`, entrada WinUI;
+- `TokenUsage.Cli\tokenusage.exe`, consola registrada como alias `tokenusage.exe`.
 
 El paquete conserva identidad, App ID, recursos `en-US`/`es-ES`, assets,
 `runFullTrust` y dependencia de Windows App SDK. La app dejó de ser dueña del
@@ -17,10 +17,10 @@ el nombre de su binario.
 
 ## Proyecto y manifest
 
-`WOpenUsage.Package.wapproj` referencia App y CLI, admite solo x64/ARM64 y usa
+`TokenUsage.Package.wapproj` referencia App y CLI, admite solo x64/ARM64 y usa
 el proyecto App como entry point. El manifest declara
 `windows.appExecutionAlias` con `Windows.FullTrustApplication` y apunta a la
-ruta real del payload `WOpenUsage.Cli\wusage.exe`.
+ruta real del payload `TokenUsage.Cli\tokenusage.exe`.
 
 `Directory.Build.props` declara los RID `win-x64` y `win-arm64` para que WAP
 pueda publicar el cierre completo de proyectos. Release desactiva trimming: el
@@ -36,18 +36,18 @@ paquete; `dotnet` sigue ejecutando las suites.
 - Debug x64: paquete generado.
 - Debug ARM64: paquete generado.
 - Release x64: paquete generado sin avisos ni errores.
-- Ambos paquetes contienen `WOpenUsage.App.exe`, `wusage.exe`, `resources.pri`
+- Ambos paquetes contienen `TokenUsage.App.exe`, `tokenusage.exe`, `resources.pri`
   y `AppxManifest.xml`.
 - El manifest generado conserva identidad `D6C94EDD-...`, arquitectura correcta,
-  App ID `App` y el alias hacia `WOpenUsage.Cli\wusage.exe`.
-- `BuildAndRun.ps1 ...WOpenUsage.App.csproj -SkipRun` construye mediante WAP.
+  App ID `App` y el alias hacia `TokenUsage.Cli\tokenusage.exe`.
+- `BuildAndRun.ps1 ...TokenUsage.App.csproj -SkipRun` construye mediante WAP.
 
 El registro dev Debug no pudo iniciarse porque el host no tiene
 `Microsoft.VCLibs.140.00.Debug.UWPDesktop`; no se instaló la dependencia. El
 layout Release se registró con `winapp run`, inició la app por AUMID y el proceso
 siguió vivo tras cinco segundos. Windows resolvió
-`Microsoft\WindowsApps\wusage.exe`; `wusage providers --format json` devolvió
-código 0 y esquema `wusage.providers.v1`. La prueba cerró el proceso creado y
+`Microsoft\WindowsApps\tokenusage.exe`; `tokenusage providers --format json` devolvió
+código 0 y esquema `tokenusage.providers.v1`. La prueba cerró el proceso creado y
 retiró el registro dev.
 
 ## Gate final x64 Release

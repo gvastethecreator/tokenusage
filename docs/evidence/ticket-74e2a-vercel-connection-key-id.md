@@ -39,7 +39,7 @@ apps](https://learn.microsoft.com/en-us/windows/apps/develop/security/credential
 ```text
 Vercel provider tests: 80/80
 Vercel Windows tests: 36/36
-Release/x64 WOpenUsage.App build: passed, 0 warnings
+Release/x64 TokenUsage.App build: passed, 0 warnings
 ```
 
 Focused tests cover legacy reads, current reads with and without a key ID,

@@ -11,7 +11,7 @@ slice.
 The installed `codex-cli 0.145.0` generated its stable app-server schemas with:
 
 ```powershell
-codex app-server generate-json-schema --out .scratch/wopenusage/codex-schema-0.145.0
+codex app-server generate-json-schema --out .scratch/tokenusage/codex-schema-0.145.0
 ```
 
 The command emits protocol types only. It does not start app-server or read an
@@ -71,7 +71,7 @@ scripts/check.ps1 -Platform x64:
   Architecture 22/22, Core 32/32, Providers 32/32, build 0 warnings/errors
 scripts/check.ps1 -Platform ARM64:
   Architecture 22/22, Core 32/32, Providers 32/32, build 0 warnings/errors
-dotnet format WOpenUsage.slnx --verify-no-changes --no-restore: passed
+dotnet format TokenUsage.slnx --verify-no-changes --no-restore: passed
 git diff --check: passed
 ```
 

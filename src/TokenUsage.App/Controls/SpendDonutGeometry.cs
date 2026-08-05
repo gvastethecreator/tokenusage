@@ -1,4 +1,4 @@
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 internal readonly record struct SpendDonutInput(string ProviderId, double Amount);
 

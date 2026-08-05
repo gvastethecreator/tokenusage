@@ -6,7 +6,7 @@ Estado: verificado
 
 ## Entrega
 
-`WOpenUsage.slnx` agrupa App, Core, Providers, Platform.Windows, CLI y los tests de arquitectura. `Directory.Build.props` exige `x64` o `ARM64`, activa los analizadores de .NET y trata cada aviso como error.
+`TokenUsage.slnx` agrupa App, Core, Providers, Platform.Windows, CLI y los tests de arquitectura. `Directory.Build.props` exige `x64` o `ARM64`, activa los analizadores de .NET y trata cada aviso como error.
 
 El grafo permitido queda codificado en `ArchitectureRules`:
 
@@ -33,7 +33,7 @@ Reconciliación del review:
 Suite enfocada:
 
 ```powershell
-dotnet test tests\WOpenUsage.Architecture.Tests\WOpenUsage.Architecture.Tests.csproj -p:Platform=x64 --no-restore
+dotnet test tests\TokenUsage.Architecture.Tests\TokenUsage.Architecture.Tests.csproj -p:Platform=x64 --no-restore
 ```
 
 Resultado: 3 tests superados. Cubren el repo real, una arista invertida `Core -> Providers` y la ausencia de un proyecto esperado.
@@ -57,7 +57,7 @@ Resultado: reglas ejecutadas en `x64`; 6 proyectos compilados para `ARM64`, 0 av
 Empaquetado WinUI después de agregar las referencias:
 
 ```powershell
-.\BuildAndRun.ps1 src\WOpenUsage.App\WOpenUsage.App.csproj -SkipRun /p:Platform=x64
+.\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -SkipRun /p:Platform=x64
 ```
 
 Resultado: `BUILD SUCCEEDED` con Core, Providers, Platform.Windows y App.
@@ -65,10 +65,10 @@ Resultado: `BUILD SUCCEEDED` con Core, Providers, Platform.Windows y App.
 Prueba negativa del control de plataforma:
 
 ```powershell
-dotnet build src\WOpenUsage.Core\WOpenUsage.Core.csproj -p:Platform=AnyCPU --no-restore
+dotnet build src\TokenUsage.Core\TokenUsage.Core.csproj -p:Platform=AnyCPU --no-restore
 ```
 
-Resultado esperado y observado: fallo con `WOpenUsage requires Platform=x64 or Platform=ARM64`.
+Resultado esperado y observado: fallo con `TokenUsage requires Platform=x64 or Platform=ARM64`.
 
 ## Límites
 

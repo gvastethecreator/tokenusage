@@ -6,7 +6,7 @@ Estado: assets de prototipo para el corte visual 11A
 
 ## Procedencia
 
-Los cinco SVG fuente bajo `src/WOpenUsage.App/Assets/ProviderMarks/` proceden de
+Los cinco SVG fuente bajo `src/TokenUsage.App/Assets/ProviderMarks/` proceden de
 `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`, ruta
 `Sources/OpenUsage/Resources/ProviderIcons/`. El repositorio fuente publica el
 código con licencia MIT. El aviso requerido está en `THIRD-PARTY-NOTICES.md`.
@@ -21,7 +21,7 @@ código con licencia MIT. El aviso requerido está en `THIRD-PARTY-NOTICES.md`.
 
 No se modificaron los trazados. Los rellenos sólidos enlazan cada marca con el
 color base al que llega su gradiente en el donut. Son colores de visualización propios de
-WOpenUsage; no se presentan como colores oficiales de los proveedores. La
+TokenUsage; no se presentan como colores oficiales de los proveedores. La
 paleta separa Grok Build y OpenCode, que en el primer corte usaban dos grises
 cercanos.
 
@@ -32,7 +32,7 @@ derivado.
 ## Uso y límites
 
 - Las marcas identifican proveedores dentro de tarjetas y leyendas.
-- No forman el logo ni la identidad de WOpenUsage o TokenUsage.
+- No forman el logo ni la identidad de TokenUsage o TokenUsage.
 - No expresan afiliación o aprobación.
 - La revisión de identidad final, dominio, logo, Publisher y canal sigue en el
   Ticket 02.

@@ -1,6 +1,6 @@
 using Windows.UI.ViewManagement;
 
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 internal static class MotionSettings
 {

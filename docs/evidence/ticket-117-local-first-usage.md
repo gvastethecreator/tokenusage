@@ -11,7 +11,7 @@ Codex, Grok Build, and OpenCode now feed the live 30-day spend ring from local s
 - Grok follows the pinned OpenUsage reader: `GROK_HOME/logs/unified.jsonl` is primary, model changes are tracked per process, and inference rows receive a catalog estimate. Current session snapshots remain a bounded fallback.
 - OpenCode opens `opencode*.db` read-only and queries the current aggregate schema by date. Legacy message and JSON formats remain supported.
 - Codex uses official `account/usage/read` daily totals. It samples bounded rollout tails for model and token-category mix and estimates known models from a versioned price table.
-- WOpenUsage stores normalized events and daily rollups in its own SQLite database. Startup publishes these cached rollups before provider refresh begins.
+- TokenUsage stores normalized events and daily rollups in its own SQLite database. Startup publishes these cached rollups before provider refresh begins.
 
 No reader stores prompts, responses, tool calls, commands, auth data, or raw provider rows.
 

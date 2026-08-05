@@ -1,4 +1,4 @@
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public sealed record CodexLocalUsageTotals(
     DateOnly LocalToday,

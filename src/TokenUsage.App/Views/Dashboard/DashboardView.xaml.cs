@@ -3,11 +3,11 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI.ViewManagement;
-using WOpenUsage.App.Controls;
-using WOpenUsage.App.ViewModels.Surfaces;
-using WOpenUsage.Core.Appearance;
+using TokenUsage.App.Controls;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Appearance;
 
-namespace WOpenUsage.App.Views.Dashboard;
+namespace TokenUsage.App.Views.Dashboard;
 
 public sealed partial class DashboardView : UserControl
 {

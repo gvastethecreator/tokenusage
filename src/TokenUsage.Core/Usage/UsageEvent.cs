@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Usage;
+namespace TokenUsage.Core.Usage;
 
 public enum CostKind
 {

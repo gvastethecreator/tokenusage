@@ -1,35 +1,35 @@
 using System.Xml.Linq;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public static class ArchitectureRules
 {
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> AllowedReferences { get; } =
         new Dictionary<string, IReadOnlySet<string>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["WOpenUsage.Core"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-            ["WOpenUsage.Providers"] = CreateSet("WOpenUsage.Core"),
-            ["WOpenUsage.Platform.Windows"] = CreateSet("WOpenUsage.Core"),
-            ["WOpenUsage.Runtime.Windows"] = CreateSet(
-                "WOpenUsage.Core",
-                "WOpenUsage.Providers",
-                "WOpenUsage.Platform.Windows"),
-            ["WOpenUsage.App"] = CreateSet(
-                "WOpenUsage.Core",
-                "WOpenUsage.Providers",
-                "WOpenUsage.Platform.Windows",
-                "WOpenUsage.Runtime.Windows"),
-            ["WOpenUsage.Cli"] = CreateSet(
-                "WOpenUsage.Core",
-                "WOpenUsage.Providers",
-                "WOpenUsage.Runtime.Windows"),
-            ["WOpenUsage.LocalApi"] = CreateSet(
-                "WOpenUsage.Core",
-                "WOpenUsage.Runtime.Windows"),
+            ["TokenUsage.Core"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            ["TokenUsage.Providers"] = CreateSet("TokenUsage.Core"),
+            ["TokenUsage.Platform.Windows"] = CreateSet("TokenUsage.Core"),
+            ["TokenUsage.Runtime.Windows"] = CreateSet(
+                "TokenUsage.Core",
+                "TokenUsage.Providers",
+                "TokenUsage.Platform.Windows"),
+            ["TokenUsage.App"] = CreateSet(
+                "TokenUsage.Core",
+                "TokenUsage.Providers",
+                "TokenUsage.Platform.Windows",
+                "TokenUsage.Runtime.Windows"),
+            ["TokenUsage.Cli"] = CreateSet(
+                "TokenUsage.Core",
+                "TokenUsage.Providers",
+                "TokenUsage.Runtime.Windows"),
+            ["TokenUsage.LocalApi"] = CreateSet(
+                "TokenUsage.Core",
+                "TokenUsage.Runtime.Windows"),
         };
 
     private static readonly IReadOnlySet<string> OptionalProjects = CreateSet(
-        "WOpenUsage.LocalApi");
+        "TokenUsage.LocalApi");
 
     public static IReadOnlyList<string> FindForbiddenEdges(ProjectReferenceGraph graph)
     {

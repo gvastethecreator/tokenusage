@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using WOpenUsage.Core.Appearance;
+using TokenUsage.Core.Appearance;
 
-namespace WOpenUsage.Core.Tests.Appearance;
+namespace TokenUsage.Core.Tests.Appearance;
 
 public sealed class AppearanceSettingsStoreTests
 {
@@ -221,7 +221,7 @@ public sealed class AppearanceSettingsStoreTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "WOpenUsage.Appearance.Tests",
+                "TokenUsage.Appearance.Tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

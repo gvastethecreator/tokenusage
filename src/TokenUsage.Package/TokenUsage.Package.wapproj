@@ -35,7 +35,7 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <DefaultLanguage>en-US</DefaultLanguage>
     <Platforms>x64;ARM64</Platforms>
-    <EntryPointProjectUniqueName>..\WOpenUsage.App\WOpenUsage.App.csproj</EntryPointProjectUniqueName>
+    <EntryPointProjectUniqueName>..\TokenUsage.App\TokenUsage.App.csproj</EntryPointProjectUniqueName>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <NoWarn>$(NoWarn);NU1702</NoWarn>
   </PropertyGroup>
@@ -47,8 +47,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WOpenUsage.App\WOpenUsage.App.csproj" />
-    <ProjectReference Include="..\WOpenUsage.Cli\WOpenUsage.Cli.csproj" />
+    <ProjectReference Include="..\TokenUsage.App\TokenUsage.App.csproj" />
+    <ProjectReference Include="..\TokenUsage.Cli\TokenUsage.Cli.csproj" />
   </ItemGroup>
 
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />

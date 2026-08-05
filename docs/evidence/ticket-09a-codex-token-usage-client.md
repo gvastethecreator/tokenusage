@@ -31,8 +31,8 @@ de respuesta en texto.
 ## Evidencia local
 
 - Tests Codex enfocados: 77/77.
-- Suite `WOpenUsage.Providers.Tests`: 94/94.
-- Tests `WOpenUsage.Platform.Windows`: 48/48.
+- Suite `TokenUsage.Providers.Tests`: 94/94.
+- Tests `TokenUsage.Platform.Windows`: 48/48.
 - `dotnet format ... --verify-no-changes --no-restore --include ...`: pasó.
 - `git diff --check`: pasó; Git solo avisó sobre normalización LF/CRLF.
 - `BuildAndRun.ps1 ... -SkipRun /p:Platform=x64 /p:Configuration=Debug`: build

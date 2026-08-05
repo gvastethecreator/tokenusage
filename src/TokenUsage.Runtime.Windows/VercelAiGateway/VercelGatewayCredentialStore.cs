@@ -1,6 +1,6 @@
-using WOpenUsage.Providers.VercelAiGateway;
+using TokenUsage.Providers.VercelAiGateway;
 
-namespace WOpenUsage.Runtime.Windows.VercelAiGateway;
+namespace TokenUsage.Runtime.Windows.VercelAiGateway;
 
 public interface IVercelGatewayCredentialStore : IVercelGatewayConnectionSource
 {

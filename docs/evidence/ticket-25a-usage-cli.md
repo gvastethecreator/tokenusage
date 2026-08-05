@@ -7,9 +7,9 @@ Date: 2026-07-22
 El ejecutable de consola ya acepta:
 
 ```text
-wusage usage
-wusage usage --days 7
-wusage usage --days 30 --format json
+tokenusage usage
+tokenusage usage --days 7
+tokenusage usage --days 30 --format json
 ```
 
 Lee `scanner/usage.v1.db` mediante `LocalUsageCliAccess`, el mismo acceso de
@@ -19,8 +19,8 @@ permite aislar pruebas y desarrollo; con identidad de paquete usa
 
 ## Contract
 
-- JSON: `wusage.usage.v1`, golden en
-  `tests/WOpenUsage.Cli.Tests/Golden/wusage.usage.v1.json`.
+- JSON: `tokenusage.usage.v1`, golden en
+  `tests/TokenUsage.Cli.Tests/Golden/tokenusage.usage.v1.json`.
 - Códigos del corte: `0` con datos, `2` para argumentos no válidos, `4` sin
   datos o ante fallo de lectura sanitizado.
 - Periodo inclusivo de 1 a 3650 días, calculado desde fecha UTC.
@@ -29,11 +29,11 @@ permite aislar pruebas y desarrollo; con identidad de paquete usa
 
 ## Evidence
 
-- `dotnet test tests/WOpenUsage.Cli.Tests/WOpenUsage.Cli.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 19/19.
-- La suite inicia `WOpenUsage.Cli.exe` como segundo proceso contra una SQLite
+- `dotnet test tests/TokenUsage.Cli.Tests/TokenUsage.Cli.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 19/19.
+- La suite inicia `TokenUsage.Cli.exe` como segundo proceso contra una SQLite
   temporal poblada por `SyntheticUsageEventSource` y valida schema, eventos,
   tokens y coste informado.
-- `dotnet build src/WOpenUsage.Cli/WOpenUsage.Cli.csproj -c Release -p:Platform=x64 --no-restore`: 0 avisos, 0 errores.
+- `dotnet build src/TokenUsage.Cli/TokenUsage.Cli.csproj -c Release -p:Platform=x64 --no-restore`: 0 avisos, 0 errores.
 - Smoke de proceso con DB vacía: JSON válido y código `4`.
 
 ## Review
@@ -47,4 +47,4 @@ filtrar secretos.
 ## Boundary
 
 Este corte cubre `usage`. Ticket 25 sigue abierto para `limits`, `providers`,
-`doctor`, lectura concurrente entre procesos y alias MSIX `wusage.exe`.
+`doctor`, lectura concurrente entre procesos y alias MSIX `tokenusage.exe`.

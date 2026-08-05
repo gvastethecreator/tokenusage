@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
-using WOpenUsage.Providers.OpenRouter;
+using TokenUsage.Providers.OpenRouter;
 
-namespace WOpenUsage.Providers.Tests.OpenRouter;
+namespace TokenUsage.Providers.Tests.OpenRouter;
 
 public sealed class OpenRouterClientTests
 {

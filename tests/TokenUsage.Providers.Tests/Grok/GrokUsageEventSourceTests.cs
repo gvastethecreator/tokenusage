@@ -1,9 +1,9 @@
 using System.Text.Json;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Grok;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Grok;
 
-namespace WOpenUsage.Providers.Tests.Grok;
+namespace TokenUsage.Providers.Tests.Grok;
 
 public sealed class GrokUsageEventSourceTests
 {
@@ -219,6 +219,23 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
+    public async Task UnreadableUnifiedLogFallsBackToSessionSnapshots()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteUnified(new string('x', 2_000));
+        corpus.WriteSession(
+            "session-fallback",
+            Snapshot("2026-07-22T11:00:00Z", 25, 4, model: "session-model"));
+
+        UsageSourceReadResult result = await corpus.CreateSource(
+            maximumLineCharacters: 512).ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+        Assert.Equal("session-model", usageEvent.ModelId.Value);
+    }
+
+    [Fact]
     public async Task ReadsAndPricesUnifiedAsPrimarySource()
     {
         using var corpus = new GrokCorpus();
@@ -398,7 +415,7 @@ public sealed class GrokUsageEventSourceTests
     {
         private readonly string _path = Path.Combine(
             Path.GetTempPath(),
-            "wopenusage-grok-corpus",
+            "tokenusage-grok-corpus",
             Guid.NewGuid().ToString("N"));
 
         public GrokCorpus() => Directory.CreateDirectory(Path.Combine(_path, "sessions"));

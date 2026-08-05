@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.VercelAiGateway;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.VercelAiGateway;
 
-namespace WOpenUsage.Providers.Tests.VercelAiGateway;
+namespace TokenUsage.Providers.Tests.VercelAiGateway;
 
 public sealed class VercelGatewayProviderRuntimeTests
 {

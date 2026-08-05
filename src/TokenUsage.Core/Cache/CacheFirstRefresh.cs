@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Cache;
+namespace TokenUsage.Core.Cache;
 
 public sealed class CacheFirstRefresh
 {

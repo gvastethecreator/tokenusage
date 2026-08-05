@@ -23,7 +23,7 @@ Estado: aceptado dentro del modo de muestra
   jerarquía más densa. La captura normal muestra el total y dos proveedores en
   720 DIPs de alto.
 - `TokenUsage` queda registrado como nombre formal. Código, paquete y UI siguen
-  con `WOpenUsage` hasta el corte de migración descrito en ADR-0002.
+  con `TokenUsage`. El corte técnico de ADR-0002 se completó el 2026-08-04.
 
 ## Revisión con Grok Build
 

@@ -1,8 +1,8 @@
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
-using WOpenUsage.Core.Layout;
+using TokenUsage.Core.Layout;
 
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 public static class ProviderColorPalette
 {

@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace WOpenUsage.Platform.Windows.Native;
+namespace TokenUsage.Platform.Windows.Native;
 
 internal sealed class SafeKernelHandle : SafeHandleZeroOrMinusOneIsInvalid
 {

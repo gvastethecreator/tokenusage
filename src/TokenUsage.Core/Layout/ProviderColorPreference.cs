@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace WOpenUsage.Core.Layout;
+namespace TokenUsage.Core.Layout;
 
 public static class ProviderColorPreference
 {

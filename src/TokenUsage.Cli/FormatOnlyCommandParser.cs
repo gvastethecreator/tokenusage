@@ -1,4 +1,4 @@
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 internal enum CliOutputFormat
 {

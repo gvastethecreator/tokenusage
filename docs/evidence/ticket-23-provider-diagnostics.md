@@ -48,7 +48,7 @@ Resultados durables:
   con 0 avisos y 0 errores.
 - Prueba enfocada posterior a revisión: Providers 167/167.
 - Build x64 mediante `BuildAndRun.ps1 -SkipRun`: 0 avisos y 0 errores.
-- Restore y build ARM64 de `WOpenUsage.slnx`: 0 avisos y 0 errores.
+- Restore y build ARM64 de `TokenUsage.slnx`: 0 avisos y 0 errores.
 - `tests/ui/ticket-23-provider-status.ps1`: 23/23 en la app empaquetada.
 - Captura: `artifacts/ticket-23/provider-status-options.png`.
 
@@ -57,4 +57,4 @@ Resultados durables:
 En este corte también se cambió el copy público a TokenUsage: recursos en inglés
 y español, tooltip de bandeja, título, pie y nombre visible del paquete. La
 Identity/AUMID, assemblies, namespaces, ejecutables y rutas técnicas siguen como
-`WOpenUsage` según ADR-0002.
+`TokenUsage` según ADR-0002.

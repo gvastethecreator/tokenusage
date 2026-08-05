@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using WOpenUsage.Platform.Windows.Native;
-using WOpenUsage.Platform.Windows.Placement;
+using TokenUsage.Platform.Windows.Native;
+using TokenUsage.Platform.Windows.Placement;
 
-namespace WOpenUsage.Platform.Windows.Tray;
+namespace TokenUsage.Platform.Windows.Tray;
 
 public sealed class TrayIconHost : IDisposable
 {

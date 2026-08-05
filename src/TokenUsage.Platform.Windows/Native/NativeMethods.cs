@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 
-namespace WOpenUsage.Platform.Windows.Native;
+namespace TokenUsage.Platform.Windows.Native;
 
 [SuppressMessage(
     "Interoperability",

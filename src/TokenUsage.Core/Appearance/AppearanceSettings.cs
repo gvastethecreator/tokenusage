@@ -1,4 +1,4 @@
-namespace WOpenUsage.Core.Appearance;
+namespace TokenUsage.Core.Appearance;
 
 /// <summary>
 /// Application theme preference relative to the OS setting.

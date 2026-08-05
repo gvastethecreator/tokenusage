@@ -1,11 +1,11 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using WOpenUsage.Core.Cache.Internal;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Storage;
+using TokenUsage.Core.Cache.Internal;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Storage;
 
-namespace WOpenUsage.Core.Cache;
+namespace TokenUsage.Core.Cache;
 
 public sealed class SnapshotStore
 {
@@ -35,7 +35,7 @@ public sealed class SnapshotStore
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _document = new VersionedDocumentFile(
             documentPath,
-            mutexNamePrefix: "WOpenUsage.SnapshotStore",
+            mutexNamePrefix: "TokenUsage.SnapshotStore",
             clock,
             lockTimeoutMessage: "Timed out while waiting for the snapshot cache lock.");
     }

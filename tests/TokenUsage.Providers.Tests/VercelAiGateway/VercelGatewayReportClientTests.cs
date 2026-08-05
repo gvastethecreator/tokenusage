@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
-using WOpenUsage.Providers.VercelAiGateway;
+using TokenUsage.Providers.VercelAiGateway;
 
-namespace WOpenUsage.Providers.Tests.VercelAiGateway;
+namespace TokenUsage.Providers.Tests.VercelAiGateway;
 
 public sealed class VercelGatewayReportClientTests
 {

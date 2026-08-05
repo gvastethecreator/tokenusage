@@ -32,7 +32,7 @@
   <Applications>
     <Application
       Id="App"
-      Executable="WOpenUsage.App.exe"
+      Executable="TokenUsage.App.exe"
       EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="TokenUsage"
@@ -46,10 +46,10 @@
       <Extensions>
         <uap5:Extension
           Category="windows.appExecutionAlias"
-          Executable="WOpenUsage.Cli\wusage.exe"
+          Executable="TokenUsage.Cli\tokenusage.exe"
           EntryPoint="Windows.FullTrustApplication">
           <uap5:AppExecutionAlias>
-            <uap5:ExecutionAlias Alias="wusage.exe" />
+            <uap5:ExecutionAlias Alias="tokenusage.exe" />
           </uap5:AppExecutionAlias>
         </uap5:Extension>
       </Extensions>

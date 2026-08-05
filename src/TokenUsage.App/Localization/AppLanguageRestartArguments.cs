@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace WOpenUsage.App.Localization;
+namespace TokenUsage.App.Localization;
 
 internal static class AppLanguageRestartArguments
 {

@@ -1,7 +1,7 @@
-using WOpenUsage.Platform.Windows.Display;
-using WOpenUsage.Platform.Windows.Placement;
+using TokenUsage.Platform.Windows.Display;
+using TokenUsage.Platform.Windows.Placement;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class FlyoutSizePolicyTests
 {

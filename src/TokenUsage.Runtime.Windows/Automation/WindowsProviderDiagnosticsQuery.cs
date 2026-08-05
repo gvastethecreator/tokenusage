@@ -1,13 +1,13 @@
-using WOpenUsage.Core.Automation;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Codex;
-using WOpenUsage.Runtime.Windows.Codex;
-using WOpenUsage.Runtime.Windows.Providers;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.Core.Automation;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Runtime.Windows.Codex;
+using TokenUsage.Runtime.Windows.Providers;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.Runtime.Windows.Automation;
+namespace TokenUsage.Runtime.Windows.Automation;
 
 public sealed class WindowsProviderDiagnosticsQuery
 {

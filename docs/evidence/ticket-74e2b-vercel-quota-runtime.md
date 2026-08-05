@@ -50,7 +50,7 @@ states use `vercel-ai-gateway-quota-state/1`.
 Vercel provider tests: 84/84
 Focused core contract and cache tests: 43/43
 Vercel Windows tests: 36/36
-Release/x64 WOpenUsage.App build: passed, 0 warnings
+Release/x64 TokenUsage.App build: passed, 0 warnings
 ```
 
 Coverage includes found quota, all budget metadata, missing key ID, no-budget,

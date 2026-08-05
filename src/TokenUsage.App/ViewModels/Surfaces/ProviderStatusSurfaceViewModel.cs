@@ -1,9 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.Core.Providers;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.App.ViewModels.Surfaces;
+namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
 {

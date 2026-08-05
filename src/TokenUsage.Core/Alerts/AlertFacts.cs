@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Alerts;
+namespace TokenUsage.Core.Alerts;
 
 public sealed class QuotaAlertFacts
 {

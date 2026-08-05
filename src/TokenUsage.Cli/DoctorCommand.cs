@@ -1,12 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public static class DoctorCommand
 {
-    public const string SchemaVersion = "wusage.doctor.v1";
-    public const string UsageText = "Usage: wusage doctor [--format human|json]";
+    public const string SchemaVersion = "tokenusage.doctor.v1";
+    public const string UsageText = "Usage: tokenusage doctor [--format human|json]";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

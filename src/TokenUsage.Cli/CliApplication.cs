@@ -1,9 +1,9 @@
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public static class CliApplication
 {
     public const string UsageText =
-        "Usage: wusage <limits|usage|providers|doctor> [command options]";
+        "Usage: tokenusage <limits|usage|report|providers|doctor> [command options]";
 
     public static async Task<int> RunAsync(
         IReadOnlyList<string> arguments,
@@ -41,6 +41,17 @@ public static class CliApplication
                         "scanner",
                         "usage.v1.db"))
                     .ReadAsync(from, to, token),
+                clock,
+                cancellationToken).ConfigureAwait(false),
+            "report" => await ReportCommand.RunAsync(
+                commandArguments,
+                standardOutput,
+                standardError,
+                (from, to, agentId, token) => new UsageReportQuery(Path.Combine(
+                        fullDataDirectory,
+                        "scanner",
+                        "usage.v1.db"))
+                    .ReadAsync(from, to, agentId, token),
                 clock,
                 cancellationToken).ConfigureAwait(false),
             "limits" => await LimitsCommand.RunAsync(

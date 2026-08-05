@@ -1,7 +1,7 @@
 using System.Globalization;
-using WOpenUsage.Cli;
+using TokenUsage.Cli;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class CliApplicationTests
 {
@@ -50,6 +50,31 @@ public sealed class CliApplicationTests
 
             Assert.Equal(2, exitCode);
             Assert.Equal(CliApplication.UsageText + Environment.NewLine, error.ToString());
+        }
+        finally
+        {
+            Directory.Delete(dataRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ReportCommandIsDispatchedWithoutOpeningStorageForInvalidOptions()
+    {
+        string dataRoot = CreateDataRoot();
+        try
+        {
+            var error = new StringWriter(CultureInfo.InvariantCulture);
+
+            int exitCode = await CliApplication.RunAsync(
+                ["report", "--format", "csv"],
+                TextWriter.Null,
+                error,
+                dataRoot,
+                TimeProvider.System);
+
+            Assert.Equal(2, exitCode);
+            Assert.EndsWith(ReportCommand.UsageText + Environment.NewLine, error.ToString());
+            Assert.DoesNotContain("Unknown command.", error.ToString(), StringComparison.Ordinal);
         }
         finally
         {
