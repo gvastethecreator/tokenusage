@@ -63,7 +63,7 @@ Resultados locales de Grok:
   correcta.
 - `BuildAndRun.ps1 ... -SkipRun /p:Platform=ARM64`: compilación cruzada
   empaquetada correcta.
-- `dotnet format WOpenUsage.slnx --verify-no-changes --no-restore`: correcto.
+- `dotnet format TokenUsage.slnx --verify-no-changes --no-restore`: correcto.
 - `tests/ui/ticket-47-i18n.ps1`: 15/15 en la app empaquetada. El ciclo usa
   `--test-claude-config`, `--test-grok-home` y `--test-opencode-data`; verifica
   que los tres siguen presentes después del reinicio.

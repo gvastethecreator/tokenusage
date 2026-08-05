@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 
-namespace WOpenUsage.App.Localization;
+namespace TokenUsage.App.Localization;
 
 public static class AppLanguageCatalog
 {

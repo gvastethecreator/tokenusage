@@ -1,8 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using WOpenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels;
 
-namespace WOpenUsage.App.Views.Options;
+namespace TokenUsage.App.Views.Options;
 
 public sealed partial class VercelConnectionView : UserControl
 {

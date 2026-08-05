@@ -35,7 +35,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
 | Cline | API manual pendiente de contrato | Bloqueados por contenido de tareas | API Enterprise candidata | Bloqueado | M9; Ticket 54 cerrado, Ticket 55 `needs-info` |
 | Zed | Sin contrato público de cuota | Bloqueados por la mezcla de tokens y transcripción | Sin fuente apta | Bloqueado | M9; Ticket 58 cerrado, Ticket 59 `needs-info` |
-| Antigravity CLI | Bloqueada por política | Condicional, `.db` pasiva | `gen_metadata` local | Experimental + Bloqueado | M6B |
+| Antigravity IDE/CLI | Bloqueada por política | Sí, tokens y coste estimado | `gen_metadata` local | Local experimental + cuota bloqueada | M6B |
 | Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
 
 ## Siguiente ola de investigación
@@ -460,7 +460,7 @@ Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gat
 
 ### Fuente elegida
 
-La Admin API pública de Cursor admite métricas, gasto y eventos de uso de Teams y Enterprise. Un administrador crea una clave y la entrega de forma manual. WOpenUsage la guarda en Windows Credential Locker y limita el cliente a `https://api.cursor.com`.
+La Admin API pública de Cursor admite métricas, gasto y eventos de uso de Teams y Enterprise. Un administrador crea una clave y la entrega de forma manual. TokenUsage la guarda en Windows Credential Locker y limita el cliente a `https://api.cursor.com`.
 
 Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso incluido que Cursor anunció para Teams en junio de 2026. La tarjeta muestra `Uso y gasto del equipo`, con procedencia y ciclo. No afirma cuota restante.
 
@@ -483,7 +483,7 @@ Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers
 
 ### Fuente elegida
 
-La Billing REST API pública ofrece reportes dedicados de AI credits para una cuenta personal pagada y para una organización. WOpenUsage usa la versión `2026-03-10`, un fine-grained token entregado por el usuario y Windows Credential Locker.
+La Billing REST API pública ofrece reportes dedicados de AI credits para una cuenta personal pagada y para una organización. TokenUsage usa la versión `2026-03-10`, un fine-grained token entregado por el usuario y Windows Credential Locker.
 
 La cuenta personal requiere `Plan: read`. La organización requiere `Administration: read` y un administrador. Cada conexión declara su scope. El resultado muestra créditos usados, descuento cubierto y cargo neto. La vista de organización se etiqueta como total de la entidad.
 
@@ -516,11 +516,11 @@ Antigravity documenta [`/usage`](https://antigravity.google/docs/cli/commands/us
 - apertura SQLite de solo lectura;
 - una statusline futura solo si el usuario la instala de forma explícita y entrega datos mínimos.
 
-Se excluyen `.pb` cifrados, descifrado, daemon auxiliar, token, CSRF y transcript. El binario `agy.exe` `1.1.5` está instalado en el equipo examinado, pero aún no existe una raíz de conversaciones CLI para formar fixtures.
+Se excluyen `.pb` cifrados, descifrado, daemon auxiliar, token, CSRF y transcript. El lector pasivo admite las raíces `antigravity`, `antigravity-cli` y `antigravity-ide`, limita archivos, filas y BLOBs, y conserva como parcial cualquier fila que no cumpla el esquema observado.
 
 ### Salida
 
-Spike experimental después de que exista una `.db` real. Puede entregar tokens y coste estimado con cobertura. Cuota y créditos quedan `Bloqueado` mientras rija el contrato actual.
+Integración local experimental activa: entrega tokens y coste API estimado para aliases exactos conocidos, y conserva modelos desconocidos sin precio. Cuota y créditos quedan `Bloqueado` mientras rija el contrato actual.
 
 Fuente upstream de comparación: [provider Antigravity](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/antigravity.md).
 
@@ -528,7 +528,7 @@ Fuente upstream de comparación: [provider Antigravity](https://github.com/robin
 
 ### Fuente elegida
 
-La API v3 pública devuelve consumo diario de una organización. WOpenUsage admite un service user con scope de organización, permiso `ManageBilling`, ID manual y key en Credential Locker. El cliente fija `api.devin.ai` y llama solo `GET /v3/organizations/{org_id}/consumption/daily`.
+La API v3 pública devuelve consumo diario de una organización. TokenUsage admite un service user con scope de organización, permiso `ManageBilling`, ID manual y key en Credential Locker. El cliente fija `api.devin.ai` y llama solo `GET /v3/organizations/{org_id}/consumption/daily`.
 
 La tarjeta muestra ACUs y desglose por producto durante un período explícito. No afirma cuota restante o dólares.
 

@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Globalization;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Providers.Fakes;
+namespace TokenUsage.Providers.Fakes;
 
 public sealed class SyntheticUsageEventSource : IUsageEventSource
 {

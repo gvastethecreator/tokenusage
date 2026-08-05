@@ -1,7 +1,7 @@
-using WOpenUsage.Providers.VercelAiGateway;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.Platform.Windows.Tests.VercelAiGateway;
+namespace TokenUsage.Platform.Windows.Tests.VercelAiGateway;
 
 public sealed class VercelGatewayCredentialStoreTests
 {

@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RootNamespace>WOpenUsage.Architecture.Tests</RootNamespace>
-    <AssemblyName>WOpenUsage.Architecture.Tests</AssemblyName>
+    <RootNamespace>TokenUsage.Architecture.Tests</RootNamespace>
+    <AssemblyName>TokenUsage.Architecture.Tests</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,11 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\WOpenUsage.App\Localization\AppLanguageCatalog.cs"
+    <Compile Include="..\..\src\TokenUsage.App\Localization\AppLanguageCatalog.cs"
              Link="AppLanguageCatalog.cs" />
-    <Compile Include="..\..\src\WOpenUsage.App\Localization\AppLanguageRestartArguments.cs"
+    <Compile Include="..\..\src\TokenUsage.App\Localization\AppLanguageRestartArguments.cs"
              Link="AppLanguageRestartArguments.cs" />
-    <Compile Include="..\..\src\WOpenUsage.App\Controls\SpendDonutGeometry.cs"
+    <Compile Include="..\..\src\TokenUsage.App\Controls\SpendDonutGeometry.cs"
              Link="SpendDonutGeometry.cs" />
   </ItemGroup>
 

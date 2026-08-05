@@ -1,10 +1,10 @@
-using WOpenUsage.App.Services;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.App.Services;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 /// <summary>
 /// Sample-mode dashboard refresh: owns sample scenario refresh events and projected snapshots.

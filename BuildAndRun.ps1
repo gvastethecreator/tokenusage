@@ -73,8 +73,8 @@ if (-not $Project) {
 # the existing command line used by docs and local scripts.
 $resolvedProject = (Resolve-Path $Project).Path
 $packageProject = Join-Path (Split-Path (Split-Path $resolvedProject -Parent) -Parent) `
-    'WOpenUsage.Package\WOpenUsage.Package.wapproj'
-if ((Split-Path $resolvedProject -Leaf) -eq 'WOpenUsage.App.csproj' -and
+    'TokenUsage.Package\TokenUsage.Package.wapproj'
+if ((Split-Path $resolvedProject -Leaf) -eq 'TokenUsage.App.csproj' -and
     (Test-Path -LiteralPath $packageProject)) {
     Write-Host "--> Packaging project: $packageProject" -ForegroundColor DarkGray
     $Project = $packageProject

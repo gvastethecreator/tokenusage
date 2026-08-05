@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Alerts;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Alerts;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests.Alerts;
+namespace TokenUsage.Core.Tests.Alerts;
 
 public sealed class AlertHostTests
 {

@@ -1,4 +1,4 @@
-namespace WOpenUsage.Platform.Windows.Placement;
+namespace TokenUsage.Platform.Windows.Placement;
 
 public readonly record struct PlatformPoint(int X, int Y);
 

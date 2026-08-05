@@ -1,4 +1,4 @@
-namespace WOpenUsage.Providers.OpenRouter;
+namespace TokenUsage.Providers.OpenRouter;
 
 public interface IOpenRouterClient
 {

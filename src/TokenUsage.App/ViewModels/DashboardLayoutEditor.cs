@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Layout;
+using TokenUsage.Core.Layout;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public enum DashboardLayoutEditorLoadKind
 {

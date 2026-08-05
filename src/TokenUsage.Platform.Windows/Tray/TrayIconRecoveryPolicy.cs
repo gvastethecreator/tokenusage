@@ -1,4 +1,4 @@
-namespace WOpenUsage.Platform.Windows.Tray;
+namespace TokenUsage.Platform.Windows.Tray;
 
 internal static class TrayIconRecoveryPolicy
 {

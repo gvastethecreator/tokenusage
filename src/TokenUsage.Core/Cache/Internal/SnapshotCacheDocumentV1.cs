@@ -1,4 +1,4 @@
-namespace WOpenUsage.Core.Cache.Internal;
+namespace TokenUsage.Core.Cache.Internal;
 
 internal sealed class SnapshotCacheDocumentV1
 {

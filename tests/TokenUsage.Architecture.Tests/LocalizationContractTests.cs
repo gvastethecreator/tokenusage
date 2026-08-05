@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed partial class LocalizationContractTests
 {
@@ -14,8 +14,8 @@ public sealed partial class LocalizationContractTests
         Assert.Equal(english.Values.Keys.Order(), spanish.Values.Keys.Order());
         Assert.DoesNotContain(english.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
         Assert.DoesNotContain(spanish.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
-        Assert.DoesNotContain(english.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
-        Assert.DoesNotContain(spanish.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
+        Assert.DoesNotContain(english.Values.Values, value => value.Contains("TokenUsage", StringComparison.Ordinal));
+        Assert.DoesNotContain(spanish.Values.Values, value => value.Contains("TokenUsage", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -128,12 +128,12 @@ public sealed partial class LocalizationContractTests
     private static string AppRoot() => Path.Combine(
         ProjectReferenceGraph.FindRepoRoot(),
         "src",
-        "WOpenUsage.App");
+        "TokenUsage.App");
 
     private static string PackageRoot() => Path.Combine(
         ProjectReferenceGraph.FindRepoRoot(),
         "src",
-        "WOpenUsage.Package");
+        "TokenUsage.Package");
 
     private static bool IsGeneratedPath(string path) =>
         path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)

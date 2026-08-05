@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
-using WOpenUsage.Cli;
+using TokenUsage.Cli;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class UsageCommandTests
 {
@@ -32,7 +32,7 @@ public sealed class UsageCommandTests
         string goldenPath = Path.Combine(
             AppContext.BaseDirectory,
             "Golden",
-            "wusage.usage.v1.json");
+            "tokenusage.usage.v1.json");
         Assert.Equal(
             NormalizeNewlines(await File.ReadAllTextAsync(goldenPath)),
             NormalizeNewlines(output.ToString()));
@@ -81,7 +81,7 @@ public sealed class UsageCommandTests
 
         Assert.Equal(4, exitCode);
         using JsonDocument document = JsonDocument.Parse(output.ToString());
-        Assert.Equal("wusage.usage.v1", document.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("tokenusage.usage.v1", document.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(0, document.RootElement.GetProperty("events").GetInt32());
         Assert.Equal(JsonValueKind.Null, document.RootElement
             .GetProperty("costUsd")

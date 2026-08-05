@@ -1,4 +1,4 @@
-namespace WOpenUsage.Core.Alerts;
+namespace TokenUsage.Core.Alerts;
 
 /// <summary>
 /// Evaluates settings against provider facts, applies decision-key dedupe, and emits intents.

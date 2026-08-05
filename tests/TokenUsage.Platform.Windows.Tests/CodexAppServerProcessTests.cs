@@ -2,14 +2,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
-using WOpenUsage.Platform.Windows.Native;
-using WOpenUsage.Platform.Windows.Processes;
+using TokenUsage.Platform.Windows.Native;
+using TokenUsage.Platform.Windows.Processes;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class CodexAppServerProcessTests
 {
-    private const string ExtraHandleEnvironmentVariable = "WOPENUSAGE_FAKE_EXTRA_HANDLE";
+    private const string ExtraHandleEnvironmentVariable = "TOKENUSAGE_FAKE_EXTRA_HANDLE";
     private static readonly CodexAppServerProcessOptions TestOptions = new(
         gracefulShutdownTimeout: TimeSpan.FromMilliseconds(50),
         forcedShutdownTimeout: TimeSpan.FromSeconds(2),

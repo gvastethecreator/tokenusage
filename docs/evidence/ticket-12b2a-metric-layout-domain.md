@@ -45,7 +45,7 @@ The accepted repair keeps legacy highlights and names the new method
 
 Release/x64 focused command:
 
-`dotnet test tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj -c Release -p:Platform=x64 --no-restore --filter "FullyQualifiedName~DashboardLayoutTests|FullyQualifiedName~DashboardLayoutStoreTests"`
+`dotnet test tests\TokenUsage.Core.Tests\TokenUsage.Core.Tests.csproj -c Release -p:Platform=x64 --no-restore --filter "FullyQualifiedName~DashboardLayoutTests|FullyQualifiedName~DashboardLayoutStoreTests"`
 
 Result: 48/48.
 

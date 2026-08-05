@@ -2,7 +2,7 @@
 
 ## OpenUsage provider marks
 
-WOpenUsage includes adapted provider-mark SVG files copied from
+TokenUsage includes adapted provider-mark SVG files copied from
 `robinebers/openusage` at commit
 `9d2bf09f10e21f769494a525a9d65c84d7aeb1df`:
 
@@ -15,9 +15,9 @@ WOpenUsage includes adapted provider-mark SVG files copied from
 The vector paths are unchanged. Their fill colors use the provider palette from
 OpenUsage's `TotalSpendCard.swift` so the marks remain legible in this dark
 prototype. Provider names and marks belong to their respective owners and only
-identify the measured tools. WOpenUsage is not endorsed by those providers.
+identify the measured tools. TokenUsage is not endorsed by those providers.
 
-The OpenUsage name and logo are not included as WOpenUsage product identity.
+The OpenUsage name and logo are not included as TokenUsage product identity.
 
 MIT License
 

@@ -3,10 +3,10 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests;
+namespace TokenUsage.Core.Tests;
 
 public sealed class SnapshotStoreTests
 {
@@ -561,7 +561,7 @@ public sealed class SnapshotStoreTests
     {
         string normalizedPath = Path.GetFullPath(documentPath).ToUpperInvariant();
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
-        return $"Local\\WOpenUsage.SnapshotStore.{Convert.ToHexString(hash.AsSpan(0, 16))}";
+        return $"Local\\TokenUsage.SnapshotStore.{Convert.ToHexString(hash.AsSpan(0, 16))}";
     }
 
     private static WorkerProcess StartWorkerProcess(
@@ -582,7 +582,7 @@ public sealed class SnapshotStoreTests
         startInfo.ArgumentList.Add("vstest");
         startInfo.ArgumentList.Add(assemblyPath);
         startInfo.ArgumentList.Add(
-            "--Tests:WOpenUsage.Core.Tests.SnapshotStoreTests.ConcurrentProcessesMergeProvidersAndLeaveParseableJson");
+            "--Tests:TokenUsage.Core.Tests.SnapshotStoreTests.ConcurrentProcessesMergeProvidersAndLeaveParseableJson");
         startInfo.ArgumentList.Add("--logger:console;verbosity=minimal");
         startInfo.Environment[ProcessRootVariable] = rootPath;
         startInfo.Environment[ProcessProviderVariable] = providerId;
@@ -765,7 +765,7 @@ public sealed class SnapshotStoreTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "WOpenUsage.Core.Tests",
+                "TokenUsage.Core.Tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
             DocumentPath = System.IO.Path.Combine(Path, SnapshotStore.DefaultFileName);
@@ -828,10 +828,10 @@ public sealed class SnapshotStoreTests
         }
         """;
 
-    private const string ProcessRootVariable = "WOPENUSAGE_CACHE_TEST_ROOT";
-    private const string ProcessProviderVariable = "WOPENUSAGE_CACHE_TEST_PROVIDER";
-    private const string ProcessReadyVariable = "WOPENUSAGE_CACHE_TEST_READY";
-    private const string ProcessStartVariable = "WOPENUSAGE_CACHE_TEST_START";
+    private const string ProcessRootVariable = "TOKENUSAGE_CACHE_TEST_ROOT";
+    private const string ProcessProviderVariable = "TOKENUSAGE_CACHE_TEST_PROVIDER";
+    private const string ProcessReadyVariable = "TOKENUSAGE_CACHE_TEST_READY";
+    private const string ProcessStartVariable = "TOKENUSAGE_CACHE_TEST_START";
 
     public static TheoryData<string> DocumentsWithNullListEntries =>
         new()

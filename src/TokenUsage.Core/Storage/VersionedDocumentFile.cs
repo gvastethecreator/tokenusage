@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace WOpenUsage.Core.Storage;
+namespace TokenUsage.Core.Storage;
 
 /// <summary>
 /// Shared lock / bounded-read / quarantine / atomic-replace protocol for

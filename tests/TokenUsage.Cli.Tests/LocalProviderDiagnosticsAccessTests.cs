@@ -1,12 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.Sqlite;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class LocalProviderDiagnosticsAccessTests
 {

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Application
-    x:Class="WOpenUsage.App.App"
+    x:Class="TokenUsage.App.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:WOpenUsage.App">
+    xmlns:local="using:TokenUsage.App">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -12,7 +12,7 @@
             </ResourceDictionary.MergedDictionaries>
             <CornerRadius x:Key="DashboardCardCornerRadius">12</CornerRadius>
 
-            <!-- WOpenUsage data-visualization colors; these are not provider brand colors. -->
+            <!-- TokenUsage data-visualization colors; these are not provider brand colors. -->
             <Color x:Key="ProviderAntigravityColorDark">#FF2458AA</Color>
             <Color x:Key="ProviderAntigravityColor">#FF4285F4</Color>
             <Color x:Key="ProviderClaudeColorDark">#FFA04732</Color>

@@ -1,7 +1,7 @@
 using System.Text.Json;
-using WOpenUsage.Core.Storage;
+using TokenUsage.Core.Storage;
 
-namespace WOpenUsage.Core.Appearance;
+namespace TokenUsage.Core.Appearance;
 
 public sealed class AppearanceSettingsStore
 {
@@ -16,7 +16,7 @@ public sealed class AppearanceSettingsStore
     {
         _document = new VersionedDocumentFile(
             documentPath,
-            mutexNamePrefix: "WOpenUsage.AppearanceSettingsStore",
+            mutexNamePrefix: "TokenUsage.AppearanceSettingsStore",
             clock ?? TimeProvider.System,
             lockTimeoutMessage: "Timed out while waiting for the appearance settings lock.");
     }

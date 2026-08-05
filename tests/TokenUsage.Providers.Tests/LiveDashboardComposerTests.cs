@@ -1,8 +1,8 @@
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
 
-namespace WOpenUsage.Providers.Tests;
+namespace TokenUsage.Providers.Tests;
 
 public sealed class LiveDashboardComposerTests
 {

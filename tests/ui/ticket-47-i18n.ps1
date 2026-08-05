@@ -85,7 +85,7 @@ function Select-Language([string]$OptionName, [string]$ScreenshotName) {
 
 function Restart-CurrentApp {
     $oldPid = $script:CurrentPid
-    $existingPids = @(Get-Process WOpenUsage.App -ErrorAction SilentlyContinue |
+    $existingPids = @(Get-Process TokenUsage.App -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty Id)
 
     & winapp ui invoke 'LanguageRestartButton' -a $oldPid 2>$null | Out-Null
@@ -93,7 +93,7 @@ function Restart-CurrentApp {
     $newProcess = $null
     do {
         Start-Sleep -Milliseconds 250
-        $newProcess = Get-Process WOpenUsage.App -ErrorAction SilentlyContinue |
+        $newProcess = Get-Process TokenUsage.App -ErrorAction SilentlyContinue |
             Where-Object { $existingPids -notcontains $_.Id } |
             Sort-Object StartTime -Descending |
             Select-Object -First 1

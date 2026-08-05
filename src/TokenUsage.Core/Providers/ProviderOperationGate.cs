@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace WOpenUsage.Core.Providers;
+namespace TokenUsage.Core.Providers;
 
 [SuppressMessage(
     "Design",

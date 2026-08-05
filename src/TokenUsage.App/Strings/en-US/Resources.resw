@@ -193,7 +193,7 @@
   <data name="LocalUsageTitle" xml:space="preserve"><value>Local usage</value></data>
   <data name="LocalUsageSourceSynthetic" xml:space="preserve"><value>Synthetic fixture · Local SQLite</value></data>
   <data name="LocalUsageSourceClaude" xml:space="preserve"><value>Claude Code · Local logs</value></data>
-  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Claude + Codex + Grok Build + OpenCode · Local data</value></data>
+  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Claude + Codex + Grok Build + OpenCode + Antigravity · Local data</value></data>
   <data name="LocalUsagePeriod30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="LocalUsageNotice" xml:space="preserve"><value>Local test data</value></data>
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Saved sessions on this device only. Estimated cost uses API list prices and does not represent your plan charge.</value></data>
@@ -234,6 +234,7 @@
   <data name="LocalUsageModelCoverageFormat" xml:space="preserve"><value>Coverage {0}</value></data>
   <data name="LocalUsageModelTitleFormat" xml:space="preserve"><value>{0} · {1}</value></data>
   <data name="LocalUsageModelAccessibleFormat" xml:space="preserve"><value>{0}: {1}; {2}; {3}</value></data>
+  <data name="LocalUsageAgentAntigravity" xml:space="preserve"><value>Antigravity</value></data>
   <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
   <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>

@@ -1,12 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 internal static class LimitsDocument
 {
-    internal const string SchemaVersion = "wusage.limits.v1";
+    internal const string SchemaVersion = "tokenusage.limits.v1";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

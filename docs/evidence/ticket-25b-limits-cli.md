@@ -7,9 +7,9 @@ Date: 2026-07-23
 El ejecutable acepta:
 
 ```text
-wusage limits
-wusage limits codex
-wusage limits --format json
+tokenusage limits
+tokenusage limits codex
+tokenusage limits --format json
 ```
 
 Lee `cache/providers/codex/snapshots.v1.json` mediante `SnapshotStore`, la misma
@@ -18,7 +18,7 @@ credenciales ni datos del proveedor.
 
 ## Contract
 
-- JSON `wusage.limits.v1` con golden estable.
+- JSON `tokenusage.limits.v1` con golden estable.
 - Orden ordinal de providers y métricas.
 - Estado `stale` por provider y agregado en la raíz.
 - Métricas de progreso y escalares conservan fuente y tipo de medición.
@@ -33,15 +33,15 @@ cerró ese límite; su evidencia está en
 
 ## Evidence
 
-- `dotnet test tests/WOpenUsage.Cli.Tests/WOpenUsage.Cli.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 45/45.
+- `dotnet test tests/TokenUsage.Cli.Tests/TokenUsage.Cli.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 45/45.
 - El golden cubre dos providers, métricas desordenadas, campo opcional, stale y
   procedencia.
-- Dos procesos `WOpenUsage.Cli.exe` leen a la vez la misma caché temporal. Ambos
+- Dos procesos `TokenUsage.Cli.exe` leen a la vez la misma caché temporal. Ambos
   devuelven JSON válido; una lectura posterior confirma el snapshot y ausencia
   de cuarentena.
 - La suite conserva el smoke de `usage` contra una SQLite poblada.
-- `dotnet test tests/WOpenUsage.Architecture.Tests/WOpenUsage.Architecture.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 59/59.
-- `dotnet build src/WOpenUsage.Cli/WOpenUsage.Cli.csproj -c Release -p:Platform=x64 --no-restore`: 0 avisos, 0 errores.
+- `dotnet test tests/TokenUsage.Architecture.Tests/TokenUsage.Architecture.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 59/59.
+- `dotnet build src/TokenUsage.Cli/TokenUsage.Cli.csproj -c Release -p:Platform=x64 --no-restore`: 0 avisos, 0 errores.
 
 ## Review
 

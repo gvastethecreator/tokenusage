@@ -2,7 +2,7 @@ using System.Globalization;
 using Microsoft.Windows.AppLifecycle;
 using Microsoft.Windows.Globalization;
 
-namespace WOpenUsage.App.Localization;
+namespace TokenUsage.App.Localization;
 
 internal static class AppLanguageRuntime
 {

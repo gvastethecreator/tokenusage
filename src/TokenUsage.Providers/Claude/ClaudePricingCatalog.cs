@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Providers.Claude;
+namespace TokenUsage.Providers.Claude;
 
 public static class ClaudePricingCatalog
 {

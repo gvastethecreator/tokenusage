@@ -1,4 +1,4 @@
-namespace WOpenUsage.Providers.VercelAiGateway;
+namespace TokenUsage.Providers.VercelAiGateway;
 
 public interface IVercelGatewayQuotaClient
 {

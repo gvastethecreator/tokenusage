@@ -3,11 +3,11 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.LocalScan;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.LocalScan;
 
-namespace WOpenUsage.Providers.Claude;
+namespace TokenUsage.Providers.Claude;
 
 public sealed class ClaudeUsageEventSource :
     IWindowedSnapshotUsageEventSource,

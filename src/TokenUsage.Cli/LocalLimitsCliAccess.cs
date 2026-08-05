@@ -1,8 +1,8 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Runtime.Windows.Providers;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Runtime.Windows.Providers;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public static class LocalLimitsCliAccess
 {

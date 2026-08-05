@@ -1,1 +1,1 @@
-global using WOpenUsage.App.ViewModels.Dashboard;
+global using TokenUsage.App.ViewModels.Dashboard;

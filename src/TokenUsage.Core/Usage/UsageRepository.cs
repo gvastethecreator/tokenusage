@@ -1,8 +1,8 @@
 using System.Globalization;
 using Microsoft.Data.Sqlite;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Usage;
+namespace TokenUsage.Core.Usage;
 
 public sealed record UsageIngestResult(int InsertedCount, int DuplicateCount);
 

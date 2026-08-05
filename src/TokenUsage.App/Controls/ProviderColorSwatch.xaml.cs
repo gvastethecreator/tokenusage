@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.UI.ViewManagement;
 
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 public sealed partial class ProviderColorSwatch : UserControl
 {

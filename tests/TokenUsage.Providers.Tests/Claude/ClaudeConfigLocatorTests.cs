@@ -1,6 +1,6 @@
-using WOpenUsage.Providers.Claude;
+using TokenUsage.Providers.Claude;
 
-namespace WOpenUsage.Providers.Tests.Claude;
+namespace TokenUsage.Providers.Tests.Claude;
 
 public sealed class ClaudeConfigLocatorTests
 {
@@ -49,7 +49,7 @@ public sealed class ClaudeConfigLocatorTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-claude-locator",
+                "tokenusage-claude-locator",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

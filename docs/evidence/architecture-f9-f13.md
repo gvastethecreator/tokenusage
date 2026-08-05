@@ -36,7 +36,7 @@ sign a release, publish a package, or change the remote tracker.
 
 ## Automated checks
 
-`dotnet format WOpenUsage.slnx --verify-no-changes --no-restore` passed. The
+`dotnet format TokenUsage.slnx --verify-no-changes --no-restore` passed. The
 workspace loader printed its existing non-fatal warning and returned exit code 0.
 
 `./scripts/check.ps1 -Platform x64 -Configuration Release` passed twice. The

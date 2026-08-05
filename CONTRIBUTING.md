@@ -17,7 +17,7 @@ TokenUsage welcomes focused fixes, tests, documentation, and provider research. 
 4. Update the related document when behavior, provider coverage, or a public contract changes.
 5. Run the local checks that cover the changed path.
 
-Use the existing technical name `WOpenUsage` in project files and namespaces until the name-transition decision says otherwise. Use `TokenUsage` in user-facing copy.
+Use `TokenUsage` in project files, namespaces, package metadata, CLI contracts, and user-facing copy.
 
 ## Verify
 

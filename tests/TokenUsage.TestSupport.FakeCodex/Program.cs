@@ -18,7 +18,7 @@ Console.Error.WriteLine("private-account@example.invalid");
 Console.Error.WriteLine("sk-test1234");
 Console.Error.WriteLine("C:\\Users\\private\\.codex\\auth.json");
 Console.Error.WriteLine("Authorization: Bearer test1234");
-if (Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_EXTRA_HANDLE") is string rawHandle
+if (Environment.GetEnvironmentVariable("TOKENUSAGE_FAKE_EXTRA_HANDLE") is string rawHandle
     && long.TryParse(rawHandle, NumberStyles.None, CultureInfo.InvariantCulture, out long handleValue))
 {
     bool inherited = FakeNativeMethods.GetHandleInformation((nint)handleValue, out _);
@@ -27,21 +27,21 @@ if (Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_EXTRA_HANDLE") is string
 
 await Console.Error.FlushAsync();
 
-if (Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_PATH_MARKER") is string markerPath
+if (Environment.GetEnvironmentVariable("TOKENUSAGE_FAKE_PATH_MARKER") is string markerPath
     && !string.IsNullOrWhiteSpace(markerPath))
 {
     await File.WriteAllTextAsync(markerPath, Environment.ProcessPath ?? string.Empty);
 }
 
 DateTimeOffset fakeNowUtc = DateTimeOffset.TryParse(
-    Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_NOW_UTC"),
+    Environment.GetEnvironmentVariable("TOKENUSAGE_FAKE_NOW_UTC"),
     CultureInfo.InvariantCulture,
     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
     out DateTimeOffset parsedFakeNow)
     ? parsedFakeNow
     : DateTimeOffset.UtcNow;
 
-string mode = Environment.GetEnvironmentVariable("WOPENUSAGE_FAKE_CODEX_MODE") ?? string.Empty;
+string mode = Environment.GetEnvironmentVariable("TOKENUSAGE_FAKE_CODEX_MODE") ?? string.Empty;
 if (string.Equals(mode, "quota", StringComparison.Ordinal))
 {
     await RunQuotaServerAsync(fakeNowUtc);

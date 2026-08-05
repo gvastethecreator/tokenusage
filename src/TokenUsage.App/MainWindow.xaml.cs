@@ -5,15 +5,15 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 using Windows.UI.ViewManagement;
-using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Session;
-using WOpenUsage.Platform.Windows.Display;
-using WOpenUsage.Platform.Windows.Placement;
-using WOpenUsage.Platform.Windows.Tray;
-using WOpenUsage.Platform.Windows.Windowing;
+using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Session;
+using TokenUsage.Platform.Windows.Display;
+using TokenUsage.Platform.Windows.Placement;
+using TokenUsage.Platform.Windows.Tray;
+using TokenUsage.Platform.Windows.Windowing;
 using WinRT.Interop;
 
-namespace WOpenUsage.App;
+namespace TokenUsage.App;
 
 public sealed partial class MainWindow : Window, IDisposable
 {

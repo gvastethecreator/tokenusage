@@ -29,14 +29,14 @@ The final client maps those failures to fixed messages without inner errors.
 ## Proof
 
 ```text
-dotnet test tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj \
+dotnet test tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj \
   --filter FullyQualifiedName~VercelGatewayReportClientTests --no-restore
 
 Passed: 21, Failed: 0, Skipped: 0
 ```
 
 ```text
-dotnet test tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj \
+dotnet test tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj \
   --no-restore
 
 Passed: 191, Failed: 0, Skipped: 0

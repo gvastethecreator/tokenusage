@@ -3,11 +3,11 @@ using System.Text;
 using System.Text.Json;
 using System.Globalization;
 using Microsoft.Data.Sqlite;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.LocalScan;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.LocalScan;
 
-namespace WOpenUsage.Providers.OpenCode;
+namespace TokenUsage.Providers.OpenCode;
 
 public sealed class OpenCodeUsageEventSource :
     IWindowedSnapshotUsageEventSource,
@@ -67,9 +67,7 @@ public sealed class OpenCodeUsageEventSource :
         var state = new LocalScanState(_budget);
         var databaseEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
         var aggregateEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
-        var databaseSessions = new HashSet<string>(StringComparer.Ordinal);
-        bool databaseFailed = false;
-
+        var aggregateSessions = new HashSet<string>(StringComparer.Ordinal);
         foreach (string path in EnumerateDatabaseFiles(state, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -78,10 +76,14 @@ public sealed class OpenCodeUsageEventSource :
                 break;
             }
 
-            if (!ReadDatabase(path, databaseEvents, aggregateEvents, databaseSessions, state, _maximumRows, cancellationToken))
-            {
-                databaseFailed = true;
-            }
+            ReadDatabase(
+                path,
+                databaseEvents,
+                aggregateEvents,
+                aggregateSessions,
+                state,
+                _maximumRows,
+                cancellationToken);
         }
 
         HashSet<string> sessionsWithMessages = databaseEvents.Values
@@ -95,10 +97,7 @@ public sealed class OpenCodeUsageEventSource :
             }
         }
 
-        if (!databaseFailed)
-        {
-            ReadLegacyJson(databaseSessions, databaseEvents, state, cancellationToken);
-        }
+        ReadLegacyJson(aggregateSessions, databaseEvents, state, cancellationToken);
 
         List<UsageEvent> events = databaseEvents.Values
             .OrderBy(candidate => candidate.SessionId, StringComparer.Ordinal)
@@ -139,7 +138,7 @@ public sealed class OpenCodeUsageEventSource :
         string path,
         Dictionary<string, Candidate> messages,
         Dictionary<string, Candidate> aggregates,
-        HashSet<string> sessions,
+        HashSet<string> aggregateSessions,
         LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
@@ -170,7 +169,13 @@ public sealed class OpenCodeUsageEventSource :
             HashSet<string> sessionColumns = GetColumns(connection, "session", cancellationToken);
             if (HasColumns(sessionColumns, "id", "time_updated", "model", "cost", "tokens_input", "tokens_output", "tokens_reasoning", "tokens_cache_read", "tokens_cache_write"))
             {
-                ReadAggregateRows(connection, aggregates, sessions, state, maximumRows, cancellationToken);
+                ReadAggregateRows(
+                    connection,
+                    aggregates,
+                    aggregateSessions,
+                    state,
+                    maximumRows,
+                    cancellationToken);
             }
             else if (HasColumns(messageColumns, "id", "session_id", "time_created", "data"))
             {
@@ -178,7 +183,6 @@ public sealed class OpenCodeUsageEventSource :
                 ReadMessageRows(
                     connection,
                     messages,
-                    sessions,
                     state,
                     maximumRows,
                     HasColumns(partColumns, "id", "message_id", "time_created", "data"),
@@ -234,7 +238,6 @@ public sealed class OpenCodeUsageEventSource :
     private static void ReadMessageRows(
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
-        HashSet<string> sessions,
         LocalScanState state,
         int maximumRows,
         bool hasPartFallback,
@@ -286,7 +289,6 @@ public sealed class OpenCodeUsageEventSource :
             cancellationToken.ThrowIfCancellationRequested();
             if (++rowsRead > maximumRows) { state.IsPartial = true; break; }
             string sessionId = reader.IsDBNull(1) ? "" : reader.GetString(1);
-            if (!string.IsNullOrWhiteSpace(sessionId)) sessions.Add(sessionId);
             if (!TryReadDbCandidate(reader, sessionId, out Candidate? candidate))
             {
                 if (HasPossibleUsage(reader)) state.IsPartial = true;
@@ -336,7 +338,7 @@ public sealed class OpenCodeUsageEventSource :
     private static void ReadAggregateRows(
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
-        HashSet<string> sessions,
+        HashSet<string> aggregateSessions,
         LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
@@ -355,7 +357,6 @@ public sealed class OpenCodeUsageEventSource :
             cancellationToken.ThrowIfCancellationRequested();
             if (++rowsRead > maximumRows) { state.IsPartial = true; break; }
             string sessionId = reader.IsDBNull(0) ? "" : reader.GetString(0);
-            if (!string.IsNullOrWhiteSpace(sessionId)) sessions.Add(sessionId);
             if (string.IsNullOrWhiteSpace(sessionId) || reader.IsDBNull(1) || reader.IsDBNull(2)
                 || !TryTimestamp(reader.GetValue(1), out DateTimeOffset timestamp)
                 || !TryNonNegative(reader, 4, out long input) || !TryNonNegative(reader, 5, out long outputTokens))
@@ -372,6 +373,7 @@ public sealed class OpenCodeUsageEventSource :
                 if (!TryCost(reader, 3, out decimal parsed)) { state.IsPartial = true; continue; }
                 cost = parsed;
             }
+            aggregateSessions.Add(sessionId);
             output.TryAdd(sessionId, new Candidate(sessionId, "aggregate", timestamp, reader.GetString(2), new TokenBreakdown(input, outputTokens, reasoning, cacheRead, cacheWrite), cost));
         }
     }

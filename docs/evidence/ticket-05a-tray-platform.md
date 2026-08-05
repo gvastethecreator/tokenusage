@@ -38,16 +38,16 @@ La revisión de firmas se contrastó con la documentación vigente de Microsoft 
 ## Pruebas
 
 ```text
-dotnet test tests/WOpenUsage.Platform.Windows.Tests/WOpenUsage.Platform.Windows.Tests.csproj -p:Platform=x64 --nologo
+dotnet test tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj -p:Platform=x64 --nologo
 15 superadas, 0 fallidas
 
-dotnet test tests/WOpenUsage.Architecture.Tests/WOpenUsage.Architecture.Tests.csproj -p:Platform=x64 --nologo
+dotnet test tests/TokenUsage.Architecture.Tests/TokenUsage.Architecture.Tests.csproj -p:Platform=x64 --nologo
 3 superadas, 0 fallidas
 
-dotnet build src/WOpenUsage.Platform.Windows/WOpenUsage.Platform.Windows.csproj -p:Platform=ARM64 --nologo
+dotnet build src/TokenUsage.Platform.Windows/TokenUsage.Platform.Windows.csproj -p:Platform=ARM64 --nologo
 0 advertencias, 0 errores
 
-dotnet build WOpenUsage.slnx -p:Platform=x64 --nologo
+dotnet build TokenUsage.slnx -p:Platform=x64 --nologo
 0 advertencias, 0 errores
 ```
 

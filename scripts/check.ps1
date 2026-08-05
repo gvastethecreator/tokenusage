@@ -12,13 +12,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$solution = Join-Path $repoRoot 'WOpenUsage.slnx'
-$packageProject = Join-Path $repoRoot 'src\WOpenUsage.Package\WOpenUsage.Package.wapproj'
-$architectureTests = Join-Path $repoRoot 'tests\WOpenUsage.Architecture.Tests\WOpenUsage.Architecture.Tests.csproj'
-$coreTests = Join-Path $repoRoot 'tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj'
-$cliTests = Join-Path $repoRoot 'tests\WOpenUsage.Cli.Tests\WOpenUsage.Cli.Tests.csproj'
-$providerTests = Join-Path $repoRoot 'tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj'
-$platformWindowsTests = Join-Path $repoRoot 'tests\WOpenUsage.Platform.Windows.Tests\WOpenUsage.Platform.Windows.Tests.csproj'
+$solution = Join-Path $repoRoot 'TokenUsage.slnx'
+$packageProject = Join-Path $repoRoot 'src\TokenUsage.Package\TokenUsage.Package.wapproj'
+$architectureTests = Join-Path $repoRoot 'tests\TokenUsage.Architecture.Tests\TokenUsage.Architecture.Tests.csproj'
+$coreTests = Join-Path $repoRoot 'tests\TokenUsage.Core.Tests\TokenUsage.Core.Tests.csproj'
+$cliTests = Join-Path $repoRoot 'tests\TokenUsage.Cli.Tests\TokenUsage.Cli.Tests.csproj'
+$providerTests = Join-Path $repoRoot 'tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj'
+$platformWindowsTests = Join-Path $repoRoot 'tests\TokenUsage.Platform.Windows.Tests\TokenUsage.Platform.Windows.Tests.csproj'
 
 function Invoke-DotNetStep {
     param(

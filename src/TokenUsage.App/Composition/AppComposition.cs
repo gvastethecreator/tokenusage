@@ -1,15 +1,15 @@
-using WOpenUsage.App.Services;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.Core.Alerts;
-using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Layout;
-using WOpenUsage.Core.Session;
-using WOpenUsage.Providers.VercelAiGateway;
-using WOpenUsage.Runtime.Windows.Providers;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.App.Services;
+using TokenUsage.App.ViewModels;
+using TokenUsage.Core.Alerts;
+using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Layout;
+using TokenUsage.Core.Session;
+using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Runtime.Windows.Providers;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.App.Composition;
+namespace TokenUsage.App.Composition;
 
 public sealed record AppCompositionOptions(
     string? DashboardLayoutPath = null,

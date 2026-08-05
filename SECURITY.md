@@ -6,7 +6,7 @@ TokenUsage is in pre-release development. Security fixes target the current `mai
 
 ## Report a vulnerability
 
-Do not open a public issue for a suspected vulnerability. Use the repository's [private security advisory form](https://github.com/gvastethecreator/wopenusage/security/advisories/new).
+Do not open a public issue for a suspected vulnerability. Use the repository's [private security advisory form](https://github.com/gvastethecreator/tokenusage/security/advisories/new).
 
 Include:
 

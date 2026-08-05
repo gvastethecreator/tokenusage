@@ -1,5 +1,5 @@
 using Windows.Storage;
-using WOpenUsage.Cli;
+using TokenUsage.Cli;
 
 string dataDirectory;
 try

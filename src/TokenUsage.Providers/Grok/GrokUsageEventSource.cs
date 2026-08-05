@@ -3,11 +3,11 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.LocalScan;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.LocalScan;
 
-namespace WOpenUsage.Providers.Grok;
+namespace TokenUsage.Providers.Grok;
 
 public sealed class GrokUsageEventSource :
     IWindowedSnapshotUsageEventSource,
@@ -75,7 +75,10 @@ public sealed class GrokUsageEventSource :
                 DateTimeOffset.UtcNow.AddDays(-ReconciliationWindowDays),
                 state,
                 cancellationToken);
-            if (unifiedEvents.Count > 0 || state.IsPartial)
+            // A partial unified log is still the primary lower bound when it
+            // yielded events. Session snapshots can overlap those rows, so
+            // merging them would risk charging the same inference twice.
+            if (unifiedEvents.Count > 0)
             {
                 return CreateResult(unifiedEvents, state);
             }

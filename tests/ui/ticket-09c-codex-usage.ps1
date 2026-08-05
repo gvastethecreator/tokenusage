@@ -30,7 +30,7 @@ function Get-TraySelector {
 }
 
 function Show-Options {
-    $active = Get-Process WOpenUsage.App -ErrorAction SilentlyContinue |
+    $active = Get-Process TokenUsage.App -ErrorAction SilentlyContinue |
         Sort-Object StartTime -Descending |
         Select-Object -First 1
     if (-not $active) { throw "App process not found." }

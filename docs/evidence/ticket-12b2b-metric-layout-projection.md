@@ -26,7 +26,7 @@ Estado: implementado y verificado en x64.
 Comando focal:
 
 ```powershell
-dotnet test tests/WOpenUsage.Providers.Tests/WOpenUsage.Providers.Tests.csproj `
+dotnet test tests/TokenUsage.Providers.Tests/TokenUsage.Providers.Tests.csproj `
   -c Release --no-restore `
   --filter "FullyQualifiedName~DashboardLayoutProjectorTests|FullyQualifiedName~SampleDashboardProjectorTests|FullyQualifiedName~CodexDashboardProjectorTests"
 ```
@@ -36,7 +36,7 @@ Resultado: 25/25.
 Vercel:
 
 ```powershell
-dotnet test tests/WOpenUsage.Platform.Windows.Tests/WOpenUsage.Platform.Windows.Tests.csproj `
+dotnet test tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj `
   -c Release --no-restore `
   --filter FullyQualifiedName~VercelGatewayCardProjectorTests
 ```
@@ -46,7 +46,7 @@ Resultado: 7/7.
 Build empaquetada:
 
 ```powershell
-.\BuildAndRun.ps1 src\WOpenUsage.App\WOpenUsage.App.csproj `
+.\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj `
   -SkipRun /p:Platform=x64 /p:Configuration=Release
 ```
 

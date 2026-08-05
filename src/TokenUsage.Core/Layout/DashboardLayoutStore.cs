@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Storage;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Storage;
 
-namespace WOpenUsage.Core.Layout;
+namespace TokenUsage.Core.Layout;
 
 public sealed class DashboardLayoutStore
 {
@@ -26,7 +26,7 @@ public sealed class DashboardLayoutStore
     {
         _document = new VersionedDocumentFile(
             documentPath,
-            mutexNamePrefix: "WOpenUsage.DashboardLayoutStore",
+            mutexNamePrefix: "TokenUsage.DashboardLayoutStore",
             clock ?? TimeProvider.System,
             lockTimeoutMessage: "Timed out while waiting for the dashboard layout lock.");
     }

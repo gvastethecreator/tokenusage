@@ -1,6 +1,6 @@
-using WOpenUsage.Platform.Windows.Windowing;
+using TokenUsage.Platform.Windows.Windowing;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class ForegroundWindowActivatorTests
 {

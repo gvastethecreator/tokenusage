@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public static class LocalUsageCliAccess
 {

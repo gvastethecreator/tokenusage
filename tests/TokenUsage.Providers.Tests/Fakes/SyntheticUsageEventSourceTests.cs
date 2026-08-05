@@ -1,8 +1,8 @@
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Fakes;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Fakes;
 
-namespace WOpenUsage.Providers.Tests.Fakes;
+namespace TokenUsage.Providers.Tests.Fakes;
 
 public sealed class SyntheticUsageEventSourceTests
 {

@@ -1,14 +1,14 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Appearance;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Session;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Session;
 
-namespace WOpenUsage.App.ViewModels.Surfaces;
+namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDisposable
 {

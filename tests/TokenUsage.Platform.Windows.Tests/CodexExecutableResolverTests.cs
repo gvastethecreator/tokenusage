@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using WOpenUsage.Platform.Windows.Processes;
+using TokenUsage.Platform.Windows.Processes;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class CodexExecutableResolverTests
 {
@@ -191,7 +191,7 @@ public sealed class CodexExecutableResolverTests
     {
         internal TemporaryFolder()
         {
-            Root = Path.Combine(Path.GetTempPath(), $"wopenusage-resolver-{Guid.NewGuid():N}");
+            Root = Path.Combine(Path.GetTempPath(), $"tokenusage-resolver-{Guid.NewGuid():N}");
             Directory.CreateDirectory(Root);
         }
 

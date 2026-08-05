@@ -1,4 +1,4 @@
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public enum FlyoutSurfaceState
 {

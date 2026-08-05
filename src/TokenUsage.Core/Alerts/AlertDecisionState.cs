@@ -1,8 +1,8 @@
 using System.Text.Json;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Storage;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Storage;
 
-namespace WOpenUsage.Core.Alerts;
+namespace TokenUsage.Core.Alerts;
 
 public sealed class AlertDecisionState
 {
@@ -44,7 +44,7 @@ public sealed class AlertDecisionStore
     {
         _document = new VersionedDocumentFile(
             documentPath,
-            mutexNamePrefix: "WOpenUsage.AlertDecisionStore",
+            mutexNamePrefix: "TokenUsage.AlertDecisionStore",
             clock ?? TimeProvider.System,
             lockTimeoutMessage: "Timed out while waiting for the alert decision lock.");
     }
@@ -147,7 +147,7 @@ public sealed class AlertSettingsStore
     {
         _document = new VersionedDocumentFile(
             documentPath,
-            mutexNamePrefix: "WOpenUsage.AlertSettingsStore",
+            mutexNamePrefix: "TokenUsage.AlertSettingsStore",
             clock ?? TimeProvider.System,
             lockTimeoutMessage: "Timed out while waiting for the alert settings lock.");
     }

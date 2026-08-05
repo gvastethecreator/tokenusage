@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace WOpenUsage.Providers.VercelAiGateway;
+namespace TokenUsage.Providers.VercelAiGateway;
 
 public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
 {

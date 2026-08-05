@@ -1,4 +1,4 @@
-namespace WOpenUsage.Core.Alerts;
+namespace TokenUsage.Core.Alerts;
 
 public enum AlertKind
 {

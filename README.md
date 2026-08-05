@@ -2,16 +2,16 @@
 
 TokenUsage is a Windows app for viewing AI coding-tool quota, token use, and spend from sources already available on the computer. It does not require a TokenUsage account.
 
-> TokenUsage is in active pre-release development. Project names and namespaces still use `WOpenUsage` while the product name changes.
+> TokenUsage is in active pre-release development.
 
 ## What works today
 
 - Codex quota and reset windows through the official local `app-server` process.
-- Local usage and cost views for Codex, Claude, Grok Build, and OpenCode.
+- Local usage and cost views for Codex, Claude, Grok Build, OpenCode, and passive Antigravity databases.
 - Vercel AI Gateway code is retained but its provider is temporarily disabled.
 - Daily usage heatmaps, provider details, configurable colors, and quota alerts.
 - English and Spanish UI.
-- A packaged `wusage` command for usage, limits, provider status, and diagnostics.
+- A packaged `tokenusage` command for usage, limits, provider status, and diagnostics.
 
 Provider data can be authoritative, local, estimated, incomplete, stale, blocked, or unavailable. The UI labels the source and state instead of treating each value as a remote quota.
 
@@ -38,13 +38,13 @@ The app uses C#, WinUI 3, Windows App SDK, and a full-trust MSIX package. `AnyCP
 From PowerShell at the repository root:
 
 ```powershell
-.\BuildAndRun.ps1 src\WOpenUsage.App\WOpenUsage.App.csproj -SkipRun /p:Platform=x64
+.\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -SkipRun /p:Platform=x64
 ```
 
 Build and launch with package identity:
 
 ```powershell
-.\BuildAndRun.ps1 src\WOpenUsage.App\WOpenUsage.App.csproj -Detach /p:Platform=x64
+.\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -Detach /p:Platform=x64
 ```
 
 The build helper launches the packaged app through `winapp`. Do not run the packaged executable directly.
@@ -62,22 +62,24 @@ Use `-Platform ARM64` for a cross-architecture package build. Tests still run on
 After installing the package and enabling its execution alias:
 
 ```powershell
-wusage usage --days 7 --format human
-wusage limits --format json
-wusage providers --format human
-wusage doctor --format human
+tokenusage usage --days 7 --format human
+tokenusage report --days 30 --format human
+tokenusage report --from 2026-07-01 --to 2026-07-31 --agent codex --format json
+tokenusage limits --format json
+tokenusage providers --format human
+tokenusage doctor --format human
 ```
 
-The JSON contracts are versioned as `wusage.usage.v1`, `wusage.limits.v1`, `wusage.providers.v1`, and `wusage.doctor.v1`.
+`report` shows totals, token types, agents, models, high-cost days, daily history, and price coverage. Reported and estimated costs stay separate. The JSON contracts are versioned as `tokenusage.usage.v1`, `tokenusage.report.v1`, `tokenusage.limits.v1`, `tokenusage.providers.v1`, and `tokenusage.doctor.v1`.
 
 ## Project map
 
-- `src/WOpenUsage.App`: WinUI application and composition.
-- `src/WOpenUsage.Core`: portable domain contracts.
-- `src/WOpenUsage.Providers`: provider adapters.
-- `src/WOpenUsage.Platform.Windows`: Windows services.
-- `src/WOpenUsage.Runtime.Windows`: shared Windows runtime composition.
-- `src/WOpenUsage.Cli`: packaged command-line app.
+- `src/TokenUsage.App`: WinUI application and composition.
+- `src/TokenUsage.Core`: portable domain contracts.
+- `src/TokenUsage.Providers`: provider adapters.
+- `src/TokenUsage.Platform.Windows`: Windows services.
+- `src/TokenUsage.Runtime.Windows`: shared Windows runtime composition.
+- `src/TokenUsage.Cli`: packaged command-line app.
 - `tests`: architecture, core, provider, platform, and CLI tests.
 - `docs`: product, architecture, provider, research, design, and evidence records.
 

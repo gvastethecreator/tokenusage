@@ -1,7 +1,7 @@
-using WOpenUsage.Providers.Codex;
-using WOpenUsage.Runtime.Windows.Automation;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Runtime.Windows.Automation;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 public static class LocalProviderDiagnosticsAccess
 {

@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed class ProjectReferenceGraph
 {
@@ -76,13 +76,13 @@ public sealed class ProjectReferenceGraph
              directory is not null;
              directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "WOpenUsage.slnx")))
+            if (File.Exists(Path.Combine(directory.FullName, "TokenUsage.slnx")))
             {
                 return directory.FullName;
             }
         }
 
-        throw new InvalidOperationException("Could not locate WOpenUsage.slnx from the test output directory.");
+        throw new InvalidOperationException("Could not locate TokenUsage.slnx from the test output directory.");
     }
 
     private static bool ContainsDirectory(string path, string directoryName)

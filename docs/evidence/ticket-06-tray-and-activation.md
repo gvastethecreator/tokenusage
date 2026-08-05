@@ -17,7 +17,7 @@ use `RedirectActivationToAsync` for later activations:
 
 ## Automated evidence
 
-- `dotnet test tests/WOpenUsage.Platform.Windows.Tests/WOpenUsage.Platform.Windows.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 56 passed.
+- `dotnet test tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj -c Debug -p:Platform=x64 --no-restore`: 56 passed.
 - `BuildAndRun.ps1 ... -SkipRun /p:Platform=x64 /p:Configuration=Debug`: 0 warnings, 0 errors.
 - `tests/ui/ticket-06-single-instance.ps1`: a second packaged activation kept
   the first PID and exposed its flyout.

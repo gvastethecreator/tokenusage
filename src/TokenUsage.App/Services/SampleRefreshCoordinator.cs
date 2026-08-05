@@ -1,9 +1,9 @@
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.Fakes;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Fakes;
 
-namespace WOpenUsage.App.Services;
+namespace TokenUsage.App.Services;
 
 public sealed class SampleRefreshCoordinator
 {

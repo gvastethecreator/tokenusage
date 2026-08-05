@@ -1,9 +1,9 @@
 using System.Globalization;
-using WOpenUsage.Cli;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Fakes;
+using TokenUsage.Cli;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Fakes;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class LocalUsageCliAccessTests
 {
@@ -12,7 +12,7 @@ public sealed class LocalUsageCliAccessTests
     {
         string databasePath = Path.Combine(
             Path.GetTempPath(),
-            "wopenusage-cli-tests",
+            "tokenusage-cli-tests",
             Guid.NewGuid().ToString("N"),
             "usage.v1.db");
 
@@ -33,7 +33,7 @@ public sealed class LocalUsageCliAccessTests
         using var culture = new CultureScope(cultureName);
         string directory = Path.Combine(
             Path.GetTempPath(),
-            "wopenusage-cli-tests",
+            "tokenusage-cli-tests",
             Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try

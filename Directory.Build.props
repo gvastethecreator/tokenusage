@@ -4,7 +4,7 @@
     <Description>Windows quota, token usage, and spend tracking for AI coding tools.</Description>
     <Authors>TokenUsage contributors</Authors>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/gvastethecreator/wopenusage</RepositoryUrl>
+    <RepositoryUrl>https://github.com/gvastethecreator/tokenusage</RepositoryUrl>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>x64;ARM64</Platforms>
@@ -17,6 +17,6 @@
 
   <Target Name="ValidateConcretePlatform" BeforeTargets="PrepareForBuild"
           Condition="'$(DesignTimeBuild)' != 'true' and '$(Platform)' != 'x64' and '$(Platform)' != 'ARM64'">
-    <Error Text="WOpenUsage requires Platform=x64 or Platform=ARM64; received '$(Platform)'." />
+    <Error Text="TokenUsage requires Platform=x64 or Platform=ARM64; received '$(Platform)'." />
   </Target>
 </Project>

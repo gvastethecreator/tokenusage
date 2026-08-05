@@ -1,9 +1,9 @@
 using System.Globalization;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-using WOpenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Dashboard;
 
-namespace WOpenUsage.App.ViewModels.Sample;
+namespace TokenUsage.App.ViewModels.Sample;
 
 public static class SampleDashboardProjector
 {

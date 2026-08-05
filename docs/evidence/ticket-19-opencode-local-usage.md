@@ -31,7 +31,7 @@ modo de prueba acepta una raíz sanitizada mediante `--test-opencode-data`. La U
 muestra `Claude + Grok Build + OpenCode · datos locales`, gasto informado,
 estimado, tokens sin precio, total y cobertura.
 
-El smoke opt-in `WOPENUSAGE_OPENCODE_SMOKE=1` compara la fuente con
+El smoke opt-in `TOKENUSAGE_OPENCODE_SMOKE=1` compara la fuente con
 `opencode stats --pure --days 400 --tools 0`. No guarda ni imprime la salida del
 CLI. El coste admite un centavo; tokens admite 6 % porque el CLI abrevia K/M/B a
 una cifra decimal. La prueba real pasó.

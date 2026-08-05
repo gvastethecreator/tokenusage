@@ -1,18 +1,18 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using WOpenUsage.App.Services;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Fakes;
-using WOpenUsage.Providers.Claude;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.App.Services;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Fakes;
+using TokenUsage.Providers.Claude;
+using TokenUsage.Providers.Codex;
 using System.Text.Json;
 
-namespace WOpenUsage.Providers.Tests.Usage;
+namespace TokenUsage.Providers.Tests.Usage;
 
 public sealed class LocalUsageCoordinatorTests
 {
@@ -759,7 +759,7 @@ public sealed class LocalUsageCoordinatorTests
     {
         private readonly string _path = System.IO.Path.Combine(
             System.IO.Path.GetTempPath(),
-            "wopenusage-usage-integration",
+            "tokenusage-usage-integration",
             Guid.NewGuid().ToString("N"));
 
         public TemporaryFolder() => Directory.CreateDirectory(_path);
