@@ -12,7 +12,7 @@ Estado: decisión lista para incorporar al plan
 
 Sí para un motor local de tokens y gasto. Grok Build y OpenCode tienen rutas locales útiles en Windows. Antigravity CLI puede entrar por lectura pasiva de bases locales, pero necesita un spike con datos reales antes de prometer cobertura.
 
-La cuota en vivo tiene otro límite. Grok ofrece `/usage` en su producto, pero no documenta una salida de cuota apta para otra app. Antigravity ofrece `/usage` y `/credits` dentro de su TUI, y su FAQ prohíbe usar el login de Antigravity desde herramientas de terceros. WOpenUsage no automatizará esas rutas privadas.
+La cuota en vivo tiene otro límite. Grok ofrece `/usage` en su producto, pero no documenta una salida de cuota apta para otra app. Antigravity ofrece `/usage` y `/credits` dentro de su TUI, y su FAQ prohíbe usar el login de Antigravity desde herramientas de terceros. TokenUsage no automatizará esas rutas privadas.
 
 ## Referencias locales fijadas
 
@@ -24,7 +24,7 @@ Los clones están bajo `.reference/` y el repo raíz los ignora:
 | [CodeBurn](https://github.com/getagentseal/codeburn) | `6e3c57a9ff95a624f1d9affa7384d32a67f359b7` | lectores de sesiones y agregación local |
 | [AgentsView](https://github.com/kenn-io/agentsview) | `1ee2de88e2dae54326d8b47aeb2de2f58b5944f9` | contratos de cobertura, deduplicación y precios |
 
-CodeBurn y AgentsView usan licencia MIT. Sirven como comparación y corpus de diseño. WOpenUsage tendrá contratos y código propios, con un alcance menor: tokens, coste, modelo, fecha y cobertura. No indexará transcripciones, comandos, herramientas, tareas ni resultados.
+CodeBurn y AgentsView usan licencia MIT. Sirven como comparación y corpus de diseño. TokenUsage tendrá contratos y código propios, con un alcance menor: tokens, coste, modelo, fecha y cobertura. No indexará transcripciones, comandos, herramientas, tareas ni resultados.
 
 ## Modelo común elegido
 

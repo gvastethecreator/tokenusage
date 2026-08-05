@@ -1,13 +1,13 @@
 # Issue tracker contract
 
-WOpenUsage uses a local tracker so implementation state stays beside the source and can be resumed without access to a remote service.
+TokenUsage uses a local tracker so implementation state stays beside the source and can be resumed without access to a remote service.
 
 ## Paths
 
-- Product summary: `.scratch/wopenusage/spec.md`
-- Ticket index: `.scratch/wopenusage/tickets.md`
-- Ticket lifecycle: `.scratch/wopenusage/issues/<NN>-<slug>.md`
-- Rejected or deferred proposals: `.scratch/wopenusage/out-of-scope/`
+- Product summary: `.scratch/tokenusage/spec.md`
+- Ticket index: `.scratch/tokenusage/tickets.md`
+- Ticket lifecycle: `.scratch/tokenusage/issues/<NN>-<slug>.md`
+- Rejected or deferred proposals: `.scratch/tokenusage/out-of-scope/`
 - Delegated worker prompts and results: `.scratch/agent-cli-delegation/`
 - Agent CLI isolated checkouts and snapshots: `.snapshots/`; never create them
   as sibling folders under `D:\DEV`.

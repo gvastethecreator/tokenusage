@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace TokenUsage.Providers.Tests.Codex;
 
 internal sealed class ScriptedCodexJsonlPeer : IDisposable
 {
@@ -16,8 +16,8 @@ internal sealed class ScriptedCodexJsonlPeer : IDisposable
         _responses = new MemoryStream(Encoding.UTF8.GetBytes(script), writable: false);
     }
 
-    public WOpenUsage.Providers.Codex.CodexAppServerClient CreateClient(
-        WOpenUsage.Providers.Codex.CodexClientOptions? options = null) =>
+    public TokenUsage.Providers.Codex.CodexAppServerClient CreateClient(
+        TokenUsage.Providers.Codex.CodexClientOptions? options = null) =>
         new(
             _responses,
             _requests,
@@ -36,13 +36,13 @@ internal sealed class ScriptedCodexJsonlPeer : IDisposable
         _requests.Dispose();
     }
 
-    public static WOpenUsage.Providers.Codex.CodexClientOptions CreateDefaultOptions(
+    public static TokenUsage.Providers.Codex.CodexClientOptions CreateDefaultOptions(
         TimeSpan? timeout = null,
         int maximumLineBytes = 4096) =>
         new(
-            "wopenusage",
+            "tokenusage",
             "0.1.0",
-            "WOpenUsage",
+            "TokenUsage",
             timeout ?? TimeSpan.FromSeconds(2),
             maximumLineBytes);
 }

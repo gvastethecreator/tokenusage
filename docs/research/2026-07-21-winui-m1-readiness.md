@@ -35,7 +35,7 @@ No se instaló ni actualizó ninguna herramienta durante la comprobación.
 
 ## Decisiones para M1
 
-- Crear la app con `dotnet new winui-mvvm -n WOpenUsage.App`.
+- Crear la app con `dotnet new winui-mvvm -n TokenUsage.App`.
 - Conservar `Package.appxmanifest` y la identidad de paquete.
 - Usar el canal estable de Windows App SDK que resuelva la plantilla; no fijar Preview o Experimental.
 - Construir y lanzar con `BuildAndRun.ps1` o la ruta de paquete de `winapp`; nunca abrir el ejecutable empaquetado de forma directa.

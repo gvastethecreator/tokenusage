@@ -1,11 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
-using WOpenUsage.Core.Automation;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Automation;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.Core.Tests.Automation;
+namespace TokenUsage.Core.Tests.Automation;
 
 public sealed class AutomationQueryTests
 {
@@ -32,6 +32,51 @@ public sealed class AutomationQueryTests
         Assert.Equal(0.25m, result.ReportedCostUsd);
         Assert.Null(result.EstimatedCostUsd);
         Assert.Equal(150, result.UnpricedTokens);
+    }
+
+    [Fact]
+    public async Task UsageReportQueryGroupsDurableUsageByAgentModelAndDay()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateUsageEvent("codex-reported", CostObservation.ProviderReported(0.25m)),
+            CreateUsageEvent(
+                "opencode-estimated",
+                CostObservation.CatalogEstimated(0.50m, "fixture", "claude-test"),
+                agentId: "opencode",
+                modelProviderId: "anthropic",
+                modelId: "claude-test"),
+            CreateUsageEvent(
+                "codex-unpriced",
+                CostObservation.Unavailable(),
+                occurredAtUtc: Now.AddDays(-1)),
+        ]);
+
+        var query = new UsageReportQuery(folder.DatabasePath);
+        UsageReport report = await query.ReadAsync(
+            new DateOnly(2026, 7, 24),
+            new DateOnly(2026, 7, 25));
+        UsageReport codexOnly = await query.ReadAsync(
+            new DateOnly(2026, 7, 24),
+            new DateOnly(2026, 7, 25),
+            new AgentId("codex"));
+
+        Assert.Equal(3, report.Totals.EventCount);
+        Assert.Equal(450, report.Totals.Tokens.Total);
+        Assert.Equal(0.25m, report.Totals.ReportedCostUsd);
+        Assert.Equal(0.50m, report.Totals.EstimatedCostUsd);
+        Assert.Equal(150, report.Totals.UnpricedTokens);
+        Assert.Equal(66.7m, report.Totals.PriceCoveragePercent);
+        Assert.Equal(["opencode", "codex"], report.Agents.Select(item => item.AgentId.Value));
+        Assert.Equal(2, report.Models.Count);
+        Assert.Equal(
+            [new DateOnly(2026, 7, 24), new DateOnly(2026, 7, 25)],
+            report.Days.Select(item => item.Date));
+        Assert.Equal(2, codexOnly.Totals.EventCount);
+        Assert.Single(codexOnly.Agents);
+        Assert.Equal("codex", codexOnly.Agents[0].AgentId.Value);
     }
 
     [Fact]
@@ -65,14 +110,20 @@ public sealed class AutomationQueryTests
         Assert.Empty(missing);
     }
 
-    private static UsageEvent CreateUsageEvent(string key, CostObservation cost) =>
+    private static UsageEvent CreateUsageEvent(
+        string key,
+        CostObservation cost,
+        string agentId = "codex",
+        string modelProviderId = "openai",
+        string modelId = "gpt-test",
+        DateTimeOffset? occurredAtUtc = null) =>
         new(
             new UsageEventKey(Convert.ToHexStringLower(
                 SHA256.HashData(Encoding.UTF8.GetBytes(key)))),
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-test"),
-            Now,
+            new AgentId(agentId),
+            new ModelProviderId(modelProviderId),
+            new ModelId(modelId),
+            occurredAtUtc ?? Now,
             "UTC",
             new TokenBreakdown(100, 25, 5, 20, 0),
             cost,

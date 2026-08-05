@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Tests;
+namespace TokenUsage.Core.Tests;
 
 public sealed class CacheFirstRefreshOperationGateTests
 {
@@ -240,7 +240,7 @@ public sealed class CacheFirstRefreshOperationGateTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "WOpenUsage.Core.Tests",
+                "TokenUsage.Core.Tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
             DocumentPath = System.IO.Path.Combine(Path, SnapshotStore.DefaultFileName);

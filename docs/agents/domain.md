@@ -10,7 +10,7 @@ Use one shared product context. Read only the provider research needed by the cu
 4. Relevant ADR under `docs/architecture/`
 5. Relevant note under `docs/research/`
 6. `docs/IMPLEMENTATION-PLAN.md`
-7. Current issue under `.scratch/wopenusage/issues/`
+7. Current issue under `.scratch/tokenusage/issues/`
 
 ## Terms
 

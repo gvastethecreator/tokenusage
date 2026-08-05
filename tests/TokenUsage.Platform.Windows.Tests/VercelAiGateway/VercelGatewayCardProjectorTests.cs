@@ -1,10 +1,10 @@
 using System.Globalization;
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Providers;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Platform.Windows.Tests.VercelAiGateway;
+namespace TokenUsage.Platform.Windows.Tests.VercelAiGateway;
 
 public sealed class VercelGatewayCardProjectorTests
 {

@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Layout;
+namespace TokenUsage.Core.Layout;
 
 /// <summary>
 /// Immutable, ordered dashboard layout preferences for providers and their metrics.

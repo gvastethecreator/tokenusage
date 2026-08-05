@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed class ProviderPaletteTests
 {
@@ -20,7 +20,7 @@ public sealed class ProviderPaletteTests
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
-            Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
+            Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
 
@@ -59,7 +59,7 @@ public sealed class ProviderPaletteTests
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
-            Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
+            Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         XElement dictionary = FindThemeDictionary(resources, "HighContrast", xaml, x);
@@ -94,7 +94,7 @@ public sealed class ProviderPaletteTests
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
-            Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
+            Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         Assert.Equal(
@@ -117,7 +117,7 @@ public sealed class ProviderPaletteTests
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
-            Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
+            Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         XElement dictionary = FindThemeDictionary(resources, theme, xaml, x);
@@ -144,7 +144,7 @@ public sealed class ProviderPaletteTests
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument resources = XDocument.Load(
-            Path.Combine(repoRoot, "src", "WOpenUsage.App", "App.xaml"));
+            Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml"));
         XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         IReadOnlyDictionary<string, string> assetNames = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -170,7 +170,7 @@ public sealed class ProviderPaletteTests
                 Path.Combine(
                     repoRoot,
                     "src",
-                    "WOpenUsage.App",
+                    "TokenUsage.App",
                     "Assets",
                     "ProviderMarks",
                     assetName));

@@ -1,7 +1,7 @@
 using System.Globalization;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class ProviderDiagnosticsCommandTests
 {
@@ -22,7 +22,7 @@ public sealed class ProviderDiagnosticsCommandTests
 
         Assert.Equal(0, exitCode);
         Assert.Equal(
-            Normalize(await File.ReadAllTextAsync(GoldenPath("wusage.providers.v1.json"))),
+            Normalize(await File.ReadAllTextAsync(GoldenPath("tokenusage.providers.v1.json"))),
             Normalize(output.ToString()));
     }
 
@@ -40,7 +40,7 @@ public sealed class ProviderDiagnosticsCommandTests
 
         Assert.Equal(0, exitCode);
         Assert.Equal(
-            Normalize(await File.ReadAllTextAsync(GoldenPath("wusage.doctor.v1.json"))),
+            Normalize(await File.ReadAllTextAsync(GoldenPath("tokenusage.doctor.v1.json"))),
             Normalize(output.ToString()));
     }
 
@@ -59,7 +59,8 @@ public sealed class ProviderDiagnosticsCommandTests
             new FixedTimeProvider(Now));
 
         Assert.Equal(
-            "claude: missing; data absent; localUsage\n"
+            "antigravity: detected; data present; localUsage,spend\n"
+            + "claude: missing; data absent; localUsage\n"
             + "codex: detected; data present; limits,localUsage,spend\n"
             + "grok: detected; data present; localUsage\n"
             + "opencode: unavailable; data unreadable; localUsage\n",
@@ -67,6 +68,7 @@ public sealed class ProviderDiagnosticsCommandTests
         Assert.Equal(
             "codex-cache: present\n"
             + "codex-cli: detected\n"
+            + "local-usage-antigravity: present\n"
             + "local-usage-claude: absent\n"
             + "local-usage-grok: present\n"
             + "local-usage-opencode: unreadable\n"
@@ -226,6 +228,9 @@ public sealed class ProviderDiagnosticsCommandTests
     internal static ProviderDiagnosticsSnapshot CreateSnapshot() =>
         new(
         [
+            new("antigravity", "Antigravity",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             new("opencode", "OpenCode", [ProviderCapability.LocalUsage],
                 ProviderDetectionStatus.Unavailable, ProviderDataStatus.Unreadable),
             new("grok", "Grok Build", [ProviderCapability.LocalUsage],
@@ -242,6 +247,7 @@ public sealed class ProviderDiagnosticsCommandTests
         ],
         [
             new("usage-db", DoctorCheckStatus.Present),
+            new("local-usage-antigravity", DoctorCheckStatus.Present),
             new("local-usage-opencode", DoctorCheckStatus.Unreadable),
             new("local-usage-grok", DoctorCheckStatus.Present),
             new("local-usage-claude", DoctorCheckStatus.Absent),

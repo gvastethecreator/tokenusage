@@ -6,7 +6,7 @@ Decisión: `implement-experimental-subset`
 
 ## Respuesta
 
-Devin publica una API v3 para consumo. WOpenUsage puede mostrar ACUs diarios y totales de una organización mediante un service user creado para esa organización. La app pide el ID de organización y una key `cog_` de forma manual, y guarda la key en Windows Credential Locker.
+Devin publica una API v3 para consumo. TokenUsage puede mostrar ACUs diarios y totales de una organización mediante un service user creado para esa organización. La app pide el ID de organización y una key `cog_` de forma manual, y guarda la key en Windows Credential Locker.
 
 El primer subset usa solo `GET /v3/organizations/{org_id}/consumption/daily` en `https://api.devin.ai`. No muestra cuota diaria, semanal, saldo de on-demand o dólares. Esos datos de self-serve solo aparecen en el dashboard; el adaptador upstream los obtiene de un RPC privado.
 
@@ -21,7 +21,7 @@ Consultadas el 2026-07-21:
 | [Organization daily consumption](https://docs.devin.ai/api-reference/v3/consumption/organizations-consumption-daily) | El endpoint público devuelve `total_acus` y desglose diario y por producto; requiere `ManageBilling` en la organización. |
 | [Permissions and RBAC](https://docs.devin.ai/api-reference/v3/overview) | Los service users de organización quedan limitados a una organización; los de Enterprise heredan acceso entre organizaciones. |
 | [Usage](https://docs.devin.ai/admin/billing/usage) | Self-serve muestra uso, cuota restante y saldo en Settings; Enterprise usa ACUs. |
-| [Session Insights endpoint](https://docs.devin.ai/api-reference/v3/sessions/organizations-sessions-insights) | El endpoint read-only incluye ACUs por sesión, pero también prompts sugeridos, análisis y otros datos que WOpenUsage no necesita. |
+| [Session Insights endpoint](https://docs.devin.ai/api-reference/v3/sessions/organizations-sessions-insights) | El endpoint read-only incluye ACUs por sesión, pero también prompts sugeridos, análisis y otros datos que TokenUsage no necesita. |
 | [API release notes](https://docs.devin.ai/api-reference/release-notes) | Consumo de organización llegó a v3 y los límites de ACU se exponen en endpoints Enterprise con `ManageBilling`. |
 
 ## Contrato elegido
@@ -62,7 +62,7 @@ El adaptador upstream:
 - convierte porcentajes restantes en usados y micros en dólares;
 - puede presentar una cuota diaria oculta como semanal.
 
-No se copiará ese diseño. Además, aceptar cualquier host HTTPS desde una configuración ajena permitiría enviar la key a un servidor elegido por quien modifique el archivo. WOpenUsage no lee ese archivo ni acepta el override.
+No se copiará ese diseño. Además, aceptar cualquier host HTTPS desde una configuración ajena permitiría enviar la key a un servidor elegido por quien modifique el archivo. TokenUsage no lee ese archivo ni acepta el override.
 
 ### Session Insights
 

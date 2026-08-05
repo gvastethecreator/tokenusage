@@ -31,11 +31,11 @@ Estado: implementado y verificado con datos sintéticos
 
 ## Evidencia local
 
-- `WOpenUsage.Core.Tests`: 41/41.
-- `WOpenUsage.Providers.Tests`: 109/109.
-- `WOpenUsage.Architecture.Tests`: 22/22.
-- `WOpenUsage.Platform.Windows.Tests`: 48/48.
-- `dotnet format WOpenUsage.slnx --verify-no-changes --no-restore`: pasó.
+- `TokenUsage.Core.Tests`: 41/41.
+- `TokenUsage.Providers.Tests`: 109/109.
+- `TokenUsage.Architecture.Tests`: 22/22.
+- `TokenUsage.Platform.Windows.Tests`: 48/48.
+- `dotnet format TokenUsage.slnx --verify-no-changes --no-restore`: pasó.
 - Build empaquetado Debug x64 con `BuildAndRun.ps1 -SkipRun`: pasó.
 - `git diff --check`: pasó; solo avisos de normalización LF/CRLF.
 

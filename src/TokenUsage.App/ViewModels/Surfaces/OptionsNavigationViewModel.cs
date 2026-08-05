@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace WOpenUsage.App.ViewModels.Surfaces;
+namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class OptionsNavigationViewModel : ObservableObject
 {

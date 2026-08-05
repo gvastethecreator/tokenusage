@@ -25,7 +25,7 @@ while ([DateTime]::UtcNow -lt $deadline) {
     }
 }
 
-$appProcesses = @(Get-Process WOpenUsage.App -ErrorAction SilentlyContinue)
+$appProcesses = @(Get-Process TokenUsage.App -ErrorAction SilentlyContinue)
 $samePrimaryProcess = $appProcesses.Count -eq 1 -and $appProcesses[0].Id -eq $AppPid
 $result = [ordered]@{
     primaryPid = $AppPid

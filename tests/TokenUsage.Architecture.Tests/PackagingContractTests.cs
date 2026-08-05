@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed class PackagingContractTests
 {
@@ -11,7 +11,7 @@ public sealed class PackagingContractTests
     [Fact]
     public void PackagingProjectIncludesOnlySupportedPlatformsAndBothExecutables()
     {
-        XDocument project = XDocument.Load(PackagePath("WOpenUsage.Package.wapproj"));
+        XDocument project = XDocument.Load(PackagePath("TokenUsage.Package.wapproj"));
         string[] configurations = project
             .Descendants(MsBuild + "ProjectConfiguration")
             .Select(element => (string?)element.Attribute("Include"))
@@ -30,12 +30,12 @@ public sealed class PackagingContractTests
             configurations);
         Assert.Equal(
             [
-                "..\\WOpenUsage.App\\WOpenUsage.App.csproj",
-                "..\\WOpenUsage.Cli\\WOpenUsage.Cli.csproj",
+                "..\\TokenUsage.App\\TokenUsage.App.csproj",
+                "..\\TokenUsage.Cli\\TokenUsage.Cli.csproj",
             ],
             references);
         Assert.Equal(
-            "..\\WOpenUsage.App\\WOpenUsage.App.csproj",
+            "..\\TokenUsage.App\\TokenUsage.App.csproj",
             project.Descendants(MsBuild + "EntryPointProjectUniqueName").Single().Value);
     }
 
@@ -55,37 +55,37 @@ public sealed class PackagingContractTests
         Assert.Equal("D6C94EDD-3747-465C-9A81-05DF5A4108C5", (string?)identity.Attribute("Name"));
         Assert.Equal("CN=AppPublisher", (string?)identity.Attribute("Publisher"));
         Assert.Equal("1.0.0.0", (string?)identity.Attribute("Version"));
-        Assert.Equal("WOpenUsage.App.exe", (string?)application.Attribute("Executable"));
+        Assert.Equal("TokenUsage.App.exe", (string?)application.Attribute("Executable"));
         Assert.Equal("Windows.FullTrustApplication", (string?)application.Attribute("EntryPoint"));
-        Assert.Equal("WOpenUsage.Cli\\wusage.exe", (string?)extension.Attribute("Executable"));
+        Assert.Equal("TokenUsage.Cli\\tokenusage.exe", (string?)extension.Attribute("Executable"));
         Assert.Equal("Windows.FullTrustApplication", (string?)extension.Attribute("EntryPoint"));
-        Assert.Equal("wusage.exe", (string?)alias.Attribute("Alias"));
+        Assert.Equal("tokenusage.exe", (string?)alias.Attribute("Alias"));
     }
 
     [Fact]
-    public void AppDoesNotOwnMsixAndCliEmitsWusage()
+    public void AppDoesNotOwnMsixAndCliEmitsTokenUsage()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument app = XDocument.Load(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
-            "WOpenUsage.App.csproj"));
+            "TokenUsage.App",
+            "TokenUsage.App.csproj"));
         XDocument cli = XDocument.Load(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Cli",
-            "WOpenUsage.Cli.csproj"));
+            "TokenUsage.Cli",
+            "TokenUsage.Cli.csproj"));
 
         Assert.Empty(app.Descendants("EnableMsixTooling"));
         Assert.Empty(app.Descendants("AppxManifest"));
         Assert.Equal("WinExe", app.Descendants("OutputType").Single().Value);
-        Assert.Equal("wusage", cli.Descendants("AssemblyName").Single().Value);
+        Assert.Equal("tokenusage", cli.Descendants("AssemblyName").Single().Value);
     }
 
     private static string PackagePath(string fileName) => Path.Combine(
         ProjectReferenceGraph.FindRepoRoot(),
         "src",
-        "WOpenUsage.Package",
+        "TokenUsage.Package",
         fileName);
 }

@@ -1,9 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
-using WOpenUsage.Core.Usage;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 public sealed partial class AnimatedProgressBar : UserControl
 {

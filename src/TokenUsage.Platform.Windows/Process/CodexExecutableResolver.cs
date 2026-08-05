@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
 
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 public static class CodexExecutableResolver
 {
-    public const string OverrideEnvironmentVariable = "WOPENUSAGE_CODEX_EXECUTABLE";
+    public const string OverrideEnvironmentVariable = "TOKENUSAGE_CODEX_EXECUTABLE";
 
     public static CodexExecutableResolution Resolve() =>
         Resolve(CodexExecutableSearchContext.Capture());

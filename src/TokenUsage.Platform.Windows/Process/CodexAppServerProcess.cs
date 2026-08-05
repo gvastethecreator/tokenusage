@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
-using WOpenUsage.Platform.Windows.Native;
+using TokenUsage.Platform.Windows.Native;
 
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 public sealed class CodexAppServerProcess : IAsyncDisposable
 {

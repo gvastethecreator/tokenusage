@@ -1,14 +1,15 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Claude;
-using WOpenUsage.Providers.Codex;
-using WOpenUsage.Providers.Grok;
-using WOpenUsage.Providers.OpenCode;
-using WOpenUsage.Runtime.Windows.Codex;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Antigravity;
+using TokenUsage.Providers.Claude;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Providers.Grok;
+using TokenUsage.Providers.OpenCode;
+using TokenUsage.Runtime.Windows.Codex;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.Runtime.Windows.Providers;
+namespace TokenUsage.Runtime.Windows.Providers;
 
 public sealed class WindowsProviderCatalogEntry
 {
@@ -170,6 +171,15 @@ public static class WindowsProviderCatalog
                 detectionCheckId: null,
                 dataCheckId: "local-usage-opencode",
                 localUsageFactory: timeZoneId => new OpenCodeUsageEventSource(timeZoneId)),
+            new(
+                "antigravity",
+                "Antigravity",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                cacheDirectoryName: null,
+                localUsageAgentId: "antigravity",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-antigravity",
+                localUsageFactory: timeZoneId => new AntigravityUsageEventSource(timeZoneId)),
             new(
                 "vercel-ai-gateway",
                 "Vercel AI Gateway",

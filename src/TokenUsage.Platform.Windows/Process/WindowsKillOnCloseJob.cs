@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using WOpenUsage.Platform.Windows.Native;
+using TokenUsage.Platform.Windows.Native;
 
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 internal interface IWindowsProcessJob : IDisposable
 {

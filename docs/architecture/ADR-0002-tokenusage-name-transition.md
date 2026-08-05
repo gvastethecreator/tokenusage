@@ -1,15 +1,15 @@
 # ADR-0002: transición del nombre TokenUsage
 
-Estado: revisado; copy público aprobado
+Estado: implementado el 2026-08-04
 
 Fecha: 2026-07-22
 
 ## Decisión
 
-El producto formal se llama `TokenUsage`. Desde 2026-07-22, la UI, textos,
-tooltip de bandeja y nombre visible del paquete usan `TokenUsage`. La
-implementación conserva `WOpenUsage` en ensamblados, namespaces, ejecutables,
-rutas, pruebas y evidencia previa hasta el corte técnico de migración.
+El producto formal y técnico se llama `TokenUsage`. La UI, los proyectos, los
+namespaces, los ensamblados, los ejecutables, las rutas y las pruebas usan este
+nombre. La Identity y el AUMID del paquete permanecen estables para conservar
+la ruta de actualización.
 
 ## Motivo
 
@@ -17,19 +17,15 @@ Un cambio de nombre a mitad de los verticales abiertos mezclaría dos identidade
 en el paquete y en la evidencia. También haría más difícil comprobar upgrades,
 datos locales, alias de CLI y desinstalación.
 
-## Regla de transición
+## Corte técnico
 
-Hasta la tarea de migración técnica:
+El corte del 2026-08-04 cambió estos elementos como una sola unidad:
 
-- la UI y el copy muestran `TokenUsage`;
-- el manifiesto puede mostrar `TokenUsage`, pero no cambian Identity, AUMID,
-  Publisher, nombres de proyecto, namespaces, assembly names, rutas de datos ni
-  alias de CLI;
-- la documentación nueva puede nombrar `TokenUsage` como producto formal y debe
-  indicar que `WOpenUsage` es la identidad transitoria;
-- no se crea un logo final dentro del corte visual 11A.
+- solución, proyectos, carpetas, namespaces y ensamblados;
+- ejecutables de la app y la CLI;
+- alias `tokenusage.exe` y contratos JSON `tokenusage.*.v1`;
+- rutas del tracker local, scripts, pruebas y documentación.
 
-La futura tarea de migración deberá cambiar todos los puntos en un solo corte,
-probar instalación y actualización, decidir si se migran datos locales y dejar
-un plan de rollback. Publisher, dominio, logo y canal beta siguen pendientes en
-el Ticket 02.
+El corte mantiene la Identity, el AUMID y el Publisher actuales. La instalación,
+la actualización empaquetada, el dominio, el logo y el canal beta requieren sus
+pruebas o decisiones propias. El Ticket 02 conserva esos puntos pendientes.

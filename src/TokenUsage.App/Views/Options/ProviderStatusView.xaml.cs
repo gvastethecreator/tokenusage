@@ -1,8 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using WOpenUsage.App.ViewModels.Surfaces;
+using TokenUsage.App.ViewModels.Surfaces;
 
-namespace WOpenUsage.App.Views.Options;
+namespace TokenUsage.App.Views.Options;
 
 public sealed partial class ProviderStatusView : UserControl
 {

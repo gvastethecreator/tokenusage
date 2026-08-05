@@ -6,7 +6,7 @@ Fecha: 2026-07-23
 
 La CLI comparte la caché de límites y la base de uso con un escritor activo sin
 publicar JSON parcial, perder eventos ni dejar archivos temporales. Las pruebas
-ejecutan procesos `WOpenUsage.Cli.exe` reales contra las mismas clases públicas
+ejecutan procesos `TokenUsage.Cli.exe` reales contra las mismas clases públicas
 que usa la app: `SnapshotStore` y `UsageRepository`.
 
 Este corte no cambia código de producción. Fija el contrato de concurrencia que
@@ -17,7 +17,7 @@ debe conservar el alias empaquetado del Ticket 25D2.
 - Un escritor alterna dos snapshots Codex completos mediante
   `SnapshotStore.UpsertLastGoodAsync`.
 - Dos procesos CLI ejecutan `limits codex --format json` durante las escrituras.
-- Cada salida cumple `wusage.limits.v1` y contiene uno de los dos estados
+- Cada salida cumple `tokenusage.limits.v1` y contiene uno de los dos estados
   completos. Nunca mezcla valores.
 - La caché final conserva esquema 1, se puede cargar y no deja `*.tmp` ni
   `*.corrupt-*`.
@@ -35,7 +35,7 @@ segundos del mutex y permite observar primero el fallo propio del almacén.
 - Una conexión de prueba queda abierta, solicita una escritura posterior y
   comprueba `PRAGMA journal_mode = wal` y el sidecar `usage.v1.db-wal` durante
   la carga.
-- Cada reporte cumple `wusage.usage.v1`. Su total de tokens y coste coincide de
+- Cada reporte cumple `tokenusage.usage.v1`. Su total de tokens y coste coincide de
   forma exacta con su número de eventos.
 - El rollup final contiene todos los eventos confirmados. Solo quedan la DB y
   sus sidecars WAL/SHM.
@@ -63,5 +63,5 @@ abierto. Las cuatro correcciones forman parte de la prueba final.
 ## Límite pendiente
 
 25D1 prueba el almacenamiento compartido con procesos CLI reales. 25D2 debe
-registrar `wusage.exe` mediante MSIX, conservar identidad y recursos, y probar el
+registrar `tokenusage.exe` mediante MSIX, conservar identidad y recursos, y probar el
 alias instalado. No se debe ejecutar el binario empaquetado por su ruta física.

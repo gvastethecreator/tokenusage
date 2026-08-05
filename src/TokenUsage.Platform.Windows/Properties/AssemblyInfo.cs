@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("WOpenUsage.Platform.Windows.Tests")]
+[assembly: InternalsVisibleTo("TokenUsage.Platform.Windows.Tests")]

@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace WOpenUsage.Core.Providers;
+namespace TokenUsage.Core.Providers;
 
 public sealed record ProviderBackoffOptions
 {

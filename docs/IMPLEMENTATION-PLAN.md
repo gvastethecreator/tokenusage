@@ -5,7 +5,7 @@ Estado: listo para ejecutar
 Fecha base: 2026-07-21
 
 Producto formal: TokenUsage
-Identidad de implementación transitoria: WOpenUsage
+Identidad técnica: TokenUsage
 Upstream de referencia: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
@@ -13,9 +13,8 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 
 Entregar una app Windows nativa que abra desde la bandeja, muestre cuota, tokens y gasto desde sesiones existentes, conserve datos fiables durante fallos y pueda crecer hacia el conjunto de proveedores de OpenUsage.
 
-La primera versión pública usará `TokenUsage`. `WOpenUsage` se conserva en código,
-paquete y prototipos hasta cerrar el trabajo ya documentado. Un corte posterior
-hará el cambio de forma atómica y con pruebas de actualización.
+La identidad pública y técnica usa `TokenUsage` desde el corte de nombre del
+2026-08-04. El ADR-0002 registra el alcance y los riesgos pendientes de paquete.
 
 ## Alcance por entrega
 
@@ -126,7 +125,7 @@ Esfuerzo: 2–3 días.
 ### Tareas
 
 - `M1.1` Comprobar .NET, plantilla `winui-mvvm`, Windows App SDK y Developer Mode. Si falta algo, ejecutar el flujo de preparación WinUI antes de seguir.
-- `M1.2` Crear la app desde la raíz con `dotnet new winui-mvvm -n WOpenUsage.App -o src/WOpenUsage.App`; no crear la carpeta a mano.
+- `M1.2` Crear la app desde la raíz con `dotnet new winui-mvvm -n TokenUsage.App -o src/TokenUsage.App`; no crear la carpeta a mano.
 - `M1.3` Crear la solución y proyectos de `Core`, `Providers`, `Platform.Windows` y `Cli`.
 - `M1.4` Crear los cinco proyectos de test definidos en el ADR.
 - `M1.5` Agregar referencias con la dirección del ADR.
@@ -140,9 +139,9 @@ Esfuerzo: 2–3 días.
 
 ```powershell
 dotnet restore
-dotnet test tests\WOpenUsage.Core.Tests -p:Platform=x64
-dotnet build WOpenUsage.sln -p:Platform=x64
-powershell -ExecutionPolicy Bypass -File src\WOpenUsage.App\BuildAndRun.ps1 -Platform x64
+dotnet test tests\TokenUsage.Core.Tests -p:Platform=x64
+dotnet build TokenUsage.slnx -p:Platform=x64
+powershell -ExecutionPolicy Bypass -File .\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -SkipRun /p:Platform=x64
 ```
 
 El lanzamiento usa modo asíncrono durante trabajo con herramientas. Se confirma inicio y cierre manual del shell generado.
@@ -517,7 +516,7 @@ Esfuerzo: 5–7 días.
 
 - `M8.1` Implementar comandos `limits`, `usage`, `providers` y `doctor`.
 - `M8.2` Compartir caché y mutex con la app.
-- `M8.3` Definir JSON `wusage.limits.v1` y `wusage.usage.v1` con golden files.
+- `M8.3` Definir JSON `tokenusage.limits.v1` y `tokenusage.usage.v1` con golden files.
 - `M8.4` Añadir `--force`, provider ID y salida humana.
 - `M8.5` Definir códigos 0, 2 y 4.
 - `M8.6` Declarar alias de ejecución en MSIX.

@@ -51,13 +51,13 @@ The expanded local-usage card exposed `UsageProductCard.Heatmap` as a visible
 538 by 147 group with 35 cells and the summary `9 días activos · últimos 35`.
 The reviewed capture is:
 
-- `.scratch/wopenusage/evidence/ticket-111-heatmap-final.png`.
+- `.scratch/tokenusage/evidence/ticket-111-heatmap-final.png`.
 
 Options measured 750 by 504 at the test display scale. General measured 750 by
 605. Both views fit without a page scroll. Reviewed captures are:
 
-- `.scratch/wopenusage/evidence/ticket-111-options-final.png`;
-- `.scratch/wopenusage/evidence/ticket-111-general-final.png`.
+- `.scratch/tokenusage/evidence/ticket-111-options-final.png`;
+- `.scratch/tokenusage/evidence/ticket-111-general-final.png`.
 
 The tray message contract follows the current Microsoft notification-area
 rules for `NIN_SELECT`, mouse messages and icon ID packing:

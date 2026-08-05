@@ -1,9 +1,9 @@
-using WOpenUsage.App.Services;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.App.Services;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Providers.Tests;
+namespace TokenUsage.Providers.Tests;
 
 public sealed class SampleRefreshCoordinatorTests
 {
@@ -101,7 +101,7 @@ public sealed class SampleRefreshCoordinatorTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-sample-coordinator-tests",
+                "tokenusage-sample-coordinator-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

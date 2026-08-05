@@ -1,8 +1,8 @@
-# WOpenUsage agent contract
+# TokenUsage agent contract
 
 ## Issue tracker
 
-Project work lives under `.scratch/wopenusage/`. Remote issues, pull requests, and repositories are read-only sources unless the user grants separate write authority. See `docs/agents/issue-tracker.md`.
+Project work lives under `.scratch/tokenusage/`. Remote issues, pull requests, and repositories are read-only sources unless the user grants separate write authority. See `docs/agents/issue-tracker.md`.
 
 ## Triage labels
 
@@ -10,7 +10,7 @@ Use `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `won
 
 ## Domain docs
 
-Use the single-context WOpenUsage product, provider, architecture, and research documents. See `docs/agents/domain.md`.
+Use the single-context TokenUsage product, provider, architecture, and research documents. See `docs/agents/domain.md`.
 
 ## Implementation rules
 

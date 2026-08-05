@@ -3,14 +3,13 @@
 Estado: base aprobada para implementación
 
 Nombre formal aprobado: TokenUsage
-Nombre técnico transitorio: WOpenUsage
+Nombre técnico: TokenUsage
 Plataforma: Windows 10 1903 o posterior, x64 y ARM64
 
-La transición de nombre se hará después de cerrar el trabajo ya documentado con
-`WOpenUsage`. El copy, tooltip y nombre visible del paquete ya usan `TokenUsage`.
-Hasta el corte técnico no cambian ensamblados, namespaces, Identity/AUMID,
-ejecutables ni rutas de datos. El cambio final tendrá una tarea propia para
-evitar una migración parcial.
+El corte técnico de nombre se completó el 2026-08-04. El producto, los proyectos,
+los namespaces, los ensamblados, el ejecutable y la CLI usan `TokenUsage`.
+La Identity y el AUMID del paquete permanecen estables para conservar la ruta de
+actualización. El ADR-0002 registra esta decisión.
 
 ## Objetivo
 
@@ -148,16 +147,20 @@ La telemetría queda apagada al instalar. El usuario debe confirmar cualquier fu
 
 ### CLI
 
-Ejecutable propio, por ejemplo `wusage.exe` tras cerrar el nombre:
+Ejecutable propio `tokenusage.exe`:
 
 ```text
-wusage limits
-wusage limits codex
-wusage limits --force --format json
-wusage usage --days 30 --format json
-wusage providers
-wusage doctor
+tokenusage limits
+tokenusage limits codex
+tokenusage limits --force --format json
+tokenusage usage --days 30 --format json
+tokenusage report --days 30
+tokenusage report --from 2026-07-01 --to 2026-07-31 --agent codex --format json
+tokenusage providers
+tokenusage doctor
 ```
+
+`report` entrega totales, desglose de tokens, agentes, modelos, días de mayor gasto, serie diaria y cobertura de precios. Mantiene separados los costos informados por el proveedor y los estimados por catálogo. No agrega proyectos, sesiones, tareas, prompts ni herramientas.
 
 La CLI comparte proveedores, caché y modelos con la app. Puede leer datos sin que el panel esté abierto. Códigos de salida:
 

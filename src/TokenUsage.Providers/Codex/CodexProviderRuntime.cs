@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public sealed class CodexProviderRuntime : IProviderRuntime
 {

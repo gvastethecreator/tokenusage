@@ -1,4 +1,4 @@
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public interface ICodexQuotaClient : IAsyncDisposable
 {

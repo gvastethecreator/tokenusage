@@ -1,10 +1,10 @@
 using System.Globalization;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public static class LocalUsageCardProjector
 {
@@ -300,6 +300,7 @@ public static class LocalUsageCardProjector
     private static string GetAgentName(string agentId, Func<string, string> getString) =>
         agentId switch
         {
+            "antigravity" => getString("LocalUsageAgentAntigravity"),
             "claude" => getString("LocalUsageAgentClaude"),
             "codex" => getString("LocalUsageAgentCodex"),
             "grok" => getString("LocalUsageAgentGrok"),
@@ -313,7 +314,8 @@ public static class LocalUsageCardProjector
         string missing,
         Func<string, string> getString) =>
         diagnostics
-            .Where(item => item.AgentId.Value is "claude" or "codex" or "grok" or "opencode")
+            .Where(item => item.AgentId.Value is
+                "antigravity" or "claude" or "codex" or "grok" or "opencode")
             .Select(item =>
             {
                 Totals totals = Sum(rollups.Where(rollup => rollup.AgentId == item.AgentId));
@@ -367,7 +369,7 @@ public static class LocalUsageCardProjector
                     [
                         new(
                             getString("ProviderStatusQuota"),
-                            getString(providerId == "grok"
+                            getString(providerId is "grok" or "antigravity"
                                 ? "ProviderStatusBlocked"
                                 : "ProviderStatusUnavailable"),
                             $"ProviderStatus.{providerId}.Quota"),

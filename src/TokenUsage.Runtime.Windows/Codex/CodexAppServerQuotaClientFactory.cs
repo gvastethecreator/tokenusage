@@ -1,9 +1,9 @@
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
-using WOpenUsage.Platform.Windows.Processes;
-using WOpenUsage.Providers.Codex;
+using TokenUsage.Platform.Windows.Processes;
+using TokenUsage.Providers.Codex;
 
-namespace WOpenUsage.Runtime.Windows.Codex;
+namespace TokenUsage.Runtime.Windows.Codex;
 
 public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
 {
@@ -17,7 +17,7 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
     {
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _clientOptions = clientOptions ?? new CodexClientOptions(
-            "wopenusage",
+            "tokenusage",
             "0.1.0",
             "TokenUsage");
         _processSlot = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)

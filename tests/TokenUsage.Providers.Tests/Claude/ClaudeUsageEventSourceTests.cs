@@ -1,9 +1,9 @@
 using System.Text.Json;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.Claude;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Claude;
 
-namespace WOpenUsage.Providers.Tests.Claude;
+namespace TokenUsage.Providers.Tests.Claude;
 
 public sealed class ClaudeUsageEventSourceTests
 {
@@ -34,7 +34,7 @@ public sealed class ClaudeUsageEventSourceTests
     {
         string home = Path.Combine(
             Path.GetTempPath(),
-            "wopenusage-claude-missing",
+            "tokenusage-claude-missing",
             Guid.NewGuid().ToString("N"));
         var source = new ClaudeUsageEventSource("UTC", homeDirectory: home);
 
@@ -345,7 +345,7 @@ public sealed class ClaudeUsageEventSourceTests
     {
         private readonly string _path = Path.Combine(
             Path.GetTempPath(),
-            "wopenusage-claude-corpus",
+            "tokenusage-claude-corpus",
             Guid.NewGuid().ToString("N"));
 
         public ClaudeCorpus()

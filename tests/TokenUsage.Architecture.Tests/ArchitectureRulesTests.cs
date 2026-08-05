@@ -1,4 +1,4 @@
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed class ArchitectureRulesTests
 {
@@ -16,8 +16,8 @@ public sealed class ArchitectureRulesTests
         string coreProject = Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Core",
-            "WOpenUsage.Core.csproj");
+            "TokenUsage.Core",
+            "TokenUsage.Core.csproj");
         IReadOnlyList<string> coreIssues = ArchitectureRules.FindCoreIsolationViolations(coreProject);
 
         Assert.True(
@@ -29,8 +29,8 @@ public sealed class ArchitectureRulesTests
     public void RuleDetectsInvertedCoreToProvidersEdge()
     {
         var invalid = new ProjectReferenceGraph(
-            ["WOpenUsage.Core", "WOpenUsage.Providers"],
-            [("WOpenUsage.Core", "WOpenUsage.Providers")]);
+            ["TokenUsage.Core", "TokenUsage.Providers"],
+            [("TokenUsage.Core", "TokenUsage.Providers")]);
 
         IReadOnlyList<string> forbidden = ArchitectureRules.FindForbiddenEdges(invalid);
 
@@ -38,7 +38,7 @@ public sealed class ArchitectureRulesTests
             forbidden,
             violation => string.Equals(
                 violation,
-                "WOpenUsage.Core -> WOpenUsage.Providers",
+                "TokenUsage.Core -> TokenUsage.Providers",
                 StringComparison.OrdinalIgnoreCase));
     }
 
@@ -47,17 +47,17 @@ public sealed class ArchitectureRulesTests
     {
         var incomplete = new ProjectReferenceGraph(
             [
-                "WOpenUsage.Core",
-                "WOpenUsage.Platform.Windows",
-                "WOpenUsage.Providers",
-                "WOpenUsage.App",
+                "TokenUsage.Core",
+                "TokenUsage.Platform.Windows",
+                "TokenUsage.Providers",
+                "TokenUsage.App",
             ],
             []);
 
         IReadOnlyList<string> forbidden = ArchitectureRules.FindForbiddenEdges(incomplete);
 
         Assert.Contains(
-            "Missing product project: WOpenUsage.Cli",
+            "Missing product project: TokenUsage.Cli",
             forbidden,
             StringComparer.OrdinalIgnoreCase);
     }
@@ -67,12 +67,12 @@ public sealed class ArchitectureRulesTests
     {
         var invalid = new ProjectReferenceGraph(
             ArchitectureRules.AllowedReferences.Keys,
-            [("WOpenUsage.LocalApi", "WOpenUsage.Cli")]);
+            [("TokenUsage.LocalApi", "TokenUsage.Cli")]);
 
         IReadOnlyList<string> forbidden = ArchitectureRules.FindForbiddenEdges(invalid);
 
         Assert.Contains(
-            "WOpenUsage.LocalApi -> WOpenUsage.Cli",
+            "TokenUsage.LocalApi -> TokenUsage.Cli",
             forbidden,
             StringComparer.OrdinalIgnoreCase);
     }
@@ -84,7 +84,7 @@ public sealed class ArchitectureRulesTests
         string composition = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
+            "TokenUsage.App",
             "Composition",
             "AppComposition.cs"));
 
@@ -94,7 +94,7 @@ public sealed class ArchitectureRulesTests
         string providerCatalog = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Runtime.Windows",
+            "TokenUsage.Runtime.Windows",
             "Providers",
             "WindowsProviderCatalog.cs"));
         Assert.Contains("new ClaudeUsageEventSource", providerCatalog, StringComparison.Ordinal);
@@ -109,17 +109,17 @@ public sealed class ArchitectureRulesTests
         string cliLimits = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Cli",
+            "TokenUsage.Cli",
             "LocalLimitsCliAccess.cs"));
         string cliDiagnostics = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Cli",
+            "TokenUsage.Cli",
             "LocalProviderDiagnosticsAccess.cs"));
         string diagnosticsQuery = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Runtime.Windows",
+            "TokenUsage.Runtime.Windows",
             "Automation",
             "WindowsProviderDiagnosticsQuery.cs"));
         Assert.Contains("WindowsProviderCatalog", cliLimits, StringComparison.Ordinal);
@@ -128,7 +128,7 @@ public sealed class ArchitectureRulesTests
         string mainPage = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
+            "TokenUsage.App",
             "MainPage.xaml.cs"));
         Assert.Contains("AppComposition.CreateFlyoutViewModel", mainPage, StringComparison.Ordinal);
         Assert.DoesNotContain("new FlyoutViewModel(", mainPage, StringComparison.Ordinal);
@@ -136,7 +136,7 @@ public sealed class ArchitectureRulesTests
         string flyoutViewModel = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
+            "TokenUsage.App",
             "ViewModels",
             "FlyoutViewModel.cs"));
         Assert.DoesNotContain("Vercel.RefreshAsync", flyoutViewModel, StringComparison.Ordinal);
@@ -152,7 +152,7 @@ public sealed class ArchitectureRulesTests
         string sessionHost = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Core",
+            "TokenUsage.Core",
             "Session",
             "AppSessionHost.cs"));
         Assert.DoesNotContain("Microsoft.UI", sessionHost, StringComparison.Ordinal);
@@ -161,7 +161,7 @@ public sealed class ArchitectureRulesTests
         string mainWindow = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
+            "TokenUsage.App",
             "MainWindow.xaml.cs"));
         Assert.Contains("RootPage.SessionHost.RefreshAsync", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -172,7 +172,7 @@ public sealed class ArchitectureRulesTests
         string cliApplication = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.Cli",
+            "TokenUsage.Cli",
             "CliApplication.cs"));
         Assert.Contains("new UsageQuery", cliApplication, StringComparison.Ordinal);
         Assert.Contains("new LimitsQuery", cliLimits, StringComparison.Ordinal);
@@ -189,7 +189,7 @@ public sealed class ArchitectureRulesTests
         var document = System.Xml.Linq.XDocument.Load(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
+            "TokenUsage.App",
             "Views",
             "Dashboard",
             "DashboardView.xaml"));
@@ -213,7 +213,7 @@ public sealed class ArchitectureRulesTests
     public void MainPageAndFlyoutComposeBoundedFeatureSurfaces()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
-        string appRoot = Path.Combine(repoRoot, "src", "WOpenUsage.App");
+        string appRoot = Path.Combine(repoRoot, "src", "TokenUsage.App");
         string mainPagePath = Path.Combine(appRoot, "MainPage.xaml");
         string mainPageCodePath = Path.Combine(appRoot, "MainPage.xaml.cs");
         string flyoutPath = Path.Combine(appRoot, "ViewModels", "FlyoutViewModel.cs");
@@ -272,7 +272,7 @@ public sealed class ArchitectureRulesTests
     public void FeatureViewSplitPreservesTheAutomationIdContract()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
-        string appRoot = Path.Combine(repoRoot, "src", "WOpenUsage.App");
+        string appRoot = Path.Combine(repoRoot, "src", "TokenUsage.App");
         IEnumerable<string> viewPaths =
         [
             Path.Combine(appRoot, "MainPage.xaml"),
@@ -301,7 +301,7 @@ public sealed class ArchitectureRulesTests
         string pageCode = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "WOpenUsage.App",
+            "TokenUsage.App",
             "MainPage.xaml.cs"));
 
         Assert.Contains("MotionSettings.AreAnimationsEnabled()", pageCode, StringComparison.Ordinal);

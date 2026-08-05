@@ -51,7 +51,7 @@ scripts/check.ps1 -Platform ARM64 -Configuration Debug
   same test counts on the x64 host
   ARM64 build 0 warnings/errors
 
-dotnet format WOpenUsage.slnx --verify-no-changes --no-restore
+dotnet format TokenUsage.slnx --verify-no-changes --no-restore
 git diff --check
 tests/ui/ticket-09c-codex-usage.ps1
   4/4

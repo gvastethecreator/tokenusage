@@ -1,20 +1,20 @@
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Platform.Windows.Processes;
-using WOpenUsage.Providers.Codex;
-using WOpenUsage.Runtime.Windows.Codex;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Platform.Windows.Processes;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Runtime.Windows.Codex;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class CodexLiveCompositionTests
 {
-    private const string FakeModeEnvironmentVariable = "WOPENUSAGE_FAKE_CODEX_MODE";
-    private const string FakeNowEnvironmentVariable = "WOPENUSAGE_FAKE_NOW_UTC";
-    private const string FakePathMarkerEnvironmentVariable = "WOPENUSAGE_FAKE_PATH_MARKER";
-    private const string RealSmokeEnvironmentVariable = "WOPENUSAGE_RUN_REAL_CODEX_SMOKE";
+    private const string FakeModeEnvironmentVariable = "TOKENUSAGE_FAKE_CODEX_MODE";
+    private const string FakeNowEnvironmentVariable = "TOKENUSAGE_FAKE_NOW_UTC";
+    private const string FakePathMarkerEnvironmentVariable = "TOKENUSAGE_FAKE_PATH_MARKER";
+    private const string RealSmokeEnvironmentVariable = "TOKENUSAGE_RUN_REAL_CODEX_SMOKE";
     private static readonly DateTimeOffset FakeNow =
         new(2026, 7, 22, 16, 0, 0, TimeSpan.Zero);
 
@@ -43,7 +43,7 @@ public sealed class CodexLiveCompositionTests
             var factory = new CodexAppServerQuotaClientFactory(
                 clock,
                 new CodexClientOptions(
-                    "wopenusage-test",
+                    "tokenusage-test",
                     "0.1.0",
                     requestTimeout: TimeSpan.FromSeconds(5)));
             Assert.Equal(
@@ -205,7 +205,7 @@ public sealed class CodexLiveCompositionTests
             var factory = new CodexAppServerQuotaClientFactory(
                 clock,
                 new CodexClientOptions(
-                    "wopenusage-recovery-test",
+                    "tokenusage-recovery-test",
                     "0.1.0",
                     requestTimeout: TimeSpan.FromSeconds(2)));
             var coordinator = new CodexRefreshCoordinator(folder.Path, clock, factory);
@@ -284,7 +284,7 @@ public sealed class CodexLiveCompositionTests
         var factory = new CodexAppServerQuotaClientFactory(
             clock,
             new CodexClientOptions(
-                "wopenusage-real-smoke",
+                "tokenusage-real-smoke",
                 "0.1.0",
                 requestTimeout: TimeSpan.FromSeconds(10)));
         Assert.Equal(
@@ -397,7 +397,7 @@ public sealed class CodexLiveCompositionTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-live-composition-tests",
+                "tokenusage-live-composition-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }

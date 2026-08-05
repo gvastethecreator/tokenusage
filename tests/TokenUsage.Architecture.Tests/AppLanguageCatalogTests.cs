@@ -1,7 +1,7 @@
 using System.Globalization;
-using WOpenUsage.App.Localization;
+using TokenUsage.App.Localization;
 
-namespace WOpenUsage.Architecture.Tests;
+namespace TokenUsage.Architecture.Tests;
 
 public sealed class AppLanguageCatalogTests
 {

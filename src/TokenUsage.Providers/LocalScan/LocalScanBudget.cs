@@ -1,4 +1,4 @@
-namespace WOpenUsage.Providers.LocalScan;
+namespace TokenUsage.Providers.LocalScan;
 
 /// <summary>
 /// Shared scan budget and partial-scan tracking for local usage sources.

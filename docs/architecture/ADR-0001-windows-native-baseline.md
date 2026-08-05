@@ -15,25 +15,25 @@ Usar C#, WinUI 3 y Windows App SDK en una app MSIX de confianza plena. Mantener 
 ## Solución
 
 ```text
-WOpenUsage.slnx
+TokenUsage.slnx
 ├─ src/
-│  ├─ WOpenUsage.App/                WinUI, XAML, ViewModels y composición
-│  ├─ WOpenUsage.Package/            manifest MSIX, App, CLI y alias wusage.exe
-│  ├─ WOpenUsage.Core/               dominio, coordinación, caché y contratos
-│  ├─ WOpenUsage.Providers/          adaptadores y scanners por proveedor
-│  ├─ WOpenUsage.Platform.Windows/   bandeja, ventanas, procesos, archivos y secretos
-│  ├─ WOpenUsage.Runtime.Windows/    composición Windows compartida por app y CLI
-│  └─ WOpenUsage.Cli/                comandos y JSON estable
+│  ├─ TokenUsage.App/                WinUI, XAML, ViewModels y composición
+│  ├─ TokenUsage.Package/            manifest MSIX, App, CLI y alias tokenusage.exe
+│  ├─ TokenUsage.Core/               dominio, coordinación, caché y contratos
+│  ├─ TokenUsage.Providers/          adaptadores y scanners por proveedor
+│  ├─ TokenUsage.Platform.Windows/   bandeja, ventanas, procesos, archivos y secretos
+│  ├─ TokenUsage.Runtime.Windows/    composición Windows compartida por app y CLI
+│  └─ TokenUsage.Cli/                comandos y JSON estable
 ├─ tests/
-│  ├─ WOpenUsage.Core.Tests/
-│  ├─ WOpenUsage.Providers.Tests/
-│  ├─ WOpenUsage.Platform.Windows.Tests/
-│  ├─ WOpenUsage.Architecture.Tests/
-│  └─ WOpenUsage.App.UiTests/
+│  ├─ TokenUsage.Core.Tests/
+│  ├─ TokenUsage.Providers.Tests/
+│  ├─ TokenUsage.Platform.Windows.Tests/
+│  ├─ TokenUsage.Architecture.Tests/
+│  └─ TokenUsage.App.UiTests/
 └─ docs/
 ```
 
-La app nació con `dotnet new winui-mvvm -n WOpenUsage.App`. Un Windows
+La app nació con `dotnet new winui-mvvm -n TokenUsage.App`. Un Windows
 Application Packaging Project conserva el manifiesto e incluye App y CLI. Todo
 build usa una arquitectura concreta; se excluye `AnyCPU`.
 
@@ -41,13 +41,13 @@ build usa una arquitectura concreta; se excluye `AnyCPU`.
 
 ```mermaid
 flowchart TD
-    Package["WOpenUsage.Package"] --> App["WOpenUsage.App"]
-    Package --> CLI["WOpenUsage.Cli"]
-    App --> Core["WOpenUsage.Core"]
-    App --> Providers["WOpenUsage.Providers"]
-    App --> Windows["WOpenUsage.Platform.Windows"]
-    App --> Runtime["WOpenUsage.Runtime.Windows"]
-    CLI["WOpenUsage.Cli"] --> Core
+    Package["TokenUsage.Package"] --> App["TokenUsage.App"]
+    Package --> CLI["TokenUsage.Cli"]
+    App --> Core["TokenUsage.Core"]
+    App --> Providers["TokenUsage.Providers"]
+    App --> Windows["TokenUsage.Platform.Windows"]
+    App --> Runtime["TokenUsage.Runtime.Windows"]
+    CLI["TokenUsage.Cli"] --> Core
     CLI --> Providers
     CLI --> Runtime
     Runtime --> Core
@@ -282,7 +282,7 @@ codex app-server --stdio
 Controles:
 
 - búsqueda en rutas conocidas y `PATH`, sin aceptar el directorio de trabajo como origen implícito;
-- override `WOPENUSAGE_CODEX_EXECUTABLE` que acepta solo un `.exe` local y
+- override `TOKENUSAGE_CODEX_EXECUTABLE` que acepta solo un `.exe` local y
   absoluto; si el override es inválido, la resolución falla sin volver a `PATH`;
 - creación suspendida con pipes propias, asignación al Job Object y reanudación
   después de que `KILL_ON_JOB_CLOSE` ya está activo;
@@ -380,7 +380,7 @@ Contrato base:
 
 ```json
 {
-  "schemaVersion": "wusage.limits.v1",
+  "schemaVersion": "tokenusage.limits.v1",
   "generatedAt": "2026-07-21T00:00:00Z",
   "providers": [],
   "stale": false
@@ -429,14 +429,14 @@ El modo debug es temporal y advierte su mayor detalle. Aun en debug se redaktan 
 - paquete MSIX con identidad propia;
 - confianza plena para archivos del usuario y procesos locales;
 - `x64` y `ARM64`;
-- alias `wusage.exe` para CLI;
+- alias `tokenusage.exe` para CLI;
 - StartupTask cuando cierre su ticket;
 - protocolos o activaciones solo cuando una función los necesita;
 - firma de prueba en CI y firma de producción fuera del repo;
 - canales beta y estable con identidades separadas o estrategia que evite reemplazos accidentales;
 - avisos de terceros y licencia MIT en el paquete.
 
-El repo conserva `Package.appxmanifest` bajo `WOpenUsage.Package`. La build y el
+El repo conserva `Package.appxmanifest` bajo `TokenUsage.Package`. La build y el
 lanzamiento de desarrollo usan `BuildAndRun.ps1`, Visual Studio MSBuild y la
 identidad de paquete. El ejecutable empaquetado no se abre de forma directa.
 

@@ -1,4 +1,4 @@
-namespace WOpenUsage.App.ViewModels.Sample;
+namespace TokenUsage.App.ViewModels.Sample;
 
 public enum SampleScenario
 {

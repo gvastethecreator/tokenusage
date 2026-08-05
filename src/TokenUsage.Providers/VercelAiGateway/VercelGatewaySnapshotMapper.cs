@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Providers.VercelAiGateway;
+namespace TokenUsage.Providers.VercelAiGateway;
 
 internal static class VercelGatewaySnapshotMapper
 {

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace WOpenUsage.App.ViewModels;
+namespace TokenUsage.App.ViewModels;
 
 public static class CodexLiveStateFormatter
 {

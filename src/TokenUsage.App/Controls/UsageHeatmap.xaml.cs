@@ -3,12 +3,12 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
-using WOpenUsage.App.ViewModels.Sample;
+using TokenUsage.App.ViewModels.Sample;
 using Windows.UI.ViewManagement;
 
-using WOpenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Dashboard;
 
-namespace WOpenUsage.App.Controls;
+namespace TokenUsage.App.Controls;
 
 public sealed partial class UsageHeatmap : UserControl
 {

@@ -1,9 +1,9 @@
-using WOpenUsage.App.ViewModels;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
+using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
-namespace WOpenUsage.App.Services;
+namespace TokenUsage.App.Services;
 
 /// <summary>
 /// App adapter: domain local-usage refresh plus UI card projection.

@@ -3,11 +3,11 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Core.Usage;
-using WOpenUsage.Providers.OpenCode;
+using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.OpenCode;
 
-namespace WOpenUsage.Providers.Tests.OpenCode;
+namespace TokenUsage.Providers.Tests.OpenCode;
 
 public sealed class OpenCodeUsageEventSourceTests
 {
@@ -37,7 +37,7 @@ public sealed class OpenCodeUsageEventSourceTests
     public async Task OptInSmokeMatchesOpenCodeStatsWithoutPersistingCliOutput()
     {
         if (!string.Equals(
-                Environment.GetEnvironmentVariable("WOPENUSAGE_OPENCODE_SMOKE"),
+                Environment.GetEnvironmentVariable("TOKENUSAGE_OPENCODE_SMOKE"),
                 "1",
                 StringComparison.Ordinal))
         {
@@ -193,6 +193,42 @@ public sealed class OpenCodeUsageEventSourceTests
         using var limited = new OpenCodeCorpus();
         limited.WriteJsonSession("one", Message("one", "model", 1, 1, 0, 0, 0, 1m));
         Assert.Equal(UsageSourceReadStatus.Partial, (await limited.CreateSource(maximumFiles: 1).ReadAsync()).Status);
+    }
+
+    [Fact]
+    public async Task DatabaseFailuresAndInvalidRowsDoNotSuppressJsonFallback()
+    {
+        using var unknown = new OpenCodeCorpus();
+        unknown.CreateUnknownDatabase();
+        unknown.WriteJsonSession(
+            "session-json",
+            Message("json-message", "json-model", 10, 2, 0, 0, 0, 0.5m));
+
+        UsageSourceReadResult unknownResult = await unknown.CreateSource().ReadAsync();
+        Assert.Equal(UsageSourceReadStatus.Partial, unknownResult.Status);
+        Assert.Equal("json-model", Assert.Single(unknownResult.Events).ModelId.Value);
+
+        using var invalidRow = new OpenCodeCorpus();
+        invalidRow.CreateLegacyDatabase(
+            (
+                "valid-message",
+                "shared-session",
+                1_784_694_000_000L,
+                Message("valid-message", "db-model", 5, 1, 0, 0, 0, 0.25m)),
+            (
+                "json-message",
+                "shared-session",
+                1_784_694_000_000L,
+                "{\"role\":\"assistant\",\"tokens\":{\"input\":1}}"));
+        invalidRow.WriteJsonSession(
+            "shared-session",
+            Message("json-message", "fallback-model", 20, 3, 0, 0, 0, 0.75m));
+
+        UsageSourceReadResult invalidRowResult = await invalidRow.CreateSource().ReadAsync();
+        Assert.Equal(2, invalidRowResult.Events.Count);
+        Assert.Contains(
+            invalidRowResult.Events,
+            usageEvent => usageEvent.ModelId.Value == "fallback-model");
     }
 
     [Fact]
@@ -407,7 +443,7 @@ public sealed class OpenCodeUsageEventSourceTests
 
     private sealed class OpenCodeCorpus : IDisposable
     {
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "wopenusage-opencode", Guid.NewGuid().ToString("N"));
+        private readonly string _root = Path.Combine(Path.GetTempPath(), "tokenusage-opencode", Guid.NewGuid().ToString("N"));
 
         public OpenCodeCorpus() => Directory.CreateDirectory(_root);
 

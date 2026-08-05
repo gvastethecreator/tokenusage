@@ -1,9 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using System.Globalization;
-using WOpenUsage.App.Localization;
+using TokenUsage.App.Localization;
 
-namespace WOpenUsage.App;
+namespace TokenUsage.App;
 
 public partial class App : Application
 {

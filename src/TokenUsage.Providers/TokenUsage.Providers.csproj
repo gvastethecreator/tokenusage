@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>WOpenUsage.Providers</RootNamespace>
-    <AssemblyName>WOpenUsage.Providers</AssemblyName>
+    <RootNamespace>TokenUsage.Providers</RootNamespace>
+    <AssemblyName>TokenUsage.Providers</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WOpenUsage.Core\WOpenUsage.Core.csproj" />
+    <ProjectReference Include="..\TokenUsage.Core\TokenUsage.Core.csproj" />
   </ItemGroup>
 
 </Project>

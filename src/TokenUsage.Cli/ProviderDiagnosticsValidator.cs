@@ -1,6 +1,6 @@
-using WOpenUsage.Runtime.Windows.Providers;
+using TokenUsage.Runtime.Windows.Providers;
 
-namespace WOpenUsage.Cli;
+namespace TokenUsage.Cli;
 
 internal static class ProviderDiagnosticsValidator
 {

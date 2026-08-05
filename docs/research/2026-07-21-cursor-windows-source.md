@@ -6,11 +6,11 @@ Decisión: `implement-subset`
 
 ## Respuesta
 
-WOpenUsage puede mostrar uso y gasto de Cursor para Teams y Enterprise mediante la Admin API pública. La conexión requiere una clave que crea un administrador de Cursor y entrega de forma manual. La app guardará esa clave en Windows Credential Locker.
+TokenUsage puede mostrar uso y gasto de Cursor para Teams y Enterprise mediante la Admin API pública. La conexión requiere una clave que crea un administrador de Cursor y entrega de forma manual. La app guardará esa clave en Windows Credential Locker.
 
 No encontramos un contrato público equivalente para cuentas Individual. Esa variante queda como `Unsupported` para uso, gasto y cuota en vivo. El motor local podrá mostrar observaciones de modelos usados desde otros agents admitidos, con su procedencia, sin presentarlas como datos de Cursor.
 
-WOpenUsage no leerá `state.vscdb`, Credential Manager ni archivos de perfil para obtener la sesión de Cursor. Tampoco llamará endpoints de dashboard, renovará tokens, creará cookies desde un JWT o automatizará el export CSV privado.
+TokenUsage no leerá `state.vscdb`, Credential Manager ni archivos de perfil para obtener la sesión de Cursor. Tampoco llamará endpoints de dashboard, renovará tokens, creará cookies desde un JWT o automatizará el export CSV privado.
 
 ## Fuentes primarias
 
@@ -27,7 +27,7 @@ Consultadas el 2026-07-21:
 
 La Admin API documenta una clave ligada a la organización y autenticación Basic con la clave como usuario. El contrato publicado incluye:
 
-| Endpoint | Datos que admite WOpenUsage | Límite del claim |
+| Endpoint | Datos que admite TokenUsage | Límite del claim |
 |---|---|---|
 | `POST /teams/spend` | gasto por miembro, límite de gasto configurado y comienzo de ciclo | gasto del mes; un límite individual no representa toda la cuota incluida |
 | `POST /teams/filtered-usage-events` | modelo, clase de uso, tokens, coste en centavos, usuario y paginación | eventos facturados o incluidos; no saldo de las dos bolsas nuevas |

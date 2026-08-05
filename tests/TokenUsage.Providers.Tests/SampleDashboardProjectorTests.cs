@@ -1,10 +1,10 @@
 using System.Globalization;
-using WOpenUsage.App.ViewModels.Dashboard;
-using WOpenUsage.App.ViewModels.Sample;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.Fakes;
+using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Fakes;
 
-namespace WOpenUsage.Providers.Tests;
+namespace TokenUsage.Providers.Tests;
 
 public sealed class SampleDashboardProjectorTests
 {

@@ -6,9 +6,9 @@ Decisión: `implement-subset`
 
 ## Respuesta
 
-GitHub publica endpoints REST dedicados al uso de AI credits. WOpenUsage puede mostrar consumo y cargo adicional para una cuenta personal pagada o una organización administrada mediante un fine-grained personal access token que entrega el usuario. La app guarda el token en Windows Credential Locker.
+GitHub publica endpoints REST dedicados al uso de AI credits. TokenUsage puede mostrar consumo y cargo adicional para una cuenta personal pagada o una organización administrada mediante un fine-grained personal access token que entrega el usuario. La app guarda el token en Windows Credential Locker.
 
-La API pública no entrega el saldo de la asignación incluida. WOpenUsage mostrará `AI credits usados` y `Cargo adicional`. No mostrará `Cuota restante` para Copilot hasta que un contrato público devuelva el límite efectivo de la cuenta.
+La API pública no entrega el saldo de la asignación incluida. TokenUsage mostrará `AI credits usados` y `Cargo adicional`. No mostrará `Cuota restante` para Copilot hasta que un contrato público devuelva el límite efectivo de la cuenta.
 
 Quedan fuera el endpoint interno `/copilot_internal/user`, los headers que imitan un editor, los tokens de extensiones, `hosts.yml`, GitHub CLI Credential Manager y cookies.
 
@@ -76,7 +76,7 @@ La clasificación local de Grok fue correcta. El parent review encontró contrat
 - la versión `2026-03-10`;
 - permisos fine-grained precisos.
 
-WOpenUsage no copia la cadena upstream. El usuario escribe cuenta u organización y entrega una credencial creada para esta app. El cliente llama el endpoint dedicado de AI credits sin consultar primero un endpoint privado.
+TokenUsage no copia la cadena upstream. El usuario escribe cuenta u organización y entrega una credencial creada para esta app. El cliente llama el endpoint dedicado de AI credits sin consultar primero un endpoint privado.
 
 ## Sonda Windows
 
@@ -96,7 +96,7 @@ La presencia de `gh` o estado de editor no configura el provider. La app ignora 
 ## Seguridad y errores
 
 - Cada conexión declara `Personal` u `Organization` y un nombre visible.
-- El token vive en Credential Locker y nunca entra en logs, caché, diagnóstico o CLI de WOpenUsage.
+- El token vive en Credential Locker y nunca entra en logs, caché, diagnóstico o CLI de TokenUsage.
 - El host queda fijado a `https://api.github.com`; GitHub Enterprise Server no se redirige al host público.
 - `401` pasa a `AuthRequired`; `403` a `InsufficientPermission`; `404` a `UnsupportedScope`; `429` conserva el último valor válido como vencido.
 - La caché guarda agregados mínimos y elimina login, modelo si el usuario desactiva detalle, y cualquier cuerpo remoto.
@@ -115,7 +115,7 @@ No hubo token, cuenta, organización ni llamada autenticada. No se validaron `20
 ## Decisión de producto
 
 - Implementar uso y gasto para cuentas personales pagadas y organizaciones administradas.
-- Usar solo endpoints públicos de AI credits y una credencial entregada para WOpenUsage.
+- Usar solo endpoints públicos de AI credits y una credencial entregada para TokenUsage.
 - Mantener Free, Student, planes legados y miembros sin permiso en estados honestos.
 - No prometer cuota restante, aunque GitHub publique asignaciones por plan.
 - No leer ni invocar tokens, sesiones o endpoints internos de Copilot, editor o `gh`.

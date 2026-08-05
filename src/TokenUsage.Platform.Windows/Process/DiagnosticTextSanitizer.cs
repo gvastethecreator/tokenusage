@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 internal static partial class DiagnosticTextSanitizer
 {

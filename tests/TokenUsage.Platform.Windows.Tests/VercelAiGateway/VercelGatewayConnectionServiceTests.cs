@@ -1,9 +1,9 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Providers.VercelAiGateway;
-using WOpenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Runtime.Windows.VercelAiGateway;
 
-namespace WOpenUsage.Platform.Windows.Tests.VercelAiGateway;
+namespace TokenUsage.Platform.Windows.Tests.VercelAiGateway;
 
 public sealed class VercelGatewayConnectionServiceTests
 {
@@ -521,7 +521,7 @@ public sealed class VercelGatewayConnectionServiceTests
         {
             Path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
-                "wopenusage-vercel-disconnect-tests",
+                "tokenusage-vercel-disconnect-tests",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
             DocumentPath = System.IO.Path.Combine(Path, SnapshotStore.DefaultFileName);

@@ -1,7 +1,7 @@
 using System.Globalization;
-using WOpenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels;
 
-namespace WOpenUsage.Providers.Tests.Codex;
+namespace TokenUsage.Providers.Tests.Codex;
 
 public sealed class CodexLiveStateFormatterTests
 {

@@ -4,57 +4,57 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/src/">
-    <Project Path="src/WOpenUsage.App/WOpenUsage.App.csproj">
+    <Project Path="src/TokenUsage.App/TokenUsage.App.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="src/WOpenUsage.Cli/WOpenUsage.Cli.csproj">
+    <Project Path="src/TokenUsage.Cli/TokenUsage.Cli.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="src/WOpenUsage.Core/WOpenUsage.Core.csproj">
+    <Project Path="src/TokenUsage.Core/TokenUsage.Core.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="src/WOpenUsage.Platform.Windows/WOpenUsage.Platform.Windows.csproj">
+    <Project Path="src/TokenUsage.Platform.Windows/TokenUsage.Platform.Windows.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="src/WOpenUsage.Package/WOpenUsage.Package.wapproj" Type="C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5">
+    <Project Path="src/TokenUsage.Package/TokenUsage.Package.wapproj" Type="C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="src/WOpenUsage.Providers/WOpenUsage.Providers.csproj">
+    <Project Path="src/TokenUsage.Providers/TokenUsage.Providers.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="src/WOpenUsage.Runtime.Windows/WOpenUsage.Runtime.Windows.csproj">
+    <Project Path="src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/WOpenUsage.Architecture.Tests/WOpenUsage.Architecture.Tests.csproj">
+    <Project Path="tests/TokenUsage.Architecture.Tests/TokenUsage.Architecture.Tests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="tests/WOpenUsage.Cli.Tests/WOpenUsage.Cli.Tests.csproj">
+    <Project Path="tests/TokenUsage.Cli.Tests/TokenUsage.Cli.Tests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="tests/WOpenUsage.Platform.Windows.Tests/WOpenUsage.Platform.Windows.Tests.csproj">
+    <Project Path="tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="tests/WOpenUsage.TestSupport.FakeCodex/WOpenUsage.TestSupport.FakeCodex.csproj">
+    <Project Path="tests/TokenUsage.TestSupport.FakeCodex/TokenUsage.TestSupport.FakeCodex.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="tests/WOpenUsage.Core.Tests/WOpenUsage.Core.Tests.csproj">
+    <Project Path="tests/TokenUsage.Core.Tests/TokenUsage.Core.Tests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="tests/WOpenUsage.Providers.Tests/WOpenUsage.Providers.Tests.csproj">
+    <Project Path="tests/TokenUsage.Providers.Tests/TokenUsage.Providers.Tests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
     </Project>

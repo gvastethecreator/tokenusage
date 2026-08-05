@@ -1,7 +1,7 @@
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Automation;
+namespace TokenUsage.Core.Automation;
 
 public sealed class LimitsQuery
 {

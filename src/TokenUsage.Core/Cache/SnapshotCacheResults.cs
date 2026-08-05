@@ -1,6 +1,6 @@
-using WOpenUsage.Core.Providers;
+using TokenUsage.Core.Providers;
 
-namespace WOpenUsage.Core.Cache;
+namespace TokenUsage.Core.Cache;
 
 public abstract class SnapshotCacheReadResult
 {

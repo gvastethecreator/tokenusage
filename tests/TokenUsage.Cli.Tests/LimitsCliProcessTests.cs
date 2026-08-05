@@ -1,15 +1,15 @@
 using System.Diagnostics;
 using System.Text.Json;
-using WOpenUsage.Core.Cache;
-using WOpenUsage.Core.Providers;
-using WOpenUsage.Platform.Windows.Processes;
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Providers;
+using TokenUsage.Platform.Windows.Processes;
 
-namespace WOpenUsage.Cli.Tests;
+namespace TokenUsage.Cli.Tests;
 
 public sealed class LimitsCliProcessTests
 {
-    private const string FakeModeEnvironmentVariable = "WOPENUSAGE_FAKE_CODEX_MODE";
-    private const string FakeNowEnvironmentVariable = "WOPENUSAGE_FAKE_NOW_UTC";
+    private const string FakeModeEnvironmentVariable = "TOKENUSAGE_FAKE_CODEX_MODE";
+    private const string FakeNowEnvironmentVariable = "TOKENUSAGE_FAKE_NOW_UTC";
     private static readonly TimeSpan ProcessTimeout = TimeSpan.FromSeconds(45);
     private static readonly decimal[] AllowedSessionUsage = [20m, 90m];
     private static readonly DateTimeOffset SnapshotNow =
@@ -45,7 +45,7 @@ public sealed class LimitsCliProcessTests
                 Assert.Equal(string.Empty, result.StandardError);
                 using JsonDocument document = JsonDocument.Parse(result.StandardOutput);
                 Assert.Equal(
-                    "wusage.limits.v1",
+                    "tokenusage.limits.v1",
                     document.RootElement.GetProperty("schemaVersion").GetString());
                 Assert.Equal(
                     "codex",
@@ -127,7 +127,7 @@ public sealed class LimitsCliProcessTests
                 Assert.Equal(string.Empty, result.StandardError);
                 using JsonDocument document = JsonDocument.Parse(result.StandardOutput);
                 Assert.Equal(
-                    "wusage.limits.v1",
+                    "tokenusage.limits.v1",
                     document.RootElement.GetProperty("schemaVersion").GetString());
                 JsonElement provider = Assert.Single(document.RootElement
                     .GetProperty("providers")
@@ -260,7 +260,7 @@ public sealed class LimitsCliProcessTests
         bool forceRefresh = false,
         string? codexExecutableOverride = null)
     {
-        string executablePath = Path.Combine(AppContext.BaseDirectory, "wusage.exe");
+        string executablePath = Path.Combine(AppContext.BaseDirectory, "tokenusage.exe");
         var startInfo = new ProcessStartInfo(executablePath)
         {
             UseShellExecute = false,

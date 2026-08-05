@@ -46,14 +46,14 @@ loading during detection by splitting presence check from credential retrieval.
 ## Proof
 
 ```text
-dotnet test tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj \
+dotnet test tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj \
   --filter FullyQualifiedName~VercelGatewayProviderRuntimeTests --no-restore
 
 Passed: 25, Failed: 0, Skipped: 0
 ```
 
 ```text
-dotnet test tests\WOpenUsage.Providers.Tests\WOpenUsage.Providers.Tests.csproj \
+dotnet test tests\TokenUsage.Providers.Tests\TokenUsage.Providers.Tests.csproj \
   --filter FullyQualifiedName~VercelGateway --no-restore
 
 Passed: 46, Failed: 0, Skipped: 0

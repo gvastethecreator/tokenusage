@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 public sealed class CodexAppServerClient : ICodexQuotaClient
 {

@@ -28,7 +28,7 @@ on every typed result. Final parent Sol audit: `accept`.
 ## Proof
 
 ```text
-dotnet test tests\WOpenUsage.Core.Tests\WOpenUsage.Core.Tests.csproj \
+dotnet test tests\TokenUsage.Core.Tests\TokenUsage.Core.Tests.csproj \
   --filter FullyQualifiedName~SnapshotStoreTests --no-restore
 
 Passed: 27, Failed: 0, Skipped: 0

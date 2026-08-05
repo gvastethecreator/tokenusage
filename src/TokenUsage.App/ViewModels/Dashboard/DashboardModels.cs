@@ -1,8 +1,8 @@
 using System.ComponentModel;
 
-using WOpenUsage.App.ViewModels.Sample;
+using TokenUsage.App.ViewModels.Sample;
 
-namespace WOpenUsage.App.ViewModels.Dashboard;
+namespace TokenUsage.App.ViewModels.Dashboard;
 
 // Live + sample dashboard projection models (neutral names).
 

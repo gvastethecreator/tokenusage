@@ -1,4 +1,4 @@
-# Architecture review — TokenUsage / WOpenUsage
+# Architecture review — TokenUsage / TokenUsage
 
 Date: 2026-07-24
 
@@ -6,7 +6,7 @@ Updated: 2026-07-25
 
 Reviewed source: `d734594b3d75bdee0f1c2d33ab10cd87af9578de`
 
-Companion HTML: `.scratch/reports/architecture-wopenusage/index.html`
+Companion HTML: `.scratch/reports/architecture-tokenusage/index.html`
 
 ## Implementation status (2026-07-24)
 
@@ -68,7 +68,7 @@ and proof are recorded in `docs/evidence/architecture-f9-f13.md`.
 
 | ID | Observation | Evidence |
 | --- | --- | --- |
-| E1 | Project edges and current source rules pass | `dotnet test tests/WOpenUsage.Architecture.Tests/... --filter FullyQualifiedName~ArchitectureRulesTests`: 6/6 |
+| E1 | Project edges and current source rules pass | `dotnet test tests/TokenUsage.Architecture.Tests/... --filter FullyQualifiedName~ArchitectureRulesTests`: 6/6 |
 | E2 | Current refresh order and Alert host behavior pass their tests | Core focused run: 6/6; `ProviderRefreshHostTests` requires providers to complete in registration order |
 | E3 | Current four-provider CLI diagnostics contract is green | CLI focused run: 26/26; process test expects 4 providers and 6 doctor checks |
 | E4 | Refresh host is sequential | `ProviderRefreshHost.RunAsync` loops registrations and awaits one `CacheFirstRefresh` before starting the next; ADR-0001 lines 185–192 and product spec lines 212–223 require parallel progress |
@@ -89,14 +89,14 @@ and proof are recorded in `docs/evidence/architecture-f9-f13.md`.
 
 **Files**
 
-- `src/WOpenUsage.Core/Cache/ProviderRefreshHost.cs`
-- `src/WOpenUsage.Core/Cache/CacheFirstRefresh.cs`
-- `src/WOpenUsage.Runtime.Windows/Codex/CodexRefreshCoordinator.cs`
-- `src/WOpenUsage.Runtime.Windows/VercelAiGateway/VercelGatewayRefreshCoordinator.cs`
-- `src/WOpenUsage.App/ViewModels/LiveDashboardSession.cs`
-- `src/WOpenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
-- `src/WOpenUsage.App/ViewModels/FlyoutViewModel.cs`
-- `tests/WOpenUsage.Core.Tests/Cache/ProviderRefreshHostTests.cs`
+- `src/TokenUsage.Core/Cache/ProviderRefreshHost.cs`
+- `src/TokenUsage.Core/Cache/CacheFirstRefresh.cs`
+- `src/TokenUsage.Runtime.Windows/Codex/CodexRefreshCoordinator.cs`
+- `src/TokenUsage.Runtime.Windows/VercelAiGateway/VercelGatewayRefreshCoordinator.cs`
+- `src/TokenUsage.App/ViewModels/LiveDashboardSession.cs`
+- `src/TokenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
+- `src/TokenUsage.App/ViewModels/FlyoutViewModel.cs`
+- `tests/TokenUsage.Core.Tests/Cache/ProviderRefreshHostTests.cs`
 
 **Problem**
 
@@ -174,15 +174,15 @@ flowchart LR
 
 **Files**
 
-- `src/WOpenUsage.App/Composition/AppComposition.cs`
-- `src/WOpenUsage.Cli/LocalLimitsCliAccess.cs`
-- `src/WOpenUsage.Cli/LocalProviderDiagnosticsAccess.cs`
-- `src/WOpenUsage.Cli/ProviderDiagnosticsValidator.cs`
-- `src/WOpenUsage.App/ViewModels/FlyoutViewModel.cs`
-- `src/WOpenUsage.App/ViewModels/LocalUsageCardProjector.cs`
-- `src/WOpenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
-- `src/WOpenUsage.App/Controls/ProviderColorPalette.cs`
-- `src/WOpenUsage.App/Controls/ProviderMarkImage.xaml.cs`
+- `src/TokenUsage.App/Composition/AppComposition.cs`
+- `src/TokenUsage.Cli/LocalLimitsCliAccess.cs`
+- `src/TokenUsage.Cli/LocalProviderDiagnosticsAccess.cs`
+- `src/TokenUsage.Cli/ProviderDiagnosticsValidator.cs`
+- `src/TokenUsage.App/ViewModels/FlyoutViewModel.cs`
+- `src/TokenUsage.App/ViewModels/LocalUsageCardProjector.cs`
+- `src/TokenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
+- `src/TokenUsage.App/Controls/ProviderColorPalette.cs`
+- `src/TokenUsage.App/Controls/ProviderMarkImage.xaml.cs`
 
 **Problem**
 
@@ -191,8 +191,8 @@ CLI limits know Codex and Vercel. CLI diagnostics and its validator know Claude,
 Codex, Grok, and OpenCode. App status rows build a third catalog. Visual marks,
 colors, names, detection, cache paths, and runtime factories use more tables.
 
-The drift is visible now: `wusage providers` omits Vercel, while the App and
-`wusage limits` support it. OpenRouter runtime work would add another set of
+The drift is visible now: `tokenusage providers` omits Vercel, while the App and
+`tokenusage limits` support it. OpenRouter runtime work would add another set of
 edits before it reaches a user.
 
 Deletion test: removing the diagnostics catalog leaves the same expected IDs
@@ -245,14 +245,14 @@ only presentation assets and forms.
 
 **Files**
 
-- `src/WOpenUsage.App/ViewModels/FlyoutViewModel.cs`
-- `src/WOpenUsage.App/MainWindow.xaml.cs`
-- `src/WOpenUsage.App/MainPage.xaml.cs`
-- `src/WOpenUsage.App/Composition/AppComposition.cs`
-- `src/WOpenUsage.Core/Alerts/AlertHost.cs`
-- `.scratch/wopenusage/issues/14-avisar-por-cuota-ritmo-y-datos-vencidos.md`
-- `.scratch/wopenusage/issues/15-integrar-arranque-y-atajo-global.md`
-- `.scratch/wopenusage/issues/26-exponer-una-api-local-opt-in.md`
+- `src/TokenUsage.App/ViewModels/FlyoutViewModel.cs`
+- `src/TokenUsage.App/MainWindow.xaml.cs`
+- `src/TokenUsage.App/MainPage.xaml.cs`
+- `src/TokenUsage.App/Composition/AppComposition.cs`
+- `src/TokenUsage.Core/Alerts/AlertHost.cs`
+- `.scratch/tokenusage/issues/14-avisar-por-cuota-ritmo-y-datos-vencidos.md`
+- `.scratch/tokenusage/issues/15-integrar-arranque-y-atajo-global.md`
+- `.scratch/tokenusage/issues/26-exponer-una-api-local-opt-in.md`
 
 **Problem**
 
@@ -325,15 +325,15 @@ flowchart LR
 
 **Files**
 
-- `src/WOpenUsage.App/ViewModels/FlyoutViewModel.cs`
-- `src/WOpenUsage.App/ViewModels/LiveDashboardSession.cs`
-- `src/WOpenUsage.App/ViewModels/SampleDashboardSession.cs`
-- `src/WOpenUsage.App/ViewModels/AppearanceSession.cs`
-- `src/WOpenUsage.App/ViewModels/DashboardLayoutEditor.cs`
-- `src/WOpenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
-- `src/WOpenUsage.App/MainPage.xaml`
-- `src/WOpenUsage.App/MainPage.xaml.cs`
-- `tests/WOpenUsage.Providers.Tests/Sessions/SessionModuleTests.cs`
+- `src/TokenUsage.App/ViewModels/FlyoutViewModel.cs`
+- `src/TokenUsage.App/ViewModels/LiveDashboardSession.cs`
+- `src/TokenUsage.App/ViewModels/SampleDashboardSession.cs`
+- `src/TokenUsage.App/ViewModels/AppearanceSession.cs`
+- `src/TokenUsage.App/ViewModels/DashboardLayoutEditor.cs`
+- `src/TokenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
+- `src/TokenUsage.App/MainPage.xaml`
+- `src/TokenUsage.App/MainPage.xaml.cs`
+- `tests/TokenUsage.Providers.Tests/Sessions/SessionModuleTests.cs`
 
 **Problem**
 
@@ -405,15 +405,15 @@ behavior, localization, and compiled bindings.
 
 **Files**
 
-- `src/WOpenUsage.Cli/LocalLimitsCliAccess.cs`
-- `src/WOpenUsage.Cli/LocalUsageCliAccess.cs`
-- `src/WOpenUsage.Cli/LocalProviderDiagnosticsAccess.cs`
-- `src/WOpenUsage.Cli/LimitsDocument.cs`
-- `src/WOpenUsage.Cli/UsageCommand.cs`
-- `src/WOpenUsage.Cli/ProvidersCommand.cs`
-- `src/WOpenUsage.Cli/DoctorCommand.cs`
+- `src/TokenUsage.Cli/LocalLimitsCliAccess.cs`
+- `src/TokenUsage.Cli/LocalUsageCliAccess.cs`
+- `src/TokenUsage.Cli/LocalProviderDiagnosticsAccess.cs`
+- `src/TokenUsage.Cli/LimitsDocument.cs`
+- `src/TokenUsage.Cli/UsageCommand.cs`
+- `src/TokenUsage.Cli/ProvidersCommand.cs`
+- `src/TokenUsage.Cli/DoctorCommand.cs`
 - `docs/PRODUCT-SPEC.md` local API section
-- `.scratch/wopenusage/issues/26-exponer-una-api-local-opt-in.md`
+- `.scratch/tokenusage/issues/26-exponer-una-api-local-opt-in.md`
 
 **Problem**
 
@@ -526,12 +526,12 @@ Target: shared query read models feed CLI JSON/human and HTTP JSON adapters.
 
 **Files**
 
-- `src/WOpenUsage.Core/Cache/CacheFirstRefresh.cs`
-- `src/WOpenUsage.Runtime.Windows/Codex/CodexRefreshCoordinator.cs`
-- `src/WOpenUsage.Runtime.Windows/VercelAiGateway/VercelGatewayRefreshCoordinator.cs`
-- `src/WOpenUsage.App/Services/SampleRefreshCoordinator.cs`
-- `src/WOpenUsage.App/ViewModels/FlyoutViewModel.cs` (`RefreshDashboardAsync`, live path only runs Codex)
-- `src/WOpenUsage.Cli/LocalLimitsCliAccess.cs` (force-refresh codex-only)
+- `src/TokenUsage.Core/Cache/CacheFirstRefresh.cs`
+- `src/TokenUsage.Runtime.Windows/Codex/CodexRefreshCoordinator.cs`
+- `src/TokenUsage.Runtime.Windows/VercelAiGateway/VercelGatewayRefreshCoordinator.cs`
+- `src/TokenUsage.App/Services/SampleRefreshCoordinator.cs`
+- `src/TokenUsage.App/ViewModels/FlyoutViewModel.cs` (`RefreshDashboardAsync`, live path only runs Codex)
+- `src/TokenUsage.Cli/LocalLimitsCliAccess.cs` (force-refresh codex-only)
 - `docs/architecture/ADR-0001-windows-native-baseline.md` (describes multi-provider `RefreshCoordinator`)
 
 **Problem**
@@ -601,10 +601,10 @@ flowchart LR
 
 **Files**
 
-- `src/WOpenUsage.App/ViewModels/FlyoutViewModel.cs` (~1490 lines)
-- `src/WOpenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
-- `src/WOpenUsage.App/ViewModels/DashboardLayoutSessionHistory.cs`
-- `src/WOpenUsage.App/MainPage.xaml.cs` (binds many surface concerns)
+- `src/TokenUsage.App/ViewModels/FlyoutViewModel.cs` (~1490 lines)
+- `src/TokenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs`
+- `src/TokenUsage.App/ViewModels/DashboardLayoutSessionHistory.cs`
+- `src/TokenUsage.App/MainPage.xaml.cs` (binds many surface concerns)
 
 **Problem**
 
@@ -656,9 +656,9 @@ After: shell binds children; each child has one refresh or persist path and its 
 
 **Files**
 
-- `src/WOpenUsage.Core/Cache/SnapshotStore.cs`
-- `src/WOpenUsage.Core/Appearance/AppearanceSettingsStore.cs`
-- `src/WOpenUsage.Core/Layout/DashboardLayoutStore.cs`
+- `src/TokenUsage.Core/Cache/SnapshotStore.cs`
+- `src/TokenUsage.Core/Appearance/AppearanceSettingsStore.cs`
+- `src/TokenUsage.Core/Layout/DashboardLayoutStore.cs`
 - Future: alert settings / preference persistence
 
 **Problem**
@@ -707,12 +707,12 @@ After: one protocol module; three thin serializers.
 
 **Files**
 
-- `src/WOpenUsage.App/Services/LocalUsageCoordinator.cs`
-- `src/WOpenUsage.App/ViewModels/LocalUsageCardProjector.cs`
-- `src/WOpenUsage.Core/Usage/UsageRepository.cs`
-- `src/WOpenUsage.Core/Usage/IUsageEventSource.cs`
-- `src/WOpenUsage.Cli/LocalUsageCliAccess.cs`
-- `src/WOpenUsage.App/MainPage.xaml.cs` (wires Claude/Grok/OpenCode sources)
+- `src/TokenUsage.App/Services/LocalUsageCoordinator.cs`
+- `src/TokenUsage.App/ViewModels/LocalUsageCardProjector.cs`
+- `src/TokenUsage.Core/Usage/UsageRepository.cs`
+- `src/TokenUsage.Core/Usage/IUsageEventSource.cs`
+- `src/TokenUsage.Cli/LocalUsageCliAccess.cs`
+- `src/TokenUsage.App/MainPage.xaml.cs` (wires Claude/Grok/OpenCode sources)
 
 **Problem**
 
@@ -757,11 +757,11 @@ After: both call `LocalUsageRefresh.RunAsync` then format.
 
 **Files**
 
-- `src/WOpenUsage.App/ViewModels/Sample/SampleDashboardModels.cs`
-- `src/WOpenUsage.App/ViewModels/LiveDashboardComposer.cs`
-- `src/WOpenUsage.App/ViewModels/CodexDashboardProjector.cs`
-- `src/WOpenUsage.App/ViewModels/VercelGatewayCardProjector.cs`
-- `src/WOpenUsage.App/ViewModels/LocalUsageCardProjector.cs`
+- `src/TokenUsage.App/ViewModels/Sample/SampleDashboardModels.cs`
+- `src/TokenUsage.App/ViewModels/LiveDashboardComposer.cs`
+- `src/TokenUsage.App/ViewModels/CodexDashboardProjector.cs`
+- `src/TokenUsage.App/ViewModels/VercelGatewayCardProjector.cs`
+- `src/TokenUsage.App/ViewModels/LocalUsageCardProjector.cs`
 - XAML bindings to `SampleProviderCard`, `SampleQuotaWindow`, etc.
 
 **Problem**
@@ -796,8 +796,8 @@ Deepen a **dashboard projection** module with neutral names (`DashboardSnapshot`
 
 **Files**
 
-- `src/WOpenUsage.App/MainPage.xaml.cs` (constructs coordinators, stores, sources, debug Vercel fakes)
-- `src/WOpenUsage.App/Program.cs` / `App.xaml.cs`
+- `src/TokenUsage.App/MainPage.xaml.cs` (constructs coordinators, stores, sources, debug Vercel fakes)
+- `src/TokenUsage.App/Program.cs` / `App.xaml.cs`
 - Debug helpers embedded in `MainPage` (`DebugVercelCredentialStore`, etc.)
 
 **Problem**
@@ -836,8 +836,8 @@ Deepen an **App composition** module (factory or small builder):
 
 **Files**
 
-- `src/WOpenUsage.Core/Alerts/AlertEvaluator.cs` (pure, deep)
-- `src/WOpenUsage.Core/Alerts/AlertFacts.cs`, `AlertCandidate.cs`, `AlertConditionKey.cs`, `AlertSettings.cs`
+- `src/TokenUsage.Core/Alerts/AlertEvaluator.cs` (pure, deep)
+- `src/TokenUsage.Core/Alerts/AlertFacts.cs`, `AlertCandidate.cs`, `AlertConditionKey.cs`, `AlertSettings.cs`
 - Untracked WIP relative to last commit; not yet composed from App
 - Future: notification / tray / preference store
 
@@ -879,9 +879,9 @@ Before UI:
 
 **Files**
 
-- `src/WOpenUsage.Providers/Claude/ClaudeUsageEventSource.cs` (~640 lines)
-- `src/WOpenUsage.Providers/Grok/GrokUsageEventSource.cs` (~753 lines)
-- `src/WOpenUsage.Providers/OpenCode/OpenCodeUsageEventSource.cs` (~648 lines)
+- `src/TokenUsage.Providers/Claude/ClaudeUsageEventSource.cs` (~640 lines)
+- `src/TokenUsage.Providers/Grok/GrokUsageEventSource.cs` (~753 lines)
+- `src/TokenUsage.Providers/OpenCode/OpenCodeUsageEventSource.cs` (~648 lines)
 
 **Problem**
 
@@ -924,14 +924,14 @@ Pending acceptance (step 3 of architecture skill). When accepted:
 
 - `CONTEXT.md` or domain section: provider refresh host, local usage refresh, dashboard projection, alert facts/host
 - ADR: only for cache partition change, alert delivery, or composition ownership moves that surprise future agents
-- Task tracker: `.scratch/wopenusage/issues/` or `docs/architecture/WORKPLAN.md` linking each accepted rec back here
+- Task tracker: `.scratch/tokenusage/issues/` or `docs/architecture/WORKPLAN.md` linking each accepted rec back here
 - Keep this file as the index; update status of accepted/rejected/deferred decisions in place
 
 ## Prior evidence notes
 
 | Observation | Evidence |
 | --- | --- |
-| Project graph matches ADR | `tests/WOpenUsage.Architecture.Tests/ArchitectureRules.cs`, ADR-0001 |
+| Project graph matches ADR | `tests/TokenUsage.Architecture.Tests/ArchitectureRules.cs`, ADR-0001 |
 | FlyoutViewModel size | ~1490 lines; owns surface, layout, appearance, sample, live, vercel |
 | Live refresh only awaits Codex | `FlyoutViewModel.RefreshDashboardAsync` uses `_codexRefreshCoordinator` when `scenario is null` |
 | Per-provider coordinators are thin | `CodexRefreshCoordinator` ~35 lines wrapping `CacheFirstRefresh` |

@@ -45,7 +45,7 @@ scripts/check.ps1 -Platform x64:
   Architecture 22/22, Core 32/32, Providers 41/41, build 0 warnings/errors
 scripts/check.ps1 -Platform ARM64:
   Architecture 22/22, Core 32/32, Providers 41/41, build 0 warnings/errors
-dotnet format WOpenUsage.slnx --verify-no-changes --no-restore: passed
+dotnet format TokenUsage.slnx --verify-no-changes --no-restore: passed
 git diff --check: passed
 ```
 

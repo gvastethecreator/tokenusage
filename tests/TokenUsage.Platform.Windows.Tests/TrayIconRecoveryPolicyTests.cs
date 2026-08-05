@@ -1,6 +1,6 @@
-using WOpenUsage.Platform.Windows.Tray;
+using TokenUsage.Platform.Windows.Tray;
 
-namespace WOpenUsage.Platform.Windows.Tests;
+namespace TokenUsage.Platform.Windows.Tests;
 
 public sealed class TrayIconRecoveryPolicyTests
 {

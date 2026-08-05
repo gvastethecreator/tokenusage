@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace WOpenUsage.Providers.Codex;
+namespace TokenUsage.Providers.Codex;
 
 internal sealed class CodexJsonlTransport : IAsyncDisposable
 {

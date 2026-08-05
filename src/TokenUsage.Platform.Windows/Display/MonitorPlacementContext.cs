@@ -1,6 +1,6 @@
-using WOpenUsage.Platform.Windows.Placement;
+using TokenUsage.Platform.Windows.Placement;
 
-namespace WOpenUsage.Platform.Windows.Display;
+namespace TokenUsage.Platform.Windows.Display;
 
 public readonly record struct MonitorPlacementContext(
     PlatformRect WorkArea,

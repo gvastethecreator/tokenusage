@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using WOpenUsage.Platform.Windows.Native;
+using TokenUsage.Platform.Windows.Native;
 
-namespace WOpenUsage.Platform.Windows.Processes;
+namespace TokenUsage.Platform.Windows.Processes;
 
 internal sealed class InheritedHandleList : IDisposable
 {
