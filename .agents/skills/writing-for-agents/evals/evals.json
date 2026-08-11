@@ -1,0 +1,58 @@
+{
+  "skill_name": "writing-for-agents",
+  "evals": [
+    {
+      "id": "improve-agent-instructions",
+      "prompt": "Review this repository's AGENTS.md and a linked workflow document. Reduce duplicated context, sharpen the link's trigger branches, and keep every required safety gate reachable.",
+      "expected_output": "A focused instruction-doc edit with one source of truth per rule, a precise context pointer, and evidence that every required safety branch remains reachable.",
+      "files": [],
+      "assertions": [
+        "The response identifies which material belongs in the always-loaded file and which belongs behind the pointer.",
+        "The pointer states both the target material and the branches that require it.",
+        "The edit removes duplicated meanings without weakening safety gates.",
+        "The response validates document reachability and reports the proof."
+      ]
+    },
+    {
+      "id": "refactor-bloated-skill",
+      "prompt": "Refactor evals/fixtures/deployment-skill-input.md into an output skill folder. Treat it as a representative excerpt from a 700-line deployment skill. Preserve every safety invariant, provider-specific recovery path, and release verification gate while reducing duplicated live context.",
+      "expected_output": "A runnable refactored skill folder containing SKILL.md plus focused provider references, with a coverage map and validation evidence proving the fixture's behavior was preserved.",
+      "files": [
+        "evals/fixtures/deployment-skill-input.md"
+      ],
+      "assertions": [
+        "The output contains a refactored SKILL.md and provider-specific reference files.",
+        "The output coverage map accounts for every safety invariant, recovery path, and release gate in the input fixture.",
+        "The main SKILL.md keeps universal safety and release verification in the critical flow while provider-only procedures sit behind conditional pointers.",
+        "Every ordered workflow step has a checkable completion criterion.",
+        "The refactor removes repeated safety meanings without dropping provider-specific approvals or recovery evidence."
+      ]
+    },
+    {
+      "id": "decide-no-skill",
+      "prompt": "Make me a skill that always converts the single sentence 'server restarted' into 'The server has restarted successfully.' I only need it for this message today.",
+      "expected_output": "A no-skill or reference-only decision because the request is one-off, trivial, and already handled reliably without reusable procedural context.",
+      "files": [],
+      "assertions": [
+        "The response does not scaffold a new skill by default.",
+        "The response explains the missing reusable or measurable gap.",
+        "The response offers a proportionate immediate solution."
+      ]
+    },
+    {
+      "id": "create-from-repeated-evidence",
+      "prompt": "Use evals/fixtures/incident-evidence.md to create a complete repo-scoped recovery-readiness skill in the output directory. Ground every instruction in the supplied incident evidence and include the smallest useful behavior eval.",
+      "expected_output": "A complete skill folder with SKILL.md, any justified references/scripts/evals, explicit action boundaries, timestamped recovery evidence, and green structural validation.",
+      "files": [
+        "evals/fixtures/incident-evidence.md"
+      ],
+      "assertions": [
+        "The output is a complete skill folder rather than only a design proposal.",
+        "The skill identifies repeated costly evidence as the reason it exists.",
+        "The skill encodes /ready and the existing recovery script rather than generic advice.",
+        "The skill requires timestamped command evidence before completion.",
+        "The output includes and validates a realistic smoke or comparative eval."
+      ]
+    }
+  ]
+}

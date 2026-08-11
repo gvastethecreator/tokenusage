@@ -14,3 +14,11 @@
 - `wontfix`: deliberately rejected with a reason.
 
 Dependencies live in `Blocked by`; labels identify task ownership and readiness contract.
+
+## Project status
+
+- `Todo`: queued work.
+- `In Progress`: active work.
+- `Done`: verified and finished work.
+
+Local `Execution:` uses `queued`, `active`, `blocked`, or `finished`. It remains separate from the triage `Status:` field.

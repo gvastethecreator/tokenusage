@@ -1,0 +1,78 @@
+[
+  {
+    "query": "Rewrite our AGENTS.md and its linked release guide so agents load each rule only when the relevant workflow branch runs.",
+    "should_trigger": true
+  },
+  {
+    "query": "This CLAUDE.md duplicates package scripts and buries the approval boundary. Make the agent instructions predictable and lean.",
+    "should_trigger": true
+  },
+  {
+    "query": "We finally got our release workflow right after three failed attempts. Can you turn the commands and corrections from this task into a reusable Codex skill?",
+    "should_trigger": true
+  },
+  {
+    "query": "Audit skills/payments-runbook/SKILL.md. It keeps firing for billing analytics requests and then runs the wrong recovery checklist.",
+    "should_trigger": true
+  },
+  {
+    "query": "This SKILL.md is 650 lines and every provider branch loads at once. Refactor it using progressive disclosure without changing behavior.",
+    "should_trigger": true
+  },
+  {
+    "query": "Do we actually need a new skill for these repeated review comments, or should this become a reference inside code-review?",
+    "should_trigger": true
+  },
+  {
+    "query": "Our data-export skill works when explicitly selected but Codex almost never chooses it from normal user prompts. Help me evaluate and improve the trigger description.",
+    "should_trigger": true
+  },
+  {
+    "query": "Add proper validation and realistic eval cases to the repo skill under .agents/skills/schema-migration.",
+    "should_trigger": true
+  },
+  {
+    "query": "We copied an agent skill from GitHub. Check its scripts, permissions, private paths, and invocation policy before adapting it to this repo.",
+    "should_trigger": true
+  },
+  {
+    "query": "Make our incident skill explicit-only in Codex and keep it discoverable in the desktop skill picker.",
+    "should_trigger": true
+  },
+  {
+    "query": "Please install the existing Linear skill from the curated catalog into my Codex setup.",
+    "should_trigger": false
+  },
+  {
+    "query": "Rewrite this one paragraph so it sounds more confident and concise. I will only send it once.",
+    "should_trigger": false
+  },
+  {
+    "query": "Update AGENTS.md with a terse rule saying every release must include a changelog entry.",
+    "should_trigger": true
+  },
+  {
+    "query": "Review the authentication diff for regressions and leave inline findings with file and line references.",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a CLI wrapper around our internal export API with JSON output and useful exit codes.",
+    "should_trigger": false
+  },
+  {
+    "query": "Document the staging deployment process in the repository README for engineers to read manually.",
+    "should_trigger": false
+  },
+  {
+    "query": "Draft a short onboarding handbook for new engineers; agents will not consume this document.",
+    "should_trigger": false
+  },
+  {
+    "query": "Build a plugin that bundles our GitHub connector, two existing skills, and workspace installation metadata.",
+    "should_trigger": false
+  },
+  {
+    "query": "Use the existing PDF skill to extract the tables from contract-final.pdf and save them as CSV.",
+    "should_trigger": false
+  }
+]

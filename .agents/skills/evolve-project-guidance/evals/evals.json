@@ -1,0 +1,43 @@
+{
+  "skill_name": "evolve-project-guidance",
+  "evals": [
+    {
+      "id": "create-project-specific-skill",
+      "prompt": "Inspect this contributor-facing repository and create a project-specific skill for its repeated document-save recovery workflow. Base it on current callers, tests, commands, and failure evidence. Put every contributor-required skill in .agents/skills and update project rules only if an always-on constraint is missing.",
+      "expected_output": "A codebase evidence packet, one durable owner decision, a complete project-local skill, a portable contributor skill bundle, any justified narrow rule change, and focused verification.",
+      "files": [],
+      "assertions": [
+        "The result cites current source, callers, tests, commands, and instruction-loading evidence.",
+        "The result separates conditional workflow guidance from always-on project rules.",
+        "The skill has a clear action boundary, metadata, proportional resources, and completion evidence.",
+        "The contributor bundle contains physical skill directories and a fingerprinted .agents/skills.lock.json.",
+        "The bundle has no private paths, junctions, or unrecorded runtime skill dependencies.",
+        "The result runs repository validation and every added script."
+      ]
+    },
+    {
+      "id": "update-rules-from-drift",
+      "prompt": "The root AGENTS.md still names old package commands and duplicates shared global rules. Inspect the current project structure, update only the durable local rules, and preserve nested instructions and unrelated dirty work.",
+      "expected_output": "A narrow rules update grounded in current manifests and loading scope, with duplicated shared guidance replaced by precise pointers.",
+      "files": [],
+      "assertions": [
+        "The result inspects the complete applicable instruction hierarchy before editing.",
+        "The result verifies command names from current configuration instead of guessing them.",
+        "The result preserves narrower valid rules and removes duplicate authority.",
+        "The result verifies pointers, paths, commands, and the cheapest representative project command."
+      ]
+    },
+    {
+      "id": "improve-existing-guidance",
+      "prompt": "Our existing asset-review skill missed two identities and declared the batch complete. Use the failed output, catalog, selectors, and current completion checker to improve the skill without rewriting unrelated branches.",
+      "expected_output": "An evidence-led improvement that identifies the causal guidance gap, accounts for every old requirement, and proves the same failure case now stops false completion.",
+      "files": [],
+      "assertions": [
+        "The result captures the failed case before changing the skill when safe.",
+        "The result identifies the affected consumer and causal instruction, omission, or helper.",
+        "The result maps retained, changed, moved, and removed requirements.",
+        "The result reruns the same case and distinguishes deterministic, runtime, and human evidence."
+      ]
+    }
+  ]
+}

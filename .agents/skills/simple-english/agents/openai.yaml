@@ -1,0 +1,6 @@
+interface:
+  display_name: "Simple English"
+  short_description: "Simplified Technical English. Use for ASD-STE100, STE,..."
+  default_prompt: "Use $simple-english for simple english work."
+policy:
+  allow_implicit_invocation: true

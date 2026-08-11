@@ -1,0 +1,6 @@
+interface:
+  display_name: "Writing for Agents"
+  short_description: "Write predictable agent instructions and skills"
+  default_prompt: "Use $writing-for-agents to create or improve concise, predictable agent instructions."
+policy:
+  allow_implicit_invocation: true

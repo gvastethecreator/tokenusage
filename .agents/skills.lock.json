@@ -1,0 +1,45 @@
+{
+  "skills": [
+    {
+      "file_count": 8,
+      "fingerprint": "8f79c6f73f960be98593b4bea47f51a7b3576cc6a089451079a5fe3bab5b7f4b",
+      "mode": "portable-copy",
+      "name": "evolve-project-guidance",
+      "revision": "fac7417e33b1a4c7b93dbb57ef2c18d8b43a097e",
+      "skill_path": "skills/evolve-project-guidance",
+      "source": "https://github.com/gvastethecreator/agents-matrix.git",
+      "source_dirty": false
+    },
+    {
+      "file_count": 8,
+      "fingerprint": "216c087a90c40bf4bde01a426776e86db4e161ec50cbc6fbe9cc687191040bed",
+      "mode": "portable-copy",
+      "name": "maintain-code-map",
+      "revision": "fac7417e33b1a4c7b93dbb57ef2c18d8b43a097e",
+      "skill_path": "skills/maintain-code-map",
+      "source": "https://github.com/gvastethecreator/agents-matrix.git",
+      "source_dirty": false
+    },
+    {
+      "file_count": 4,
+      "fingerprint": "92453bac5215c95a0b74a9cc820f2a302b30b3ba719ce9b974671e97ea9c6bc5",
+      "mode": "portable-copy",
+      "name": "simple-english",
+      "revision": "fac7417e33b1a4c7b93dbb57ef2c18d8b43a097e",
+      "skill_path": "skills/simple-english",
+      "source": "https://github.com/gvastethecreator/agents-matrix.git",
+      "source_dirty": false
+    },
+    {
+      "file_count": 11,
+      "fingerprint": "100d654203cc4b0333725cc8bca5c188a3332dd8ae8ef4944fbe1a7114a70510",
+      "mode": "portable-copy",
+      "name": "writing-for-agents",
+      "revision": "fac7417e33b1a4c7b93dbb57ef2c18d8b43a097e",
+      "skill_path": "skills/writing-for-agents",
+      "source": "https://github.com/gvastethecreator/agents-matrix.git",
+      "source_dirty": true
+    }
+  ],
+  "version": 1
+}

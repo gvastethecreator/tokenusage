@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Code Map"
+  short_description: "Generate and refresh verified repository code maps"
+  default_prompt: "Use $maintain-code-map to generate or refresh the repository code map and validate its lock."

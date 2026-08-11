@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-11T17:16:39Z",
-  "generated_from_commit": "aa526dcaf56e9bc55bf3334fa81a83ba2a8d7c93",
+  "generated_at": "2026-08-11T18:15:09Z",
+  "generated_from_commit": "03ced21d3346631e6cd450070ddfe0a8f69cef5a",
   "scope": [
     "."
   ],
@@ -65,7 +65,7 @@
         "tests/TokenUsage.Architecture.Tests/AppLanguageRestartArgumentsTests.cs",
         "tests/TokenUsage.Architecture.Tests/ArchitectureRulesTests.cs",
         "tests/TokenUsage.Architecture.Tests/SpendDonutGeometryTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs"
+        "tests/TokenUsage.Architecture.Tests/UsageReportProviderOptionReconcilerTests.cs"
       ],
       "constraints": [
         "This baseline uses tracked source and explicit dependency references only."
@@ -229,11 +229,33 @@
   "edges": [
     {
       "from": "src-tokenusage-app",
+      "to": "src-tokenusage-cli",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs",
+            "symbol": "RefreshCommand"
+          },
+          {
+            "path": "src/TokenUsage.App/ViewModels/Surfaces/DashboardSurfaceViewModel.cs",
+            "symbol": "RefreshCommand"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-app",
       "to": "src-tokenusage-core",
       "type": "calls",
       "evidence": {
         "status": "verified",
         "locations": [
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "QuotaResetHistoryStore"
+          },
           {
             "path": "src/TokenUsage.App/Composition/AppComposition.cs",
             "symbol": "AppSessionHost"
@@ -261,10 +283,6 @@
           {
             "path": "src/TokenUsage.App/Composition/AppComposition.cs",
             "symbol": "SnapshotStore"
-          },
-          {
-            "path": "src/TokenUsage.App/Controls/AnimatedProgressBar.xaml.cs",
-            "symbol": "QuotaUsageLevelPolicy"
           }
         ]
       }
@@ -463,8 +481,8 @@
             "symbol": "ProviderId"
           },
           {
-            "path": "src/TokenUsage.Cli/LocalUsageCliAccess.cs",
-            "symbol": "LocalUsageRefresh"
+            "path": "src/TokenUsage.Cli/LocalLimitsCliAccess.cs",
+            "symbol": "QuotaResetHistoryStore"
           }
         ]
       }
@@ -750,6 +768,28 @@
   ],
   "flows": [
     {
+      "trigger": "Tracked reference src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs:RefreshCommand",
+      "steps": [
+        "src-tokenusage-app",
+        "src-tokenusage-cli",
+        "src-tokenusage-runtime-windows",
+        "src-tokenusage-platform-windows",
+        "src-tokenusage-core"
+      ],
+      "outcome": "The verified dependency path reaches src-tokenusage-core through 4 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs:RefreshCommand to src-tokenusage-core",
+      "steps": [
+        "src-tokenusage-app",
+        "src-tokenusage-cli",
+        "src-tokenusage-runtime-windows",
+        "src-tokenusage-providers",
+        "src-tokenusage-core"
+      ],
+      "outcome": "The verified dependency path reaches src-tokenusage-core through 4 step(s)."
+    },
+    {
       "trigger": "Tracked reference src/TokenUsage.App/Composition/AppComposition.cs:VercelGatewayRefreshCoordinator",
       "steps": [
         "src-tokenusage-app",
@@ -778,25 +818,6 @@
         "src-tokenusage-core"
       ],
       "outcome": "The verified dependency path reaches src-tokenusage-core through 3 step(s)."
-    },
-    {
-      "trigger": "Tracked reference src/TokenUsage.Cli/LocalLimitsCliAccess.cs:WindowsProviderCatalog to src-tokenusage-core",
-      "steps": [
-        "src-tokenusage-cli",
-        "src-tokenusage-runtime-windows",
-        "src-tokenusage-providers",
-        "src-tokenusage-core"
-      ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 3 step(s)."
-    },
-    {
-      "trigger": "Tracked reference src/TokenUsage.App/MainWindow.xaml.cs:TrayIconHost",
-      "steps": [
-        "src-tokenusage-app",
-        "src-tokenusage-platform-windows",
-        "src-tokenusage-core"
-      ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 2 step(s)."
     }
   ]
 }

@@ -22,6 +22,10 @@ BundleArtifacts/
 *.msixbundle
 .vs/
 
+# Python cache from portable contributor skills.
+__pycache__/
+*.py[cod]
+
 # User-specific project state.
 *.user
 *.suo

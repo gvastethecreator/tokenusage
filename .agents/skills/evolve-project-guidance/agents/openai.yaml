@@ -1,0 +1,6 @@
+interface:
+  display_name: "Evolve Project Guidance"
+  short_description: "Derive project skills and rules from codebase evidence"
+  default_prompt: "Use $evolve-project-guidance to inspect this repository and improve its project-local skills and agent rules."
+policy:
+  allow_implicit_invocation: false
