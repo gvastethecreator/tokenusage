@@ -7,7 +7,11 @@ TokenUsage welcomes focused fixes, tests, documentation, and provider research. 
 - Use Windows 10 version 1809 or later on `x64` or `ARM64`.
 - Install the .NET 10 SDK.
 - Install Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0`.
+- Install Python 3 to run the project skills under `.agents/skills/`.
+- Use Node.js and Playwright only for the optional `docs/codemap/codemap.html` browser smoke.
 - Read the [product specification](docs/PRODUCT-SPEC.md), [provider matrix](docs/PROVIDER-MATRIX.md), and relevant architecture decision.
+
+Do not add browser automation packages to the solution, application, MSIX package, or product CI.
 
 ## Make a change
 
@@ -43,4 +47,4 @@ Fixtures must use obvious fake values. Security issues follow [SECURITY.md](SECU
 
 Explain the user effect, the source of provider data, the tests run, and any limits that remain. Keep unrelated formatting or refactors out of the change.
 
-The project owner has not selected a project license yet. Contributions cannot be accepted for public release until that choice and the contribution terms are clear.
+TokenUsage uses the [MIT License](LICENSE). Contributions are submitted under the same license.

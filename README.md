@@ -111,8 +111,8 @@ Research gates for planned providers live under [`docs/research`](docs/research)
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. Keep secrets and real customer data out of issues, commits, screenshots, and tests.
 
-## License status
+## License
 
-The project owner has not selected a license for TokenUsage yet. Until a license file is added, copyright law reserves the project code and assets. Third-party material and its terms are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+TokenUsage is available under the [MIT License](LICENSE). Third-party material and its terms are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 TokenUsage is an independent project. Provider names and marks belong to their owners. OpenUsage is a reference implementation and does not endorse this project.
