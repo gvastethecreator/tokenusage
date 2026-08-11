@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-11T21:38:54Z",
-  "generated_from_commit": "966c969fbddbc6fe4e84787337c2d3bd33afc437",
+  "generated_at": "2026-08-11T21:40:30Z",
+  "generated_from_commit": "ce74ca05117e79ace095ca47c3de692551fd664f",
   "scope": [
     "."
   ],
@@ -137,10 +137,10 @@
       ],
       "tests": [
         "tests/TokenUsage.Cli.Tests/CliApplicationTests.cs",
+        "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
         "tests/TokenUsage.Cli.Tests/LimitsCommandTests.cs",
         "tests/TokenUsage.Cli.Tests/LocalLimitsCliAccessTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalProviderDiagnosticsAccessTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalUsageCliAccessTests.cs"
+        "tests/TokenUsage.Cli.Tests/LocalProviderDiagnosticsAccessTests.cs"
       ],
       "constraints": [
         "This baseline uses tracked source and explicit dependency references only."
@@ -252,11 +252,11 @@
         "src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj:<Project Sdk=\"Microsoft.NET.Sdk\">"
       ],
       "tests": [
+        "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/Automation/WindowsProviderDiagnosticsQueryTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/Providers/WindowsProviderCatalogTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj"
+        "tests/TokenUsage.Platform.Windows.Tests/Cursor/CursorHookInstallerTests.cs"
       ],
       "constraints": [
         "This baseline uses tracked source and explicit dependency references only."
@@ -611,6 +611,10 @@
         "status": "verified",
         "locations": [
           {
+            "path": "src/TokenUsage.Cli/CursorCommand.cs",
+            "symbol": "CursorHookInstaller"
+          },
+          {
             "path": "src/TokenUsage.Cli/LocalLimitsCliAccess.cs",
             "symbol": "WindowsProviderCatalog"
           },
@@ -821,6 +825,10 @@
             "symbol": "CodexProviderRuntime"
           },
           {
+            "path": "src/TokenUsage.Runtime.Windows/Cursor/CursorHookInstaller.cs",
+            "symbol": "CursorUsagePaths"
+          },
+          {
             "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
             "symbol": "ClaudeUsageEventSource"
           },
@@ -831,10 +839,6 @@
           {
             "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
             "symbol": "GrokUsageEventSource"
-          },
-          {
-            "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
-            "symbol": "OpenCodeUsageEventSource"
           }
         ]
       }
@@ -898,7 +902,7 @@
       "outcome": "The verified dependency path reaches src-tokenusage-core through 3 step(s)."
     },
     {
-      "trigger": "Tracked reference src/TokenUsage.Cli/LocalLimitsCliAccess.cs:WindowsProviderCatalog",
+      "trigger": "Tracked reference src/TokenUsage.Cli/CursorCommand.cs:CursorHookInstaller",
       "steps": [
         "src-tokenusage-cli",
         "src-tokenusage-runtime-windows",

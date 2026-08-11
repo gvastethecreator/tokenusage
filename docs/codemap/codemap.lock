@@ -1,7 +1,7 @@
 {
-  "current_commit": "966c969fbddbc6fe4e84787337c2d3bd33afc437",
+  "current_commit": "ce74ca05117e79ace095ca47c3de692551fd664f",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-11T21:38:54Z",
+  "generated_at": "2026-08-11T21:40:30Z",
   "scanned_scope": [
     "."
   ],
@@ -55,8 +55,8 @@
     {
       "id": "docs",
       "path": "docs",
-      "file_count": 98,
-      "fingerprint": "b8729704ef30955017be155369ef2fc1dd32233cc51acd5979574a113e27c837"
+      "file_count": 99,
+      "fingerprint": "46fdec11b332505396b3f033d1807296c011be41297a4d78432cab8020537d71"
     },
     {
       "id": "plans",
@@ -73,14 +73,14 @@
     {
       "id": "src",
       "path": "src",
-      "file_count": 248,
-      "fingerprint": "9e22409fba58e9ee7dbe4dd150ba386e6bb27e0429f0ca1c6d28cc05eafcd710"
+      "file_count": 254,
+      "fingerprint": "90998892f18207f1653511ae6509c35fc3fe96fc48da9a8e8da55aece7b04ce4"
     },
     {
       "id": "tests",
       "path": "tests",
-      "file_count": 135,
-      "fingerprint": "134974e95249dd379e8f747886ef61c948322e43ca91b79e56232f2785ca7645"
+      "file_count": 138,
+      "fingerprint": "1404d46242ab9a6f13040ce63be93e19742c1811df44bf2ddec86fdae487c756"
     }
   ]
 }
