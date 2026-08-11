@@ -12,6 +12,7 @@ public static class ProviderColorPalette
             ["antigravity"] = "#4285F4",
             ["claude"] = "#DE7356",
             ["codex"] = "#10A37F",
+            ["cursor"] = "#D7D7D7",
             ["grok"] = "#7C5CFC",
             ["opencode"] = "#E5488C",
             ["vercel-ai-gateway"] = "#6B7280",

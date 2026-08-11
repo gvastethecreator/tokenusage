@@ -11,7 +11,7 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] entries = WindowsProviderCatalog.Entries.ToArray();
 
         Assert.Equal(
-            ["codex", "grok", "opencode", "antigravity"],
+            ["codex", "grok", "opencode", "antigravity", "cursor"],
             entries.Select(entry => entry.Id.Value));
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.Equal(
@@ -46,7 +46,7 @@ public sealed class WindowsProviderCatalogTests
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
-            ["codex", "grok", "opencode", "antigravity"],
+            ["codex", "grok", "opencode", "antigravity", "cursor"],
             composition.LocalUsageSources.Select(source => source.AgentId.Value));
         Assert.Equal(
             SourceKind.OfficialLocalApi,
