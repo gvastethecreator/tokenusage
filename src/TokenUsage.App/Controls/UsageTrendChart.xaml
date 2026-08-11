@@ -12,14 +12,17 @@
         </Grid.RowDefinitions>
 
         <Grid x:Name="PlotRegion" Height="{x:Bind PlotHeight, Mode=OneWay}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{x:Bind YAxisWidth, Mode=OneWay}" />
+                <ColumnDefinition Width="{x:Bind YAxisGap, Mode=OneWay}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <Canvas
                 x:Name="YAxisCanvas"
-                Width="54"
-                HorizontalAlignment="Left"
                 IsHitTestVisible="False" />
             <Canvas
                 x:Name="PlotCanvas"
-                Margin="62,0,0,0"
+                Grid.Column="2"
                 Background="Transparent"
                 PointerExited="OnPointerExited"
                 PointerMoved="OnPointerMoved"
@@ -28,7 +31,7 @@
             <TextBlock
                 x:Name="EmptyText"
                 x:Uid="UsageTrendEmpty"
-                Margin="62,0,0,0"
+                Grid.Column="2"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 HorizontalAlignment="Center"
                 Style="{StaticResource CaptionTextBlockStyle}"
@@ -36,6 +39,7 @@
 
             <Border
                 x:Name="HoverCard"
+                Grid.ColumnSpan="3"
                 Width="220"
                 Padding="10,8"
                 HorizontalAlignment="Left"
@@ -53,21 +57,28 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="1" Margin="62,0,0,0">
-            <TextBlock
-                x:Name="FirstDayLabel"
-                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                Style="{StaticResource CaptionTextBlockStyle}" />
-            <TextBlock
-                x:Name="MiddleDayLabel"
-                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                HorizontalAlignment="Center"
-                Style="{StaticResource CaptionTextBlockStyle}" />
-            <TextBlock
-                x:Name="LastDayLabel"
-                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                HorizontalAlignment="Right"
-                Style="{StaticResource CaptionTextBlockStyle}" />
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{x:Bind YAxisWidth, Mode=OneWay}" />
+                <ColumnDefinition Width="{x:Bind YAxisGap, Mode=OneWay}" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="2">
+                <TextBlock
+                    x:Name="FirstDayLabel"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}" />
+                <TextBlock
+                    x:Name="MiddleDayLabel"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource CaptionTextBlockStyle}" />
+                <TextBlock
+                    x:Name="LastDayLabel"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    HorizontalAlignment="Right"
+                    Style="{StaticResource CaptionTextBlockStyle}" />
+            </Grid>
         </Grid>
 
         <Border

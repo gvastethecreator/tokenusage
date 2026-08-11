@@ -408,6 +408,10 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("MotionSettings.ProviderSwitchExitDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderSwitchDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderSwitchMinimumOpacity", compactCode, StringComparison.Ordinal);
+        Assert.Contains("PlayProviderContentTransition", compactCode, StringComparison.Ordinal);
+        Assert.Contains("ProviderTabsRepeater.TryGetElement", compactCode, StringComparison.Ordinal);
+        Assert.Contains("MotionSettings.ProviderLimitsRevealDuration", compactCode, StringComparison.Ordinal);
+        Assert.Contains("LayoutAnimationProgressed", compactCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTransitionEntry", compactCode, StringComparison.Ordinal);
         Assert.DoesNotContain("Task.Delay", compactCode, StringComparison.Ordinal);
     }
@@ -431,6 +435,34 @@ public sealed class ArchitectureRulesTests
             "CompactUsageDashboard.xaml"));
         Assert.Contains(
             "AutomationProperties.Name=\"{x:Bind Name}\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Style=\"{StaticResource CompactProviderTabStyle}\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ItemsSource=\"{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "GroupName=\"CompactProviderTabs\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "YAxisWidth=\"30\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "YAxisGap=\"4\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "VisualTransition GeneratedDuration",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "ItemsSource=\"{x:Bind ViewModel.ProviderOptions, Mode=OneWay}\"",
             compactXaml,
             StringComparison.Ordinal);
 

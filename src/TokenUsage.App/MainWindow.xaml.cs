@@ -33,6 +33,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
     private bool _hasRequestedInitialOfficialLimits;
+    private bool _layoutAnimationPositionPending;
     private bool _disposed;
     private bool _lastHighContrast;
     private Windows.UI.Color _lastSystemBackground;
@@ -65,6 +66,7 @@ public sealed partial class MainWindow : Window, IDisposable
         UpdateStatusText();
         RootPage.HideRequested += OnHideRequested;
         RootPage.UsageReportRequested += OnUsageReportRequested;
+        RootPage.LayoutAnimationProgressed += OnLayoutAnimationProgressed;
         Activated += OnWindowActivated;
         Closed += OnWindowClosed;
 
@@ -408,6 +410,24 @@ public sealed partial class MainWindow : Window, IDisposable
         });
     }
 
+    private void OnLayoutAnimationProgressed(object? sender, EventArgs e)
+    {
+        if (_disposed || !_isFlyoutVisible || _layoutAnimationPositionPending)
+        {
+            return;
+        }
+
+        _layoutAnimationPositionPending = true;
+        _ = DispatcherQueue.TryEnqueue(() =>
+        {
+            _layoutAnimationPositionPending = false;
+            if (!_disposed && _isFlyoutVisible)
+            {
+                PositionFlyout();
+            }
+        });
+    }
+
     private void OnHideRequested(object? sender, EventArgs e) => HideFlyout();
 
     private void OnUsageReportRequested(object? sender, UsageReportRequestedEventArgs e)
@@ -590,6 +610,7 @@ public sealed partial class MainWindow : Window, IDisposable
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
         RootPage.UsageReportRequested -= OnUsageReportRequested;
+        RootPage.LayoutAnimationProgressed -= OnLayoutAnimationProgressed;
         if (_reportWindow is not null)
         {
             _reportWindow.Closed -= OnUsageReportWindowClosed;

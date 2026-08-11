@@ -293,6 +293,7 @@
 
                     <dashboardViews:CompactUsageDashboard
                         x:Name="DashboardSurfaceView"
+                        LayoutAnimationProgressed="OnDashboardLayoutAnimationProgressed"
                         OptionsRequested="OnDashboardOptionsRequested"
                         ReportRequested="OnDashboardReportRequested"
                         ViewModel="{x:Bind ViewModel.Dashboard, Mode=OneWay}"

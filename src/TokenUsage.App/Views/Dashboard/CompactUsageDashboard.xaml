@@ -19,6 +19,80 @@
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="CornerRadius" Value="7" />
         </Style>
+        <Style x:Key="CompactProviderTabStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="7,4" />
+            <Setter Property="UseSystemFocusVisuals" Value="True" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid x:Name="Root" Background="Transparent" CornerRadius="4">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Checked">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabContent.Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                                            <Setter Target="ActiveIndicator.Opacity" Value="1" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                            <Setter Target="TabContent.Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                                            <Setter Target="ActiveIndicator.Opacity" Value="1" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                                            <Setter Target="TabContent.Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                                            <Setter Target="ActiveIndicator.Opacity" Value="1" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Opacity" Value="0.4" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ContentPresenter
+                                x:Name="TabContent"
+                                Padding="{TemplateBinding Padding}"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Foreground="{TemplateBinding Foreground}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" />
+                            <Border
+                                x:Name="ActiveIndicator"
+                                Height="2"
+                                Margin="7,0"
+                                VerticalAlignment="Bottom"
+                                Background="{ThemeResource TextFillColorPrimaryBrush}"
+                                CornerRadius="1"
+                                Opacity="0" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <DataTemplate x:Key="CompactQuotaWindowTileTemplate" x:DataType="dashboard:QuotaWindow">
             <Grid Padding="0,5,0,6" RowSpacing="5">
                 <Grid.RowDefinitions>
@@ -308,7 +382,10 @@
         <StackPanel
             Spacing="12"
             Visibility="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}">
-            <ItemsRepeater ItemsSource="{x:Bind ViewModel.ProviderOptions, Mode=OneWay}">
+            <ItemsRepeater
+                x:Name="ProviderTabsRepeater"
+                ElementPrepared="OnProviderTabPrepared"
+                ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
                 <ItemsRepeater.Layout>
                     <UniformGridLayout
                         MaximumRowsOrColumns="4"
@@ -317,41 +394,29 @@
                         Orientation="Horizontal" />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
-                    <DataTemplate x:DataType="dashboard:DashboardProviderOption">
-                        <ToggleButton
+                    <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
+                        <RadioButton
                             AutomationProperties.AutomationId="{x:Bind ProviderId}"
                             AutomationProperties.Name="{x:Bind Name}"
+                            GroupName="CompactProviderTabs"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
-                            IsChecked="{x:Bind IsSelected}"
-                            Padding="4,10"
+                            Style="{StaticResource CompactProviderTabStyle}"
                             Tag="{x:Bind ProviderId}"
                             Click="OnProviderClick">
-                            <ToggleButton.Resources>
-                                <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="TokenUsageSelectedBrush" />
-                                <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="TokenUsageSelectedPointerOverBrush" />
-                                <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="TokenUsageSelectedPressedBrush" />
-                                <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="TokenUsageSelectedForegroundBrush" />
-                                <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="TokenUsageSelectedForegroundBrush" />
-                                <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="TokenUsageSelectedForegroundBrush" />
-                            </ToggleButton.Resources>
                             <StackPanel Orientation="Horizontal" Spacing="5">
-                                <controls:ProviderMarkImage Height="17" ProviderId="{x:Bind ProviderId}" Width="17" />
+                                <controls:ProviderMarkImage Height="16" ProviderId="{x:Bind ProviderId}" Width="16" />
                                 <TextBlock FontSize="12" FontWeight="SemiBold" Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                        </ToggleButton>
+                        </RadioButton>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
 
             <StackPanel x:Name="ProviderDetailStack" Spacing="12">
-                <StackPanel.RenderTransform>
-                    <CompositeTransform x:Name="ProviderDetailTransform" />
-                </StackPanel.RenderTransform>
-
             <Border Padding="16,14" Style="{StaticResource CompactCardStyle}">
                 <StackPanel Spacing="13">
-                    <Grid ColumnSpacing="8">
+                    <Grid x:Name="ProviderIdentityContent" ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -378,7 +443,7 @@
                         </Button>
                     </Grid>
 
-                    <Grid ColumnSpacing="20">
+                    <Grid x:Name="ProviderMetricsContent" ColumnSpacing="20">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="1" />
@@ -395,29 +460,43 @@
                         </StackPanel>
                     </Grid>
 
-                    <StackPanel Spacing="4">
+                    <StackPanel x:Name="ProviderTrendContent" Spacing="4">
                         <TextBlock x:Name="ProviderTrendTitle" x:Uid="CompactProviderTrendTitle" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
                         <controls:UsageTrendChart
                             AutomationProperties.AutomationId="CompactProviderTrend"
                             AutomationProperties.LabeledBy="{Binding ElementName=ProviderTrendTitle}"
                             Data="{x:Bind ViewModel.SelectedProviderTrend, Mode=OneWay}"
-                            PlotHeight="120" />
+                            HorizontalAlignment="Stretch"
+                            PlotHeight="120"
+                            YAxisGap="4"
+                            YAxisWidth="30" />
                     </StackPanel>
                 </StackPanel>
             </Border>
 
-            <Border Padding="12,9" Style="{StaticResource CompactCardStyle}" Visibility="{x:Bind ViewModel.SelectedProviderHasLimits, Mode=OneWay}">
-                <StackPanel Spacing="5">
-                    <TextBlock x:Uid="CompactProviderCardLimitsTitle" Style="{StaticResource SectionLabelStyle}" />
-                    <ItemsRepeater
-                        ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
-                        ItemsSource="{x:Bind ViewModel.SelectedProviderLimits, Mode=OneWay}">
-                        <ItemsRepeater.Layout>
-                            <StackLayout Orientation="Vertical" Spacing="0" />
-                        </ItemsRepeater.Layout>
-                    </ItemsRepeater>
-                </StackPanel>
-            </Border>
+            <Grid
+                x:Name="ProviderLimitsRevealHost"
+                Height="0"
+                Opacity="0"
+                SizeChanged="OnProviderLimitsRevealHostSizeChanged"
+                VerticalAlignment="Top"
+                Visibility="Collapsed">
+                <Grid.Clip>
+                    <RectangleGeometry x:Name="ProviderLimitsClip" />
+                </Grid.Clip>
+                <Border Padding="12,9" Style="{StaticResource CompactCardStyle}">
+                    <StackPanel Spacing="5">
+                        <TextBlock x:Uid="CompactProviderCardLimitsTitle" Style="{StaticResource SectionLabelStyle}" />
+                        <ItemsRepeater
+                            ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
+                            ItemsSource="{x:Bind ViewModel.SelectedProviderLimits, Mode=OneWay}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Orientation="Vertical" Spacing="0" />
+                            </ItemsRepeater.Layout>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+            </Grid>
             </StackPanel>
 
             <Button

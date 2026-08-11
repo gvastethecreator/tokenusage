@@ -22,11 +22,15 @@ internal static class MotionSettings
 
     public const double ReportSwitchOffset = 12;
 
-    public static readonly TimeSpan ProviderSwitchExitDuration = TimeSpan.FromMilliseconds(160);
+    public static readonly TimeSpan ProviderSwitchExitDuration = TimeSpan.FromMilliseconds(140);
 
-    public static readonly TimeSpan ProviderSwitchDuration = TimeSpan.FromMilliseconds(320);
+    public static readonly TimeSpan ProviderSwitchDuration = TimeSpan.FromMilliseconds(240);
 
-    public const double ProviderSwitchMinimumOpacity = 0.18;
+    public const double ProviderSwitchMinimumOpacity = 0;
+
+    public static readonly TimeSpan ProviderLimitsRevealDuration = TimeSpan.FromMilliseconds(260);
+
+    public static readonly TimeSpan ProviderLimitsFadeDuration = TimeSpan.FromMilliseconds(200);
 
     public static bool AreAnimationsEnabled() => Settings.AnimationsEnabled;
 }
