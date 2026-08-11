@@ -1,6 +1,6 @@
 # Matriz de proveedores
 
-Fecha de corte: 2026-07-28
+Fecha de corte: 2026-08-11
 
 Estado temporal: Vercel AI Gateway queda fuera del catálogo activo desde el Ticket 117. Su implementación se conserva para reactivarla en una entrega posterior.
 
@@ -27,9 +27,9 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
-| Cursor | No con el contrato actual | Sí, para equipos | Admin API con clave manual | Manual parcial | M9; Individual bloqueado |
+| Cursor | No con el contrato actual | Sí, Agent local desde opt-in; facturable para equipos | hook `stop` numérico; Admin API futura | Local experimental | Integrado; costo y cuota pendientes |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
-| ZCode | Bloqueada sin API pública | Bloqueados sin esquema local seguro | Sin fuente apta | Bloqueado | M9; Ticket 48 cerrado, Ticket 49 `needs-info` |
+| ZCode | Bloqueada sin contrato público | Bloqueados sin exportación segura | Hooks sin tokens; UI sin API | Bloqueado | Revalidado en 3.7.6; Ticket 49 `needs-info` |
 | Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
 | Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
 | Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
@@ -302,11 +302,24 @@ Fuente upstream de comparación: [provider Z.ai](https://github.com/robinebers/o
 
 ### Fuente evaluada
 
-ZCode es una app de escritorio con ZCode Agent integrado. Su UI muestra
-`App Usage` desde registros de sesión locales y `Coding Plan` para la cuota y
-el uso remotos de Z.ai o BigModel. La documentación revisada no publica la
-ruta o el esquema de los registros, una exportación de métricas ni una API de
-lectura para terceros.
+ZCode es una app de escritorio con ZCode Agent integrado. La instalación local
+observada es `3.7.6`. Su UI muestra `App Usage` desde registros de sesión
+locales y `Coding Plan` para la cuota y el uso remotos de Z.ai o BigModel. La
+documentación no publica la ruta o el esquema de esos registros, una
+exportación de métricas ni una API de lectura para terceros.
+
+ZCode ahora documenta un protocolo JSON de hooks. El evento `Stop` no entrega
+tokens, costo ni límites. Solo ofrece estado del cierre y el último mensaje. El
+transcript temporal contiene conversación y queda fuera de la política de
+TokenUsage.
+
+Un colector opt-in sí puede contar sesiones, prompts enviados, turnos y
+herramientas mediante esos hooks. Debe descartar todo el contenido y mostrarse
+como actividad, no como tokens, costo o cuota.
+
+La UI menciona límites de cinco horas, semanales y MCP mensuales. Z.ai cambió
+el Coding Plan el 2026-07-30 a créditos combinados de cinco horas y semanales.
+TokenUsage no tratará el rótulo MCP mensual anterior como un contrato general.
 
 La única ruta Windows publicada para datos propios es
 `%USERPROFILE%\.zcode\logs`, destinada a soporte. La política confirma que las
@@ -316,11 +329,13 @@ comandos. Los términos prohíben extracción automática o no autorizada de dat
 ### Salida
 
 Bloqueado. La build pública no lee `.zcode`, logs, sesiones, configuración,
-prompts o credenciales, ni llama endpoints privados. El provider se reabre con
-una API pública de solo lectura autorizada o una exportación local documentada,
-mínima y libre de contenido de sesión.
+prompts o credenciales, ni llama endpoints privados. Tampoco añade una tarjeta
+vacía que sugiera compatibilidad. El provider se reabre con una API pública de
+solo lectura autorizada o una exportación local documentada, mínima y libre de
+contenido de sesión.
 
-Gate completo: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
+Gate actualizado: [fuente ZCode 3.7.6](research/2026-08-11-z-code-usage-source.md).
+Gate original: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
 
 ## Kilo Code
 
@@ -460,22 +475,26 @@ Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gat
 
 ### Fuente elegida
 
-La Admin API pública de Cursor admite métricas, gasto y eventos de uso de Teams y Enterprise. Un administrador crea una clave y la entrega de forma manual. TokenUsage la guarda en Windows Credential Locker y limita el cliente a `https://api.cursor.com`.
+Para cuentas individuales, TokenUsage instala de forma explícita un hook de usuario `stop`. El hook descarta el payload original y guarda solo tokens de entrada, salida y caché, modelo, versión de Cursor, hora local de recepción y un hash de la conversación y generación. No guarda prompts, respuestas, rutas, correo, comandos, transcript ni IDs sin hash.
+
+La fuente está ligada al contrato observado en Cursor `3.15.6`. Los campos de tokens llegan al hook, pero aún no forman parte del esquema público. Por eso la app marca la lectura como local, parcial y sin precio. El comando `tokenusage cursor install-hook` instala el colector; `status` lo comprueba y `uninstall-hook` lo quita sin tocar otros hooks.
+
+La Admin API pública de Cursor sigue siendo la fuente facturable para Teams y Enterprise. Requiere una clave administrativa separada y no reutiliza el login del editor. Queda fuera de esta integración individual hasta añadir una conexión manual y un smoke autorizado.
 
 Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso incluido que Cursor anunció para Teams en junio de 2026. La tarjeta muestra `Uso y gasto del equipo`, con procedencia y ciclo. No afirma cuota restante.
 
 ### Cobertura y política
 
-- Individual: `Unsupported`; no hay una interfaz pública encontrada para uso o gasto de la cuenta.
-- Teams: gasto, actividad, tokens y eventos según la Admin API.
+- Individual: tokens de Agent locales desde que se instala el hook; sin historial previo, Tab, agentes cloud, cuota ni costo.
+- Teams: el hook local conserva la misma cobertura parcial; gasto y facturación requieren una futura conexión Admin API.
 - Business: nombre legado que puede aparecer en eventos; usa la semántica de Teams.
 - Enterprise: mismo contrato por conexión configurada; varias conexiones no se mezclan por correo.
 
-Quedan prohibidos `state.vscdb`, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado. Una base bloqueada, un export ausente o varias instalaciones no afectan el proveedor porque no se exploran.
+Quedan prohibidos `state.vscdb`, bases de conversaciones, AI Code Tracking, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado. El scanner solo abre el spool numérico que TokenUsage creó.
 
-Gate resuelto como `implement-subset`. La build pública sigue apagada hasta un smoke autorizado con una clave admin y el borrado posterior de la credencial.
+Gate local resuelto como `experimental-opt-in`. El smoke sintético confirma que el hook no persiste campos de contenido. La Admin API conserva su gate manual aparte.
 
-Investigación: [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md).
+Investigación: [fuente local Cursor 3.15.6](research/2026-08-11-cursor-local-usage-source.md) y [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md).
 
 Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
@@ -556,7 +575,7 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 5. Spike pasivo Antigravity CLI con una `.db` real.
 6. OpenRouter con clave manual.
 7. Reabrir Z.ai solo con contrato público o permiso escrito.
-8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado.
+8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado; el hook local Cursor ya está integrado.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
 10. Devin experimental para ACUs de organización mediante API v3.
 11. Kilo Code tras cerrar el contrato de `kilo stats`; Zed solo tras una fuente
