@@ -270,6 +270,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             string detail = SelectedProvider?.ProviderId switch
             {
                 "codex" => _getString("CompactProviderCodexCoverageHint"),
+                "cursor" => _getString("CompactProviderCursorCoverageHint"),
                 "grok" => _getString("CompactProviderGrokCoverageHint"),
                 "opencode" => _getString("CompactProviderOpenCodeCoverageHint"),
                 "antigravity" => _getString("CompactProviderAntigravityCoverageHint"),
@@ -900,7 +901,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private DashboardProviderSummary[] CreateProviderSummaries(
         IReadOnlyList<DailyUsageRollup> rollups)
     {
-        string[] providerIds = ["codex", "opencode", "antigravity", "grok"];
+        string[] providerIds = ["codex", "opencode", "antigravity", "grok", "cursor"];
         var grouped = rollups
             .Where(rollup => providerIds.Contains(rollup.AgentId.Value, StringComparer.Ordinal))
             .GroupBy(rollup => rollup.AgentId.Value, StringComparer.Ordinal)
@@ -1113,6 +1114,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     {
         "antigravity" => "#4285F4",
         "codex" => "#10A37F",
+        "cursor" => "#D7D7D7",
         "grok" => "#7C5CFC",
         "opencode" => "#E5488C",
         _ => "#6B7280",
@@ -1122,6 +1124,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     {
         "antigravity" => _getString("LocalUsageAgentAntigravity"),
         "codex" => _getString("LocalUsageAgentCodex"),
+        "cursor" => _getString("LocalUsageAgentCursor"),
         "grok" => _getString("LocalUsageAgentGrok"),
         "opencode" => _getString("LocalUsageAgentOpenCode"),
         _ => providerId,

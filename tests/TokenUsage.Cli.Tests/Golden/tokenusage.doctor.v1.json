@@ -15,6 +15,10 @@
       "status": "present"
     },
     {
+      "id": "local-usage-cursor",
+      "status": "absent"
+    },
+    {
       "id": "local-usage-grok",
       "status": "present"
     },

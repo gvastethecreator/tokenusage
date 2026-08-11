@@ -12,6 +12,7 @@ public sealed partial class ProviderMarkImage : UserControl
             ["antigravity"] = "antigravity.svg",
             ["claude"] = "claude.svg",
             ["codex"] = "codex.svg",
+            ["cursor"] = "cursor.svg",
             ["grok"] = "grok.svg",
             ["opencode"] = "opencode.svg",
             ["vercel-ai-gateway"] = "vercel-ai-gateway.svg",

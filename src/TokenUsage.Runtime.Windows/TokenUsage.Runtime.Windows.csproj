@@ -12,4 +12,8 @@
     <ProjectReference Include="..\TokenUsage.Platform.Windows\TokenUsage.Platform.Windows.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Cursor\CursorStopHook.ps1" />
+  </ItemGroup>
+
 </Project>
