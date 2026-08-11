@@ -35,7 +35,7 @@ public sealed class AppearanceSettingsStoreTests
     }
 
     [Fact]
-    public async Task SaveAndLoadRoundTripUsesVersionOneContract()
+    public async Task SaveAndLoadRoundTripUsesVersionTwoContract()
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -44,7 +44,8 @@ public sealed class AppearanceSettingsStoreTests
             AppDensityMode.Compact,
             increaseTransparency: true,
             UsageDisplayMode.Used,
-            ResetTimeDisplayMode.Exact);
+            ResetTimeDisplayMode.Exact,
+            DashboardVisualizationMode.Heatmap);
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
         var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
@@ -52,8 +53,11 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(expected, loaded.Settings);
         Assert.False(loaded.RequiresMigration);
         using JsonDocument json = JsonDocument.Parse(await File.ReadAllBytesAsync(store.DocumentPath));
-        Assert.Equal(1, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
+        Assert.Equal(
+            "heatmap",
+            json.RootElement.GetProperty("dashboardVisualization").GetString());
         Assert.Empty(Directory.GetFiles(directory.Path, "*.tmp"));
     }
 
@@ -106,10 +110,37 @@ public sealed class AppearanceSettingsStoreTests
         Assert.False(loaded.Settings.IncreaseTransparency);
         Assert.Equal(UsageDisplayMode.Remaining, loaded.Settings.UsageDisplay);
         Assert.Equal(ResetTimeDisplayMode.Relative, loaded.Settings.ResetTimeDisplay);
+        Assert.Equal(DashboardVisualizationMode.List, loaded.Settings.DashboardVisualization);
     }
 
     [Fact]
-    public async Task SavingMigratedSettingsRewritesVersionOneWithoutValueLoss()
+    public async Task VersionOneDocumentMigratesWithListVisualization()
+    {
+        using var directory = new TempDirectory();
+        var store = CreateStore(directory);
+        await File.WriteAllTextAsync(
+            store.DocumentPath,
+            """
+            {
+              "schemaVersion": 1,
+              "theme": "dark",
+              "density": "compact",
+              "increaseTransparency": false,
+              "usageDisplay": "used",
+              "resetTimeDisplay": "exact"
+            }
+            """,
+            new UTF8Encoding(false));
+
+        var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
+
+        Assert.True(loaded.RequiresMigration);
+        Assert.Equal(DashboardVisualizationMode.List, loaded.Settings.DashboardVisualization);
+        Assert.Equal(AppThemeMode.Dark, loaded.Settings.Theme);
+    }
+
+    [Fact]
+    public async Task SavingMigratedSettingsRewritesVersionTwoWithoutValueLoss()
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -147,7 +178,7 @@ public sealed class AppearanceSettingsStoreTests
 
     [Theory]
     [InlineData("{not-json")]
-    [InlineData("{\"schemaVersion\":1,\"theme\":\"unknown\",\"density\":\"regular\",\"increaseTransparency\":false,\"usageDisplay\":\"remaining\",\"resetTimeDisplay\":\"relative\"}")]
+    [InlineData("{\"schemaVersion\":2,\"theme\":\"unknown\",\"density\":\"regular\",\"increaseTransparency\":false,\"usageDisplay\":\"remaining\",\"resetTimeDisplay\":\"relative\",\"dashboardVisualization\":\"list\"}")]
     [InlineData("{\"schemaVersion\":1,\"theme\":\"system\"}")]
     public async Task InvalidDocumentIsQuarantinedWithoutByteLoss(string json)
     {

@@ -13,12 +13,11 @@
 
     <Border
         AutomationProperties.AutomationId="ProviderStatusSection"
-        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-        CornerRadius="8"
-        Padding="10,8">
-        <StackPanel Spacing="8">
+        Style="{StaticResource OptionsCategoryCardStyle}">
+        <StackPanel Spacing="12">
             <Grid ColumnSpacing="8" RowSpacing="2">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -26,14 +25,21 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
+                <FontIcon
+                    Grid.RowSpan="2"
+                    FontSize="15"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Glyph="&#xE774;"
+                    VerticalAlignment="Top" />
                 <TextBlock
                     x:Uid="ProviderStatusSectionTitle"
+                    Grid.Column="1"
                     Style="{StaticResource BodyStrongTextBlockStyle}"
                     VerticalAlignment="Center" />
                 <Button
                     x:Name="ProviderStatusRefreshButton"
                     x:Uid="ProviderStatusRefreshButton"
-                    Grid.Column="1"
+                    Grid.Column="2"
                     AutomationProperties.AutomationId="ProviderStatusRefreshButton"
                     Command="{x:Bind ViewModel.RefreshCommand}"
                     Padding="7"
@@ -47,6 +53,7 @@
                 <TextBlock
                     x:Uid="ProviderStatusSectionDescription"
                     Grid.Row="1"
+                    Grid.Column="1"
                     Grid.ColumnSpan="2"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}"

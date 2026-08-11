@@ -120,6 +120,21 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
+    public async Task StateIndexAcceptsWindowsExtendedLengthSessionPaths()
+    {
+        using var corpus = new CodexCorpus();
+        string path = corpus.WriteSession(
+            "extended-path-session",
+            Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
+        corpus.WriteStateIndex(($@"\\?\{path}", "gpt-5.6-sol"));
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(110, usageEvent.Tokens.Total);
+        Assert.Equal("gpt-5.6-sol", usageEvent.ModelId.Value);
+    }
+
+    [Fact]
     public async Task OfficialDailyTotalsUseTheBoundedLocalModelSample()
     {
         using var corpus = new CodexCorpus();
@@ -142,6 +157,174 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(1_000, usageEvent.Tokens.Total);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
+    }
+
+    [Fact]
+    public async Task OfficialUsageKeepsRecentLocalTotalsUntilDailyBucketsSettle()
+    {
+        using var corpus = new CodexCorpus();
+        corpus.WriteSession(
+            "latest-official-day",
+            Context("gpt-5.6-sol"),
+            Usage(
+                "2026-07-27T22:01:00Z",
+                input: 100,
+                cachedInput: 20,
+                output: 10,
+                reasoningOutput: 2,
+                totalInput: 280,
+                totalCachedInput: 40,
+                totalOutput: 20,
+                totalReasoningOutput: 4));
+        corpus.WriteSession(
+            "newer-local-day",
+            Context("gpt-5.6-sol"),
+            Usage(
+                "2026-07-28T12:01:00Z",
+                input: 200,
+                cachedInput: 40,
+                output: 20,
+                reasoningOutput: 4,
+                totalInput: 450,
+                totalCachedInput: 90,
+                totalOutput: 50,
+                totalReasoningOutput: 10));
+        var usage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [new CodexUsageDailyBucket(new DateOnly(2026, 7, 27), 100)]);
+        CodexUsageEventSource source = corpus.CreateSource(
+            clientFactory: new StubFactory(new StubClient(usage)));
+
+        UsageSourceReadResult result = await source.ReadAsync();
+        UsageEvent[] events = result.Events
+            .OrderBy(usageEvent => usageEvent.OccurredAtUtc)
+            .ToArray();
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Collection(
+            events,
+            usageEvent => Assert.Equal(300, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(500, usageEvent.Tokens.Total));
+        Assert.All(events, usageEvent => Assert.Equal(CoverageKind.Partial, usageEvent.Coverage));
+    }
+
+    [Fact]
+    public async Task IncrementalScanAttributesCumulativeDeltasToTheirActualDay()
+    {
+        using var corpus = new CodexCorpus();
+        string sessionPath = corpus.WriteSession(
+            "session-across-midnight",
+            Context("gpt-5.6-sol"),
+            Usage(
+                "2026-07-27T22:01:00Z",
+                input: 90,
+                cachedInput: 20,
+                output: 10,
+                reasoningOutput: 2,
+                totalInput: 90,
+                totalCachedInput: 20,
+                totalOutput: 10,
+                totalReasoningOutput: 2),
+            Usage(
+                "2026-07-27T23:59:00Z",
+                input: 180,
+                cachedInput: 40,
+                output: 20,
+                reasoningOutput: 4,
+                totalInput: 280,
+                totalCachedInput: 60,
+                totalOutput: 20,
+                totalReasoningOutput: 4),
+            Usage(
+                "2026-07-28T00:01:00Z",
+                input: 190,
+                cachedInput: 50,
+                output: 10,
+                reasoningOutput: 2,
+                totalInput: 470,
+                totalCachedInput: 110,
+                totalOutput: 30,
+                totalReasoningOutput: 6));
+        var usage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [new CodexUsageDailyBucket(new DateOnly(2026, 7, 27), 100)]);
+        CodexUsageEventSource source = corpus.CreateSource(
+            clientFactory: new StubFactory(new StubClient(usage)),
+            checkpointPath: Path.Combine(corpus.Root, "codex-usage.v1.json"),
+            clock: new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
+
+        UsageSourceReadResult first = await source.ReadAsync();
+        Assert.Collection(
+            first.Events.OrderBy(usageEvent => usageEvent.OccurredAtUtc),
+            usageEvent => Assert.Equal(300, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(200, usageEvent.Tokens.Total));
+
+        File.AppendAllLines(
+            sessionPath,
+            [Usage(
+                "2026-07-28T01:01:00Z",
+                input: 40,
+                cachedInput: 10,
+                output: 10,
+                reasoningOutput: 2,
+                totalInput: 510,
+                totalCachedInput: 120,
+                totalOutput: 40,
+                totalReasoningOutput: 8)]);
+        UsageSourceReadResult second = await source.ReadAsync();
+
+        Assert.Collection(
+            second.Events.OrderBy(usageEvent => usageEvent.OccurredAtUtc),
+            usageEvent => Assert.Equal(300, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(250, usageEvent.Tokens.Total));
+    }
+
+    [Fact]
+    public async Task IncrementalScanSkipsReplayedParentUsageUntilChildStartsLiveWork()
+    {
+        using var corpus = new CodexCorpus();
+        string sessionPath = corpus.WriteSession(
+            "child-session",
+            ChildSessionMeta("2026-07-28T10:00:00Z"),
+            Context("gpt-5.6-sol"),
+            Usage(
+                "2026-07-28T10:00:01Z",
+                input: 900,
+                cachedInput: 200,
+                output: 100,
+                reasoningOutput: 20,
+                totalInput: 900,
+                totalCachedInput: 200,
+                totalOutput: 100,
+                totalReasoningOutput: 20));
+        var usage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [new CodexUsageDailyBucket(new DateOnly(2026, 7, 28), 0)]);
+        CodexUsageEventSource source = corpus.CreateSource(
+            clientFactory: new StubFactory(new StubClient(usage)),
+            checkpointPath: Path.Combine(corpus.Root, "codex-usage.v1.json"),
+            clock: new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
+
+        Assert.Empty((await source.ReadAsync()).Events);
+
+        File.AppendAllLines(
+            sessionPath,
+            [
+                TaskStarted("2026-07-28T10:05:00Z", 1_785_233_100),
+                Usage(
+                    "2026-07-28T10:05:01Z",
+                    input: 50,
+                    cachedInput: 10,
+                    output: 5,
+                    reasoningOutput: 1,
+                    totalInput: 950,
+                    totalCachedInput: 210,
+                    totalOutput: 105,
+                    totalReasoningOutput: 21),
+            ]);
+
+        UsageEvent usageEvent = Assert.Single((await source.ReadAsync()).Events);
+        Assert.Equal(55, usageEvent.Tokens.Total);
     }
 
     [Fact]
@@ -192,6 +375,23 @@ public sealed class CodexUsageEventSourceTests
         Assert.Single(result.Events);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
         Assert.Equal(UsageSourceIssueKind.UnsupportedSchema, result.Issue);
+    }
+
+    [Fact]
+    public async Task InvalidLastBreakdownKeepsTheValidCumulativeCounter()
+    {
+        using var corpus = new CodexCorpus();
+        corpus.WriteSession(
+            "session-partial-breakdown",
+            Context("gpt-5.5"),
+            UsageWithInvalidLastBreakdown());
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(new TokenBreakdown(80, 18, 2, 20, 0), usageEvent.Tokens);
+        Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
     }
 
     [Fact]
@@ -253,6 +453,29 @@ public sealed class CodexUsageEventSourceTests
         },
     });
 
+    private static string ChildSessionMeta(string timestamp) => JsonSerializer.Serialize(new
+    {
+        timestamp,
+        type = "session_meta",
+        payload = new
+        {
+            id = "child-session",
+            parent_thread_id = "parent-session",
+            thread_source = "subagent",
+        },
+    });
+
+    private static string TaskStarted(string timestamp, long startedAt) => JsonSerializer.Serialize(new
+    {
+        timestamp,
+        type = "event_msg",
+        payload = new
+        {
+            type = "task_started",
+            started_at = startedAt,
+        },
+    });
+
     private static string Usage(
         string timestamp,
         long input,
@@ -297,6 +520,37 @@ public sealed class CodexUsageEventSourceTests
             },
         });
 
+    private static string UsageWithInvalidLastBreakdown() => JsonSerializer.Serialize(new
+    {
+        timestamp = "2026-07-27T12:01:00Z",
+        type = "event_msg",
+        payload = new
+        {
+            type = "token_count",
+            info = new
+            {
+                last_token_usage = new
+                {
+                    input_tokens = 0,
+                    cached_input_tokens = 0,
+                    cache_write_input_tokens = 0,
+                    output_tokens = 0,
+                    reasoning_output_tokens = 0,
+                    total_tokens = 22_719,
+                },
+                total_token_usage = new
+                {
+                    input_tokens = 100,
+                    cached_input_tokens = 20,
+                    cache_write_input_tokens = 0,
+                    output_tokens = 20,
+                    reasoning_output_tokens = 2,
+                    total_tokens = 120,
+                },
+            },
+        },
+    });
+
     private sealed class CodexCorpus : IDisposable
     {
         private readonly string _path = Path.Combine(
@@ -311,12 +565,16 @@ public sealed class CodexUsageEventSourceTests
         public CodexUsageEventSource CreateSource(
             int maximumFiles = 100,
             long maximumTailBytes = 64 * 1024,
-            ICodexQuotaClientFactory? clientFactory = null) => new(
+            ICodexQuotaClientFactory? clientFactory = null,
+            string? checkpointPath = null,
+            TimeProvider? clock = null) => new(
             "UTC",
             codexHomeOverride: _path,
             maximumFiles: maximumFiles,
             maximumTailBytes: maximumTailBytes,
-            clientFactory: clientFactory);
+            clientFactory: clientFactory,
+            checkpointPath: checkpointPath,
+            clock: clock);
 
         public string WriteSession(string id, params string[] lines) =>
             WriteSession(id, false, lines);
@@ -400,5 +658,10 @@ public sealed class CodexUsageEventSourceTests
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow;
     }
 }

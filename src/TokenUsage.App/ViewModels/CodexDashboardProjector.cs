@@ -62,6 +62,7 @@ public static class CodexDashboardProjector
                 ref additionalWindow));
         }
         string plan = snapshot.PlanLabel ?? getString("CodexPlanUnknown");
+        IReadOnlyList<DashboardMetric> usageMetrics = CreateUsageMetrics(scalars, getString);
         var provider = new ProviderCard(
             "codex",
             "Provider.Codex",
@@ -72,8 +73,8 @@ public static class CodexDashboardProjector
                 ? getString("CodexPartialUsageNotice")
                 : null,
             Windows: windows,
-            Metrics: [],
-            SecondaryMetrics: CreateUsageMetrics(scalars, getString),
+            Metrics: usageMetrics,
+            SecondaryMetrics: [],
             SourceLabel: getString("ProviderSourceLabel"),
             SourceValue: getString("ProviderSourceOfficialLocalApi"),
             ObservedLabel: getString("ProviderObservedLabel"),
@@ -264,6 +265,11 @@ public static class CodexDashboardProjector
             return text(isPrimary ? "CodexWindowPrimary" : "CodexWindowSecondary");
         }
 
+        if (IsSparkLimit(metricId))
+        {
+            return text("CodexWindowSpark");
+        }
+
         additionalWindow++;
         return Format(
             text,
@@ -272,6 +278,10 @@ public static class CodexDashboardProjector
                 : "CodexWindowAdditionalPrimaryFormat",
             additionalWindow);
     }
+
+    private static bool IsSparkLimit(string metricId) =>
+        metricId.StartsWith("quota.codex-bengalfox.", StringComparison.Ordinal)
+        || metricId.StartsWith("quota.codex-spark.", StringComparison.Ordinal);
 
     private static string FormatReset(
         DateTimeOffset? resetsAtUtc,

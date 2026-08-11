@@ -398,13 +398,23 @@ public static class LocalUsageCardProjector
         return totals;
     }
 
-    private static string FormatCoverage(Totals totals, string missing) =>
-        totals.TotalTokens == 0
-            ? missing
-            : string.Format(
-                CultureInfo.CurrentCulture,
-                "{0:0.#}%",
-                (totals.TotalTokens - totals.UnpricedTokens) * 100m / totals.TotalTokens);
+    private static string FormatCoverage(Totals totals, string missing)
+    {
+        if (totals.TotalTokens == 0)
+        {
+            return missing;
+        }
+
+        decimal percent = (totals.TotalTokens - totals.UnpricedTokens)
+            * 100m
+            / totals.TotalTokens;
+        if (totals.UnpricedTokens > 0)
+        {
+            percent = Math.Min(percent, 99.9m);
+        }
+
+        return string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", percent);
+    }
 
     private static string FormatCostParts(
         Totals totals,

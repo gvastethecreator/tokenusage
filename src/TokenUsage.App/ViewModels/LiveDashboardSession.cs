@@ -4,6 +4,7 @@ using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels;
 
@@ -15,6 +16,7 @@ public sealed class LiveDashboardSession : IDisposable
     private readonly object _updateSync = new();
     private readonly AppSessionHost _host;
     private readonly LocalUsageCoordinator _localUsage;
+    private readonly QuotaResetHistoryStore? _quotaResetHistory;
     private CancellationTokenSource? _localRefreshCancellation;
     private Task _pendingUpdates = Task.CompletedTask;
     private Func<string, string>? _getString;
@@ -27,10 +29,12 @@ public sealed class LiveDashboardSession : IDisposable
 
     public LiveDashboardSession(
         AppSessionHost host,
-        LocalUsageCoordinator localUsage)
+        LocalUsageCoordinator localUsage,
+        QuotaResetHistoryStore? quotaResetHistory = null)
     {
         _host = host ?? throw new ArgumentNullException(nameof(host));
         _localUsage = localUsage ?? throw new ArgumentNullException(nameof(localUsage));
+        _quotaResetHistory = quotaResetHistory;
         _host.Updated += OnSessionUpdated;
     }
 
@@ -41,6 +45,8 @@ public sealed class LiveDashboardSession : IDisposable
     public ProviderOutcome? LastCodexOutcome { get; private set; }
 
     public LocalUsageCard? RawLocalUsage { get; private set; }
+
+    public IReadOnlyList<DailyUsageRollup> LocalUsageRollups { get; private set; } = [];
 
     public bool HasLocalUsage { get; private set; }
 
@@ -86,14 +92,15 @@ public sealed class LiveDashboardSession : IDisposable
 
         try
         {
-            LocalUsageCard? cached = await _localUsage
-                .ReadCachedAsync(_getString, cancellationToken)
+            LocalUsageDashboardResult? cached = await _localUsage
+                .ReadCachedDashboardAsync(_getString, cancellationToken)
                 .ConfigureAwait(true);
             if (cached is not null
                 && version == Volatile.Read(ref _refreshVersion)
                 && _publishingEnabled)
             {
-                RawLocalUsage = cached;
+                RawLocalUsage = cached.Card;
+                LocalUsageRollups = cached.Rollups;
                 HasLocalUsage = true;
                 HasPublished = true;
                 _onChanged(this);
@@ -114,6 +121,7 @@ public sealed class LiveDashboardSession : IDisposable
             }
 
             await PendingUpdatesAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+            await ReconcileHostStateAsync(version).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -246,6 +254,7 @@ public sealed class LiveDashboardSession : IDisposable
                     string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
                 if (codex is not null)
                 {
+                    await ObserveResetHistoryAsync(codex).ConfigureAwait(true);
                     LastCodexSnapshot = codex;
                     PublishedObservedAtUtc = codex.SourceObservedAtUtc;
                     HasPublished = true;
@@ -266,7 +275,11 @@ public sealed class LiveDashboardSession : IDisposable
                 break;
 
             case CacheFirstEvent.ProviderCompleted provider:
-                ApplyCodexCompleted(provider);
+                ProviderSnapshot? completed = ApplyCodexCompleted(provider);
+                if (completed is not null)
+                {
+                    await ObserveResetHistoryAsync(completed).ConfigureAwait(true);
+                }
                 PublishChanged(version);
                 break;
 
@@ -305,6 +318,59 @@ public sealed class LiveDashboardSession : IDisposable
         }
     }
 
+    private async Task ReconcileHostStateAsync(int version)
+    {
+        if (!_publishingEnabled || version != Volatile.Read(ref _refreshVersion))
+        {
+            return;
+        }
+
+        AppSessionState state = _host.Current;
+        state.Outcomes.TryGetValue("codex", out ProviderOutcome? outcome);
+        ProviderSnapshot? snapshot = state.Snapshots.FirstOrDefault(candidate =>
+            string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
+        bool snapshotChanged = snapshot is not null
+            && (LastCodexSnapshot is null
+                || snapshot.SourceObservedAtUtc != LastCodexSnapshot.SourceObservedAtUtc
+                || snapshot.FetchedAtUtc != LastCodexSnapshot.FetchedAtUtc);
+        bool outcomeChanged = outcome is not null && !ReferenceEquals(outcome, LastCodexOutcome);
+        if (!snapshotChanged && !outcomeChanged)
+        {
+            return;
+        }
+
+        if (outcome is not null)
+        {
+            LastCodexOutcome = outcome;
+            RetryAtUtc = outcome switch
+            {
+                ProviderOutcome.Throttled throttled => throttled.RetryAtUtc,
+                ProviderOutcome.TransientFailure failure => failure.RetryAtUtc,
+                ProviderOutcome.ContractFailure failure => failure.RetryAtUtc,
+                _ => null,
+            };
+        }
+
+        if (snapshot is not null)
+        {
+            await ObserveResetHistoryAsync(snapshot).ConfigureAwait(true);
+            LastCodexSnapshot = snapshot;
+            PublishedObservedAtUtc = snapshot.SourceObservedAtUtc;
+            HasPublished = true;
+            DataState = outcome switch
+            {
+                ProviderOutcome.Throttled => SampleDataState.Throttled,
+                ProviderOutcome.TransientFailure or ProviderOutcome.ContractFailure =>
+                    SampleDataState.Error,
+                ProviderOutcome.PartialSuccess => SampleDataState.Partial,
+                _ when SnapshotFreshness.IsStale(snapshot, Clock) => SampleDataState.Stale,
+                _ => SampleDataState.Fresh,
+            };
+        }
+
+        PublishChanged(version);
+    }
+
     private CancellationTokenSource BeginLocalRefresh()
     {
         lock (_updateSync)
@@ -337,13 +403,14 @@ public sealed class LiveDashboardSession : IDisposable
     {
         try
         {
-            LocalUsageCard card = await _localUsage
-                .RefreshAsync(getString, cancellationToken)
-                .ConfigureAwait(false);
+            LocalUsageDashboardResult dashboard = await _localUsage
+                .RefreshDashboardAsync(getString, cancellationToken)
+                .ConfigureAwait(true);
             if (version == Volatile.Read(ref _refreshVersion)
                 && !cancellationToken.IsCancellationRequested)
             {
-                RawLocalUsage = card;
+                RawLocalUsage = dashboard.Card;
+                LocalUsageRollups = dashboard.Rollups;
                 HasLocalUsage = true;
                 onChanged(this);
             }
@@ -364,7 +431,7 @@ public sealed class LiveDashboardSession : IDisposable
         }
     }
 
-    private void ApplyCodexCompleted(CacheFirstEvent.ProviderCompleted provider)
+    private ProviderSnapshot? ApplyCodexCompleted(CacheFirstEvent.ProviderCompleted provider)
     {
         LastCodexOutcome = provider.Outcome;
         ProviderSnapshot? snapshot = provider.Outcome switch
@@ -388,7 +455,7 @@ public sealed class LiveDashboardSession : IDisposable
         if (snapshot is null)
         {
             DataState = SampleDataState.Error;
-            return;
+            return null;
         }
 
         LastCodexSnapshot = snapshot;
@@ -405,5 +472,27 @@ public sealed class LiveDashboardSession : IDisposable
             _ when SnapshotFreshness.IsStale(snapshot, Clock) => SampleDataState.Stale,
             _ => SampleDataState.Fresh,
         };
+        return snapshot;
+    }
+
+    private async Task ObserveResetHistoryAsync(ProviderSnapshot snapshot)
+    {
+        if (_quotaResetHistory is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _quotaResetHistory.ObserveAsync(snapshot).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or TimeoutException
+            or InvalidOperationException
+            or System.Security.SecurityException)
+        {
+            // Reset history is supplementary; a storage failure must not hide live limits.
+        }
     }
 }

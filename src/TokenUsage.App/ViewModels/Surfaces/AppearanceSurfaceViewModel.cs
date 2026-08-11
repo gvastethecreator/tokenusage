@@ -42,10 +42,17 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             new(ResetTimeDisplayMode.Relative, _getString("AppearanceResetRelative")),
             new(ResetTimeDisplayMode.Exact, _getString("AppearanceResetExact")),
         ];
+        DashboardVisualizationOptions =
+        [
+            new(DashboardVisualizationMode.List, _getString("AppearanceVisualizationList")),
+            new(DashboardVisualizationMode.Donut, _getString("AppearanceVisualizationDonut")),
+            new(DashboardVisualizationMode.Heatmap, _getString("AppearanceVisualizationHeatmap")),
+        ];
         SelectedTheme = ThemeOptions[0];
         SelectedDensity = DensityOptions[0];
         SelectedUsageDisplay = UsageDisplayOptions[0];
         SelectedResetTimeDisplay = ResetTimeDisplayOptions[0];
+        SelectedDashboardVisualization = DashboardVisualizationOptions[0];
         _isApplyingSettings = false;
         Initialization = InitializeAsync();
     }
@@ -61,6 +68,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
     public IReadOnlyList<AppearanceOption<UsageDisplayMode>> UsageDisplayOptions { get; }
 
     public IReadOnlyList<AppearanceOption<ResetTimeDisplayMode>> ResetTimeDisplayOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<DashboardVisualizationMode>> DashboardVisualizationOptions { get; }
 
     [ObservableProperty]
     public partial AppearanceSettings Settings { get; private set; } = AppearanceSettings.Default;
@@ -79,6 +88,9 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     [ObservableProperty]
     public partial AppearanceOption<ResetTimeDisplayMode> SelectedResetTimeDisplay { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<DashboardVisualizationMode> SelectedDashboardVisualization { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditable))]
@@ -113,6 +125,9 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     partial void OnSelectedResetTimeDisplayChanged(
         AppearanceOption<ResetTimeDisplayMode> value) => QueueSave();
+
+    partial void OnSelectedDashboardVisualizationChanged(
+        AppearanceOption<DashboardVisualizationMode> value) => QueueSave();
 
     private async Task InitializeAsync()
     {
@@ -157,6 +172,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
                 option => option.Value == settings.UsageDisplay);
             SelectedResetTimeDisplay = ResetTimeDisplayOptions.Single(
                 option => option.Value == settings.ResetTimeDisplay);
+            SelectedDashboardVisualization = DashboardVisualizationOptions.Single(
+                option => option.Value == settings.DashboardVisualization);
             Settings = settings;
             SettingsChanged?.Invoke(this, settings);
         }
@@ -173,7 +190,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             || SelectedTheme is null
             || SelectedDensity is null
             || SelectedUsageDisplay is null
-            || SelectedResetTimeDisplay is null)
+            || SelectedResetTimeDisplay is null
+            || SelectedDashboardVisualization is null)
         {
             return;
         }
@@ -183,7 +201,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             SelectedDensity.Value,
             IncreaseTransparency,
             SelectedUsageDisplay.Value,
-            SelectedResetTimeDisplay.Value);
+            SelectedResetTimeDisplay.Value,
+            SelectedDashboardVisualization.Value);
         Settings = settings;
         SettingsChanged?.Invoke(this, settings);
         IsBusy = true;

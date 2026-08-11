@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 namespace TokenUsage.Architecture.Tests;
 
 public sealed class ArchitectureRulesTests
@@ -224,7 +226,10 @@ public sealed class ArchitectureRulesTests
         Assert.InRange(File.ReadLines(mainPagePath).Count(), 1, 400);
         Assert.InRange(File.ReadLines(flyoutPath).Count(), 1, 350);
         Assert.Contains("<optionViews:OptionsView", mainPage, StringComparison.Ordinal);
-        Assert.Contains("<dashboardViews:DashboardView", mainPage, StringComparison.Ordinal);
+        Assert.Contains(
+            "<dashboardViews:CompactUsageDashboard",
+            mainPage,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("VercelApiKeyBox", mainPage, StringComparison.Ordinal);
         Assert.DoesNotContain("DashboardLayoutProviderList", mainPage, StringComparison.Ordinal);
         Assert.DoesNotContain("UsageProductCard", mainPage, StringComparison.Ordinal);
@@ -245,11 +250,19 @@ public sealed class ArchitectureRulesTests
             "Options",
             "ProvidersOptionsView.xaml"));
         Assert.DoesNotContain("VercelConnectionView", optionsView, StringComparison.Ordinal);
+        Assert.Contains("UnifiedOptionsView", optionsView, StringComparison.Ordinal);
+        Assert.Contains("GeneralOptionsView", optionsView, StringComparison.Ordinal);
+        Assert.Contains("AppearanceOptionsView", optionsView, StringComparison.Ordinal);
+        Assert.Contains("PersonalizationOptionsView", optionsView, StringComparison.Ordinal);
+        Assert.Contains("ProviderStatusView", optionsView, StringComparison.Ordinal);
+        Assert.DoesNotContain("OptionsHomeView", optionsView, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProvidersOptionsView", optionsView, StringComparison.Ordinal);
         Assert.DoesNotContain("OptionsVercelButton", providersView, StringComparison.Ordinal);
 
         string[] requiredViews =
         [
             Path.Combine("Dashboard", "DashboardView.xaml"),
+            Path.Combine("Dashboard", "CompactUsageDashboard.xaml"),
             Path.Combine("Options", "AppearanceOptionsView.xaml"),
             Path.Combine("Options", "GeneralOptionsView.xaml"),
             Path.Combine("Options", "OptionsHomeView.xaml"),
@@ -258,6 +271,7 @@ public sealed class ArchitectureRulesTests
             Path.Combine("Options", "ProvidersOptionsView.xaml"),
             Path.Combine("Options", "ProviderStatusView.xaml"),
             Path.Combine("Options", "VercelConnectionView.xaml"),
+            Path.Combine("Reports", "UsageReportPage.xaml"),
         ];
 
         foreach (string relativePath in requiredViews)
@@ -265,6 +279,65 @@ public sealed class ArchitectureRulesTests
             Assert.True(
                 File.Exists(Path.Combine(appRoot, "Views", relativePath)),
                 $"Missing feature view: {relativePath}");
+        }
+    }
+
+    [Fact]
+    public void UnifiedOptionsCategoriesUseOneConsistentOuterCard()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string optionsRoot = Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Options");
+        string[] categoryFiles =
+        [
+            "GeneralOptionsView.xaml",
+            "AppearanceOptionsView.xaml",
+            "PersonalizationOptionsView.xaml",
+            "ProviderStatusView.xaml",
+        ];
+
+        foreach (string categoryFile in categoryFiles)
+        {
+            XDocument document = XDocument.Load(Path.Combine(optionsRoot, categoryFile));
+            XElement card = Assert.Single(document.Root!.Elements());
+            Assert.Equal("Border", card.Name.LocalName);
+            Assert.Contains(
+                card.Attributes(),
+                attribute => attribute.Name.LocalName == "Style"
+                    && attribute.Value == "{StaticResource OptionsCategoryCardStyle}");
+        }
+
+        XDocument optionsDocument = XDocument.Load(Path.Combine(optionsRoot, "OptionsView.xaml"));
+        XElement aboutCard = optionsDocument.Descendants().Single(element =>
+            element.Attributes().Any(attribute => attribute.Value == "AboutSection"));
+        Assert.Contains(
+            aboutCard.Attributes(),
+            attribute => attribute.Name.LocalName == "Style"
+                && attribute.Value == "{StaticResource OptionsCategoryCardStyle}");
+    }
+
+    [Fact]
+    public void QuotaSurfacesDoNotRenderProjectedPaceText()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string appRoot = Path.Combine(repoRoot, "src", "TokenUsage.App");
+        string[] quotaSurfaces =
+        [
+            Path.Combine(appRoot, "App.xaml"),
+            Path.Combine(appRoot, "Views", "Dashboard", "DashboardView.xaml"),
+            Path.Combine(appRoot, "Views", "Reports", "UsageReportPage.xaml"),
+        ];
+
+        foreach (string quotaSurface in quotaSurfaces)
+        {
+            string xaml = File.ReadAllText(quotaSurface);
+            Assert.DoesNotContain("CompactPaceText", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Text=\"{x:Bind PaceText}\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Text=\"{Binding PaceText}\"", xaml, StringComparison.Ordinal);
         }
     }
 
@@ -290,8 +363,24 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(96, matches.Count);
-        Assert.Equal(84, distinctIds.Length);
+        Assert.Equal(143, matches.Count);
+        Assert.Equal(129, distinctIds.Length);
+        Assert.Contains("HeaderVisualizationButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("HeaderShareButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UnifiedOptionsView", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportCaptureButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetCycleButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetCycleSelector", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportNextResetCycleButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AboutGitHubLink", distinctIds, StringComparer.Ordinal);
+        Assert.DoesNotContain("SampleModeToggle", distinctIds, StringComparer.Ordinal);
+        Assert.DoesNotContain("SampleScenarioCombo", distinctIds, StringComparer.Ordinal);
+        Assert.DoesNotContain("CompactGlobalOptionsButton", distinctIds, StringComparer.Ordinal);
+        Assert.DoesNotContain("CompactProviderOptionsButton", distinctIds, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -307,5 +396,92 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("MotionSettings.AreAnimationsEnabled()", pageCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ViewTransitionDuration", pageCode, StringComparison.Ordinal);
         Assert.Contains("BodyTransitionTransform", pageCode, StringComparison.Ordinal);
+
+        string compactCode = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Dashboard",
+            "CompactUsageDashboard.xaml.cs"));
+        Assert.Contains("MotionSettings.AreAnimationsEnabled()", compactCode, StringComparison.Ordinal);
+        Assert.Contains("MotionSettings.ProviderSwitchExitDuration", compactCode, StringComparison.Ordinal);
+        Assert.Contains("MotionSettings.ProviderSwitchDuration", compactCode, StringComparison.Ordinal);
+        Assert.Contains("MotionSettings.ProviderSwitchMinimumOpacity", compactCode, StringComparison.Ordinal);
+        Assert.Contains("PlayProviderTransitionEntry", compactCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("Task.Delay", compactCode, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InteractiveChartsAndProviderSelectorsExposeKeyboardNamesAndDetails()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string appRoot = Path.Combine(repoRoot, "src", "TokenUsage.App");
+        string heatmapCode = File.ReadAllText(Path.Combine(
+            appRoot,
+            "Controls",
+            "UsageHeatmap.xaml.cs"));
+        Assert.Contains("element.GotFocus +=", heatmapCode, StringComparison.Ordinal);
+        Assert.Contains("element.LostFocus +=", heatmapCode, StringComparison.Ordinal);
+
+        string compactXaml = File.ReadAllText(Path.Combine(
+            appRoot,
+            "Views",
+            "Dashboard",
+            "CompactUsageDashboard.xaml"));
+        Assert.Contains(
+            "AutomationProperties.Name=\"{x:Bind Name}\"",
+            compactXaml,
+            StringComparison.Ordinal);
+
+        string reportXaml = File.ReadAllText(Path.Combine(
+            appRoot,
+            "Views",
+            "Reports",
+            "UsageReportPage.xaml"));
+        Assert.Contains("ContainerContentChanging=\"OnProviderContainerContentChanging\"", reportXaml, StringComparison.Ordinal);
+
+        string reportCode = File.ReadAllText(Path.Combine(
+            appRoot,
+            "Views",
+            "Reports",
+            "UsageReportPage.xaml.cs"));
+        Assert.Contains("AutomationProperties.SetName(container, option.Name)", reportCode, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.SetAutomationId(container, option.ProviderId)", reportCode, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SharedCapturesExcludeWindowActionChrome()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string mainPageCode = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "MainPage.xaml.cs")).ReplaceLineEndings("\n");
+        Assert.Contains("ShareCaptureService.CaptureAsync(\n                CompactCaptureRoot", mainPageCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShareCaptureService.CaptureAsync(\n                FlyoutChrome", mainPageCode, StringComparison.Ordinal);
+
+        string reportPageCode = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Reports",
+            "UsageReportPage.xaml.cs"));
+        Assert.Contains("ReportControlBar.Visibility = Visibility.Collapsed", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportCoverageHintButton.Visibility = Visibility.Collapsed", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportControlBar.Visibility = controlBarVisibility", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportCoverageHintButton.Visibility = coverageHintVisibility", reportPageCode, StringComparison.Ordinal);
+
+        string shareCaptureCode = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Services",
+            "ShareCaptureService.cs"));
+        Assert.Contains("private const int CapturePadding = 10", shareCaptureCode, StringComparison.Ordinal);
+        Assert.Contains("DismissTransientOverlays(captureRoot)", shareCaptureCode, StringComparison.Ordinal);
+        Assert.Contains("byte[] paddedPixels = AddPadding", shareCaptureCode, StringComparison.Ordinal);
     }
 }

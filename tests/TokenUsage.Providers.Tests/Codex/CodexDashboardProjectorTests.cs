@@ -58,8 +58,8 @@ public sealed class CodexDashboardProjectorTests
         Assert.True(card.Windows[1].IsPaceWithinLimit);
         Assert.Null(card.NoticeText);
         Assert.False(card.HasNotice);
-        Assert.Empty(card.Metrics);
-        Assert.True(card.HasSecondaryMetrics);
+        Assert.Equal(4, card.Metrics.Count);
+        Assert.False(card.HasSecondaryMetrics);
         Assert.True(card.HasDetails);
         Assert.Equal("Source", card.SourceLabel);
         Assert.Equal("Official local API", card.SourceValue);
@@ -68,7 +68,7 @@ public sealed class CodexDashboardProjectorTests
         Assert.Contains("Official local API", card.DetailsTooltip, StringComparison.Ordinal);
         Assert.Equal("Details for Codex", card.DetailsAutomationName);
         Assert.Collection(
-            card.SecondaryMetricItems,
+            card.Metrics,
             metric => Assert.Equal(new DashboardMetric("Today", "No data", "CodexUsage.Today", "usage.tokens.today"), metric),
             metric => Assert.Equal(new DashboardMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
             metric => Assert.Equal(new DashboardMetric("Last 7 days", "No data", "CodexUsage.Last7Days", "usage.tokens.7d"), metric),
@@ -175,9 +175,9 @@ public sealed class CodexDashboardProjectorTests
             GetString).Providers);
 
         Assert.Equal("Daily token usage is incomplete.", card.NoticeText);
-        Assert.Empty(card.Metrics);
+        Assert.Empty(card.SecondaryMetricItems);
         Assert.Collection(
-            card.SecondaryMetricItems,
+            card.Metrics,
             metric => Assert.Equal(new DashboardMetric("Today", "0 tokens", "CodexUsage.Today", "usage.tokens.today"), metric),
             metric => Assert.Equal(new DashboardMetric("Yesterday", "No data", "CodexUsage.Yesterday", "usage.tokens.yesterday"), metric),
             metric => Assert.Equal(
@@ -188,6 +188,45 @@ public sealed class CodexDashboardProjectorTests
                     "usage.tokens.7d"),
                 metric),
             metric => Assert.Equal(new DashboardMetric("Last 30 days", "No data", "CodexUsage.Last30Days", "usage.tokens.30d"), metric));
+    }
+
+    [Fact]
+    public void BengalfoxAdditionalLimitUsesTheCodexSparkProductName()
+    {
+        var provenance = new DataProvenance(
+            SourceKind.OfficialLocalApi,
+            MeasurementKind.ProviderReported,
+            "codex-app-server/1");
+        var snapshot = new ProviderSnapshot(
+            new ProviderId("codex"),
+            "Codex",
+            "Pro",
+            Now,
+            Now,
+            "UTC",
+            [
+                new ProgressMetricSnapshot(
+                    new MetricId("quota.primary"),
+                    6m,
+                    100m,
+                    Now.AddDays(7),
+                    provenance),
+                new ProgressMetricSnapshot(
+                    new MetricId("quota.codex-bengalfox.primary"),
+                    0m,
+                    100m,
+                    Now.AddDays(7),
+                    provenance),
+            ],
+            CoverageKind.Complete,
+            1);
+
+        ProviderCard card = Assert.Single(CodexDashboardProjector.Create(
+            snapshot,
+            new FixedTimeProvider(Now),
+            GetString).Providers);
+
+        Assert.Equal("Codex Spark", card.Windows[1].Title);
     }
 
     [Fact]
@@ -262,6 +301,7 @@ public sealed class CodexDashboardProjectorTests
         "CodexWindowSecondary" => "Secondary limit",
         "CodexWindowAdditionalPrimaryFormat" => "Additional limit {0}",
         "CodexWindowAdditionalSecondaryFormat" => "Additional limit {0}",
+        "CodexWindowSpark" => "Codex Spark",
         "CodexResetUnknown" => "Reset time unavailable",
         "CodexResetDue" => "Reset due",
         "SampleWindowSession" => "Session",
@@ -271,7 +311,7 @@ public sealed class CodexDashboardProjectorTests
         "SampleResetDaysHoursFormat" => "Resets in {0} d {1} h",
         "SampleCapabilityQuota" => "Quota",
         "CodexPartialUsageNotice" => "Daily token usage is incomplete.",
-        "CodexCapabilityUsage" => "Quota and local usage",
+        "CodexCapabilityUsage" => "Limits and official usage",
         "ProviderSourceLabel" => "Source",
         "ProviderSourceOfficialLocalApi" => "Official local API",
         "ProviderObservedLabel" => "Updated",

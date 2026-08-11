@@ -53,6 +53,8 @@
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\LiveDashboardComposer.cs" Link="Dashboard\LiveDashboardComposer.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="VercelAiGateway\VercelGatewayCardProjector.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\UsageHeatmapProjector.cs" Link="Usage\UsageHeatmapProjector.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportModels.cs" Link="Reports\UsageReportModels.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportRequest.cs" Link="Reports\UsageReportRequest.cs" />
   </ItemGroup>
 
   <ItemGroup>

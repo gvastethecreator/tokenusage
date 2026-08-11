@@ -21,12 +21,12 @@ public sealed class WindowsProviderDiagnosticsQueryTests
 
         ProviderDiagnosticsSnapshot result = await query.ExecuteAsync();
 
-        Assert.Equal(5, result.Providers.Count);
-        Assert.Equal(7, result.Checks.Count);
+        Assert.Equal(4, result.Providers.Count);
+        Assert.Equal(6, result.Checks.Count);
         Assert.Contains(result.Checks, check => check.Id == "local-usage-antigravity");
         Assert.DoesNotContain(
             result.Providers,
-            provider => provider.Id == "vercel-ai-gateway");
+            provider => provider.Id is "claude" or "vercel-ai-gateway");
         Assert.All(result.Providers, provider =>
             Assert.Equal(ProviderDetectionStatus.Missing, provider.Detection));
         Assert.False(Directory.Exists(dataDirectory));

@@ -11,19 +11,26 @@
     xmlns:viewModels="using:TokenUsage.App.ViewModels"
     mc:Ignorable="d">
 
-    <StackPanel>
-        <StackPanel
-            Margin="2,0,2,0"
-            Spacing="2">
-            <TextBlock x:Uid="PersonalizationSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
-            <TextBlock x:Uid="PersonalizationSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
-        </StackPanel>
-        <Border
+    <Border
+        AutomationProperties.AutomationId="PersonalizationSection"
+        Style="{StaticResource OptionsCategoryCardStyle}">
+        <StackPanel Spacing="12">
+        <Grid ColumnSpacing="9" RowSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <FontIcon Grid.RowSpan="2" FontSize="15" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Glyph="&#xE771;" VerticalAlignment="Top" />
+            <TextBlock x:Uid="PersonalizationSectionTitle" Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            <TextBlock x:Uid="PersonalizationSectionDescription" Grid.Row="1" Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+        </Grid>
+        <Grid
             x:Name="DashboardLayoutSection"
-            AutomationProperties.AutomationId="DashboardLayoutSection"
-            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-            CornerRadius="{ThemeResource ControlCornerRadius}"
-            Padding="10,4">
+            AutomationProperties.AutomationId="DashboardLayoutSection">
             <Expander
                 x:Name="DashboardLayoutExpander"
                 x:Uid="DashboardLayoutExpander"
@@ -330,6 +337,7 @@
                     </ItemsControl>
                 </StackPanel>
             </Expander>
-        </Border>
-    </StackPanel>
+        </Grid>
+        </StackPanel>
+    </Border>
 </UserControl>

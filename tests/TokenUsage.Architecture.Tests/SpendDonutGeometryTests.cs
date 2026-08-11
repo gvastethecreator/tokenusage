@@ -78,7 +78,8 @@ public sealed class SpendDonutGeometryTests
 
         Assert.True(tinyDisplayShare > arcs[1].TrueShare);
         Assert.Equal(
-            SpendDonutGeometry.MinimumDisplayShare / 1.024,
+            SpendDonutGeometry.MinimumDisplayShare
+                / (0.999 + SpendDonutGeometry.MinimumDisplayShare),
             tinyDisplayShare,
             12);
         Assert.Equal(1, arcs[^1].EndFraction);

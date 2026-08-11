@@ -75,9 +75,8 @@ public sealed class CodexLiveCompositionTests
             Assert.True(card.Windows[0].IsPaceBehind);
             Assert.True(card.Windows[1].HasPace);
             Assert.True(card.Windows[1].IsPaceWithinLimit);
-            Assert.Empty(card.Metrics);
             Assert.Collection(
-                card.SecondaryMetricItems,
+                card.Metrics,
                 metric => Assert.Equal("1200 tokens", metric.Value.Replace(",", string.Empty).Replace(".", string.Empty)),
                 metric => Assert.Equal("300 tokens", metric.Value),
                 metric => Assert.Equal("1500 tokens", metric.Value.Replace(",", string.Empty).Replace(".", string.Empty)),
@@ -88,7 +87,7 @@ public sealed class CodexLiveCompositionTests
                 [
                     .. card.Windows.Select(window =>
                         $"{window.Title}|{window.RemainingText}|{window.ResetText}|{window.PaceText}|{window.AutomationName}"),
-                    .. card.SecondaryMetricItems.Select(metric => $"{metric.Label}|{metric.Value}"),
+                    .. card.Metrics.Select(metric => $"{metric.Label}|{metric.Value}"),
                 ]);
             Assert.DoesNotContain("private-live@example.invalid", visibleText, StringComparison.Ordinal);
             Assert.DoesNotContain("auth.json", visibleText, StringComparison.OrdinalIgnoreCase);
@@ -359,6 +358,7 @@ public sealed class CodexLiveCompositionTests
         "CodexWindowSecondary" => "Secondary limit",
         "CodexWindowAdditionalPrimaryFormat" => "Additional limit {0}",
         "CodexWindowAdditionalSecondaryFormat" => "Additional limit {0}",
+        "CodexWindowSpark" => "Codex Spark",
         "CodexResetUnknown" => "Reset time unavailable",
         "CodexResetDue" => "Reset due",
         "SampleWindowSession" => "Session",
@@ -367,7 +367,7 @@ public sealed class CodexLiveCompositionTests
         "SampleResetDaysFormat" => "Resets in {0} d",
         "SampleResetDaysHoursFormat" => "Resets in {0} d {1} h",
         "CodexPartialUsageNotice" => "Daily token usage is incomplete.",
-        "CodexCapabilityUsage" => "Quota and local usage",
+        "CodexCapabilityUsage" => "Limits and official usage",
         "ProviderSourceLabel" => "Source",
         "ProviderSourceOfficialLocalApi" => "Official local API",
         "ProviderObservedLabel" => "Updated",

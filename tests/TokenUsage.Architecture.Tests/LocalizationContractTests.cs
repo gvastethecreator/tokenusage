@@ -14,8 +14,8 @@ public sealed partial class LocalizationContractTests
         Assert.Equal(english.Values.Keys.Order(), spanish.Values.Keys.Order());
         Assert.DoesNotContain(english.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
         Assert.DoesNotContain(spanish.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
-        Assert.DoesNotContain(english.Values.Values, value => value.Contains("TokenUsage", StringComparison.Ordinal));
-        Assert.DoesNotContain(spanish.Values.Values, value => value.Contains("TokenUsage", StringComparison.Ordinal));
+        Assert.DoesNotContain(english.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
+        Assert.DoesNotContain(spanish.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
     }
 
     [Fact]

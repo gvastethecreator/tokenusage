@@ -11,7 +11,7 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] entries = WindowsProviderCatalog.Entries.ToArray();
 
         Assert.Equal(
-            ["claude", "codex", "grok", "opencode", "antigravity"],
+            ["codex", "grok", "opencode", "antigravity"],
             entries.Select(entry => entry.Id.Value));
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.Equal(
@@ -21,13 +21,15 @@ public sealed class WindowsProviderCatalogTests
                 ProviderCapability.Spend,
             ],
             entries.Single(entry => entry.Id.Value == "codex").Capabilities);
-        WindowsProviderCatalogEntry deferred = Assert.Single(
-            WindowsProviderCatalog.DeferredEntries);
+        WindowsProviderCatalogEntry[] deferredEntries =
+            WindowsProviderCatalog.DeferredEntries.ToArray();
+        Assert.Equal(
+            ["claude", "vercel-ai-gateway"],
+            deferredEntries.Select(entry => entry.Id.Value));
+        Assert.All(deferredEntries, entry => Assert.False(entry.IsEnabledByDefault));
         Assert.Equal(
             [ProviderCapability.Limits, ProviderCapability.Spend],
-            deferred.Capabilities);
-        Assert.Equal("vercel-ai-gateway", deferred.Id.Value);
-        Assert.False(deferred.IsEnabledByDefault);
+            deferredEntries.Single(entry => entry.Id.Value == "vercel-ai-gateway").Capabilities);
     }
 
     [Fact]
@@ -44,13 +46,30 @@ public sealed class WindowsProviderCatalogTests
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
-            ["claude", "codex", "grok", "opencode", "antigravity"],
+            ["codex", "grok", "opencode", "antigravity"],
             composition.LocalUsageSources.Select(source => source.AgentId.Value));
         Assert.Equal(
             SourceKind.OfficialLocalApi,
             composition.LocalUsageSources.Single(source =>
                 source.AgentId.Value == "codex").SourceKind);
         Assert.Null(composition.VercelCoordinator);
+    }
+
+    [Fact]
+    public void ClaudeLocalUsageRequiresExplicitOptIn()
+    {
+        using var folder = new TemporaryFolder();
+
+        WindowsProviderComposition composition = WindowsProviderCatalog.CreateComposition(
+            folder.Path,
+            TimeProvider.System,
+            options: new WindowsProviderCompositionOptions(
+                TimeZoneId: "UTC",
+                EnableClaudeLocalUsage: true));
+
+        Assert.Contains(
+            composition.LocalUsageSources,
+            source => source.AgentId.Value == "claude");
     }
 
     [Fact]

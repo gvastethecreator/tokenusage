@@ -15,10 +15,6 @@
       "status": "present"
     },
     {
-      "id": "local-usage-claude",
-      "status": "absent"
-    },
-    {
       "id": "local-usage-grok",
       "status": "present"
     },

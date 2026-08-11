@@ -24,6 +24,10 @@
              Link="AppLanguageRestartArguments.cs" />
     <Compile Include="..\..\src\TokenUsage.App\Controls\SpendDonutGeometry.cs"
              Link="SpendDonutGeometry.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\Controls\UsageTrendGeometry.cs"
+             Link="UsageTrendGeometry.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportModels.cs"
+             Link="UsageReportModels.cs" />
   </ItemGroup>
 
 </Project>

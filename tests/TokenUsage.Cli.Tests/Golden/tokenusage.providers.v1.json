@@ -13,15 +13,6 @@
       "data": "present"
     },
     {
-      "id": "claude",
-      "name": "Claude",
-      "capabilities": [
-        "localUsage"
-      ],
-      "detection": "missing",
-      "data": "absent"
-    },
-    {
       "id": "codex",
       "name": "Codex",
       "capabilities": [

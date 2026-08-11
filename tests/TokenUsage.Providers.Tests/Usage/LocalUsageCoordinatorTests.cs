@@ -161,11 +161,26 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Equal(35, card.Heatmap.Cells.Count);
         Assert.Equal(firstDay, card.Heatmap.Cells[0].Date);
         Assert.Equal(today, card.Heatmap.Cells[^1].Date);
+        Assert.Contains("2026", card.Heatmap.DateRangeText, StringComparison.Ordinal);
         Assert.Equal(2, card.Heatmap.Cells.Count(cell => cell.HasActivity));
         Assert.Equal(1_500, card.Heatmap.Cells[^1].TotalTokens);
         Assert.Equal(2, card.Heatmap.Cells[^1].EventCount);
         Assert.Equal(4, card.Heatmap.Cells[^1].Level);
+        Assert.Equal(3m, card.Heatmap.Cells[^1].TotalCostUsd);
+        Assert.Equal(1_500, card.Heatmap.Cells[^1].UncachedInputTokens);
+        Assert.Equal(0, card.Heatmap.Cells[^1].CachedInputTokens);
+        Assert.Equal(0, card.Heatmap.Cells[^1].OutputTokens);
+        Assert.Equal(["grok", "claude"], card.Heatmap.Cells[^1].ActiveProviderIds);
         Assert.Contains("US$", card.Heatmap.Cells[^1].AccessibleName, StringComparison.Ordinal);
+        Assert.Contains("entrada", card.Heatmap.Cells[^1].TooltipText, StringComparison.Ordinal);
+        UsageHeatmapTooltip tooltip = Assert.IsType<UsageHeatmapTooltip>(
+            card.Heatmap.Cells[^1].Tooltip);
+        Assert.Equal(7, tooltip.Rows.Count);
+        Assert.Equal("Tokens", tooltip.Rows[0].Label);
+        Assert.Equal(
+            1_500.ToString("N0", CultureInfo.CurrentCulture),
+            tooltip.Rows[0].Value);
+        Assert.Equal("Eventos", tooltip.Rows[2].Label);
         Assert.DoesNotContain(card.Heatmap.Cells, cell => cell.TotalTokens == 9_999);
     }
 
@@ -222,6 +237,23 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Empty(card.SpendBreakdown.AgentSlices);
         Assert.Single(card.SpendBreakdown.Models);
         Assert.True(card.SpendBreakdown.HasContent);
+    }
+
+    [Fact]
+    public void TinyUnpricedShareDoesNotRenderAsFullCoverage()
+    {
+        DateOnly today = new(2026, 7, 22);
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [Rollup(today, "codex", "gpt-5.5", 1_000_000, 1m, null, 1)],
+            Strings,
+            today: today);
+        string expected = string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", 99.9m);
+
+        Assert.Equal(expected, FindValue(card, "UsageProductCard.CostCoverage"));
+        Assert.Contains(
+            expected,
+            Assert.Single(card.SpendBreakdown.Models).CoverageText,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -690,8 +722,16 @@ public sealed class LocalUsageCoordinatorTests
         "UsageHeatmapSummaryFormat" => "{0} días activos · últimos {1}",
         "UsageHeatmapEmptyDayFormat" => "{0}: sin actividad",
         "UsageHeatmapDayFormat" => "{0}: {1} tokens en {2} eventos; {3}",
+        "UsageHeatmapDayDetailFormat" => "{0}: {1} tokens · {2} · {3} eventos · caché {4} · entrada {5} · salida {6}",
         "UsageHeatmapCostFormat" => "{0:0.00} US$",
         "UsageHeatmapCostUnavailable" => "gasto no disponible",
+        "UsageHeatmapTooltipTokensLabel" => "Tokens",
+        "UsageHeatmapTooltipCostLabel" => "Costo",
+        "UsageHeatmapTooltipEventsLabel" => "Eventos",
+        "UsageHeatmapTooltipCachedInputLabel" => "Entrada en caché",
+        "UsageHeatmapTooltipUncachedInputLabel" => "Entrada sin caché",
+        "UsageHeatmapTooltipOutputLabel" => "Salida",
+        "UsageHeatmapTooltipReasoningLabel" => "Razonamiento",
         "LocalUsageAgentClaude" => "Claude",
         "LocalUsageAgentCodex" => "Codex",
         "LocalUsageAgentGrok" => "Grok Build",

@@ -60,7 +60,6 @@ public sealed class ProviderDiagnosticsCommandTests
 
         Assert.Equal(
             "antigravity: detected; data present; localUsage,spend\n"
-            + "claude: missing; data absent; localUsage\n"
             + "codex: detected; data present; limits,localUsage,spend\n"
             + "grok: detected; data present; localUsage\n"
             + "opencode: unavailable; data unreadable; localUsage\n",
@@ -69,7 +68,6 @@ public sealed class ProviderDiagnosticsCommandTests
             "codex-cache: present\n"
             + "codex-cli: detected\n"
             + "local-usage-antigravity: present\n"
-            + "local-usage-claude: absent\n"
             + "local-usage-grok: present\n"
             + "local-usage-opencode: unreadable\n"
             + "usage-db: present\n",
@@ -242,15 +240,12 @@ public sealed class ProviderDiagnosticsCommandTests
                     ProviderCapability.Spend,
                 ],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
-            new("claude", "Claude", [ProviderCapability.LocalUsage],
-                ProviderDetectionStatus.Missing, ProviderDataStatus.Absent),
         ],
         [
             new("usage-db", DoctorCheckStatus.Present),
             new("local-usage-antigravity", DoctorCheckStatus.Present),
             new("local-usage-opencode", DoctorCheckStatus.Unreadable),
             new("local-usage-grok", DoctorCheckStatus.Present),
-            new("local-usage-claude", DoctorCheckStatus.Absent),
             new("codex-cli", DoctorCheckStatus.Detected),
             new("codex-cache", DoctorCheckStatus.Present),
         ]);

@@ -1,5 +1,6 @@
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 using TokenUsage.Runtime.Windows.Providers;
 
 namespace TokenUsage.Cli;
@@ -25,12 +26,39 @@ public static class LocalLimitsCliAccess
 
         string root = Path.GetFullPath(dataDirectory);
         ProviderRefreshHost host = CreateLiveHost(root, clock);
-        return await new LimitsQuery(host)
+        IReadOnlyList<ProviderSnapshot> snapshots = await new LimitsQuery(host)
             .ReadAsync(
                 providerId is null ? null : new ProviderId(providerId),
                 forceRefresh,
                 cancellationToken)
             .ConfigureAwait(false);
+        var history = new QuotaResetHistoryStore(
+            Path.Combine(root, "history", QuotaResetHistoryStore.DefaultFileName),
+            clock);
+        foreach (ProviderSnapshot snapshot in snapshots.Where(snapshot => string.Equals(
+                     snapshot.ProviderId.Value,
+                     "codex",
+                     StringComparison.Ordinal)))
+        {
+            try
+            {
+                await history.ObserveAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or TimeoutException
+                or InvalidOperationException
+                or System.Security.SecurityException)
+            {
+                // Limits remain useful even if supplementary reset history cannot be written.
+            }
+        }
+
+        return snapshots;
     }
 
     internal static ProviderRefreshHost CreateLiveHost(string dataDirectory, TimeProvider clock)

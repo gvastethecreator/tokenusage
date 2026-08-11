@@ -8,6 +8,7 @@ using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels;
 
@@ -22,13 +23,15 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AppSessionHost appSessionHost,
         LocalUsageCoordinator localUsageCoordinator,
         DashboardLayoutStore dashboardLayoutStore,
-        AppearanceSettingsStore appearanceSettingsStore)
+        AppearanceSettingsStore appearanceSettingsStore,
+        QuotaResetHistoryStore quotaResetHistory)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
         ArgumentNullException.ThrowIfNull(localUsageCoordinator);
         ArgumentNullException.ThrowIfNull(dashboardLayoutStore);
         ArgumentNullException.ThrowIfNull(appearanceSettingsStore);
+        ArgumentNullException.ThrowIfNull(quotaResetHistory);
 
         OptionsNavigation = new OptionsNavigationViewModel();
         OptionsNavigation.PropertyChanged += OnOptionsNavigationPropertyChanged;
@@ -53,7 +56,10 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             ProviderStatus);
         Dashboard = new DashboardSurfaceViewModel(
             new SampleDashboardSession(sampleRefreshCoordinator),
-            new LiveDashboardSession(appSessionHost, localUsageCoordinator),
+            new LiveDashboardSession(
+                appSessionHost,
+                localUsageCoordinator,
+                quotaResetHistory),
             GeneralOptions,
             AppearanceOptions,
             Personalization,
@@ -78,6 +84,9 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     public partial string StatusText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial int LayoutRevision { get; private set; }
 
     public OptionsNavigationViewModel OptionsNavigation { get; }
 
@@ -204,6 +213,14 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(Dashboard.Scope)
+            or nameof(Dashboard.ProviderSummaries)
+            or nameof(Dashboard.GlobalHeatmap)
+            or nameof(Dashboard.SelectedProviderLimits))
+        {
+            LayoutRevision++;
+        }
+
         if (string.Equals(
                 e.PropertyName,
                 nameof(Dashboard.ResultSurface),

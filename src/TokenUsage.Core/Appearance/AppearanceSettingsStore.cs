@@ -5,7 +5,7 @@ namespace TokenUsage.Core.Appearance;
 
 public sealed class AppearanceSettingsStore
 {
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
     public const string DefaultFileName = "appearance.v1.json";
     public const int MaxDocumentBytes = 16 * 1024;
     public const int MaxJsonDepth = 8;
@@ -55,12 +55,13 @@ public sealed class AppearanceSettingsStore
             AppearanceSettings settings = version switch
             {
                 0 => ReadLegacyDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionOneDocument(parsed.RootElement),
+                1 => ReadVersionOneDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionTwoDocument(parsed.RootElement),
                 _ => throw new AppearanceDocumentFormatException(),
             };
             return new AppearanceSettingsLoadResult.Loaded(
                 settings,
-                requiresMigration: version == 0);
+                requiresMigration: version < SchemaVersion);
         }
         catch (Exception exception) when (IsInvalidDocument(exception))
         {
@@ -97,7 +98,8 @@ public sealed class AppearanceSettingsStore
             _ = version switch
             {
                 0 => ReadLegacyDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionOneDocument(parsed.RootElement),
+                1 => ReadVersionOneDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionTwoDocument(parsed.RootElement),
                 > SchemaVersion => null,
                 _ => throw new AppearanceDocumentFormatException(),
             };
@@ -116,7 +118,16 @@ public sealed class AppearanceSettingsStore
         ReadRequiredEnum<AppDensityMode>(root, "density"),
         ReadRequiredBoolean(root, "increaseTransparency"),
         ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
-        ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"));
+        ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
+        DashboardVisualizationMode.List);
+
+    private static AppearanceSettings ReadVersionTwoDocument(JsonElement root) => new(
+        ReadRequiredEnum<AppThemeMode>(root, "theme"),
+        ReadRequiredEnum<AppDensityMode>(root, "density"),
+        ReadRequiredBoolean(root, "increaseTransparency"),
+        ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
+        ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
+        ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"));
 
     private static AppearanceSettings ReadLegacyDocument(JsonElement root)
     {
@@ -127,7 +138,8 @@ public sealed class AppearanceSettingsStore
             ReadOptionalEnum(root, "density", defaults.Density),
             ReadOptionalBoolean(root, "increaseTransparency", defaults.IncreaseTransparency),
             ReadOptionalEnum(root, "meterStyle", defaults.UsageDisplay),
-            ReadOptionalEnum(root, "resetDisplayMode", defaults.ResetTimeDisplay));
+            ReadOptionalEnum(root, "resetDisplayMode", defaults.ResetTimeDisplay),
+            DashboardVisualizationMode.List);
     }
 
     private static TEnum ReadRequiredEnum<TEnum>(JsonElement root, string propertyName)
@@ -243,6 +255,9 @@ public sealed class AppearanceSettingsStore
             writer.WriteBoolean("increaseTransparency", settings.IncreaseTransparency);
             writer.WriteString("usageDisplay", ToStorageValue(settings.UsageDisplay));
             writer.WriteString("resetTimeDisplay", ToStorageValue(settings.ResetTimeDisplay));
+            writer.WriteString(
+                "dashboardVisualization",
+                ToStorageValue(settings.DashboardVisualization));
             writer.WriteEndObject();
         }
 

@@ -27,6 +27,7 @@ public sealed partial class ProviderColorSwatch : UserControl
         InitializeComponent();
         ActualThemeChanged += OnActualThemeChanged;
         Loaded += OnLoaded;
+        SizeChanged += OnSizeChanged;
     }
 
     public string? ColorHex
@@ -48,7 +49,19 @@ public sealed partial class ProviderColorSwatch : UserControl
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => UpdateFill();
 
-    private void OnLoaded(object sender, RoutedEventArgs e) => UpdateFill();
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        UpdateCornerRadius();
+        UpdateFill();
+    }
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCornerRadius();
+
+    private void UpdateCornerRadius()
+    {
+        double radius = Math.Min(ActualWidth, ActualHeight) / 2d;
+        Swatch.CornerRadius = new CornerRadius(radius);
+    }
 
     private void UpdateFill()
     {
@@ -59,11 +72,11 @@ public sealed partial class ProviderColorSwatch : UserControl
 
         if (!_accessibilitySettings.HighContrast && !string.IsNullOrWhiteSpace(ColorHex))
         {
-            Swatch.Fill = ProviderColorPalette.CreateGradient(ColorHex);
+            Swatch.Background = ProviderColorPalette.CreateGradient(ColorHex);
             return;
         }
 
-        Swatch.Fill = ProviderId switch
+        Swatch.Background = ProviderId switch
         {
             "antigravity" => AntigravityBrushProxy.Background,
             "claude" => ClaudeBrushProxy.Background,

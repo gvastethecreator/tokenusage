@@ -22,18 +22,19 @@ public sealed partial class AnimatedProgressBar : UserControl
             nameof(TargetValue),
             typeof(double),
             typeof(AnimatedProgressBar),
-            new PropertyMetadata(0d));
+            new PropertyMetadata(0d, OnValueChanged));
 
     public static readonly DependencyProperty RemainingValueProperty =
         DependencyProperty.Register(
             nameof(RemainingValue),
             typeof(double),
             typeof(AnimatedProgressBar),
-            new PropertyMetadata(0d));
+            new PropertyMetadata(0d, OnValueChanged));
 
     public AnimatedProgressBar()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += OnActualThemeChanged;
     }
@@ -95,6 +96,30 @@ public sealed partial class AnimatedProgressBar : UserControl
     {
         _storyboard?.Stop();
         _storyboard = null;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e) => ApplyCurrentValues();
+
+    private static void OnValueChanged(
+        DependencyObject dependencyObject,
+        DependencyPropertyChangedEventArgs args)
+    {
+        _ = args;
+        if (dependencyObject is AnimatedProgressBar progressBar)
+        {
+            progressBar.ApplyCurrentValues();
+        }
+    }
+
+    private void ApplyCurrentValues()
+    {
+        if (FillBar is null)
+        {
+            return;
+        }
+
+        FillBar.Value = SpendDonutGeometry.ClampPercent(TargetValue);
+        UpdateForeground(SpendDonutGeometry.ClampPercent(RemainingValue));
     }
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) =>

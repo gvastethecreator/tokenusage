@@ -3,7 +3,18 @@ namespace TokenUsage.Cli;
 public static class CliApplication
 {
     public const string UsageText =
-        "Usage: tokenusage <limits|usage|report|providers|doctor> [command options]";
+        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor> [command options]";
+
+    public static bool IsHelpRequest(IReadOnlyList<string> arguments) =>
+        arguments.Count == 1
+        && arguments[0] is "help" or "--help" or "-h";
+
+    public static async Task<int> WriteHelpAsync(TextWriter standardOutput)
+    {
+        ArgumentNullException.ThrowIfNull(standardOutput);
+        await standardOutput.WriteLineAsync(UsageText).ConfigureAwait(false);
+        return UsageCommand.SuccessExitCode;
+    }
 
     public static async Task<int> RunAsync(
         IReadOnlyList<string> arguments,
@@ -20,6 +31,11 @@ public static class CliApplication
         ArgumentNullException.ThrowIfNull(clock);
         cancellationToken.ThrowIfCancellationRequested();
 
+        if (IsHelpRequest(arguments))
+        {
+            return await WriteHelpAsync(standardOutput).ConfigureAwait(false);
+        }
+
         if (arguments.Count == 0)
         {
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
@@ -32,6 +48,16 @@ public static class CliApplication
 
         return command switch
         {
+            "refresh" => await RefreshCommand.RunAsync(
+                commandArguments,
+                standardOutput,
+                standardError,
+                token => LocalUsageCliAccess.RefreshAsync(
+                    fullDataDirectory,
+                    clock,
+                    token),
+                clock,
+                cancellationToken).ConfigureAwait(false),
             "usage" => await UsageCommand.RunAsync(
                 commandArguments,
                 standardOutput,
