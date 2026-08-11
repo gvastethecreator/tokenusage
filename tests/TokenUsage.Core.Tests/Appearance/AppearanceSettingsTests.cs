@@ -14,6 +14,7 @@ public sealed class AppearanceSettingsTests
         Assert.False(settings.IncreaseTransparency);
         Assert.Equal(UsageDisplayMode.Remaining, settings.UsageDisplay);
         Assert.Equal(ResetTimeDisplayMode.Relative, settings.ResetTimeDisplay);
+        Assert.Equal(DashboardVisualizationMode.List, settings.DashboardVisualization);
     }
 
     [Fact]
@@ -27,12 +28,15 @@ public sealed class AppearanceSettingsTests
             Create(usageDisplay: (UsageDisplayMode)99)).ParamName);
         Assert.Equal("resetTimeDisplay", Assert.Throws<ArgumentOutOfRangeException>(() =>
             Create(resetTimeDisplay: (ResetTimeDisplayMode)99)).ParamName);
+        Assert.Equal("dashboardVisualization", Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Create(dashboardVisualization: (DashboardVisualizationMode)99)).ParamName);
     }
 
     private static AppearanceSettings Create(
         AppThemeMode theme = AppThemeMode.System,
         AppDensityMode density = AppDensityMode.Regular,
         UsageDisplayMode usageDisplay = UsageDisplayMode.Remaining,
-        ResetTimeDisplayMode resetTimeDisplay = ResetTimeDisplayMode.Relative) =>
-        new(theme, density, false, usageDisplay, resetTimeDisplay);
+        ResetTimeDisplayMode resetTimeDisplay = ResetTimeDisplayMode.Relative,
+        DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List) =>
+        new(theme, density, false, usageDisplay, resetTimeDisplay, dashboardVisualization);
 }

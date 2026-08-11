@@ -5,6 +5,10 @@ using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.Services;
 
+public sealed record LocalUsageDashboardResult(
+    LocalUsageCard Card,
+    IReadOnlyList<DailyUsageRollup> Rollups);
+
 /// <summary>
 /// App adapter: domain local-usage refresh plus UI card projection.
 /// </summary>
@@ -38,22 +42,34 @@ public sealed class LocalUsageCoordinator
     public async Task<LocalUsageCard> RefreshAsync(
         Func<string, string> getString,
         CancellationToken cancellationToken = default)
+        => (await RefreshDashboardAsync(getString, cancellationToken).ConfigureAwait(false)).Card;
+
+    public async Task<LocalUsageDashboardResult> RefreshDashboardAsync(
+        Func<string, string> getString,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(getString);
         LocalUsageRefreshResult result = await _refresh
             .RefreshAsync(cancellationToken)
             .ConfigureAwait(false);
-        return LocalUsageCardProjector.Create(
-            result.Rollups,
-            getString,
-            result.SourceKind,
-            result.OverallStatus,
-            hasMultipleRealSources: result.HasMultipleRealSources,
-            today: result.ToInclusive,
-            sourceDiagnostics: result.SourceDiagnostics);
+        return new LocalUsageDashboardResult(
+            LocalUsageCardProjector.Create(
+                result.Rollups,
+                getString,
+                result.SourceKind,
+                result.OverallStatus,
+                hasMultipleRealSources: result.HasMultipleRealSources,
+                today: result.ToInclusive,
+                sourceDiagnostics: result.SourceDiagnostics),
+            result.Rollups);
     }
 
     public async Task<LocalUsageCard?> ReadCachedAsync(
+        Func<string, string> getString,
+        CancellationToken cancellationToken = default)
+        => (await ReadCachedDashboardAsync(getString, cancellationToken).ConfigureAwait(false))?.Card;
+
+    public async Task<LocalUsageDashboardResult?> ReadCachedDashboardAsync(
         Func<string, string> getString,
         CancellationToken cancellationToken = default)
     {
@@ -63,14 +79,16 @@ public sealed class LocalUsageCoordinator
             .ConfigureAwait(false);
         return result is null
             ? null
-            : LocalUsageCardProjector.Create(
-                result.Rollups,
-                getString,
-                result.SourceKind,
-                result.OverallStatus,
-                hasMultipleRealSources: result.HasMultipleRealSources,
-                today: result.ToInclusive,
-                sourceDiagnostics: result.SourceDiagnostics);
+            : new LocalUsageDashboardResult(
+                LocalUsageCardProjector.Create(
+                    result.Rollups,
+                    getString,
+                    result.SourceKind,
+                    result.OverallStatus,
+                    hasMultipleRealSources: result.HasMultipleRealSources,
+                    today: result.ToInclusive,
+                    sourceDiagnostics: result.SourceDiagnostics),
+                result.Rollups);
     }
 
     public Task<LocalUsageRefreshResult> RefreshDomainAsync(

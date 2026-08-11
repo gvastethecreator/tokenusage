@@ -97,7 +97,8 @@ public sealed record WindowsProviderCompositionOptions(
     string? TimeZoneId = null,
     ICodexQuotaClientFactory? CodexClientFactory = null,
     VercelGatewayRefreshCoordinator? VercelCoordinator = null,
-    bool EnableVercelGateway = false);
+    bool EnableVercelGateway = false,
+    bool EnableClaudeLocalUsage = false);
 
 public sealed class WindowsProviderComposition
 {
@@ -131,6 +132,7 @@ public static class WindowsProviderCatalog
                 localUsageAgentId: "claude",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-claude",
+                isEnabledByDefault: false,
                 localUsageFactory: timeZoneId => new ClaudeUsageEventSource(timeZoneId)),
             new(
                 "codex",
@@ -151,7 +153,12 @@ public static class WindowsProviderCatalog
                         context.CodexClientFactory).CreateRegistration(),
                     LocalUsageSource: new CodexUsageEventSource(
                         context.TimeZoneId,
-                        clientFactory: context.CodexClientFactory)),
+                        clientFactory: context.CodexClientFactory,
+                        checkpointPath: Path.Combine(
+                            context.DataDirectory,
+                            "scanner",
+                            "codex-usage.v1.json"),
+                        clock: context.Clock)),
                 localUsageFactory: timeZoneId => new CodexUsageEventSource(timeZoneId)),
             new(
                 "grok",
@@ -222,7 +229,9 @@ public static class WindowsProviderCatalog
             vercelHttpClient,
             options.VercelCoordinator);
         ProviderBinding[] bindings = Catalog
-            .Where(entry => entry.IsEnabledByDefault || options.EnableVercelGateway)
+            .Where(entry => entry.IsEnabledByDefault
+                || options.EnableClaudeLocalUsage && entry.Id.Value == "claude"
+                || options.EnableVercelGateway && entry.Id.Value == "vercel-ai-gateway")
             .Select(entry => entry.Compose(context))
             .ToArray();
         ProviderRefreshRegistration[] registrations = bindings

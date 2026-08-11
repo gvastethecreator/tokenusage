@@ -57,7 +57,7 @@ public sealed class LocalProviderDiagnosticsAccessTests
             ProviderDiagnosticsSnapshot result = await LocalProviderDiagnosticsAccess.ReadAsync(
                 dataRoot,
                 factory,
-                providerId => providerId is "claude" or "grok",
+                providerId => providerId == "grok",
                 CancellationToken.None);
 
             Assert.Equal(0, factory.CreateCount);
@@ -67,9 +67,6 @@ public sealed class LocalProviderDiagnosticsAccessTests
             Assert.Equal(
                 ProviderDataStatus.Present,
                 result.Providers.Single(provider => provider.Id == "grok").Data);
-            Assert.Equal(
-                ProviderDataStatus.Absent,
-                result.Providers.Single(provider => provider.Id == "claude").Data);
             Assert.Equal(
                 ProviderDetectionStatus.Missing,
                 result.Providers.Single(provider => provider.Id == "opencode").Detection);

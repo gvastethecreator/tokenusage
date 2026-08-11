@@ -1,10 +1,17 @@
 using System.ComponentModel;
+using System.Globalization;
 
 using TokenUsage.App.ViewModels.Sample;
 
 namespace TokenUsage.App.ViewModels.Dashboard;
 
 // Live + sample dashboard projection models (neutral names).
+
+public enum DashboardScopeMode
+{
+    Global,
+    Provider,
+}
 
 public sealed record SpendSlice(
     string ProviderId,
@@ -19,16 +26,60 @@ public sealed record SpendSlice(
         : CompactAmountText;
 }
 
+public sealed record UsageHeatmapTooltipRow(string Label, string Value);
+
+public sealed record UsageHeatmapTooltip(
+    string Title,
+    IReadOnlyList<UsageHeatmapTooltipRow> Rows);
+
 public sealed record UsageHeatmapCell(
     DateOnly Date,
     int Level,
     long TotalTokens,
     int EventCount,
     string AutomationId,
-    string AccessibleName)
+    string AccessibleName,
+    decimal? TotalCostUsd = null,
+    long CachedInputTokens = 0,
+    long UncachedInputTokens = 0,
+    long OutputTokens = 0,
+    long ReasoningTokens = 0,
+    string TooltipText = "",
+    IReadOnlyList<string>? ProviderIds = null,
+    UsageHeatmapTooltip? Tooltip = null)
 {
     public bool HasActivity => Level > 0;
+
+    public IReadOnlyList<string> ActiveProviderIds => ProviderIds ?? [];
 }
+
+public sealed record DashboardProviderSummary(
+    string ProviderId,
+    string Name,
+    decimal CostUsd,
+    long TotalTokens,
+    double SharePercent,
+    string CostText,
+    string TokensText,
+    string DetailText,
+    string AccessibleName,
+    string ColorHex,
+    string AutomationId,
+    double CompositionWidth,
+    bool HasData = true,
+    bool HasCostData = true,
+    bool IsPartial = false,
+    bool HasUnpricedData = false);
+
+public sealed record DashboardProviderOption(
+    string ProviderId,
+    string Name,
+    bool IsSelected = false);
+
+public sealed record DashboardActivitySummary(
+    string Label,
+    string Value,
+    string Detail);
 
 public sealed record UsageHeatmapModel(
     string Title,
@@ -40,6 +91,23 @@ public sealed record UsageHeatmapModel(
     public static UsageHeatmapModel Empty { get; } = new("", "", "", "", []);
 
     public bool HasData => Cells.Count > 0;
+
+    public string DateRangeText
+    {
+        get
+        {
+            if (Cells.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            DateOnly first = Cells[0].Date;
+            DateOnly last = Cells[^1].Date;
+            return first.Year == last.Year
+                ? $"{first.ToString("d MMM", CultureInfo.CurrentCulture)} – {last.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}"
+                : $"{first.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {last.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
+        }
+    }
 }
 
 public sealed record QuotaWindow(
@@ -66,6 +134,10 @@ public sealed record QuotaWindow(
 
     public string PaceAutomationName => $"{Title}: {PaceText}";
 
+    public string CompactPaceText => string.IsNullOrWhiteSpace(PaceText)
+        ? string.Empty
+        : PaceText.Split('·', 2, StringSplitOptions.TrimEntries)[0];
+
     public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
 
     public string DisplayAutomationName => HasHighlight
@@ -73,6 +145,12 @@ public sealed record QuotaWindow(
         : AutomationName;
 
     public double ColorRemainingPercent => QuotaRemainingPercent ?? RemainingPercent;
+
+    public string IconGlyph =>
+        LayoutMetricId.Contains("bengalfox", StringComparison.OrdinalIgnoreCase)
+        || Title.Contains("Spark", StringComparison.OrdinalIgnoreCase)
+            ? "\uE945"
+            : "\uE787";
 }
 
 public sealed record DashboardMetric(
@@ -237,6 +315,8 @@ public sealed record ProviderCard(
 
     public string SecondaryMetricsAutomationId => $"{AutomationId}.SecondaryMetrics";
 
+    public string NoticeAutomationId => $"{AutomationId}.Notice";
+
     public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
 
     public string CardAutomationName => HasHighlight
@@ -274,11 +354,33 @@ public sealed record LocalUsageCard(
 {
     public bool HasData => Metrics.Count > 0;
 
+    public DashboardMetric ReportedCostMetric => FindMetric(
+        "UsageProductCard.ReportedCost");
+
+    public DashboardMetric EstimatedCostMetric => FindMetric(
+        "UsageProductCard.EstimatedCost");
+
+    public DashboardMetric UnpricedUsageMetric => FindMetric(
+        "UsageProductCard.UnpricedUsage");
+
+    public DashboardMetric TotalTokensMetric => FindMetric(
+        "UsageProductCard.TotalTokens");
+
+    public DashboardMetric CostCoverageMetric => FindMetric(
+        "UsageProductCard.CostCoverage");
+
+    public DashboardMetric CostPerMillionMetric => FindMetric(
+        "UsageProductCard.CostPerMillion");
+
     public UsageHeatmapModel Heatmap => ActivityHeatmap ?? UsageHeatmapModel.Empty;
 
     public bool HasUsageDetails => SpendBreakdown.HasContent || Heatmap.HasData;
 
     public string ExpandedNoticeText => IsNoticeImportant ? string.Empty : NoticeText;
+
+    private DashboardMetric FindMetric(string automationId) => Metrics.FirstOrDefault(metric =>
+        string.Equals(metric.AutomationId, automationId, StringComparison.Ordinal))
+        ?? new DashboardMetric(string.Empty, string.Empty, automationId);
 }
 
 public sealed record ProviderCapabilityRow(

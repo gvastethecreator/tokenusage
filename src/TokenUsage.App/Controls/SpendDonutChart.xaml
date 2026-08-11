@@ -29,15 +29,17 @@
         <Canvas
             x:Name="ArcCanvas"
             AutomationProperties.AccessibilityView="Raw"
-            IsHitTestVisible="False" />
+            IsHitTestVisible="True" />
         <TextBlock
             AutomationProperties.AccessibilityView="Raw"
             HorizontalAlignment="Center"
+            FontSize="{x:Bind CenterFontSize, Mode=OneWay}"
             IsTextScaleFactorEnabled="False"
-            MaxWidth="60"
+            MaxWidth="{x:Bind CenterMaxWidth, Mode=OneWay}"
             Style="{StaticResource BodyStrongTextBlockStyle}"
             Text="{x:Bind CenterValue, Mode=OneWay}"
             TextAlignment="Center"
+            TextWrapping="WrapWholeWords"
             VerticalAlignment="Center" />
     </Grid>
 </UserControl>

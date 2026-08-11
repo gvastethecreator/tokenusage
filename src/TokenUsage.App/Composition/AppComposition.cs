@@ -5,6 +5,7 @@ using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
+using TokenUsage.Core.Usage;
 using TokenUsage.Providers.VercelAiGateway;
 using TokenUsage.Runtime.Windows.Providers;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
@@ -35,11 +36,14 @@ public static class AppComposition
         options ??= new AppCompositionOptions();
 
         string sampleCacheDirectory = Path.Combine(localFolderPath, "cache", "sample");
-        string usageDatabasePath = Path.Combine(localFolderPath, "scanner", "usage.v1.db");
+        string usageDatabasePath = GetUsageDatabasePath(localFolderPath);
         string dashboardLayoutPath = options.DashboardLayoutPath
             ?? Path.Combine(localFolderPath, DashboardLayoutStore.DefaultFileName);
         string appearanceSettingsPath = options.AppearanceSettingsPath
             ?? Path.Combine(localFolderPath, AppearanceSettingsStore.DefaultFileName);
+        var quotaResetHistory = new QuotaResetHistoryStore(
+            GetQuotaResetHistoryPath(localFolderPath),
+            resolvedClock);
 
         WindowsProviderComposition providers = WindowsProviderCatalog.CreateComposition(
             localFolderPath,
@@ -63,7 +67,23 @@ public static class AppComposition
                 providers.LocalUsageSources,
                 resolvedClock),
             new DashboardLayoutStore(dashboardLayoutPath, resolvedClock),
-            new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock));
+            new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock),
+            quotaResetHistory);
+    }
+
+    public static string GetUsageDatabasePath(string localFolderPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localFolderPath);
+        return Path.Combine(Path.GetFullPath(localFolderPath), "scanner", "usage.v1.db");
+    }
+
+    public static string GetQuotaResetHistoryPath(string localFolderPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localFolderPath);
+        return Path.Combine(
+            Path.GetFullPath(localFolderPath),
+            "history",
+            QuotaResetHistoryStore.DefaultFileName);
     }
 
     public static VercelGatewayRefreshCoordinator CreateVercelCoordinator(

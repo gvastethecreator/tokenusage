@@ -102,7 +102,7 @@ $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.e
 $msbuild = $null
 
 if (Test-Path $vswhere) {
-    $vsPath = & $vswhere -latest -requires Microsoft.Component.MSBuild -property installationPath 2>$null
+    $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath 2>$null
     if ($vsPath) {
         $candidate = Join-Path $vsPath "MSBuild\Current\Bin\MSBuild.exe"
         if (Test-Path $candidate) { $msbuild = $candidate }

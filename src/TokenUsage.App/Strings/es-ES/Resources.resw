@@ -19,8 +19,44 @@
   <data name="TrayMenuExit" xml:space="preserve"><value>Salir</value></data>
   <data name="StatusIdle" xml:space="preserve"><value>Sin datos</value></data>
   <data name="StatusLoading" xml:space="preserve"><value>Actualizando…</value></data>
-  <data name="ProviderHeader.Text" xml:space="preserve"><value>Proveedores</value></data>
+  <data name="ProviderHeader.Text" xml:space="preserve"><value>TokenUsage</value></data>
+  <data name="UsageReportButtonLabel.Text" xml:space="preserve"><value>Informe</value></data>
+  <data name="CompactGlobalCostLabel.Text" xml:space="preserve"><value>Costo observado</value></data>
+  <data name="CompactGlobalTokensLabel.Text" xml:space="preserve"><value>Tokens</value></data>
+  <data name="CompactListButton.Content" xml:space="preserve"><value>Lista</value></data>
+  <data name="CompactDonutButton.Content" xml:space="preserve"><value>Circular</value></data>
+  <data name="CompactHeatmapButton.Content" xml:space="preserve"><value>Mapa</value></data>
+  <data name="CompactGlobalBackButton.Content" xml:space="preserve"><value>Global</value></data>
+  <data name="CompactProviderCostLabel.Text" xml:space="preserve"><value>Costo</value></data>
+  <data name="CompactProviderTokensLabel.Text" xml:space="preserve"><value>Tokens</value></data>
+  <data name="CompactProviderLimitsTitle.Text" xml:space="preserve"><value>Límites oficiales</value></data>
+  <data name="CompactProviderTrendTitle.Text" xml:space="preserve"><value>Tokens procesados por día</value></data>
+  <data name="CompactActivityTitle.Text" xml:space="preserve"><value>ACTIVIDAD GLOBAL</value></data>
+  <data name="CompactActivityToday" xml:space="preserve"><value>Hoy</value></data>
+  <data name="CompactActivity7Days" xml:space="preserve"><value>7 días</value></data>
+  <data name="CompactActivity30Days" xml:space="preserve"><value>30 días</value></data>
+  <data name="CompactActivityTokens" xml:space="preserve"><value>tokens</value></data>
+  <data name="CompactPeriod30Days" xml:space="preserve"><value>30 días</value></data>
+  <data name="CompactGlobalFooterFormat" xml:space="preserve"><value>Global · {0} · {1} proveedores</value></data>
+  <data name="CompactWeekdayMonday.Text" xml:space="preserve"><value>L</value></data>
+  <data name="CompactWeekdayTuesday.Text" xml:space="preserve"><value>M</value></data>
+  <data name="CompactWeekdayWednesday.Text" xml:space="preserve"><value>X</value></data>
+  <data name="CompactWeekdayThursday.Text" xml:space="preserve"><value>J</value></data>
+  <data name="CompactWeekdayFriday.Text" xml:space="preserve"><value>V</value></data>
+  <data name="CompactWeekdaySaturday.Text" xml:space="preserve"><value>S</value></data>
+  <data name="CompactWeekdaySunday.Text" xml:space="preserve"><value>D</value></data>
+  <data name="CompactGlobalLimitsTitle.Text" xml:space="preserve"><value>LÍMITES DE CODEX</value></data>
+  <data name="CompactGlobalSummaryLabel.Text" xml:space="preserve"><value>Costo observado · 30 días</value></data>
+  <data name="CompactHeatmapLegendLow.Text" xml:space="preserve"><value>Muy bajo</value></data>
+  <data name="CompactHeatmapLegendHigh.Text" xml:space="preserve"><value>Alto</value></data>
+  <data name="CompactBackGlobalLabel.Text" xml:space="preserve"><value>Global</value></data>
+  <data name="CompactProviderCardLimitsTitle.Text" xml:space="preserve"><value>Límites oficiales</value></data>
   <data name="HeaderRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Actualizar</value></data>
+  <data name="HeaderOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Opciones</value></data>
+  <data name="HeaderOptionsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Opciones</value></data>
+  <data name="HeaderVisualizationToDonut" xml:space="preserve"><value>Cambiar a vista circular</value></data>
+  <data name="HeaderVisualizationToHeatmap" xml:space="preserve"><value>Cambiar a vista calendario</value></data>
+  <data name="HeaderVisualizationToList" xml:space="preserve"><value>Cambiar a vista de lista</value></data>
   <data name="OptionsHeader.Text" xml:space="preserve"><value>Opciones</value></data>
   <data name="OptionsHomeDescription.Text" xml:space="preserve"><value>Elige qué quieres cambiar.</value></data>
   <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
@@ -142,6 +178,7 @@
   <data name="CodexWindowSecondary" xml:space="preserve"><value>Límite secundario</value></data>
   <data name="CodexWindowAdditionalPrimaryFormat" xml:space="preserve"><value>Límite adicional {0}</value></data>
   <data name="CodexWindowAdditionalSecondaryFormat" xml:space="preserve"><value>Límite adicional {0}</value></data>
+  <data name="CodexWindowSpark" xml:space="preserve"><value>Codex Spark</value></data>
   <data name="CodexResetUnknown" xml:space="preserve"><value>Reinicio no disponible</value></data>
   <data name="CodexResetDue" xml:space="preserve"><value>Reinicio pendiente</value></data>
   <data name="CodexStateCacheRefreshing" xml:space="preserve"><value>Cuota de Codex · caché, actualizando…</value></data>
@@ -171,7 +208,7 @@
   <data name="CodexUnsupportedBody" xml:space="preserve"><value>La cuenta activa de Codex no informa ventanas de cuota de ChatGPT.</value></data>
   <data name="CodexRetry" xml:space="preserve"><value>Reintentar cuota de Codex</value></data>
   <data name="CodexPartialUsageNotice" xml:space="preserve"><value>El uso diario de tokens está incompleto.</value></data>
-  <data name="CodexCapabilityUsage" xml:space="preserve"><value>Cuota y uso local</value></data>
+  <data name="CodexCapabilityUsage" xml:space="preserve"><value>Límites y uso oficial</value></data>
   <data name="CodexUsageToday" xml:space="preserve"><value>Hoy</value></data>
   <data name="CodexUsageYesterday" xml:space="preserve"><value>Ayer</value></data>
   <data name="CodexUsageLast7Days" xml:space="preserve"><value>Últimos 7 días</value></data>
@@ -193,7 +230,7 @@
   <data name="LocalUsageTitle" xml:space="preserve"><value>Uso local</value></data>
   <data name="LocalUsageSourceSynthetic" xml:space="preserve"><value>Fixture sintético · SQLite local</value></data>
   <data name="LocalUsageSourceClaude" xml:space="preserve"><value>Claude Code · logs locales</value></data>
-  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Claude + Codex + Grok Build + OpenCode + Antigravity · datos locales</value></data>
+  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Codex + Grok Build + OpenCode + Antigravity · datos locales</value></data>
   <data name="LocalUsagePeriod30Days" xml:space="preserve"><value>Últimos 30 días</value></data>
   <data name="LocalUsageNotice" xml:space="preserve"><value>Datos locales de prueba</value></data>
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Solo sesiones guardadas en este equipo. El coste estimado usa precios API y no representa el cobro de tu plan.</value></data>
@@ -221,12 +258,20 @@
   <data name="LocalUsagePeriodAccessibleFormat" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
   <data name="LocalUsagePeriodEmptyAccessibleFormat" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="LocalUsageBreakdownTitle" xml:space="preserve"><value>Desglose de 30 días</value></data>
-  <data name="UsageHeatmapTitle" xml:space="preserve"><value>Actividad diaria</value></data>
+  <data name="UsageHeatmapTitle" xml:space="preserve"><value>Mapa de actividad</value></data>
   <data name="UsageHeatmapSummaryFormat" xml:space="preserve"><value>{0} días activos · últimos {1}</value></data>
   <data name="UsageHeatmapEmptyDayFormat" xml:space="preserve"><value>{0}: sin actividad</value></data>
   <data name="UsageHeatmapDayFormat" xml:space="preserve"><value>{0}: {1} tokens en {2} eventos; {3}</value></data>
+  <data name="UsageHeatmapDayDetailFormat" xml:space="preserve"><value>{0}: {1} tokens · {2} · {3} eventos · caché {4} · entrada sin caché {5} · salida {6}</value></data>
   <data name="UsageHeatmapCostFormat" xml:space="preserve"><value>{0:0.00} US$</value></data>
   <data name="UsageHeatmapCostUnavailable" xml:space="preserve"><value>gasto no disponible</value></data>
+  <data name="UsageHeatmapTooltipTokensLabel" xml:space="preserve"><value>Tokens</value></data>
+  <data name="UsageHeatmapTooltipCostLabel" xml:space="preserve"><value>Costo</value></data>
+  <data name="UsageHeatmapTooltipEventsLabel" xml:space="preserve"><value>Eventos</value></data>
+  <data name="UsageHeatmapTooltipCachedInputLabel" xml:space="preserve"><value>Entrada en caché</value></data>
+  <data name="UsageHeatmapTooltipUncachedInputLabel" xml:space="preserve"><value>Entrada sin caché</value></data>
+  <data name="UsageHeatmapTooltipOutputLabel" xml:space="preserve"><value>Salida</value></data>
+  <data name="UsageHeatmapTooltipReasoningLabel" xml:space="preserve"><value>Razonamiento</value></data>
   <data name="LocalUsageBreakdownSummaryFormat" xml:space="preserve"><value>{0} agentes · {1} modelos</value></data>
   <data name="LocalUsageBreakdownAccessibleFormat" xml:space="preserve"><value>Distribución de gasto informado y estimado: {0}. {1}</value></data>
   <data name="LocalUsageModelReportedFormat" xml:space="preserve"><value>Informado {0}</value></data>
@@ -283,7 +328,7 @@
   <data name="LanguageRestartError.Message" xml:space="preserve"><value>El idioma no cambió. Cierra y vuelve a abrir TokenUsage, e inténtalo otra vez.</value></data>
   <data name="SampleUsdFormat" xml:space="preserve"><value>{0:N2} US$</value></data>
   <data name="SampleUsdCompactFormat" xml:space="preserve"><value>{0:N2}$</value></data>
-  <data name="LocalUsageUsdCompactFormat" xml:space="preserve"><value>{0:N2}$</value></data>
+  <data name="LocalUsageUsdCompactFormat" xml:space="preserve"><value>{0:N0} $</value></data>
   <data name="SampleCompactThousandsFormat" xml:space="preserve"><value>{0:0.##} mil</value></data>
   <data name="SampleCompactMillionsFormat" xml:space="preserve"><value>{0:0.##} M</value></data>
   <data name="SampleTokenThousandsFormat" xml:space="preserve"><value>{0:0.##} mil tokens</value></data>
@@ -423,6 +468,11 @@
   <data name="AppearanceUsageUsed" xml:space="preserve"><value>Usado</value></data>
   <data name="AppearanceResetRelative" xml:space="preserve"><value>Relativa</value></data>
   <data name="AppearanceResetExact" xml:space="preserve"><value>Exacta</value></data>
+  <data name="AppearanceVisualizationLabel.Text" xml:space="preserve"><value>Vista global</value></data>
+  <data name="AppearanceVisualizationSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vista global</value></data>
+  <data name="AppearanceVisualizationList" xml:space="preserve"><value>Lista</value></data>
+  <data name="AppearanceVisualizationDonut" xml:space="preserve"><value>Circular</value></data>
+  <data name="AppearanceVisualizationHeatmap" xml:space="preserve"><value>Mapa</value></data>
   <data name="AppearanceRecoveredFormat" xml:space="preserve"><value>La configuración de apariencia dañada se movió a {0}. Se cargaron los valores predeterminados.</value></data>
   <data name="AppearanceNewerVersionFormat" xml:space="preserve"><value>El formato de apariencia {0} es más nuevo. Actualiza TokenUsage antes de cambiarlo.</value></data>
   <data name="AppearanceUnavailable" xml:space="preserve"><value>No se puede leer la configuración de apariencia. Los cambios están desactivados.</value></data>
@@ -431,4 +481,128 @@
   <data name="AppearanceUsedPercentFormat" xml:space="preserve"><value>{0:0.#}% usado</value></data>
   <data name="AppearanceResetExactFormat" xml:space="preserve"><value>Se reinicia el {0}</value></data>
   <data name="AppearanceResetExactUnavailable" xml:space="preserve"><value>Hora exacta no disponible</value></data>
+  <data name="UsageReportButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Abrir informe de uso</value></data>
+  <data name="UsageReportButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Abrir informe de uso</value></data>
+  <data name="UsageReportWindowTitle" xml:space="preserve"><value>Informe de uso de TokenUsage</value></data>
+  <data name="UsageReportTitle.Text" xml:space="preserve"><value>Informe de uso</value></data>
+  <data name="UsageReport7DaysButton.Content" xml:space="preserve"><value>7 días</value></data>
+  <data name="UsageReport30DaysButton.Content" xml:space="preserve"><value>30 días</value></data>
+  <data name="UsageReport90DaysButton.Content" xml:space="preserve"><value>90 días</value></data>
+  <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Ciclo</value></data>
+  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Informe entre reinicios de Codex</value></data>
+  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Usar un ciclo real observado de reinicio de Codex</value></data>
+  <data name="UsageReportResetCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Historial de reinicios de Codex</value></data>
+  <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Ciclo de reinicio anterior</value></data>
+  <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mostrar el ciclo de reinicio observado anterior</value></data>
+  <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Ciclo de reinicio siguiente</value></data>
+  <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mostrar el siguiente ciclo de reinicio observado</value></data>
+  <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>Todavía no se observó un ciclo de reinicio de Codex.</value></data>
+  <data name="UsageReportResetCycleDailyBoundaryNote" xml:space="preserve"><value>El uso se guarda por día, por lo que la actividad de la fecha del reinicio no se puede dividir por hora.</value></data>
+  <data name="UsageReportResetCycleCurrentFormat" xml:space="preserve"><value>{0} · actual</value></data>
+  <data name="UsageReportResetCyclePreviousFormat" xml:space="preserve"><value>{0} · desde {1}</value></data>
+  <data name="UsageReportResetCycleNow" xml:space="preserve"><value>ahora</value></data>
+  <data name="UsageReportResetCycleEarly" xml:space="preserve"><value>reinicio anticipado detectado</value></data>
+  <data name="UsageReportResetCycleScheduled" xml:space="preserve"><value>reinicio programado</value></data>
+  <data name="UsageReportResetCycleObserved" xml:space="preserve"><value>reinicio detectado al volver a 100% restante</value></data>
+  <data name="UsageReportResetCycleActive" xml:space="preserve"><value>ciclo activo</value></data>
+  <data name="UsageReportResetCycleRangeFormat" xml:space="preserve"><value>{0} – {1} · {2} · {3}</value></data>
+  <data name="UsageReportResetCycleDaysFormat" xml:space="preserve"><value>{0:0.#} días</value></data>
+  <data name="UsageReportResetCycleHoursFormat" xml:space="preserve"><value>{0:0.#} horas</value></data>
+  <data name="UsageReportResetCountOneFormat" xml:space="preserve"><value>{0:N0} reinicio</value></data>
+  <data name="UsageReportResetCountManyFormat" xml:space="preserve"><value>{0:N0} reinicios</value></data>
+  <data name="UsageReportResetCountHelpText" xml:space="preserve"><value>Transiciones observadas de los límites oficiales a 100% restante dentro de este período. Incluye reinicios programados y anticipados; los refrescos repetidos en 100% cuentan una vez.</value></data>
+  <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Actualizar informe de uso</value></data>
+  <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Actualizar datos reales</value></data>
+  <data name="UsageReportEmptyTitle.Text" xml:space="preserve"><value>Todavía no hay uso en este período</value></data>
+  <data name="UsageReportEmptyBody.Text" xml:space="preserve"><value>Actualiza para leer Codex, Grok Build, Antigravity y OpenCode desde sus fuentes locales.</value></data>
+  <data name="UsageReportEmptyRefreshButton.Content" xml:space="preserve"><value>Actualizar datos</value></data>
+  <data name="UsageReportCostButton.Content" xml:space="preserve"><value>Costo</value></data>
+  <data name="UsageReportTokensButton.Content" xml:space="preserve"><value>Tokens</value></data>
+  <data name="UsageReportGlobalButton.Content" xml:space="preserve"><value>Global</value></data>
+  <data name="UsageReportProviderButton.Content" xml:space="preserve"><value>Proveedor</value></data>
+  <data name="UsageReportAbsoluteButton.Content" xml:space="preserve"><value>Absoluto</value></data>
+  <data name="UsageReportShareButton.Content" xml:space="preserve"><value>Participación</value></data>
+  <data name="UsageReportSourceButton.Content" xml:space="preserve"><value>Fuentes</value></data>
+  <data name="UsageReportLimitsTitle.Text" xml:space="preserve"><value>Límites oficiales</value></data>
+  <data name="UsageReportSourceColumn.Text" xml:space="preserve"><value>Fuente</value></data>
+  <data name="UsageReportReportedColumn.Text" xml:space="preserve"><value>Informado</value></data>
+  <data name="UsageReportEstimatedColumn.Text" xml:space="preserve"><value>Estimado</value></data>
+  <data name="UsageReportDailyShareTitle" xml:space="preserve"><value>Participación diaria</value></data>
+  <data name="UsageReportGlobalScope" xml:space="preserve"><value>Global</value></data>
+  <data name="UsageReportBreakdownTitle.Text" xml:space="preserve"><value>Desglose</value></data>
+  <data name="UsageReportModelButton.Content" xml:space="preserve"><value>Modelo</value></data>
+  <data name="UsageReportDayButton.Content" xml:space="preserve"><value>Día</value></data>
+  <data name="UsageReportModelColumn.Text" xml:space="preserve"><value>Modelo</value></data>
+  <data name="UsageReportCostColumn.Text" xml:space="preserve"><value>Costo</value></data>
+  <data name="UsageReportShareColumn.Text" xml:space="preserve"><value>Parte</value></data>
+  <data name="UsageReportTokensColumn.Text" xml:space="preserve"><value>Tokens</value></data>
+  <data name="UsageReportCoverageColumn.Text" xml:space="preserve"><value>Cobertura</value></data>
+  <data name="UsageReportDayColumn.Text" xml:space="preserve"><value>Día</value></data>
+  <data name="UsageReportEventsColumn.Text" xml:space="preserve"><value>Eventos</value></data>
+  <data name="UsageReportQualityTitle.Text" xml:space="preserve"><value>Calidad del costo</value></data>
+  <data name="UsageTrendEmpty.Text" xml:space="preserve"><value>Sin actividad diaria</value></data>
+  <data name="UsageReportPeriodFormat" xml:space="preserve"><value>Días calendario · {0} a {1}</value></data>
+  <data name="UsageReportTotalCostLabel" xml:space="preserve"><value>COSTO OBSERVADO</value></data>
+  <data name="UsageReportProcessedTokensLabel" xml:space="preserve"><value>Tokens procesados</value></data>
+  <data name="UsageReportCostBasisHint" xml:space="preserve"><value>Costo informado más estimación de catálogo. No es una factura.</value></data>
+  <data name="UsageReportTokenEventFormat" xml:space="preserve"><value>Entrada, caché, salida y razonamiento en {0} eventos.</value></data>
+  <data name="UsageReportDailyCostTitle" xml:space="preserve"><value>Costo diario</value></data>
+  <data name="UsageReportDailyTokensTitle" xml:space="preserve"><value>Tokens procesados por día</value></data>
+  <data name="UsageReportChartAutomationName" xml:space="preserve"><value>Gráfico diario de uso por proveedor</value></data>
+  <data name="UsageReportChartTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="UsageReportProviderCostDetailFormat" xml:space="preserve"><value>{0} del costo · {1} tokens</value></data>
+  <data name="UsageReportProviderTokenDetailFormat" xml:space="preserve"><value>{0} de los tokens · {1}</value></data>
+  <data name="UsageReportActiveDayAverageFormat" xml:space="preserve"><value>{0} por día activo</value></data>
+  <data name="UsageReportCachedInputLabel" xml:space="preserve"><value>Entrada en caché</value></data>
+  <data name="UsageReportCacheStripCachedInputLabel.Text" xml:space="preserve"><value>ENTRADA EN CACHÉ</value></data>
+  <data name="UsageReportCachedShareFormat" xml:space="preserve"><value>{0} de la entrada observada</value></data>
+  <data name="UsageReportUncachedInputLabel" xml:space="preserve"><value>Entrada sin caché</value></data>
+  <data name="UsageReportCacheStripUncachedInputLabel.Text" xml:space="preserve"><value>ENTRADA SIN CACHÉ</value></data>
+  <data name="UsageReportCacheWriteFormat" xml:space="preserve"><value>{0} escrituras de caché</value></data>
+  <data name="UsageReportOutputLabel" xml:space="preserve"><value>Salida</value></data>
+  <data name="UsageReportCacheStripOutputLabel.Text" xml:space="preserve"><value>SALIDA</value></data>
+  <data name="UsageReportReasoningFormat" xml:space="preserve"><value>incluye {0} de razonamiento</value></data>
+  <data name="UsageReportPriceCoverageLabel" xml:space="preserve"><value>Cobertura de precio</value></data>
+  <data name="UsageReportUnpricedTokensFormat" xml:space="preserve"><value>{0} tokens sin precio</value></data>
+  <data name="UsageReportReportedCostLabel" xml:space="preserve"><value>Informado por proveedor</value></data>
+  <data name="UsageReportEstimatedCostLabel" xml:space="preserve"><value>Estimado por catálogo</value></data>
+  <data name="UsageReportPricedTokensLabel" xml:space="preserve"><value>Tokens con precio</value></data>
+  <data name="UsageReportUnpricedLabel" xml:space="preserve"><value>Sin precio</value></data>
+  <data name="UsageReportCoverageHintFormat" xml:space="preserve"><value>{0}. {1} tokens sin precio en {2} eventos sin costo.</value></data>
+  <data name="UsageReportCoverageComplete" xml:space="preserve"><value>Lectura completa</value></data>
+  <data name="UsageReportCoveragePartial" xml:space="preserve"><value>Lectura parcial</value></data>
+  <data name="UsageReportCoverageSummaryOnly" xml:space="preserve"><value>Solo resumen disponible</value></data>
+  <data name="UsageReportCoverageUnpriced" xml:space="preserve"><value>Uso sin precio</value></data>
+  <data name="UsageReportReadFailed" xml:space="preserve"><value>No se pudo leer el informe local. Los datos existentes no se modificaron.</value></data>
+  <data name="CompactProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Seleccionar proveedor</value></data>
+  <data name="UsageReportProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Proveedor del informe</value></data>
+  <data name="CompactProviderCodexCoverageHint" xml:space="preserve"><value>Codex: los totales diarios son oficiales; la mezcla de modelos y el costo se estiman. El costo puede diferir del cobro del plan.</value></data>
+  <data name="CompactProviderGrokCoverageHint" xml:space="preserve"><value>Grok Build: uso leído de los registros locales. La cuota oficial no está disponible.</value></data>
+  <data name="CompactProviderOpenCodeCoverageHint" xml:space="preserve"><value>OpenCode: uso observado en registros locales; el costo se estima con precios de catálogo.</value></data>
+  <data name="CompactProviderAntigravityCoverageHint" xml:space="preserve"><value>Antigravity: uso observado en registros locales; el costo se estima con precios de catálogo.</value></data>
+  <data name="CompactCostUnavailable" xml:space="preserve"><value>Sin costo disponible</value></data>
+  <data name="UsageReportQualitySummaryFormat" xml:space="preserve"><value>{0} informado · {1} estimado · {2} sin precio</value></data>
+  <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHÉ (ENTRADA)  {0}    •    SIN CACHÉ (ENTRADA)  {1}    •    SALIDA  {2}</value></data>
+  <data name="UsageReportSummaryTokensLabel.Text" xml:space="preserve"><value>TOKENS</value></data>
+  <data name="UsageReportSummaryCostLabel.Text" xml:space="preserve"><value>COSTO OBSERVADO</value></data>
+  <data name="UsageReportSummaryCoverageLabel.Text" xml:space="preserve"><value>COBERTURA</value></data>
+  <data name="UsageReportSummaryQualityLabel.Text" xml:space="preserve"><value>CALIDAD DE DATOS</value></data>
+  <data name="UsageReportCompositionTitle.Text" xml:space="preserve"><value>COMPOSICIÓN POR PROVEEDOR</value></data>
+  <data name="UsageReportCombinedChartButton.Content" xml:space="preserve"><value>Combinado</value></data>
+  <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>Separados</value></data>
+  <data name="UsageReportProviderChartsTitle.Text" xml:space="preserve"><value>COSTO POR PROVEEDOR</value></data>
+  <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Guardar y copiar captura</value></data>
+  <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Guardar y copiar captura</value></data>
+  <data name="UsageReportCaptureButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Guardar y copiar el informe completo</value></data>
+  <data name="UsageReportCaptureButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Guardar y copiar el informe completo</value></data>
+  <data name="ShareCaptureSuccessFormat" xml:space="preserve"><value>Guardado en {0} y copiado al portapapeles.</value></data>
+  <data name="ShareCaptureError" xml:space="preserve"><value>No se pudo guardar o copiar la captura.</value></data>
+  <data name="ShareCaptureFolderTitle.Text" xml:space="preserve"><value>Carpeta de capturas</value></data>
+  <data name="ShareCaptureFolderPath.Text" xml:space="preserve"><value>Descargas</value></data>
+  <data name="ShareCaptureFolderBrowseButton.Content" xml:space="preserve"><value>Cambiar</value></data>
+  <data name="ShareCaptureFolderResetButton.Content" xml:space="preserve"><value>Restablecer</value></data>
+  <data name="AboutProjectTitle.Text" xml:space="preserve"><value>TokenUsage</value></data>
+  <data name="AboutVersionFormat" xml:space="preserve"><value>Versión {0}</value></data>
+  <data name="AboutGitHubLink.Content" xml:space="preserve"><value>GitHub</value></data>
+  <data name="AboutGitHubLink.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Abrir gvastethecreator en GitHub</value></data>
 </root>

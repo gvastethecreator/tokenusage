@@ -13,12 +13,16 @@ public sealed class CodexUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "codex-jsonl/2";
+    public const string ParserVersion = "codex-jsonl/3";
     private const int DefaultTailBytes = 64 * 1024;
+    private const int RecentLocalWindowDays = 3;
+    private const long MaximumInitialRecentScanBytes = 16L * 1024 * 1024 * 1024;
     private readonly string _codexHome;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
     private readonly ICodexQuotaClientFactory? _clientFactory;
+    private readonly TimeProvider _clock;
+    private readonly CodexUsageCheckpointStore? _checkpointStore;
 
     public CodexUsageEventSource(
         string groupingTimeZoneId,
@@ -27,7 +31,9 @@ public sealed class CodexUsageEventSource :
         int maximumFiles = 10_000,
         long maximumTailBytes = DefaultTailBytes,
         int maximumLineCharacters = DefaultTailBytes,
-        ICodexQuotaClientFactory? clientFactory = null)
+        ICodexQuotaClientFactory? clientFactory = null,
+        string? checkpointPath = null,
+        TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
@@ -41,6 +47,10 @@ public sealed class CodexUsageEventSource :
         _groupingTimeZoneId = groupingTimeZoneId;
         _budget = new LocalScanBudget(maximumFiles, maximumTailBytes, maximumLineCharacters);
         _clientFactory = clientFactory;
+        _clock = clock ?? TimeProvider.System;
+        _checkpointStore = checkpointPath is null
+            ? null
+            : new CodexUsageCheckpointStore(checkpointPath, _clock);
     }
 
     public SourceKind SourceKind => _clientFactory is null
@@ -58,22 +68,31 @@ public sealed class CodexUsageEventSource :
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default)
     {
-        ScanResult scan = await Task.Run(
-                () => ScanCore(cancellationToken),
-                cancellationToken)
-            .ConfigureAwait(false);
+        ScanResult scan = _checkpointStore is null
+            ? await Task.Run(
+                    () => ScanCore(checkpoints: null, cancellationToken),
+                    cancellationToken)
+                .ConfigureAwait(false)
+            : await _checkpointStore.UpdateAsync(
+                    checkpoints => ScanCore(checkpoints, cancellationToken),
+                    cancellationToken)
+                .ConfigureAwait(false);
         return _clientFactory is null
             ? CreateFallbackResult(scan)
             : await ReadOfficialUsageAsync(scan, cancellationToken).ConfigureAwait(false);
     }
 
-    private ScanResult ScanCore(CancellationToken cancellationToken)
+    private ScanResult ScanCore(
+        CodexUsageCheckpointState? checkpoints,
+        CancellationToken cancellationToken)
     {
         string[] roots = SessionRoots().Where(Directory.Exists).ToArray();
         if (roots.Length == 0)
         {
             return new ScanResult(
                 [],
+                [],
+                UsesCheckpoints: checkpoints is not null,
                 UsageSourceReadStatus.NoData,
                 UsageSourceIssueKind.RootUnavailable);
         }
@@ -81,7 +100,15 @@ public sealed class CodexUsageEventSource :
         var state = new LocalScanState(_budget);
         SessionFile[] files = FindSessionFiles(roots, state, cancellationToken);
         var sessions = new List<ScannedSession>(files.Length);
-        foreach (SessionFile file in files)
+        DateOnly recentFrom = RecentFrom();
+        long initialBytesRemaining = MaximumInitialRecentScanBytes;
+        IEnumerable<SessionFile> orderedFiles = checkpoints is null
+            ? files
+            : files.OrderByDescending(TryGetLastWriteTimeUtc);
+        HashSet<string> activeSessionIdentities = files
+            .Select(file => file.SessionIdentity)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (SessionFile file in orderedFiles)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!state.TryConsumeFile())
@@ -99,9 +126,32 @@ public sealed class CodexUsageEventSource :
             {
                 sessions.Add(new ScannedSession(file.SessionIdentity, candidate));
             }
+
+            if (checkpoints is not null)
+            {
+                ScanRecentUsage(
+                    file,
+                    checkpoints,
+                    recentFrom,
+                    ref initialBytesRemaining,
+                    state,
+                    cancellationToken);
+            }
         }
 
-        return CreateScanResult(sessions, state);
+        if (checkpoints is not null)
+        {
+            foreach (string staleIdentity in checkpoints.Files.Keys
+                         .Where(identity => !activeSessionIdentities.Contains(identity))
+                         .ToArray())
+            {
+                checkpoints.Files.Remove(staleIdentity);
+            }
+
+            PruneCheckpointDays(checkpoints, recentFrom);
+        }
+
+        return CreateScanResult(sessions, checkpoints, state);
     }
 
     private SessionFile[] FindSessionFiles(
@@ -266,7 +316,7 @@ public sealed class CodexUsageEventSource :
         string path;
         try
         {
-            path = Path.GetFullPath(rawPath);
+            path = Path.GetFullPath(RemoveExtendedPathPrefix(rawPath));
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or NotSupportedException
@@ -279,6 +329,20 @@ public sealed class CodexUsageEventSource :
                && roots.Any(root => IsWithinRoot(path, root))
             ? path
             : null;
+    }
+
+    private static string RemoveExtendedPathPrefix(string path)
+    {
+        const string uncPrefix = @"\\?\UNC\";
+        const string devicePrefix = @"\\?\";
+        if (path.StartsWith(uncPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return @"\\" + path[uncPrefix.Length..];
+        }
+
+        return path.StartsWith(devicePrefix, StringComparison.OrdinalIgnoreCase)
+            ? path[devicePrefix.Length..]
+            : path;
     }
 
     private static bool IsWithinRoot(string path, string root)
@@ -323,6 +387,494 @@ public sealed class CodexUsageEventSource :
                                            or System.Security.SecurityException)
         {
             return -1;
+        }
+    }
+
+    private DateOnly RecentFrom()
+    {
+        TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId);
+        DateOnly today = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), timeZone).DateTime);
+        return today.AddDays(-(RecentLocalWindowDays - 1));
+    }
+
+    private static DateTime TryGetLastWriteTimeUtc(SessionFile file)
+    {
+        try
+        {
+            return File.GetLastWriteTimeUtc(file.Path);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or NotSupportedException
+                                           or System.Security.SecurityException)
+        {
+            return DateTime.MinValue;
+        }
+    }
+
+    private void ScanRecentUsage(
+        SessionFile file,
+        CodexUsageCheckpointState checkpoints,
+        DateOnly recentFrom,
+        ref long initialBytesRemaining,
+        LocalScanState state,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var info = new FileInfo(file.Path);
+            if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                state.MarkPartial();
+                return;
+            }
+
+            string pathHash = Hash(Path.GetFullPath(file.Path).ToUpperInvariant());
+            bool hasCheckpoint = checkpoints.Files.TryGetValue(
+                file.SessionIdentity,
+                out CodexUsageFileCheckpoint? checkpoint);
+            if (!hasCheckpoint
+                || !string.Equals(checkpoint!.PathHash, pathHash, StringComparison.Ordinal)
+                || checkpoint.Offset > info.Length)
+            {
+                if (info.LastWriteTimeUtc < StartOfDayUtc(recentFrom))
+                {
+                    checkpoints.Files.Remove(file.SessionIdentity);
+                    return;
+                }
+
+                if (info.Length > initialBytesRemaining)
+                {
+                    state.MarkPartial();
+                    return;
+                }
+
+                initialBytesRemaining -= info.Length;
+                checkpoint = new CodexUsageFileCheckpoint(
+                    pathHash,
+                    offset: 0,
+                    NormalizeModel(file.Model) ?? "unknown",
+                    previous: null);
+                checkpoints.Files[file.SessionIdentity] = checkpoint;
+            }
+
+            if (checkpoint.Offset == info.Length)
+            {
+                return;
+            }
+
+            using var stream = new FileStream(
+                file.Path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                1024 * 1024,
+                FileOptions.SequentialScan);
+            stream.Seek(checkpoint.Offset, SeekOrigin.Begin);
+            ScanRecentLines(
+                stream,
+                checkpoint,
+                recentFrom,
+                state,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or NotSupportedException
+                                           or ArgumentException
+                                           or OverflowException
+                                           or System.Security.SecurityException)
+        {
+            state.MarkPartial();
+        }
+    }
+
+    private void ScanRecentLines(
+        FileStream stream,
+        CodexUsageFileCheckpoint checkpoint,
+        DateOnly recentFrom,
+        LocalScanState state,
+        CancellationToken cancellationToken)
+    {
+        byte[] buffer = new byte[1024 * 1024];
+        using var line = new MemoryStream(capacity: Math.Min(state.MaximumLineBytes, 64 * 1024));
+        bool oversized = false;
+        long absoluteOffset = stream.Position;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int bytesRead = stream.Read(buffer, 0, buffer.Length);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            int segmentStart = 0;
+            while (segmentStart < bytesRead)
+            {
+                int newline = Array.IndexOf(buffer, (byte)'\n', segmentStart, bytesRead - segmentStart);
+                int segmentEnd = newline >= 0 ? newline : bytesRead;
+                AppendRecentLineSegment(
+                    line,
+                    buffer.AsSpan(segmentStart, segmentEnd - segmentStart),
+                    state.MaximumLineBytes,
+                    ref oversized);
+                if (newline < 0)
+                {
+                    break;
+                }
+
+                if (!oversized)
+                {
+                    ReadOnlyMemory<byte> utf8 = line.GetBuffer().AsMemory(0, checked((int)line.Length));
+                    if (!utf8.IsEmpty && utf8.Span[^1] == (byte)'\r')
+                    {
+                        utf8 = utf8[..^1];
+                    }
+
+                    ProcessRecentLine(utf8, checkpoint, recentFrom, state);
+                }
+                else if (line.GetBuffer().AsSpan(0, checked((int)line.Length))
+                         .IndexOf("token_count"u8) >= 0)
+                {
+                    state.UnsupportedSchema = true;
+                    state.MarkPartial();
+                }
+
+                checkpoint.Offset = checked(absoluteOffset + newline + 1L);
+                line.SetLength(0);
+                oversized = false;
+                segmentStart = newline + 1;
+            }
+
+            absoluteOffset = checked(absoluteOffset + bytesRead);
+        }
+    }
+
+    private static void AppendRecentLineSegment(
+        MemoryStream line,
+        ReadOnlySpan<byte> segment,
+        int maximumLineBytes,
+        ref bool oversized)
+    {
+        if (oversized || segment.IsEmpty)
+        {
+            return;
+        }
+
+        int remaining = maximumLineBytes - checked((int)line.Length);
+        if (segment.Length <= remaining)
+        {
+            line.Write(segment);
+            return;
+        }
+
+        if (remaining > 0)
+        {
+            line.Write(segment[..remaining]);
+        }
+
+        oversized = true;
+    }
+
+    private void ProcessRecentLine(
+        ReadOnlyMemory<byte> utf8,
+        CodexUsageFileCheckpoint checkpoint,
+        DateOnly recentFrom,
+        LocalScanState state)
+    {
+        ReadOnlySpan<byte> bytes = utf8.Span;
+        bool mightBeContext = bytes.IndexOf("turn_context"u8) >= 0;
+        bool mightBeUsage = bytes.IndexOf("token_count"u8) >= 0;
+        bool mightBeSessionMeta = bytes.IndexOf("session_meta"u8) >= 0;
+        bool mightBeTaskStarted = bytes.IndexOf("task_started"u8) >= 0;
+        if (!mightBeContext && !mightBeUsage && !mightBeSessionMeta && !mightBeTaskStarted)
+        {
+            return;
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(utf8);
+            JsonElement root = document.RootElement;
+            if (!TryGetString(root, "type", out string? recordType)
+                || !root.TryGetProperty("payload", out JsonElement payload)
+                || payload.ValueKind != JsonValueKind.Object)
+            {
+                state.UnsupportedSchema = true;
+                state.MarkPartial();
+                return;
+            }
+
+            if (string.Equals(recordType, "session_meta", StringComparison.Ordinal))
+            {
+                ObserveSessionMeta(root, payload, checkpoint);
+                return;
+            }
+
+            if (string.Equals(recordType, "turn_context", StringComparison.Ordinal))
+            {
+                if (TryGetString(payload, "model", out string? model))
+                {
+                    checkpoint.Model = NormalizeModel(model) ?? "unknown";
+                }
+
+                return;
+            }
+
+            if (!string.Equals(recordType, "event_msg", StringComparison.Ordinal)
+                || !TryGetString(payload, "type", out string? eventType))
+            {
+                return;
+            }
+
+            if (string.Equals(eventType, "task_started", StringComparison.Ordinal))
+            {
+                ObserveTaskStarted(root, payload, checkpoint);
+                return;
+            }
+
+            if (!string.Equals(eventType, "token_count", StringComparison.Ordinal)
+                || !payload.TryGetProperty("info", out JsonElement info)
+                || info.ValueKind is JsonValueKind.Null)
+            {
+                return;
+            }
+
+            if (info.ValueKind != JsonValueKind.Object
+                || !TryGetUtcTimestamp(root, "timestamp", out DateTimeOffset timestamp))
+            {
+                state.UnsupportedSchema = true;
+                state.MarkPartial();
+                return;
+            }
+
+            bool hasCumulative = info.TryGetProperty(
+                                     "total_token_usage",
+                                     out JsonElement cumulativeElement)
+                                 && cumulativeElement.ValueKind == JsonValueKind.Object;
+            bool hasLast = info.TryGetProperty(
+                               "last_token_usage",
+                               out JsonElement lastElement)
+                           && lastElement.ValueKind == JsonValueKind.Object;
+            TokenBreakdown? current = null;
+            TokenBreakdown? last = null;
+            bool cumulativeIsValid = hasCumulative
+                && TryReadTokenBreakdown(cumulativeElement, out current);
+            bool lastIsValid = hasLast && TryReadTokenBreakdown(lastElement, out last);
+            if (!cumulativeIsValid && !lastIsValid)
+            {
+                state.UnsupportedSchema = true;
+                state.MarkPartial();
+                return;
+            }
+
+            if (checkpoint.ChildReplayPending)
+            {
+                if (cumulativeIsValid)
+                {
+                    checkpoint.Previous = current;
+                }
+                else
+                {
+                    state.MarkPartial();
+                }
+
+                return;
+            }
+
+            TokenBreakdown delta;
+            if (cumulativeIsValid)
+            {
+                delta = Difference(current!, checkpoint.Previous);
+                checkpoint.Previous = current;
+            }
+            else
+            {
+                delta = last!;
+                state.MarkPartial();
+            }
+
+            if (delta.Total == 0)
+            {
+                return;
+            }
+
+            TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId);
+            DateOnly date = DateOnly.FromDateTime(
+                TimeZoneInfo.ConvertTime(timestamp, timeZone).DateTime);
+            if (date < recentFrom)
+            {
+                return;
+            }
+
+            var key = (date, checkpoint.Model);
+            checkpoint.Daily[key] = checkpoint.Daily.TryGetValue(key, out TokenBreakdown? existing)
+                ? AddTokens(existing, delta)
+                : delta;
+        }
+        catch (Exception exception) when (exception is JsonException
+                                           or ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            state.UnsupportedSchema = true;
+            state.MarkPartial();
+        }
+    }
+
+    private static void ObserveSessionMeta(
+        JsonElement root,
+        JsonElement payload,
+        CodexUsageFileCheckpoint checkpoint)
+    {
+        if (checkpoint.SawSessionMeta)
+        {
+            return;
+        }
+
+        checkpoint.SawSessionMeta = true;
+        if (!IsChildSessionMeta(payload))
+        {
+            return;
+        }
+
+        checkpoint.ChildReplayPending = true;
+        checkpoint.ChildCreatedAtUnixSeconds = TryGetUtcTimestamp(
+            root,
+            "timestamp",
+            out DateTimeOffset createdAt)
+            ? createdAt.ToUnixTimeSeconds()
+            : null;
+    }
+
+    private static void ObserveTaskStarted(
+        JsonElement root,
+        JsonElement payload,
+        CodexUsageFileCheckpoint checkpoint)
+    {
+        if (!checkpoint.ChildReplayPending
+            || !TryGetNonNegativeDouble(payload, "started_at", out double startedAt))
+        {
+            return;
+        }
+
+        long? threshold = checkpoint.ChildCreatedAtUnixSeconds;
+        if (threshold is null
+            && TryGetUtcTimestamp(root, "timestamp", out DateTimeOffset lineTimestamp))
+        {
+            threshold = lineTimestamp.ToUnixTimeSeconds();
+        }
+
+        if (threshold is null || startedAt < threshold.Value)
+        {
+            return;
+        }
+
+        checkpoint.ChildReplayPending = false;
+        checkpoint.ChildCreatedAtUnixSeconds = null;
+    }
+
+    private static bool IsChildSessionMeta(JsonElement payload)
+    {
+        if (HasNonNullValue(payload, "forked_from_id")
+            || HasNonNullValue(payload, "parent_thread_id"))
+        {
+            return true;
+        }
+
+        if (TryGetString(payload, "thread_source", out string? threadSource)
+            && string.Equals(threadSource, "subagent", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return payload.TryGetProperty("source", out JsonElement source)
+               && source.ValueKind == JsonValueKind.Object
+               && HasNonNullValue(source, "subagent");
+    }
+
+    private static bool HasNonNullValue(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return false;
+        }
+
+        return value.ValueKind != JsonValueKind.String
+               || !string.IsNullOrWhiteSpace(value.GetString());
+    }
+
+    private static bool TryGetNonNegativeDouble(
+        JsonElement element,
+        string propertyName,
+        out double value)
+    {
+        value = 0;
+        return element.TryGetProperty(propertyName, out JsonElement property)
+               && property.ValueKind == JsonValueKind.Number
+               && property.TryGetDouble(out value)
+               && double.IsFinite(value)
+               && value >= 0;
+    }
+
+    private DateTime StartOfDayUtc(DateOnly date)
+    {
+        TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId);
+        DateTime local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
+    }
+
+    private static TokenBreakdown Difference(
+        TokenBreakdown current,
+        TokenBreakdown? previous)
+    {
+        if (previous is null
+            || TotalInput(current) < TotalInput(previous)
+            || TotalOutput(current) < TotalOutput(previous))
+        {
+            return current;
+        }
+
+        return new TokenBreakdown(
+            Math.Max(0, current.Input - previous.Input),
+            Math.Max(0, current.Output - previous.Output),
+            Math.Max(0, current.Reasoning - previous.Reasoning),
+            Math.Max(0, current.CacheRead - previous.CacheRead),
+            Math.Max(0, current.CacheWrite - previous.CacheWrite));
+    }
+
+    private static long TotalInput(TokenBreakdown value) => checked(
+        value.Input + value.CacheRead + value.CacheWrite);
+
+    private static long TotalOutput(TokenBreakdown value) => checked(
+        value.Output + value.Reasoning);
+
+    private static TokenBreakdown AddTokens(TokenBreakdown left, TokenBreakdown right) => new(
+        checked(left.Input + right.Input),
+        checked(left.Output + right.Output),
+        checked(left.Reasoning + right.Reasoning),
+        checked(left.CacheRead + right.CacheRead),
+        checked(left.CacheWrite + right.CacheWrite));
+
+    private static void PruneCheckpointDays(
+        CodexUsageCheckpointState checkpoints,
+        DateOnly recentFrom)
+    {
+        foreach (CodexUsageFileCheckpoint checkpoint in checkpoints.Files.Values)
+        {
+            foreach ((DateOnly Date, string Model) key in checkpoint.Daily.Keys
+                         .Where(key => key.Date < recentFrom)
+                         .ToArray())
+            {
+                checkpoint.Daily.Remove(key);
+            }
         }
     }
 
@@ -522,10 +1074,19 @@ public sealed class CodexUsageEventSource :
 
             TokenBreakdown? cumulative = null;
             TokenBreakdown? last = null;
-            if (hasCumulative && !TryReadTokenBreakdown(cumulativeElement, out cumulative)
-                || hasLast && !TryReadTokenBreakdown(lastElement, out last))
+            bool cumulativeIsValid = hasCumulative
+                && TryReadTokenBreakdown(cumulativeElement, out cumulative);
+            bool lastIsValid = hasLast
+                && TryReadTokenBreakdown(lastElement, out last);
+            if (!cumulativeIsValid && !lastIsValid)
             {
                 return MarkSchemaFailure(state, markSchemaFailures);
+            }
+
+            if ((hasCumulative && !cumulativeIsValid)
+                || (hasLast && !lastIsValid))
+            {
+                state.MarkPartial();
             }
 
             TokenBreakdown total = cumulative ?? last!;
@@ -615,13 +1176,21 @@ public sealed class CodexUsageEventSource :
             CodexTokenUsageSnapshot usage = await client
                 .ReadTokenUsageAsync(cancellationToken)
                 .ConfigureAwait(false);
-            UsageEvent[] events = CreateOfficialEvents(usage, scan.Sessions);
+            UsageEvent[] events = CreateOfficialEvents(
+                usage,
+                scan,
+                out bool usesRecentLocalTotals);
             return events.Length == 0
                 ? new UsageSourceReadResult(
                     [],
                     UsageSourceReadStatus.NoData,
                     UsageSourceIssueKind.Empty)
-                : new UsageSourceReadResult(events, UsageSourceReadStatus.Complete);
+                : usesRecentLocalTotals && scan.Status == UsageSourceReadStatus.Partial
+                    ? new UsageSourceReadResult(
+                        events,
+                        UsageSourceReadStatus.Partial,
+                        scan.Issue)
+                    : new UsageSourceReadResult(events, UsageSourceReadStatus.Complete);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -639,11 +1208,12 @@ public sealed class CodexUsageEventSource :
 
     private UsageEvent[] CreateOfficialEvents(
         CodexTokenUsageSnapshot usage,
-        IReadOnlyList<ScannedSession> sessions)
+        ScanResult scan,
+        out bool usesRecentLocalTotals)
     {
         TimeZoneInfo groupingTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
             _groupingTimeZoneId);
-        Dictionary<DateOnly, ModelSample[]> samplesByDate = sessions
+        Dictionary<DateOnly, ModelSample[]> samplesByDate = scan.Sessions
             .Where(session => session.Candidate.SampleTokens.Total > 0)
             .GroupBy(session => DateOnly.FromDateTime(
                 TimeZoneInfo.ConvertTime(
@@ -653,10 +1223,34 @@ public sealed class CodexUsageEventSource :
                 group => group.Key,
                 group => group
                     .GroupBy(session => session.Candidate.Model, StringComparer.Ordinal)
-                    .Select(CreateModelSample)
+                    .Select(group => CreateModelSample(group, useCumulativeTokens: false))
                     .Where(sample => sample.Tokens.Total > 0)
                     .OrderBy(sample => sample.Model, StringComparer.Ordinal)
                     .ToArray());
+        Dictionary<DateOnly, ModelSample[]> localTotalsByDate = scan.UsesCheckpoints
+            ? scan.RecentSamples
+                .GroupBy(sample => sample.Date)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(sample => sample.Sample)
+                        .Where(sample => sample.Tokens.Total > 0)
+                        .OrderBy(sample => sample.Model, StringComparer.Ordinal)
+                        .ToArray())
+            : scan.Sessions
+                .Where(session => session.Candidate.TotalTokens.Total > 0)
+                .GroupBy(session => DateOnly.FromDateTime(
+                    TimeZoneInfo.ConvertTime(
+                        session.Candidate.Timestamp,
+                        groupingTimeZone).DateTime))
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .GroupBy(session => session.Candidate.Model, StringComparer.Ordinal)
+                        .Select(group => CreateModelSample(group, useCumulativeTokens: true))
+                        .Where(sample => sample.Tokens.Total > 0)
+                        .OrderBy(sample => sample.Model, StringComparer.Ordinal)
+                        .ToArray());
 
         var tokensByDate = new SortedDictionary<DateOnly, long>();
         foreach (CodexUsageDailyBucket bucket in usage.DailyUsageBuckets)
@@ -666,8 +1260,21 @@ public sealed class CodexUsageEventSource :
         }
 
         var events = new List<UsageEvent>();
+        usesRecentLocalTotals = false;
+        DateOnly? latestOfficialDate = tokensByDate.Count == 0
+            ? null
+            : tokensByDate.Keys.Max();
         foreach ((DateOnly date, long totalTokens) in tokensByDate)
         {
+            if (date == latestOfficialDate
+                && localTotalsByDate.TryGetValue(date, out ModelSample[]? latestLocalSamples)
+                && SumTokens(latestLocalSamples) > totalTokens)
+            {
+                AddLocalEvents(events, date, latestLocalSamples, groupingTimeZone);
+                usesRecentLocalTotals = true;
+                continue;
+            }
+
             if (totalTokens == 0)
             {
                 continue;
@@ -704,7 +1311,32 @@ public sealed class CodexUsageEventSource :
             }
         }
 
+        foreach ((DateOnly date, ModelSample[] samples) in localTotalsByDate
+                     .Where(item => latestOfficialDate is null || item.Key > latestOfficialDate)
+                     .OrderBy(item => item.Key))
+        {
+            AddLocalEvents(events, date, samples, groupingTimeZone);
+            usesRecentLocalTotals = true;
+        }
+
         return events.ToArray();
+    }
+
+    private void AddLocalEvents(
+        List<UsageEvent> events,
+        DateOnly date,
+        IEnumerable<ModelSample> samples,
+        TimeZoneInfo groupingTimeZone)
+    {
+        foreach (ModelSample sample in samples)
+        {
+            events.Add(CreateOfficialEvent(
+                date,
+                sample.Model,
+                sample.Tokens,
+                groupingTimeZone,
+                sample.Cost));
+        }
     }
 
     private UsageEvent CreateOfficialEvent(
@@ -737,15 +1369,20 @@ public sealed class CodexUsageEventSource :
     }
 
     private static ModelSample CreateModelSample(
-        IGrouping<string, ScannedSession> modelGroup)
+        IGrouping<string, ScannedSession> modelGroup,
+        bool useCumulativeTokens)
     {
         ScannedSession[] sessions = modelGroup.ToArray();
         TokenBreakdown tokens = SumTokens(
-            sessions.Select(value => value.Candidate.SampleTokens));
+            sessions.Select(value => useCumulativeTokens
+                ? value.Candidate.TotalTokens
+                : value.Candidate.SampleTokens));
         CostObservation[] costs = sessions
             .Select(value => CodexPricingCatalog.Resolve(
                 modelGroup.Key,
-                value.Candidate.SampleTokens))
+                useCumulativeTokens
+                    ? value.Candidate.TotalTokens
+                    : value.Candidate.SampleTokens))
             .ToArray();
         if (costs.Any(cost => cost.Kind != CostKind.CatalogEstimated))
         {
@@ -759,7 +1396,21 @@ public sealed class CodexUsageEventSource :
             CostObservation.CatalogEstimated(
                 decimal.Round(totalCost, 6, MidpointRounding.AwayFromZero),
                 CodexPricingCatalog.Version,
-                costs[0].ExactPriceMatch!));
+            costs[0].ExactPriceMatch!));
+    }
+
+    private static ModelSample CreateModelSample(string model, TokenBreakdown tokens) =>
+        new(model, tokens, CodexPricingCatalog.Resolve(model, tokens));
+
+    private static long SumTokens(IEnumerable<ModelSample> samples)
+    {
+        long total = 0;
+        foreach (ModelSample sample in samples)
+        {
+            total = checked(total + sample.Tokens.Total);
+        }
+
+        return total;
     }
 
     private static CostObservation ScaleSampleCost(ModelSample sample, long totalTokens)
@@ -1000,6 +1651,7 @@ public sealed class CodexUsageEventSource :
 
     private static ScanResult CreateScanResult(
         List<ScannedSession> sessions,
+        CodexUsageCheckpointState? checkpoints,
         LocalScanState state)
     {
         UsageSourceReadStatus status = state.IsPartial
@@ -1015,7 +1667,23 @@ public sealed class CodexUsageEventSource :
             UsageSourceReadStatus.NoData => UsageSourceIssueKind.Empty,
             _ => null,
         };
-        return new ScanResult(sessions, status, issue ?? UsageSourceIssueKind.None);
+        DatedModelSample[] recentSamples = checkpoints is null
+            ? []
+            : checkpoints.Files.Values
+                .SelectMany(checkpoint => checkpoint.Daily)
+                .GroupBy(item => item.Key)
+                .Select(group => new DatedModelSample(
+                    group.Key.Date,
+                    CreateModelSample(group.Key.Model, SumTokens(group.Select(item => item.Value)))))
+                .OrderBy(sample => sample.Date)
+                .ThenBy(sample => sample.Sample.Model, StringComparer.Ordinal)
+                .ToArray();
+        return new ScanResult(
+            sessions,
+            recentSamples,
+            UsesCheckpoints: checkpoints is not null,
+            status,
+            issue ?? UsageSourceIssueKind.None);
     }
 
     private string[] SessionRoots() =>
@@ -1133,6 +1801,8 @@ public sealed class CodexUsageEventSource :
 
     private sealed record ScanResult(
         IReadOnlyList<ScannedSession> Sessions,
+        IReadOnlyList<DatedModelSample> RecentSamples,
+        bool UsesCheckpoints,
         UsageSourceReadStatus Status,
         UsageSourceIssueKind Issue);
 
@@ -1142,6 +1812,8 @@ public sealed class CodexUsageEventSource :
         string Model,
         TokenBreakdown Tokens,
         CostObservation Cost);
+
+    private sealed record DatedModelSample(DateOnly Date, ModelSample Sample);
 
     private sealed record Candidate(
         DateTimeOffset Timestamp,

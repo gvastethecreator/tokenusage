@@ -59,16 +59,24 @@ public sealed class SessionModuleTests
             option.Value == AppThemeMode.Dark);
         surface.SelectedDensity = surface.DensityOptions.Single(option =>
             option.Value == AppDensityMode.Compact);
+        surface.SelectedDashboardVisualization = surface.DashboardVisualizationOptions.Single(
+            option => option.Value == DashboardVisualizationMode.Heatmap);
         await surface.WaitForPendingSaveAsync();
 
         Assert.Equal(AppThemeMode.Dark, surface.Settings.Theme);
         Assert.Equal(AppDensityMode.Compact, surface.Settings.Density);
+        Assert.Equal(
+            DashboardVisualizationMode.Heatmap,
+            surface.Settings.DashboardVisualization);
         Assert.True(surface.IsEditable);
         var reloaded = new AppearanceSession(
             new AppearanceSettingsStore(path, TimeProvider.System));
         await reloaded.InitializeAsync();
         Assert.Equal(AppThemeMode.Dark, reloaded.Settings.Theme);
         Assert.Equal(AppDensityMode.Compact, reloaded.Settings.Density);
+        Assert.Equal(
+            DashboardVisualizationMode.Heatmap,
+            reloaded.Settings.DashboardVisualization);
     }
 
     [Fact]
@@ -249,6 +257,200 @@ public sealed class SessionModuleTests
         Assert.Equal(FlyoutSurfaceState.Sample, surface.ResultSurface);
         Assert.NotNull(surface.ActiveSample);
         Assert.False(surface.IsSessionRefreshing);
+
+        DashboardProviderLayoutRow codex = personalization.Providers.Single(provider =>
+            provider.ProviderId == "codex");
+        foreach (DashboardMetricLayoutRow metric in codex.Metrics)
+        {
+            await personalization.SetMetricVisibleAsync("codex", metric.MetricId, false);
+        }
+
+        Assert.Empty(surface.ActiveSample.Providers.Single(provider =>
+            provider.ProviderId == "codex").Windows);
+        Assert.NotEmpty(surface.GetProviderLimits("codex"));
+    }
+
+    [Fact]
+    public async Task CompactProviderSummariesDistinguishMissingAndPartialData()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(
+            new DateTimeOffset(2026, 7, 25, 12, 0, 0, TimeSpan.Zero));
+        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var appearance = new AppearanceSurfaceViewModel(
+            new AppearanceSession(new AppearanceSettingsStore(
+                Path.Combine(folder.Root, "appearance.json"),
+                clock)),
+            key => key);
+        await appearance.Initialization;
+        var personalization = new PersonalizationSurfaceViewModel(
+            new DashboardLayoutEditor(new DashboardLayoutStore(
+                Path.Combine(folder.Root, "layout.json"),
+                clock)),
+            key => key);
+        await personalization.Initialization;
+        var providerStatus = new ProviderStatusSurfaceViewModel(key => key);
+        await using AppSessionHost appSession = CreateAppSession(folder.Root, clock);
+        var live = new LiveDashboardSession(
+            appSession,
+            new LocalUsageCoordinator(
+                Path.Combine(folder.Root, "usage.db"),
+                new SingleCodexUsageSource(clock),
+                clock));
+        using var surface = new DashboardSurfaceViewModel(
+            new SampleDashboardSession(new SampleRefreshCoordinator(
+                Path.Combine(folder.Root, "sample"),
+                clock,
+                providerDelay: TimeSpan.Zero)),
+            live,
+            general,
+            appearance,
+            personalization,
+            providerStatus,
+            key => key switch
+            {
+                "CodexUsageMissing" => "No data",
+                "ProviderStatusNoData" => "No data yet",
+                "UsageReportCoveragePartial" => "Partial read",
+                "UsageReportCoverageUnpriced" => "Unpriced usage",
+                _ => key,
+            },
+            synchronizationContext: null);
+
+        await surface.RefreshCommand.ExecuteAsync(null);
+
+        DashboardProviderSummary codex = Assert.Single(
+            surface.ProviderSummaries,
+            summary => summary.ProviderId == "codex");
+        Assert.True(codex.HasData);
+        Assert.True(codex.IsPartial);
+        Assert.True(codex.HasUnpricedData);
+        Assert.NotEqual("No data", codex.CostText);
+
+        DashboardProviderSummary openCode = Assert.Single(
+            surface.ProviderSummaries,
+            summary => summary.ProviderId == "opencode");
+        Assert.False(openCode.HasData);
+        Assert.Equal("No data", openCode.CostText);
+        Assert.Equal("No data", openCode.TokensText);
+
+        surface.SelectProvider("opencode");
+        Assert.False(surface.SelectedProviderHasData);
+        Assert.StartsWith("No data yet.", surface.SelectedProviderCoverageHintText);
+        Assert.Equal("No data", surface.SelectedProviderCostText);
+        Assert.Empty(surface.SelectedProviderTrend.Days);
+        Assert.Empty(surface.SelectedProviderTrend.Series);
+
+        surface.SelectProvider("codex");
+        Assert.Contains("Partial read", surface.SelectedProviderCoverageHintText);
+        Assert.Contains("Unpriced usage", surface.SelectedProviderCoverageHintText);
+    }
+
+    [Fact]
+    public async Task LiveDashboardPublishesOfficialCodexLimitsWithLocalUsage()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(
+            new DateTimeOffset(2026, 8, 9, 18, 0, 0, TimeSpan.Zero));
+        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var appearance = new AppearanceSurfaceViewModel(
+            new AppearanceSession(new AppearanceSettingsStore(
+                Path.Combine(folder.Root, "appearance.json"),
+                clock)),
+            key => key);
+        await appearance.Initialization;
+        var personalization = new PersonalizationSurfaceViewModel(
+            new DashboardLayoutEditor(new DashboardLayoutStore(
+                Path.Combine(folder.Root, "layout.json"),
+                clock)),
+            key => key);
+        await personalization.Initialization;
+        var providerStatus = new ProviderStatusSurfaceViewModel(key => key);
+        await using AppSessionHost appSession = CreateCodexAppSession(folder.Root, clock);
+        var live = new LiveDashboardSession(
+            appSession,
+            new LocalUsageCoordinator(
+                Path.Combine(folder.Root, "usage.db"),
+                new SingleCodexUsageSource(clock),
+                clock));
+        using var surface = new DashboardSurfaceViewModel(
+            new SampleDashboardSession(new SampleRefreshCoordinator(
+                Path.Combine(folder.Root, "sample"),
+                clock,
+                providerDelay: TimeSpan.Zero)),
+            live,
+            general,
+            appearance,
+            personalization,
+            providerStatus,
+            key => key,
+            synchronizationContext: null);
+
+        await surface.RefreshCommand.ExecuteAsync(null);
+        surface.SelectProvider("codex");
+
+        Assert.Collection(
+            surface.GlobalCodexLimits,
+            weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
+            spark => Assert.Equal("CodexWindowSpark", spark.Title));
+        Assert.Equal(surface.GlobalCodexLimits, surface.SelectedProviderLimits);
+        Assert.True(surface.HasGlobalCodexLimits);
+        Assert.True(surface.SelectedProviderHasLimits);
+    }
+
+    [Fact]
+    public async Task LiveDashboardStartPublishesOfficialCodexLimitsWithoutManualRefresh()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(
+            new DateTimeOffset(2026, 8, 9, 18, 0, 0, TimeSpan.Zero));
+        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var appearance = new AppearanceSurfaceViewModel(
+            new AppearanceSession(new AppearanceSettingsStore(
+                Path.Combine(folder.Root, "appearance.json"),
+                clock)),
+            key => key);
+        await appearance.Initialization;
+        var personalization = new PersonalizationSurfaceViewModel(
+            new DashboardLayoutEditor(new DashboardLayoutStore(
+                Path.Combine(folder.Root, "layout.json"),
+                clock)),
+            key => key);
+        await personalization.Initialization;
+        var providerStatus = new ProviderStatusSurfaceViewModel(key => key);
+        var codexProvider = new CodexLimitsProvider(clock, requireForceRefresh: true);
+        await using AppSessionHost appSession = CreateCodexAppSession(
+            folder.Root,
+            clock,
+            codexProvider);
+        var live = new LiveDashboardSession(
+            appSession,
+            new LocalUsageCoordinator(
+                Path.Combine(folder.Root, "usage.db"),
+                new SingleCodexUsageSource(clock),
+                clock));
+        using var surface = new DashboardSurfaceViewModel(
+            new SampleDashboardSession(new SampleRefreshCoordinator(
+                Path.Combine(folder.Root, "sample"),
+                clock,
+                providerDelay: TimeSpan.Zero)),
+            live,
+            general,
+            appearance,
+            personalization,
+            providerStatus,
+            key => key,
+            synchronizationContext: null);
+
+        await surface.StartAsync();
+        surface.SelectProvider("codex");
+
+        Assert.Collection(
+            surface.GlobalCodexLimits,
+            weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
+            spark => Assert.Equal("CodexWindowSpark", spark.Title));
+        Assert.True(surface.SelectedProviderHasLimits);
+        Assert.True(codexProvider.SawForcedRefresh);
     }
 
     private static AppSessionHost CreateAppSession(string root, TimeProvider clock)
@@ -266,6 +468,23 @@ public sealed class SessionModuleTests
         return new AppSessionHost(refresh, alerts, clock);
     }
 
+    private static AppSessionHost CreateCodexAppSession(
+        string root,
+        TimeProvider clock,
+        IProviderRuntime? provider = null)
+    {
+        var refresh = new ProviderRefreshHost(
+        [
+            new ProviderRefreshRegistration(
+                provider ?? new CodexLimitsProvider(clock),
+                new SnapshotStore(Path.Combine(root, "codex-cache.json"), clock)),
+        ], clock);
+        var alerts = new AlertHost(
+            new AlertDecisionStore(Path.Combine(root, "codex-alert-decisions.json"), clock),
+            new AlertSettingsStore(Path.Combine(root, "codex-alert-settings.json"), clock));
+        return new AppSessionHost(refresh, alerts, clock);
+    }
+
     private sealed class EmptyProvider : IProviderRuntime
     {
         public ProviderDescriptor Descriptor { get; } =
@@ -280,6 +499,72 @@ public sealed class SessionModuleTests
             Task.FromResult<ProviderOutcome>(new ProviderOutcome.NotConfigured("empty"));
     }
 
+    private sealed class CodexLimitsProvider(
+        TimeProvider clock,
+        bool requireForceRefresh = false) : IProviderRuntime
+    {
+        private static readonly DataProvenance Provenance = new(
+            SourceKind.OfficialLocalApi,
+            MeasurementKind.ProviderReported,
+            "test-codex/1");
+
+        public ProviderDescriptor Descriptor { get; } =
+            new(new ProviderId("codex"), "Codex");
+
+        public bool SawForcedRefresh { get; private set; }
+
+        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
+
+        public Task<ProviderOutcome> RefreshAsync(
+            RefreshContext context,
+            CancellationToken cancellationToken)
+        {
+            SawForcedRefresh |= context.ForceRefresh;
+            if (requireForceRefresh && !context.ForceRefresh)
+            {
+                return Task.FromResult<ProviderOutcome>(
+                    new ProviderOutcome.NotConfigured("Force refresh required by the test provider."));
+            }
+
+            DateTimeOffset now = clock.GetUtcNow();
+            var snapshot = new ProviderSnapshot(
+                new ProviderId("codex"),
+                "Codex",
+                "Pro",
+                now,
+                now,
+                "UTC",
+                [
+                    new ProgressMetricSnapshot(
+                        new MetricId("quota.primary"),
+                        97m,
+                        100m,
+                        now.AddDays(6),
+                        Provenance),
+                    new ScalarMetricSnapshot(
+                        new MetricId("quota.primary.window-minutes"),
+                        10080m,
+                        "minutes",
+                        Provenance),
+                    new ProgressMetricSnapshot(
+                        new MetricId("quota.codex-bengalfox.primary"),
+                        0m,
+                        100m,
+                        now.AddDays(7),
+                        Provenance),
+                    new ScalarMetricSnapshot(
+                        new MetricId("quota.codex-bengalfox.primary.window-minutes"),
+                        10080m,
+                        "minutes",
+                        Provenance),
+                ],
+                CoverageKind.Complete,
+                1);
+            return Task.FromResult<ProviderOutcome>(new ProviderOutcome.Success(snapshot));
+        }
+    }
+
     private sealed class EmptyUsageSource : IUsageEventSource
     {
         public AgentId AgentId { get; } = new("empty");
@@ -291,6 +576,40 @@ public sealed class SessionModuleTests
             Task.FromResult(new UsageSourceReadResult(
                 [],
                 UsageSourceReadStatus.NoData));
+    }
+
+    private sealed class SingleCodexUsageSource(TimeProvider clock) : IUsageEventSource
+    {
+        public AgentId AgentId { get; } = new("codex");
+
+        public SourceKind SourceKind => SourceKind.Synthetic;
+
+        public Task<UsageSourceReadResult> ReadAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new UsageSourceReadResult(
+                [new UsageEvent(
+                    new UsageEventKey(new string('a', 64)),
+                    AgentId,
+                    new ModelProviderId("openai"),
+                    new ModelId("gpt-5"),
+                    clock.GetUtcNow(),
+                    "UTC",
+                    new TokenBreakdown(100, 10, 0, 0, 0),
+                    CostObservation.ProviderReported(1m),
+                    "test-v1",
+                    CoverageKind.Partial),
+                new UsageEvent(
+                    new UsageEventKey(new string('b', 64)),
+                    AgentId,
+                    new ModelProviderId("openai"),
+                    new ModelId("gpt-5-mini"),
+                    clock.GetUtcNow(),
+                    "UTC",
+                    new TokenBreakdown(50, 5, 0, 0, 0),
+                    CostObservation.Unavailable(),
+                    "test-v1",
+                    CoverageKind.Unpriced)],
+                UsageSourceReadStatus.Complete));
     }
 
     [Fact]

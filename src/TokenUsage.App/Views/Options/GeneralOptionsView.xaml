@@ -11,19 +11,26 @@
     xmlns:viewModels="using:TokenUsage.App.ViewModels"
     mc:Ignorable="d">
 
-    <StackPanel>
-        <StackPanel
-            Margin="2,0,2,0"
-            Spacing="2">
-            <TextBlock x:Uid="GeneralSectionTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
-            <TextBlock x:Uid="GeneralSectionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
-        </StackPanel>
-        <Border
-            AutomationProperties.AutomationId="LanguageSection"
-            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-            CornerRadius="{ThemeResource ControlCornerRadius}"
-            Padding="10,8">
-            <StackPanel Spacing="8">
+    <Border
+        AutomationProperties.AutomationId="GeneralSection"
+        Style="{StaticResource OptionsCategoryCardStyle}">
+        <StackPanel Spacing="12">
+            <Grid ColumnSpacing="9" RowSpacing="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <FontIcon Grid.RowSpan="2" FontSize="15" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Glyph="&#xE713;" VerticalAlignment="Top" />
+                <TextBlock x:Uid="GeneralSectionTitle" Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBlock x:Uid="GeneralSectionDescription" Grid.Row="1" Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+            </Grid>
+            <StackPanel
+                AutomationProperties.AutomationId="LanguageSection"
+                Spacing="8">
                 <TextBlock
                     x:Uid="LanguageSectionTitle"
                     Style="{StaticResource BodyStrongTextBlockStyle}" />
@@ -59,31 +66,55 @@
                     IsOpen="{x:Bind ViewModel.IsLanguageRestartErrorVisible, Mode=OneWay}"
                     Severity="Error" />
             </StackPanel>
-        </Border>
-        <ToggleSwitch
-            x:Name="CloseWhenInactiveToggle"
-            x:Uid="CloseWhenInactiveToggle"
-            AutomationProperties.AutomationId="CloseWhenInactiveToggle"
-            HorizontalAlignment="Stretch"
-            IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
-            OffContent=""
-            OnContent="" />
-        <ToggleSwitch
-            x:Name="SampleModeToggle"
-            x:Uid="SampleModeToggle"
-            AutomationProperties.AutomationId="SampleModeToggle"
-            HorizontalAlignment="Stretch"
-            IsOn="{x:Bind ViewModel.IsSampleModeEnabled, Mode=TwoWay}"
-            OffContent=""
-            OnContent="" />
-        <ComboBox
-            x:Name="SampleScenarioCombo"
-            x:Uid="SampleScenarioCombo"
-            AutomationProperties.AutomationId="SampleScenarioCombo"
-            DisplayMemberPath="DisplayName"
-            HorizontalAlignment="Stretch"
-            IsEnabled="{x:Bind ViewModel.IsSampleScenarioEnabled, Mode=OneWay}"
-            ItemsSource="{x:Bind ViewModel.SampleScenarios}"
-            SelectedItem="{x:Bind ViewModel.SelectedSampleScenario, Mode=TwoWay}" />
-    </StackPanel>
+            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
+            <ToggleSwitch
+                x:Name="CloseWhenInactiveToggle"
+                x:Uid="CloseWhenInactiveToggle"
+                AutomationProperties.AutomationId="CloseWhenInactiveToggle"
+                HorizontalAlignment="Stretch"
+                IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
+                OffContent=""
+                OnContent="" />
+            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
+            <Grid ColumnSpacing="10" RowSpacing="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    x:Uid="ShareCaptureFolderTitle"
+                    Grid.ColumnSpan="3"
+                    Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBlock
+                    x:Name="ShareCaptureFolderPath"
+                    x:Uid="ShareCaptureFolderPath"
+                    Grid.Row="1"
+                    AutomationProperties.AutomationId="ShareCaptureFolderPath"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+                <Button
+                    x:Uid="ShareCaptureFolderBrowseButton"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="ShareCaptureFolderBrowseButton"
+                    Click="OnShareCaptureFolderBrowseClicked"
+                    Padding="10,5" />
+                <Button
+                    x:Uid="ShareCaptureFolderResetButton"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    AutomationProperties.AutomationId="ShareCaptureFolderResetButton"
+                    Click="OnShareCaptureFolderResetClicked"
+                    Padding="10,5"
+                    Style="{StaticResource SubtleButtonStyle}" />
+            </Grid>
+        </StackPanel>
+    </Border>
 </UserControl>

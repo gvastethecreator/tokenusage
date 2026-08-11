@@ -9,7 +9,7 @@ public static class AntigravityPricingCatalog
     public const string Version = "google-anthropic-2026-08-04";
     private const decimal TokensPerMillion = 1_000_000m;
 
-    private static readonly IReadOnlyDictionary<string, Rates> RatesByModel =
+    private static readonly Dictionary<string, Rates> RatesByModel =
         new Dictionary<string, Rates>(StringComparer.Ordinal)
         {
             ["gemini-3.6-flash"] = new("gemini-3.6-flash", 1.5m, 0.15m, 7.5m),
