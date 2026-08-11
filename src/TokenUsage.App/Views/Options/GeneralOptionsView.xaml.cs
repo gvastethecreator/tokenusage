@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using TokenUsage.App.Localization;
+using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Surfaces;
 
 namespace TokenUsage.App.Views.Options;
@@ -14,6 +15,7 @@ public sealed partial class GeneralOptionsView : UserControl
     {
         InitializeComponent();
         _isInitialized = true;
+        Loaded += OnLoaded;
     }
 
     public GeneralOptionsViewModel? ViewModel
@@ -30,6 +32,30 @@ public sealed partial class GeneralOptionsView : UserControl
     }
 
     public UIElement PrimaryAction => CloseWhenInactiveToggle;
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        ShareCaptureFolderPath.Text = await ShareCaptureService.GetDestinationPathAsync();
+    }
+
+    private async void OnShareCaptureFolderBrowseClicked(object sender, RoutedEventArgs e)
+    {
+        if (App.Window is not MainWindow window)
+        {
+            return;
+        }
+
+        using IDisposable guard = window.SuppressDeactivateHide();
+        string? path = await ShareCaptureService.PickDestinationAsync(
+            App.WindowHandle);
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            ShareCaptureFolderPath.Text = path;
+        }
+    }
+
+    private async void OnShareCaptureFolderResetClicked(object sender, RoutedEventArgs e) =>
+        ShareCaptureFolderPath.Text = await ShareCaptureService.ResetDestinationAsync();
 
     private void OnRestartForLanguageClicked(object sender, RoutedEventArgs e)
     {

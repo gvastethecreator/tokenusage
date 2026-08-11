@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Input;
 using Microsoft.Windows.AppLifecycle;
+using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Storage;
 using Windows.System;
 using Windows.UI.ViewManagement;
@@ -15,7 +16,9 @@ using Windows.UI.Core;
 using TokenUsage.App.Composition;
 using TokenUsage.App.Controls;
 using TokenUsage.App.Localization;
+using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels;
+using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.Providers.VercelAiGateway;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Layout;
@@ -26,12 +29,14 @@ namespace TokenUsage.App;
 
 public sealed partial class MainPage : Page, IDisposable
 {
+    private readonly ResourceLoader _resources = new();
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _relativeTimeTimer;
     private Storyboard? _viewTransitionStoryboard;
     private int _viewTransitionToken;
     private FlyoutSurfaceState _lastSurfaceState;
     private OptionsSection _lastOptionsSection;
     private bool _disposed;
+    private int _shareStatusToken;
 
     public MainPage()
     {
@@ -57,6 +62,8 @@ public sealed partial class MainPage : Page, IDisposable
 
     public event EventHandler? HideRequested;
 
+    public event EventHandler<UsageReportRequestedEventArgs>? UsageReportRequested;
+
     public FlyoutViewModel ViewModel { get; }
 
     public AppSessionHost SessionHost { get; }
@@ -76,6 +83,7 @@ public sealed partial class MainPage : Page, IDisposable
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         KeyDown -= OnKeyDown;
         _viewTransitionStoryboard?.Stop();
+        _shareStatusToken++;
         ViewModel.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -83,6 +91,47 @@ public sealed partial class MainPage : Page, IDisposable
     private void OnRelativeTimeTimerElapsed(
         Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
         object args) => ViewModel.RefreshRelativeTime();
+
+    private void OnUsageReportButtonClick(object sender, RoutedEventArgs e) =>
+        UsageReportRequested?.Invoke(
+            this,
+            new UsageReportRequestedEventArgs(ViewModel.Dashboard.CreateReportRequest()));
+
+    private void OnVisualizationToggleClick(object sender, RoutedEventArgs e) =>
+        ViewModel.Dashboard.CycleVisualization();
+
+    private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            ShareCaptureResult result = await ShareCaptureService.CaptureAsync(
+                CompactCaptureRoot,
+                "compact",
+                CompactCaptureRoot.ActualTheme == ElementTheme.Light
+                    ? Microsoft.UI.Colors.White
+                    : Microsoft.UI.Colors.Black);
+            ShowShareStatus(
+                string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    GetString("ShareCaptureSuccessFormat"),
+                    result.FilePath),
+                isError: false);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or System.Runtime.InteropServices.COMException)
+        {
+            ShowShareStatus(GetString("ShareCaptureError"), isError: true);
+        }
+    }
+
+    private void OnDashboardReportRequested(
+        object sender,
+        UsageReportRequestedEventArgs e) => UsageReportRequested?.Invoke(this, e);
+
+    private void OnDashboardOptionsRequested(object? sender, EventArgs e) =>
+        ViewModel.OpenOptionsCommand.Execute(null);
 
     public void ApplyAppearance(
         AppearanceSettings settings,
@@ -121,7 +170,7 @@ public sealed partial class MainPage : Page, IDisposable
         {
             FlyoutSurfaceState.Options => OptionsSurfaceView.GetPrimaryAction(
                 ViewModel.ActiveOptionsSection),
-            FlyoutSurfaceState.Loading => FooterOptionsButton,
+            FlyoutSurfaceState.Loading => HeaderRefreshButton,
             FlyoutSurfaceState.Sample => HeaderRefreshButton,
             FlyoutSurfaceState.SampleUnavailable => SampleRetryButton,
             _ => EmptyOpenOptionsButton,
@@ -376,6 +425,29 @@ public sealed partial class MainPage : Page, IDisposable
 
     private void ScheduleSampleReveal()
         => DashboardSurfaceView.ScheduleReveal();
+
+    private async void ShowShareStatus(string message, bool isError)
+    {
+        int token = ++_shareStatusToken;
+        ShareStatusInfoBar.Message = message;
+        ShareStatusInfoBar.Severity = isError
+            ? InfoBarSeverity.Error
+            : InfoBarSeverity.Success;
+        ShareStatusInfoBar.IsOpen = true;
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        if (token == _shareStatusToken)
+        {
+            ShareStatusInfoBar.IsOpen = false;
+        }
+    }
+
+    private string GetString(string key)
+    {
+        string value = _resources.GetString(key);
+        return string.IsNullOrWhiteSpace(value)
+            ? throw new InvalidOperationException($"The resource '{key}' is missing.")
+            : value;
+    }
 
 #if DEBUG || UI_TEST_FIXTURES
     private sealed class DebugVercelCredentialStore : IVercelGatewayCredentialStore

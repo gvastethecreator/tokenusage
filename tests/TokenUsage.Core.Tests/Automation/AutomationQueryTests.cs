@@ -74,9 +74,32 @@ public sealed class AutomationQueryTests
         Assert.Equal(
             [new DateOnly(2026, 7, 24), new DateOnly(2026, 7, 25)],
             report.Days.Select(item => item.Date));
+        Assert.Equal(
+            [
+                "2026-07-24:codex",
+                "2026-07-25:codex",
+                "2026-07-25:opencode",
+            ],
+            report.AgentDays.Select(item => $"{item.Date:yyyy-MM-dd}:{item.AgentId.Value}"));
         Assert.Equal(2, codexOnly.Totals.EventCount);
         Assert.Single(codexOnly.Agents);
         Assert.Equal("codex", codexOnly.Agents[0].AgentId.Value);
+        Assert.Equal(2, codexOnly.AgentDays.Count);
+    }
+
+    [Fact]
+    public void TinyUnpricedShareDoesNotReportFullPriceCoverage()
+    {
+        var metrics = new UsageReportMetrics(
+            2,
+            new TokenBreakdown(1_000_000, 0, 0, 0, 0),
+            1m,
+            null,
+            UnpricedTokens: 1,
+            UnavailableCostEventCount: 1,
+            CoverageKind.Partial);
+
+        Assert.Equal(99.9m, metrics.PriceCoveragePercent);
     }
 
     [Fact]

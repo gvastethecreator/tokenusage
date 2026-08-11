@@ -153,6 +153,7 @@ Ejecutable propio `tokenusage.exe`:
 tokenusage limits
 tokenusage limits codex
 tokenusage limits --force --format json
+tokenusage refresh
 tokenusage usage --days 30 --format json
 tokenusage report --days 30
 tokenusage report --from 2026-07-01 --to 2026-07-31 --agent codex --format json
@@ -254,6 +255,16 @@ Requisitos:
 - explicar API-key-only o cuenta sin límites ChatGPT;
 - usar logs locales solo para detalle que el método oficial no entregue.
 
+### Historial de reinicios Codex
+
+- guardar cada observación numérica de las ventanas oficiales sin credenciales ni contenido;
+- registrar un reinicio programado cuando la ventana informada avance tras su vencimiento;
+- registrar un reinicio anticipado cuando el uso oficial caiga de forma material antes de la fecha informada, incluso si OpenAI no cambia esa fecha;
+- ignorar variaciones menores de redondeo y observaciones antiguas o repetidas;
+- no fabricar reinicios anteriores a la primera observación;
+- permitir que el informe Codex use el ciclo actual o un ciclo observado anterior como rango;
+- indicar que el uso durable está agregado por día y que el día del reinicio no se puede dividir por hora.
+
 ## Claude inicial
 
 Alcance permitido en la primera versión:
@@ -294,6 +305,7 @@ Persistidos:
 
 - configuración y orden;
 - snapshots sin credenciales;
+- observaciones numéricas y fronteras de reinicio de cuota;
 - índices de scanner y agregados diarios;
 - eventos normalizados sin contenido durante el periodo de retención;
 - versión y tasas del catálogo usadas para cada estimación;

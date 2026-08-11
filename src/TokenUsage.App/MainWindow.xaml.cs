@@ -6,12 +6,15 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 using Windows.UI.ViewManagement;
 using TokenUsage.Core.Appearance;
+using TokenUsage.App.Composition;
+using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.Core.Session;
 using TokenUsage.Platform.Windows.Display;
 using TokenUsage.Platform.Windows.Placement;
 using TokenUsage.Platform.Windows.Tray;
 using TokenUsage.Platform.Windows.Windowing;
 using WinRT.Interop;
+using Windows.Storage;
 
 namespace TokenUsage.App;
 
@@ -25,9 +28,11 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly nint _windowHandle;
     private readonly double _preferredWidthDips;
     private TrayIconHost? _trayIcon;
+    private UsageReportWindow? _reportWindow;
     private bool _isFlyoutVisible;
     private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
+    private bool _hasRequestedInitialOfficialLimits;
     private bool _disposed;
     private bool _lastHighContrast;
     private Windows.UI.Color _lastSystemBackground;
@@ -59,6 +64,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ApplyAppearance();
         UpdateStatusText();
         RootPage.HideRequested += OnHideRequested;
+        RootPage.UsageReportRequested += OnUsageReportRequested;
         Activated += OnWindowActivated;
         Closed += OnWindowClosed;
 
@@ -166,6 +172,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _systemVisualSettingsTimer.Start();
         Activate();
         _ = ForegroundWindowActivator.TryActivate(_windowHandle);
+        EnsureOfficialCodexLimitsOnFirstOpen();
 
         _ = DispatcherQueue.TryEnqueue(() =>
         {
@@ -193,6 +200,29 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             ShowFlyout(true);
         }
+    }
+
+    private void EnsureOfficialCodexLimitsOnFirstOpen()
+    {
+        if (_hasRequestedInitialOfficialLimits)
+        {
+            return;
+        }
+
+        _hasRequestedInitialOfficialLimits = true;
+        if (!RootPage.ViewModel.Dashboard.HasGlobalCodexLimits)
+        {
+            // Run after the window is active so this follows the same stable UI/session path
+            // as the refresh action instead of racing the hidden startup surface.
+            _ = RootPage.ViewModel.Dashboard.RefreshLiveAsync();
+        }
+    }
+
+    internal IDisposable SuppressDeactivateHide()
+    {
+        _suppressDeactivateHide = true;
+        _activationGuardTimer.Stop();
+        return new DeactivateHideLease(this);
     }
 
     private void PositionFlyout()
@@ -285,9 +315,14 @@ public sealed partial class MainWindow : Window, IDisposable
             e.PropertyName,
             nameof(RootPage.ViewModel.IsRefreshing),
             StringComparison.Ordinal);
+        bool layoutChanged = string.Equals(
+            e.PropertyName,
+            nameof(RootPage.ViewModel.LayoutRevision),
+            StringComparison.Ordinal);
         if (appearanceChanged)
         {
             ApplyAppearance();
+            _reportWindow?.ApplyAppearance(RootPage.ViewModel.Appearance);
             ApplyBorderlessChrome();
             if (_isFlyoutVisible)
             {
@@ -295,7 +330,7 @@ public sealed partial class MainWindow : Window, IDisposable
             }
         }
 
-        if (!surfaceChanged && !refreshChanged && !optionsSectionChanged)
+        if (!surfaceChanged && !refreshChanged && !optionsSectionChanged && !layoutChanged)
         {
             return;
         }
@@ -305,7 +340,7 @@ public sealed partial class MainWindow : Window, IDisposable
             UpdateStatusText();
         }
 
-        if ((surfaceChanged || optionsSectionChanged) && _isFlyoutVisible)
+        if ((surfaceChanged || optionsSectionChanged || layoutChanged) && _isFlyoutVisible)
         {
             BeginActivationGuard();
             SchedulePositionAfterLayout();
@@ -375,6 +410,46 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void OnHideRequested(object? sender, EventArgs e) => HideFlyout();
 
+    private void OnUsageReportRequested(object? sender, UsageReportRequestedEventArgs e)
+    {
+        if (_reportWindow is null)
+        {
+            string databasePath = AppComposition.GetUsageDatabasePath(
+                ApplicationData.Current.LocalFolder.Path);
+            string resetHistoryPath = AppComposition.GetQuotaResetHistoryPath(
+                ApplicationData.Current.LocalFolder.Path);
+            PlatformRect? iconBounds = _trayIcon is not null
+                && _trayIcon.TryGetIconBounds(out PlatformRect trayIconBounds)
+                    ? trayIconBounds
+                    : null;
+            MonitorPlacementContext display = MonitorPlacementContextProvider.Resolve(iconBounds);
+            uint reportDpi = MonitorPlacementContextProvider.GetWindowDpi(_windowHandle);
+            _reportWindow = new UsageReportWindow(
+                databasePath,
+                resetHistoryPath,
+                () => RootPage.ViewModel.Dashboard.RefreshLiveAsync(),
+                RootPage.ViewModel.Appearance,
+                e.Request,
+                RootPage.ViewModel.Dashboard.GetProviderLimits,
+                display.WorkArea,
+                reportDpi);
+            _reportWindow.Closed += OnUsageReportWindowClosed;
+        }
+
+        _reportWindow.ApplyRequest(e.Request);
+
+        _reportWindow.Activate();
+    }
+
+    private void OnUsageReportWindowClosed(object sender, WindowEventArgs args)
+    {
+        if (_reportWindow is not null)
+        {
+            _reportWindow.Closed -= OnUsageReportWindowClosed;
+            _reportWindow = null;
+        }
+    }
+
     private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
     {
         ApplyBorderlessChrome();
@@ -434,6 +509,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _lastSystemBackground = background;
         _lastSystemForeground = foreground;
         ApplyAppearance();
+        _reportWindow?.ApplyAppearance(RootPage.ViewModel.Appearance);
         ApplyBorderlessChrome();
     }
 
@@ -479,6 +555,26 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
+    private sealed class DeactivateHideLease : IDisposable
+    {
+        private MainWindow? _owner;
+
+        public DeactivateHideLease(MainWindow owner) => _owner = owner;
+
+        public void Dispose()
+        {
+            MainWindow? owner = Interlocked.Exchange(ref _owner, null);
+            if (owner is null || owner._disposed)
+            {
+                return;
+            }
+
+            owner.BeginActivationGuard();
+            owner.Activate();
+            _ = ForegroundWindowActivator.TryActivate(owner._windowHandle);
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -493,6 +589,13 @@ public sealed partial class MainWindow : Window, IDisposable
         _systemVisualSettingsTimer.Tick -= OnSystemVisualSettingsTimerElapsed;
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
+        RootPage.UsageReportRequested -= OnUsageReportRequested;
+        if (_reportWindow is not null)
+        {
+            _reportWindow.Closed -= OnUsageReportWindowClosed;
+            _reportWindow.Close();
+            _reportWindow = null;
+        }
         RootPage.Dispose();
         DisposeTrayIcon();
         GC.SuppressFinalize(this);
@@ -520,7 +623,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _trayIcon = null;
     }
 
-    private static string GetIconPath()
+    internal static string GetIconPath()
     {
         var appLocalPath = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));

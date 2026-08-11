@@ -38,6 +38,16 @@ public enum ResetTimeDisplayMode
 }
 
 /// <summary>
+/// The single visualization shown on the global compact dashboard.
+/// </summary>
+public enum DashboardVisualizationMode
+{
+    List,
+    Donut,
+    Heatmap,
+}
+
+/// <summary>
 /// Immutable user-facing appearance preferences.
 /// </summary>
 public sealed record AppearanceSettings
@@ -51,14 +61,16 @@ public sealed record AppearanceSettings
         AppDensityMode.Regular,
         increaseTransparency: false,
         UsageDisplayMode.Remaining,
-        ResetTimeDisplayMode.Relative);
+        ResetTimeDisplayMode.Relative,
+        DashboardVisualizationMode.List);
 
     public AppearanceSettings(
         AppThemeMode theme,
         AppDensityMode density,
         bool increaseTransparency,
         UsageDisplayMode usageDisplay,
-        ResetTimeDisplayMode resetTimeDisplay)
+        ResetTimeDisplayMode resetTimeDisplay,
+        DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List)
     {
         if (!Enum.IsDefined(theme))
         {
@@ -80,11 +92,20 @@ public sealed record AppearanceSettings
             throw new ArgumentOutOfRangeException(nameof(resetTimeDisplay), resetTimeDisplay, null);
         }
 
+        if (!Enum.IsDefined(dashboardVisualization))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(dashboardVisualization),
+                dashboardVisualization,
+                null);
+        }
+
         Theme = theme;
         Density = density;
         IncreaseTransparency = increaseTransparency;
         UsageDisplay = usageDisplay;
         ResetTimeDisplay = resetTimeDisplay;
+        DashboardVisualization = dashboardVisualization;
     }
 
     public AppThemeMode Theme { get; }
@@ -96,4 +117,6 @@ public sealed record AppearanceSettings
     public UsageDisplayMode UsageDisplay { get; }
 
     public ResetTimeDisplayMode ResetTimeDisplay { get; }
+
+    public DashboardVisualizationMode DashboardVisualization { get; }
 }

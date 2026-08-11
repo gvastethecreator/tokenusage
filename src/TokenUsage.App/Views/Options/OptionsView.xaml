@@ -8,30 +8,43 @@
     xmlns:options="using:TokenUsage.App.Views.Options"
     mc:Ignorable="d">
 
-    <StackPanel x:Name="OptionsStack" Spacing="12">
-        <options:OptionsHomeView
-            x:Name="HomeView"
-            ViewModel="{x:Bind ViewModel.Navigation, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.Navigation.IsHome, Mode=OneWay}" />
+    <StackPanel
+        x:Name="OptionsStack"
+        AutomationProperties.AutomationId="UnifiedOptionsView"
+        Spacing="12">
         <options:GeneralOptionsView
             x:Name="GeneralView"
-            ViewModel="{x:Bind ViewModel.General, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.Navigation.IsGeneral, Mode=OneWay}" />
+            ViewModel="{x:Bind ViewModel.General, Mode=OneWay}" />
         <options:AppearanceOptionsView
             x:Name="AppearanceView"
-            ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.Navigation.IsAppearance, Mode=OneWay}" />
+            ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}" />
         <options:PersonalizationOptionsView
             x:Name="PersonalizationView"
-            ViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.Navigation.IsPersonalization, Mode=OneWay}" />
-        <options:ProvidersOptionsView
-            x:Name="ProvidersView"
-            ViewModel="{x:Bind ViewModel.Navigation, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.Navigation.IsProviders, Mode=OneWay}" />
+            ViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}" />
         <options:ProviderStatusView
             x:Name="ProviderStatusView"
-            ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.Navigation.IsProviderStatus, Mode=OneWay}" />
+            ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}" />
+        <Border
+            AutomationProperties.AutomationId="AboutSection"
+            Style="{StaticResource OptionsCategoryCardStyle}">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Height="28" Source="ms-appx:///Assets/StoreLogo.png" Width="28" />
+                <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock x:Uid="AboutProjectTitle" FontWeight="SemiBold" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind VersionText, Mode=OneTime}" />
+                </StackPanel>
+                <HyperlinkButton
+                    x:Uid="AboutGitHubLink"
+                    Grid.Column="2"
+                    AutomationProperties.AutomationId="AboutGitHubLink"
+                    NavigateUri="https://github.com/gvastethecreator"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </Border>
     </StackPanel>
 </UserControl>

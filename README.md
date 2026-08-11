@@ -7,9 +7,12 @@ TokenUsage is a Windows app for viewing AI coding-tool quota, token use, and spe
 ## What works today
 
 - Codex quota and reset windows through the official local `app-server` process.
-- Local usage and cost views for Codex, Claude, Grok Build, OpenCode, and passive Antigravity databases.
+- Local usage and cost views for Codex, Grok Build, OpenCode, and passive Antigravity databases.
+- The Claude reader remains available for a later opt-in, but it is not active by default.
 - Vercel AI Gateway code is retained but its provider is temporarily disabled.
 - Daily usage heatmaps, provider details, configurable colors, and quota alerts.
+- Local Codex reset history, including early resets detected from authoritative usage drops.
+- Codex reports can use the current or a previously observed reset cycle as their date range.
 - English and Spanish UI.
 - A packaged `tokenusage` command for usage, limits, provider status, and diagnostics.
 
@@ -62,6 +65,7 @@ Use `-Platform ARM64` for a cross-architecture package build. Tests still run on
 After installing the package and enabling its execution alias:
 
 ```powershell
+tokenusage refresh
 tokenusage usage --days 7 --format human
 tokenusage report --days 30 --format human
 tokenusage report --from 2026-07-01 --to 2026-07-31 --agent codex --format json
@@ -70,7 +74,19 @@ tokenusage providers --format human
 tokenusage doctor --format human
 ```
 
-`report` shows totals, token types, agents, models, high-cost days, daily history, and price coverage. Reported and estimated costs stay separate. The JSON contracts are versioned as `tokenusage.usage.v1`, `tokenusage.report.v1`, `tokenusage.limits.v1`, `tokenusage.providers.v1`, and `tokenusage.doctor.v1`.
+Run `tokenusage refresh` before `usage` or `report` when the app has not updated
+the local store. The refresh reads the installed local providers and writes only
+normalized numeric usage records.
+
+`report` shows totals, token types, agents, models, high-cost days, daily history, and price coverage. Reported and estimated costs stay separate. The JSON contracts are versioned as `tokenusage.refresh.v1`, `tokenusage.usage.v1`, `tokenusage.report.v1`, `tokenusage.limits.v1`, `tokenusage.providers.v1`, and `tokenusage.doctor.v1`.
+
+Every fresh Codex limits observation also updates `history/quota-resets.v1.json`.
+TokenUsage records one reset when an observed official limit returns from used
+quota to 100% remaining. The reported boundary distinguishes scheduled resets
+from early resets, and repeated refreshes at 100% do not increase the count. It
+does not invent resets before tracking began. Codex reports show the observed
+reset count for their active period and provide previous/next navigation across
+the recorded reset cycles.
 
 ## Project map
 

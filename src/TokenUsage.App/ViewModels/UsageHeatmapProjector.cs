@@ -29,12 +29,21 @@ public static class UsageHeatmapProjector
                 group => new DailyActivity(
                     group.Sum(rollup => rollup.Tokens.Total),
                     group.Sum(rollup => rollup.EventCount),
+                    group.Sum(rollup => rollup.Tokens.CacheRead),
+                    group.Sum(rollup => rollup.Tokens.Input),
+                    group.Sum(rollup => rollup.Tokens.Output),
+                    group.Sum(rollup => rollup.Tokens.Reasoning),
                     group.Where(rollup => rollup.ReportedCostUsd is not null)
                         .Sum(rollup => rollup.ReportedCostUsd ?? 0m),
                     group.Where(rollup => rollup.EstimatedCostUsd is not null)
                         .Sum(rollup => rollup.EstimatedCostUsd ?? 0m),
                     group.Any(rollup => rollup.ReportedCostUsd is not null),
-                    group.Any(rollup => rollup.EstimatedCostUsd is not null)));
+                    group.Any(rollup => rollup.EstimatedCostUsd is not null),
+                    group.Select(rollup => rollup.AgentId.Value)
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(ProviderOrder)
+                        .ThenBy(providerId => providerId, StringComparer.Ordinal)
+                        .ToArray()));
 
         long maximumTokens = activityByDay.Count == 0
             ? 0
@@ -53,6 +62,19 @@ public static class UsageHeatmapProjector
             }
 
             string formattedDate = date.ToString("d", CultureInfo.CurrentCulture);
+            string costText = FormatCost(activity, getString);
+            string totalTokensText = activity.TotalTokens.ToString(
+                "N0",
+                CultureInfo.CurrentCulture);
+            string cachedInputText = activity.CachedInputTokens.ToString(
+                "N0",
+                CultureInfo.CurrentCulture);
+            string uncachedInputText = activity.UncachedInputTokens.ToString(
+                "N0",
+                CultureInfo.CurrentCulture);
+            string outputText = activity.OutputTokens.ToString(
+                "N0",
+                CultureInfo.CurrentCulture);
             string accessibleName = level == 0
                 ? string.Format(
                     CultureInfo.CurrentCulture,
@@ -60,18 +82,48 @@ public static class UsageHeatmapProjector
                     formattedDate)
                 : string.Format(
                     CultureInfo.CurrentCulture,
-                    getString("UsageHeatmapDayFormat"),
+                    getString("UsageHeatmapDayDetailFormat"),
                     formattedDate,
-                    activity.TotalTokens.ToString("N0", CultureInfo.CurrentCulture),
+                    totalTokensText,
+                    costText,
                     activity.EventCount,
-                    FormatCost(activity, getString));
+                    cachedInputText,
+                    uncachedInputText,
+                    outputText);
+            UsageHeatmapTooltip? tooltip = level == 0
+                ? null
+                : new UsageHeatmapTooltip(
+                    date.ToString("D", CultureInfo.CurrentCulture),
+                    [
+                        new(getString("UsageHeatmapTooltipTokensLabel"), totalTokensText),
+                        new(getString("UsageHeatmapTooltipCostLabel"), costText),
+                        new(
+                            getString("UsageHeatmapTooltipEventsLabel"),
+                            activity.EventCount.ToString("N0", CultureInfo.CurrentCulture)),
+                        new(getString("UsageHeatmapTooltipCachedInputLabel"), cachedInputText),
+                        new(getString("UsageHeatmapTooltipUncachedInputLabel"), uncachedInputText),
+                        new(getString("UsageHeatmapTooltipOutputLabel"), outputText),
+                        new(
+                            getString("UsageHeatmapTooltipReasoningLabel"),
+                            activity.ReasoningTokens.ToString("N0", CultureInfo.CurrentCulture)),
+                    ]);
             cells[index] = new UsageHeatmapCell(
                 date,
                 level,
                 activity.TotalTokens,
                 activity.EventCount,
                 $"{automationPrefix}.{date:yyyy-MM-dd}",
-                accessibleName);
+                accessibleName,
+                activity.HasReportedCost || activity.HasEstimatedCost
+                    ? activity.ReportedCost + activity.EstimatedCost
+                    : null,
+                activity.CachedInputTokens,
+                activity.UncachedInputTokens,
+                activity.OutputTokens,
+                activity.ReasoningTokens,
+                accessibleName,
+                activity.ProviderIds,
+                tooltip);
         }
 
         string title = getString("UsageHeatmapTitle");
@@ -119,14 +171,40 @@ public static class UsageHeatmapProjector
             activity.ReportedCost + activity.EstimatedCost);
     }
 
+    private static int ProviderOrder(string providerId) => providerId switch
+    {
+        "codex" => 0,
+        "opencode" => 1,
+        "antigravity" => 2,
+        "grok" => 3,
+        "claude" => 4,
+        _ => 5,
+    };
+
     private sealed record DailyActivity(
         long TotalTokens,
         int EventCount,
+        long CachedInputTokens,
+        long UncachedInputTokens,
+        long OutputTokens,
+        long ReasoningTokens,
         decimal ReportedCost,
         decimal EstimatedCost,
         bool HasReportedCost,
-        bool HasEstimatedCost)
+        bool HasEstimatedCost,
+        IReadOnlyList<string> ProviderIds)
     {
-        public static DailyActivity Empty { get; } = new(0, 0, 0m, 0m, false, false);
+        public static DailyActivity Empty { get; } = new(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0m,
+            0m,
+            false,
+            false,
+            []);
     }
 }

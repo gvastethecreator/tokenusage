@@ -68,6 +68,7 @@ public sealed class OpenCodeUsageEventSource :
         var databaseEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
         var aggregateEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
         var aggregateSessions = new HashSet<string>(StringComparer.Ordinal);
+        var incompleteDatabaseSessions = new HashSet<string>(StringComparer.Ordinal);
         foreach (string path in EnumerateDatabaseFiles(state, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -81,6 +82,7 @@ public sealed class OpenCodeUsageEventSource :
                 databaseEvents,
                 aggregateEvents,
                 aggregateSessions,
+                incompleteDatabaseSessions,
                 state,
                 _maximumRows,
                 cancellationToken);
@@ -97,7 +99,11 @@ public sealed class OpenCodeUsageEventSource :
             }
         }
 
-        ReadLegacyJson(aggregateSessions, databaseEvents, state, cancellationToken);
+        HashSet<string> databaseSessions = databaseEvents.Values
+            .Select(candidate => candidate.SessionId)
+            .ToHashSet(StringComparer.Ordinal);
+        databaseSessions.ExceptWith(incompleteDatabaseSessions);
+        ReadLegacyJson(databaseSessions, databaseEvents, state, cancellationToken);
 
         List<UsageEvent> events = databaseEvents.Values
             .OrderBy(candidate => candidate.SessionId, StringComparer.Ordinal)
@@ -139,6 +145,7 @@ public sealed class OpenCodeUsageEventSource :
         Dictionary<string, Candidate> messages,
         Dictionary<string, Candidate> aggregates,
         HashSet<string> aggregateSessions,
+        HashSet<string> incompleteSessions,
         LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
@@ -173,6 +180,7 @@ public sealed class OpenCodeUsageEventSource :
                     connection,
                     aggregates,
                     aggregateSessions,
+                    incompleteSessions,
                     state,
                     maximumRows,
                     cancellationToken);
@@ -183,6 +191,7 @@ public sealed class OpenCodeUsageEventSource :
                 ReadMessageRows(
                     connection,
                     messages,
+                    incompleteSessions,
                     state,
                     maximumRows,
                     HasColumns(partColumns, "id", "message_id", "time_created", "data"),
@@ -238,6 +247,7 @@ public sealed class OpenCodeUsageEventSource :
     private static void ReadMessageRows(
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
+        HashSet<string> incompleteSessions,
         LocalScanState state,
         int maximumRows,
         bool hasPartFallback,
@@ -291,7 +301,14 @@ public sealed class OpenCodeUsageEventSource :
             string sessionId = reader.IsDBNull(1) ? "" : reader.GetString(1);
             if (!TryReadDbCandidate(reader, sessionId, out Candidate? candidate))
             {
-                if (HasPossibleUsage(reader)) state.IsPartial = true;
+                if (HasPossibleUsage(reader))
+                {
+                    state.IsPartial = true;
+                    if (!string.IsNullOrWhiteSpace(sessionId))
+                    {
+                        incompleteSessions.Add(sessionId);
+                    }
+                }
                 continue;
             }
             output.TryAdd(Key(candidate.SessionId, candidate.MessageId), candidate);
@@ -339,6 +356,7 @@ public sealed class OpenCodeUsageEventSource :
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
         HashSet<string> aggregateSessions,
+        HashSet<string> incompleteSessions,
         LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
@@ -362,6 +380,10 @@ public sealed class OpenCodeUsageEventSource :
                 || !TryNonNegative(reader, 4, out long input) || !TryNonNegative(reader, 5, out long outputTokens))
             {
                 state.IsPartial = true;
+                if (!string.IsNullOrWhiteSpace(sessionId))
+                {
+                    incompleteSessions.Add(sessionId);
+                }
                 continue;
             }
             long reasoning = GetNonNegativeOrZero(reader, 6);

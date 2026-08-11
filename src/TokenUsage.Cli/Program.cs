@@ -1,6 +1,11 @@
 using Windows.Storage;
 using TokenUsage.Cli;
 
+if (CliApplication.IsHelpRequest(args))
+{
+    return await CliApplication.WriteHelpAsync(Console.Out);
+}
+
 string dataDirectory;
 try
 {

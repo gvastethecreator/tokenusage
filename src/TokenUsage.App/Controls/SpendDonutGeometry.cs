@@ -10,7 +10,7 @@ internal readonly record struct SpendDonutArc(
 
 internal static class SpendDonutGeometry
 {
-    internal const double MinimumDisplayShare = 0.025;
+    internal const double MinimumDisplayShare = 0.008;
 
     public static IReadOnlyList<SpendDonutArc> CreateArcs(
         IEnumerable<SpendDonutInput> values)

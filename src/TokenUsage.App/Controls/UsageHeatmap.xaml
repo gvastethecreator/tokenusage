@@ -8,13 +8,16 @@
     IsTabStop="False">
     <Grid>
         <Grid IsHitTestVisible="False" Visibility="Collapsed">
-            <Border x:Name="ActiveBrushProxy" Background="{ThemeResource AccentFillColorDefaultBrush}" />
+            <Border x:Name="ActiveBrushProxy" Background="{ThemeResource TextFillColorPrimaryBrush}" />
             <Border x:Name="EmptyBrushProxy" Background="{ThemeResource SubtleFillColorSecondaryBrush}" />
-            <Border x:Name="StrokeBrushProxy" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Border x:Name="StrokeBrushProxy" Background="{ThemeResource TokenUsageStrokeBrush}" />
+            <Border x:Name="SecondaryTextBrushProxy" Background="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Border x:Name="ActiveTextBrushProxy" Background="{ThemeResource TokenUsageShellBrush}" />
+            <Border x:Name="EmptyTextBrushProxy" Background="{ThemeResource TextFillColorPrimaryBrush}" />
         </Grid>
         <Grid
             x:Name="CellGrid"
             AutomationProperties.AccessibilityView="Raw"
-            HorizontalAlignment="Left" />
+            HorizontalAlignment="Center" />
     </Grid>
 </UserControl>

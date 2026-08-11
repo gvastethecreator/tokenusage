@@ -15,12 +15,24 @@ public sealed record UsageReportMetrics(
     public decimal TotalCostUsd =>
         (ReportedCostUsd ?? 0m) + (EstimatedCostUsd ?? 0m);
 
-    public decimal PriceCoveragePercent => Tokens.Total == 0
-        ? 0m
-        : decimal.Round(
-            (Tokens.Total - UnpricedTokens) * 100m / Tokens.Total,
-            1,
-            MidpointRounding.AwayFromZero);
+    public decimal PriceCoveragePercent
+    {
+        get
+        {
+            if (Tokens.Total == 0)
+            {
+                return 0m;
+            }
+
+            decimal percent = decimal.Round(
+                (Tokens.Total - UnpricedTokens) * 100m / Tokens.Total,
+                1,
+                MidpointRounding.AwayFromZero);
+            return UnpricedTokens > 0 && UnpricedTokens < Tokens.Total
+                ? Math.Min(percent, 99.9m)
+                : percent;
+        }
+    }
 }
 
 public sealed record UsageAgentReport(
@@ -37,11 +49,17 @@ public sealed record UsageDayReport(
     DateOnly Date,
     UsageReportMetrics Metrics);
 
+public sealed record UsageAgentDayReport(
+    DateOnly Date,
+    AgentId AgentId,
+    UsageReportMetrics Metrics);
+
 public sealed record UsageReport(
     UsageReportMetrics Totals,
     IReadOnlyList<UsageAgentReport> Agents,
     IReadOnlyList<UsageModelReport> Models,
-    IReadOnlyList<UsageDayReport> Days);
+    IReadOnlyList<UsageDayReport> Days,
+    IReadOnlyList<UsageAgentDayReport> AgentDays);
 
 public sealed class UsageReportQuery
 {
@@ -113,7 +131,21 @@ public sealed class UsageReportQuery
             .OrderBy(item => item.Date)
             .ToArray();
 
-        return new UsageReport(Aggregate(snapshot), agents, models, days);
+        UsageAgentDayReport[] agentDays = snapshot
+            .GroupBy(rollup => new
+            {
+                rollup.Date,
+                rollup.AgentId,
+            })
+            .Select(group => new UsageAgentDayReport(
+                group.Key.Date,
+                group.Key.AgentId,
+                Aggregate(group)))
+            .OrderBy(item => item.Date)
+            .ThenBy(item => item.AgentId.Value, StringComparer.Ordinal)
+            .ToArray();
+
+        return new UsageReport(Aggregate(snapshot), agents, models, days, agentDays);
     }
 
     private static UsageReportMetrics Aggregate(IEnumerable<DailyUsageRollup> rollups)

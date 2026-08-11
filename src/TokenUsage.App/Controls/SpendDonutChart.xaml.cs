@@ -14,10 +14,22 @@ using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
 namespace TokenUsage.App.Controls;
 
+public sealed class ProviderInvokedEventArgs : EventArgs
+{
+    public ProviderInvokedEventArgs(string providerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        ProviderId = providerId;
+    }
+
+    public string ProviderId { get; }
+}
+
 public sealed partial class SpendDonutChart : UserControl
 {
     private const double InnerRadiusRatio = 0.618;
     private const double GapWidth = 1.6;
+    private const double RibbonCornerRadius = 4;
 
     private readonly List<ArcVisual> _arcVisuals = [];
     private readonly AccessibilitySettings _accessibilitySettings = new();
@@ -41,6 +53,20 @@ public sealed partial class SpendDonutChart : UserControl
             typeof(string),
             typeof(SpendDonutChart),
             new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty CenterFontSizeProperty =
+        DependencyProperty.Register(
+            nameof(CenterFontSize),
+            typeof(double),
+            typeof(SpendDonutChart),
+            new PropertyMetadata(12d));
+
+    public static readonly DependencyProperty CenterMaxWidthProperty =
+        DependencyProperty.Register(
+            nameof(CenterMaxWidth),
+            typeof(double),
+            typeof(SpendDonutChart),
+            new PropertyMetadata(78d));
 
     public static readonly DependencyProperty RevealProgressProperty =
         DependencyProperty.Register(
@@ -76,6 +102,18 @@ public sealed partial class SpendDonutChart : UserControl
         set => SetValue(CenterValueProperty, value);
     }
 
+    public double CenterFontSize
+    {
+        get => (double)GetValue(CenterFontSizeProperty);
+        set => SetValue(CenterFontSizeProperty, value);
+    }
+
+    public double CenterMaxWidth
+    {
+        get => (double)GetValue(CenterMaxWidthProperty);
+        set => SetValue(CenterMaxWidthProperty, value);
+    }
+
     public double RevealProgress
     {
         get => (double)GetValue(RevealProgressProperty);
@@ -87,6 +125,8 @@ public sealed partial class SpendDonutChart : UserControl
         get => (IReadOnlyList<SpendSlice>?)GetValue(SlicesProperty);
         set => SetValue(SlicesProperty, value);
     }
+
+    public event EventHandler<ProviderInvokedEventArgs>? ProviderInvoked;
 
     public void PlayReveal(int token)
     {
@@ -180,59 +220,25 @@ public sealed partial class SpendDonutChart : UserControl
 
         foreach (SpendDonutArc arc in _arcs)
         {
-            var figure = new PathFigure
-            {
-                IsClosed = false,
-                IsFilled = false,
-            };
-            var segment = new ArcSegment
-            {
-                SweepDirection = SweepDirection.Clockwise,
-            };
-            figure.Segments.Add(segment);
-
-            var geometry = new PathGeometry();
-            geometry.Figures.Add(figure);
-
-            var shadowFigure = new PathFigure
-            {
-                IsClosed = false,
-                IsFilled = false,
-            };
-            var shadowSegment = new ArcSegment
-            {
-                SweepDirection = SweepDirection.Clockwise,
-            };
-            shadowFigure.Segments.Add(shadowSegment);
-
-            var shadowGeometry = new PathGeometry();
-            shadowGeometry.Figures.Add(shadowFigure);
-
             var path = new XamlPath
             {
-                Data = geometry,
-                StrokeEndLineCap = PenLineCap.Round,
-                StrokeStartLineCap = PenLineCap.Round,
                 Visibility = Visibility.Collapsed,
             };
             var shadowPath = new XamlPath
             {
-                Data = shadowGeometry,
                 IsHitTestVisible = false,
                 RenderTransform = new TranslateTransform { Y = 0.75 },
-                StrokeEndLineCap = PenLineCap.Round,
-                StrokeStartLineCap = PenLineCap.Round,
                 Visibility = Visibility.Collapsed,
             };
             if (!_accessibilitySettings.HighContrast
                 && _customColors.TryGetValue(arc.ProviderId, out string? colorHex))
             {
-                path.Stroke = ProviderColorPalette.CreateGradient(colorHex);
+                path.Fill = ProviderColorPalette.CreateGradient(colorHex);
             }
             else
             {
                 path.SetBinding(
-                    Shape.StrokeProperty,
+                    Shape.FillProperty,
                     new Binding
                     {
                         Source = ResolveBrushProxy(arc.ProviderId),
@@ -240,7 +246,7 @@ public sealed partial class SpendDonutChart : UserControl
                     });
             }
             shadowPath.SetBinding(
-                Shape.StrokeProperty,
+                Shape.FillProperty,
                 new Binding
                 {
                     Source = ShadowBrushProxy,
@@ -254,17 +260,33 @@ public sealed partial class SpendDonutChart : UserControl
                     Path = new PropertyPath(nameof(Opacity)),
                 });
             AutomationProperties.SetAccessibilityView(shadowPath, AccessibilityView.Raw);
-            AutomationProperties.SetAccessibilityView(path, AccessibilityView.Raw);
+            SpendSlice? slice = Slices?.FirstOrDefault(candidate => string.Equals(
+                candidate.ProviderId,
+                arc.ProviderId,
+                StringComparison.Ordinal));
+            if (slice is not null)
+            {
+                double total = Slices!.Sum(candidate => Math.Max(0, candidate.Amount));
+                double share = total <= 0 ? 0 : slice.Amount * 100 / total;
+                string name = $"{slice.ProviderName}: {slice.LegendAmountText} · {share:0.#}%";
+                AutomationProperties.SetAccessibilityView(path, AccessibilityView.Content);
+                AutomationProperties.SetName(path, name);
+                AutomationProperties.SetHelpText(path, name);
+                ToolTipService.SetToolTip(path, CreateSliceToolTip(slice, share));
+                path.Opacity = 0.9;
+                path.PointerEntered += (_, _) => path.Opacity = 1;
+                path.PointerExited += (_, _) => path.Opacity = 0.9;
+                path.Tapped += (_, _) => ProviderInvoked?.Invoke(
+                    this,
+                    new ProviderInvokedEventArgs(slice.ProviderId));
+            }
+            else
+            {
+                AutomationProperties.SetAccessibilityView(path, AccessibilityView.Raw);
+            }
             ArcCanvas.Children.Add(shadowPath);
             ArcCanvas.Children.Add(path);
-            _arcVisuals.Add(
-                new ArcVisual(
-                    path,
-                    shadowPath,
-                    figure,
-                    segment,
-                    shadowFigure,
-                    shadowSegment));
+            _arcVisuals.Add(new ArcVisual(path, shadowPath));
         }
 
         UpdateArcVisuals();
@@ -280,8 +302,6 @@ public sealed partial class SpendDonutChart : UserControl
 
         double outerRadius = size / 2;
         double innerRadius = outerRadius * InnerRadiusRatio;
-        double strokeThickness = outerRadius - innerRadius;
-        double radius = innerRadius + (strokeThickness / 2);
         double halfGapRadians = (GapWidth / outerRadius) / 2;
         double progress = Math.Clamp(RevealProgress, 0, 1);
         var center = new Point(ArcCanvas.ActualWidth / 2, ArcCanvas.ActualHeight / 2);
@@ -300,7 +320,7 @@ public sealed partial class SpendDonutChart : UserControl
                 - halfGapRadians;
             double sweep = end - start;
 
-            if (sweep <= 0.001 || radius <= 0)
+            if (sweep <= 0.001 || innerRadius <= 0)
             {
                 visual.Path.Visibility = Visibility.Collapsed;
                 visual.ShadowPath.Visibility = Visibility.Collapsed;
@@ -309,17 +329,138 @@ public sealed partial class SpendDonutChart : UserControl
 
             visual.Path.Visibility = Visibility.Visible;
             visual.ShadowPath.Visibility = Visibility.Visible;
-            visual.Path.StrokeThickness = strokeThickness;
-            visual.ShadowPath.StrokeThickness = strokeThickness;
-            visual.Figure.StartPoint = PolarPoint(center, radius, start);
-            visual.Segment.Point = PolarPoint(center, radius, end);
-            visual.Segment.Size = new Size(radius, radius);
-            visual.Segment.IsLargeArc = sweep > Math.PI;
-            visual.ShadowFigure.StartPoint = visual.Figure.StartPoint;
-            visual.ShadowSegment.Point = visual.Segment.Point;
-            visual.ShadowSegment.Size = visual.Segment.Size;
-            visual.ShadowSegment.IsLargeArc = visual.Segment.IsLargeArc;
+            visual.Path.Data = CreateRoundedRibbonGeometry(
+                center,
+                innerRadius,
+                outerRadius,
+                start,
+                end);
+            visual.ShadowPath.Data = CreateRoundedRibbonGeometry(
+                center,
+                innerRadius,
+                outerRadius,
+                start,
+                end);
         }
+    }
+
+    private static ToolTip CreateSliceToolTip(SpendSlice slice, double share)
+    {
+        var values = new Grid { ColumnSpacing = 14 };
+        values.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(1, GridUnitType.Star),
+        });
+        values.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        values.Children.Add(new TextBlock
+        {
+            Text = slice.LegendAmountText,
+            TextWrapping = TextWrapping.WrapWholeWords,
+        });
+        var percent = new TextBlock
+        {
+            Text = $"{share:0.#}%",
+            FontFamily = new FontFamily("Consolas"),
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextAlignment = TextAlignment.Right,
+        };
+        Grid.SetColumn(percent, 1);
+        values.Children.Add(percent);
+
+        var content = new StackPanel
+        {
+            MaxWidth = 240,
+            Spacing = 5,
+        };
+        content.Children.Add(new TextBlock
+        {
+            Text = slice.ProviderName,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextWrapping = TextWrapping.WrapWholeWords,
+        });
+        content.Children.Add(values);
+        return new ToolTip
+        {
+            Content = content,
+            MaxWidth = 264,
+            Placement = Microsoft.UI.Xaml.Controls.Primitives.PlacementMode.Bottom,
+        };
+    }
+
+    private static PathGeometry CreateRoundedRibbonGeometry(
+        Point center,
+        double innerRadius,
+        double outerRadius,
+        double start,
+        double end)
+    {
+        double sweep = end - start;
+        double thickness = outerRadius - innerRadius;
+        double cornerRadius = Math.Min(
+            RibbonCornerRadius,
+            Math.Min(
+                thickness / 2,
+                Math.Max(0, (sweep * innerRadius) / 2.2)));
+        double outerInset = cornerRadius / outerRadius;
+        double innerInset = cornerRadius / innerRadius;
+
+        Point outerStartCorner = PolarPoint(center, outerRadius, start);
+        Point outerEndCorner = PolarPoint(center, outerRadius, end);
+        Point innerStartCorner = PolarPoint(center, innerRadius, start);
+        Point innerEndCorner = PolarPoint(center, innerRadius, end);
+
+        var figure = new PathFigure
+        {
+            IsClosed = true,
+            IsFilled = true,
+            StartPoint = PolarPoint(center, outerRadius, start + outerInset),
+        };
+        figure.Segments.Add(new ArcSegment
+        {
+            Point = PolarPoint(center, outerRadius, end - outerInset),
+            Size = new Size(outerRadius, outerRadius),
+            IsLargeArc = sweep - (2 * outerInset) > Math.PI,
+            SweepDirection = SweepDirection.Clockwise,
+        });
+        figure.Segments.Add(new QuadraticBezierSegment
+        {
+            Point1 = outerEndCorner,
+            Point2 = PolarPoint(center, outerRadius - cornerRadius, end),
+        });
+        figure.Segments.Add(new LineSegment
+        {
+            Point = PolarPoint(center, innerRadius + cornerRadius, end),
+        });
+        figure.Segments.Add(new QuadraticBezierSegment
+        {
+            Point1 = innerEndCorner,
+            Point2 = PolarPoint(center, innerRadius, end - innerInset),
+        });
+        figure.Segments.Add(new ArcSegment
+        {
+            Point = PolarPoint(center, innerRadius, start + innerInset),
+            Size = new Size(innerRadius, innerRadius),
+            IsLargeArc = sweep - (2 * innerInset) > Math.PI,
+            SweepDirection = SweepDirection.Counterclockwise,
+        });
+        figure.Segments.Add(new QuadraticBezierSegment
+        {
+            Point1 = innerStartCorner,
+            Point2 = PolarPoint(center, innerRadius + cornerRadius, start),
+        });
+        figure.Segments.Add(new LineSegment
+        {
+            Point = PolarPoint(center, outerRadius - cornerRadius, start),
+        });
+        figure.Segments.Add(new QuadraticBezierSegment
+        {
+            Point1 = outerStartCorner,
+            Point2 = figure.StartPoint,
+        });
+
+        var geometry = new PathGeometry();
+        geometry.Figures.Add(figure);
+        return geometry;
     }
 
     private static Point PolarPoint(Point center, double radius, double angle) =>
@@ -356,13 +497,7 @@ public sealed partial class SpendDonutChart : UserControl
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => RebuildArcVisuals();
 
-    private sealed record ArcVisual(
-        XamlPath Path,
-        XamlPath ShadowPath,
-        PathFigure Figure,
-        ArcSegment Segment,
-        PathFigure ShadowFigure,
-        ArcSegment ShadowSegment);
+    private sealed record ArcVisual(XamlPath Path, XamlPath ShadowPath);
 
     private sealed record SliceVisualState(
         string ProviderId,

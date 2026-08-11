@@ -43,7 +43,7 @@ function Resolve-MSBuild {
         throw 'Visual Studio MSBuild discovery tool is missing.'
     }
 
-    $visualStudio = & $vswhere -latest -requires Microsoft.Component.MSBuild -property installationPath
+    $visualStudio = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
     $candidate = Join-Path $visualStudio 'MSBuild\Current\Bin\MSBuild.exe'
     if (-not (Test-Path -LiteralPath $candidate)) {
         throw 'Visual Studio MSBuild is required to build the packaging project.'

@@ -15,7 +15,7 @@
     Background="Transparent"
     mc:Ignorable="d">
 
-    <Grid>
+    <Grid x:Name="CaptureSurface">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="AppearanceDensityStates">
                 <VisualState x:Name="RegularDensity">
@@ -38,15 +38,16 @@
         </VisualStateManager.VisualStateGroups>
         <Border
             x:Name="OpaqueSurface"
-            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+            Background="{ThemeResource TokenUsageShellBrush}"
             IsHitTestVisible="False" />
         <Border
             x:Name="FlyoutChrome"
             SizeChanged="OnFlyoutChromeSizeChanged"
             Padding="14"
-            Background="{ThemeResource LayerFillColorDefaultBrush}"
-            BorderThickness="0"
-            CornerRadius="{ThemeResource OverlayCornerRadius}">
+            Background="{ThemeResource TokenUsageShellBrush}"
+            BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+            BorderThickness="2"
+            CornerRadius="12">
         <Grid x:Name="RootLayout" RowSpacing="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -63,12 +64,17 @@
                 <StackPanel
                     Grid.Column="0"
                     Orientation="Horizontal"
-                    Spacing="8"
+                    Spacing="9"
                     VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
+                    <Image
+                        Height="32"
+                        Source="ms-appx:///Assets/StoreLogo.png"
+                        Width="32" />
                     <TextBlock
                         x:Uid="ProviderHeader"
-                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        FontSize="17"
+                        FontWeight="SemiBold"
                         VerticalAlignment="Center" />
                     <Border
                         Padding="7,2"
@@ -89,20 +95,83 @@
                     VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}" />
 
-                <Button
-                    x:Name="HeaderRefreshButton"
-                    x:Uid="HeaderRefreshButton"
+                <StackPanel
                     Grid.Column="1"
-                    AutomationProperties.AutomationId="HeaderRefreshButton"
-                    Command="{x:Bind ViewModel.RefreshCommand}"
-                    Padding="8"
+                    Orientation="Horizontal"
+                    Spacing="4"
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
-                    <FontIcon
-                        AutomationProperties.AccessibilityView="Raw"
-                        FontSize="14"
-                        IsTextScaleFactorEnabled="False"
-                        Glyph="&#xE72C;" />
-                </Button>
+                    <Button
+                        x:Name="HeaderVisualizationButton"
+                        AutomationProperties.AutomationId="HeaderVisualizationButton"
+                        AutomationProperties.Name="{x:Bind ViewModel.Dashboard.VisualizationToggleText, Mode=OneWay}"
+                        Background="{ThemeResource TokenUsageButtonBrush}"
+                        Click="OnVisualizationToggleClick"
+                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
+                        Padding="8"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.Dashboard.VisualizationToggleText, Mode=OneWay}">
+                        <FontIcon
+                            AutomationProperties.AccessibilityView="Raw"
+                            FontSize="14"
+                            Glyph="{x:Bind ViewModel.Dashboard.VisualizationToggleGlyph, Mode=OneWay}"
+                            IsTextScaleFactorEnabled="False" />
+                    </Button>
+                    <Button
+                        x:Name="HeaderShareButton"
+                        x:Uid="HeaderShareButton"
+                        AutomationProperties.AutomationId="HeaderShareButton"
+                        Background="{ThemeResource TokenUsageButtonBrush}"
+                        Click="OnShareCaptureClick"
+                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
+                        Padding="8">
+                        <FontIcon
+                            AutomationProperties.AccessibilityView="Raw"
+                            FontSize="14"
+                            Glyph="&#xE72D;"
+                            IsTextScaleFactorEnabled="False" />
+                    </Button>
+                    <Button
+                        x:Name="UsageReportButton"
+                        x:Uid="UsageReportButton"
+                        AutomationProperties.AutomationId="UsageReportButton"
+                        Click="OnUsageReportButtonClick"
+                        Background="{ThemeResource TokenUsageButtonBrush}"
+                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
+                        Padding="8">
+                        <FontIcon
+                            AutomationProperties.AccessibilityView="Raw"
+                            FontSize="14"
+                            IsTextScaleFactorEnabled="False"
+                            Glyph="&#xE9D2;" />
+                    </Button>
+                    <Button
+                        x:Name="HeaderRefreshButton"
+                        x:Uid="HeaderRefreshButton"
+                        AutomationProperties.AutomationId="HeaderRefreshButton"
+                        Command="{x:Bind ViewModel.RefreshCommand}"
+                        Background="{ThemeResource TokenUsageButtonBrush}"
+                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
+                        Padding="8">
+                        <FontIcon
+                            AutomationProperties.AccessibilityView="Raw"
+                            FontSize="14"
+                            IsTextScaleFactorEnabled="False"
+                            Glyph="&#xE72C;" />
+                    </Button>
+                    <Button
+                        x:Name="HeaderOptionsButton"
+                        x:Uid="HeaderOptionsButton"
+                        AutomationProperties.AutomationId="HeaderOptionsButton"
+                        Command="{x:Bind ViewModel.OpenOptionsCommand}"
+                        Background="{ThemeResource TokenUsageButtonBrush}"
+                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
+                        Padding="8">
+                        <FontIcon
+                            AutomationProperties.AccessibilityView="Raw"
+                            FontSize="14"
+                            IsTextScaleFactorEnabled="False"
+                            Glyph="&#xE713;" />
+                    </Button>
+                </StackPanel>
 
                 <Button
                     x:Name="OptionsBackButton"
@@ -130,13 +199,16 @@
                 <ScrollViewer.RenderTransform>
                     <CompositeTransform x:Name="BodyTransitionTransform" />
                 </ScrollViewer.RenderTransform>
-                <Grid MinHeight="112">
+                <Grid
+                    x:Name="CompactCaptureRoot"
+                    MinHeight="112"
+                    Background="{ThemeResource TokenUsageShellBrush}">
                     <Border
                         MinHeight="112"
                         Padding="16"
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
+                        BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+                        BorderThickness="2"
                         CornerRadius="{ThemeResource ControlCornerRadius}"
                         Visibility="{x:Bind ViewModel.IsCardSurface, Mode=OneWay}">
                         <Grid>
@@ -219,16 +291,18 @@
                         </Grid>
                     </Border>
 
-                    <dashboardViews:DashboardView
+                    <dashboardViews:CompactUsageDashboard
                         x:Name="DashboardSurfaceView"
+                        OptionsRequested="OnDashboardOptionsRequested"
+                        ReportRequested="OnDashboardReportRequested"
                         ViewModel="{x:Bind ViewModel.Dashboard, Mode=OneWay}"
                         Visibility="{x:Bind ViewModel.IsSample, Mode=OneWay}" />
                 </Grid>
             </ScrollViewer>
 
-            <Grid Grid.Row="2" ColumnSpacing="8">
+            <Grid Grid.Row="2" ColumnSpacing="8" Visibility="Collapsed">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="FooterIdentityColumn" Width="*" />
+                    <ColumnDefinition x:Name="FooterIdentityColumn" Width="0" />
                     <ColumnDefinition x:Name="FooterStatusColumn" Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -241,7 +315,8 @@
                     MaxWidth="120"
                     Style="{StaticResource CaptionTextBlockStyle}"
                     TextTrimming="CharacterEllipsis"
-                    VerticalAlignment="Center" />
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed" />
 
                 <TextBlock
                     x:Name="FlyoutStatusText"
@@ -258,23 +333,22 @@
                 <Button
                     x:Name="FooterOptionsButton"
                     x:Uid="FooterOptionsButton"
-                    Grid.Column="2"
                     AutomationProperties.AutomationId="FooterOptionsButton"
                     Command="{x:Bind ViewModel.OpenOptionsCommand}"
-                    Padding="8,6">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon
-                            AutomationProperties.AccessibilityView="Raw"
-                            FontSize="16"
-                            IsTextScaleFactorEnabled="False"
-                            Glyph="&#xE713;" />
-                        <TextBlock
-                            x:Uid="FooterOptionsLabel"
-                            Style="{StaticResource CaptionTextBlockStyle}" />
-                    </StackPanel>
-                </Button>
+                    Visibility="Collapsed" />
+
             </Grid>
         </Grid>
         </Border>
+        <InfoBar
+            x:Name="ShareStatusInfoBar"
+            AutomationProperties.AutomationId="ShareStatusInfoBar"
+            AutomationProperties.LiveSetting="Polite"
+            Margin="12"
+            MaxWidth="430"
+            HorizontalAlignment="Center"
+            IsClosable="True"
+            IsOpen="False"
+            VerticalAlignment="Top" />
     </Grid>
 </Page>
