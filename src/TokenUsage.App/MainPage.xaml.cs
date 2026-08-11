@@ -64,6 +64,8 @@ public sealed partial class MainPage : Page, IDisposable
 
     public event EventHandler<UsageReportRequestedEventArgs>? UsageReportRequested;
 
+    public event EventHandler? LayoutAnimationProgressed;
+
     public FlyoutViewModel ViewModel { get; }
 
     public AppSessionHost SessionHost { get; }
@@ -132,6 +134,9 @@ public sealed partial class MainPage : Page, IDisposable
 
     private void OnDashboardOptionsRequested(object? sender, EventArgs e) =>
         ViewModel.OpenOptionsCommand.Execute(null);
+
+    private void OnDashboardLayoutAnimationProgressed(object? sender, EventArgs e) =>
+        LayoutAnimationProgressed?.Invoke(this, EventArgs.Empty);
 
     public void ApplyAppearance(
         AppearanceSettings settings,

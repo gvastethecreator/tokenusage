@@ -34,6 +34,18 @@ public sealed partial class UsageTrendChart : UserControl
         typeof(UsageTrendChart),
         new PropertyMetadata(260d));
 
+    public static readonly DependencyProperty YAxisWidthProperty = DependencyProperty.Register(
+        nameof(YAxisWidth),
+        typeof(GridLength),
+        typeof(UsageTrendChart),
+        new PropertyMetadata(new GridLength(54), OnAxisWidthChanged));
+
+    public static readonly DependencyProperty YAxisGapProperty = DependencyProperty.Register(
+        nameof(YAxisGap),
+        typeof(GridLength),
+        typeof(UsageTrendChart),
+        new PropertyMetadata(new GridLength(8), OnAxisWidthChanged));
+
     public UsageTrendChart()
     {
         InitializeComponent();
@@ -55,6 +67,18 @@ public sealed partial class UsageTrendChart : UserControl
         set => SetValue(PlotHeightProperty, value);
     }
 
+    public GridLength YAxisWidth
+    {
+        get => (GridLength)GetValue(YAxisWidthProperty);
+        set => SetValue(YAxisWidthProperty, value);
+    }
+
+    public GridLength YAxisGap
+    {
+        get => (GridLength)GetValue(YAxisGapProperty);
+        set => SetValue(YAxisGapProperty, value);
+    }
+
     internal void DismissHover() => HideHover();
 
     private static void OnDataChanged(
@@ -62,11 +86,25 @@ public sealed partial class UsageTrendChart : UserControl
         DependencyPropertyChangedEventArgs args) =>
         ((UsageTrendChart)dependencyObject).Rebuild();
 
+    private static void OnAxisWidthChanged(
+        DependencyObject dependencyObject,
+        DependencyPropertyChangedEventArgs args)
+    {
+        _ = args;
+        ((UsageTrendChart)dependencyObject).Rebuild();
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e) => Rebuild();
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => Rebuild();
 
     private void OnPlotSizeChanged(object sender, SizeChangedEventArgs e) => Rebuild();
+
+    private double GetAxisWidth() =>
+        YAxisWidth.IsAbsolute ? YAxisWidth.Value : 54;
+
+    private double GetAxisGap() =>
+        YAxisGap.IsAbsolute ? YAxisGap.Value : 8;
 
     private void Rebuild()
     {
@@ -125,7 +163,12 @@ public sealed partial class UsageTrendChart : UserControl
                 IsHitTestVisible = false,
             };
             label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            Canvas.SetLeft(label, Math.Max(0, 52 - label.DesiredSize.Width));
+            double labelColumnWidth = YAxisCanvas.ActualWidth > 0
+                ? YAxisCanvas.ActualWidth
+                : GetAxisWidth();
+            Canvas.SetLeft(
+                label,
+                Math.Max(0, labelColumnWidth - label.DesiredSize.Width));
             Canvas.SetTop(label, Math.Clamp(y - (label.DesiredSize.Height / 2), 0, height - 18));
             YAxisCanvas.Children.Add(label);
         }
@@ -361,7 +404,7 @@ public sealed partial class UsageTrendChart : UserControl
         }
 
         BuildHoverContent(index);
-        double absoluteX = 62 + x;
+        double absoluteX = GetAxisWidth() + GetAxisGap() + x;
         double cardX = absoluteX > ActualWidth * 0.62
             ? absoluteX - HoverCard.Width - 8
             : absoluteX + 8;
