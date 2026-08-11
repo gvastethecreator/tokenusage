@@ -698,7 +698,7 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildProviderOptions()
     {
-        string[] known = ["codex", "opencode", "antigravity", "grok"];
+        string[] known = ["codex", "opencode", "antigravity", "grok", "cursor"];
         string[] ids = known
             .Concat(_globalReport.Agents
             .Select(agent => agent.AgentId.Value)
@@ -1058,7 +1058,8 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         "opencode" => 1,
         "antigravity" => 2,
         "grok" => 3,
-        _ => 4,
+        "cursor" => 4,
+        _ => 5,
     };
 
     private UsageReportTrendDataset CreateProviderTrend(string providerId)
@@ -1295,6 +1296,7 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         "antigravity" => "Antigravity",
         "claude" => "Claude Code",
         "codex" => "Codex",
+        "cursor" => "Cursor",
         "grok" => "Grok Build",
         "opencode" => "OpenCode",
         _ => providerId,

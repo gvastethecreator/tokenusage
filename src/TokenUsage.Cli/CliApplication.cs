@@ -3,7 +3,7 @@ namespace TokenUsage.Cli;
 public static class CliApplication
 {
     public const string UsageText =
-        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor> [command options]";
+        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|cursor> [command options]";
 
     public static bool IsHelpRequest(IReadOnlyList<string> arguments) =>
         arguments.Count == 1
@@ -112,6 +112,10 @@ public static class CliApplication
                     token),
                 clock,
                 cancellationToken).ConfigureAwait(false),
+            "cursor" => await CursorCommand.RunAsync(
+                commandArguments,
+                standardOutput,
+                standardError).ConfigureAwait(false),
             _ => await WriteUnknownCommandAsync(standardError).ConfigureAwait(false),
         };
     }

@@ -281,6 +281,7 @@
   <data name="LocalUsageModelAccessibleFormat" xml:space="preserve"><value>{0}: {1}; {2}; {3}</value></data>
   <data name="LocalUsageAgentAntigravity" xml:space="preserve"><value>Antigravity</value></data>
   <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
+  <data name="LocalUsageAgentCursor" xml:space="preserve"><value>Cursor</value></data>
   <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:N2} USD</value></data>
@@ -577,6 +578,7 @@
   <data name="CompactProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Select provider</value></data>
   <data name="UsageReportProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report provider</value></data>
   <data name="CompactProviderCodexCoverageHint" xml:space="preserve"><value>Codex: daily totals are official; model mix and cost are estimated. Cost can differ from your plan charge.</value></data>
+  <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: Agent tokens observed by the local hook since it was enabled. Tab, cloud agents, quota, and cost are not included.</value></data>
   <data name="CompactProviderGrokCoverageHint" xml:space="preserve"><value>Grok Build: usage is read from local logs. Official quota is unavailable.</value></data>
   <data name="CompactProviderOpenCodeCoverageHint" xml:space="preserve"><value>OpenCode: usage is observed in local logs; cost is estimated from catalog prices.</value></data>
   <data name="CompactProviderAntigravityCoverageHint" xml:space="preserve"><value>Antigravity: usage is observed in local logs; cost is estimated from catalog prices.</value></data>

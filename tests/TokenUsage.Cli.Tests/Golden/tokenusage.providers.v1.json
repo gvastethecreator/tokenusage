@@ -24,6 +24,15 @@
       "data": "present"
     },
     {
+      "id": "cursor",
+      "name": "Cursor",
+      "capabilities": [
+        "localUsage"
+      ],
+      "detection": "detected",
+      "data": "absent"
+    },
+    {
       "id": "grok",
       "name": "Grok Build",
       "capabilities": [

@@ -4,6 +4,7 @@ using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Antigravity;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
+using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.Grok;
 using TokenUsage.Providers.OpenCode;
 using TokenUsage.Runtime.Windows.Codex;
@@ -187,6 +188,15 @@ public static class WindowsProviderCatalog
                 detectionCheckId: null,
                 dataCheckId: "local-usage-antigravity",
                 localUsageFactory: timeZoneId => new AntigravityUsageEventSource(timeZoneId)),
+            new(
+                "cursor",
+                "Cursor",
+                [ProviderCapability.LocalUsage],
+                cacheDirectoryName: null,
+                localUsageAgentId: "cursor",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-cursor",
+                localUsageFactory: timeZoneId => new CursorUsageEventSource(timeZoneId)),
             new(
                 "vercel-ai-gateway",
                 "Vercel AI Gateway",

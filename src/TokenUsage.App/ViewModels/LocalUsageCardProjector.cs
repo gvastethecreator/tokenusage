@@ -303,6 +303,7 @@ public static class LocalUsageCardProjector
             "antigravity" => getString("LocalUsageAgentAntigravity"),
             "claude" => getString("LocalUsageAgentClaude"),
             "codex" => getString("LocalUsageAgentCodex"),
+            "cursor" => getString("LocalUsageAgentCursor"),
             "grok" => getString("LocalUsageAgentGrok"),
             "opencode" => getString("LocalUsageAgentOpenCode"),
             _ => agentId,
@@ -315,7 +316,7 @@ public static class LocalUsageCardProjector
         Func<string, string> getString) =>
         diagnostics
             .Where(item => item.AgentId.Value is
-                "antigravity" or "claude" or "codex" or "grok" or "opencode")
+                "antigravity" or "claude" or "codex" or "cursor" or "grok" or "opencode")
             .Select(item =>
             {
                 Totals totals = Sum(rollups.Where(rollup => rollup.AgentId == item.AgentId));

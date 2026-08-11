@@ -61,6 +61,7 @@ public sealed class ProviderDiagnosticsCommandTests
         Assert.Equal(
             "antigravity: detected; data present; localUsage,spend\n"
             + "codex: detected; data present; limits,localUsage,spend\n"
+            + "cursor: detected; data absent; localUsage\n"
             + "grok: detected; data present; localUsage\n"
             + "opencode: unavailable; data unreadable; localUsage\n",
             providers.ToString().Replace("\r\n", "\n", StringComparison.Ordinal));
@@ -68,6 +69,7 @@ public sealed class ProviderDiagnosticsCommandTests
             "codex-cache: present\n"
             + "codex-cli: detected\n"
             + "local-usage-antigravity: present\n"
+            + "local-usage-cursor: absent\n"
             + "local-usage-grok: present\n"
             + "local-usage-opencode: unreadable\n"
             + "usage-db: present\n",
@@ -162,7 +164,7 @@ public sealed class ProviderDiagnosticsCommandTests
             [
                 .. CreateSnapshot().Providers,
                 new ProviderDiagnostic(
-                    "cursor", "Cursor", [ProviderCapability.LocalUsage],
+                    "unexpected", "Unexpected", [ProviderCapability.LocalUsage],
                     ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             ],
         };
@@ -240,10 +242,13 @@ public sealed class ProviderDiagnosticsCommandTests
                     ProviderCapability.Spend,
                 ],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
+            new("cursor", "Cursor", [ProviderCapability.LocalUsage],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
         ],
         [
             new("usage-db", DoctorCheckStatus.Present),
             new("local-usage-antigravity", DoctorCheckStatus.Present),
+            new("local-usage-cursor", DoctorCheckStatus.Absent),
             new("local-usage-opencode", DoctorCheckStatus.Unreadable),
             new("local-usage-grok", DoctorCheckStatus.Present),
             new("codex-cli", DoctorCheckStatus.Detected),

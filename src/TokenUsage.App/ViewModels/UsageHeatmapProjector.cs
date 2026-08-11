@@ -177,8 +177,9 @@ public static class UsageHeatmapProjector
         "opencode" => 1,
         "antigravity" => 2,
         "grok" => 3,
-        "claude" => 4,
-        _ => 5,
+        "cursor" => 4,
+        "claude" => 5,
+        _ => 6,
     };
 
     private sealed record DailyActivity(
