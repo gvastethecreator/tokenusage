@@ -12,13 +12,11 @@ internal static class MotionSettings
 
     public static readonly TimeSpan ViewTransitionDuration = TimeSpan.FromMilliseconds(260);
 
-    public static readonly TimeSpan ReportSwitchExitDuration = TimeSpan.FromMilliseconds(180);
+    public static readonly TimeSpan ReportSwitchExitDuration = TimeSpan.FromMilliseconds(140);
 
-    public static readonly TimeSpan ReportSwitchDuration = TimeSpan.FromMilliseconds(320);
+    public static readonly TimeSpan ReportSwitchDuration = TimeSpan.FromMilliseconds(240);
 
-    public const double ReportSwitchMinimumOpacity = 0.08;
-
-    public const double ReportRefreshMinimumOpacity = 0.58;
+    public const double ReportSwitchMinimumOpacity = 0;
 
     public const double ReportSwitchOffset = 12;
 

@@ -417,6 +417,57 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
+    public void ReportMotionUsesExclusiveTabsAndLeafTransitionChannels()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string reportRoot = Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Reports");
+        string reportXaml = File.ReadAllText(Path.Combine(reportRoot, "UsageReportPage.xaml"));
+        Assert.Contains(
+            "x:Key=\"ReportToolbarToggleButtonStyle\" TargetType=\"RadioButton\"",
+            reportXaml,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneratedDuration", reportXaml, StringComparison.Ordinal);
+        foreach (string requiredName in new[]
+        {
+            "UsageReportScopeTabs",
+            "UsageReportPeriodTabs",
+            "UsageReportMetricTabs",
+            "UsageReportValueModeTabs",
+            "UsageReportChartLayoutTabs",
+            "UsageReportBreakdownTabs",
+            "ReportSummaryTokensValue",
+            "ReportSummaryCostValue",
+            "ReportSummaryCoverageValue",
+            "ReportSummaryQualityProgress",
+            "ReportSummaryQualityValue",
+            "ReportCompositionLegendRoot",
+            "ReportCompositionBar",
+            "GlobalChartTransitionRoot",
+            "ProviderChartContentRoot",
+            "ReportCachedInputValue",
+            "ReportUncachedInputValue",
+            "ReportOutputTokensValue",
+            "ReportProviderLimitsContentRoot",
+            "ModelBreakdownRows",
+            "SourceBreakdownRows",
+            "DayBreakdownRows",
+        })
+        {
+            Assert.Contains(requiredName, reportXaml, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("ReportDataTransitionTransform", reportXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportSummaryValuesRoot", reportXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportCacheValuesRoot", reportXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("BreakdownContentRoot", reportXaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InteractiveChartsAndProviderSelectorsExposeKeyboardNamesAndDetails()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
