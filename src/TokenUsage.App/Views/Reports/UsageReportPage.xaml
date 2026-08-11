@@ -31,7 +31,7 @@
             <Setter Property="CharacterSpacing" Value="45" />
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         </Style>
-        <Style x:Key="ReportToolbarToggleButtonStyle" TargetType="ToggleButton">
+        <Style x:Key="ReportToolbarToggleButtonStyle" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -42,13 +42,10 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
+                    <ControlTemplate TargetType="RadioButton">
                         <Grid x:Name="Root" Background="Transparent" CornerRadius="4">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
-                                    <VisualStateGroup.Transitions>
-                                        <VisualTransition GeneratedDuration="0:0:0.18" />
-                                    </VisualStateGroup.Transitions>
                                     <VisualState x:Name="Normal" />
                                     <VisualState x:Name="PointerOver">
                                         <VisualState.Setters>
@@ -245,17 +242,18 @@
                         Orientation="Horizontal"
                         Spacing="6">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <ToggleButton x:Uid="UsageReportGlobalButton" AutomationProperties.AutomationId="UsageReportGlobalButton" IsChecked="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Global" Click="OnScopeClick" />
-                            <ToggleButton x:Uid="UsageReportProviderButton" AutomationProperties.AutomationId="UsageReportProviderButton" IsChecked="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Provider" Click="OnScopeClick" />
+                            <RadioButton x:Uid="UsageReportGlobalButton" AutomationProperties.AutomationId="UsageReportGlobalButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Global" Click="OnScopeClick" />
+                            <RadioButton x:Uid="UsageReportProviderButton" AutomationProperties.AutomationId="UsageReportProviderButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Provider" Click="OnScopeClick" />
                         </StackPanel>
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <ToggleButton x:Uid="UsageReport7DaysButton" AutomationProperties.AutomationId="UsageReport7DaysButton" IsChecked="{x:Bind ViewModel.IsSevenDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="7" Click="OnPeriodClick" />
-                            <ToggleButton x:Uid="UsageReport30DaysButton" AutomationProperties.AutomationId="UsageReport30DaysButton" IsChecked="{x:Bind ViewModel.IsThirtyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="30" Click="OnPeriodClick" />
-                            <ToggleButton x:Uid="UsageReport90DaysButton" AutomationProperties.AutomationId="UsageReport90DaysButton" IsChecked="{x:Bind ViewModel.IsNinetyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="90" Click="OnPeriodClick" />
-                            <ToggleButton
+                            <RadioButton x:Uid="UsageReport7DaysButton" AutomationProperties.AutomationId="UsageReport7DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsSevenDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="7" Click="OnPeriodClick" />
+                            <RadioButton x:Uid="UsageReport30DaysButton" AutomationProperties.AutomationId="UsageReport30DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsThirtyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="30" Click="OnPeriodClick" />
+                            <RadioButton x:Uid="UsageReport90DaysButton" AutomationProperties.AutomationId="UsageReport90DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsNinetyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="90" Click="OnPeriodClick" />
+                            <RadioButton
                                 x:Uid="UsageReportResetCycleButton"
                                 AutomationProperties.AutomationId="UsageReportResetCycleButton"
+                                GroupName="UsageReportPeriodTabs"
                                 IsChecked="{x:Bind ViewModel.IsResetCycleWindow, Mode=OneWay}"
                                 Style="{StaticResource ReportToolbarToggleButtonStyle}"
                                 Click="OnResetCycleClick"
@@ -312,12 +310,12 @@
                         </Grid>
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <ToggleButton x:Uid="UsageReportCostButton" AutomationProperties.AutomationId="UsageReportCostButton" IsChecked="{x:Bind ViewModel.IsCostMetric, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Cost" Click="OnMetricClick" />
-                            <ToggleButton x:Uid="UsageReportTokensButton" AutomationProperties.AutomationId="UsageReportTokensButton" IsChecked="{x:Bind ViewModel.IsTokenMetric, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Tokens" Click="OnMetricClick" />
+                            <RadioButton x:Uid="UsageReportCostButton" AutomationProperties.AutomationId="UsageReportCostButton" GroupName="UsageReportMetricTabs" IsChecked="{x:Bind ViewModel.IsCostMetric, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Cost" Click="OnMetricClick" />
+                            <RadioButton x:Uid="UsageReportTokensButton" AutomationProperties.AutomationId="UsageReportTokensButton" GroupName="UsageReportMetricTabs" IsChecked="{x:Bind ViewModel.IsTokenMetric, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Tokens" Click="OnMetricClick" />
                         </StackPanel>
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Visibility="{x:Bind ViewModel.IsValueModeVisible, Mode=OneWay}">
-                            <ToggleButton x:Uid="UsageReportAbsoluteButton" AutomationProperties.AutomationId="UsageReportAbsoluteButton" IsChecked="{x:Bind ViewModel.IsAbsoluteValueMode, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Absolute" Click="OnValueModeClick" />
-                            <ToggleButton x:Uid="UsageReportShareButton" AutomationProperties.AutomationId="UsageReportShareButton" IsChecked="{x:Bind ViewModel.IsShareValueMode, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Share" Click="OnValueModeClick" />
+                            <RadioButton x:Uid="UsageReportAbsoluteButton" AutomationProperties.AutomationId="UsageReportAbsoluteButton" GroupName="UsageReportValueModeTabs" IsChecked="{x:Bind ViewModel.IsAbsoluteValueMode, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Absolute" Click="OnValueModeClick" />
+                            <RadioButton x:Uid="UsageReportShareButton" AutomationProperties.AutomationId="UsageReportShareButton" GroupName="UsageReportValueModeTabs" IsChecked="{x:Bind ViewModel.IsShareValueMode, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Share" Click="OnValueModeClick" />
                         </StackPanel>
                         <StackPanel Margin="2,0,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="2">
                             <Button x:Uid="UsageReportRefreshButton" AutomationProperties.AutomationId="UsageReportRefreshButton" Command="{x:Bind ViewModel.RefreshCommand}" Padding="7" Style="{StaticResource ReportToolbarButtonStyle}">
@@ -349,9 +347,6 @@
                 </StackPanel>
 
                 <StackPanel x:Name="ReportDataContent" Grid.Row="2" Spacing="12" Visibility="{x:Bind ViewModel.HasData, Mode=OneWay}">
-                    <StackPanel.RenderTransform>
-                        <CompositeTransform x:Name="ReportDataTransitionTransform" />
-                    </StackPanel.RenderTransform>
                     <ListView
                         x:Name="ReportProviderSelector"
                         AutomationProperties.AutomationId="UsageReportProviderSelector"
@@ -396,25 +391,25 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Padding="16,12" Spacing="3">
                                 <TextBlock x:Uid="UsageReportSummaryTokensLabel" Style="{StaticResource ReportSectionLabelStyle}" />
-                                <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryTokensText, Mode=OneWay}" />
+                                <TextBlock x:Name="ReportSummaryTokensValue" FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryTokensText, Mode=OneWay}" />
                             </StackPanel>
                             <Border Grid.Column="1" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
                                 <StackPanel Spacing="3">
                                     <TextBlock x:Uid="UsageReportSummaryCostLabel" Style="{StaticResource ReportSectionLabelStyle}" />
-                                    <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryCostText, Mode=OneWay}" />
+                                    <TextBlock x:Name="ReportSummaryCostValue" FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryCostText, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="2" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
                                 <StackPanel Spacing="3">
                                     <TextBlock x:Uid="UsageReportSummaryCoverageLabel" Style="{StaticResource ReportSectionLabelStyle}" />
-                                    <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryCoverageText, Mode=OneWay}" />
+                                    <TextBlock x:Name="ReportSummaryCoverageValue" FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryCoverageText, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="3" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
                                 <StackPanel Spacing="5">
                                     <TextBlock x:Uid="UsageReportSummaryQualityLabel" Style="{StaticResource ReportSectionLabelStyle}" />
-                                    <ProgressBar Height="6" Maximum="100" Value="{x:Bind ViewModel.PriceCoveragePercent, Mode=OneWay}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
-                                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.SummaryQualityText, Mode=OneWay}" />
+                                    <ProgressBar x:Name="ReportSummaryQualityProgress" Height="6" Maximum="100" Value="{x:Bind ViewModel.PriceCoveragePercent, Mode=OneWay}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="ReportSummaryQualityValue" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.SummaryQualityText, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -423,7 +418,7 @@
                     <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
                         <Grid ColumnSpacing="12">
                             <TextBlock x:Uid="UsageReportCompositionTitle" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                            <ItemsRepeater HorizontalAlignment="Right" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
+                            <ItemsRepeater x:Name="ReportCompositionLegendRoot" HorizontalAlignment="Right" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
                                 <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="20" /></ItemsRepeater.Layout>
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="reports:UsageReportProviderRow">
@@ -461,18 +456,20 @@
                                 <Grid>
                                     <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" VerticalAlignment="Center" />
                                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="2">
-                                        <ToggleButton
+                                        <RadioButton
                                             x:Name="GlobalCombinedChartButton"
                                             x:Uid="UsageReportCombinedChartButton"
                                             AutomationProperties.AutomationId="UsageReportCombinedChartButton"
+                                            GroupName="UsageReportChartLayoutTabs"
                                             IsChecked="True"
                                             Style="{StaticResource ReportToolbarToggleButtonStyle}"
                                             Tag="Combined"
                                             Click="OnGlobalChartLayoutClick" />
-                                        <ToggleButton
+                                        <RadioButton
                                             x:Name="GlobalSplitChartsButton"
                                             x:Uid="UsageReportSplitChartsButton"
                                             AutomationProperties.AutomationId="UsageReportSplitChartsButton"
+                                            GroupName="UsageReportChartLayoutTabs"
                                             Style="{StaticResource ReportToolbarToggleButtonStyle}"
                                             Tag="Split"
                                             Click="OnGlobalChartLayoutClick" />
@@ -525,7 +522,7 @@
                         Visibility="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}">
                         <StackPanel Spacing="7">
                             <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" />
-                            <controls:UsageTrendChart AutomationProperties.AutomationId="UsageReportTrendChart" Data="{x:Bind ViewModel.Trend, Mode=OneWay}" PlotHeight="250" />
+                            <controls:UsageTrendChart x:Name="ProviderChartContentRoot" AutomationProperties.AutomationId="UsageReportTrendChart" Data="{x:Bind ViewModel.Trend, Mode=OneWay}" PlotHeight="250" />
                         </StackPanel>
                     </Border>
 
@@ -544,17 +541,17 @@
                                 <Grid Padding="8,2" ColumnSpacing="10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock x:Uid="UsageReportCacheStripCachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ReportCachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
                                 </Grid>
                                 <Grid Grid.Column="1" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock x:Uid="UsageReportCacheStripUncachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.UncachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ReportUncachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.UncachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
                                 </Grid>
                                 <Grid Grid.Column="2" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock x:Uid="UsageReportCacheStripOutputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.OutputTokensText, Mode=OneWay}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ReportOutputTokensValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.OutputTokensText, Mode=OneWay}" VerticalAlignment="Center" />
                                 </Grid>
                             </Grid>
                         </Border>
@@ -571,6 +568,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Uid="UsageReportLimitsTitle" FontWeight="SemiBold" Margin="0,1,0,0" VerticalAlignment="Top" />
                                 <ItemsRepeater
+                                    x:Name="ReportProviderLimitsContentRoot"
                                     Grid.Column="1"
                                     ItemTemplate="{StaticResource ReportQuotaPillTemplate}"
                                     ItemsSource="{x:Bind ViewModel.ProviderLimits, Mode=OneWay}">
@@ -587,9 +585,9 @@
                             <Grid>
                                 <TextBlock x:Uid="UsageReportBreakdownTitle" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="2">
-                                    <ToggleButton x:Uid="UsageReportModelButton" AutomationProperties.AutomationId="UsageReportModelButton" IsChecked="{x:Bind ViewModel.IsModelBreakdown, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Model" Click="OnBreakdownClick" />
-                                    <ToggleButton x:Uid="UsageReportSourceButton" AutomationProperties.AutomationId="UsageReportSourceButton" IsChecked="{x:Bind ViewModel.IsSourceBreakdown, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Source" Click="OnBreakdownClick" />
-                                    <ToggleButton x:Uid="UsageReportDayButton" AutomationProperties.AutomationId="UsageReportDayButton" IsChecked="{x:Bind ViewModel.IsDayBreakdown, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Day" Click="OnBreakdownClick" />
+                                    <RadioButton x:Uid="UsageReportModelButton" AutomationProperties.AutomationId="UsageReportModelButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsModelBreakdown, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Model" Click="OnBreakdownClick" />
+                                    <RadioButton x:Uid="UsageReportSourceButton" AutomationProperties.AutomationId="UsageReportSourceButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsSourceBreakdown, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Source" Click="OnBreakdownClick" />
+                                    <RadioButton x:Uid="UsageReportDayButton" AutomationProperties.AutomationId="UsageReportDayButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsDayBreakdown, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Day" Click="OnBreakdownClick" />
                                 </StackPanel>
                             </Grid>
 
