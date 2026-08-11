@@ -1,7 +1,7 @@
 {
-  "current_commit": "03ced21d3346631e6cd450070ddfe0a8f69cef5a",
+  "current_commit": "205b17799d6ecd733c3db344d2dfefb71a6cd284",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-11T18:15:09Z",
+  "generated_at": "2026-08-11T19:29:31Z",
   "scanned_scope": [
     "."
   ],
@@ -31,8 +31,14 @@
     {
       "id": ".",
       "path": ".",
-      "file_count": 10,
-      "fingerprint": "b47d0cf5d97f9fd284943d023a2cf79e90057dc57efbdb15127f831d81327a3f"
+      "file_count": 11,
+      "fingerprint": "a3839651110bdd5384da060f329b41ab96ac03ebf83634d83fd31aa25c89ab06"
+    },
+    {
+      "id": ".agents",
+      "path": ".agents",
+      "file_count": 32,
+      "fingerprint": "f3edff746b8817c2c5d830f748b5482da5e0f47708caac333cdc17b456ba62cc"
     },
     {
       "id": ".github",
@@ -62,13 +68,13 @@
       "id": "src",
       "path": "src",
       "file_count": 248,
-      "fingerprint": "f2de713ac956cbfebc96883b3d7c697e18872ce39bb9950a3cd3a961aa1131c1"
+      "fingerprint": "2a321c1e7cca114a2be3a6304a947945b3fe6425ebb94299dca1ed7536acfa70"
     },
     {
       "id": "tests",
       "path": "tests",
       "file_count": 135,
-      "fingerprint": "2488d4d38f91fb3882f66cf102ce758b07cd8674c32e0211f5bc3c5593033245"
+      "fingerprint": "d0c427188d29febbc176d1f266cb0592560947553e4974a584540fb3bd65ff28"
     }
   ]
 }

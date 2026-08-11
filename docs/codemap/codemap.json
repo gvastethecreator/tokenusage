@@ -1,10 +1,33 @@
 {
-  "generated_at": "2026-08-11T18:15:09Z",
-  "generated_from_commit": "03ced21d3346631e6cd450070ddfe0a8f69cef5a",
+  "generated_at": "2026-08-11T19:29:31Z",
+  "generated_from_commit": "205b17799d6ecd733c3db344d2dfefb71a6cd284",
   "scope": [
     "."
   ],
   "nodes": [
+    {
+      "id": "agents",
+      "path": ".agents",
+      "role": "Owns the tracked files for the .agents module.",
+      "type": "module",
+      "boundary": ".Agents",
+      "entrypoints": [
+        ".agents/skills/evolve-project-guidance/SKILL.md:Evolve Project Guidance"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": ".agents/skills/evolve-project-guidance/SKILL.md",
+            "symbol": "Evolve Project Guidance"
+          }
+        ]
+      }
+    },
     {
       "id": "buildandrun",
       "path": "BuildAndRun.ps1",
@@ -24,6 +47,29 @@
           {
             "path": "BuildAndRun.ps1",
             "symbol": "<#"
+          }
+        ]
+      }
+    },
+    {
+      "id": "external-dependencies",
+      "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+      "role": "Represents external packages referenced by tracked source files.",
+      "type": "external",
+      "boundary": "External",
+      "entrypoints": [
+        ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py:__future__"
+      ],
+      "tests": [],
+      "constraints": [
+        "Only dependencies with literal tracked-source references appear here."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "__future__"
           }
         ]
       }
@@ -227,6 +273,48 @@
     }
   ],
   "edges": [
+    {
+      "from": "agents",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "__future__"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "collections"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "pathlib"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "typing"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "argparse"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "json"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "os"
+          },
+          {
+            "path": ".agents/skills/evolve-project-guidance/scripts/inspect_project_guidance.py",
+            "symbol": "stat"
+          }
+        ]
+      }
+    },
     {
       "from": "src-tokenusage-app",
       "to": "src-tokenusage-cli",
