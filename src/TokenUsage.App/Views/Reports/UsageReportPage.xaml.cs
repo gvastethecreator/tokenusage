@@ -15,10 +15,41 @@ namespace TokenUsage.App.Views.Reports;
 public sealed partial class UsageReportPage : Page
 {
     private readonly ResourceLoader _resources = new();
-    private readonly Dictionary<FrameworkElement, Storyboard> _activeViewTransitions = [];
+    private readonly SpatialTransitionState _chartLayoutTransition = new();
+    private readonly SpatialTransitionState _breakdownTransition = new();
+    private int _reportDataTransitionToken;
+    private Storyboard? _reportDataTransitionStoryboard;
+    private FrameworkElement[] _reportDataTransitionTargets = [];
+    private ReportDataTransitionIntent? _pendingReportDataIntent;
+    private Action? _pendingReportDataCommit;
+    private bool _reportDataCommitPending;
+    private bool _pendingShowCombined;
+    private UsageReportBreakdown _pendingBreakdown;
+    private int _reportRefreshGeneration;
+    private int _lastCompletedRefreshGeneration;
+    private bool _reportRefreshInProgress;
+    private bool _reportRefreshLoading;
     private bool _isTransitionCommit;
     private bool _loadedOnce;
     private int _shareStatusToken;
+
+    private enum ReportDataTransitionIntent
+    {
+        Period,
+        Metric,
+        Scope,
+        ValueMode,
+        Provider,
+    }
+
+    private sealed class SpatialTransitionState
+    {
+        public int Token { get; set; }
+
+        public Storyboard? Storyboard { get; set; }
+
+        public bool CommitPending { get; set; }
+    }
 
     public UsageReportPage(UsageReportViewModel viewModel)
     {
@@ -58,24 +89,28 @@ public sealed partial class UsageReportPage : Page
     private void OnPeriodClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string value }
-            && int.TryParse(value, out int days)
-            && (days != ViewModel.WindowDays || ViewModel.IsResetCycleWindow))
+            && int.TryParse(value, out int days))
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                () => ViewModel.SetWindowDays(days));
+            bool changesPeriod = days != ViewModel.WindowDays || ViewModel.IsResetCycleWindow;
+            if (ShouldStartReportDataTransition(ReportDataTransitionIntent.Period, changesPeriod))
+            {
+                PlayReportDataTransition(
+                    () => ViewModel.SetWindowDays(days),
+                    ReportDataTransitionIntent.Period);
+            }
         }
     }
 
     private void OnResetCycleClick(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.CanUseResetCycles && !ViewModel.IsResetCycleWindow)
+        if (ViewModel.CanUseResetCycles
+            && ShouldStartReportDataTransition(
+                ReportDataTransitionIntent.Period,
+                !ViewModel.IsResetCycleWindow))
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                ViewModel.SetResetCycleWindow);
+            PlayReportDataTransition(
+                ViewModel.SetResetCycleWindow,
+                ReportDataTransitionIntent.Period);
         }
     }
 
@@ -83,10 +118,9 @@ public sealed partial class UsageReportPage : Page
     {
         if (ViewModel.CanSelectPreviousResetCycle)
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                ViewModel.SelectPreviousResetCycle);
+            PlayReportDataTransition(
+                ViewModel.SelectPreviousResetCycle,
+                ReportDataTransitionIntent.Period);
         }
     }
 
@@ -94,10 +128,9 @@ public sealed partial class UsageReportPage : Page
     {
         if (ViewModel.CanSelectNextResetCycle)
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                ViewModel.SelectNextResetCycle);
+            PlayReportDataTransition(
+                ViewModel.SelectNextResetCycle,
+                ReportDataTransitionIntent.Period);
         }
     }
 
@@ -106,12 +139,13 @@ public sealed partial class UsageReportPage : Page
         if (sender is FrameworkElement { Tag: string value }
             && Enum.TryParse(value, ignoreCase: true, out UsageReportMetric metric)
             && metric != UsageReportMetric.Share
-            && metric != ViewModel.Metric)
+            && ShouldStartReportDataTransition(
+                ReportDataTransitionIntent.Metric,
+                metric != ViewModel.Metric))
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                () => ViewModel.SetMetric(metric));
+            PlayReportDataTransition(
+                () => ViewModel.SetMetric(metric),
+                ReportDataTransitionIntent.Metric);
         }
     }
 
@@ -119,12 +153,13 @@ public sealed partial class UsageReportPage : Page
     {
         if (sender is FrameworkElement { Tag: string value }
             && Enum.TryParse(value, ignoreCase: true, out UsageReportScope scope)
-            && scope != ViewModel.Scope)
+            && ShouldStartReportDataTransition(
+                ReportDataTransitionIntent.Scope,
+                scope != ViewModel.Scope))
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                () => ViewModel.SetScope(scope));
+            PlayReportDataTransition(
+                () => ViewModel.SetScope(scope),
+                ReportDataTransitionIntent.Scope);
         }
     }
 
@@ -133,12 +168,13 @@ public sealed partial class UsageReportPage : Page
         if (sender is FrameworkElement { Tag: string value }
             && Enum.TryParse(value, ignoreCase: true, out UsageReportValueMode mode)
             && ViewModel.IsGlobalScope
-            && mode != ViewModel.ValueMode)
+            && ShouldStartReportDataTransition(
+                ReportDataTransitionIntent.ValueMode,
+                mode != ViewModel.ValueMode))
         {
-            PlayViewTransition(
-                ReportDataContent,
-                ReportDataTransitionTransform,
-                () => ViewModel.SetValueMode(mode));
+            PlayReportDataTransition(
+                () => ViewModel.SetValueMode(mode),
+                ReportDataTransitionIntent.ValueMode);
         }
     }
 
@@ -186,15 +222,17 @@ public sealed partial class UsageReportPage : Page
     {
         if (sender is ListView { SelectedItem: UsageReportProviderOption option })
         {
-            if (!string.Equals(
+            bool changesProvider = !string.Equals(
                     ViewModel.SelectedProvider?.ProviderId,
                     option.ProviderId,
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal);
+            if (ShouldStartReportDataTransition(
+                ReportDataTransitionIntent.Provider,
+                changesProvider))
             {
-                PlayViewTransition(
-                    ReportDataContent,
-                    ReportDataTransitionTransform,
-                    () => ViewModel.SelectedProvider = option);
+                PlayReportDataTransition(
+                    () => ViewModel.SelectedProvider = option,
+                    ReportDataTransitionIntent.Provider);
             }
         }
     }
@@ -296,19 +334,26 @@ public sealed partial class UsageReportPage : Page
     private void OnBreakdownClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string value }
-            && Enum.TryParse(value, ignoreCase: true, out UsageReportBreakdown breakdown)
-            && breakdown != ViewModel.Breakdown)
+            && Enum.TryParse(value, ignoreCase: true, out UsageReportBreakdown breakdown))
         {
-            (FrameworkElement currentRows, CompositeTransform currentTransform) =
+            bool changesBreakdown = breakdown != ViewModel.Breakdown;
+            if (!changesBreakdown
+                && (!_breakdownTransition.CommitPending || _pendingBreakdown == breakdown))
+            {
+                return;
+            }
+
+            (FrameworkElement currentContent, CompositeTransform currentTransform) =
                 GetBreakdownTransitionTarget(ViewModel.Breakdown);
-            (FrameworkElement nextRows, CompositeTransform nextTransform) =
-                GetBreakdownTransitionTarget(breakdown);
-            PlayViewTransition(
-                currentRows,
+            _pendingBreakdown = breakdown;
+            _breakdownTransition.CommitPending = true;
+            PlaySpatialTransition(
+                _breakdownTransition,
+                currentContent,
                 currentTransform,
                 () => ViewModel.SetBreakdown(breakdown),
-                nextRows,
-                nextTransform);
+                () => GetBreakdownTransitionTarget(ViewModel.Breakdown),
+                disableHitTesting: false);
         }
     }
 
@@ -323,12 +368,17 @@ public sealed partial class UsageReportPage : Page
     private void OnGlobalChartLayoutClick(object sender, RoutedEventArgs e)
     {
         bool showCombined = sender is FrameworkElement { Tag: "Combined" };
-        if (showCombined == (GlobalCombinedChart.Visibility == Visibility.Visible))
+        bool currentlyCombined = GlobalCombinedChart.Visibility == Visibility.Visible;
+        if (showCombined == currentlyCombined
+            && (!_chartLayoutTransition.CommitPending || _pendingShowCombined == showCombined))
         {
             return;
         }
 
-        PlayViewTransition(
+        _pendingShowCombined = showCombined;
+        _chartLayoutTransition.CommitPending = true;
+        PlaySpatialTransition(
+            _chartLayoutTransition,
             GlobalChartTransitionRoot,
             GlobalChartTransitionTransform,
             () =>
@@ -341,147 +391,587 @@ public sealed partial class UsageReportPage : Page
                 GlobalSplitCharts.Visibility = showCombined
                     ? Visibility.Collapsed
                     : Visibility.Visible;
-            });
+            },
+            () => (GlobalChartTransitionRoot, GlobalChartTransitionTransform),
+            disableHitTesting: true);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!_loadedOnce || _isTransitionCommit)
+        if (!_loadedOnce)
         {
             return;
         }
 
         if (string.Equals(e.PropertyName, nameof(UsageReportViewModel.IsLoading), StringComparison.Ordinal))
         {
+            if (_isTransitionCommit)
+            {
+                return;
+            }
+
             if (ViewModel.IsLoading)
             {
-                PrepareViewTransitionExit(ReportDataContent, ReportDataTransitionTransform);
+                BeginReportRefreshCycle();
             }
-            else if (ViewModel.HasData)
+            else
             {
-                PlayViewTransitionEntry(ReportDataContent, ReportDataTransitionTransform);
+                CompleteReportRefreshCycle();
             }
+            return;
+        }
+
+        if (_isTransitionCommit)
+        {
             return;
         }
 
         if (string.Equals(e.PropertyName, nameof(UsageReportViewModel.Trend), StringComparison.Ordinal)
-            && !ViewModel.IsLoading)
+            && !ViewModel.IsLoading
+            && !_reportRefreshInProgress
+            && !_reportDataCommitPending)
         {
-            PlayViewTransitionEntry(ReportDataContent, ReportDataTransitionTransform);
+            PlayIsolatedTrendEntry();
         }
     }
 
-    private void PrepareViewTransitionExit(
-        FrameworkElement element,
-        CompositeTransform transform)
+    private bool ShouldStartReportDataTransition(
+        ReportDataTransitionIntent intent,
+        bool changesState) => changesState
+            || (_reportDataCommitPending && _pendingReportDataIntent == intent);
+
+    private FrameworkElement[] GetVisibleReportDataTargets()
     {
+        if (!ViewModel.HasData)
+        {
+            return [];
+        }
+
+        var targets = new List<FrameworkElement>
+        {
+            ReportSummaryTokensValue,
+            ReportSummaryCostValue,
+            ReportSummaryCoverageValue,
+            ReportSummaryQualityProgress,
+            ReportSummaryQualityValue,
+            ReportCachedInputValue,
+            ReportUncachedInputValue,
+            ReportOutputTokensValue,
+            GetBreakdownTransitionTarget(ViewModel.Breakdown).Rows,
+        };
+        if (ViewModel.IsGlobalScope)
+        {
+            targets.Add(ReportCompositionLegendRoot);
+            targets.Add(ReportCompositionBar);
+            targets.Add(GlobalChartTransitionRoot);
+        }
+        else
+        {
+            targets.Add(ProviderChartContentRoot);
+        }
+
+        if (ViewModel.HasProviderLimits)
+        {
+            targets.Add(ReportProviderLimitsContentRoot);
+        }
+
+        return targets
+            .Where(target => target.Visibility == Visibility.Visible)
+            .Distinct()
+            .ToArray();
+    }
+
+    private FrameworkElement[] GetVisibleReportChartTargets() =>
+        !ViewModel.HasData
+            ? []
+            : ViewModel.IsGlobalScope
+                ? [GlobalChartTransitionRoot]
+                : [ProviderChartContentRoot];
+
+    private FrameworkElement[] GetAllReportDataTargets() =>
+        [
+            ReportSummaryTokensValue,
+            ReportSummaryCostValue,
+            ReportSummaryCoverageValue,
+            ReportSummaryQualityProgress,
+            ReportSummaryQualityValue,
+            ReportCompositionLegendRoot,
+            ReportCompositionBar,
+            GlobalChartTransitionRoot,
+            ProviderChartContentRoot,
+            ReportCachedInputValue,
+            ReportUncachedInputValue,
+            ReportOutputTokensValue,
+            ReportProviderLimitsContentRoot,
+            ModelBreakdownRows,
+            SourceBreakdownRows,
+            DayBreakdownRows,
+        ];
+
+    private void PlayReportDataTransition(
+        Action commit,
+        ReportDataTransitionIntent intent)
+    {
+        CommitPendingReportDataIntentBeforeReplacement(intent);
+        int transitionToken = ++_reportDataTransitionToken;
+        _pendingReportDataIntent = intent;
+        _pendingReportDataCommit = commit;
+        _reportDataCommitPending = true;
         if (!MotionSettings.AreAnimationsEnabled())
         {
-            ResetTransition(element, transform);
+            StopReportDataTransition(resetTargets: true);
+            CompleteReportDataCommit(commit);
+            ResetReportDataTargets(GetAllReportDataTargets());
             return;
         }
 
-        StartTransition(
-            element,
-            transform,
-            Math.Clamp(element.Opacity, 0, 1),
-            GetTransitionMinimumOpacity(element),
-            transform.TranslateX,
-            ReferenceEquals(element, ReportDataContent)
-                ? 0
-                : -MotionSettings.ReportSwitchOffset,
+        FrameworkElement[] targets = NormalizeTargets(GetVisibleReportDataTargets());
+        StartReportOpacityTransition(
+            targets,
+            transitionToken,
+            MotionSettings.ReportSwitchMinimumOpacity,
             MotionSettings.ReportSwitchExitDuration,
-            EasingMode.EaseInOut,
+            startAtMinimum: false,
+            resetOnComplete: false,
+            completed: () =>
+        {
+            CompleteReportDataCommit(commit);
+            ReportDataContent.UpdateLayout();
+            FrameworkElement[] entryTargets = NormalizeTargets(GetVisibleReportDataTargets());
+            ResetReportDataTargets(targets.Except(entryTargets));
+            if (ViewModel.IsLoading)
+            {
+                HoldReportDataTargets(entryTargets);
+                return;
+            }
+
+            StartReportOpacityTransition(
+                entryTargets,
+                transitionToken,
+                1,
+                MotionSettings.ReportSwitchDuration,
+                startAtMinimum: true,
+                resetOnComplete: true);
+        });
+    }
+
+    private void StartReportOpacityTransition(
+        FrameworkElement[] targets,
+        int transitionToken,
+        double toOpacity,
+        TimeSpan duration,
+        bool startAtMinimum,
+        bool resetOnComplete,
+        Action? completed = null)
+    {
+        FrameworkElement[] previousTargets = _reportDataTransitionTargets;
+        var previousTargetSet = previousTargets.ToHashSet();
+        Dictionary<FrameworkElement, double> currentOpacities = PrepareReportDataTargets(targets);
+        if (targets.Length == 0)
+        {
+            completed?.Invoke();
+            return;
+        }
+
+        var storyboard = new Storyboard();
+        foreach (FrameworkElement target in targets)
+        {
+            double fromOpacity = startAtMinimum
+                || (toOpacity == 1 && !previousTargetSet.Contains(target))
+                ? MotionSettings.ReportSwitchMinimumOpacity
+                : currentOpacities[target];
+            target.Opacity = fromOpacity;
+            SetReportTargetHitTesting(target, isEnabled: false);
+            var opacity = new DoubleAnimation
+            {
+                From = fromOpacity,
+                To = toOpacity,
+                Duration = duration,
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            };
+            Storyboard.SetTarget(opacity, target);
+            Storyboard.SetTargetProperty(opacity, nameof(Opacity));
+            storyboard.Children.Add(opacity);
+        }
+
+        storyboard.Completed += (_, _) =>
+        {
+            if (transitionToken != _reportDataTransitionToken
+                || !ReferenceEquals(_reportDataTransitionStoryboard, storyboard))
+            {
+                return;
+            }
+
+            storyboard.Stop();
+            _reportDataTransitionStoryboard = null;
+            foreach (FrameworkElement target in targets)
+            {
+                target.Opacity = toOpacity;
+            }
+            if (resetOnComplete)
+            {
+                ResetReportDataTargets(targets);
+                _reportDataTransitionTargets = [];
+            }
+            completed?.Invoke();
+        };
+        _reportDataTransitionStoryboard = storyboard;
+        storyboard.Begin();
+    }
+
+    private void CompleteReportDataCommit(Action commit)
+    {
+        ExecuteTransitionCommit(commit);
+        _pendingReportDataIntent = null;
+        _pendingReportDataCommit = null;
+        _reportDataCommitPending = false;
+        EnsureReportRefreshCycleForCurrentLoad();
+    }
+
+    private void CommitPendingReportDataIntentBeforeReplacement(
+        ReportDataTransitionIntent nextIntent)
+    {
+        if (!_reportDataCommitPending
+            || _pendingReportDataIntent == nextIntent
+            || _pendingReportDataCommit is not Action pendingCommit)
+        {
+            return;
+        }
+
+        _reportDataTransitionToken++;
+        _pendingReportDataIntent = null;
+        _pendingReportDataCommit = null;
+        _reportDataCommitPending = false;
+        ExecuteTransitionCommit(pendingCommit);
+        EnsureReportRefreshCycleForCurrentLoad();
+    }
+
+    private Dictionary<FrameworkElement, double> PrepareReportDataTargets(
+        FrameworkElement[] nextTargets)
+    {
+        FrameworkElement[] previousTargets = _reportDataTransitionTargets;
+        FrameworkElement[] allTargets = previousTargets
+            .Concat(nextTargets)
+            .Distinct()
+            .ToArray();
+        Dictionary<FrameworkElement, double> currentOpacities = allTargets
+            .ToDictionary(target => target, target => Math.Clamp(target.Opacity, 0, 1));
+
+        _reportDataTransitionStoryboard?.Stop();
+        _reportDataTransitionStoryboard = null;
+        foreach ((FrameworkElement target, double opacity) in currentOpacities)
+        {
+            target.Opacity = opacity;
+        }
+
+        ResetReportDataTargets(previousTargets.Except(nextTargets));
+        _reportDataTransitionTargets = nextTargets;
+        return currentOpacities;
+    }
+
+    private static FrameworkElement[] NormalizeTargets(
+        IEnumerable<FrameworkElement> targets) => targets
+            .Where(target => target.Visibility == Visibility.Visible)
+            .Distinct()
+            .ToArray();
+
+    private void HoldReportDataTargets(FrameworkElement[] targets)
+    {
+        PrepareReportDataTargets(targets);
+        foreach (FrameworkElement target in targets)
+        {
+            target.Opacity = MotionSettings.ReportSwitchMinimumOpacity;
+            SetReportTargetHitTesting(target, isEnabled: false);
+        }
+    }
+
+    private void BeginReportRefreshCycle()
+    {
+        if (_reportRefreshLoading)
+        {
+            return;
+        }
+
+        if (_reportDataCommitPending && _pendingReportDataCommit is Action pendingCommit)
+        {
+            _reportDataTransitionToken++;
+            _pendingReportDataIntent = null;
+            _pendingReportDataCommit = null;
+            _reportDataCommitPending = false;
+            ExecuteTransitionCommit(pendingCommit);
+        }
+
+        _reportRefreshGeneration++;
+        _reportRefreshInProgress = true;
+        _reportRefreshLoading = true;
+        if (!MotionSettings.AreAnimationsEnabled())
+        {
+            StopReportDataTransition(resetTargets: true);
+            return;
+        }
+
+        int transitionToken = ++_reportDataTransitionToken;
+        FrameworkElement[] targets = NormalizeTargets(GetVisibleReportDataTargets());
+        StartReportOpacityTransition(
+            targets,
+            transitionToken,
+            MotionSettings.ReportSwitchMinimumOpacity,
+            MotionSettings.ReportSwitchExitDuration,
+            startAtMinimum: false,
             resetOnComplete: false);
     }
 
-    private void PlayViewTransition(
-        FrameworkElement element,
-        CompositeTransform transform,
-        Action commit,
-        FrameworkElement? entryElement = null,
-        CompositeTransform? entryTransform = null)
+    private void EnsureReportRefreshCycleForCurrentLoad()
     {
-        FrameworkElement destinationElement = entryElement ?? element;
-        CompositeTransform destinationTransform = entryTransform ?? transform;
-        StopTransition(element);
-        if (!MotionSettings.AreAnimationsEnabled())
+        if (!ViewModel.IsLoading || _reportRefreshLoading)
         {
-            ExecuteTransitionCommit(commit);
-            ResetTransition(element, transform);
-            if (!ReferenceEquals(destinationElement, element))
-            {
-                ResetTransition(destinationElement, destinationTransform);
-            }
             return;
         }
 
-        double exitOffset = ReferenceEquals(element, ReportDataContent)
-            ? 0
-            : MotionSettings.ReportSwitchOffset;
-        double minimumOpacity = GetTransitionMinimumOpacity(element);
-        StartTransition(
-            element,
-            transform,
-            Math.Clamp(element.Opacity, 0, 1),
-            minimumOpacity,
-            transform.TranslateX,
-            -exitOffset,
-            MotionSettings.ReportSwitchExitDuration,
-            EasingMode.EaseInOut,
-            resetOnComplete: false,
+        _reportRefreshGeneration++;
+        _reportRefreshInProgress = true;
+        _reportRefreshLoading = true;
+    }
+
+    private void CompleteReportRefreshCycle()
+    {
+        if (!_reportRefreshInProgress)
+        {
+            return;
+        }
+
+        int refreshGeneration = _reportRefreshGeneration;
+        _reportRefreshLoading = false;
+        if (refreshGeneration <= _lastCompletedRefreshGeneration)
+        {
+            return;
+        }
+
+        if (!ViewModel.HasData || !MotionSettings.AreAnimationsEnabled())
+        {
+            StopReportDataTransition(resetTargets: true);
+            _lastCompletedRefreshGeneration = refreshGeneration;
+            _reportRefreshInProgress = false;
+            return;
+        }
+
+        int transitionToken = ++_reportDataTransitionToken;
+        ReportDataContent.UpdateLayout();
+        StartReportOpacityTransition(
+            NormalizeTargets(GetVisibleReportDataTargets()),
+            transitionToken,
+            1,
+            MotionSettings.ReportSwitchDuration,
+            startAtMinimum: false,
+            resetOnComplete: true,
             completed: () =>
             {
-                ExecuteTransitionCommit(commit);
-                destinationElement.UpdateLayout();
-                if (!ReferenceEquals(destinationElement, element))
+                if (refreshGeneration != _reportRefreshGeneration)
                 {
-                    ResetTransition(element, transform);
-                }
-                if (ReferenceEquals(element, ReportDataContent) && ViewModel.IsLoading)
-                {
-                    destinationElement.Opacity = GetTransitionMinimumOpacity(destinationElement);
-                    destinationTransform.TranslateX = 0;
                     return;
                 }
 
-                PlayViewTransitionEntry(destinationElement, destinationTransform);
+                _lastCompletedRefreshGeneration = refreshGeneration;
+                _reportRefreshInProgress = false;
             });
     }
 
-    private void PlayViewTransitionEntry(
-        FrameworkElement element,
-        CompositeTransform transform)
+    private void PlayIsolatedTrendEntry()
     {
-        StopTransition(element);
         if (!MotionSettings.AreAnimationsEnabled())
         {
-            ResetTransition(element, transform);
+            ResetReportDataTargets(GetVisibleReportChartTargets());
             return;
         }
 
-        double entryOffset = ReferenceEquals(element, ReportDataContent)
-            ? 0
-            : MotionSettings.ReportSwitchOffset;
-        double minimumOpacity = GetTransitionMinimumOpacity(element);
-        element.Opacity = minimumOpacity;
-        transform.TranslateX = entryOffset;
-        StartTransition(
-            element,
-            transform,
-            minimumOpacity,
+        int transitionToken = ++_reportDataTransitionToken;
+        StartReportOpacityTransition(
+            NormalizeTargets(GetVisibleReportChartTargets()),
+            transitionToken,
             1,
-            entryOffset,
-            0,
             MotionSettings.ReportSwitchDuration,
-            EasingMode.EaseOut,
+            startAtMinimum: true,
             resetOnComplete: true);
     }
 
-    private double GetTransitionMinimumOpacity(FrameworkElement element) =>
-        ReferenceEquals(element, ReportDataContent)
-            ? MotionSettings.ReportRefreshMinimumOpacity
-            : MotionSettings.ReportSwitchMinimumOpacity;
+    private void StopReportDataTransition(bool resetTargets)
+    {
+        FrameworkElement[] targets = _reportDataTransitionTargets;
+        Dictionary<FrameworkElement, double> currentOpacities = targets
+            .ToDictionary(target => target, target => Math.Clamp(target.Opacity, 0, 1));
+        _reportDataTransitionStoryboard?.Stop();
+        _reportDataTransitionStoryboard = null;
+        foreach ((FrameworkElement target, double opacity) in currentOpacities)
+        {
+            target.Opacity = opacity;
+        }
+
+        if (resetTargets)
+        {
+            ResetReportDataTargets(targets);
+            _reportDataTransitionTargets = [];
+        }
+    }
+
+    private void ResetReportDataTargets(IEnumerable<FrameworkElement> targets)
+    {
+        foreach (FrameworkElement target in targets.Distinct())
+        {
+            target.Opacity = 1;
+            SetReportTargetHitTesting(target, isEnabled: true);
+        }
+    }
+
+    private void SetReportTargetHitTesting(FrameworkElement target, bool isEnabled)
+    {
+        if (ReferenceEquals(target, GlobalChartTransitionRoot)
+            || ReferenceEquals(target, ProviderChartContentRoot))
+        {
+            target.IsHitTestVisible = isEnabled;
+        }
+    }
+
+    private void PlaySpatialTransition(
+        SpatialTransitionState state,
+        FrameworkElement element,
+        CompositeTransform transform,
+        Action commit,
+        Func<(FrameworkElement Rows, CompositeTransform Transform)> entryTargetFactory,
+        bool disableHitTesting)
+    {
+        int transitionToken = ++state.Token;
+        double currentOpacity = Math.Clamp(element.Opacity, 0, 1);
+        double currentOffset = transform.TranslateX;
+        state.Storyboard?.Stop();
+        state.Storyboard = null;
+        element.Opacity = currentOpacity;
+        transform.TranslateX = currentOffset;
+        if (!MotionSettings.AreAnimationsEnabled())
+        {
+            ExecuteTransitionCommit(commit);
+            state.CommitPending = false;
+            (FrameworkElement destination, CompositeTransform destinationTransform) =
+                entryTargetFactory();
+            ResetSpatialTarget(element, transform);
+            ResetSpatialTarget(destination, destinationTransform);
+            return;
+        }
+
+        StartSpatialPhase(
+            state,
+            element,
+            transform,
+            transitionToken,
+            MotionSettings.ReportSwitchMinimumOpacity,
+            -MotionSettings.ReportSwitchOffset,
+            MotionSettings.ReportSwitchExitDuration,
+            disableHitTesting,
+            () =>
+            {
+                ExecuteTransitionCommit(commit);
+                state.CommitPending = false;
+                ReportDataContent.UpdateLayout();
+                (FrameworkElement destination, CompositeTransform destinationTransform) =
+                    entryTargetFactory();
+                if (!ReferenceEquals(element, destination))
+                {
+                    ResetSpatialTarget(element, transform);
+                }
+
+                destination.Opacity = MotionSettings.ReportSwitchMinimumOpacity;
+                destinationTransform.TranslateX = MotionSettings.ReportSwitchOffset;
+                StartSpatialPhase(
+                    state,
+                    destination,
+                    destinationTransform,
+                    transitionToken,
+                    1,
+                    0,
+                    MotionSettings.ReportSwitchDuration,
+                    disableHitTesting,
+                    () =>
+                        ResetSpatialTarget(destination, destinationTransform));
+            });
+    }
+
+    private static void StartSpatialPhase(
+        SpatialTransitionState state,
+        FrameworkElement element,
+        CompositeTransform transform,
+        int transitionToken,
+        double toOpacity,
+        double toOffset,
+        TimeSpan duration,
+        bool disableHitTesting,
+        Action completed)
+    {
+        if (transitionToken != state.Token)
+        {
+            return;
+        }
+
+        if (disableHitTesting)
+        {
+            element.IsHitTestVisible = false;
+        }
+
+        var opacity = new DoubleAnimation
+        {
+            From = Math.Clamp(element.Opacity, 0, 1),
+            To = toOpacity,
+            Duration = duration,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+        };
+        var translation = new DoubleAnimation
+        {
+            From = transform.TranslateX,
+            To = toOffset,
+            Duration = duration,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+        };
+        Storyboard.SetTarget(opacity, element);
+        Storyboard.SetTargetProperty(opacity, nameof(Opacity));
+        Storyboard.SetTarget(translation, transform);
+        Storyboard.SetTargetProperty(translation, nameof(CompositeTransform.TranslateX));
+
+        var storyboard = new Storyboard();
+        storyboard.Children.Add(opacity);
+        storyboard.Children.Add(translation);
+        storyboard.Completed += (_, _) =>
+        {
+            if (transitionToken != state.Token
+                || !ReferenceEquals(state.Storyboard, storyboard))
+            {
+                return;
+            }
+
+            storyboard.Stop();
+            state.Storyboard = null;
+            element.Opacity = toOpacity;
+            transform.TranslateX = toOffset;
+            completed();
+        };
+        state.Storyboard = storyboard;
+        storyboard.Begin();
+    }
+
+    private static void ResetSpatialTarget(
+        FrameworkElement element,
+        CompositeTransform transform)
+    {
+        element.Opacity = 1;
+        element.IsHitTestVisible = true;
+        transform.TranslateX = 0;
+        transform.TranslateY = 0;
+    }
+
+    private static void CancelSpatialTransition(SpatialTransitionState state)
+    {
+        state.Token++;
+        state.Storyboard?.Stop();
+        state.Storyboard = null;
+        state.CommitPending = false;
+    }
 
     private void ExecuteTransitionCommit(Action commit)
     {
@@ -496,103 +986,25 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
-    private void StartTransition(
-        FrameworkElement element,
-        CompositeTransform transform,
-        double fromOpacity,
-        double toOpacity,
-        double fromOffset,
-        double toOffset,
-        TimeSpan duration,
-        EasingMode easingMode,
-        bool resetOnComplete,
-        Action? completed = null)
-    {
-        StopTransition(element);
-        element.Opacity = fromOpacity;
-        transform.TranslateX = fromOffset;
-
-        var opacity = new DoubleAnimation
-        {
-            From = fromOpacity,
-            To = toOpacity,
-            Duration = duration,
-            EasingFunction = new CubicEase { EasingMode = easingMode },
-        };
-        Storyboard.SetTarget(opacity, element);
-        Storyboard.SetTargetProperty(opacity, nameof(Opacity));
-        var translation = new DoubleAnimation
-        {
-            From = fromOffset,
-            To = toOffset,
-            Duration = duration,
-            EasingFunction = new CubicEase { EasingMode = easingMode },
-            EnableDependentAnimation = true,
-        };
-        Storyboard.SetTarget(translation, transform);
-        Storyboard.SetTargetProperty(translation, nameof(CompositeTransform.TranslateX));
-
-        var storyboard = new Storyboard();
-        storyboard.Children.Add(opacity);
-        storyboard.Children.Add(translation);
-        storyboard.Completed += (_, _) =>
-        {
-            if (!_activeViewTransitions.TryGetValue(element, out Storyboard? current)
-                || !ReferenceEquals(current, storyboard))
-            {
-                return;
-            }
-
-            storyboard.Stop();
-            _activeViewTransitions.Remove(element);
-            element.Opacity = toOpacity;
-            transform.TranslateX = toOffset;
-            if (resetOnComplete)
-            {
-                ResetTransition(element, transform);
-            }
-
-            completed?.Invoke();
-        };
-        _activeViewTransitions[element] = storyboard;
-        storyboard.Begin();
-    }
-
-    private void StopTransition(FrameworkElement element)
-    {
-        if (_activeViewTransitions.Remove(element, out Storyboard? storyboard))
-        {
-            storyboard.Stop();
-        }
-    }
-
-    private void ResetTransition(FrameworkElement element, CompositeTransform transform)
-    {
-        StopTransition(element);
-        element.Opacity = 1;
-        transform.TranslateX = 0;
-        transform.TranslateY = 0;
-    }
-
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
-        foreach ((FrameworkElement element, Storyboard storyboard) in _activeViewTransitions.ToArray())
-        {
-            storyboard.Stop();
-            element.Opacity = 1;
-        }
-        _activeViewTransitions.Clear();
-        ReportDataTransitionTransform.TranslateX = 0;
-        ReportDataTransitionTransform.TranslateY = 0;
-        GlobalChartTransitionTransform.TranslateX = 0;
-        GlobalChartTransitionTransform.TranslateY = 0;
-        ModelBreakdownRowsTransform.TranslateX = 0;
-        ModelBreakdownRowsTransform.TranslateY = 0;
-        SourceBreakdownRowsTransform.TranslateX = 0;
-        SourceBreakdownRowsTransform.TranslateY = 0;
-        DayBreakdownRowsTransform.TranslateX = 0;
-        DayBreakdownRowsTransform.TranslateY = 0;
+        _reportDataTransitionToken++;
+        StopReportDataTransition(resetTargets: true);
+        ResetReportDataTargets(GetAllReportDataTargets());
+        CancelSpatialTransition(_chartLayoutTransition);
+        CancelSpatialTransition(_breakdownTransition);
+        ResetSpatialTarget(GlobalChartTransitionRoot, GlobalChartTransitionTransform);
+        ResetSpatialTarget(ModelBreakdownRows, ModelBreakdownRowsTransform);
+        ResetSpatialTarget(SourceBreakdownRows, SourceBreakdownRowsTransform);
+        ResetSpatialTarget(DayBreakdownRows, DayBreakdownRowsTransform);
+        _pendingReportDataIntent = null;
+        _pendingReportDataCommit = null;
+        _reportDataCommitPending = false;
+        _reportRefreshGeneration = 0;
+        _lastCompletedRefreshGeneration = 0;
+        _reportRefreshInProgress = false;
+        _reportRefreshLoading = false;
     }
 
     private void OnCoverageHintEntered(object sender, RoutedEventArgs e) =>
