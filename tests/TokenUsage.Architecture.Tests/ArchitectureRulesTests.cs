@@ -363,8 +363,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(143, matches.Count);
-        Assert.Equal(129, distinctIds.Length);
+        Assert.Equal(146, matches.Count);
+        Assert.Equal(132, distinctIds.Length);
         Assert.Contains("HeaderVisualizationButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderShareButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
