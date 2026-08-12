@@ -19,70 +19,93 @@
         BorderThickness="2"
         CornerRadius="10"
         Padding="8,7">
-        <ItemsControl
-            AutomationProperties.AutomationId="TraySummaryProviders"
-            ItemsSource="{x:Bind Items}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="tray:TrayProviderSummary">
-                    <Border
-                        MinWidth="76"
-                        AutomationProperties.Name="{x:Bind AutomationName}"
-                        BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
-                        BorderThickness="0,0,1,0"
-                        Padding="5,0">
-                        <ToolTipService.ToolTip>
-                            <ToolTip MaxWidth="280">
-                                <TextBlock
-                                    Text="{x:Bind AutomationName}"
-                                    TextWrapping="WrapWholeWords" />
-                            </ToolTip>
-                        </ToolTipService.ToolTip>
-                        <Grid ColumnSpacing="5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="22" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <controls:ProviderMarkImage
-                                AutomationProperties.AccessibilityView="Raw"
-                                Height="22"
-                                HorizontalAlignment="Center"
-                                ProviderId="{x:Bind ProviderId}"
-                                VerticalAlignment="Center"
-                                Width="22" />
-                            <StackPanel
-                                Grid.Column="1"
-                                Spacing="0"
-                                VerticalAlignment="Center">
-                                <Grid>
+        <Grid>
+            <ItemsControl
+                x:Name="ProviderStrip"
+                AutomationProperties.AutomationId="TraySummaryProviders"
+                ItemsSource="{x:Bind Items}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="tray:TrayProviderSummary">
+                        <Border
+                            MinWidth="76"
+                            AutomationProperties.Name="{x:Bind AutomationName}"
+                            BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+                            BorderThickness="0,0,1,0"
+                            Padding="5,0">
+                            <ToolTipService.ToolTip>
+                                <ToolTip MaxWidth="280">
                                     <TextBlock
-                                        Foreground="{x:Bind SessionLevel, Converter={StaticResource QuotaUsageLevelToBrushConverter}}"
-                                        FontFamily="Consolas"
-                                        FontSize="14"
-                                        FontWeight="SemiBold"
-                                        IsTextScaleFactorEnabled="False"
-                                        Text="{x:Bind SessionValue}"
-                                        VerticalAlignment="Center" />
-                                </Grid>
-                                <Grid>
+                                        Text="{x:Bind AutomationName}"
+                                        TextWrapping="WrapWholeWords" />
+                                </ToolTip>
+                            </ToolTipService.ToolTip>
+                            <Grid ColumnSpacing="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="22" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <controls:ProviderMarkImage
+                                    AutomationProperties.AccessibilityView="Raw"
+                                    Height="22"
+                                    HorizontalAlignment="Center"
+                                    ProviderId="{x:Bind ProviderId}"
+                                    VerticalAlignment="Center"
+                                    Width="22" />
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Spacing="0"
+                                    VerticalAlignment="Center">
                                     <TextBlock
-                                        Foreground="{x:Bind PeriodLevel, Converter={StaticResource QuotaUsageLevelToBrushConverter}}"
-                                        FontFamily="Consolas"
-                                        FontSize="11"
-                                        FontWeight="SemiBold"
+                                        AutomationProperties.AccessibilityView="Raw"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        FontSize="9"
                                         IsTextScaleFactorEnabled="False"
-                                        Text="{x:Bind PeriodValue}"
-                                        VerticalAlignment="Center" />
-                                </Grid>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                                        MaxWidth="44"
+                                        Text="{x:Bind ProviderName}"
+                                        TextTrimming="CharacterEllipsis"
+                                        Visibility="{x:Bind IsProviderNameVisible}" />
+                                    <Grid>
+                                        <TextBlock
+                                            Foreground="{x:Bind PrimaryLevel, Converter={StaticResource QuotaUsageLevelToBrushConverter}}"
+                                            FontFamily="Consolas"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            IsTextScaleFactorEnabled="False"
+                                            Text="{x:Bind PrimaryValue}"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Grid Visibility="{x:Bind HasSecondaryValue}">
+                                        <TextBlock
+                                            Foreground="{x:Bind SecondaryLevel, Converter={StaticResource QuotaUsageLevelToBrushConverter}}"
+                                            FontFamily="Consolas"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            IsTextScaleFactorEnabled="False"
+                                            Text="{x:Bind SecondaryValue}"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock
+                x:Name="EmptyState"
+                x:Uid="TraySummaryEmptyState"
+                AutomationProperties.AutomationId="TraySummaryEmptyState"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                HorizontalAlignment="Center"
+                MaxWidth="180"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                TextWrapping="WrapWholeWords"
+                VerticalAlignment="Center"
+                Visibility="Collapsed" />
+        </Grid>
     </Border>
 </UserControl>

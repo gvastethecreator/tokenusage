@@ -54,7 +54,7 @@ public sealed record AppearanceSettings
 {
     /// <summary>
     /// Default appearance: system theme, regular density, transparency off,
-    /// remaining usage, and relative reset times.
+    /// remaining usage, relative reset times, and the default tray popover.
     /// </summary>
     public static AppearanceSettings Default { get; } = new(
         AppThemeMode.System,
@@ -70,7 +70,8 @@ public sealed record AppearanceSettings
         bool increaseTransparency,
         UsageDisplayMode usageDisplay,
         ResetTimeDisplayMode resetTimeDisplay,
-        DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List)
+        DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List,
+        TrayPopoverSettings? trayPopover = null)
     {
         if (!Enum.IsDefined(theme))
         {
@@ -106,6 +107,7 @@ public sealed record AppearanceSettings
         UsageDisplay = usageDisplay;
         ResetTimeDisplay = resetTimeDisplay;
         DashboardVisualization = dashboardVisualization;
+        TrayPopover = trayPopover ?? TrayPopoverSettings.Default;
     }
 
     public AppThemeMode Theme { get; }
@@ -119,4 +121,6 @@ public sealed record AppearanceSettings
     public ResetTimeDisplayMode ResetTimeDisplay { get; }
 
     public DashboardVisualizationMode DashboardVisualization { get; }
+
+    public TrayPopoverSettings TrayPopover { get; }
 }

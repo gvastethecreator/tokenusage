@@ -59,7 +59,18 @@ El icono resume el peor estado de las métricas elegidas:
 | Refrescando | Indicador breve y accesible |
 | Sin datos | Icono neutro |
 
-Al posar el puntero sobre el icono aparece una tira flotante con hasta cuatro proveedores elegidos. Cada bloque muestra el icono, el límite de sesión y el límite semanal o mensual. Los estados usan verde, amarillo, naranja y rojo. Un dato que la fuente no ofrece se muestra como `—`; nunca se inventa. La tira usa el tema activo, se coloca junto al icono en su monitor, respeta el DPI y se oculta cuando el puntero abandona el icono. El tooltip nativo de Windows queda suprimido para que no se superponga.
+Al posar el puntero sobre el icono aparece una tira flotante con los proveedores elegidos. La tira solo muestra proveedores detectados en este equipo. Cuando no hay ninguno, muestra un texto corto que lo dice en lugar de bloques vacíos.
+
+Cada bloque tiene sitio para dos valores. El usuario elige en Apariencia qué valor ocupa cada línea, cuántos proveedores caben, y si aparece el nombre del proveedor:
+
+| Ajuste | Opciones | Valor inicial |
+|---|---|---|
+| Valor principal | límite de sesión, límite del periodo, gasto de 30 días, tokens de 30 días | límite de sesión |
+| Valor secundario | ninguno o cualquier valor distinto del principal | límite del periodo |
+| Proveedores | de uno a cuatro | cuatro |
+| Nombre del proveedor | mostrar u ocultar | ocultar |
+
+El valor secundario no puede repetir el principal. El ancho y el alto de la tira siguen a lo elegido. Los estados usan verde, amarillo, naranja y rojo. Un dato que la fuente no ofrece se muestra como `—`; nunca se inventa. La tira usa el tema activo, se coloca junto al icono en su monitor, respeta el DPI y se oculta cuando el puntero abandona el icono. El tooltip nativo de Windows queda suprimido para que no se superponga.
 
 El clic principal cierra la tira y abre o cierra el panel compacto. El menú de contexto ofrece actualizar, ajustes y salir. Debe funcionar con mouse y teclado.
 
@@ -137,7 +148,7 @@ La primera versión no agrupa por proyecto, sesión, tarea o comando. Esas vista
 | Grupo | Opciones MVP |
 |---|---|
 | General | iniciar con Windows, atajo global, refresco manual |
-| Apariencia | sistema/claro/oscuro, densidad, transparencia, usado/restante, hora relativa/exacta |
+| Apariencia | sistema/claro/oscuro, densidad, transparencia, usado/restante, hora relativa/exacta, contenido de la tira de bandeja |
 | Proveedores | detección, activación, estado y fuente |
 | Avisos | umbrales, ritmo, datos vencidos y fallo de credencial |
 | Red | proxy del sistema y prueba de conexión |
@@ -241,6 +252,13 @@ La primera ejecución revisa en local, sin leer el contenido secreto:
 - claves manuales propias ya guardadas.
 
 Activa solo los proveedores con una ruta apta. Si ninguno aparece, muestra Codex y Claude como opciones guiadas, sin afirmar que están conectados.
+
+El sondeo de presencia no lee archivos de uso y no necesita base local, así que responde antes del primer escaneo. Reglas que se derivan de eso:
+
+- la lista de proveedores del panel y la tira de bandeja solo incluyen proveedores con raíz encontrada;
+- una herramienta sin raíz queda fuera de la lista aunque la base conserve historial suyo; el historial sigue contando en los totales de uso y gasto;
+- una herramienta con raíz y sin historial aparece con `Sin datos`, no como ausente;
+- cuando el sondeo no encuentra ninguna herramienta, el panel lo dice con su propio mensaje y no como fallo de un proveedor.
 
 ## Codex MVP
 

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-12T08:48:20Z",
-  "generated_from_commit": "b4cad94774cf6c704491360ed2d9465c03de411a",
+  "generated_at": "2026-08-12T14:18:27Z",
+  "generated_from_commit": "d76e0e5c3775bb81d27f6cd5768fe6e2c7644035",
   "scope": [
     "."
   ],
@@ -81,7 +81,7 @@
       "type": "service",
       "boundary": "Scripts",
       "entrypoints": [
-        "scripts/check.ps1:Invoke"
+        "scripts/audit.ps1:# Audits representative active projects for known NuGet vulnerabilities."
       ],
       "tests": [],
       "constraints": [
@@ -91,8 +91,8 @@
         "status": "verified",
         "locations": [
           {
-            "path": "scripts/check.ps1",
-            "symbol": "Invoke"
+            "path": "scripts/audit.ps1",
+            "symbol": "# Audits representative active projects for known NuGet vulnerabilities."
           }
         ]
       }

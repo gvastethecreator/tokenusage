@@ -102,6 +102,31 @@ public static class LocalUsageCardProjector
                 && readStatus != UsageSourceReadStatus.Complete);
     }
 
+    /// <summary>
+    /// Provider rows from a presence probe alone. No scan has run yet, so the card carries
+    /// no totals and no read notice.
+    /// </summary>
+    public static LocalUsageCard CreateDetectionOnly(
+        IReadOnlyList<UsageSourceDiagnostic> diagnostics,
+        Func<string, string> getString,
+        SourceKind sourceKind,
+        bool hasMultipleRealSources)
+    {
+        ArgumentNullException.ThrowIfNull(diagnostics);
+        return Create(
+            [],
+            getString,
+            sourceKind,
+            UsageSourceReadStatus.NoData,
+            hasMultipleRealSources,
+            today: null,
+            sourceDiagnostics: diagnostics) with
+        {
+            NoticeText = string.Empty,
+            IsNoticeImportant = false,
+        };
+    }
+
     public static LocalUsageCard CreateUnavailable(
         Func<string, string> getString,
         SourceKind sourceKind = SourceKind.Synthetic) =>

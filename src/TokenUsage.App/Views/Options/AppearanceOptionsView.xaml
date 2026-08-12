@@ -55,6 +55,10 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <StackPanel x:Name="AppearanceThemeGroup" Grid.ColumnSpan="2" Spacing="4">
@@ -127,6 +131,58 @@
                             HorizontalAlignment="Stretch"
                             ItemsSource="{x:Bind ViewModel.DashboardVisualizationOptions}"
                             SelectedItem="{x:Bind ViewModel.SelectedDashboardVisualization, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="AppearanceTrayPopoverGroup" Grid.Row="6" Grid.ColumnSpan="2" Spacing="4">
+                        <TextBlock x:Uid="AppearanceTrayPopoverHeading" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="AppearanceTrayPrimaryGroup" Grid.Row="7" Spacing="4">
+                        <TextBlock x:Uid="AppearanceTrayPrimaryLabel" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <ComboBox
+                            x:Name="AppearanceTrayPrimarySelector"
+                            x:Uid="AppearanceTrayPrimarySelector"
+                            AutomationProperties.AutomationId="AppearanceTrayPrimarySelector"
+                            DisplayMemberPath="DisplayName"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{x:Bind ViewModel.TrayPopoverPrimaryOptions}"
+                            SelectedItem="{x:Bind ViewModel.SelectedTrayPopoverPrimary, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="AppearanceTraySecondaryGroup" Grid.Row="7" Grid.Column="1" Spacing="4">
+                        <TextBlock x:Uid="AppearanceTraySecondaryLabel" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <ComboBox
+                            x:Name="AppearanceTraySecondarySelector"
+                            x:Uid="AppearanceTraySecondarySelector"
+                            AutomationProperties.AutomationId="AppearanceTraySecondarySelector"
+                            DisplayMemberPath="DisplayName"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{x:Bind ViewModel.TrayPopoverSecondaryOptions}"
+                            SelectedItem="{x:Bind ViewModel.SelectedTrayPopoverSecondary, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="AppearanceTrayCountGroup" Grid.Row="8" Spacing="4">
+                        <TextBlock x:Uid="AppearanceTrayProviderCountLabel" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <ComboBox
+                            x:Name="AppearanceTrayProviderCountSelector"
+                            x:Uid="AppearanceTrayProviderCountSelector"
+                            AutomationProperties.AutomationId="AppearanceTrayProviderCountSelector"
+                            DisplayMemberPath="DisplayName"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{x:Bind ViewModel.TrayPopoverProviderCountOptions}"
+                            SelectedItem="{x:Bind ViewModel.SelectedTrayPopoverProviderCount, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="AppearanceTrayNameGroup" Grid.Row="9" Grid.ColumnSpan="2" Spacing="4">
+                        <TextBlock x:Uid="AppearanceTrayProviderNameLabel" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                        <ToggleSwitch
+                            x:Name="AppearanceTrayProviderNameToggle"
+                            x:Uid="AppearanceTrayProviderNameToggle"
+                            AutomationProperties.AutomationId="AppearanceTrayProviderNameToggle"
+                            HorizontalAlignment="Left"
+                            IsOn="{x:Bind ViewModel.ShowTrayPopoverProviderName, Mode=TwoWay}"
+                            OffContent=""
+                            OnContent="" />
                     </StackPanel>
 
                 </Grid>

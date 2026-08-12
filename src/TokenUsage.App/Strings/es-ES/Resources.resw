@@ -27,6 +27,12 @@
   <data name="TraySummaryMonthlyShortLabel" xml:space="preserve"><value>Mes</value></data>
   <data name="TraySummaryPeriodShortLabel" xml:space="preserve"><value>S/M</value></data>
   <data name="TraySummaryProviderAutomationNameFormat" xml:space="preserve"><value>{0}. {1}: {2}. {3}: {4}.</value></data>
+  <data name="TraySummaryProviderSingleAutomationNameFormat" xml:space="preserve"><value>{0}. {1}: {2}.</value></data>
+  <data name="TraySummarySpendLabel" xml:space="preserve"><value>Gasto, últimos 30 días</value></data>
+  <data name="TraySummarySpendShortLabel" xml:space="preserve"><value>$</value></data>
+  <data name="TraySummaryTokensLabel" xml:space="preserve"><value>Tokens, últimos 30 días</value></data>
+  <data name="TraySummaryTokensShortLabel" xml:space="preserve"><value>T</value></data>
+  <data name="TraySummaryEmptyState.Text" xml:space="preserve"><value>No se detectó ninguna herramienta de código con IA en este equipo.</value></data>
   <data name="ProviderStatusShowMoreFormat" xml:space="preserve"><value>Ver más proveedores ({0})</value></data>
   <data name="ProviderStatusShowLessFormat" xml:space="preserve"><value>Ver menos proveedores ({0})</value></data>
   <data name="StatusIdle" xml:space="preserve"><value>Sin datos</value></data>
@@ -220,6 +226,8 @@
   <data name="SampleRetryAutomationName" xml:space="preserve"><value>Reintentar muestra</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Cuota de Codex no disponible</value></data>
   <data name="CodexUnavailableBody" xml:space="preserve"><value>TokenUsage no pudo leer la cuota de Codex. Comprueba que Codex funciona y vuelve a intentarlo.</value></data>
+  <data name="ProvidersUndetectedTitle" xml:space="preserve"><value>No se detectó ninguna herramienta de código con IA</value></data>
+  <data name="ProvidersUndetectedBody" xml:space="preserve"><value>TokenUsage no encontró ninguna herramienta compatible en este equipo. Instala o ejecuta una y actualiza.</value></data>
   <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex necesita configuración</value></data>
   <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Instala Codex CLI o inicia sesión con ChatGPT desde Codex y vuelve a intentarlo. TokenUsage no solicita credenciales.</value></data>
   <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Esta cuenta no ofrece cuota de Codex</value></data>
@@ -505,6 +513,20 @@
   <data name="AppearanceVisualizationList" xml:space="preserve"><value>Lista</value></data>
   <data name="AppearanceVisualizationDonut" xml:space="preserve"><value>Circular</value></data>
   <data name="AppearanceVisualizationHeatmap" xml:space="preserve"><value>Mapa</value></data>
+  <data name="AppearanceTrayPopoverHeading.Text" xml:space="preserve"><value>Ventana emergente del área de notificación</value></data>
+  <data name="AppearanceTrayPrimaryLabel.Text" xml:space="preserve"><value>Valor superior</value></data>
+  <data name="AppearanceTrayPrimarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Valor superior de la ventana emergente del área de notificación</value></data>
+  <data name="AppearanceTraySecondaryLabel.Text" xml:space="preserve"><value>Valor inferior</value></data>
+  <data name="AppearanceTraySecondarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Valor inferior de la ventana emergente del área de notificación</value></data>
+  <data name="AppearanceTrayProviderCountLabel.Text" xml:space="preserve"><value>Proveedores mostrados</value></data>
+  <data name="AppearanceTrayProviderCountSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Proveedores mostrados en la ventana emergente del área de notificación</value></data>
+  <data name="AppearanceTrayProviderNameLabel.Text" xml:space="preserve"><value>Mostrar el nombre del proveedor</value></data>
+  <data name="AppearanceTrayProviderNameToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Mostrar el nombre del proveedor en la ventana emergente del área de notificación</value></data>
+  <data name="AppearanceTrayMetricNone" xml:space="preserve"><value>Nada</value></data>
+  <data name="AppearanceTrayMetricSessionQuota" xml:space="preserve"><value>Cuota de sesión</value></data>
+  <data name="AppearanceTrayMetricPeriodQuota" xml:space="preserve"><value>Cuota semanal o mensual</value></data>
+  <data name="AppearanceTrayMetricSpend" xml:space="preserve"><value>Gasto, últimos 30 días</value></data>
+  <data name="AppearanceTrayMetricTokens" xml:space="preserve"><value>Tokens, últimos 30 días</value></data>
   <data name="AppearanceRecoveredFormat" xml:space="preserve"><value>La configuración de apariencia dañada se movió a {0}. Se cargaron los valores predeterminados.</value></data>
   <data name="AppearanceNewerVersionFormat" xml:space="preserve"><value>El formato de apariencia {0} es más nuevo. Actualiza TokenUsage antes de cambiarlo.</value></data>
   <data name="AppearanceUnavailable" xml:space="preserve"><value>No se puede leer la configuración de apariencia. Los cambios están desactivados.</value></data>

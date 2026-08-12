@@ -39,6 +39,20 @@ public sealed class LocalUsageCoordinator
 
     public SourceKind SourceKind => _refresh.SourceKind;
 
+    /// <summary>
+    /// Presence-only provider card. This answers "which tools are installed" before the
+    /// first scan, so a fresh install never reports an absent tool as detected.
+    /// </summary>
+    public LocalUsageCard DetectProviders(Func<string, string> getString)
+    {
+        ArgumentNullException.ThrowIfNull(getString);
+        return LocalUsageCardProjector.CreateDetectionOnly(
+            _refresh.DetectSources(),
+            getString,
+            _refresh.SourceKind,
+            _refresh.HasMultipleRealSources);
+    }
+
     public async Task<LocalUsageCard> RefreshAsync(
         Func<string, string> getString,
         CancellationToken cancellationToken = default)
