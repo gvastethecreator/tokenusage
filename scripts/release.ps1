@@ -216,7 +216,7 @@ try {
     }
 
     Copy-PublishOutput $appPublish $portableDirectory
-    Copy-PublishOutput $cliPublish $portableDirectory
+    Copy-PublishOutput $cliPublish (Join-Path $portableDirectory 'cli')
     Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $portableDirectory
     Set-Content -LiteralPath (Join-Path $portableDirectory 'TokenUsage.portable') -Encoding utf8 -Value @(
         'TokenUsage portable distribution'
@@ -227,10 +227,14 @@ try {
         "TokenUsage $Version portable"
         ''
         'Run TokenUsage.App.exe to start the tray app.'
-        'Run tokenusage.exe from PowerShell to use the CLI.'
+        'Run cli\tokenusage.exe from PowerShell to use the CLI.'
         'Keep TokenUsage.portable beside the executable files.'
         'The app and CLI use the Data folder in this directory.'
         'Move the complete directory when you move the app.'
+    )
+    Set-Content -LiteralPath (Join-Path $portableDirectory 'tokenusage.cmd') -Encoding ascii -Value @(
+        '@echo off'
+        '"%~dp0cli\tokenusage.exe" %*'
     )
 
     Compress-Archive -LiteralPath $portableDirectory -DestinationPath $portableZip -CompressionLevel Optimal

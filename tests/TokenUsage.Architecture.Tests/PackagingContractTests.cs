@@ -133,6 +133,7 @@ public sealed class PackagingContractTests
             runtimeIdentifier,
             profile.Descendants(MsBuild + "RuntimeIdentifier").Single().Value);
         Assert.Equal("None", profile.Descendants(MsBuild + "WindowsPackageType").Single().Value);
+        Assert.Equal("true", profile.Descendants(MsBuild + "EnableMsixTooling").Single().Value);
         Assert.Equal(
             "true",
             profile.Descendants(MsBuild + "WindowsAppSDKSelfContained").Single().Value);
