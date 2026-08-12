@@ -61,6 +61,8 @@ public sealed class HermesUsageEventSourceTests
         UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
 
+        Assert.True(source.IsRootAvailable);
+
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal("hermes", usageEvent.AgentId.Value);
         Assert.Equal("anthropic", usageEvent.ModelProviderId?.Value);
@@ -81,6 +83,24 @@ public sealed class HermesUsageEventSourceTests
 
         UsageSourceReadResult result = await source.ReadAsync();
 
+        Assert.False(source.IsRootAvailable);
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
+        Assert.Empty(result.Events);
+    }
+
+    [Fact]
+    public async Task HomeFolderWithoutStateDatabaseIsNotAnInstall()
+    {
+        using var folder = new TemporaryFolder();
+        Directory.CreateDirectory(Path.Combine(folder.Path, "skills", "other-tool"));
+        File.WriteAllText(Path.Combine(folder.Path, "skills", "other-tool", "SKILL.md"), "x");
+        var source = new HermesUsageEventSource(
+            "UTC",
+            hermesHomeOverride: folder.Path);
+
+        UsageSourceReadResult result = await source.ReadAsync();
+
+        Assert.False(source.IsRootAvailable);
         Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
         Assert.Empty(result.Events);
     }

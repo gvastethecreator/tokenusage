@@ -61,7 +61,27 @@ public sealed class HermesUsageEventSource :
         Justification = "The property implements the usage-source contract.")]
     public string EventParserVersion => ParserVersion;
 
-    public bool IsRootAvailable => Directory.Exists(_homeDirectory);
+    /// <summary>
+    /// Hermes is present when a <c>state.db</c> exists. A leftover
+    /// <c>.hermes</c> folder from another tool is not an install.
+    /// </summary>
+    public bool IsRootAvailable
+    {
+        get
+        {
+            try
+            {
+                return FindDatabasePaths().Count > 0;
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or NotSupportedException
+                or System.Security.SecurityException)
+            {
+                return false;
+            }
+        }
+    }
 
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default) =>

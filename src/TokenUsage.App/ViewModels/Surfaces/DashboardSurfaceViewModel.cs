@@ -1024,10 +1024,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private DashboardProviderSummary[] CreateProviderSummaries(
         IReadOnlyList<DailyUsageRollup> rollups)
     {
-        string[] providerIds = DetectedProviderIds
-            .Concat(rollups.Select(rollup => rollup.AgentId.Value))
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
+        // Detected roots only. A retained rollup from an uninstalled tool must not put that
+        // tool back on the list or the tray; the report still keeps the history.
+        string[] providerIds = DetectedProviderIds;
         var grouped = rollups
             .GroupBy(rollup => rollup.AgentId.Value, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
