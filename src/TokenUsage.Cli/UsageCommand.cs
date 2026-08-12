@@ -262,9 +262,7 @@ public static class UsageCommand
             .ConfigureAwait(false);
     }
 
-    private static string FormatCost(decimal? value) => value is null
-        ? "unavailable"
-        : value.Value.ToString("0.######", CultureInfo.InvariantCulture);
+    private static string FormatCost(decimal? value) => CliCostText.Format(value);
 
     private readonly record struct UsageOptions(int Days, OutputFormat Format);
 

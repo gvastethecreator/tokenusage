@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
 using TokenUsage.App.Controls;
+using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
@@ -62,9 +63,11 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
     private readonly Func<string, IReadOnlyList<QuotaWindow>> _getProviderLimits;
     private readonly QuotaResetHistoryStore? _resetHistoryStore;
     private readonly TimeProvider _clock;
+    private readonly Dictionary<string, Brush> _providerBrushes = new(StringComparer.Ordinal);
     private CancellationTokenSource? _loadCancellation;
     private UsageReport _report = UsageReportQuery.Build([]);
     private UsageReport _globalReport = UsageReportQuery.Build([]);
+    private (DateOnly Start, DateOnly End)? _globalReportRange;
     private int _windowDays = 30;
     private UsageReportMetric _metric = UsageReportMetric.Cost;
     private UsageReportBreakdown _breakdown = UsageReportBreakdown.Model;
@@ -473,11 +476,20 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
             if (File.Exists(_databasePath))
             {
                 var query = new UsageReportQuery(_databasePath);
-                _globalReport = await query.ReadAsync(
-                    startDate,
-                    endDate,
-                    cancellationToken: cancellation.Token);
-                RebuildProviderOptions();
+
+                // Switching provider keeps the period, and the all-provider read only feeds the
+                // picker and the all-provider scope. Reading it again per provider switch doubled
+                // the wait for a result the range already produced.
+                if (refreshSource || _globalReportRange != (startDate, endDate))
+                {
+                    _globalReport = await query.ReadAsync(
+                        startDate,
+                        endDate,
+                        cancellationToken: cancellation.Token);
+                    _globalReportRange = (startDate, endDate);
+                    RebuildProviderOptions();
+                }
+
                 _report = IsProviderScope && SelectedProvider is not null
                     ? await query.ReadAsync(
                         startDate,
@@ -489,6 +501,7 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
             else
             {
                 _globalReport = UsageReportQuery.Build([]);
+                _globalReportRange = null;
                 _report = _globalReport;
                 RebuildProviderOptions();
             }
@@ -699,8 +712,8 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildProviderOptions()
     {
-        string[] known = ["codex", "opencode", "antigravity", "grok", "cursor", "claude", "mux", "goose"];
-        string[] ids = known
+        string[] ids = ProviderModuleCatalog.ActiveLocalUsageEntries
+            .Select(entry => entry.Id.Value)
             .Concat(_globalReport.Agents
                 .Select(agent => agent.AgentId.Value))
             .Distinct(StringComparer.Ordinal)
@@ -1018,7 +1031,7 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         decimal totalCost = _report.Totals.TotalCostUsd;
         long totalTokens = _report.Totals.Tokens.Total;
         return _report.Agents
-            .OrderBy(agent => ProviderSortOrder(agent.AgentId.Value))
+            .ByCuratedRank(agent => agent.AgentId.Value)
             .Select(agent =>
             {
                 decimal share = IsCostMetric
@@ -1045,25 +1058,29 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
                             FormatUsd(agent.Metrics.TotalCostUsd)),
                     (double)(share * 100m),
                     FormatPercent(share),
-                    new SolidColorBrush(ProviderColorPalette.Parse(colorHex)),
+                    GetProviderBrush(colorHex),
                     Math.Max(2d, (double)(share * 1080m)),
                     CreateProviderTrend(providerId));
             })
             .ToArray();
     }
 
-    private static int ProviderSortOrder(string providerId) => providerId switch
+    /// <summary>
+    /// One brush per color. The report rebuilds its rows on every metric, scope, and period
+    /// change, and a fresh brush per row per rebuild leaves the old ones for the collector while
+    /// the color has not changed.
+    /// </summary>
+    private Brush GetProviderBrush(string colorHex)
     {
-        "codex" => 0,
-        "opencode" => 1,
-        "antigravity" => 2,
-        "grok" => 3,
-        "cursor" => 4,
-        "claude" => 5,
-        "mux" => 6,
-        "goose" => 7,
-        _ => 8,
-    };
+        if (_providerBrushes.TryGetValue(colorHex, out Brush? brush))
+        {
+            return brush;
+        }
+
+        brush = new SolidColorBrush(ProviderColorPalette.Parse(colorHex));
+        _providerBrushes[colorHex] = brush;
+        return brush;
+    }
 
     private UsageReportTrendDataset CreateProviderTrend(string providerId)
     {
@@ -1153,6 +1170,11 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
             .OrderByDescending(model => IsCostMetric
                 ? (double)model.Metrics.TotalCostUsd
                 : model.Metrics.Tokens.Total)
+            .ThenByDescending(model => IsCostMetric
+                ? model.Metrics.Tokens.Total
+                : (double)model.Metrics.TotalCostUsd)
+            .ThenBy(model => model.AgentId.Value, StringComparer.Ordinal)
+            .ThenBy(model => model.ModelId.Value, StringComparer.Ordinal)
             .Take(30)
             .Select(model => new UsageReportModelRow(
                 model.AgentId.Value,
@@ -1168,8 +1190,10 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
     }
 
     private UsageReportSourceRow[] CreateSourceRows() => _report.Agents
-        .OrderByDescending(agent => agent.Metrics.TotalCostUsd)
-        .ThenByDescending(agent => agent.Metrics.Tokens.Total)
+        .BySpend(
+            agent => agent.Metrics.TotalCostUsd,
+            agent => agent.Metrics.Tokens.Total,
+            agent => agent.AgentId.Value)
         .Select(agent => new UsageReportSourceRow(
             agent.AgentId.Value,
             ProviderName(agent.AgentId.Value),
@@ -1294,38 +1318,21 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         _ => throw new ArgumentOutOfRangeException(nameof(coverage)),
     });
 
-    private static string ProviderName(string providerId) =>
-        ProviderModuleCatalog.Entries.FirstOrDefault(entry =>
-            string.Equals(entry.Id.Value, providerId, StringComparison.Ordinal))?.DisplayName
-        ?? providerId;
+    private string ProviderName(string providerId) =>
+        ProviderDisplayName.Resolve(providerId, GetString);
 
-    private string FormatUsd(decimal amount) => string.Format(
-        CultureInfo.CurrentCulture,
-        GetString("LocalUsageUsdFormat"),
-        amount);
+    private string FormatUsd(decimal amount) => UsageValueFormatter.Usd(amount, GetString);
 
-    internal static string FormatCompactUsd(double amount) => amount >= 1_000
-        ? string.Format(CultureInfo.CurrentCulture, "${0:N0}", amount)
-        : string.Format(CultureInfo.CurrentCulture, "${0:0.##}", amount);
+    internal static string FormatCompactUsd(double amount) =>
+        UsageValueFormatter.CompactUsd(amount);
 
-    internal static string FormatCompactTokens(double value)
-    {
-        double absolute = Math.Abs(value);
-        return absolute switch
-        {
-            >= 1_000_000_000 => string.Format(CultureInfo.CurrentCulture, "{0:0.##}B", value / 1_000_000_000),
-            >= 1_000_000 => string.Format(CultureInfo.CurrentCulture, "{0:0.#}M", value / 1_000_000),
-            >= 1_000 => string.Format(CultureInfo.CurrentCulture, "{0:0.#}K", value / 1_000),
-            _ => string.Format(CultureInfo.CurrentCulture, "{0:N0}", value),
-        };
-    }
+    internal static string FormatCompactTokens(double value) =>
+        UsageValueFormatter.CompactTokens(value);
 
     private static string FormatTokens(long value) => FormatCompactTokens(value);
 
-    private static string FormatPercent(decimal share) => string.Format(
-        CultureInfo.CurrentCulture,
-        "{0:0.#}%",
-        share * 100m);
+    private static string FormatPercent(decimal share) =>
+        UsageValueFormatter.PercentText(share * 100m);
 
     private string GetString(string key)
     {

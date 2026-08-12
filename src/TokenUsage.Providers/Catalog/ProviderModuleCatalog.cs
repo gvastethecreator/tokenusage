@@ -27,7 +27,8 @@ public sealed record ProviderModuleDefinition
         IEnumerable<ProviderCapability> capabilities,
         ProviderModuleStage stage,
         ProviderReference references,
-        IEnumerable<string>? aliases = null)
+        IEnumerable<string>? aliases = null,
+        bool isQuotaBlocked = false)
     {
         Id = new ProviderId(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
@@ -54,11 +55,19 @@ public sealed record ProviderModuleDefinition
             throw new ArgumentException("A provider alias cannot equal its canonical ID.", nameof(aliases));
         }
 
+        if (isQuotaBlocked && capabilityArray.Contains(ProviderCapability.Limits))
+        {
+            throw new ArgumentException(
+                "A provider that reports limits cannot also have its quota blocked.",
+                nameof(isQuotaBlocked));
+        }
+
         DisplayName = displayName;
         Capabilities = Array.AsReadOnly(capabilityArray);
         Stage = stage;
         References = references;
         Aliases = Array.AsReadOnly(aliasArray);
+        IsQuotaBlocked = isQuotaBlocked;
     }
 
     public ProviderId Id { get; }
@@ -72,6 +81,14 @@ public sealed record ProviderModuleDefinition
     public ProviderReference References { get; }
 
     public IReadOnlyList<string> Aliases { get; }
+
+    /// <summary>
+    /// The tool has a quota, and no apt public interface or its own policy lets the app read
+    /// it. This is a claim about the provider, so it belongs with the provider definition and
+    /// not in a screen: a status row says "blocked by provider policy" only for these.
+    /// See <c>docs/PROVIDER-MATRIX.md</c>.
+    /// </summary>
+    public bool IsQuotaBlocked { get; }
 
     public bool IsOpenUsageProvider => References.HasFlag(ProviderReference.OpenUsage);
 
@@ -93,8 +110,8 @@ public static class ProviderModuleCatalog
             Module("claude", "Claude", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["claude-code"]),
             Module("codex", "Codex", [ProviderCapability.Limits, ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
             Module("cursor", "Cursor", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
-            Module("antigravity", "Antigravity", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
-            Module("grok", "Grok Build", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["grok-build"]),
+            Module("antigravity", "Antigravity", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, quotaBlocked: true),
+            Module("grok", "Grok Build", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["grok-build"], quotaBlocked: true),
             Module("opencode", "OpenCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
 
             Module("openai", "OpenAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
@@ -160,6 +177,24 @@ public static class ProviderModuleCatalog
     public static IReadOnlyList<ProviderModuleDefinition> CodeBurnEntries { get; } =
         Array.AsReadOnly(Catalog.Where(entry => entry.IsCodeBurnProvider).ToArray());
 
+    /// <summary>
+    /// Tools the app reads from disk today: shipped, not opt-in, not prepared, and able to
+    /// report local usage. A screen that lists local providers asks this instead of keeping
+    /// its own list of IDs.
+    /// </summary>
+    public static IReadOnlyList<ProviderModuleDefinition> ActiveLocalUsageEntries { get; } =
+        Array.AsReadOnly(Catalog
+            .Where(entry => entry.Stage == ProviderModuleStage.Active
+                && entry.Capabilities.Contains(ProviderCapability.LocalUsage))
+            .ToArray());
+
+    private static readonly HashSet<string> ActiveLocalUsageIds = ActiveLocalUsageEntries
+        .Select(entry => entry.Id.Value)
+        .ToHashSet(StringComparer.Ordinal);
+
+    public static bool IsActiveLocalUsageProvider(string providerId) =>
+        !string.IsNullOrWhiteSpace(providerId) && ActiveLocalUsageIds.Contains(providerId);
+
     public static ProviderModuleDefinition Get(string providerId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
@@ -182,6 +217,7 @@ public static class ProviderModuleCatalog
         ProviderCapability[] capabilities,
         ProviderModuleStage stage,
         ProviderReference references,
-        string[]? aliases = null) =>
-        new(id, displayName, capabilities, stage, references, aliases);
+        string[]? aliases = null,
+        bool quotaBlocked = false) =>
+        new(id, displayName, capabilities, stage, references, aliases, quotaBlocked);
 }
