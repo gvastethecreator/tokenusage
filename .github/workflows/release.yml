@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix
+        required: true
+        default: 0.0.1
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      TOKENUSAGE_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Add Visual Studio MSBuild to PATH
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
+
+      - name: Resolve release version
+        shell: pwsh
+        env:
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $env:GITHUB_REF_NAME -replace '^v', ''
+          } else {
+            $env:MANUAL_VERSION
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Release version is invalid: $version"
+          }
+          "TOKENUSAGE_RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Load package certificate
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        run: |
+          if (-not $env:CERTIFICATE_BASE64) {
+            if ($env:GITHUB_REF_TYPE -eq 'tag') {
+              throw 'A tag release requires WINDOWS_CERTIFICATE_BASE64.'
+            }
+            Write-Host 'No certificate is configured. The workflow will create an unsigned MSIX candidate.'
+            exit 0
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'TokenUsage-release.pfx'
+          [System.IO.File]::WriteAllBytes(
+            $certificatePath,
+            [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
+          "TOKENUSAGE_CERTIFICATE_PATH=$certificatePath" >> $env:GITHUB_ENV
+
+      - name: Build release assets
+        shell: pwsh
+        run: .\scripts\release.ps1 -Platform x64 -Version $env:TOKENUSAGE_RELEASE_VERSION
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: TokenUsage-${{ env.TOKENUSAGE_RELEASE_VERSION }}-win-x64
+          path: artifacts/release/*
+          if-no-files-found: error
+
+      - name: Create draft GitHub release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $unsigned = Get-ChildItem artifacts/release -File -Filter '*-unsigned.*'
+          if ($unsigned) {
+            throw 'A tag release cannot contain an unsigned package.'
+          }
+          $assets = @(Get-ChildItem artifacts/release -File | Select-Object -ExpandProperty FullName)
+          $notes = "docs/releases/$($env:TOKENUSAGE_RELEASE_VERSION).md"
+          $arguments = @(
+            'release', 'create', $env:GITHUB_REF_NAME,
+            '--draft',
+            '--verify-tag',
+            '--title', "TokenUsage $($env:GITHUB_REF_NAME)"
+          )
+          if (Test-Path -LiteralPath $notes) {
+            $arguments += @('--notes-file', $notes)
+          } else {
+            $arguments += '--generate-notes'
+          }
+          $arguments += $assets
+          & gh @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release creation failed with exit code $LASTEXITCODE."
+          }

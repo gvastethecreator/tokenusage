@@ -24,6 +24,7 @@ using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.Platform.Windows.Storage;
 
 namespace TokenUsage.App;
 
@@ -41,7 +42,8 @@ public sealed partial class MainPage : Page, IDisposable
     public MainPage()
     {
         TimeProvider clock = TimeProvider.System;
-        string localFolderPath = ApplicationData.Current.LocalFolder.Path;
+        string localFolderPath = TokenUsageDataDirectory.Resolve(
+            () => ApplicationData.Current.LocalFolder.Path);
         var options = new AppCompositionOptions(
             DashboardLayoutPath: GetDashboardLayoutPath(localFolderPath),
             AppearanceSettingsPath: GetAppearanceSettingsPath(localFolderPath));
