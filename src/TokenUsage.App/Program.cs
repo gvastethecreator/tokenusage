@@ -11,14 +11,10 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        RecordPortableStartupStage("main");
         WinRT.ComWrappersSupport.InitializeComWrappers();
-        RecordPortableStartupStage("com-wrappers");
 
         var activationArguments = AppInstance.GetCurrent().GetActivatedEventArgs();
-        RecordPortableStartupStage("activation-arguments");
         var keyInstance = AppInstance.FindOrRegisterForKey(InstanceKey);
-        RecordPortableStartupStage("instance-registered");
         if (!keyInstance.IsCurrent)
         {
             RedirectActivation(keyInstance, activationArguments);
@@ -28,30 +24,13 @@ internal static class Program
         keyInstance.Activated += App.OnRedirectedActivation;
         Application.Start(callbackParameters =>
         {
-            RecordPortableStartupStage("application-start");
             var dispatcherQueue = DispatcherQueue.GetForCurrentThread();
             SynchronizationContext.SetSynchronizationContext(
                 new DispatcherQueueSynchronizationContext(dispatcherQueue));
             _ = new App();
-            RecordPortableStartupStage("app-created");
         });
 
         return 0;
-    }
-
-    internal static void RecordPortableStartupStage(string stage)
-    {
-        string markerPath = Path.Combine(
-            AppContext.BaseDirectory,
-            TokenUsage.Platform.Windows.Storage.TokenUsageDataDirectory.PortableMarkerFileName);
-        if (!File.Exists(markerPath))
-        {
-            return;
-        }
-
-        File.WriteAllText(
-            Path.Combine(AppContext.BaseDirectory, "portable-startup-stage.txt"),
-            stage);
     }
 
     private static void RedirectActivation(

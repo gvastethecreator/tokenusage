@@ -18,11 +18,8 @@ public partial class App : Application
 
     public App()
     {
-        Program.RecordPortableStartupStage("app-constructor");
         AppLanguageRuntime.Initialize();
-        Program.RecordPortableStartupStage("language-initialized");
         InitializeComponent();
-        Program.RecordPortableStartupStage("xaml-initialized");
 #if DEBUG || UI_TEST_FIXTURES
         string[] launchArguments = Environment.GetCommandLineArgs()[1..];
         if (launchArguments.Contains("--theme=light", StringComparer.OrdinalIgnoreCase))
@@ -38,7 +35,6 @@ public partial class App : Application
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        Program.RecordPortableStartupStage("launched");
 #if DEBUG || UI_TEST_FIXTURES
         string[] launchArguments = Environment.GetCommandLineArgs()[1..];
         string? claudeConfigForTest = launchArguments.FirstOrDefault(argument =>
@@ -89,7 +85,6 @@ public partial class App : Application
             useSampleForTest,
             flyoutWidthForTest,
             showTraySummaryForTest);
-        Program.RecordPortableStartupStage("window-created");
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         bool showRedirectedActivation;
