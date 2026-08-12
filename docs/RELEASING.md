@@ -28,7 +28,9 @@ Use `-SkipTests` only after the same commit passes the complete release check.
 
 The portable folder contains `TokenUsage.portable`. Keep this file beside the executable files.
 
-The app and CLI store their data in the `Data` folder. Move the complete TokenUsage folder to move this data.
+The app and CLI store their data in the `Data` folder. The CLI executable is in `cli`.
+
+Run `tokenusage.cmd` from the portable root to use the CLI. Move the complete TokenUsage folder to move its data.
 
 The MSIX package uses its Windows `LocalState` folder. The portable build does not change or import the MSIX data.
 

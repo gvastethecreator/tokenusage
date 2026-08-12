@@ -114,7 +114,9 @@ Published releases can include two Windows x64 files:
 - A signed MSIX package for normal installation
 - A portable ZIP that does not require installation
 
-The portable ZIP contains the app and CLI. Both use the `Data` folder beside the executable files.
+The portable ZIP contains the app and CLI. Run `tokenusage.cmd` from its root to use the CLI.
+
+Both executables use the `Data` folder beside the app executable.
 
 Keep `TokenUsage.portable` in the extracted folder. Move the complete folder when you move or update the portable app.
 
