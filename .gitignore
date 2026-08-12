@@ -1,6 +1,9 @@
 # Local upstream source used for research.
 .reference/
 
+# Private local reports, roadmap notes, and scratch notes.
+.local/
+
 # Durable local task state.
 .scratch/
 

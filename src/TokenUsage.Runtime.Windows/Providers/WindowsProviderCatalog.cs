@@ -1,12 +1,16 @@
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Amp;
 using TokenUsage.Providers.Antigravity;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.Catalog;
 using TokenUsage.Providers.Grok;
+using TokenUsage.Providers.Goose;
+using TokenUsage.Providers.Hermes;
+using TokenUsage.Providers.Mux;
 using TokenUsage.Providers.OpenCode;
 using TokenUsage.Runtime.Windows.Codex;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
@@ -98,8 +102,7 @@ public sealed record WindowsProviderCompositionOptions(
     string? TimeZoneId = null,
     ICodexQuotaClientFactory? CodexClientFactory = null,
     VercelGatewayRefreshCoordinator? VercelCoordinator = null,
-    bool EnableVercelGateway = false,
-    bool EnableClaudeLocalUsage = false);
+    bool EnableVercelGateway = false);
 
 public sealed class WindowsProviderComposition
 {
@@ -122,9 +125,16 @@ public sealed class WindowsProviderComposition
 
 public static class WindowsProviderCatalog
 {
-    private static readonly IReadOnlyList<WindowsProviderCatalogEntry> Catalog =
+    private static readonly IReadOnlyList<WindowsProviderCatalogEntry> IntegratedCatalog =
         Array.AsReadOnly<WindowsProviderCatalogEntry>(
         [
+            new(
+                ProviderModuleCatalog.Get("amp"),
+                cacheDirectoryName: null,
+                localUsageAgentId: "amp",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-amp",
+                localUsageFactory: timeZoneId => new AmpUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("claude"),
                 cacheDirectoryName: null,
@@ -181,6 +191,27 @@ public static class WindowsProviderCatalog
                 dataCheckId: "local-usage-cursor",
                 localUsageFactory: timeZoneId => new CursorUsageEventSource(timeZoneId)),
             new(
+                ProviderModuleCatalog.Get("mux"),
+                cacheDirectoryName: null,
+                localUsageAgentId: "mux",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-mux",
+                localUsageFactory: timeZoneId => new MuxUsageEventSource(timeZoneId)),
+            new(
+                ProviderModuleCatalog.Get("goose"),
+                cacheDirectoryName: null,
+                localUsageAgentId: "goose",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-goose",
+                localUsageFactory: timeZoneId => new GooseUsageEventSource(timeZoneId)),
+            new(
+                ProviderModuleCatalog.Get("hermes"),
+                cacheDirectoryName: null,
+                localUsageAgentId: "hermes",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-hermes",
+                localUsageFactory: timeZoneId => new HermesUsageEventSource(timeZoneId)),
+            new(
                 ProviderModuleCatalog.Get("copilot"),
                 cacheDirectoryName: null,
                 localUsageAgentId: null,
@@ -212,6 +243,19 @@ public static class WindowsProviderCatalog
                 dataCheckId: "vercel-ai-gateway-cache",
                 compose: CreateVercelBinding),
         ]);
+
+    private static readonly IReadOnlyList<WindowsProviderCatalogEntry> Catalog =
+        Array.AsReadOnly(IntegratedCatalog
+            .Concat(ProviderModuleCatalog.Entries
+                .Where(module => IntegratedCatalog.All(entry => entry.Id != module.Id))
+                .Select(module => new WindowsProviderCatalogEntry(
+                    module,
+                    cacheDirectoryName: null,
+                    localUsageAgentId: null,
+                    detectionCheckId: null,
+                    dataCheckId: null)))
+            .OrderBy(entry => entry.Module.Id.Value, StringComparer.Ordinal)
+            .ToArray());
 
     public static IReadOnlyList<WindowsProviderCatalogEntry> AllEntries { get; } = Catalog;
 
@@ -252,7 +296,6 @@ public static class WindowsProviderCatalog
             options.VercelCoordinator);
         ProviderBinding[] bindings = Catalog
             .Where(entry => entry.Stage == ProviderModuleStage.Active
-                || options.EnableClaudeLocalUsage && entry.Id.Value == "claude"
                 || options.EnableVercelGateway && entry.Id.Value == "vercel-ai-gateway")
             .Select(entry => entry.Compose(context))
             .ToArray();

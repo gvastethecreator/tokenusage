@@ -8,6 +8,7 @@ using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
@@ -698,11 +699,10 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildProviderOptions()
     {
-        string[] known = ["codex", "opencode", "antigravity", "grok", "cursor"];
+        string[] known = ["codex", "opencode", "antigravity", "grok", "cursor", "claude", "mux", "goose"];
         string[] ids = known
             .Concat(_globalReport.Agents
-            .Select(agent => agent.AgentId.Value)
-            .Where(id => known.Contains(id, StringComparer.Ordinal)))
+                .Select(agent => agent.AgentId.Value))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
         string? selectedId = _selectedProvider?.ProviderId;
@@ -1059,7 +1059,10 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         "antigravity" => 2,
         "grok" => 3,
         "cursor" => 4,
-        _ => 5,
+        "claude" => 5,
+        "mux" => 6,
+        "goose" => 7,
+        _ => 8,
     };
 
     private UsageReportTrendDataset CreateProviderTrend(string providerId)
@@ -1291,16 +1294,10 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         _ => throw new ArgumentOutOfRangeException(nameof(coverage)),
     });
 
-    private static string ProviderName(string providerId) => providerId switch
-    {
-        "antigravity" => "Antigravity",
-        "claude" => "Claude Code",
-        "codex" => "Codex",
-        "cursor" => "Cursor",
-        "grok" => "Grok Build",
-        "opencode" => "OpenCode",
-        _ => providerId,
-    };
+    private static string ProviderName(string providerId) =>
+        ProviderModuleCatalog.Entries.FirstOrDefault(entry =>
+            string.Equals(entry.Id.Value, providerId, StringComparison.Ordinal))?.DisplayName
+        ?? providerId;
 
     private string FormatUsd(decimal amount) => string.Format(
         CultureInfo.CurrentCulture,

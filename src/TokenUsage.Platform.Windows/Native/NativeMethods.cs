@@ -26,6 +26,7 @@ internal static class NativeMethods
     internal const uint WmApp = 0x8000;
     internal const uint WmNull = 0x0000;
     internal const uint WmContextMenu = 0x007B;
+    internal const uint WmMouseMove = 0x0200;
     internal const uint WmLButtonDown = 0x0201;
     internal const uint WmLButtonUp = 0x0202;
     internal const uint WmLButtonDoubleClick = 0x0203;
@@ -41,8 +42,6 @@ internal static class NativeMethods
     internal const uint NifMessage = 0x00000001;
     internal const uint NifIcon = 0x00000002;
     internal const uint NifTip = 0x00000004;
-    internal const uint NifShowTip = 0x00000080;
-
     internal const uint ImageIcon = 1;
     internal const uint LrLoadFromFile = 0x00000010;
     internal const uint LrDefaultSize = 0x00000040;
@@ -55,8 +54,13 @@ internal static class NativeMethods
     internal const uint MonitorDefaultToNearest = 2;
     internal const uint SpiGetWorkArea = 0x0030;
     internal const uint DwmWindowAttributeBorderColor = 34;
+    internal const uint DwmWindowAttributeCornerPreference = 33;
+    internal const uint DwmWindowCornerPreferenceRoundSmall = 3;
     internal const uint DwmColorNone = 0xFFFFFFFE;
     internal const int GwlStyle = -16;
+    internal const int GwlExtendedStyle = -20;
+    internal const long WsExToolWindow = 0x00000080;
+    internal const long WsExNoActivate = 0x08000000;
     internal const long NonClientFrameStyleMask = 0x00CF0000;
     internal const long AccessibleNonClientFrameStyle = 0x00480000;
     internal const uint SwpNoSize = 0x0001;
@@ -64,6 +68,8 @@ internal static class NativeMethods
     internal const uint SwpNoZOrder = 0x0004;
     internal const uint SwpNoActivate = 0x0010;
     internal const uint SwpFrameChanged = 0x0020;
+    internal const uint SwpShowWindow = 0x0040;
+    internal static readonly nint HwndTopmost = new(-1);
 
     [DllImport("dwmapi.dll")]
     internal static extern int DwmSetWindowAttribute(
@@ -88,6 +94,29 @@ internal static class NativeMethods
         int width,
         int height,
         uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetClientRect(nint window, out NativeRect rectangle);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    internal static extern nint CreateRoundRectRgn(
+        int left,
+        int top,
+        int right,
+        int bottom,
+        int ellipseWidth,
+        int ellipseHeight);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern int SetWindowRgn(
+        nint window,
+        nint region,
+        [MarshalAs(UnmanagedType.Bool)] bool redraw);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool DeleteObject(nint value);
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

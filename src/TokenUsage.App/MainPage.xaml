@@ -39,6 +39,7 @@
         <Border
             x:Name="OpaqueSurface"
             Background="{ThemeResource TokenUsageShellBrush}"
+            CornerRadius="12"
             IsHitTestVisible="False" />
         <Border
             x:Name="FlyoutChrome"
@@ -69,7 +70,7 @@
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
                     <Image
                         Height="32"
-                        Source="ms-appx:///Assets/StoreLogo.png"
+                        Source="{ThemeResource TokenUsageAppIconSource}"
                         Width="32" />
                     <TextBlock
                         x:Uid="ProviderHeader"
@@ -96,6 +97,7 @@
                     Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}" />
 
                 <StackPanel
+                    x:Name="HeaderActionButtons"
                     Grid.Column="1"
                     Orientation="Horizontal"
                     Spacing="4"

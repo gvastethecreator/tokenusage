@@ -10,6 +10,7 @@ using TokenUsage.Core.Layout;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.Providers.Tests.Sessions;
 
@@ -183,8 +184,38 @@ public sealed class SessionModuleTests
             [localCodex, local]);
         await surface.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal(["codex", "grok", "claude", "copilot", "devin", "openrouter", "zai"],
-            surface.Providers.Select(provider => provider.ProviderId));
+        string[] expectedProviderIds =
+        [
+            "codex",
+            "grok",
+            .. ProviderModuleCatalog.Entries
+                .Select(entry => entry.Id.Value)
+                .Where(id => id is not "codex" and not "grok"),
+        ];
+        Assert.Equal(expectedProviderIds, surface.Providers.Select(provider => provider.ProviderId));
+        string[] primaryProviderIds =
+        [
+            "codex",
+            "claude",
+            "grok",
+            "opencode",
+            "antigravity",
+            "cursor",
+            "copilot",
+        ];
+        Assert.Equal(
+            primaryProviderIds,
+            surface.PrimaryProviders.Select(provider => provider.ProviderId));
+        Assert.Equal(
+            surface.Providers.Count - primaryProviderIds.Length,
+            surface.AdditionalProviders.Count);
+        Assert.DoesNotContain(
+            surface.AdditionalProviders,
+            provider => primaryProviderIds.Contains(provider.ProviderId, StringComparer.Ordinal));
+        Assert.True(surface.HasAdditionalProviders);
+        Assert.False(surface.IsAdditionalProvidersExpanded);
+        surface.IsAdditionalProvidersExpanded = true;
+        Assert.Equal("ProviderStatusShowLessFormat", surface.AdditionalProvidersToggleLabel);
         ProviderStatusRow codex = surface.Providers[0];
         Assert.Equal("Detected", codex.RootState);
         Assert.Equal(
@@ -200,11 +231,11 @@ public sealed class SessionModuleTests
             surface.Providers.Single(provider => provider.ProviderId == "openrouter").RootState);
         ProviderStatusRow claude = surface.Providers.Single(provider =>
             provider.ProviderId == "claude");
-        Assert.Equal("ProviderStatusOptional", claude.RootState);
-        Assert.Equal(ProviderStatusKind.Optional, claude.StatusKind);
-        Assert.Equal("ProviderStatusSummaryOptional", claude.CompactState);
+        Assert.Equal("ProviderStatusUnavailable", claude.RootState);
+        Assert.Equal(ProviderStatusKind.Missing, claude.StatusKind);
+        Assert.Equal("ProviderStatusSummaryMissing", claude.CompactState);
         Assert.Equal(
-            "ProviderStatusOptional",
+            "ProviderStatusUnavailable",
             claude.Capabilities.Single(capability =>
                 capability.AutomationId == "ProviderStatus.claude.Usage").Value);
         Assert.Equal(

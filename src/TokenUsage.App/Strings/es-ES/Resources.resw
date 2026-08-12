@@ -17,6 +17,18 @@
   <data name="TrayMenuUpdate" xml:space="preserve"><value>Actualizar</value></data>
   <data name="TrayMenuSettings" xml:space="preserve"><value>Opciones</value></data>
   <data name="TrayMenuExit" xml:space="preserve"><value>Salir</value></data>
+  <data name="TraySummaryUnavailableValue" xml:space="preserve"><value>—</value></data>
+  <data name="TraySummarySessionLabel" xml:space="preserve"><value>Sesión</value></data>
+  <data name="TraySummaryWeeklyLabel" xml:space="preserve"><value>Semanal</value></data>
+  <data name="TraySummaryMonthlyLabel" xml:space="preserve"><value>Mensual</value></data>
+  <data name="TraySummaryPeriodLabel" xml:space="preserve"><value>Semanal o mensual</value></data>
+  <data name="TraySummarySessionShortLabel" xml:space="preserve"><value>Ses</value></data>
+  <data name="TraySummaryWeeklyShortLabel" xml:space="preserve"><value>Sem</value></data>
+  <data name="TraySummaryMonthlyShortLabel" xml:space="preserve"><value>Mes</value></data>
+  <data name="TraySummaryPeriodShortLabel" xml:space="preserve"><value>S/M</value></data>
+  <data name="TraySummaryProviderAutomationNameFormat" xml:space="preserve"><value>{0}. {1}: {2}. {3}: {4}.</value></data>
+  <data name="ProviderStatusShowMoreFormat" xml:space="preserve"><value>Ver más proveedores ({0})</value></data>
+  <data name="ProviderStatusShowLessFormat" xml:space="preserve"><value>Ver menos proveedores ({0})</value></data>
   <data name="StatusIdle" xml:space="preserve"><value>Sin datos</value></data>
   <data name="StatusLoading" xml:space="preserve"><value>Actualizando…</value></data>
   <data name="ProviderHeader.Text" xml:space="preserve"><value>TokenUsage</value></data>
@@ -93,7 +105,7 @@
   <data name="EmptyBody.Text" xml:space="preserve"><value>La cuota y el gasto aparecerán aquí cuando haya una herramienta local compatible. Esta compilación no tiene una fuente conectada.</value></data>
   <data name="EmptyOpenOptionsButton.Content" xml:space="preserve"><value>Abrir opciones</value></data>
   <data name="EmptyOpenOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Abrir opciones</value></data>
-  <data name="CloseWhenInactiveToggle.Header" xml:space="preserve"><value>Cerrar al perder foco</value></data>
+  <data name="CloseWhenInactiveLabel.Text" xml:space="preserve"><value>Cerrar al perder foco</value></data>
   <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Cerrar al perder foco</value></data>
   <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>TokenUsage 0.1</value></data>
   <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Opciones</value></data>
@@ -431,9 +443,10 @@
   <data name="DashboardProviderMoveDownButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mover hacia abajo</value></data>
   <data name="DashboardProviderVisibilityAutomationNameFormat" xml:space="preserve"><value>Mostrar u ocultar {0}</value></data>
   <data name="DashboardProviderVisibilityButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mostrar u ocultar</value></data>
-  <data name="DashboardProviderHighlightAutomationNameFormat" xml:space="preserve"><value>Destacar {0}</value></data>
-  <data name="DashboardProviderHighlightButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Destacar</value></data>
-  <data name="DashboardProviderHighlightedLabel" xml:space="preserve"><value>Destacado</value></data>
+  <data name="DashboardProviderHighlightAutomationNameFormat" xml:space="preserve"><value>Mostrar {0} en la vista previa de la barra de tareas</value></data>
+  <data name="DashboardProviderHighlightButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Mostrar en la barra de tareas</value></data>
+  <data name="DashboardProviderHighlightedLabel" xml:space="preserve"><value>En la barra de tareas</value></data>
+  <data name="DashboardProviderHighlightLimitReached" xml:space="preserve"><value>Puedes mostrar hasta cuatro proveedores en la vista previa de la barra de tareas.</value></data>
   <data name="DashboardProviderMetricsAutomationNameFormat" xml:space="preserve"><value>Métricas de {0}</value></data>
   <data name="DashboardProviderColorAutomationNameFormat" xml:space="preserve"><value>Cambiar el color de {0}</value></data>
   <data name="DashboardProviderColorButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Color del proveedor</value></data>
@@ -594,12 +607,21 @@
   <data name="UsageReportCoverageUnpriced" xml:space="preserve"><value>Uso sin precio</value></data>
   <data name="UsageReportReadFailed" xml:space="preserve"><value>No se pudo leer el informe local. Los datos existentes no se modificaron.</value></data>
   <data name="CompactProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Seleccionar proveedor</value></data>
+  <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Proveedor anterior</value></data>
+  <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Proveedor anterior</value></data>
+  <data name="NextProviderTabButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Proveedor siguiente</value></data>
+  <data name="NextProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Proveedor siguiente</value></data>
   <data name="UsageReportProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Proveedor del informe</value></data>
   <data name="CompactProviderCodexCoverageHint" xml:space="preserve"><value>Codex: los totales diarios son oficiales; la mezcla de modelos y el costo se estiman. El costo puede diferir del cobro del plan.</value></data>
-  <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: estimación local del contexto actual de cada conversación de Agent. No es consumo facturado y no incluye Tab, cuota ni costo.</value></data>
+  <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: usa contadores locales reales por turno cuando existen. Las conversaciones antiguas conservan una estimación parcial de contexto. El costo es valor API estimado, no el cobro del plan.</value></data>
   <data name="CompactProviderGrokCoverageHint" xml:space="preserve"><value>Grok Build: uso leído de los registros locales. La cuota oficial no está disponible.</value></data>
   <data name="CompactProviderOpenCodeCoverageHint" xml:space="preserve"><value>OpenCode: uso observado en registros locales; el costo se estima con precios de catálogo.</value></data>
   <data name="CompactProviderAntigravityCoverageHint" xml:space="preserve"><value>Antigravity: uso observado en registros locales; el costo se estima con precios de catálogo.</value></data>
+  <data name="CompactProviderClaudeCoverageHint" xml:space="preserve"><value>Claude: tokens leídos de los registros locales. Se usa el costo informado cuando existe; en otro caso se estima con precios API conocidos.</value></data>
+  <data name="CompactProviderAmpCoverageHint" xml:space="preserve"><value>Amp: contadores numéricos leídos desde ledger.jsonl. Los créditos de Amp no se muestran como USD; los modelos conocidos pueden mostrar su valor API estimado.</value></data>
+  <data name="CompactProviderMuxCoverageHint" xml:space="preserve"><value>Mux: tokens y costo agregados desde session-usage.json. No se leen transcripciones.</value></data>
+  <data name="CompactProviderGooseCoverageHint" xml:space="preserve"><value>Goose: tokens acumulados desde una consulta numérica y de solo lectura a sessions.db. Los modelos conocidos pueden mostrar su valor API estimado.</value></data>
+  <data name="CompactProviderHermesCoverageHint" xml:space="preserve"><value>Hermes: los tokens agregados por sesión y el costo real se leen de columnas numéricas de state.db. No se consultan mensajes.</value></data>
   <data name="CompactCostUnavailable" xml:space="preserve"><value>Sin costo disponible</value></data>
   <data name="UsageReportQualitySummaryFormat" xml:space="preserve"><value>{0} informado · {1} estimado · {2} sin precio</value></data>
   <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHÉ (ENTRADA)  {0}    •    SIN CACHÉ (ENTRADA)  {1}    •    SALIDA  {2}</value></data>

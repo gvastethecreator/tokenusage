@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="TokenUsage.App.TraySummaryWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:tray="using:TokenUsage.App.Views.Tray">
+    <tray:TraySummaryView x:Name="SummaryView" />
+</Window>
