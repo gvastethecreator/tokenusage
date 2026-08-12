@@ -100,6 +100,14 @@ public sealed class LocalUsageRefresh
             SourceKind.OfficialLocalApi or SourceKind.LocalLog or SourceKind.LocalDatabase);
 
     /// <summary>
+    /// Today in the grouping zone daily rollups use. A caller that projects a card without a
+    /// refresh result takes the date from here, so no surface has to fall back to the machine
+    /// clock on its own.
+    /// </summary>
+    public DateOnly Today => DateOnly.FromDateTime(
+        TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), TimeZoneInfo.Local).DateTime);
+
+    /// <summary>
     /// Presence probe for every configured source. This reads no usage file and needs no
     /// store, so a first install can separate "the tool is not installed" from
     /// "the tool is installed and not scanned yet" before any scan runs.
@@ -132,10 +140,8 @@ public sealed class LocalUsageRefresh
             return null;
         }
 
-        TimeZoneInfo groupingTimeZone = TimeZoneInfo.Local;
-        DateOnly today = DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), groupingTimeZone).DateTime);
-        DateOnly fromInclusive = Min(today.AddDays(-34), new DateOnly(today.Year, today.Month, 1));
+        DateOnly today = Today;
+        DateOnly fromInclusive = UsagePeriodPolicy.QueryStart(today);
         IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(
             fromInclusive,
             today,
@@ -209,11 +215,9 @@ public sealed class LocalUsageRefresh
             }
             else if (source is IWindowedSnapshotUsageEventSource windowedSource)
             {
-                ArgumentOutOfRangeException.ThrowIfLessThan(
-                    windowedSource.ReconciliationWindowDays,
-                    1);
-                DateOnly reconcileFrom = today.AddDays(
-                    -(windowedSource.ReconciliationWindowDays - 1));
+                DateOnly reconcileFrom = UsagePeriodPolicy.ReconciliationStart(
+                    today,
+                    windowedSource.ReconciliationWindowDays);
                 UsageEvent[] eventsInWindow = result.Events.Where(usageEvent =>
                 {
                     DateOnly eventDate = DateOnly.FromDateTime(
@@ -265,7 +269,7 @@ public sealed class LocalUsageRefresh
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        DateOnly fromInclusive = Min(today.AddDays(-34), new DateOnly(today.Year, today.Month, 1));
+        DateOnly fromInclusive = UsagePeriodPolicy.QueryStart(today);
         IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsAsync(
             fromInclusive,
             today,
@@ -288,9 +292,6 @@ public sealed class LocalUsageRefresh
             diagnostics,
             hasMultipleRealSources: HasMultipleRealSources);
     }
-
-    private static DateOnly Min(DateOnly left, DateOnly right) =>
-        left <= right ? left : right;
 
     /// <summary>
     /// Cached rollups prove past usage, not current presence. The root probe keeps an

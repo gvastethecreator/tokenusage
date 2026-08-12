@@ -61,7 +61,7 @@ public sealed class CodexUsageEventSource :
 
     public string EventParserVersion => ParserVersion;
 
-    public int ReconciliationWindowDays => 35;
+    public int ReconciliationWindowDays => UsagePeriodPolicy.ReconciliationDays;
 
     public bool IsRootAvailable => SessionRoots().Any(Directory.Exists);
 

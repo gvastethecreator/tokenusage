@@ -1,31 +1,36 @@
 using System.Globalization;
+using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels;
 
 public static class LocalUsageCardProjector
 {
+    /// <summary>
+    /// Projects a card for a window that ends on <paramref name="today"/>. The caller owns the
+    /// date, because a card built off the machine clock cannot be pinned by a test and drifts
+    /// from the date the refresh itself used.
+    /// </summary>
     public static LocalUsageCard Create(
         IReadOnlyList<DailyUsageRollup> rollups,
+        DateOnly today,
         Func<string, string> getString,
         SourceKind sourceKind = SourceKind.Synthetic,
         UsageSourceReadStatus readStatus = UsageSourceReadStatus.Complete,
         bool hasMultipleRealSources = false,
-        DateOnly? today = null,
         IReadOnlyList<UsageSourceDiagnostic>? sourceDiagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(rollups);
         ArgumentNullException.ThrowIfNull(getString);
 
-        DateOnly currentDate = today
-            ?? (rollups.Count == 0
-                ? DateOnly.FromDateTime(DateTime.Today)
-                : rollups.Max(rollup => rollup.Date));
+        DateOnly currentDate = today;
         DateOnly monthStart = new(currentDate.Year, currentDate.Month, 1);
-        Totals totals30Days = Sum(rollups, currentDate.AddDays(-29), currentDate);
+        DateOnly rollingStart = UsagePeriodPolicy.RollingDisplayStart(currentDate);
+        Totals totals30Days = Sum(rollups, rollingStart, currentDate);
         string missing = getString("CodexUsageMissing");
 
         DashboardMetric[] metrics = CreateMetrics(totals30Days, missing, getString);
@@ -58,8 +63,7 @@ public static class LocalUsageCardProjector
         ];
 
         IReadOnlyList<DailyUsageRollup> rollups30Days = rollups
-            .Where(rollup => rollup.Date >= currentDate.AddDays(-29)
-                             && rollup.Date <= currentDate)
+            .Where(rollup => rollup.Date >= rollingStart && rollup.Date <= currentDate)
             .ToArray();
         LocalUsageSpendBreakdown breakdown = CreateBreakdown(
             rollups30Days,
@@ -108,6 +112,7 @@ public static class LocalUsageCardProjector
     /// </summary>
     public static LocalUsageCard CreateDetectionOnly(
         IReadOnlyList<UsageSourceDiagnostic> diagnostics,
+        DateOnly today,
         Func<string, string> getString,
         SourceKind sourceKind,
         bool hasMultipleRealSources)
@@ -115,11 +120,11 @@ public static class LocalUsageCardProjector
         ArgumentNullException.ThrowIfNull(diagnostics);
         return Create(
             [],
+            today,
             getString,
             sourceKind,
             UsageSourceReadStatus.NoData,
             hasMultipleRealSources,
-            today: null,
             sourceDiagnostics: diagnostics) with
         {
             NoticeText = string.Empty,
@@ -128,9 +133,10 @@ public static class LocalUsageCardProjector
     }
 
     public static LocalUsageCard CreateUnavailable(
+        DateOnly today,
         Func<string, string> getString,
         SourceKind sourceKind = SourceKind.Synthetic) =>
-        Create([], getString, sourceKind) with
+        Create([], today, getString, sourceKind) with
         {
             NoticeText = getString("LocalUsageUnavailable"),
             IsNoticeImportant = true,
@@ -228,8 +234,10 @@ public static class LocalUsageCardProjector
                 };
             })
             .Where(item => item.Amount > 0m)
-            .OrderByDescending(item => item.Amount)
-            .ThenBy(item => item.Agent.Value, StringComparer.Ordinal)
+            .BySpend(
+                item => item.Amount,
+                item => item.Totals.TotalTokens,
+                item => item.Agent.Value)
             .Select(item => new SpendSlice(
                 item.Agent.Value,
                 GetAgentName(item.Agent.Value, getString),
@@ -251,9 +259,10 @@ public static class LocalUsageCardProjector
                     Amount = modelTotals.Reported + modelTotals.Estimated,
                 };
             })
-            .OrderByDescending(item => item.Amount)
-            .ThenByDescending(item => item.Totals.TotalTokens)
-            .ThenBy(item => item.AgentId.Value, StringComparer.Ordinal)
+            .BySpend(
+                item => item.Amount,
+                item => item.Totals.TotalTokens,
+                item => item.AgentId.Value)
             .ThenBy(item => item.ModelId.Value, StringComparer.Ordinal)
             .Select(item =>
             {
@@ -323,20 +332,16 @@ public static class LocalUsageCardProjector
     }
 
     private static string GetAgentName(string agentId, Func<string, string> getString) =>
-        agentId switch
-        {
-            "antigravity" => getString("LocalUsageAgentAntigravity"),
-            "amp" => "Amp",
-            "claude" => getString("LocalUsageAgentClaude"),
-            "codex" => getString("LocalUsageAgentCodex"),
-            "cursor" => getString("LocalUsageAgentCursor"),
-            "grok" => getString("LocalUsageAgentGrok"),
-            "goose" => "Goose",
-            "hermes" => "Hermes",
-            "mux" => "Mux",
-            "opencode" => getString("LocalUsageAgentOpenCode"),
-            _ => agentId,
-        };
+        ProviderDisplayName.Resolve(agentId, getString);
+
+    /// <summary>
+    /// Whether the provider itself keeps its quota out of reach. The catalog answers this, so
+    /// a new blocked provider needs no change here.
+    /// </summary>
+    private static bool IsQuotaBlocked(string providerId) => ProviderModuleCatalog.Entries
+        .FirstOrDefault(entry => string.Equals(entry.Id.Value, providerId, StringComparison.Ordinal))
+        ?.IsQuotaBlocked
+        ?? false;
 
     private static ProviderStatusRow[] CreateProviderStatuses(
         IReadOnlyList<DailyUsageRollup> rollups,
@@ -344,8 +349,7 @@ public static class LocalUsageCardProjector
         string missing,
         Func<string, string> getString) =>
         diagnostics
-            .Where(item => item.AgentId.Value is
-                "amp" or "antigravity" or "claude" or "codex" or "cursor" or "goose" or "grok" or "hermes" or "mux" or "opencode")
+            .Where(item => ProviderModuleCatalog.IsActiveLocalUsageProvider(item.AgentId.Value))
             .Select(item =>
             {
                 Totals totals = Sum(rollups.Where(rollup => rollup.AgentId == item.AgentId));
@@ -391,17 +395,9 @@ public static class LocalUsageCardProjector
                         getString("ProviderStatusRecoveryRetry"),
                     _ => getString("ProviderStatusRecoveryRefresh"),
                 };
-                ProviderStatusKind statusKind = item.Issue switch
-                {
-                    UsageSourceIssueKind.RootUnavailable => ProviderStatusKind.Missing,
-                    UsageSourceIssueKind.UnsupportedSchema or UsageSourceIssueKind.PartialScan
-                        or UsageSourceIssueKind.AccessBlocked => ProviderStatusKind.Partial,
-                    _ when item.Status == UsageSourceReadStatus.Complete =>
-                        ProviderStatusKind.Available,
-                    _ when item.Status == UsageSourceReadStatus.Partial =>
-                        ProviderStatusKind.Partial,
-                    _ => ProviderStatusKind.Pending,
-                };
+                ProviderStatusKind statusKind = ProviderStatusPolicy.FromLocalDiagnostic(
+                    item.Status,
+                    item.Issue);
                 return new ProviderStatusRow(
                     providerId,
                     GetAgentName(providerId, getString),
@@ -410,7 +406,7 @@ public static class LocalUsageCardProjector
                     [
                         new(
                             getString("ProviderStatusQuota"),
-                            getString(providerId is "grok" or "antigravity"
+                            getString(IsQuotaBlocked(providerId)
                                 ? "ProviderStatusBlocked"
                                 : "ProviderStatusUnavailable"),
                             $"ProviderStatus.{providerId}.Quota"),
@@ -421,13 +417,7 @@ public static class LocalUsageCardProjector
                     $"ProviderStatus.{providerId}")
                 {
                     StatusKind = statusKind,
-                    CompactState = getString(statusKind switch
-                    {
-                        ProviderStatusKind.Available => "ProviderStatusSummaryAvailable",
-                        ProviderStatusKind.Partial => "ProviderStatusSummaryPartial",
-                        ProviderStatusKind.Missing => "ProviderStatusSummaryMissing",
-                        _ => "ProviderStatusSummaryPending",
-                    }),
+                    CompactState = getString(ProviderStatusPolicy.CompactStateKey(statusKind)),
                 };
             })
             .ToArray();
@@ -464,7 +454,7 @@ public static class LocalUsageCardProjector
             percent = Math.Min(percent, 99.9m);
         }
 
-        return string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", percent);
+        return UsageValueFormatter.PercentText(percent);
     }
 
     private static string FormatCostParts(
@@ -491,13 +481,9 @@ public static class LocalUsageCardProjector
                 (totals.Reported + totals.Estimated) * 1_000_000m / totals.TotalTokens);
 
     private static string FormatUsd(decimal amount, Func<string, string> getString) =>
-        string.Format(
-            CultureInfo.CurrentCulture,
-            getString("LocalUsageUsdFormat"),
-            amount);
+        UsageValueFormatter.Usd(amount, getString);
 
-    private static string FormatCount(long value) =>
-        value.ToString("N0", CultureInfo.CurrentCulture);
+    private static string FormatCount(long value) => UsageValueFormatter.Count(value);
 
     private sealed class Totals
     {

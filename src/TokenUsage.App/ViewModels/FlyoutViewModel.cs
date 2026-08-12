@@ -158,6 +158,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     public void RefreshRelativeTime() => Dashboard.RefreshRelativeTime();
 
+    public void SetPanelVisible(bool isVisible) => Dashboard.SetPanelVisible(isVisible);
+
     public void Dispose()
     {
         if (_disposed)

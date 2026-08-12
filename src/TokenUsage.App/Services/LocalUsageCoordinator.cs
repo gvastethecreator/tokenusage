@@ -48,6 +48,7 @@ public sealed class LocalUsageCoordinator
         ArgumentNullException.ThrowIfNull(getString);
         return LocalUsageCardProjector.CreateDetectionOnly(
             _refresh.DetectSources(),
+            _refresh.Today,
             getString,
             _refresh.SourceKind,
             _refresh.HasMultipleRealSources);
@@ -58,22 +59,36 @@ public sealed class LocalUsageCoordinator
         CancellationToken cancellationToken = default)
         => (await RefreshDashboardAsync(getString, cancellationToken).ConfigureAwait(false)).Card;
 
-    public async Task<LocalUsageDashboardResult> RefreshDashboardAsync(
+    /// <summary>
+    /// Refreshes and projects on a worker thread. SQLite has no real asynchronous path, so its
+    /// commands run on whichever thread starts them; awaiting this from the UI thread without a
+    /// worker would hold the panel while the store is opened, migrated, and queried.
+    /// </summary>
+    public Task<LocalUsageDashboardResult> RefreshDashboardAsync(
         Func<string, string> getString,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(getString);
+        return Task.Run(
+            () => RefreshDashboardCoreAsync(getString, cancellationToken),
+            cancellationToken);
+    }
+
+    private async Task<LocalUsageDashboardResult> RefreshDashboardCoreAsync(
+        Func<string, string> getString,
+        CancellationToken cancellationToken)
+    {
         LocalUsageRefreshResult result = await _refresh
             .RefreshAsync(cancellationToken)
             .ConfigureAwait(false);
         return new LocalUsageDashboardResult(
             LocalUsageCardProjector.Create(
                 result.Rollups,
+                result.ToInclusive,
                 getString,
                 result.SourceKind,
                 result.OverallStatus,
                 hasMultipleRealSources: result.HasMultipleRealSources,
-                today: result.ToInclusive,
                 sourceDiagnostics: result.SourceDiagnostics),
             result.Rollups);
     }
@@ -83,11 +98,20 @@ public sealed class LocalUsageCoordinator
         CancellationToken cancellationToken = default)
         => (await ReadCachedDashboardAsync(getString, cancellationToken).ConfigureAwait(false))?.Card;
 
-    public async Task<LocalUsageDashboardResult?> ReadCachedDashboardAsync(
+    public Task<LocalUsageDashboardResult?> ReadCachedDashboardAsync(
         Func<string, string> getString,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(getString);
+        return Task.Run(
+            () => ReadCachedDashboardCoreAsync(getString, cancellationToken),
+            cancellationToken);
+    }
+
+    private async Task<LocalUsageDashboardResult?> ReadCachedDashboardCoreAsync(
+        Func<string, string> getString,
+        CancellationToken cancellationToken)
+    {
         LocalUsageRefreshResult? result = await _refresh
             .ReadCachedAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -96,16 +120,16 @@ public sealed class LocalUsageCoordinator
             : new LocalUsageDashboardResult(
                 LocalUsageCardProjector.Create(
                     result.Rollups,
+                    result.ToInclusive,
                     getString,
                     result.SourceKind,
                     result.OverallStatus,
                     hasMultipleRealSources: result.HasMultipleRealSources,
-                    today: result.ToInclusive,
                     sourceDiagnostics: result.SourceDiagnostics),
                 result.Rollups);
     }
 
     public Task<LocalUsageRefreshResult> RefreshDomainAsync(
         CancellationToken cancellationToken = default) =>
-        _refresh.RefreshAsync(cancellationToken);
+        Task.Run(() => _refresh.RefreshAsync(cancellationToken), cancellationToken);
 }

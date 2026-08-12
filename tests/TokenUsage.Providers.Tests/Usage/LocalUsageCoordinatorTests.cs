@@ -78,13 +78,16 @@ public sealed class LocalUsageCoordinatorTests
             eventCount: 1,
             CoverageKind.Unpriced);
 
-        LocalUsageCard card = LocalUsageCardProjector.Create([rollup], key => key switch
-        {
-            "CodexUsageMissing" => "Sin datos",
-            "LocalUsageUsdFormat" => "${0:0.00} USD",
-            "LocalUsageUsdCompactFormat" => "${0:0.00}",
-            _ => key,
-        });
+        LocalUsageCard card = LocalUsageCardProjector.Create(
+            [rollup],
+            rollup.Date,
+            key => key switch
+            {
+                "CodexUsageMissing" => "Sin datos",
+                "LocalUsageUsdFormat" => "${0:0.00} USD",
+                "LocalUsageUsdCompactFormat" => "${0:0.00}",
+                _ => key,
+            });
 
         Assert.Equal("Sin datos", FindValue(card, "UsageProductCard.ReportedCost"));
         Assert.Equal("Sin datos", FindValue(card, "UsageProductCard.EstimatedCost"));
@@ -104,10 +107,7 @@ public sealed class LocalUsageCoordinatorTests
             Rollup(today, "opencode", "today", 400, 1m, null, 100),
         ];
 
-        LocalUsageCard card = LocalUsageCardProjector.Create(
-            rollups,
-            Strings,
-            today: today);
+        LocalUsageCard card = LocalUsageCardProjector.Create(rollups, today, Strings);
 
         AssertPeriod(card, "UsageProductCard.Period.Today", "$1", "75%", "400");
         AssertPeriod(card, "UsageProductCard.Period.Yesterday", "$4", "100%", "300");
@@ -131,8 +131,8 @@ public sealed class LocalUsageCoordinatorTests
                 Rollup(today.AddDays(-29), "claude", "edge", 100, 2m, null, 0),
                 Rollup(today, "grok", "today", 200, 3m, null, 0),
             ],
-            Strings,
-            today: today);
+            today,
+            Strings);
 
         Assert.Equal(
             string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 5m),
@@ -155,8 +155,8 @@ public sealed class LocalUsageCoordinatorTests
                 Rollup(today, "grok", "estimated", 500, null, 2m, 0),
                 Rollup(today.AddDays(-35), "opencode", "outside", 9_999, 9m, null, 0),
             ],
-            Strings,
-            today: today);
+            today,
+            Strings);
 
         Assert.Equal(35, card.Heatmap.Cells.Count);
         Assert.Equal(firstDay, card.Heatmap.Cells[0].Date);
@@ -196,10 +196,7 @@ public sealed class LocalUsageCoordinatorTests
             Rollup(today, "grok", "grok-zero", 25, 0m, null, 0),
         ];
 
-        LocalUsageCard card = LocalUsageCardProjector.Create(
-            rollups,
-            Strings,
-            today: today);
+        LocalUsageCard card = LocalUsageCardProjector.Create(rollups, today, Strings);
 
         SpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
         Assert.False(string.IsNullOrWhiteSpace(slice.LegendAmountText));
@@ -227,8 +224,8 @@ public sealed class LocalUsageCoordinatorTests
         DateOnly today = new(2026, 7, 22);
         LocalUsageCard card = LocalUsageCardProjector.Create(
             [Rollup(today, "grok", "grok-zero", 25, 0m, null, 0)],
-            Strings,
-            today: today);
+            today,
+            Strings);
 
         Assert.Equal(
             string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 0m),
@@ -245,8 +242,8 @@ public sealed class LocalUsageCoordinatorTests
         DateOnly today = new(2026, 7, 22);
         LocalUsageCard card = LocalUsageCardProjector.Create(
             [Rollup(today, "codex", "gpt-5.5", 1_000_000, 1m, null, 1)],
-            Strings,
-            today: today);
+            today,
+            Strings);
         string expected = string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", 99.9m);
 
         Assert.Equal(expected, FindValue(card, "UsageProductCard.CostCoverage"));
@@ -261,6 +258,7 @@ public sealed class LocalUsageCoordinatorTests
     {
         LocalUsageCard card = LocalUsageCardProjector.Create(
             [],
+            new DateOnly(2026, 7, 22),
             key => key,
             SourceKind.LocalLog,
             UsageSourceReadStatus.Partial);
@@ -275,6 +273,7 @@ public sealed class LocalUsageCoordinatorTests
     {
         LocalUsageCard card = LocalUsageCardProjector.Create(
             [],
+            new DateOnly(2026, 7, 22),
             key => key,
             SourceKind.LocalLog,
             UsageSourceReadStatus.NoData);
@@ -289,11 +288,11 @@ public sealed class LocalUsageCoordinatorTests
         DateOnly today = new(2026, 7, 22);
         LocalUsageCard card = LocalUsageCardProjector.Create(
             [Rollup(today, "grok", "grok-4.5-build", 100, 2m, null, 0)],
+            today,
             Strings,
             SourceKind.LocalLog,
             UsageSourceReadStatus.Partial,
             hasMultipleRealSources: true,
-            today: today,
             sourceDiagnostics:
             [
                 new(new AgentId("grok"), UsageSourceReadStatus.Complete, UsageSourceIssueKind.None, true),
@@ -318,10 +317,10 @@ public sealed class LocalUsageCoordinatorTests
         DateOnly today = new(2026, 7, 22);
         LocalUsageCard card = LocalUsageCardProjector.Create(
             [Rollup(today, "grok", "grok-4.5-build", 100, 2m, null, 0)],
+            today,
             Strings,
             SourceKind.LocalLog,
             UsageSourceReadStatus.NoData,
-            today: today,
             sourceDiagnostics:
             [
                 new(

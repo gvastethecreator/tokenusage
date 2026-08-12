@@ -2,11 +2,13 @@ using System.ComponentModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Cache;
+using TokenUsage.Core.Layout;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
@@ -24,6 +26,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private readonly Func<string, string> _getString;
     private AppearanceSettings _lastAppearanceSettings;
     private CancellationTokenSource? _refreshCancellation;
+    private int _projectionBatchDepth;
+    private bool _compactProjectionIsStale;
+    private bool _isPanelVisible = true;
     private SampleScenario? _activeScenario;
     private bool _hasPublishedDashboard;
     private DateTimeOffset? _publishedObservedAtUtc;
@@ -34,6 +39,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
     private DashboardSnapshot? _rawDashboard;
+    private DashboardSnapshot? _appearanceDashboard;
     private bool _disposed;
 
     public DashboardSurfaceViewModel(
@@ -375,6 +381,24 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         _ => "SampleStateIdle",
     };
 
+    /// <summary>
+    /// Whether the panel is on screen. A hidden panel keeps watching for a due retry, and stops
+    /// reprojecting the dashboard on every tick, because nobody can read the result.
+    /// </summary>
+    public void SetPanelVisible(bool isVisible)
+    {
+        if (_isPanelVisible == isVisible)
+        {
+            return;
+        }
+
+        _isPanelVisible = isVisible;
+        if (isVisible)
+        {
+            RefreshRelativeTime();
+        }
+    }
+
     public void RefreshRelativeTime()
     {
         if (IsSampleModeEnabled)
@@ -396,7 +420,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             OnPropertyChanged(nameof(LiveDataStateText));
         }
 
-        if (_rawDashboard is not null
+        if (_isPanelVisible
+            && _rawDashboard is not null
             && _appearance.Settings.ResetTimeDisplay == ResetTimeDisplayMode.Relative)
         {
             PublishActiveDashboard(_rawDashboard);
@@ -449,16 +474,16 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             : UsageReportBreakdown.Day,
         focusDate: focusDate);
 
+    /// <summary>
+    /// Quota windows for one provider, taken from the projection the panel is already showing.
+    /// The tray asks this once per provider it displays, and each call used to reproject the
+    /// whole dashboard; reading the published projection also guarantees the tray and the panel
+    /// never disagree.
+    /// </summary>
     public IReadOnlyList<QuotaWindow> GetProviderLimits(string providerId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-        DashboardSnapshot source = _rawDashboard is null
-            ? ActiveSample
-            : AppearanceDashboardProjector.Apply(
-                _rawDashboard,
-                _appearance.Settings,
-                _liveSession.Clock.GetUtcNow(),
-                _getString);
+        DashboardSnapshot source = _appearanceDashboard ?? ActiveSample;
         ProviderCard? providerCard = source.Providers.FirstOrDefault(card =>
             string.Equals(card.ProviderId, providerId, StringComparison.Ordinal));
         return providerCard is null
@@ -477,6 +502,13 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             await RunRefreshAsync(scenario: null, forceRefresh: true).ConfigureAwait(true);
         }
     }
+
+    /// <summary>
+    /// True once a forced refresh has run to completion. Startup forces one when the cached pass
+    /// carries no official quota, and the first panel open forced another: on a machine where
+    /// the tool has no quota to report, that second pass could never find anything new.
+    /// </summary>
+    public bool HasCompletedForcedRefresh { get; private set; }
 
     public Task RefreshLiveAsync()
     {
@@ -580,6 +612,10 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             {
                 IsSessionRefreshing = false;
                 _refreshCancellation = null;
+                if (forceRefresh && !cancellation.IsCancellationRequested)
+                {
+                    HasCompletedForcedRefresh = true;
+                }
             }
 
             cancellation.Dispose();
@@ -605,7 +641,10 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
     }
 
-    private void OnLiveSessionChanged(LiveDashboardSession session)
+    private void OnLiveSessionChanged(LiveDashboardSession session) =>
+        InOnePass(() => ApplyLiveSessionChange(session));
+
+    private void ApplyLiveSessionChange(LiveDashboardSession session)
     {
         _lastCodexSnapshot = session.LastCodexSnapshot;
         _lastCodexOutcome = session.LastCodexOutcome;
@@ -755,14 +794,14 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             DataState,
             LocalUsage.ProviderStatuses);
 
-    private void RebuildSamplePreview()
+    private void RebuildSamplePreview() => InOnePass(() =>
     {
         PublishActiveDashboard(SampleDashboardCatalog.Create(
             _general.SelectedSampleScenario.Value,
             _getString));
         DataState = SampleDataState.Idle;
         RebuildCompactProjection();
-    }
+    });
 
     private void PublishActiveDashboard(DashboardSnapshot dashboard)
     {
@@ -772,6 +811,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _appearance.Settings,
             GetClock(IsSampleModeEnabled ? _activeScenario : null).GetUtcNow(),
             _getString);
+        _appearanceDashboard = appearanceDashboard;
         ActiveSample = _personalization.Apply(appearanceDashboard);
         RebuildCompactProjection();
         OnPropertyChanged(nameof(LiveDataStateText));
@@ -864,11 +904,45 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private TimeProvider GetClock(SampleScenario? scenario) =>
         scenario is null ? _liveSession.Clock : _sampleSession.Clock;
 
+    /// <summary>
+    /// Groups updates that each ask for the compact projection, and rebuilds it once when the
+    /// group ends. One session update used to rebuild it twice: once for the local usage rows
+    /// and again for the composed dashboard, and the first result was thrown away unseen.
+    /// </summary>
+    private void InOnePass(Action apply)
+    {
+        _projectionBatchDepth++;
+        try
+        {
+            apply();
+        }
+        finally
+        {
+            _projectionBatchDepth--;
+            if (_projectionBatchDepth == 0 && _compactProjectionIsStale)
+            {
+                _compactProjectionIsStale = false;
+                RebuildCompactProjectionCore();
+            }
+        }
+    }
+
     private void RebuildCompactProjection()
+    {
+        if (_projectionBatchDepth > 0)
+        {
+            _compactProjectionIsStale = true;
+            return;
+        }
+
+        RebuildCompactProjectionCore();
+    }
+
+    private void RebuildCompactProjectionCore()
     {
         DateOnly today = DateOnly.FromDateTime(
             _liveSession.Clock.GetLocalNow().DateTime);
-        DateOnly from = today.AddDays(-29);
+        DateOnly from = UsagePeriodPolicy.RollingDisplayStart(today);
         DailyUsageRollup[] rollups = _localUsageRollups
             .Where(rollup => rollup.Date >= from && rollup.Date <= today)
             .ToArray();
@@ -1137,78 +1211,14 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(SelectedProviderHasLimits));
     }
 
-    private string FormatCost(decimal cost) => string.Format(
-        CultureInfo.CurrentCulture,
-        _getString("LocalUsageUsdFormat"),
-        cost);
+    private string FormatCost(decimal cost) => UsageValueFormatter.Usd(cost, _getString);
 
-    private static string FormatCompactTokens(long value)
-    {
-        double numeric = value;
-        double absolute = Math.Abs(numeric);
-        return absolute switch
-        {
-            >= 1_000_000_000 => string.Format(
-                CultureInfo.CurrentCulture,
-                "{0:0.##}B",
-                numeric / 1_000_000_000),
-            >= 1_000_000 => string.Format(
-                CultureInfo.CurrentCulture,
-                "{0:0.#}M",
-                numeric / 1_000_000),
-            >= 1_000 => string.Format(
-                CultureInfo.CurrentCulture,
-                "{0:0.#}K",
-                numeric / 1_000),
-            _ => value.ToString("N0", CultureInfo.CurrentCulture),
-        };
-    }
+    private static string FormatCompactTokens(long value) =>
+        UsageValueFormatter.CompactTokens(value);
 
-    private static string ProviderColorHex(string providerId) => providerId switch
-    {
-        "antigravity" => "#4285F4",
-        "amp" => "#F34E3F",
-        "claude" => "#DE7356",
-        "codex" => "#10A37F",
-        "cursor" => "#D7D7D7",
-        "grok" => "#7C5CFC",
-        "goose" => "#06B6D4",
-        "hermes" => "#D97706",
-        "mux" => "#F59E0B",
-        "opencode" => "#E5488C",
-        _ => StableProviderColor(providerId),
-    };
+    private static string ProviderColorHex(string providerId) =>
+        ProviderColorPreference.Resolve(providerId, customColorHex: null);
 
-    private static string StableProviderColor(string providerId)
-    {
-        string[] colors =
-        [
-            "#14B8A6", "#F97316", "#A855F7", "#06B6D4",
-            "#84CC16", "#EC4899", "#EAB308", "#8B5CF6",
-            "#22C55E", "#EF4444", "#3B82F6", "#D946EF",
-        ];
-        uint hash = 2166136261;
-        foreach (char character in providerId)
-        {
-            hash ^= character;
-            hash *= 16777619;
-        }
-
-        return colors[(int)(hash % (uint)colors.Length)];
-    }
-
-    private string ProviderName(string providerId) => providerId switch
-    {
-        "antigravity" => _getString("LocalUsageAgentAntigravity"),
-        "amp" => "Amp",
-        "claude" => _getString("LocalUsageAgentClaude"),
-        "codex" => _getString("LocalUsageAgentCodex"),
-        "cursor" => _getString("LocalUsageAgentCursor"),
-        "grok" => _getString("LocalUsageAgentGrok"),
-        "goose" => "Goose",
-        "hermes" => "Hermes",
-        "mux" => "Mux",
-        "opencode" => _getString("LocalUsageAgentOpenCode"),
-        _ => providerId,
-    };
+    private string ProviderName(string providerId) =>
+        ProviderDisplayName.Resolve(providerId, _getString);
 }

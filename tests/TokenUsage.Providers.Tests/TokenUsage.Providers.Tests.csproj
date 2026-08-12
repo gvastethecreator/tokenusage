@@ -50,6 +50,10 @@
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\DashboardLayoutEditor.cs" Link="Sessions\DashboardLayoutEditor.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\SampleDashboardSession.cs" Link="Sessions\SampleDashboardSession.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\LocalUsageCardProjector.cs" Link="Usage\LocalUsageCardProjector.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\UsageValueFormatter.cs" Link="Usage\UsageValueFormatter.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\ProviderDisplayOrder.cs" Link="Usage\ProviderDisplayOrder.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\ProviderStatusPolicy.cs" Link="Usage\ProviderStatusPolicy.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\Localization\ProviderDisplayName.cs" Link="Sessions\ProviderDisplayName.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\LiveDashboardComposer.cs" Link="Dashboard\LiveDashboardComposer.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="VercelAiGateway\VercelGatewayCardProjector.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\UsageHeatmapProjector.cs" Link="Usage\UsageHeatmapProjector.cs" />

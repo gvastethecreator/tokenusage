@@ -1,4 +1,5 @@
 using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.Providers.VercelAiGateway;
 
@@ -105,7 +106,7 @@ public sealed class VercelGatewayProviderRuntime : IProviderRuntime
         }
 
         var today = DateOnly.FromDateTime(utcNow.UtcDateTime);
-        var startDate = today.AddDays(-29);
+        DateOnly startDate = UsagePeriodPolicy.RollingDisplayStart(today);
         var endDate = today;
 
         try

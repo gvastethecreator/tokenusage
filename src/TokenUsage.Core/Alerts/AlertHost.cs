@@ -23,14 +23,21 @@ public sealed class AlertHost
         AlertSettings settings = await _settingsStore
             .LoadAsync(cancellationToken)
             .ConfigureAwait(false);
-        AlertDecisionState decisions = await _decisionStore
-            .LoadAsync(cancellationToken)
-            .ConfigureAwait(false);
 
         IReadOnlyList<AlertCandidate> candidates = AlertEvaluator.Evaluate(
             settings,
             evaluatedAtUtc,
             providers);
+        if (candidates.Count == 0)
+        {
+            // Nothing crossed a threshold, which is the usual outcome of a refresh. The record
+            // of what was already announced is only needed to decide about a candidate.
+            return [];
+        }
+
+        AlertDecisionState decisions = await _decisionStore
+            .LoadAsync(cancellationToken)
+            .ConfigureAwait(false);
         var intents = new List<AlertNotificationIntent>();
         bool dirty = false;
         foreach (AlertCandidate candidate in candidates)

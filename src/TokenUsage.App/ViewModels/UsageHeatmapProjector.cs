@@ -41,8 +41,7 @@ public static class UsageHeatmapProjector
                     group.Any(rollup => rollup.EstimatedCostUsd is not null),
                     group.Select(rollup => rollup.AgentId.Value)
                         .Distinct(StringComparer.Ordinal)
-                        .OrderBy(ProviderOrder)
-                        .ThenBy(providerId => providerId, StringComparer.Ordinal)
+                        .ByCuratedRank(providerId => providerId)
                         .ToArray()));
 
         long maximumTokens = activityByDay.Count == 0
@@ -170,21 +169,6 @@ public static class UsageHeatmapProjector
             getString("UsageHeatmapCostFormat"),
             activity.ReportedCost + activity.EstimatedCost);
     }
-
-    private static int ProviderOrder(string providerId) => providerId switch
-    {
-        "codex" => 0,
-        "opencode" => 1,
-        "antigravity" => 2,
-        "grok" => 3,
-        "cursor" => 4,
-        "claude" => 5,
-        "amp" => 6,
-        "mux" => 7,
-        "goose" => 8,
-        "hermes" => 9,
-        _ => 8,
-    };
 
     private sealed record DailyActivity(
         long TotalTokens,
