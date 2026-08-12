@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels.Surfaces;
 
@@ -43,6 +44,15 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             row.ProviderId,
             "codex",
             StringComparison.Ordinal)));
+        HashSet<string> includedIds = providers
+            .Select(provider => provider.ProviderId)
+            .ToHashSet(StringComparer.Ordinal);
+        providers.AddRange(ProviderModuleCatalog.OpenUsageEntries
+            .Where(entry => entry.Stage is ProviderModuleStage.OptIn
+                or ProviderModuleStage.Prepared
+                or ProviderModuleStage.PolicyBlocked)
+            .Where(entry => !includedIds.Contains(entry.Id.Value))
+            .Select(CreateFoundationRow));
         Providers = providers;
     }
 
@@ -102,7 +112,12 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
                     _getString("CodexUsageMissing"),
                     "ProviderStatus.codex.Coverage"),
             ],
-            "ProviderStatus.codex");
+            "ProviderStatus.codex")
+        {
+            StatusKind = GetCodexStatusKind(outcome, hasPublishedDashboard, dataState),
+            CompactState = GetCompactState(
+                GetCodexStatusKind(outcome, hasPublishedDashboard, dataState)),
+        };
 
     private string GetQuotaStatus(ProviderOutcome? outcome, SampleDataState dataState) =>
         outcome switch
@@ -122,6 +137,96 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
                 _ => _getString("ProviderStatusUnavailable"),
             },
         };
+
+    private ProviderStatusRow CreateFoundationRow(ProviderModuleDefinition module)
+    {
+        bool isBlocked = module.Stage == ProviderModuleStage.PolicyBlocked;
+        bool isOptional = module.Stage == ProviderModuleStage.OptIn;
+        string stage = _getString(module.Stage switch
+        {
+            ProviderModuleStage.PolicyBlocked => "ProviderStatusBlocked",
+            ProviderModuleStage.OptIn => "ProviderStatusOptional",
+            _ => "ProviderStatusPrepared",
+        });
+        string unavailable = _getString("ProviderStatusUnavailable");
+        string CapabilityValue(params ProviderCapability[] capabilities) => isBlocked
+            ? stage
+            : capabilities.Any(module.Capabilities.Contains)
+                ? stage
+                : unavailable;
+
+        string providerId = module.Id.Value;
+        return new ProviderStatusRow(
+            providerId,
+            module.DisplayName,
+            stage,
+            _getString(module.Stage switch
+            {
+                ProviderModuleStage.PolicyBlocked => "ProviderStatusRecoveryPolicyContract",
+                ProviderModuleStage.OptIn => "ProviderStatusRecoveryOptional",
+                _ => "ProviderStatusRecoveryManualSetup",
+            }),
+            [
+                new(
+                    _getString("ProviderStatusQuota"),
+                    CapabilityValue(ProviderCapability.Limits),
+                    $"ProviderStatus.{providerId}.Quota"),
+                new(
+                    _getString("ProviderStatusUsage"),
+                    CapabilityValue(ProviderCapability.Usage, ProviderCapability.LocalUsage),
+                    $"ProviderStatus.{providerId}.Usage"),
+                new(
+                    _getString("ProviderStatusSpend"),
+                    CapabilityValue(ProviderCapability.Spend),
+                    $"ProviderStatus.{providerId}.Spend"),
+                new(
+                    _getString("ProviderStatusCoverage"),
+                    stage,
+                    $"ProviderStatus.{providerId}.Coverage"),
+            ],
+            $"ProviderStatus.{providerId}")
+        {
+            StatusKind = isBlocked
+                ? ProviderStatusKind.Blocked
+                : isOptional
+                    ? ProviderStatusKind.Optional
+                    : ProviderStatusKind.Prepared,
+            CompactState = GetCompactState(isBlocked
+                ? ProviderStatusKind.Blocked
+                : isOptional
+                    ? ProviderStatusKind.Optional
+                    : ProviderStatusKind.Prepared),
+        };
+    }
+
+    private static ProviderStatusKind GetCodexStatusKind(
+        ProviderOutcome? outcome,
+        bool hasPublishedDashboard,
+        SampleDataState dataState) =>
+        outcome switch
+        {
+            ProviderOutcome.NotConfigured => ProviderStatusKind.Missing,
+            ProviderOutcome.UnsupportedAccount or ProviderOutcome.PolicyBlocked =>
+                ProviderStatusKind.Blocked,
+            ProviderOutcome.ContractFailure or ProviderOutcome.Throttled
+                or ProviderOutcome.TransientFailure => ProviderStatusKind.Partial,
+            null when !hasPublishedDashboard => ProviderStatusKind.Pending,
+            _ when dataState == SampleDataState.Partial => ProviderStatusKind.Partial,
+            _ => ProviderStatusKind.Available,
+        };
+
+    private string GetCompactState(ProviderStatusKind kind) =>
+        _getString(kind switch
+        {
+            ProviderStatusKind.Available => "ProviderStatusSummaryAvailable",
+            ProviderStatusKind.Partial => "ProviderStatusSummaryPartial",
+            ProviderStatusKind.Missing => "ProviderStatusSummaryMissing",
+            ProviderStatusKind.Pending => "ProviderStatusSummaryPending",
+            ProviderStatusKind.Prepared => "ProviderStatusSummaryPrepared",
+            ProviderStatusKind.Optional => "ProviderStatusSummaryOptional",
+            ProviderStatusKind.Blocked => "ProviderStatusSummaryBlocked",
+            _ => "ProviderStatusUnavailable",
+        });
 
     private static ProviderStatusRow MergeCodex(
         ProviderStatusRow quotaStatus,
@@ -143,6 +248,8 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             RootState = localStatus.RootState,
             RecoveryText = localStatus.RecoveryText,
             Capabilities = new[] { quota }.Concat(localCapabilities).ToArray(),
+            StatusKind = localStatus.StatusKind,
+            CompactState = localStatus.CompactState,
         };
     }
 }

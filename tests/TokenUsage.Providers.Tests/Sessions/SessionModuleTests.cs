@@ -183,7 +183,7 @@ public sealed class SessionModuleTests
             [localCodex, local]);
         await surface.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal(["codex", "grok"],
+        Assert.Equal(["codex", "grok", "claude", "copilot", "devin", "openrouter", "zai"],
             surface.Providers.Select(provider => provider.ProviderId));
         ProviderStatusRow codex = surface.Providers[0];
         Assert.Equal("Detected", codex.RootState);
@@ -195,6 +195,21 @@ public sealed class SessionModuleTests
             "Complete",
             codex.Capabilities.Single(capability =>
                 capability.AutomationId == "ProviderStatus.codex.Usage").Value);
+        Assert.Equal(
+            "ProviderStatusPrepared",
+            surface.Providers.Single(provider => provider.ProviderId == "openrouter").RootState);
+        ProviderStatusRow claude = surface.Providers.Single(provider =>
+            provider.ProviderId == "claude");
+        Assert.Equal("ProviderStatusOptional", claude.RootState);
+        Assert.Equal(ProviderStatusKind.Optional, claude.StatusKind);
+        Assert.Equal("ProviderStatusSummaryOptional", claude.CompactState);
+        Assert.Equal(
+            "ProviderStatusOptional",
+            claude.Capabilities.Single(capability =>
+                capability.AutomationId == "ProviderStatus.claude.Usage").Value);
+        Assert.Equal(
+            "ProviderStatusBlocked",
+            surface.Providers.Single(provider => provider.ProviderId == "zai").RootState);
         Assert.Equal(1, refreshCalls);
     }
 

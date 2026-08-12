@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-11T21:40:30Z",
-  "generated_from_commit": "ce74ca05117e79ace095ca47c3de692551fd664f",
+  "generated_at": "2026-08-12T00:53:20Z",
+  "generated_from_commit": "2dfcb21ff3ee7af2e28a88a11048523e88305fac",
   "scope": [
     "."
   ],
@@ -223,11 +223,11 @@
         "src/TokenUsage.Providers/TokenUsage.Providers.csproj:﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
       ],
       "tests": [
+        "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
         "tests/TokenUsage.Cli.Tests/LocalUsageCliAccessTests.cs",
         "tests/TokenUsage.Cli.Tests/UsageCliProcessTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/TokenUsage.Platform.Windows.Tests.csproj"
+        "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs"
       ],
       "constraints": [
         "This baseline uses tracked source and explicit dependency references only."
@@ -585,6 +585,20 @@
           {
             "path": "src/TokenUsage.Cli/TokenUsage.Cli.csproj",
             "symbol": "..\\TokenUsage.Core\\TokenUsage.Core.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-cli",
+      "to": "src-tokenusage-providers",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Cli/CursorCommand.cs",
+            "symbol": "CursorUsageEventSource"
           }
         ]
       }

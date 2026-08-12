@@ -931,11 +931,14 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                         ? (double)tokens * 100d / totalTokens
                         : 0d;
                 string name = ProviderName(providerId);
-                string costText = !hasData
+                string costAccessibilityText = !hasData
                     ? _getString("CodexUsageMissing")
                     : hasCostData
                         ? FormatCost(cost)
                         : _getString("CompactCostUnavailable");
+                string costText = hasData && !hasCostData
+                    ? "—"
+                    : costAccessibilityText;
                 string tokensText = hasData
                     ? FormatCompactTokens(tokens)
                     : _getString("CodexUsageMissing");
@@ -952,7 +955,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                     tokensText,
                     detailText,
                     hasData
-                        ? $"{name}: {costText}, {tokensText} tokens, {share:0.#}%"
+                        ? $"{name}: {costAccessibilityText}, {tokensText} tokens, {share:0.#}%"
                             + (hasUnpricedData
                                 ? $". {_getString("UsageReportCoverageUnpriced")}"
                                 : string.Empty)

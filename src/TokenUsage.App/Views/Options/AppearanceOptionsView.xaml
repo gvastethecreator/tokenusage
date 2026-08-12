@@ -8,18 +8,26 @@
         AutomationProperties.AutomationId="AppearanceSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <Grid ColumnSpacing="9" RowSpacing="2">
+            <Grid ColumnSpacing="10" MinHeight="28">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="26" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <FontIcon Grid.RowSpan="2" FontSize="15" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Glyph="&#xE790;" VerticalAlignment="Top" />
-                <TextBlock x:Uid="AppearanceSectionTitle" Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <TextBlock x:Uid="AppearanceSectionDescription" Grid.Row="1" Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                <FontIcon Glyph="&#xE790;" Style="{StaticResource OptionsCategoryIconStyle}" />
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+                    <ToolTipService.ToolTip>
+                        <ToolTip
+                            x:Uid="AppearanceSectionDescription"
+                            ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
+                            MaxWidth="300" />
+                    </ToolTipService.ToolTip>
+                    <TextBlock x:Uid="AppearanceSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
+                    <FontIcon Style="{StaticResource OptionsCategoryHintIconStyle}" />
+                </StackPanel>
             </Grid>
             <ContentControl
                 HorizontalContentAlignment="Stretch"
