@@ -52,7 +52,7 @@ copia sesiones OAuth, cookies ni endpoints privados.
 | Amp | No hay cuota pública estable | Sí, tokens del ledger | `ledger.jsonl`; no se abren threads | Local activo parcial | Activo; créditos no se muestran como USD |
 | Mux | No hay cuota común | Sí, tokens y costo agregado por modelo | `session-usage.json`; no se abren transcripts | Local activo | Activo |
 | Goose | No hay cuota común | Sí, tokens acumulados por sesión | consulta numérica de solo lectura a `sessions.db` | Local activo parcial | Activo; costo API estimado cuando hay precio |
-| Hermes | No hay cuota común | Sí, tokens y costo acumulados por sesión | consulta numérica de solo lectura a `state.db`; no consulta mensajes | Local activo parcial | Activo; costo informado o API estimado |
+| Hermes | No hay cuota común | Sí, tokens y costo acumulados por sesión | `state.db` en `.hermes` o en un perfil; una carpeta `.hermes` vacía o de otro tool no cuenta como instalación | Local activo parcial | Activo; costo informado o API estimado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | ZCode | Bloqueada sin contrato público | Bloqueados sin exportación segura | Hooks sin tokens; UI sin API | Bloqueado | Revalidado en 3.7.6; Ticket 49 `needs-info` |
 | Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
