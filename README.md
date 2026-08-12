@@ -148,6 +148,17 @@ Run the complete local gate before requesting review:
 
 Use `-Platform ARM64` for a cross-architecture package build. Tests still run on the `x64` host.
 
+For a quick dependency and security pass on active projects:
+
+```powershell
+.\scripts\deps-check.ps1
+.\scripts\audit.ps1
+```
+
+The repository uses the .NET SDK and MSBuild; no Bun or pnpm runtime is part
+of this native project. Archived probes under `.scratch` are retained as
+evidence and are not part of the active dependency graph.
+
 ## Command line
 
 Install the package and enable its execution alias. Then run:
@@ -172,6 +183,8 @@ The JSON contracts use versioned names such as `tokenusage.usage.v1`, `tokenusag
 - [Provider matrix](docs/PROVIDER-MATRIX.md)
 - [Architecture decisions](docs/architecture)
 - [Contributor testing guide](docs/CONTRIBUTOR-TESTING.md)
+- [Maintenance dependency notes](docs/DEPENDENCY_UPDATES.md)
+- [Quality audit](docs/QUALITY_AUDIT.md)
 
 ### Repository map
 

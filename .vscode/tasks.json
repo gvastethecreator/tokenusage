@@ -2,6 +2,24 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "📦 Restore",
+      "type": "shell",
+      "command": "dotnet restore src/TokenUsage.App/TokenUsage.App.csproj",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "🔎 Deps",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File ./scripts/deps-check.ps1",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "🛡️ Audit",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File ./scripts/audit.ps1",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "🚀 Run",
       "type": "shell",
       "command": "powershell -ExecutionPolicy Bypass -File ./BuildAndRun.ps1",
