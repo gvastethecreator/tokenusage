@@ -203,7 +203,7 @@ public sealed class WindowsProviderDiagnosticsQuery
             }
 
             checks.Add(new DoctorCheck(
-                entry.DataCheckId,
+                entry.DataCheckId!,
                 entry.CacheDirectoryName is not null
                     ? MapCacheCheck(caches[entry.Id.Value])
                     : MapUsageCheck(usage.ProviderData[entry.Id.Value])));

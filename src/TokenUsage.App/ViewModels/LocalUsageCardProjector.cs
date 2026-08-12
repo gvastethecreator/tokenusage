@@ -362,6 +362,17 @@ public static class LocalUsageCardProjector
                         getString("ProviderStatusRecoveryRetry"),
                     _ => getString("ProviderStatusRecoveryRefresh"),
                 };
+                ProviderStatusKind statusKind = item.Issue switch
+                {
+                    UsageSourceIssueKind.RootUnavailable => ProviderStatusKind.Missing,
+                    UsageSourceIssueKind.UnsupportedSchema or UsageSourceIssueKind.PartialScan
+                        or UsageSourceIssueKind.AccessBlocked => ProviderStatusKind.Partial,
+                    _ when item.Status == UsageSourceReadStatus.Complete =>
+                        ProviderStatusKind.Available,
+                    _ when item.Status == UsageSourceReadStatus.Partial =>
+                        ProviderStatusKind.Partial,
+                    _ => ProviderStatusKind.Pending,
+                };
                 return new ProviderStatusRow(
                     providerId,
                     GetAgentName(providerId, getString),
@@ -378,7 +389,17 @@ public static class LocalUsageCardProjector
                         new(getString("ProviderStatusSpend"), spend, $"ProviderStatus.{providerId}.Spend"),
                         new(getString("ProviderStatusCoverage"), coverage, $"ProviderStatus.{providerId}.Coverage"),
                     ],
-                    $"ProviderStatus.{providerId}");
+                    $"ProviderStatus.{providerId}")
+                {
+                    StatusKind = statusKind,
+                    CompactState = getString(statusKind switch
+                    {
+                        ProviderStatusKind.Available => "ProviderStatusSummaryAvailable",
+                        ProviderStatusKind.Partial => "ProviderStatusSummaryPartial",
+                        ProviderStatusKind.Missing => "ProviderStatusSummaryMissing",
+                        _ => "ProviderStatusSummaryPending",
+                    }),
+                };
             })
             .ToArray();
 

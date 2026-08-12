@@ -12,10 +12,14 @@ public sealed partial class ProviderMarkImage : UserControl
             ["antigravity"] = "antigravity.svg",
             ["claude"] = "claude.svg",
             ["codex"] = "codex.svg",
+            ["copilot"] = "copilot.svg",
             ["cursor"] = "cursor.svg",
+            ["devin"] = "devin.svg",
             ["grok"] = "grok.svg",
             ["opencode"] = "opencode.svg",
+            ["openrouter"] = "openrouter.svg",
             ["vercel-ai-gateway"] = "vercel-ai-gateway.svg",
+            ["zai"] = "zai.svg",
         };
 
     public static readonly DependencyProperty ProviderIdProperty =

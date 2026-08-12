@@ -10,6 +10,7 @@ public sealed partial class GeneralOptionsView : UserControl
 {
     private GeneralOptionsViewModel? _viewModel;
     private bool _isInitialized;
+    private bool _isShareCaptureFolderPathQueued;
 
     public GeneralOptionsView()
     {
@@ -33,9 +34,27 @@ public sealed partial class GeneralOptionsView : UserControl
 
     public UIElement PrimaryAction => CloseWhenInactiveToggle;
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        ShareCaptureFolderPath.Text = await ShareCaptureService.GetDestinationPathAsync();
+        if (_isShareCaptureFolderPathQueued)
+        {
+            return;
+        }
+
+        _isShareCaptureFolderPathQueued = DispatcherQueue.TryEnqueue(
+            LoadShareCaptureFolderPathAsync);
+    }
+
+    private async void LoadShareCaptureFolderPathAsync()
+    {
+        try
+        {
+            ShareCaptureFolderPath.Text = await ShareCaptureService.GetDestinationPathAsync();
+        }
+        finally
+        {
+            _isShareCaptureFolderPathQueued = false;
+        }
     }
 
     private async void OnShareCaptureFolderBrowseClicked(object sender, RoutedEventArgs e)

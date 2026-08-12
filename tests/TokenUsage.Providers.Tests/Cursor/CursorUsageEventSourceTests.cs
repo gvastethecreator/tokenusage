@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Cursor;
@@ -8,7 +9,7 @@ namespace TokenUsage.Providers.Tests.Cursor;
 public sealed class CursorUsageEventSourceTests
 {
     [Fact]
-    public async Task MissingCursorAndSpoolReturnsRootUnavailable()
+    public async Task MissingCursorAndDatabaseReturnsRootUnavailable()
     {
         using var corpus = new CursorCorpus(createCursorHome: false);
         CursorUsageEventSource source = corpus.CreateSource();
@@ -17,14 +18,14 @@ public sealed class CursorUsageEventSourceTests
 
         Assert.False(source.IsRootAvailable);
         Assert.Equal("cursor", source.AgentId.Value);
-        Assert.Equal(SourceKind.LocalLog, source.SourceKind);
+        Assert.Equal(SourceKind.LocalDatabase, source.SourceKind);
         Assert.Empty(result.Events);
         Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
         Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
     }
 
     [Fact]
-    public async Task InstalledCursorWithoutHookDataReturnsEmpty()
+    public async Task InstalledCursorWithoutLocalStateReturnsEmpty()
     {
         using var corpus = new CursorCorpus();
 
@@ -35,43 +36,48 @@ public sealed class CursorUsageEventSourceTests
     }
 
     [Fact]
-    public async Task ReadsNumericHookRecordAsPartialUnpricedUsage()
+    public async Task ReadsAllowlistedComposerEstimateAsPartialUnpricedUsage()
     {
         using var corpus = new CursorCorpus();
-        corpus.WriteRecord(
-            "a" + new string('0', 63),
-            "2026-08-11T15:30:00Z",
-            "claude-sonnet-4-6",
-            100,
-            20,
-            40,
-            5);
+        corpus.WriteComposer(
+            "conversation-1",
+            checkpointMilliseconds: 1_786_488_925_618,
+            model: "grok-4.5",
+            estimatedContextTokens: 222_484,
+            privatePrompt: "this content must not become part of the event");
+        corpus.WriteRaw("composerData:malformed", "{");
 
-        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        CursorUsageEventSource source = corpus.CreateSource();
+        UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
 
+        Assert.Equal(SourceKind.LocalDatabase, source.SourceKind);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
         Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
-        Assert.Equal("anthropic", usageEvent.ModelProviderId?.Value);
-        Assert.Equal("claude-sonnet-4-6", usageEvent.ModelId.Value);
-        Assert.Equal(new TokenBreakdown(100, 20, 0, 40, 5), usageEvent.Tokens);
+        Assert.Equal("xai", usageEvent.ModelProviderId?.Value);
+        Assert.Equal("grok-4.5", usageEvent.ModelId.Value);
+        Assert.Equal(new TokenBreakdown(222_484, 0, 0, 0, 0), usageEvent.Tokens);
+        Assert.Equal(
+            DateTimeOffset.FromUnixTimeMilliseconds(1_786_488_925_618),
+            usageEvent.OccurredAtUtc);
         Assert.Equal(CostKind.Unavailable, usageEvent.Cost.Kind);
         Assert.Equal(CoverageKind.Unpriced, usageEvent.Coverage);
         Assert.Equal(CursorUsageEventSource.ParserVersion, usageEvent.ParserVersion);
     }
 
     [Fact]
-    public async Task CurrentSpoolReplacesRotatedCopyWithTheSameHashedIdentity()
+    public async Task ReplacedComposerSnapshotKeepsIdentityAndUpdatesEstimate()
     {
         using var corpus = new CursorCorpus();
-        string key = "b" + new string('0', 63);
-        corpus.WriteRecord(key, "2026-08-11T15:30:00Z", "gpt-5", 10, 2, 0, 0, rotated: true);
-        corpus.WriteRecord(key, "2026-08-11T15:31:00Z", "gpt-5", 30, 4, 5, 0);
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "composer-2.5", 10_000);
+        UsageEvent first = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
-        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+        corpus.WriteComposer("conversation-1", 1_786_489_325_618, "composer-2.5", 18_000);
+        UsageEvent updated = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
-        Assert.Equal(new TokenBreakdown(30, 4, 0, 5, 0), usageEvent.Tokens);
-        Assert.Equal(new DateTimeOffset(2026, 8, 11, 15, 31, 0, TimeSpan.Zero), usageEvent.OccurredAtUtc);
+        Assert.Equal(first.EventKey, updated.EventKey);
+        Assert.Equal(18_000, updated.Tokens.Input);
+        Assert.True(updated.OccurredAtUtc > first.OccurredAtUtc);
     }
 
     private sealed class CursorCorpus : IDisposable
@@ -83,7 +89,8 @@ public sealed class CursorUsageEventSourceTests
                 "tokenusage-cursor-source-tests",
                 Guid.NewGuid().ToString("N"));
             Home = Path.Combine(Root, "home");
-            LocalAppData = Path.Combine(Root, "local");
+            Roaming = Path.Combine(Root, "roaming");
+            DatabasePath = CursorUsagePaths.ResolveStateDatabasePath(Roaming);
             Directory.CreateDirectory(Home);
             if (createCursorHome)
             {
@@ -95,42 +102,89 @@ public sealed class CursorUsageEventSourceTests
 
         public string Home { get; }
 
-        public string LocalAppData { get; }
+        public string Roaming { get; }
+
+        public string DatabasePath { get; }
 
         public CursorUsageEventSource CreateSource() => new(
             "UTC",
             Home,
-            LocalAppData);
+            Roaming);
 
-        public void WriteRecord(
-            string eventKey,
-            string timestamp,
+        public void WriteComposer(
+            string composerId,
+            long checkpointMilliseconds,
             string model,
-            long input,
-            long output,
-            long cacheRead,
-            long cacheWrite,
-            bool rotated = false)
+            long estimatedContextTokens,
+            string privatePrompt = "private")
         {
-            string path = CursorUsagePaths.ResolveSpoolPath(LocalAppData)
-                + (rotated ? ".1" : string.Empty);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.AppendAllText(path, JsonSerializer.Serialize(new
+            Directory.CreateDirectory(Path.GetDirectoryName(DatabasePath)!);
+            var builder = new SqliteConnectionStringBuilder
             {
-                version = 1,
-                event_key = eventKey,
-                occurred_at_utc = timestamp,
-                cursor_version = "3.15.6",
-                model,
-                input_tokens = input,
-                output_tokens = output,
-                cache_read_tokens = cacheRead,
-                cache_write_tokens = cacheWrite,
-            }) + Environment.NewLine);
+                DataSource = DatabasePath,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Pooling = false,
+            };
+            using var connection = new SqliteConnection(builder.ToString());
+            connection.Open();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE IF NOT EXISTS cursorDiskKV (
+                    key TEXT UNIQUE ON CONFLICT REPLACE,
+                    value BLOB
+                );
+                INSERT OR REPLACE INTO cursorDiskKV(key, value)
+                VALUES ($key, $value);
+                """;
+            command.Parameters.AddWithValue("$key", $"composerData:{composerId}");
+            command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(new
+            {
+                conversationCheckpointLastUpdatedAt = checkpointMilliseconds,
+                createdAt = checkpointMilliseconds - 10_000,
+                modelConfig = new { modelName = model },
+                promptTokenBreakdown = new
+                {
+                    totalUsedTokens = estimatedContextTokens,
+                    categories = new[]
+                    {
+                        new { id = "conversation", estimatedTokens = estimatedContextTokens },
+                    },
+                },
+                contextTokensUsed = estimatedContextTokens,
+                text = privatePrompt,
+                usageData = new { },
+            }));
+            command.ExecuteNonQuery();
+        }
+
+        public void WriteRaw(string key, string value)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(DatabasePath)!);
+            var builder = new SqliteConnectionStringBuilder
+            {
+                DataSource = DatabasePath,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Pooling = false,
+            };
+            using var connection = new SqliteConnection(builder.ToString());
+            connection.Open();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE IF NOT EXISTS cursorDiskKV (
+                    key TEXT UNIQUE ON CONFLICT REPLACE,
+                    value BLOB
+                );
+                INSERT OR REPLACE INTO cursorDiskKV(key, value)
+                VALUES ($key, $value);
+                """;
+            command.Parameters.AddWithValue("$key", key);
+            command.Parameters.AddWithValue("$value", value);
+            command.ExecuteNonQuery();
         }
 
         public void Dispose()
         {
+            SqliteConnection.ClearAllPools();
             if (Directory.Exists(Root))
             {
                 Directory.Delete(Root, recursive: true);

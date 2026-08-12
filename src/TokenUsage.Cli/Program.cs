@@ -6,7 +6,7 @@ if (CliApplication.IsHelpRequest(args))
     return await CliApplication.WriteHelpAsync(Console.Out);
 }
 
-// Cursor hook management does not open TokenUsage application storage. Keep it
+// Cursor local integration management does not open TokenUsage application storage. Keep it
 // usable from an unpackaged CLI build where ApplicationData is unavailable.
 if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal))
 {

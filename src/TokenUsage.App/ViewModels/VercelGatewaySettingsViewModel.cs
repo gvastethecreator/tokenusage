@@ -295,6 +295,18 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject, IVercelD
             ProviderCapabilityState.Degraded => "VercelQuotaStatusDegraded",
             _ => "ProviderStatusUnavailable",
         });
+        ProviderStatusKind statusKind = !IsConfigured
+            ? ProviderStatusKind.Missing
+            : State is VercelGatewayUiState.AuthenticationRejected
+                or VercelGatewayUiState.UnsupportedAccount
+                or VercelGatewayUiState.ContractFailure
+                or VercelGatewayUiState.Partial
+                or VercelGatewayUiState.Throttled
+                or VercelGatewayUiState.TransientFailure
+                ? ProviderStatusKind.Partial
+                : hasReport
+                    ? ProviderStatusKind.Available
+                    : ProviderStatusKind.Pending;
         return new ProviderStatusRow(
             "vercel-ai-gateway",
             "Vercel AI Gateway",
@@ -313,7 +325,17 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject, IVercelD
                             : _getString("ProviderStatusUnavailable"),
                     "ProviderStatus.vercel-ai-gateway.Coverage"),
             ],
-            "ProviderStatus.vercel-ai-gateway");
+            "ProviderStatus.vercel-ai-gateway")
+        {
+            StatusKind = statusKind,
+            CompactState = _getString(statusKind switch
+            {
+                ProviderStatusKind.Available => "ProviderStatusSummaryAvailable",
+                ProviderStatusKind.Partial => "ProviderStatusSummaryPartial",
+                ProviderStatusKind.Missing => "ProviderStatusSummaryMissing",
+                _ => "ProviderStatusSummaryPending",
+            }),
+        };
     }
 
     public void Cancel()

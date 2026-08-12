@@ -105,7 +105,9 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("new OpenCodeUsageEventSource", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("new CodexRefreshCoordinator", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("CreateVercelBinding", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("isEnabledByDefault: false", providerCatalog, StringComparison.Ordinal);
+        Assert.Contains("ProviderModuleStage.OptIn", providerCatalog, StringComparison.Ordinal);
+        Assert.Contains("ProviderModuleStage.Prepared", providerCatalog, StringComparison.Ordinal);
+        Assert.Contains("ProviderModuleStage.PolicyBlocked", providerCatalog, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticUsageEventSource", providerCatalog, StringComparison.Ordinal);
 
         string cliLimits = File.ReadAllText(Path.Combine(
@@ -300,8 +302,17 @@ public sealed class ArchitectureRulesTests
             "ProviderStatusView.xaml",
         ];
 
-        foreach (string categoryFile in categoryFiles)
+        string[] descriptionUids =
+        [
+            "GeneralSectionDescription",
+            "AppearanceSectionDescription",
+            "PersonalizationSectionDescription",
+            "ProviderStatusSectionDescription",
+        ];
+
+        for (int index = 0; index < categoryFiles.Length; index++)
         {
+            string categoryFile = categoryFiles[index];
             XDocument document = XDocument.Load(Path.Combine(optionsRoot, categoryFile));
             XElement card = Assert.Single(document.Root!.Elements());
             Assert.Equal("Border", card.Name.LocalName);
@@ -309,6 +320,21 @@ public sealed class ArchitectureRulesTests
                 card.Attributes(),
                 attribute => attribute.Name.LocalName == "Style"
                     && attribute.Value == "{StaticResource OptionsCategoryCardStyle}");
+            Assert.Contains(
+                card.Descendants().Where(element => element.Name.LocalName == "FontIcon"),
+                icon => icon.Attributes().Any(attribute =>
+                    attribute.Name.LocalName == "Style"
+                    && attribute.Value == "{StaticResource OptionsCategoryIconStyle}"));
+            Assert.Contains(
+                card.Descendants().Where(element => element.Name.LocalName == "TextBlock"),
+                title => title.Attributes().Any(attribute =>
+                    attribute.Name.LocalName == "Style"
+                    && attribute.Value == "{StaticResource OptionsCategoryTitleStyle}"));
+            Assert.Contains(
+                card.Descendants().Where(element => element.Name.LocalName == "ToolTip"),
+                tooltip => tooltip.Attributes().Any(attribute =>
+                    attribute.Name.LocalName == "Uid"
+                    && attribute.Value == descriptionUids[index]));
         }
 
         XDocument optionsDocument = XDocument.Load(Path.Combine(optionsRoot, "OptionsView.xaml"));
@@ -318,6 +344,46 @@ public sealed class ArchitectureRulesTests
             aboutCard.Attributes(),
             attribute => attribute.Name.LocalName == "Style"
                 && attribute.Value == "{StaticResource OptionsCategoryCardStyle}");
+    }
+
+    [Fact]
+    public void ProviderStatusUsesCompactRowsWithAccessibleDetails()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string providerStatus = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Options",
+            "ProviderStatusView.xaml"));
+
+        Assert.Contains("MinHeight=\"40\"", providerStatus, StringComparison.Ordinal);
+        Assert.Contains(
+            "Text=\"{x:Bind CompactState, Mode=OneTime}\"",
+            providerStatus,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Glyph=\"{x:Bind StatusGlyph, Mode=OneTime}\"",
+            providerStatus,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Content=\"{x:Bind DetailsText, Mode=OneTime}\"",
+            providerStatus,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Value=\"{ThemeResource QuotaHealthyBrush}\"",
+            providerStatus,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Value=\"{ThemeResource QuotaCautionBrush}\"",
+            providerStatus,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Value=\"{ThemeResource QuotaCriticalBrush}\"",
+            providerStatus,
+            StringComparison.Ordinal);
+        Assert.Contains("<Button.Flyout>", providerStatus, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -363,8 +429,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(146, matches.Count);
-        Assert.Equal(132, distinctIds.Length);
+        Assert.Equal(147, matches.Count);
+        Assert.Equal(133, distinctIds.Length);
         Assert.Contains("HeaderVisualizationButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderShareButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
@@ -493,11 +559,27 @@ public sealed class ArchitectureRulesTests
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
+            "ProviderId=\"{x:Bind ProviderId}\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<controls:ProviderMarkImage",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
             "ItemsSource=\"{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}\"",
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
             "GroupName=\"CompactProviderTabs\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "MaximumRowsOrColumns=\"5\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "MinItemWidth=\"86\"",
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -566,5 +648,15 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("private const int CapturePadding = 10", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("DismissTransientOverlays(captureRoot)", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("byte[] paddedPixels = AddPadding", shareCaptureCode, StringComparison.Ordinal);
+
+        string generalOptionsCode = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Options",
+            "GeneralOptionsView.xaml.cs"));
+        Assert.Contains("DispatcherQueue.TryEnqueue", generalOptionsCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("private async void OnLoaded", generalOptionsCode, StringComparison.Ordinal);
     }
 }
