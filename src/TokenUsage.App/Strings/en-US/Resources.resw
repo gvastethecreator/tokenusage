@@ -27,6 +27,12 @@
   <data name="TraySummaryMonthlyShortLabel" xml:space="preserve"><value>M</value></data>
   <data name="TraySummaryPeriodShortLabel" xml:space="preserve"><value>W/M</value></data>
   <data name="TraySummaryProviderAutomationNameFormat" xml:space="preserve"><value>{0}. {1}: {2}. {3}: {4}.</value></data>
+  <data name="TraySummaryProviderSingleAutomationNameFormat" xml:space="preserve"><value>{0}. {1}: {2}.</value></data>
+  <data name="TraySummarySpendLabel" xml:space="preserve"><value>Spend, last 30 days</value></data>
+  <data name="TraySummarySpendShortLabel" xml:space="preserve"><value>$</value></data>
+  <data name="TraySummaryTokensLabel" xml:space="preserve"><value>Tokens, last 30 days</value></data>
+  <data name="TraySummaryTokensShortLabel" xml:space="preserve"><value>T</value></data>
+  <data name="TraySummaryEmptyState.Text" xml:space="preserve"><value>No AI coding tool detected on this computer.</value></data>
   <data name="ProviderStatusShowMoreFormat" xml:space="preserve"><value>Show more providers ({0})</value></data>
   <data name="ProviderStatusShowLessFormat" xml:space="preserve"><value>Show fewer providers ({0})</value></data>
   <data name="StatusIdle" xml:space="preserve"><value>No data yet</value></data>
@@ -220,6 +226,8 @@
   <data name="SampleRetryAutomationName" xml:space="preserve"><value>Retry sample</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Codex quota unavailable</value></data>
   <data name="CodexUnavailableBody" xml:space="preserve"><value>TokenUsage could not read Codex quota. Check that Codex runs, then try again.</value></data>
+  <data name="ProvidersUndetectedTitle" xml:space="preserve"><value>No AI coding tool detected</value></data>
+  <data name="ProvidersUndetectedBody" xml:space="preserve"><value>TokenUsage found no supported tool on this computer. Install or run one, then refresh.</value></data>
   <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex setup needed</value></data>
   <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Install Codex CLI or sign in with ChatGPT in Codex, then retry. TokenUsage does not ask for credentials.</value></data>
   <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Codex quota is unavailable for this account</value></data>
@@ -505,6 +513,20 @@
   <data name="AppearanceVisualizationList" xml:space="preserve"><value>List</value></data>
   <data name="AppearanceVisualizationDonut" xml:space="preserve"><value>Donut</value></data>
   <data name="AppearanceVisualizationHeatmap" xml:space="preserve"><value>Map</value></data>
+  <data name="AppearanceTrayPopoverHeading.Text" xml:space="preserve"><value>Tray hover popover</value></data>
+  <data name="AppearanceTrayPrimaryLabel.Text" xml:space="preserve"><value>Top value</value></data>
+  <data name="AppearanceTrayPrimarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Top value in the tray hover popover</value></data>
+  <data name="AppearanceTraySecondaryLabel.Text" xml:space="preserve"><value>Bottom value</value></data>
+  <data name="AppearanceTraySecondarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Bottom value in the tray hover popover</value></data>
+  <data name="AppearanceTrayProviderCountLabel.Text" xml:space="preserve"><value>Providers shown</value></data>
+  <data name="AppearanceTrayProviderCountSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Providers shown in the tray hover popover</value></data>
+  <data name="AppearanceTrayProviderNameLabel.Text" xml:space="preserve"><value>Show the provider name</value></data>
+  <data name="AppearanceTrayProviderNameToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show the provider name in the tray hover popover</value></data>
+  <data name="AppearanceTrayMetricNone" xml:space="preserve"><value>Nothing</value></data>
+  <data name="AppearanceTrayMetricSessionQuota" xml:space="preserve"><value>Session quota</value></data>
+  <data name="AppearanceTrayMetricPeriodQuota" xml:space="preserve"><value>Weekly or monthly quota</value></data>
+  <data name="AppearanceTrayMetricSpend" xml:space="preserve"><value>Spend, last 30 days</value></data>
+  <data name="AppearanceTrayMetricTokens" xml:space="preserve"><value>Tokens, last 30 days</value></data>
   <data name="AppearanceRecoveredFormat" xml:space="preserve"><value>Invalid appearance settings were moved to {0}. Defaults were loaded.</value></data>
   <data name="AppearanceNewerVersionFormat" xml:space="preserve"><value>Appearance format {0} is newer. Update TokenUsage before changing it.</value></data>
   <data name="AppearanceUnavailable" xml:space="preserve"><value>Appearance settings cannot be read. Changes are disabled.</value></data>

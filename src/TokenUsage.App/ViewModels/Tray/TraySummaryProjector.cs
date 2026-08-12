@@ -1,6 +1,6 @@
 using System.Globalization;
 using TokenUsage.App.ViewModels.Dashboard;
-using TokenUsage.Core.Layout;
+using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Tray;
@@ -16,150 +16,237 @@ public sealed class TrayProviderSummary
     public TrayProviderSummary(
         string providerId,
         string providerName,
-        string sessionLabel,
-        string sessionShortLabel,
-        string sessionValue,
-        QuotaUsageLevel? sessionLevel,
-        string periodLabel,
-        string periodShortLabel,
-        string periodValue,
-        QuotaUsageLevel? periodLevel,
+        bool isProviderNameVisible,
+        string primaryLabel,
+        string primaryShortLabel,
+        string primaryValue,
+        QuotaUsageLevel? primaryLevel,
+        string secondaryLabel,
+        string secondaryShortLabel,
+        string secondaryValue,
+        QuotaUsageLevel? secondaryLevel,
+        bool hasSecondaryValue,
         string automationName)
     {
         ProviderId = providerId;
         ProviderName = providerName;
-        SessionLabel = sessionLabel;
-        SessionShortLabel = sessionShortLabel;
-        SessionValue = sessionValue;
-        SessionLevel = sessionLevel;
-        PeriodLabel = periodLabel;
-        PeriodShortLabel = periodShortLabel;
-        PeriodValue = periodValue;
-        PeriodLevel = periodLevel;
+        IsProviderNameVisible = isProviderNameVisible;
+        PrimaryLabel = primaryLabel;
+        PrimaryShortLabel = primaryShortLabel;
+        PrimaryValue = primaryValue;
+        PrimaryLevel = primaryLevel;
+        SecondaryLabel = secondaryLabel;
+        SecondaryShortLabel = secondaryShortLabel;
+        SecondaryValue = secondaryValue;
+        SecondaryLevel = secondaryLevel;
+        HasSecondaryValue = hasSecondaryValue;
         AutomationName = automationName;
     }
 
-    public string ProviderId { get; set; }
+    public string ProviderId { get; }
 
-    public string ProviderName { get; set; }
+    public string ProviderName { get; }
 
-    public string SessionLabel { get; set; }
+    public bool IsProviderNameVisible { get; }
 
-    public string SessionShortLabel { get; set; }
+    public string PrimaryLabel { get; }
 
-    public string SessionValue { get; set; }
+    public string PrimaryShortLabel { get; }
 
-    public QuotaUsageLevel? SessionLevel { get; set; }
+    public string PrimaryValue { get; }
 
-    public string PeriodLabel { get; set; }
+    public QuotaUsageLevel? PrimaryLevel { get; }
 
-    public string PeriodShortLabel { get; set; }
+    public string SecondaryLabel { get; }
 
-    public string PeriodValue { get; set; }
+    public string SecondaryShortLabel { get; }
 
-    public QuotaUsageLevel? PeriodLevel { get; set; }
+    public string SecondaryValue { get; }
 
-    public string AutomationName { get; set; }
+    public QuotaUsageLevel? SecondaryLevel { get; }
+
+    public bool HasSecondaryValue { get; }
+
+    public string AutomationName { get; }
 }
 
 public static class TraySummaryProjector
 {
-    private static readonly TrayProviderPreference[] DefaultProviders =
-    [
-        new("codex", "Codex", true, false),
-        new("claude", "Claude", true, false),
-        new("cursor", "Cursor", true, false),
-        new("opencode", "OpenCode", true, false),
-    ];
-
     public static IReadOnlyList<TrayProviderSummary> Create(
         IReadOnlyList<TrayProviderPreference> preferences,
         IReadOnlyList<DashboardProviderSummary> usageSummaries,
         Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
-        Func<string, string> getString)
+        Func<string, string> getString,
+        TrayPopoverSettings? popover = null)
     {
         ArgumentNullException.ThrowIfNull(preferences);
         ArgumentNullException.ThrowIfNull(usageSummaries);
         ArgumentNullException.ThrowIfNull(getProviderLimits);
         ArgumentNullException.ThrowIfNull(getString);
+        popover ??= TrayPopoverSettings.Default;
 
-        TrayProviderPreference[] selected = SelectProviders(preferences, usageSummaries);
-        return selected
+        Dictionary<string, DashboardProviderSummary> usageById = usageSummaries
+            .GroupBy(summary => summary.ProviderId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        return SelectProviders(preferences, usageSummaries, popover.ProviderCount)
             .Select(preference => CreateProvider(
                 preference,
                 getProviderLimits(preference.ProviderId),
+                usageById.GetValueOrDefault(preference.ProviderId),
+                popover,
                 getString))
             .ToArray();
     }
 
+    /// <summary>
+    /// Only providers with local usage rows reach the popover. Those rows already exclude
+    /// tools whose local root is missing, so an uninstalled tool never occupies the strip.
+    /// </summary>
     private static TrayProviderPreference[] SelectProviders(
         IReadOnlyList<TrayProviderPreference> preferences,
-        IReadOnlyList<DashboardProviderSummary> usageSummaries)
+        IReadOnlyList<DashboardProviderSummary> usageSummaries,
+        int providerCount)
     {
-        IEnumerable<TrayProviderPreference> candidates = preferences
+        HashSet<string> detected = usageSummaries
+            .Select(summary => summary.ProviderId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (detected.Count == 0)
+        {
+            return [];
+        }
+
+        TrayProviderPreference[] allowed = preferences
+            .Where(preference => detected.Contains(preference.ProviderId))
+            .ToArray();
+        if (allowed.Length == 0)
+        {
+            allowed = usageSummaries
+                .Select(summary => new TrayProviderPreference(
+                    summary.ProviderId,
+                    summary.Name,
+                    IsVisible: true,
+                    IsSelected: false))
+                .ToArray();
+        }
+
+        IEnumerable<TrayProviderPreference> candidates = allowed
             .Where(preference => preference.IsSelected);
         if (!candidates.Any())
         {
-            candidates = preferences.Where(preference => preference.IsVisible);
-        }
-
-        if (!candidates.Any())
-        {
-            candidates = usageSummaries.Select(summary => new TrayProviderPreference(
-                summary.ProviderId,
-                summary.Name,
-                IsVisible: true,
-                IsSelected: false));
-        }
-
-        if (!candidates.Any())
-        {
-            candidates = DefaultProviders;
+            candidates = allowed.Where(preference => preference.IsVisible);
         }
 
         return candidates
             .GroupBy(preference => preference.ProviderId, StringComparer.Ordinal)
             .Select(group => group.First())
-            .Take(DashboardLayout.MaxHighlightedProviders)
+            .Take(providerCount)
             .ToArray();
     }
 
     private static TrayProviderSummary CreateProvider(
         TrayProviderPreference preference,
         IReadOnlyList<QuotaWindow> limits,
+        DashboardProviderSummary? usage,
+        TrayPopoverSettings popover,
         Func<string, string> getString)
     {
         limits ??= [];
-        QuotaWindow? session = FindSession(limits, getString("TraySummarySessionLabel"));
-        QuotaWindow? period = FindPeriod(limits, session, getString);
-        string unavailable = getString("TraySummaryUnavailableValue");
-        string sessionValue = FormatRemaining(session, unavailable);
-        string periodValue = FormatRemaining(period, unavailable);
-        string sessionLabel = session?.Title ?? getString("TraySummarySessionLabel");
-        string periodLabel = period?.Title ?? getString("TraySummaryPeriodLabel");
-        string sessionShort = getString("TraySummarySessionShortLabel");
-        string periodShort = ResolvePeriodShortLabel(period, getString);
-        string automationName = string.Format(
-            CultureInfo.CurrentCulture,
-            getString("TraySummaryProviderAutomationNameFormat"),
-            preference.Name,
-            sessionLabel,
-            sessionValue,
-            periodLabel,
-            periodValue);
+        TrayMetricValue primary = Resolve(
+            popover.PrimaryMetric,
+            limits,
+            usage,
+            getString);
+        TrayMetricValue secondary = popover.HasSecondaryMetric
+            ? Resolve(popover.SecondaryMetric, limits, usage, getString)
+            : TrayMetricValue.Absent;
+        string automationName = popover.HasSecondaryMetric
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                getString("TraySummaryProviderAutomationNameFormat"),
+                preference.Name,
+                primary.Label,
+                primary.Value,
+                secondary.Label,
+                secondary.Value)
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                getString("TraySummaryProviderSingleAutomationNameFormat"),
+                preference.Name,
+                primary.Label,
+                primary.Value);
 
         return new TrayProviderSummary(
             preference.ProviderId,
             preference.Name,
-            sessionLabel,
-            sessionShort,
-            sessionValue,
-            Evaluate(session),
-            periodLabel,
-            periodShort,
-            periodValue,
-            Evaluate(period),
+            popover.ShowProviderName,
+            primary.Label,
+            primary.ShortLabel,
+            primary.Value,
+            primary.Level,
+            secondary.Label,
+            secondary.ShortLabel,
+            secondary.Value,
+            secondary.Level,
+            popover.HasSecondaryMetric,
             automationName);
+    }
+
+    private static TrayMetricValue Resolve(
+        TrayPopoverMetric metric,
+        IReadOnlyList<QuotaWindow> limits,
+        DashboardProviderSummary? usage,
+        Func<string, string> getString)
+    {
+        string unavailable = getString("TraySummaryUnavailableValue");
+        switch (metric)
+        {
+            case TrayPopoverMetric.SessionQuota:
+            {
+                QuotaWindow? session = FindSession(
+                    limits,
+                    getString("TraySummarySessionLabel"));
+                return new TrayMetricValue(
+                    session?.Title ?? getString("TraySummarySessionLabel"),
+                    getString("TraySummarySessionShortLabel"),
+                    FormatRemaining(session, unavailable),
+                    Evaluate(session));
+            }
+
+            case TrayPopoverMetric.PeriodQuota:
+            {
+                QuotaWindow? session = FindSession(
+                    limits,
+                    getString("TraySummarySessionLabel"));
+                QuotaWindow? period = FindPeriod(limits, session, getString);
+                return new TrayMetricValue(
+                    period?.Title ?? getString("TraySummaryPeriodLabel"),
+                    ResolvePeriodShortLabel(period, getString),
+                    FormatRemaining(period, unavailable),
+                    Evaluate(period));
+            }
+
+            case TrayPopoverMetric.SpendLast30Days:
+                return new TrayMetricValue(
+                    getString("TraySummarySpendLabel"),
+                    getString("TraySummarySpendShortLabel"),
+                    usage is { HasData: true, HasCostData: true }
+                        ? string.Format(
+                            CultureInfo.CurrentCulture,
+                            getString("LocalUsageUsdCompactFormat"),
+                            usage.CostUsd)
+                        : unavailable,
+                    Level: null);
+
+            case TrayPopoverMetric.TokensLast30Days:
+                return new TrayMetricValue(
+                    getString("TraySummaryTokensLabel"),
+                    getString("TraySummaryTokensShortLabel"),
+                    usage is { HasData: true } ? usage.TokensText : unavailable,
+                    Level: null);
+
+            default:
+                return TrayMetricValue.Absent;
+        }
     }
 
     private static QuotaWindow? FindSession(
@@ -248,4 +335,17 @@ public static class TraySummaryProjector
             ? null
             : QuotaUsageLevelPolicy.Evaluate(
                 (decimal)Math.Clamp(window.ColorRemainingPercent, 0d, 100d));
+
+    private sealed record TrayMetricValue(
+        string Label,
+        string ShortLabel,
+        string Value,
+        QuotaUsageLevel? Level)
+    {
+        public static TrayMetricValue Absent { get; } = new(
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            Level: null);
+    }
 }

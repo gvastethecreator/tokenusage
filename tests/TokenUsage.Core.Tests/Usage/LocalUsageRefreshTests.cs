@@ -52,6 +52,140 @@ public sealed class LocalUsageRefreshTests
     }
 
     [Fact]
+    public void DetectSourcesSeparatesInstalledToolsFromAbsentOnesWithoutAStore()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var refresh = new LocalUsageRefresh(
+            folder.DatabasePath,
+            [
+                new ScriptedRootDetectingSource(
+                    new AgentId("codex"),
+                    isRootAvailable: true,
+                    new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+                new ScriptedRootDetectingSource(
+                    new AgentId("claude"),
+                    isRootAvailable: false,
+                    new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+            ],
+            clock);
+
+        IReadOnlyList<UsageSourceDiagnostic> detection = refresh.DetectSources();
+
+        Assert.Equal(UsageSourceIssueKind.Empty, Find(detection, "codex").Issue);
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, Find(detection, "claude").Issue);
+        Assert.All(detection, diagnostic =>
+        {
+            Assert.Equal(UsageSourceReadStatus.NoData, diagnostic.Status);
+            Assert.False(diagnostic.RetainsLastReliableSnapshot);
+        });
+        Assert.False(File.Exists(folder.DatabasePath));
+    }
+
+    [Fact]
+    public async Task ReadCachedReportsAnAbsentRootEvenWhenHistoryRemains()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        UsageSourceReadResult codexRead = new(
+            [
+                CreateEvent(
+                    "codex",
+                    "cached-1",
+                    new DateTimeOffset(2026, 7, 21, 12, 0, 0, TimeSpan.Zero),
+                    input: 100,
+                    output: 50,
+                    CostObservation.ProviderReported(1m)),
+            ],
+            UsageSourceReadStatus.Complete);
+        var seed = new LocalUsageRefresh(
+            folder.DatabasePath,
+            [
+                new ScriptedRootDetectingSource(new AgentId("codex"), true, codexRead),
+                new ScriptedRootDetectingSource(
+                    new AgentId("claude"),
+                    isRootAvailable: true,
+                    new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+            ],
+            clock);
+        await seed.RefreshAsync();
+
+        // The same store, read after both tools were uninstalled.
+        var afterUninstall = new LocalUsageRefresh(
+            folder.DatabasePath,
+            [
+                new ScriptedRootDetectingSource(new AgentId("codex"), false, codexRead),
+                new ScriptedRootDetectingSource(
+                    new AgentId("claude"),
+                    isRootAvailable: false,
+                    new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+            ],
+            clock);
+        LocalUsageRefreshResult? cached = await afterUninstall.ReadCachedAsync();
+
+        Assert.NotNull(cached);
+        UsageSourceDiagnostic codex = Find(cached.SourceDiagnostics, "codex");
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, codex.Issue);
+        Assert.True(codex.RetainsLastReliableSnapshot);
+        UsageSourceDiagnostic claude = Find(cached.SourceDiagnostics, "claude");
+        Assert.Equal(UsageSourceIssueKind.RootUnavailable, claude.Issue);
+        Assert.False(claude.RetainsLastReliableSnapshot);
+    }
+
+    [Fact]
+    public async Task ReadCachedKeepsAnInstalledToolWithoutHistoryDistinctFromAnAbsentOne()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var sources = new IUsageEventSource[]
+        {
+            new ScriptedRootDetectingSource(
+                new AgentId("codex"),
+                isRootAvailable: true,
+                new UsageSourceReadResult(
+                    [
+                        CreateEvent(
+                            "codex",
+                            "cached-2",
+                            new DateTimeOffset(2026, 7, 21, 12, 0, 0, TimeSpan.Zero),
+                            input: 10,
+                            output: 5,
+                            CostObservation.ProviderReported(0.1m)),
+                    ],
+                    UsageSourceReadStatus.Complete)),
+            new ScriptedRootDetectingSource(
+                new AgentId("claude"),
+                isRootAvailable: true,
+                new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+            new ScriptedRootDetectingSource(
+                new AgentId("grok"),
+                isRootAvailable: false,
+                new UsageSourceReadResult(
+                    [],
+                    UsageSourceReadStatus.NoData,
+                    UsageSourceIssueKind.RootUnavailable)),
+        };
+        var refresh = new LocalUsageRefresh(folder.DatabasePath, sources, clock);
+        await refresh.RefreshAsync();
+
+        LocalUsageRefreshResult? cached = await refresh.ReadCachedAsync();
+
+        Assert.NotNull(cached);
+        Assert.Equal(
+            UsageSourceReadStatus.Complete,
+            Find(cached.SourceDiagnostics, "codex").Status);
+        Assert.Equal(UsageSourceIssueKind.Empty, Find(cached.SourceDiagnostics, "claude").Issue);
+        Assert.Equal(
+            UsageSourceIssueKind.RootUnavailable,
+            Find(cached.SourceDiagnostics, "grok").Issue);
+    }
+
+    private static UsageSourceDiagnostic Find(
+        IReadOnlyList<UsageSourceDiagnostic> diagnostics,
+        string agentId) =>
+        diagnostics.Single(diagnostic => diagnostic.AgentId.Value == agentId);
+
+    [Fact]
     public async Task RefreshWindowedSnapshotReconcilesOnlyAuthoritativeWindow()
     {
         using var folder = new TemporaryFolder();
@@ -158,6 +292,22 @@ public sealed class LocalUsageRefreshTests
             cost,
             "test/1",
             coverage);
+    }
+
+    private sealed class ScriptedRootDetectingSource(
+        AgentId agentId,
+        bool isRootAvailable,
+        UsageSourceReadResult result) : IRootDetectingUsageEventSource
+    {
+        public AgentId AgentId { get; } = agentId;
+
+        public SourceKind SourceKind => SourceKind.LocalLog;
+
+        public bool IsRootAvailable { get; } = isRootAvailable;
+
+        public Task<UsageSourceReadResult> ReadAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(result);
     }
 
     private sealed class TemporaryFolder : IDisposable

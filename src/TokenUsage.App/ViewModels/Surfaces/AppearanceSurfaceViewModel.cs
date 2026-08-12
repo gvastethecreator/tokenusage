@@ -48,11 +48,28 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             new(DashboardVisualizationMode.Donut, _getString("AppearanceVisualizationDonut")),
             new(DashboardVisualizationMode.Heatmap, _getString("AppearanceVisualizationHeatmap")),
         ];
+        TrayPopoverPrimaryOptions = CreateTrayMetricOptions(includeNone: false);
+        TrayPopoverSecondaryOptions = CreateTrayMetricOptions(includeNone: true);
+        TrayPopoverProviderCountOptions = Enumerable
+            .Range(
+                TrayPopoverSettings.MinProviderCount,
+                TrayPopoverSettings.MaxProviderCount - TrayPopoverSettings.MinProviderCount + 1)
+            .Select(count => new AppearanceOption<int>(
+                count,
+                count.ToString("N0", CultureInfo.CurrentCulture)))
+            .ToArray();
         SelectedTheme = ThemeOptions[0];
         SelectedDensity = DensityOptions[0];
         SelectedUsageDisplay = UsageDisplayOptions[0];
         SelectedResetTimeDisplay = ResetTimeDisplayOptions[0];
         SelectedDashboardVisualization = DashboardVisualizationOptions[0];
+        SelectedTrayPopoverPrimary = TrayPopoverPrimaryOptions.Single(option =>
+            option.Value == TrayPopoverSettings.Default.PrimaryMetric);
+        SelectedTrayPopoverSecondary = TrayPopoverSecondaryOptions.Single(option =>
+            option.Value == TrayPopoverSettings.Default.SecondaryMetric);
+        SelectedTrayPopoverProviderCount = TrayPopoverProviderCountOptions.Single(option =>
+            option.Value == TrayPopoverSettings.Default.ProviderCount);
+        ShowTrayPopoverProviderName = TrayPopoverSettings.Default.ShowProviderName;
         _isApplyingSettings = false;
         Initialization = InitializeAsync();
     }
@@ -70,6 +87,12 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
     public IReadOnlyList<AppearanceOption<ResetTimeDisplayMode>> ResetTimeDisplayOptions { get; }
 
     public IReadOnlyList<AppearanceOption<DashboardVisualizationMode>> DashboardVisualizationOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<TrayPopoverMetric>> TrayPopoverPrimaryOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<TrayPopoverMetric>> TrayPopoverSecondaryOptions { get; }
+
+    public IReadOnlyList<AppearanceOption<int>> TrayPopoverProviderCountOptions { get; }
 
     [ObservableProperty]
     public partial AppearanceSettings Settings { get; private set; } = AppearanceSettings.Default;
@@ -91,6 +114,18 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     [ObservableProperty]
     public partial AppearanceOption<DashboardVisualizationMode> SelectedDashboardVisualization { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<TrayPopoverMetric> SelectedTrayPopoverPrimary { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<TrayPopoverMetric> SelectedTrayPopoverSecondary { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceOption<int> SelectedTrayPopoverProviderCount { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowTrayPopoverProviderName { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditable))]
@@ -128,6 +163,51 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     partial void OnSelectedDashboardVisualizationChanged(
         AppearanceOption<DashboardVisualizationMode> value) => QueueSave();
+
+    partial void OnSelectedTrayPopoverPrimaryChanged(
+        AppearanceOption<TrayPopoverMetric> value)
+    {
+        // The popover has two lines and cannot show the same value twice.
+        if (value is not null && SelectedTrayPopoverSecondary?.Value == value.Value)
+        {
+            SelectedTrayPopoverSecondary = TrayPopoverSecondaryOptions[0];
+            return;
+        }
+
+        QueueSave();
+    }
+
+    partial void OnSelectedTrayPopoverSecondaryChanged(
+        AppearanceOption<TrayPopoverMetric> value)
+    {
+        if (value is not null && SelectedTrayPopoverPrimary?.Value == value.Value)
+        {
+            SelectedTrayPopoverSecondary = TrayPopoverSecondaryOptions[0];
+            return;
+        }
+
+        QueueSave();
+    }
+
+    partial void OnSelectedTrayPopoverProviderCountChanged(
+        AppearanceOption<int> value) => QueueSave();
+
+    partial void OnShowTrayPopoverProviderNameChanged(bool value) => QueueSave();
+
+    private IReadOnlyList<AppearanceOption<TrayPopoverMetric>> CreateTrayMetricOptions(
+        bool includeNone) =>
+    [
+        .. includeNone
+            ? new AppearanceOption<TrayPopoverMetric>[]
+            {
+                new(TrayPopoverMetric.None, _getString("AppearanceTrayMetricNone")),
+            }
+            : [],
+        new(TrayPopoverMetric.SessionQuota, _getString("AppearanceTrayMetricSessionQuota")),
+        new(TrayPopoverMetric.PeriodQuota, _getString("AppearanceTrayMetricPeriodQuota")),
+        new(TrayPopoverMetric.SpendLast30Days, _getString("AppearanceTrayMetricSpend")),
+        new(TrayPopoverMetric.TokensLast30Days, _getString("AppearanceTrayMetricTokens")),
+    ];
 
     private async Task InitializeAsync()
     {
@@ -174,6 +254,13 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
                 option => option.Value == settings.ResetTimeDisplay);
             SelectedDashboardVisualization = DashboardVisualizationOptions.Single(
                 option => option.Value == settings.DashboardVisualization);
+            SelectedTrayPopoverPrimary = TrayPopoverPrimaryOptions.Single(
+                option => option.Value == settings.TrayPopover.PrimaryMetric);
+            SelectedTrayPopoverSecondary = TrayPopoverSecondaryOptions.Single(
+                option => option.Value == settings.TrayPopover.SecondaryMetric);
+            SelectedTrayPopoverProviderCount = TrayPopoverProviderCountOptions.Single(
+                option => option.Value == settings.TrayPopover.ProviderCount);
+            ShowTrayPopoverProviderName = settings.TrayPopover.ShowProviderName;
             Settings = settings;
             SettingsChanged?.Invoke(this, settings);
         }
@@ -191,7 +278,10 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             || SelectedDensity is null
             || SelectedUsageDisplay is null
             || SelectedResetTimeDisplay is null
-            || SelectedDashboardVisualization is null)
+            || SelectedDashboardVisualization is null
+            || SelectedTrayPopoverPrimary is null
+            || SelectedTrayPopoverSecondary is null
+            || SelectedTrayPopoverProviderCount is null)
         {
             return;
         }
@@ -202,7 +292,12 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             IncreaseTransparency,
             SelectedUsageDisplay.Value,
             SelectedResetTimeDisplay.Value,
-            SelectedDashboardVisualization.Value);
+            SelectedDashboardVisualization.Value,
+            new TrayPopoverSettings(
+                SelectedTrayPopoverPrimary.Value,
+                SelectedTrayPopoverSecondary.Value,
+                SelectedTrayPopoverProviderCount.Value,
+                ShowTrayPopoverProviderName));
         Settings = settings;
         SettingsChanged?.Invoke(this, settings);
         IsBusy = true;

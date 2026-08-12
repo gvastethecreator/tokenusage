@@ -35,7 +35,7 @@ public sealed class AppearanceSettingsStoreTests
     }
 
     [Fact]
-    public async Task SaveAndLoadRoundTripUsesVersionTwoContract()
+    public async Task SaveAndLoadRoundTripUsesVersionThreeContract()
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -45,7 +45,12 @@ public sealed class AppearanceSettingsStoreTests
             increaseTransparency: true,
             UsageDisplayMode.Used,
             ResetTimeDisplayMode.Exact,
-            DashboardVisualizationMode.Heatmap);
+            DashboardVisualizationMode.Heatmap,
+            new TrayPopoverSettings(
+                TrayPopoverMetric.SpendLast30Days,
+                TrayPopoverMetric.TokensLast30Days,
+                providerCount: 2,
+                showProviderName: true));
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
         var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
@@ -53,12 +58,76 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(expected, loaded.Settings);
         Assert.False(loaded.RequiresMigration);
         using JsonDocument json = JsonDocument.Parse(await File.ReadAllBytesAsync(store.DocumentPath));
-        Assert.Equal(2, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(3, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
         Assert.Equal(
             "heatmap",
             json.RootElement.GetProperty("dashboardVisualization").GetString());
+        JsonElement popover = json.RootElement.GetProperty("trayPopover");
+        Assert.Equal("spendlast30days", popover.GetProperty("primaryMetric").GetString());
+        Assert.Equal("tokenslast30days", popover.GetProperty("secondaryMetric").GetString());
+        Assert.Equal(2, popover.GetProperty("providerCount").GetInt32());
+        Assert.True(popover.GetProperty("showProviderName").GetBoolean());
         Assert.Empty(Directory.GetFiles(directory.Path, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task VersionTwoDocumentMigratesWithDefaultTrayPopover()
+    {
+        using var directory = new TempDirectory();
+        var store = CreateStore(directory);
+        await File.WriteAllTextAsync(
+            store.DocumentPath,
+            """
+            {
+              "schemaVersion": 2,
+              "theme": "dark",
+              "density": "compact",
+              "increaseTransparency": false,
+              "usageDisplay": "used",
+              "resetTimeDisplay": "exact",
+              "dashboardVisualization": "heatmap"
+            }
+            """,
+            new UTF8Encoding(false));
+
+        var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
+
+        Assert.True(loaded.RequiresMigration);
+        Assert.Equal(TrayPopoverSettings.Default, loaded.Settings.TrayPopover);
+        Assert.Equal(DashboardVisualizationMode.Heatmap, loaded.Settings.DashboardVisualization);
+    }
+
+    [Fact]
+    public async Task VersionThreeDocumentWithAnUnusableTrayPopoverIsQuarantined()
+    {
+        using var directory = new TempDirectory();
+        var store = CreateStore(directory);
+        byte[] original = Encoding.UTF8.GetBytes(
+            """
+            {
+              "schemaVersion": 3,
+              "theme": "dark",
+              "density": "compact",
+              "increaseTransparency": false,
+              "usageDisplay": "used",
+              "resetTimeDisplay": "exact",
+              "dashboardVisualization": "list",
+              "trayPopover": {
+                "primaryMetric": "none",
+                "secondaryMetric": "periodquota",
+                "providerCount": 2,
+                "showProviderName": false
+              }
+            }
+            """);
+        await File.WriteAllBytesAsync(store.DocumentPath, original);
+
+        var corrupt = Assert.IsType<AppearanceSettingsLoadResult.Corrupt>(await store.LoadAsync());
+
+        Assert.Equal(
+            original,
+            await File.ReadAllBytesAsync(Path.Combine(directory.Path, corrupt.QuarantineFileName)));
     }
 
     [Fact]

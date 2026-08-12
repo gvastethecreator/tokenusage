@@ -5,7 +5,7 @@ namespace TokenUsage.Core.Appearance;
 
 public sealed class AppearanceSettingsStore
 {
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
     public const string DefaultFileName = "appearance.v1.json";
     public const int MaxDocumentBytes = 16 * 1024;
     public const int MaxJsonDepth = 8;
@@ -56,7 +56,8 @@ public sealed class AppearanceSettingsStore
             {
                 0 => ReadLegacyDocument(parsed.RootElement),
                 1 => ReadVersionOneDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionTwoDocument(parsed.RootElement),
+                2 => ReadVersionTwoDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionThreeDocument(parsed.RootElement),
                 _ => throw new AppearanceDocumentFormatException(),
             };
             return new AppearanceSettingsLoadResult.Loaded(
@@ -99,7 +100,8 @@ public sealed class AppearanceSettingsStore
             {
                 0 => ReadLegacyDocument(parsed.RootElement),
                 1 => ReadVersionOneDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionTwoDocument(parsed.RootElement),
+                2 => ReadVersionTwoDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionThreeDocument(parsed.RootElement),
                 > SchemaVersion => null,
                 _ => throw new AppearanceDocumentFormatException(),
             };
@@ -128,6 +130,44 @@ public sealed class AppearanceSettingsStore
         ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
         ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
         ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"));
+
+    private static AppearanceSettings ReadVersionThreeDocument(JsonElement root) => new(
+        ReadRequiredEnum<AppThemeMode>(root, "theme"),
+        ReadRequiredEnum<AppDensityMode>(root, "density"),
+        ReadRequiredBoolean(root, "increaseTransparency"),
+        ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
+        ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
+        ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"),
+        ReadTrayPopover(root));
+
+    private static TrayPopoverSettings ReadTrayPopover(JsonElement root)
+    {
+        EnsureObject(root);
+        if (!root.TryGetProperty("trayPopover", out JsonElement popover))
+        {
+            throw new AppearanceDocumentFormatException();
+        }
+
+        EnsureObject(popover);
+        if (!popover.TryGetProperty("providerCount", out JsonElement count)
+            || !count.TryGetInt32(out int providerCount))
+        {
+            throw new AppearanceDocumentFormatException();
+        }
+
+        try
+        {
+            return new TrayPopoverSettings(
+                ReadRequiredEnum<TrayPopoverMetric>(popover, "primaryMetric"),
+                ReadRequiredEnum<TrayPopoverMetric>(popover, "secondaryMetric"),
+                providerCount,
+                ReadRequiredBoolean(popover, "showProviderName"));
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            throw new AppearanceDocumentFormatException();
+        }
+    }
 
     private static AppearanceSettings ReadLegacyDocument(JsonElement root)
     {
@@ -258,6 +298,16 @@ public sealed class AppearanceSettingsStore
             writer.WriteString(
                 "dashboardVisualization",
                 ToStorageValue(settings.DashboardVisualization));
+            writer.WriteStartObject("trayPopover");
+            writer.WriteString(
+                "primaryMetric",
+                ToStorageValue(settings.TrayPopover.PrimaryMetric));
+            writer.WriteString(
+                "secondaryMetric",
+                ToStorageValue(settings.TrayPopover.SecondaryMetric));
+            writer.WriteNumber("providerCount", settings.TrayPopover.ProviderCount);
+            writer.WriteBoolean("showProviderName", settings.TrayPopover.ShowProviderName);
+            writer.WriteEndObject();
             writer.WriteEndObject();
         }
 
