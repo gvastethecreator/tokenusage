@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-12T00:53:20Z",
-  "generated_from_commit": "2dfcb21ff3ee7af2e28a88a11048523e88305fac",
+  "generated_at": "2026-08-12T05:14:48Z",
+  "generated_from_commit": "d8f40d0c6265c0bc96d5e9a7f324ed06eeee5e58",
   "scope": [
     "."
   ],
@@ -707,8 +707,8 @@
             "symbol": "ModelProviderId"
           },
           {
-            "path": "src/TokenUsage.Providers/Claude/ClaudePricingCatalog.cs",
-            "symbol": "CostObservation"
+            "path": "src/TokenUsage.Providers/Catalog/ProviderModuleCatalog.cs",
+            "symbol": "ProviderId"
           }
         ]
       }

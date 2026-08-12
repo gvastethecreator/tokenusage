@@ -5,7 +5,7 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: Do not include credentials, prompts, conversations, customer data, or unredacted local paths. Report security issues through the private process in SECURITY.md.
+      value: Every fix starts here. Do not include credentials, prompts, conversations, customer data, or unredacted local paths. Report security issues privately.
   - type: textarea
     id: summary
     attributes:
@@ -27,6 +27,12 @@ body:
       placeholder: Commit hash or package version
     validations:
       required: true
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider and version
+      description: Complete this field when the problem affects a provider integration.
+      placeholder: Cursor 1.2.3 or Codex CLI 0.99.0
   - type: dropdown
     id: architecture
     attributes:
@@ -40,4 +46,13 @@ body:
     id: evidence
     attributes:
       label: Safe evidence
-      description: Add redacted logs or screenshots only when they contain no private data.
+      description: Add redacted logs, CLI output, or screenshots. Remove content, identifiers, credentials, and private paths.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed credentials, customer content, identifiers, and private paths.
+          required: true
+        - label: I searched for an existing issue before opening this report.
+          required: true

@@ -17,7 +17,7 @@ public sealed class CursorUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "cursor-composer-state/1";
+    public const string ParserVersion = "cursor-local-token-metrics/2";
     private const int LookbackDays = 35;
     private const int DefaultMaximumValueBytes = 2 * 1024 * 1024;
     private const long MaximumPlausibleContextTokens = 16 * 1024 * 1024;
@@ -166,6 +166,12 @@ public sealed class CursorUsageEventSource :
 
         MarkSkippedRows(connection, state, cancellationToken);
 
+        HashSet<string> composersWithTurnTokens = ReadBubbleTokenRows(
+            connection,
+            output,
+            state,
+            cancellationToken);
+
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             SELECT
@@ -210,6 +216,11 @@ public sealed class CursorUsageEventSource :
                 continue;
             }
 
+            if (composersWithTurnTokens.Contains(candidate.Identity["composerData:".Length..]))
+            {
+                continue;
+            }
+
             var usageEvent = new UsageEvent(
                 new UsageEventKey(Hash($"cursor\0composer-state-v1\0{candidate.Identity}")),
                 AgentId,
@@ -223,6 +234,140 @@ public sealed class CursorUsageEventSource :
                 CoverageKind.Unpriced);
             output[usageEvent.EventKey.Value] = usageEvent;
         }
+    }
+
+    private HashSet<string> ReadBubbleTokenRows(
+        SqliteConnection connection,
+        Dictionary<string, UsageEvent> output,
+        LocalScanState state,
+        CancellationToken cancellationToken)
+    {
+        var composers = new HashSet<string>(StringComparer.Ordinal);
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+              key,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.createdAt') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.modelInfo.modelName') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.tokenCount.inputTokens') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.tokenCount.outputTokens') END
+            FROM cursorDiskKV
+            WHERE key GLOB 'bubbleId:*'
+              AND length(value) <= $value_limit
+              AND json_valid(CAST(value AS TEXT))
+              AND (json_extract(CAST(value AS TEXT), '$.tokenCount.inputTokens') IS NOT NULL
+                OR json_extract(CAST(value AS TEXT), '$.tokenCount.outputTokens') IS NOT NULL)
+            ORDER BY ROWID
+            LIMIT $row_limit
+            """;
+        command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
+        command.Parameters.AddWithValue("$row_limit", checked(_maximumRows + 1L));
+        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
+        using SqliteDataReader reader = command.ExecuteReader();
+        int rowsRead = 0;
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++rowsRead > _maximumRows)
+            {
+                state.MarkPartial();
+                break;
+            }
+
+            if (!TryReadBubbleCandidate(reader, out CursorBubbleCandidate? candidate)
+                || candidate is null)
+            {
+                state.MarkPartial();
+                continue;
+            }
+
+            composers.Add(candidate.ComposerId);
+            var tokens = new TokenBreakdown(
+                candidate.InputTokens,
+                candidate.OutputTokens,
+                reasoning: 0,
+                cacheRead: 0,
+                cacheWrite: 0);
+            CostObservation cost = CursorPricingCatalog.Resolve(
+                candidate.Model,
+                candidate.Timestamp,
+                tokens);
+            CoverageKind coverage = cost.Kind == CostKind.CatalogEstimated
+                ? CoverageKind.Partial
+                : CoverageKind.Unpriced;
+            var usageEvent = new UsageEvent(
+                new UsageEventKey(Hash($"cursor\0bubble-token-v2\0{candidate.Identity}")),
+                AgentId,
+                ResolveModelProvider(candidate.Model),
+                CreateModelId(candidate.Model),
+                candidate.Timestamp,
+                _groupingTimeZoneId,
+                tokens,
+                cost,
+                ParserVersion,
+                coverage);
+            output[usageEvent.EventKey.Value] = usageEvent;
+        }
+
+        return composers;
+    }
+
+    private static bool TryReadBubbleCandidate(
+        SqliteDataReader reader,
+        out CursorBubbleCandidate? candidate)
+    {
+        candidate = null;
+        if (reader.GetValue(0) is not string identity
+            || !TryGetBubbleComposerId(identity, out string? composerId)
+            || string.IsNullOrWhiteSpace(composerId)
+            || !TryGetTimestamp(reader, 1, out DateTimeOffset timestamp))
+        {
+            return false;
+        }
+
+        string model = reader.IsDBNull(2) ? "cursor-auto" : reader.GetString(2).Trim();
+        if (string.IsNullOrWhiteSpace(model) || model.Length > 200)
+        {
+            model = "cursor-auto";
+        }
+
+        long input = GetNonNegativeOrZero(reader, 3);
+        long output = GetNonNegativeOrZero(reader, 4);
+        if (input == 0 && output == 0
+            || input > MaximumPlausibleContextTokens
+            || output > MaximumPlausibleContextTokens)
+        {
+            return false;
+        }
+
+        candidate = new CursorBubbleCandidate(
+            identity,
+            composerId,
+            timestamp,
+            model,
+            input,
+            output);
+        return true;
+    }
+
+    private static bool TryGetBubbleComposerId(string key, out string? composerId)
+    {
+        composerId = null;
+        const string prefix = "bubbleId:";
+        if (!key.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        int separator = key.IndexOf(':', prefix.Length);
+        composerId = separator < 0 ? key[prefix.Length..] : key[prefix.Length..separator];
+        return !string.IsNullOrWhiteSpace(composerId)
+            && composerId.Length <= 200
+            && composerId.All(character => !char.IsControl(character));
     }
 
     private void MarkSkippedRows(
@@ -325,6 +470,56 @@ public sealed class CursorUsageEventSource :
         return false;
     }
 
+    private static bool TryGetTimestamp(
+        SqliteDataReader reader,
+        int ordinal,
+        out DateTimeOffset timestamp)
+    {
+        timestamp = default;
+        if (reader.IsDBNull(ordinal))
+        {
+            return false;
+        }
+
+        object raw = reader.GetValue(ordinal);
+        if (TryConvertTimestamp(raw, out timestamp))
+        {
+            return timestamp.Year is >= 2000 and <= 2100;
+        }
+
+        return false;
+    }
+
+    private static bool TryConvertTimestamp(object raw, out DateTimeOffset timestamp)
+    {
+        timestamp = default;
+        if (raw is string text
+            && DateTimeOffset.TryParse(
+                text,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out DateTimeOffset parsed))
+        {
+            timestamp = parsed.ToUniversalTime();
+            return true;
+        }
+
+        if (raw is long milliseconds)
+        {
+            try
+            {
+                timestamp = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     private static bool TryGetInt64(SqliteDataReader reader, int ordinal, out long value)
     {
         value = 0;
@@ -352,6 +547,9 @@ public sealed class CursorUsageEventSource :
         destination = source;
         return true;
     }
+
+    private static long GetNonNegativeOrZero(SqliteDataReader reader, int ordinal) =>
+        TryGetInt64(reader, ordinal, out long value) ? value : 0;
 
     private static void ExecuteControl(
         SqliteConnection connection,
@@ -422,4 +620,12 @@ public sealed class CursorUsageEventSource :
         DateTimeOffset Timestamp,
         string Model,
         long EstimatedContextTokens);
+
+    private sealed record CursorBubbleCandidate(
+        string Identity,
+        string ComposerId,
+        DateTimeOffset Timestamp,
+        string Model,
+        long InputTokens,
+        long OutputTokens);
 }

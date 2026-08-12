@@ -146,9 +146,19 @@ public sealed partial class PersonalizationSurfaceViewModel : ObservableObject
             isVisible));
 
     public Task SetProviderHighlightedAsync(string providerId, bool isHighlighted) =>
-        MutateAsync(layout => layout.SetProviderHighlighted(
-            new ProviderId(providerId),
-            isHighlighted));
+        MutateAsync(layout =>
+        {
+            var provider = new ProviderId(providerId);
+            ProviderLayoutPreference current = layout.Providers.Single(item =>
+                item.ProviderId == provider);
+            DashboardLayout next = layout.SetProviderHighlighted(provider, isHighlighted);
+            if (isHighlighted && !current.IsHighlighted && next.Equals(layout))
+            {
+                StatusText = _getString("DashboardProviderHighlightLimitReached");
+            }
+
+            return next;
+        });
 
     public Task SetProviderColorAsync(string providerId, string colorHex)
     {

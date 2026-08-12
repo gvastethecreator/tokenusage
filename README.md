@@ -1,44 +1,115 @@
-# TokenUsage
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/icon-light.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/icon-dark.png">
+    <img src="docs/assets/icon-dark.png" alt="TokenUsage" width="128" height="128">
+  </picture>
+</p>
 
-TokenUsage is a Windows app for viewing AI coding-tool quota, token use, and spend from sources already available on the computer. It does not require a TokenUsage account.
+<h1 align="center">TokenUsage</h1>
 
-> TokenUsage is in active pre-release development.
+<p align="center"><strong>Quota, tokens, cost, and reset cycles for your AI coding tools. In one local-first Windows app.</strong></p>
 
-## What works today
+<p align="center">
+  <a href="#what-you-get">Features</a> ·
+  <a href="#provider-support">Providers</a> ·
+  <a href="#build-and-run">Build</a> ·
+  <a href="#command-line">CLI</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-- Codex quota and reset windows through the official local `app-server` process.
-- Local usage and cost views for Codex, Grok Build, OpenCode, and passive Antigravity databases.
-- The Claude reader remains available for a later opt-in, but it is not active by default.
-- Vercel AI Gateway code is retained but its provider is temporarily disabled.
-- Daily usage heatmaps, provider details, configurable colors, and quota alerts.
-- Local Codex reset history, including early resets detected from authoritative usage drops.
-- Codex reports can use the current or a previously observed reset cycle as their date range.
-- English and Spanish UI.
-- A packaged `tokenusage` command for usage, limits, provider status, and diagnostics.
+<p align="center">
+  <a href="https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-f5f5f5.svg"></a>
+  <img alt="Windows x64 and ARM64" src="https://img.shields.io/badge/Windows-x64%20%7C%20ARM64-2f2f2f.svg">
+  <img alt="Pre-release" src="https://img.shields.io/badge/status-pre--release-f59e0b.svg">
+</p>
 
-Provider data can be authoritative, local, estimated, incomplete, stale, blocked, or unavailable. The UI labels the source and state instead of treating each value as a remote quota.
+---
+
+TokenUsage turns the usage data already available on your computer into one clear view. Open the tray panel for a quick check. Open the report for trends, provider comparisons, costs, tokens, and reset cycles. Use the CLI for scripts and diagnostics.
+
+No TokenUsage account is required. Provider data stays local unless you enable a documented opt-in connection.
+
+> [!IMPORTANT]
+> TokenUsage `0.0.1` is in active pre-release development. Provider coverage varies by product version, account type, and available data source.
+
+## What you get
+
+- **Fast tray view** — check total spend, provider activity, Codex limits, and selected provider quotas.
+- **Detailed reports** — compare providers, ranges, metrics, charts, and tables, then export a clean capture.
+- **Honest data states** — reported, estimated, partial, stale, unavailable, and unpriced values remain distinct.
+- **Reset history** — inspect observed Codex reset cycles, including early resets detected before the expected date.
+- **Stable CLI output** — read usage, reports, limits, provider status, and diagnostics as human text or versioned JSON.
+- **Local-first and bilingual** — use English or Spanish without indexing conversations or commands.
+
+## Provider support
+
+TokenUsage maintains a 55-provider catalog. A catalog entry is not the same as a working integration.
+
+| State | Count | Meaning |
+|---|---:|---|
+| Active | 10 | A bounded reader produces real local usage data. |
+| Opt-in, held | 1 | The adapter is retained, but the provider is currently disabled. |
+| Prepared | 35 | Identity, capabilities, and status exist. No reader runs. |
+| Policy blocked | 9 | The known source is unsafe, private, unstable, or not permitted. |
+
+### Active readers
+
+| Provider | Local usage | Cost | Live quota |
+|---|---|---|---|
+| Codex | Yes | Reported or estimated | Yes, through the official local `app-server` |
+| Claude Code | Yes | Reported or estimated | Not available through an approved interface |
+| Cursor | Yes, partial | Estimated when the model matches | Not available through the current contract |
+| Grok Build | Yes | Reported or estimated | Not available through an approved interface |
+| OpenCode | Yes | Reported | No common quota source |
+| Antigravity | Yes, experimental | Estimated | Blocked by policy |
+| Amp | Yes, partial | Credits stay separate from USD | No stable public source |
+| Mux | Yes | Reported | No common quota source |
+| Goose | Yes, partial | Estimated when pricing exists | No common quota source |
+| Hermes | Yes, partial | Reported or estimated | No common quota source |
+
+See the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, planned providers, and publication gates.
+
+TokenUsage never creates fake activity for prepared or blocked providers. Missing data appears as missing data.
+
+## How the data works
+
+Each provider adapter reads the smallest approved source that can answer a usage question. Sources include official local APIs, bounded numeric logs, and read-only aggregate database queries.
+
+TokenUsage keeps these values separate:
+
+- provider-reported cost
+- cost estimated from known model pricing
+- tokens without a known price
+- coverage and freshness
+- quota remaining and reset time
+- observed local usage.
+
+An API-rate estimate is not a subscription invoice. A local usage total is not a remote account quota.
 
 ## Privacy and security
 
-TokenUsage reads the smallest useful local data source for each provider. It does not index prompts, conversations, tool calls, or commands. Provider support requires a public contract, an approved local aggregate, or an explicit key supplied by the user.
-
-- User-supplied keys go to Windows Credential Locker.
+- No prompt, response, conversation, command, tool call, email, or account identifier enters usage storage.
+- TokenUsage does not copy another application's session token or read its credential store.
+- User-supplied keys use Windows Credential Locker.
 - Local API access and telemetry stay off by default.
-- Credentials and customer content must not enter logs, diagnostics, fixtures, or the repository.
+- Logs, diagnostics, fixtures, issues, and pull requests must not contain credentials or customer content.
 
-See [SECURITY.md](SECURITY.md) to report a security issue.
+Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
 ## Requirements
 
-- Windows 10 version 1809 or later, on `x64` or `ARM64`.
+- Windows 10 version 1809 or later.
+- An `x64` or `ARM64` computer.
 - .NET 10 SDK.
-- Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0` for the full packaged build.
+- Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0` for packaged builds.
 
-The app uses C#, WinUI 3, Windows App SDK, and a full-trust MSIX package. `AnyCPU` and `x86` are not supported.
+TokenUsage uses C#, WinUI 3, Windows App SDK, and a full-trust MSIX package. `AnyCPU` and `x86` are not supported.
 
 ## Build and run
 
-From PowerShell at the repository root:
+Build from PowerShell at the repository root:
 
 ```powershell
 .\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -SkipRun /p:Platform=x64
@@ -50,9 +121,9 @@ Build and launch with package identity:
 .\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -Detach /p:Platform=x64
 ```
 
-The build helper launches the packaged app through `winapp`. Do not run the packaged executable directly.
+The helper launches the packaged app through `winapp`. Do not run the packaged executable directly.
 
-Run the local quality gate:
+Run the complete local gate before requesting review:
 
 ```powershell
 .\scripts\check.ps1 -Platform x64 -Configuration Release
@@ -62,7 +133,7 @@ Use `-Platform ARM64` for a cross-architecture package build. Tests still run on
 
 ## Command line
 
-After installing the package and enabling its execution alias:
+Install the package and enable its execution alias. Then run:
 
 ```powershell
 tokenusage refresh
@@ -74,45 +145,46 @@ tokenusage providers --format human
 tokenusage doctor --format human
 ```
 
-Run `tokenusage refresh` before `usage` or `report` when the app has not updated
-the local store. The refresh reads the installed local providers and writes only
-normalized numeric usage records.
+Run `tokenusage refresh` before a report when the app has not updated the local store. Refresh writes normalized numeric records from installed providers.
 
-`report` shows totals, token types, agents, models, high-cost days, daily history, and price coverage. Reported and estimated costs stay separate. The JSON contracts are versioned as `tokenusage.refresh.v1`, `tokenusage.usage.v1`, `tokenusage.report.v1`, `tokenusage.limits.v1`, `tokenusage.providers.v1`, and `tokenusage.doctor.v1`.
+The JSON contracts use versioned names such as `tokenusage.usage.v1`, `tokenusage.report.v1`, and `tokenusage.providers.v1`.
 
-Every fresh Codex limits observation also updates `history/quota-resets.v1.json`.
-TokenUsage records one reset when an observed official limit returns from used
-quota to 100% remaining. The reported boundary distinguishes scheduled resets
-from early resets, and repeated refreshes at 100% do not increase the count. It
-does not invent resets before tracking began. Codex reports show the observed
-reset count for their active period and provide previous/next navigation across
-the recorded reset cycles.
+## Documentation
 
-## Project map
+- [Documentation index](docs/README.md)
+- [Provider matrix](docs/PROVIDER-MATRIX.md)
+- [Architecture decisions](docs/architecture)
+- [Contributor testing guide](docs/CONTRIBUTOR-TESTING.md)
 
-- `src/TokenUsage.App`: WinUI application and composition.
-- `src/TokenUsage.Core`: portable domain contracts.
-- `src/TokenUsage.Providers`: provider adapters.
-- `src/TokenUsage.Platform.Windows`: Windows services.
-- `src/TokenUsage.Runtime.Windows`: shared Windows runtime composition.
-- `src/TokenUsage.Cli`: packaged command-line app.
-- `tests`: architecture, core, provider, platform, and CLI tests.
-- `docs`: product, architecture, provider, research, design, and evidence records.
+### Repository map
 
-Start with the [product specification](docs/PRODUCT-SPEC.md), [provider matrix](docs/PROVIDER-MATRIX.md), [implementation plan](docs/IMPLEMENTATION-PLAN.md), and [Windows architecture decision](docs/architecture/ADR-0001-windows-native-baseline.md).
-
-## Provider policy
-
-TokenUsage has no shared login service. Each provider must expose a source that can be used without copying another app's session token or reading its credential store. If the remaining quota cannot be read under that rule, TokenUsage may show observed local usage or spend with clear coverage and pricing notes.
-
-Research gates for planned providers live under [`docs/research`](docs/research). A documented gate does not mean that the provider is implemented.
+| Path | Responsibility |
+|---|---|
+| `src/TokenUsage.App` | WinUI views, view models, and application composition |
+| `src/TokenUsage.Core` | Portable domain, storage, cache, and coordination contracts |
+| `src/TokenUsage.Providers` | Provider adapters and pricing support |
+| `src/TokenUsage.Platform.Windows` | Windows integration |
+| `src/TokenUsage.Runtime.Windows` | Shared Windows runtime composition |
+| `src/TokenUsage.Cli` | Commands and stable JSON output |
+| `src/TokenUsage.Package` | MSIX manifest and packaged payloads |
+| `tests` | Architecture, core, provider, platform, app, and CLI tests |
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. Keep secrets and real customer data out of issues, commits, screenshots, and tests.
+Contributions and pull requests are welcome.
+
+**Open an issue before writing the change.** Every pull request must link its issue and stay within the agreed scope.
+
+Provider contributions need reproducible evidence. This rule is especially important when maintainers cannot access the provider. A mock fixture alone does not prove a real integration.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [contributor testing guide](docs/CONTRIBUTOR-TESTING.md) before starting.
+
+## Acknowledgements
+
+The provider catalog and documentation structure take inspiration from [OpenUsage](https://github.com/janekbaraniewski/openusage), [CodexBar](https://github.com/steipete/CodexBar), and [CodeBurn](https://github.com/getagentseal/codeburn). TokenUsage adapts those ideas to a native Windows app with its own privacy and evidence rules.
+
+These projects do not endorse TokenUsage. Provider names and marks belong to their owners.
 
 ## License
 
-TokenUsage is available under the [MIT License](LICENSE). Third-party material and its terms are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-
-TokenUsage is an independent project. Provider names and marks belong to their owners. OpenUsage is a reference implementation and does not endorse this project.
+TokenUsage is available under the [MIT License](LICENSE). Third-party material and terms appear in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

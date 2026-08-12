@@ -1,0 +1,91 @@
+name: Provider integration
+description: Research, add, or repair a provider data source.
+title: "[Provider]: "
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: Open this issue before implementation. Never attach credentials, raw databases, conversations, prompts, commands, or customer content.
+  - type: input
+    id: provider
+    attributes:
+      label: Provider product
+      description: Use the exact product name. Separate an agent, model provider, IDE, and API platform.
+      placeholder: Cursor Individual, not only Cursor
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tested version
+      placeholder: Product version and release channel
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Windows architecture
+      options:
+        - x64
+        - ARM64
+        - Both
+        - Not tested on Windows
+    validations:
+      required: true
+  - type: checkboxes
+    id: capabilities
+    attributes:
+      label: Requested capabilities
+      options:
+        - label: Local token usage
+        - label: Reported cost
+        - label: Estimated cost
+        - label: Live quota or limits
+        - label: Reset history
+        - label: Provider or account status
+  - type: textarea
+    id: source
+    attributes:
+      label: Proposed data source
+      description: Link a public contract or describe a bounded local aggregate. State whether it is official and stable.
+    validations:
+      required: true
+  - type: textarea
+    id: observed-shape
+    attributes:
+      label: Safe observed shape
+      description: List only field names, types, units, and meanings. Do not paste real values or private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Privacy boundary
+      description: List credentials, content, identifiers, and files that the reader must not access.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and proof plan
+      description: Give exact safe steps, required tests, and real Windows evidence another contributor can verify.
+    validations:
+      required: true
+  - type: textarea
+    id: failures
+    attributes:
+      label: Failure states
+      description: Cover absent account, stale data, permissions, changed schema, unsupported account, timeout, and cancellation when relevant.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the provider matrix and existing issues.
+          required: true
+        - label: I did not include credentials, customer content, identifiers, or private paths.
+          required: true
+        - label: I understand that fixtures alone do not make a provider active.
+          required: true

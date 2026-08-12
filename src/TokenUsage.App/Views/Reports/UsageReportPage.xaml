@@ -37,6 +37,7 @@
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
+            <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="10,4" />
             <Setter Property="UseSystemFocusVisuals" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -184,7 +185,7 @@
 
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition MinWidth="240" Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Spacing="2">
@@ -330,6 +331,26 @@
                                 <FontIcon FontSize="14" Glyph="&#xE72D;" />
                             </Button>
                         </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel
+                        x:Name="ReportCaptureBrand"
+                        Grid.Column="1"
+                        AutomationProperties.AccessibilityView="Raw"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        VerticalAlignment="Center"
+                        Visibility="Collapsed">
+                        <Image
+                            Height="28"
+                            Source="{ThemeResource TokenUsageAppIconSource}"
+                            Width="28" />
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="TokenUsage"
+                            VerticalAlignment="Center" />
                     </StackPanel>
                 </Grid>
 

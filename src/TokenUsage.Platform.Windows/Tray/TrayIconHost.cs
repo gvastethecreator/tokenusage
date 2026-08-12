@@ -91,6 +91,10 @@ public sealed class TrayIconHost : IDisposable
 
     public event EventHandler<TrayActivatedEventArgs>? Activated;
 
+    public event EventHandler<TrayHoveredEventArgs>? Hovered;
+
+    public event EventHandler? ContextMenuOpening;
+
     public event EventHandler? UpdateRequested;
 
     public event EventHandler? SettingsRequested;
@@ -121,6 +125,18 @@ public sealed class TrayIconHost : IDisposable
             nativeRect.Right,
             nativeRect.Bottom);
         return true;
+    }
+
+    public bool IsPointerOverIcon(int paddingPixels = 4)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegative(paddingPixels);
+        return TryGetIconBounds(out PlatformRect bounds)
+            && NativeMethods.GetCursorPos(out NativeMethods.NativePoint pointer)
+            && TrayHoverPolicy.IsPointerWithin(
+                new PlatformPoint(pointer.X, pointer.Y),
+                bounds,
+                paddingPixels);
     }
 
     public void Dispose()
@@ -195,8 +211,7 @@ public sealed class TrayIconHost : IDisposable
             Id = IconId,
             Flags = NativeMethods.NifMessage
                 | NativeMethods.NifIcon
-                | NativeMethods.NifTip
-                | NativeMethods.NifShowTip,
+                | NativeMethods.NifTip,
             CallbackMessage = CallbackMessage,
             Icon = _iconHandle,
             Tip = tooltip,
@@ -278,7 +293,15 @@ public sealed class TrayIconHost : IDisposable
             case TrayMessageAction.ActivateWithKeyboard:
                 Activated?.Invoke(this, new TrayActivatedEventArgs(TrayActivationKind.Keyboard));
                 break;
+            case TrayMessageAction.PointerMoved:
+                if (TryGetIconBounds(out PlatformRect iconBounds))
+                {
+                    Hovered?.Invoke(this, new TrayHoveredEventArgs(iconBounds));
+                }
+
+                break;
             case TrayMessageAction.ShowContextMenu:
+                ContextMenuOpening?.Invoke(this, EventArgs.Empty);
                 ShowContextMenu(GetContextMenuPoint(wParam));
                 break;
         }

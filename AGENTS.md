@@ -2,7 +2,7 @@
 
 ## Issue tracker
 
-GitHub Issues and Project 4 hold live work state. `.scratch/tokenusage/` holds synchronized local context and evidence. See `docs/agents/issue-tracker.md`.
+GitHub Issues and Project 4 hold live work state. Maintainer checkouts can mirror context under the ignored `.scratch/tokenusage/` path. See `docs/agents/issue-tracker.md`.
 
 ## Triage labels
 

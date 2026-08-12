@@ -5,7 +5,7 @@ namespace TokenUsage.Providers.Tests.VercelAiGateway;
 
 public sealed class VercelGatewayProviderRuntimeTests
 {
-    private const string SecretApiKey = "sk-test-secret-do-not-leak-vercel-key";
+    private const string SecretApiKey = "fake-vercel-api-key-for-tests";
     private static readonly DateTimeOffset FixedUtc = new DateTimeOffset(2026, 7, 23, 15, 30, 0, TimeSpan.Zero);
     private static readonly DateOnly ExpectedEnd = new DateOnly(2026, 7, 23);
     private static readonly DateOnly ExpectedStart = new DateOnly(2026, 6, 24); // today - 29 inclusive 30 days

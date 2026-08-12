@@ -2,7 +2,8 @@
 <UserControl
     x:Class="TokenUsage.App.Views.Options.AppearanceOptionsView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:options="using:TokenUsage.App.Views.Options">
 
     <Border
         AutomationProperties.AutomationId="AppearanceSection"
@@ -26,7 +27,6 @@
                             MaxWidth="300" />
                     </ToolTipService.ToolTip>
                     <TextBlock x:Uid="AppearanceSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
-                    <FontIcon Style="{StaticResource OptionsCategoryHintIconStyle}" />
                 </StackPanel>
             </Grid>
             <ContentControl
@@ -140,6 +140,10 @@
                 Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
                 Severity="Warning"
                 Visibility="{x:Bind ViewModel.IsStatusVisible, Mode=OneWay}" />
+            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
+            <options:PersonalizationOptionsView
+                x:Name="PersonalizationView"
+                ViewModel="{x:Bind PersonalizationViewModel, Mode=OneWay}" />
         </StackPanel>
     </Border>
 </UserControl>

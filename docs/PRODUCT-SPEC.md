@@ -59,7 +59,9 @@ El icono resume el peor estado de las métricas elegidas:
 | Refrescando | Indicador breve y accesible |
 | Sin datos | Icono neutro |
 
-El tooltip muestra hasta tres líneas: proveedor, porcentaje restante y próximo reinicio. El clic principal abre o cierra el panel. El menú de contexto ofrece actualizar, ajustes y salir. Debe funcionar con mouse y teclado.
+Al posar el puntero sobre el icono aparece una tira flotante con hasta cuatro proveedores elegidos. Cada bloque muestra el icono, el límite de sesión y el límite semanal o mensual. Los estados usan verde, amarillo, naranja y rojo. Un dato que la fuente no ofrece se muestra como `—`; nunca se inventa. La tira usa el tema activo, se coloca junto al icono en su monitor, respeta el DPI y se oculta cuando el puntero abandona el icono. El tooltip nativo de Windows queda suprimido para que no se superponga.
+
+El clic principal cierra la tira y abre o cierra el panel compacto. El menú de contexto ofrece actualizar, ajustes y salir. Debe funcionar con mouse y teclado.
 
 ### Panel principal
 
@@ -126,7 +128,7 @@ La primera versión no agrupa por proyecto, sesión, tarea o comando. Esas vista
 - ordenar métricas;
 - mover métricas entre siempre visible y bajo demanda;
 - ocultar una métrica;
-- elegir hasta dos métricas para el resumen de bandeja;
+- elegir hasta cuatro proveedores para la tira de bandeja;
 - deshacer cambios durante la sesión;
 - restablecer un proveedor o todo, con confirmación para todo.
 

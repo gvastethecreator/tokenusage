@@ -1,7 +1,7 @@
 {
-  "current_commit": "2dfcb21ff3ee7af2e28a88a11048523e88305fac",
+  "current_commit": "d8f40d0c6265c0bc96d5e9a7f324ed06eeee5e58",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-12T00:53:20Z",
+  "generated_at": "2026-08-12T05:14:48Z",
   "scanned_scope": [
     "."
   ],
@@ -32,7 +32,7 @@
       "id": ".",
       "path": ".",
       "file_count": 11,
-      "fingerprint": "34d7d9a3f25bc8bca700ae200f86b70233bec3a02cc05f5fabcf103632e8cc49"
+      "fingerprint": "3362e1309a70ef248406bfd49a05aac40aad70743919dc9329cdca5ce5440981"
     },
     {
       "id": ".agents",
@@ -44,7 +44,7 @@
       "id": ".github",
       "path": ".github",
       "file_count": 6,
-      "fingerprint": "74e61b3bb33647831642df20a8398c91ba8daba67117c097d7b4c7bd58f5a515"
+      "fingerprint": "b03930fb3b41ef4e8d544f03d90db613a11fc3bb86d2e1376863f69719fdba22"
     },
     {
       "id": ".vscode",
@@ -55,14 +55,14 @@
     {
       "id": "docs",
       "path": "docs",
-      "file_count": 100,
-      "fingerprint": "7054e2be6e0f2533f4ff4d4cb5d431921e706e92477ebcd82a90b0080be8ef07"
+      "file_count": 101,
+      "fingerprint": "0ace9a42e0ab91db688a81cf6f39bfbada10f2c652fcd69c6c8ed15dd084c58f"
     },
     {
       "id": "plans",
       "path": "plans",
       "file_count": 6,
-      "fingerprint": "b371b59826ae34208c6e7ade44604bdedf05ce7d1241d15daa4adc345008ab3f"
+      "fingerprint": "ece1d9ad33f4f66e9a16109cc035f18629735a1b1ac9d6e50d7923d316d3348f"
     },
     {
       "id": "scripts",
@@ -73,14 +73,14 @@
     {
       "id": "src",
       "path": "src",
-      "file_count": 254,
-      "fingerprint": "a4767d69934dedeae27e531426851b372fbf76c15238e68e7090696f57c4a5a1"
+      "file_count": 259,
+      "fingerprint": "f0e663fd43af14a7ed1ad73aec1c6b649e463fb2dc00ade0f7aef92448ff1b00"
     },
     {
       "id": "tests",
       "path": "tests",
       "file_count": 138,
-      "fingerprint": "ba87e44bf00a398aa438222493a9a284ce5b88d5ae3d3b6fc5afa201c1e8ea52"
+      "fingerprint": "f602c7cf090d7b2f7b460ae7f8cb9d153d76b570c96fea882e5df373d205d379"
     }
   ]
 }

@@ -33,18 +33,29 @@
                             MaxWidth="300" />
                     </ToolTipService.ToolTip>
                     <TextBlock x:Uid="GeneralSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
-                    <FontIcon Style="{StaticResource OptionsCategoryHintIconStyle}" />
                 </StackPanel>
             </Grid>
-            <StackPanel
+            <Grid
                 AutomationProperties.AutomationId="LanguageSection"
-                Spacing="8">
+                ColumnSpacing="12"
+                RowSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <TextBlock
                     x:Uid="LanguageSectionTitle"
-                    Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    VerticalAlignment="Center" />
                 <ComboBox
                     x:Name="LanguageSelector"
                     x:Uid="LanguageSelector"
+                    Grid.Column="1"
                     AutomationProperties.AutomationId="LanguageSelector"
                     DisplayMemberPath="DisplayName"
                     HorizontalAlignment="Stretch"
@@ -53,6 +64,8 @@
                 <InfoBar
                     x:Name="LanguageRestartNotice"
                     x:Uid="LanguageRestartNotice"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2"
                     AutomationProperties.AutomationId="LanguageRestartNotice"
                     AutomationProperties.LiveSetting="Polite"
                     IsClosable="False"
@@ -68,21 +81,35 @@
                 <InfoBar
                     x:Name="LanguageRestartError"
                     x:Uid="LanguageRestartError"
+                    Grid.Row="2"
+                    Grid.ColumnSpan="2"
                     AutomationProperties.AutomationId="LanguageRestartError"
                     AutomationProperties.LiveSetting="Assertive"
                     IsClosable="False"
                     IsOpen="{x:Bind ViewModel.IsLanguageRestartErrorVisible, Mode=OneWay}"
                     Severity="Error" />
-            </StackPanel>
+            </Grid>
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
-            <ToggleSwitch
-                x:Name="CloseWhenInactiveToggle"
-                x:Uid="CloseWhenInactiveToggle"
-                AutomationProperties.AutomationId="CloseWhenInactiveToggle"
-                HorizontalAlignment="Stretch"
-                IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
-                OffContent=""
-                OnContent="" />
+            <Grid ColumnSpacing="12" MinHeight="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Uid="CloseWhenInactiveLabel"
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    VerticalAlignment="Center" />
+                <ToggleSwitch
+                    x:Name="CloseWhenInactiveToggle"
+                    x:Uid="CloseWhenInactiveToggle"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="CloseWhenInactiveToggle"
+                    HorizontalAlignment="Right"
+                    IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
+                    OffContent=""
+                    OnContent=""
+                    VerticalAlignment="Center" />
+            </Grid>
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
             <Grid ColumnSpacing="10" RowSpacing="3">
                 <Grid.ColumnDefinitions>

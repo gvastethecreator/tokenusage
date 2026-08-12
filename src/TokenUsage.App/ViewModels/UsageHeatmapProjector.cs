@@ -179,7 +179,11 @@ public static class UsageHeatmapProjector
         "grok" => 3,
         "cursor" => 4,
         "claude" => 5,
-        _ => 6,
+        "amp" => 6,
+        "mux" => 7,
+        "goose" => 8,
+        "hermes" => 9,
+        _ => 8,
     };
 
     private sealed record DailyActivity(

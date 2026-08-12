@@ -17,10 +17,8 @@
             ViewModel="{x:Bind ViewModel.General, Mode=OneWay}" />
         <options:AppearanceOptionsView
             x:Name="AppearanceView"
+            PersonalizationViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}"
             ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}" />
-        <options:PersonalizationOptionsView
-            x:Name="PersonalizationView"
-            ViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}" />
         <options:ProviderStatusView
             x:Name="ProviderStatusView"
             ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}" />
@@ -33,7 +31,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Image Height="28" Source="ms-appx:///Assets/StoreLogo.png" Width="28" />
+                <Image Height="28" Source="{ThemeResource TokenUsageAppIconSource}" Width="28" />
                 <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                     <TextBlock x:Uid="AboutProjectTitle" FontWeight="SemiBold" />
                     <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind VersionText, Mode=OneTime}" />

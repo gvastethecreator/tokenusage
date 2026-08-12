@@ -7,6 +7,7 @@ public sealed class PackagingContractTests
     private static readonly XNamespace MsBuild = "http://schemas.microsoft.com/developer/msbuild/2003";
     private static readonly XNamespace Package = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
     private static readonly XNamespace Uap5 = "http://schemas.microsoft.com/appx/manifest/uap/windows10/5";
+    private static readonly XNamespace Assembly = "urn:schemas-microsoft-com:asm.v1";
 
     [Fact]
     public void PackagingProjectIncludesOnlySupportedPlatformsAndBothExecutables()
@@ -54,7 +55,7 @@ public sealed class PackagingContractTests
 
         Assert.Equal("D6C94EDD-3747-465C-9A81-05DF5A4108C5", (string?)identity.Attribute("Name"));
         Assert.Equal("CN=AppPublisher", (string?)identity.Attribute("Publisher"));
-        Assert.Equal("1.0.0.0", (string?)identity.Attribute("Version"));
+        Assert.Equal("0.0.1.0", (string?)identity.Attribute("Version"));
         Assert.Equal("TokenUsage.App.exe", (string?)application.Attribute("Executable"));
         Assert.Equal("Windows.FullTrustApplication", (string?)application.Attribute("EntryPoint"));
         Assert.Equal("TokenUsage.Cli\\tokenusage.exe", (string?)extension.Attribute("Executable"));
@@ -81,6 +82,33 @@ public sealed class PackagingContractTests
         Assert.Empty(app.Descendants("AppxManifest"));
         Assert.Equal("WinExe", app.Descendants("OutputType").Single().Value);
         Assert.Equal("tokenusage", cli.Descendants("AssemblyName").Single().Value);
+    }
+
+    [Fact]
+    public void ProductAndWindowsManifestsUseTheSameReleaseVersion()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        XDocument buildProperties = XDocument.Load(Path.Combine(repoRoot, "Directory.Build.props"));
+        XDocument appManifest = XDocument.Load(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "app.manifest"));
+        XDocument packageManifest = XDocument.Load(PackagePath("Package.appxmanifest"));
+
+        Assert.Equal("0.0.1", buildProperties.Descendants("Version").Single().Value);
+        Assert.Equal("0.0.1.0", buildProperties.Descendants("AssemblyVersion").Single().Value);
+        Assert.Equal("0.0.1.0", buildProperties.Descendants("FileVersion").Single().Value);
+        Assert.Equal("0.0.1", buildProperties.Descendants("InformationalVersion").Single().Value);
+        Assert.Equal(
+            "false",
+            buildProperties.Descendants("IncludeSourceRevisionInInformationalVersion").Single().Value);
+        Assert.Equal(
+            "0.0.1.0",
+            (string?)appManifest.Root!.Element(Assembly + "assemblyIdentity")!.Attribute("version"));
+        Assert.Equal(
+            "0.0.1.0",
+            (string?)packageManifest.Root!.Element(Package + "Identity")!.Attribute("Version"));
     }
 
     private static string PackagePath(string fileName) => Path.Combine(

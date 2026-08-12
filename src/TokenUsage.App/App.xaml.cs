@@ -70,13 +70,21 @@ public partial class App : Application
         bool useSampleForTest = launchArguments.Contains(
             "--test-use-sample",
             StringComparer.OrdinalIgnoreCase);
+        bool showTraySummaryForTest = launchArguments.Contains(
+            "--test-show-tray-summary",
+            StringComparer.OrdinalIgnoreCase);
         double? flyoutWidthForTest = GetFlyoutWidthForTest(launchArguments);
 #else
         const bool showForTest = false;
         const bool useSampleForTest = false;
+        const bool showTraySummaryForTest = false;
         double? flyoutWidthForTest = null;
 #endif
-        Window = new MainWindow(showForTest, useSampleForTest, flyoutWidthForTest);
+        Window = new MainWindow(
+            showForTest,
+            useSampleForTest,
+            flyoutWidthForTest,
+            showTraySummaryForTest);
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         bool showRedirectedActivation;

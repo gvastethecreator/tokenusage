@@ -11,6 +11,13 @@ GitHub Issues and the linked GitHub Project hold live work state. Local Markdown
 - Project URL: `https://github.com/users/gvastethecreator/projects/4`
 - Local root: `.scratch/tokenusage/`
 
+## Checkout modes
+
+- Public contributors use the linked GitHub Issue and Project item as the complete live state.
+- Maintainers can mirror expanded context and evidence under the ignored `.scratch/tokenusage/` path.
+- If the local root is absent, do not create it for an ordinary code change.
+- Never commit local mirrors, readiness reports, or private working notes.
+
 ## Authority
 
 - GitHub owns issue state, assignees, comments, relationships, labels, and Project fields.
@@ -47,7 +54,9 @@ Source: <spec path, issue URL, or conversation>
 Blocked by: <GitHub issue numbers or None>
 ```
 
-## Sync protocol
+## Maintainer sync protocol
+
+Use this protocol only when the maintainer checkout already owns a local mirror.
 
 1. Read the Issue, Project item, and local mirror before a mutation.
 2. If both surfaces changed after `Last synced`, set `Sync: conflict` and stop.

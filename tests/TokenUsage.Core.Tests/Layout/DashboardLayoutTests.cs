@@ -146,6 +146,30 @@ public sealed class DashboardLayoutTests
     }
 
     [Fact]
+    public void FifthHighlightedProviderIsRefusedWithoutEvictingExistingChoices()
+    {
+        DashboardLayout layout = new(
+            Enumerable.Range(0, 5)
+                .Select(index => new ProviderLayoutPreference(
+                    new ProviderId($"provider-{index}"),
+                    isVisible: true,
+                    isHighlighted: index < DashboardLayout.MaxHighlightedProviders,
+                    [])));
+
+        DashboardLayout refused = layout.SetProviderHighlighted(
+            new ProviderId("provider-4"),
+            true);
+
+        Assert.Same(layout, refused);
+        Assert.Equal(
+            DashboardLayout.MaxHighlightedProviders,
+            refused.Providers.Count(provider => provider.IsHighlighted));
+        Assert.False(refused.Providers[^1].IsHighlighted);
+        Assert.False(refused.SetProviderHighlighted(new ProviderId("provider-0"), false)
+            .Providers[0].IsHighlighted);
+    }
+
+    [Fact]
     public void SetProviderColorNormalizesAndPreservesOtherPreferences()
     {
         var layout = CreateThreeProviderLayout();
