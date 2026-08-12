@@ -257,6 +257,26 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
+    public async Task TurnWhoseModelIsNotInTheLogKeepsItsTokensWithoutAPrice()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteUnified(
+            "{\"ts\":\"2026-07-22T10:00:00Z\",\"pid\":7,\"msg\":\"model changed\",\"ctx\":{\"model\":\"grok-build\"}}",
+            "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":7,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"completion_tokens\":20}}",
+            "{\"ts\":\"2026-07-22T10:02:00Z\",\"pid\":9,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":40,\"completion_tokens\":8}}");
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+
+        Assert.Equal(2, result.Events.Count);
+        UsageEvent unnamed = Assert.Single(
+            result.Events,
+            item => item.ModelId.Value == GrokUsageEventSource.UnknownModel);
+        Assert.Equal(new TokenBreakdown(40, 8, 0, 0, 0), unnamed.Tokens);
+        Assert.Equal(CostKind.Unavailable, unnamed.Cost.Kind);
+        Assert.Equal(CoverageKind.Unpriced, unnamed.Coverage);
+    }
+
+    [Fact]
     public async Task BadUsageAndScanLimitsReturnPartialWithoutLosingValidData()
     {
         using var corpus = new GrokCorpus();

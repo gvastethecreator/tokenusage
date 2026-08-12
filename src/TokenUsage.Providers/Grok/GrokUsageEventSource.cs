@@ -13,7 +13,14 @@ public sealed class GrokUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "grok-local/3";
+    public const string ParserVersion = "grok-local/4";
+
+    /// <summary>
+    /// Stands in for the model of a turn the log does not name. It matches no catalog rate, so the
+    /// cost of that turn stays unavailable instead of being guessed.
+    /// </summary>
+    public const string UnknownModel = "unknown";
+
     private const decimal TicksPerUsd = 10_000_000_000m;
     private const int SnapshotTailBytes = 1024 * 1024;
     private const int SnapshotFullFallbackBytes = 4 * 1024 * 1024;
@@ -46,7 +53,7 @@ public sealed class GrokUsageEventSource :
 
     public string EventParserVersion => ParserVersion;
 
-    public int ReconciliationWindowDays => 35;
+    public int ReconciliationWindowDays => UsagePeriodPolicy.ReconciliationDays;
 
     public bool IsRootAvailable => Directory.Exists(_grokHome);
 
@@ -301,12 +308,19 @@ public sealed class GrokUsageEventSource :
 
             if (!string.Equals(message, "shell.turn.inference_done", StringComparison.Ordinal)
                 || processId is null
-                || !modelsByProcess.TryGetValue(processId.Value, out model)
                 || !TryGetUtcTimestamp(root, "ts", out DateTimeOffset timestamp)
                 || timestamp < sinceUtc
                 || !TryGetNonNegativeInt64(context, "prompt_tokens", out long input))
             {
                 return true;
+            }
+
+            // A turn whose process announced its model before the retained part of the log has
+            // real tokens and no name for them. Dropping it hid about one turn in twenty from the
+            // total, so it is counted under an unnamed model, which prices as unavailable.
+            if (!modelsByProcess.TryGetValue(processId.Value, out model))
+            {
+                model = UnknownModel;
             }
 
             long cacheRead = GetNonNegativeInt64OrZero(context, "cached_prompt_tokens");

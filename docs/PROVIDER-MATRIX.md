@@ -271,13 +271,15 @@ Fuente upstream de comparación: [provider OpenCode](https://github.com/robinebe
 
 El log unificado tiene prioridad, igual que en OpenUsage. La ruta de sesiones se usa cuando el log no aporta eventos válidos y no se suma a la fuente principal.
 
+El modelo de un turno no viaja en la línea de `shell.turn.inference_done`: la app lo toma del último anuncio de modelo del mismo `pid`. Cuando el log ya no conserva ese anuncio, el turno se registra bajo el modelo `unknown`, con tokens contados y coste no disponible. Antes se descartaba, y en la prueba con Grok `1.0.0` eso escondía 61 de 1034 turnos mientras la lectura se declaraba completa.
+
 ### Cuota
 
 OpenUsage usa autenticación local y un endpoint de billing no documentado. xAI documenta `/usage` para su producto, pero no una salida de cuota apta para otra app. Su [política de uso aceptable](https://x.ai/legal/acceptable-use-policy) restringe el acceso automatizado. La build pública no lee `auth.json` ni llama el endpoint privado.
 
 ### Salida
 
-Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.112`, sesiones y el log unificado sin abrir la credencial.
+Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.112`, sesiones y el log unificado sin abrir la credencial. La comprobación en Grok `1.0.0` mantiene el mismo formato: `msg`, `pid`, `ts` en UTC y `ctx` con `prompt_tokens`, `cached_prompt_tokens`, `completion_tokens` y `reasoning_tokens`.
 
 Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
 
@@ -504,6 +506,8 @@ Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo 
 
 La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial, estimada y sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens.
 
+Cuando existen contadores por turno en `bubbleId:`, tienen prioridad sobre la estimación de la conversación. En la comprobación de agosto de 2026 el editor escribía `tokenCount` en las 5738 filas con el valor cero en entrada y salida, así que no había contador por turno que leer y la tarjeta queda con la estimación por conversación. La consulta exige ahora un contador mayor que cero: una build que deje el campo en cero no obliga a extraer y descartar cada fila, y el día que Cursor vuelva a escribir contadores reales la misma consulta los recoge. El tope de filas ordena de lo más nuevo a lo más viejo, para que un recorte deje fuera los turnos antiguos y no los de hoy.
+
 La Admin API pública de Cursor sigue siendo la fuente facturable para Teams y Enterprise. Requiere una clave administrativa separada y no reutiliza el login del editor. Queda fuera de esta integración individual hasta añadir una conexión manual y un smoke autorizado.
 
 Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso incluido que Cursor anunció para Teams en junio de 2026. La tarjeta muestra `Uso y gasto del equipo`, con procedencia y ciclo. No afirma cuota restante.
@@ -515,7 +519,7 @@ Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso i
 - Business: nombre legado que puede aparecer en eventos; usa la semántica de Teams.
 - Enterprise: mismo contrato por conexión configurada; varias conexiones no se mezclan por correo.
 
-Dentro de `state.vscdb` solo se permite `cursorDiskKV` con claves `composerData:` y una proyección JSON fija de metadatos escalares. Quedan prohibidos el resto de sus tablas y valores, bases de búsqueda, AI Code Tracking, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado.
+Dentro de `state.vscdb` solo se permite `cursorDiskKV` con claves `composerData:` y `bubbleId:`, y una proyección JSON fija de metadatos escalares: modelo, marca de tiempo y contadores. Quedan prohibidos el resto de sus tablas y valores, bases de búsqueda, AI Code Tracking, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado.
 
 Gate local resuelto como `integrated-local-estimate`. Las pruebas confirman identidad estable, reemplazo de snapshots y lectura de los campos allowlist. La Admin API conserva su gate manual aparte.
 

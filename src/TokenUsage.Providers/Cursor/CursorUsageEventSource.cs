@@ -236,6 +236,12 @@ public sealed class CursorUsageEventSource :
         }
     }
 
+    /// <summary>
+    /// Reads the per-turn counters Cursor writes next to a conversation turn. A build that keeps
+    /// the field but leaves it at zero has no turn counters to read, and those rows are left in
+    /// the database instead of being pulled out and rejected one by one. The newest rows come
+    /// first, so a row cap gives up the oldest turns rather than today's.
+    /// </summary>
     private HashSet<string> ReadBubbleTokenRows(
         SqliteConnection connection,
         Dictionary<string, UsageEvent> output,
@@ -259,9 +265,9 @@ public sealed class CursorUsageEventSource :
             WHERE key GLOB 'bubbleId:*'
               AND length(value) <= $value_limit
               AND json_valid(CAST(value AS TEXT))
-              AND (json_extract(CAST(value AS TEXT), '$.tokenCount.inputTokens') IS NOT NULL
-                OR json_extract(CAST(value AS TEXT), '$.tokenCount.outputTokens') IS NOT NULL)
-            ORDER BY ROWID
+              AND COALESCE(json_extract(CAST(value AS TEXT), '$.tokenCount.inputTokens'), 0)
+                + COALESCE(json_extract(CAST(value AS TEXT), '$.tokenCount.outputTokens'), 0) > 0
+            ORDER BY ROWID DESC
             LIMIT $row_limit
             """;
         command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
