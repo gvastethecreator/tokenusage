@@ -11,16 +11,36 @@
       "status": "detected"
     },
     {
+      "id": "local-usage-amp",
+      "status": "present"
+    },
+    {
       "id": "local-usage-antigravity",
       "status": "present"
+    },
+    {
+      "id": "local-usage-claude",
+      "status": "absent"
     },
     {
       "id": "local-usage-cursor",
       "status": "absent"
     },
     {
+      "id": "local-usage-goose",
+      "status": "absent"
+    },
+    {
       "id": "local-usage-grok",
       "status": "present"
+    },
+    {
+      "id": "local-usage-hermes",
+      "status": "absent"
+    },
+    {
+      "id": "local-usage-mux",
+      "status": "absent"
     },
     {
       "id": "local-usage-opencode",

@@ -29,4 +29,13 @@ public sealed partial class ProviderStatusView : UserControl
     }
 
     public UIElement PrimaryAction => ProviderStatusRefreshButton;
+
+    private void OnProviderStatusMoreButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is not null)
+        {
+            ViewModel.IsAdditionalProvidersExpanded =
+                !ViewModel.IsAdditionalProvidersExpanded;
+        }
+    }
 }

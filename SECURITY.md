@@ -10,15 +10,15 @@ Do not open a public issue for a suspected vulnerability. Use the repository's [
 
 Include:
 
-- the affected commit or build;
-- clear steps to reproduce the issue;
-- the expected and observed result;
-- the likely impact;
+- the affected commit or build
+- clear steps to reproduce the issue
+- the expected and observed result
+- the likely impact
 - a small test case when it contains no private data.
 
 Do not send live credentials, session tokens, prompts, conversations, customer data, or unredacted local paths. Use placeholders and state what kind of value was removed.
 
-The maintainer will confirm the report, assess its scope, and coordinate a fix before public disclosure. Response times may vary while the project remains pre-release.
+The maintainer will confirm the report, assess its scope, and coordinate a fix before public disclosure. Response times vary while the project remains pre-release.
 
 ## Security boundaries
 

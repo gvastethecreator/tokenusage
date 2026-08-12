@@ -48,7 +48,14 @@ public static class SampleDashboardCatalog
             .Concat(additionalProviders)
             .ToDictionary(provider => provider.ProviderId, StringComparer.Ordinal);
         ProviderCard[] orderedProviders = ProviderModuleCatalog.OpenUsageEntries
-            .Select(entry => providers[entry.Id.Value])
+            .Select(entry => providers.TryGetValue(entry.Id.Value, out ProviderCard? provider)
+                ? provider
+                : PreviewMetricProvider(
+                    entry.Id.Value,
+                    entry.DisplayName,
+                    getString("SampleMetricUsage"),
+                    "—",
+                    getString))
             .ToArray();
         SpendSlice[] slices = baseline.SpendSlices
             .Concat(

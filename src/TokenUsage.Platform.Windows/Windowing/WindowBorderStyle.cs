@@ -85,6 +85,68 @@ public static class WindowBorderStyle
         return result >= 0;
     }
 
+    public static bool TryUseSmallRoundedCorners(nint windowHandle)
+    {
+        if (windowHandle == 0)
+        {
+            return false;
+        }
+
+        uint preference = NativeMethods.DwmWindowCornerPreferenceRoundSmall;
+        int result = NativeMethods.DwmSetWindowAttribute(
+            windowHandle,
+            NativeMethods.DwmWindowAttributeCornerPreference,
+            ref preference,
+            sizeof(uint));
+        return result >= 0;
+    }
+
+    public static bool TryClipRoundedCorners(nint windowHandle, double radiusDips)
+    {
+        if (windowHandle == 0
+            || !double.IsFinite(radiusDips)
+            || radiusDips <= 0
+            || !NativeMethods.GetClientRect(windowHandle, out var bounds))
+        {
+            return false;
+        }
+
+        int width = bounds.Right - bounds.Left;
+        int height = bounds.Bottom - bounds.Top;
+        if (width <= 0 || height <= 0)
+        {
+            return false;
+        }
+
+        uint dpi = NativeMethods.GetDpiForWindow(windowHandle);
+        double effectiveDpi = dpi == 0 ? 96d : dpi;
+        int diameter = Math.Max(
+            2,
+            (int)Math.Round(
+                radiusDips * 2d * effectiveDpi / 96d,
+                MidpointRounding.AwayFromZero));
+        nint region = NativeMethods.CreateRoundRectRgn(
+            0,
+            0,
+            width + 1,
+            height + 1,
+            diameter,
+            diameter);
+        if (region == 0)
+        {
+            return false;
+        }
+
+        if (NativeMethods.SetWindowRgn(windowHandle, region, redraw: true) != 0)
+        {
+            // Windows owns the region after a successful SetWindowRgn call.
+            return true;
+        }
+
+        _ = NativeMethods.DeleteObject(region);
+        return false;
+    }
+
     public static bool TryRestoreAccessibleFrame(nint windowHandle)
     {
         if (windowHandle == 0)

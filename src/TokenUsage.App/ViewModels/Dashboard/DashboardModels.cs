@@ -425,18 +425,6 @@ public sealed record ProviderStatusRow(
         _ => "\uE946",
     };
 
-    public bool IsAvailableStatus => StatusKind == ProviderStatusKind.Available;
-
-    public bool IsWarningStatus => StatusKind is ProviderStatusKind.Partial
-        or ProviderStatusKind.Pending;
-
-    public bool IsUnavailableStatus => StatusKind is ProviderStatusKind.Missing
-        or ProviderStatusKind.Blocked;
-
-    public bool IsNeutralStatus => !IsAvailableStatus
-        && !IsWarningStatus
-        && !IsUnavailableStatus;
-
     public string DetailsAutomationId => $"{AutomationId}.Details";
 
     public string DetailsText => string.Join(

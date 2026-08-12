@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Globalization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Providers;
 using TokenUsage.Providers.Catalog;
@@ -8,6 +9,17 @@ namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
 {
+    private static readonly string[] PrimaryProviderIds =
+    [
+        "codex",
+        "claude",
+        "grok",
+        "opencode",
+        "antigravity",
+        "cursor",
+        "copilot",
+    ];
+
     private readonly Func<string, string> _getString;
     private Func<Task>? _refresh;
 
@@ -18,6 +30,27 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
 
     [ObservableProperty]
     public partial IReadOnlyList<ProviderStatusRow> Providers { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ProviderStatusRow> PrimaryProviders { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ProviderStatusRow> AdditionalProviders { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial bool IsAdditionalProvidersExpanded { get; set; }
+
+    public bool HasAdditionalProviders => AdditionalProviders.Count > 0;
+
+    public string AdditionalProvidersToggleLabel => string.Format(
+        CultureInfo.CurrentCulture,
+        _getString(IsAdditionalProvidersExpanded
+            ? "ProviderStatusShowLessFormat"
+            : "ProviderStatusShowMoreFormat"),
+        AdditionalProviders.Count);
+
+    public string AdditionalProvidersToggleGlyph =>
+        IsAdditionalProvidersExpanded ? "\uE738" : "\uE710";
 
     public void Update(
         ProviderOutcome? codexOutcome,
@@ -47,13 +80,24 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         HashSet<string> includedIds = providers
             .Select(provider => provider.ProviderId)
             .ToHashSet(StringComparer.Ordinal);
-        providers.AddRange(ProviderModuleCatalog.OpenUsageEntries
-            .Where(entry => entry.Stage is ProviderModuleStage.OptIn
-                or ProviderModuleStage.Prepared
-                or ProviderModuleStage.PolicyBlocked)
+        providers.AddRange(ProviderModuleCatalog.Entries
             .Where(entry => !includedIds.Contains(entry.Id.Value))
-            .Select(CreateFoundationRow));
+            .Select(CreateCatalogRow));
         Providers = providers;
+        PrimaryProviders = PrimaryProviderIds
+            .Select(id => providers.FirstOrDefault(provider => string.Equals(
+                provider.ProviderId,
+                id,
+                StringComparison.Ordinal)))
+            .Where(provider => provider is not null)
+            .Cast<ProviderStatusRow>()
+            .ToArray();
+        HashSet<string> primaryIds = PrimaryProviders
+            .Select(provider => provider.ProviderId)
+            .ToHashSet(StringComparer.Ordinal);
+        AdditionalProviders = providers
+            .Where(provider => !primaryIds.Contains(provider.ProviderId))
+            .ToArray();
     }
 
     public void BindRefresh(Func<Task> refresh)
@@ -71,6 +115,26 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
 
     [RelayCommand]
     private Task RefreshAsync() => _refresh?.Invoke() ?? Task.CompletedTask;
+
+    partial void OnAdditionalProvidersChanged(IReadOnlyList<ProviderStatusRow> value)
+    {
+        if (value.Count == 0)
+        {
+            IsAdditionalProvidersExpanded = false;
+        }
+
+        OnPropertyChanged(nameof(HasAdditionalProviders));
+        OnPropertyChanged(nameof(AdditionalProvidersToggleLabel));
+    }
+
+    partial void OnIsAdditionalProvidersExpandedChanged(bool value) =>
+        NotifyAdditionalProvidersExpansionChanged();
+
+    private void NotifyAdditionalProvidersExpansionChanged()
+    {
+        OnPropertyChanged(nameof(AdditionalProvidersToggleLabel));
+        OnPropertyChanged(nameof(AdditionalProvidersToggleGlyph));
+    }
 
     private ProviderStatusRow CreateCodex(
         ProviderOutcome? outcome,
@@ -138,18 +202,22 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             },
         };
 
-    private ProviderStatusRow CreateFoundationRow(ProviderModuleDefinition module)
+    private ProviderStatusRow CreateCatalogRow(ProviderModuleDefinition module)
     {
+        bool isActive = module.Stage == ProviderModuleStage.Active;
         bool isBlocked = module.Stage == ProviderModuleStage.PolicyBlocked;
         bool isOptional = module.Stage == ProviderModuleStage.OptIn;
         string stage = _getString(module.Stage switch
         {
+            ProviderModuleStage.Active => "ProviderStatusUnavailable",
             ProviderModuleStage.PolicyBlocked => "ProviderStatusBlocked",
             ProviderModuleStage.OptIn => "ProviderStatusOptional",
             _ => "ProviderStatusPrepared",
         });
         string unavailable = _getString("ProviderStatusUnavailable");
-        string CapabilityValue(params ProviderCapability[] capabilities) => isBlocked
+        string CapabilityValue(params ProviderCapability[] capabilities) => isActive
+            ? unavailable
+            : isBlocked
             ? stage
             : capabilities.Any(module.Capabilities.Contains)
                 ? stage
@@ -162,6 +230,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             stage,
             _getString(module.Stage switch
             {
+                ProviderModuleStage.Active => "ProviderStatusRecoveryRefresh",
                 ProviderModuleStage.PolicyBlocked => "ProviderStatusRecoveryPolicyContract",
                 ProviderModuleStage.OptIn => "ProviderStatusRecoveryOptional",
                 _ => "ProviderStatusRecoveryManualSetup",
@@ -186,12 +255,16 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             ],
             $"ProviderStatus.{providerId}")
         {
-            StatusKind = isBlocked
+            StatusKind = isActive
+                ? ProviderStatusKind.Missing
+                : isBlocked
                 ? ProviderStatusKind.Blocked
                 : isOptional
                     ? ProviderStatusKind.Optional
                     : ProviderStatusKind.Prepared,
-            CompactState = GetCompactState(isBlocked
+            CompactState = GetCompactState(isActive
+                ? ProviderStatusKind.Missing
+                : isBlocked
                 ? ProviderStatusKind.Blocked
                 : isOptional
                     ? ProviderStatusKind.Optional

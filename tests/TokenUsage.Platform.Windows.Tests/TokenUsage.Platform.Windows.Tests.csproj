@@ -26,6 +26,7 @@
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="Composition\VercelGatewayCardProjector.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\Sample\SampleScenario.cs" Link="Composition\SampleScenario.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\Dashboard\DashboardModels.cs" Link="Dashboard\DashboardModels.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Tray\TraySummaryProjector.cs" Link="Tray\TraySummaryProjector.cs" />
   </ItemGroup>
 
   <ItemGroup>

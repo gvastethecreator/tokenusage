@@ -78,7 +78,7 @@
                                 Content="{TemplateBinding Content}"
                                 ContentTemplate="{TemplateBinding ContentTemplate}"
                                 Foreground="{TemplateBinding Foreground}"
-                                HorizontalContentAlignment="Center"
+                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                 VerticalContentAlignment="Center" />
                             <Border
                                 x:Name="ActiveIndicator"
@@ -92,6 +92,19 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="CompactProviderCarouselButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="MinWidth" Value="28" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="UseSystemFocusVisuals" Value="True" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Width" Value="28" />
         </Style>
         <DataTemplate x:Key="CompactQuotaWindowTileTemplate" x:DataType="dashboard:QuotaWindow">
             <Grid Padding="0,5,0,6" RowSpacing="5">
@@ -204,10 +217,18 @@
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
 
+            <Grid
+                x:Name="VisualizationTransitionHost"
+                SizeChanged="OnVisualizationTransitionHostSizeChanged"
+                VerticalAlignment="Top">
+                <Grid.Clip>
+                    <RectangleGeometry x:Name="VisualizationTransitionClip" />
+                </Grid.Clip>
+
             <ItemsRepeater
+                x:Name="ListVisualizationContent"
                 AutomationProperties.AutomationId="CompactProviderList"
-                ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}"
-                Visibility="{x:Bind ViewModel.IsListVisualization, Mode=OneWay}">
+                ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
                         <Border BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,0,0,1">
@@ -241,9 +262,10 @@
             </ItemsRepeater>
 
             <Grid
+                x:Name="DonutVisualizationContent"
                 Height="188"
                 ColumnSpacing="18"
-                Visibility="{x:Bind ViewModel.IsDonutVisualization, Mode=OneWay}">
+                Visibility="Collapsed">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="186" />
                     <ColumnDefinition Width="*" />
@@ -285,7 +307,10 @@
                 </ItemsRepeater>
             </Grid>
 
-            <StackPanel Spacing="7" Visibility="{x:Bind ViewModel.IsHeatmapVisualization, Mode=OneWay}">
+            <StackPanel
+                x:Name="HeatmapVisualizationContent"
+                Spacing="7"
+                Visibility="Collapsed">
                 <Grid>
                     <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.GlobalHeatmap.Title, Mode=OneWay}" />
                     <TextBlock
@@ -341,6 +366,7 @@
                     <TextBlock x:Uid="CompactHeatmapLegendHigh" Grid.Column="2" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Grid>
             </StackPanel>
+            </Grid>
 
             <Border
                 Padding="12,9"
@@ -358,7 +384,14 @@
                 </StackPanel>
             </Border>
 
-            <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.IsActivitySummaryVisible, Mode=OneWay}">
+            <Grid
+                x:Name="ActivitySummaryTransitionHost"
+                SizeChanged="OnActivitySummaryTransitionHostSizeChanged"
+                VerticalAlignment="Top">
+                <Grid.Clip>
+                    <RectangleGeometry x:Name="ActivitySummaryTransitionClip" />
+                </Grid.Clip>
+            <StackPanel Spacing="5">
                 <Border Style="{StaticResource CompactCardStyle}">
                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.GlobalActivity, Mode=OneWay}">
                         <ItemsRepeater.Layout>
@@ -376,54 +409,97 @@
                     </ItemsRepeater>
                 </Border>
             </StackPanel>
+            </Grid>
 
         </StackPanel>
 
         <StackPanel
             Spacing="12"
             Visibility="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}">
-            <ItemsRepeater
-                x:Name="ProviderTabsRepeater"
-                ElementPrepared="OnProviderTabPrepared"
-                ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
-                <ItemsRepeater.Layout>
-                    <UniformGridLayout
-                        MaximumRowsOrColumns="5"
-                        MinColumnSpacing="2"
-                        MinItemWidth="86"
-                        Orientation="Horizontal" />
-                </ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
-                    <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
-                        <RadioButton
-                            AutomationProperties.AutomationId="{x:Bind ProviderId}"
-                            AutomationProperties.Name="{x:Bind Name}"
-                            GroupName="CompactProviderTabs"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Center"
-                            Style="{StaticResource CompactProviderTabStyle}"
-                            Tag="{x:Bind ProviderId}"
-                            Click="OnProviderClick">
-                            <StackPanel
-                                HorizontalAlignment="Center"
-                                Orientation="Horizontal"
-                                Spacing="5">
-                                <controls:ProviderMarkImage
-                                    Height="14"
-                                    ProviderId="{x:Bind ProviderId}"
-                                    Width="14" />
-                                <TextBlock
-                                    FontSize="10.5"
-                                    FontWeight="SemiBold"
-                                    MaxLines="1"
-                                    Text="{x:Bind Name}"
-                                    TextTrimming="CharacterEllipsis"
-                                    VerticalAlignment="Center" />
-                            </StackPanel>
-                        </RadioButton>
-                    </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
+            <Grid
+                x:Name="ProviderTabCarousel"
+                Height="40"
+                ColumnSpacing="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button
+                    x:Name="PreviousProviderTabButton"
+                    x:Uid="PreviousProviderTabButton"
+                    AutomationProperties.AutomationId="PreviousProviderTabButton"
+                    Click="OnPreviousProviderTabClick"
+                    Style="{StaticResource CompactProviderCarouselButtonStyle}">
+                    <FontIcon FontSize="11" Glyph="&#xE76B;" />
+                </Button>
+                <Grid
+                    x:Name="ProviderTabsViewport"
+                    Grid.Column="1"
+                    SizeChanged="OnProviderTabsViewportSizeChanged">
+                    <Grid.Clip>
+                        <RectangleGeometry x:Name="ProviderTabsClip" />
+                    </Grid.Clip>
+                    <Grid x:Name="ProviderTabsTransitionRoot" Margin="2">
+                        <Grid.RenderTransform>
+                            <CompositeTransform x:Name="ProviderTabsTransitionTransform" />
+                        </Grid.RenderTransform>
+                        <ItemsRepeater
+                            x:Name="ProviderTabsRepeater"
+                            ElementPrepared="OnProviderTabPrepared"
+                            ItemsSource="{x:Bind VisibleProviderTabs, Mode=OneTime}">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout
+                                    x:Name="ProviderTabsLayout"
+                                    ItemsJustification="SpaceBetween"
+                                    MaximumRowsOrColumns="5"
+                                    MinColumnSpacing="2"
+                                    MinItemWidth="64"
+                                    Orientation="Horizontal" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
+                                    <RadioButton
+                                        AutomationProperties.AutomationId="{x:Bind ProviderId}"
+                                        AutomationProperties.Name="{x:Bind Name}"
+                                        GroupName="CompactProviderTabs"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        Style="{StaticResource CompactProviderTabStyle}"
+                                        Tag="{x:Bind ProviderId}"
+                                        ToolTipService.ToolTip="{x:Bind Name}"
+                                        Click="OnProviderClick">
+                                        <StackPanel
+                                            HorizontalAlignment="Center"
+                                            Orientation="Horizontal"
+                                            Spacing="4">
+                                            <controls:ProviderMarkImage
+                                                Height="14"
+                                                ProviderId="{x:Bind ProviderId}"
+                                                Width="14" />
+                                            <TextBlock
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                MaxLines="1"
+                                                Text="{x:Bind Name}"
+                                                VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </Grid>
+                </Grid>
+                <Button
+                    x:Name="NextProviderTabButton"
+                    x:Uid="NextProviderTabButton"
+                    Grid.Column="2"
+                    AutomationProperties.AutomationId="NextProviderTabButton"
+                    Click="OnNextProviderTabClick"
+                    Style="{StaticResource CompactProviderCarouselButtonStyle}">
+                    <FontIcon FontSize="11" Glyph="&#xE76C;" />
+                </Button>
+            </Grid>
 
             <StackPanel x:Name="ProviderDetailStack" Spacing="12">
             <Border Padding="16,14" Style="{StaticResource CompactCardStyle}">

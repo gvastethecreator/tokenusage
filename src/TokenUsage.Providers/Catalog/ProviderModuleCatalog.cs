@@ -10,6 +10,15 @@ public enum ProviderModuleStage
     PolicyBlocked,
 }
 
+[Flags]
+public enum ProviderReference
+{
+    None = 0,
+    OpenUsage = 1,
+    CodexBar = 2,
+    CodeBurn = 4,
+}
+
 public sealed record ProviderModuleDefinition
 {
     public ProviderModuleDefinition(
@@ -17,12 +26,13 @@ public sealed record ProviderModuleDefinition
         string displayName,
         IEnumerable<ProviderCapability> capabilities,
         ProviderModuleStage stage,
-        bool isOpenUsageProvider)
+        ProviderReference references,
+        IEnumerable<string>? aliases = null)
     {
         Id = new ProviderId(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(capabilities);
-        if (!Enum.IsDefined(stage))
+        if (!Enum.IsDefined(stage) || references == ProviderReference.None)
         {
             throw new ArgumentOutOfRangeException(nameof(stage));
         }
@@ -35,10 +45,20 @@ public sealed record ProviderModuleDefinition
                 nameof(capabilities));
         }
 
+        string[] aliasArray = (aliases ?? [])
+            .Select(alias => new ProviderId(alias).Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (aliasArray.Contains(Id.Value, StringComparer.Ordinal))
+        {
+            throw new ArgumentException("A provider alias cannot equal its canonical ID.", nameof(aliases));
+        }
+
         DisplayName = displayName;
         Capabilities = Array.AsReadOnly(capabilityArray);
         Stage = stage;
-        IsOpenUsageProvider = isOpenUsageProvider;
+        References = references;
+        Aliases = Array.AsReadOnly(aliasArray);
     }
 
     public ProviderId Id { get; }
@@ -49,94 +69,96 @@ public sealed record ProviderModuleDefinition
 
     public ProviderModuleStage Stage { get; }
 
-    public bool IsOpenUsageProvider { get; }
+    public ProviderReference References { get; }
+
+    public IReadOnlyList<string> Aliases { get; }
+
+    public bool IsOpenUsageProvider => References.HasFlag(ProviderReference.OpenUsage);
+
+    public bool IsCodexBarProvider => References.HasFlag(ProviderReference.CodexBar);
+
+    public bool IsCodeBurnProvider => References.HasFlag(ProviderReference.CodeBurn);
 }
 
 public static class ProviderModuleCatalog
 {
+    private const ProviderReference AllReferences =
+        ProviderReference.OpenUsage | ProviderReference.CodexBar | ProviderReference.CodeBurn;
+    private const ProviderReference OpenUsageAndCodeBurn =
+        ProviderReference.OpenUsage | ProviderReference.CodeBurn;
+
     private static readonly IReadOnlyList<ProviderModuleDefinition> Catalog =
         Array.AsReadOnly<ProviderModuleDefinition>(
         [
-            new(
-                "claude",
-                "Claude",
-                [ProviderCapability.LocalUsage],
-                ProviderModuleStage.OptIn,
-                isOpenUsageProvider: true),
-            new(
-                "codex",
-                "Codex",
-                [
-                    ProviderCapability.Limits,
-                    ProviderCapability.LocalUsage,
-                    ProviderCapability.Spend,
-                ],
-                ProviderModuleStage.Active,
-                isOpenUsageProvider: true),
-            new(
-                "cursor",
-                "Cursor",
-                [ProviderCapability.LocalUsage],
-                ProviderModuleStage.Active,
-                isOpenUsageProvider: true),
-            new(
-                "antigravity",
-                "Antigravity",
-                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
-                ProviderModuleStage.Active,
-                isOpenUsageProvider: true),
-            new(
-                "copilot",
-                "GitHub Copilot",
-                [ProviderCapability.Usage, ProviderCapability.Spend],
-                ProviderModuleStage.Prepared,
-                isOpenUsageProvider: true),
-            new(
-                "devin",
-                "Devin",
-                [ProviderCapability.Usage],
-                ProviderModuleStage.Prepared,
-                isOpenUsageProvider: true),
-            new(
-                "grok",
-                "Grok Build",
-                [ProviderCapability.LocalUsage],
-                ProviderModuleStage.Active,
-                isOpenUsageProvider: true),
-            new(
-                "opencode",
-                "OpenCode",
-                [ProviderCapability.LocalUsage],
-                ProviderModuleStage.Active,
-                isOpenUsageProvider: true),
-            new(
-                "openrouter",
-                "OpenRouter",
-                [
-                    ProviderCapability.Limits,
-                    ProviderCapability.Usage,
-                    ProviderCapability.Spend,
-                ],
-                ProviderModuleStage.Prepared,
-                isOpenUsageProvider: true),
-            new(
-                "zai",
-                "Z.ai",
-                [ProviderCapability.Limits, ProviderCapability.Usage],
-                ProviderModuleStage.PolicyBlocked,
-                isOpenUsageProvider: true),
-            new(
-                "vercel-ai-gateway",
-                "Vercel AI Gateway",
-                [ProviderCapability.Limits, ProviderCapability.Spend],
-                ProviderModuleStage.OptIn,
-                isOpenUsageProvider: false),
+            Module("claude", "Claude", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["claude-code"]),
+            Module("codex", "Codex", [ProviderCapability.Limits, ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
+            Module("cursor", "Cursor", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
+            Module("antigravity", "Antigravity", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
+            Module("grok", "Grok Build", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["grok-build"]),
+            Module("opencode", "OpenCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
+
+            Module("openai", "OpenAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("anthropic", "Anthropic API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("azure-openai", "Azure OpenAI", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, ["azure-openai-api"]),
+            Module("alibaba-cloud", "Alibaba Cloud", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("openrouter", "OpenRouter", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage | ProviderReference.CodexBar),
+            Module("perplexity", "Perplexity", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.OpenUsage),
+            Module("groq", "Groq", [ProviderCapability.Limits, ProviderCapability.Usage], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("mistral", "Mistral AI", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("moonshot", "Moonshot", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("deepseek", "DeepSeek", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("xai", "xAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("zai", "Z.ai", [ProviderCapability.Limits, ProviderCapability.Usage], ProviderModuleStage.PolicyBlocked, ProviderReference.OpenUsage | ProviderReference.CodexBar),
+            Module("gemini-api", "Gemini API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("gemini-cli", "Gemini CLI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, AllReferences),
+            Module("ollama", "Ollama", [ProviderCapability.LocalUsage], ProviderModuleStage.Prepared, ProviderReference.OpenUsage | ProviderReference.CodexBar),
+            Module("copilot", "GitHub Copilot", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, AllReferences),
+            Module("devin", "Devin", [ProviderCapability.Usage], ProviderModuleStage.Prepared, AllReferences),
+            Module("amp", "Amp", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
+            Module("goose", "Goose", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
+            Module("hermes", "Hermes", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
+            Module("mux", "Mux", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
+            Module("droid", "Droid", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn),
+            Module("crush", "Crush", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn),
+            Module("roo-code", "Roo Code", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn, ["roocode"]),
+            Module("kilo-code", "Kilo Code", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, OpenUsageAndCodeBurn, ["kilocode"]),
+            Module("kiro", "Kiro", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn, ["kiro-cli"]),
+            Module("zed", "Zed", [ProviderCapability.LocalUsage], ProviderModuleStage.PolicyBlocked, OpenUsageAndCodeBurn),
+            Module("codebuff", "Codebuff", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn),
+            Module("kimi-cli", "Kimi CLI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, OpenUsageAndCodeBurn),
+            Module("openclaw", "OpenClaw", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn),
+            Module("pi", "Pi", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn),
+            Module("qwen-cli", "Qwen CLI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, OpenUsageAndCodeBurn),
+
+            Module("cline", "Cline", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.CodexBar | ProviderReference.CodeBurn),
+            Module("cline-cli", "Cline CLI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.CodeBurn),
+            Module("codewhale", "CodeWhale", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("cursor-agent", "Cursor Agent", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("forge", "Forge", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("ibm-bob", "IBM Bob", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("kimi-code", "Kimi Code", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.CodeBurn),
+            Module("lingtai-tui", "LingTai TUI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("mistral-vibe", "Mistral Vibe", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("openclaude", "OpenClaude", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("open-design", "OpenDesign", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("omp", "OMP", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("quickdesk", "QuickDesk", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("vercel-ai-gateway", "Vercel AI Gateway", [ProviderCapability.Limits, ProviderCapability.Spend], ProviderModuleStage.OptIn, ProviderReference.CodeBurn),
+            Module("warp", "Warp", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
+            Module("zcode", "ZCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.CodeBurn),
+            Module("zerostack", "ZeroStack", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
         ]);
 
     public static IReadOnlyList<ProviderModuleDefinition> Entries { get; } = Catalog;
 
     public static IReadOnlyList<ProviderModuleDefinition> OpenUsageEntries { get; } =
         Array.AsReadOnly(Catalog.Where(entry => entry.IsOpenUsageProvider).ToArray());
+
+    public static IReadOnlyList<ProviderModuleDefinition> CodexBarEntries { get; } =
+        Array.AsReadOnly(Catalog.Where(entry => entry.IsCodexBarProvider).ToArray());
+
+    public static IReadOnlyList<ProviderModuleDefinition> CodeBurnEntries { get; } =
+        Array.AsReadOnly(Catalog.Where(entry => entry.IsCodeBurnProvider).ToArray());
 
     public static ProviderModuleDefinition Get(string providerId)
     {
@@ -146,4 +168,20 @@ public static class ProviderModuleCatalog
             providerId,
             StringComparison.Ordinal));
     }
+
+    public static ProviderModuleDefinition Resolve(string providerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        return Catalog.Single(entry => string.Equals(entry.Id.Value, providerId, StringComparison.Ordinal)
+            || entry.Aliases.Contains(providerId, StringComparer.Ordinal));
+    }
+
+    private static ProviderModuleDefinition Module(
+        string id,
+        string displayName,
+        ProviderCapability[] capabilities,
+        ProviderModuleStage stage,
+        ProviderReference references,
+        string[]? aliases = null) =>
+        new(id, displayName, capabilities, stage, references, aliases);
 }

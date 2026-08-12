@@ -161,4 +161,39 @@ public sealed class FlyoutPlacementCalculatorTests
                 96,
                 default));
     }
+
+    [Theory]
+    [InlineData(FlyoutAnchorEdge.Bottom, 100, 52, 180, 112)]
+    [InlineData(FlyoutAnchorEdge.Top, 100, 148, 180, 208)]
+    [InlineData(FlyoutAnchorEdge.Left, 228, 100, 308, 160)]
+    [InlineData(FlyoutAnchorEdge.Right, 112, 100, 192, 160)]
+    public void TrayPopoverMovesNextToTheTrayIcon(
+        FlyoutAnchorEdge edge,
+        int left,
+        int top,
+        int right,
+        int bottom)
+    {
+        PlatformRect result = TrayPopoverPlacement.MoveNextToIcon(
+            new PlatformRect(100, 100, 180, 160),
+            new PlatformRect(200, 120, 220, 140),
+            edge,
+            gapPixels: 8);
+
+        Assert.Equal(new PlatformRect(left, top, right, bottom), result);
+    }
+
+    [Fact]
+    public void TrayPopoverKeepsOverflowPlacementUnchanged()
+    {
+        var bounds = new PlatformRect(100, 100, 180, 160);
+
+        Assert.Equal(
+            bounds,
+            TrayPopoverPlacement.MoveNextToIcon(
+                bounds,
+                new PlatformRect(200, 120, 220, 140),
+                FlyoutAnchorEdge.Overflow,
+                gapPixels: 8));
+    }
 }

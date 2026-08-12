@@ -183,11 +183,13 @@ public sealed partial class UsageReportPage : Page
         Control? source = sender as Control;
         Visibility controlBarVisibility = ReportControlBar.Visibility;
         Visibility coverageHintVisibility = ReportCoverageHintButton.Visibility;
+        Visibility captureBrandVisibility = ReportCaptureBrand.Visibility;
         try
         {
             ReportCaptureFocusSink.Focus(FocusState.Programmatic);
             ReportControlBar.Visibility = Visibility.Collapsed;
             ReportCoverageHintButton.Visibility = Visibility.Collapsed;
+            ReportCaptureBrand.Visibility = Visibility.Visible;
             ReportCaptureRoot.UpdateLayout();
             ShareCaptureResult result = await ShareCaptureService.CaptureAsync(
                 ReportCaptureRoot,
@@ -213,6 +215,7 @@ public sealed partial class UsageReportPage : Page
         {
             ReportControlBar.Visibility = controlBarVisibility;
             ReportCoverageHintButton.Visibility = coverageHintVisibility;
+            ReportCaptureBrand.Visibility = captureBrandVisibility;
             ReportCaptureRoot.UpdateLayout();
             source?.Focus(FocusState.Programmatic);
         }

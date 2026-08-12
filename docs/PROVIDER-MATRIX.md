@@ -1,10 +1,13 @@
 # Matriz de proveedores
 
-Fecha de corte: 2026-08-11
+Fecha de corte: 2026-08-12
 
 Estado temporal: Vercel AI Gateway queda fuera del catálogo activo desde el Ticket 117. Su implementación se conserva para reactivarla en una entrega posterior.
 
-Upstream de paridad: `robinebers/openusage@487cc8f19a9a28676f6924aafa48dee79ad7a7f6`
+Upstreams de paridad:
+`janekbaraniewski/openusage@ddc05f24b159bfd1a24bbf641dcfb841410a77ab`,
+`steipete/CodexBar@26ebaf9d5b0949e3b57fafcde0ed54aa3b27b3d2` y
+`getagentseal/codeburn@d78bdb21f86025702376778fb27035cd3938956b`.
 
 Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
@@ -17,35 +20,39 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 - `Experimental`: fuente frágil; sin promesa de soporte.
 - `Bloqueado`: la fuente conocida no se puede usar en una build pública.
 
-## Base de módulos OpenUsage
+## Base de módulos OpenUsage, CodexBar y CodeBurn
 
-El catálogo de runtime ya representa los diez proveedores del upstream de
-paridad sin confundir identidad con disponibilidad de datos:
+El catálogo representa 55 identidades de la unión inspeccionada sin confundir
+un módulo visible con una fuente de datos activa:
 
-- `Active`: Codex, Cursor, Antigravity, Grok Build y OpenCode.
-- `OptIn`: Claude, con su lector local existente desactivado por defecto.
-- `Prepared`: GitHub Copilot, Devin y OpenRouter. Tienen identidad, capacidades,
-  icono y estado visible, pero no crean readers ni conexiones.
-- `PolicyBlocked`: Z.ai. Conserva identidad y capacidades investigadas, sin leer
-  credenciales ni invocar endpoints privados.
+- `Active`: Amp, Antigravity, Claude, Codex, Cursor, Goose, Grok Build, Hermes,
+  Mux y OpenCode. Cada uno crea un lector local real y acotado.
+- `OptIn`: Vercel AI Gateway. Conserva su cliente público y exige una clave que
+  el usuario entrega a TokenUsage.
+- `Prepared`: 35 módulos con identidad, capacidades, marca cuando existe y
+  estado visible. No abren archivos, credenciales ni conexiones.
+- `PolicyBlocked`: Cline, Cline CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
+  Z.ai, ZCode y Zed. Mantienen el contrato investigado, pero no activan readers.
 
-La vista simulada cubre los diez IDs para desarrollo visual. Sus registros usan
-procedencia `sample` y no entran en almacenamiento, informes ni totales reales.
-El inventario ampliado del otro proyecto homónimo OpenUsage.sh queda documentado
-en [la investigación de paridad](research/2026-08-11-openusage-provider-parity.md)
-como una fase distinta; no agrega 25 integraciones ficticias a esta build.
+La [investigación de implementación](research/2026-08-12-provider-parity-implementation.md)
+explica qué toma TokenUsage de cada upstream, cómo calcula costos y por qué no
+copia sesiones OAuth, cookies ni endpoints privados.
 
 ## Resumen
 
 | Proveedor | Cuota en vivo | Tokens y gasto local | Fuente elegida | Estado | Entrega |
 |---|---|---|---|---|---|
 | Codex | Sí, interfaz oficial local | Sí, API oficial y logs | `codex app-server` | MVP | M4; detalle M6 |
-| Claude | Bloqueada sin interfaz pública | Sí, logs | sesiones Claude Code | Local + Gate | M6; cuota pendiente |
+| Claude | Bloqueada sin interfaz pública | Sí, logs y costo informado o estimado | sesiones Claude Code | Local activo + Gate de cuota | Activo; cuota pendiente |
 | OpenCode | No hay cuota común | Sí, coste informado y tokens | `opencode.db` y `storage` | Local | M6A |
 | Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
-| Cursor | No con el contrato actual | Sí, contexto estimado de Agent local; facturable para equipos | SQLite local con proyección allowlist; Admin API futura | Local parcial | Integrado; costo y cuota pendientes |
+| Cursor | No con el contrato actual | Sí, contadores reales por turno; fallback de contexto para datos antiguos | SQLite local con proyección allowlist; Admin API futura | Local activo parcial | Activo; costo API estimado cuando el modelo coincide |
+| Amp | No hay cuota pública estable | Sí, tokens del ledger | `ledger.jsonl`; no se abren threads | Local activo parcial | Activo; créditos no se muestran como USD |
+| Mux | No hay cuota común | Sí, tokens y costo agregado por modelo | `session-usage.json`; no se abren transcripts | Local activo | Activo |
+| Goose | No hay cuota común | Sí, tokens acumulados por sesión | consulta numérica de solo lectura a `sessions.db` | Local activo parcial | Activo; costo API estimado cuando hay precio |
+| Hermes | No hay cuota común | Sí, tokens y costo acumulados por sesión | consulta numérica de solo lectura a `state.db`; no consulta mensajes | Local activo parcial | Activo; costo informado o API estimado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | ZCode | Bloqueada sin contrato público | Bloqueados sin exportación segura | Hooks sin tokens; UI sin API | Bloqueado | Revalidado en 3.7.6; Ticket 49 `needs-info` |
 | Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
@@ -67,11 +74,9 @@ probar una fuente apta para Windows.
 | Gemini CLI | Aparece en CodeBurn y AgentsView | No leer chats ni credenciales; separar uso local de cuota Google | 61 |
 | Kiro | Aparece en CodeBurn y AgentsView | Separar CLI, IDE y cuenta; no leer contenido de sesiones | 62 |
 | Roo Code | Aparece en CodeBurn y AgentsView | No reutilizar tareas de VS Code; evitar doble conteo con el proveedor del modelo | 63 |
-| Goose | Tiene un adapter propio en CodeBurn | Confirmar soporte Windows y una fuente agregada sin contenido | 64 |
 | Kimi CLI | CodeBurn lo separa de Kimi Code; AgentsView mezcla ambas rutas | Fijar identidad antes de heredar almacenamiento o claims de Kimi Code | 65 |
 | Cursor Agent | CodeBurn lo separa del editor Cursor | Mantenerlo separado de Cursor Admin API e Individual | 66 |
 | Forge | Aparece en CodeBurn y AgentsView | Validar soporte Windows y evitar bases con contenido | 67 |
-| Hermes Agent | Aparece en CodeBurn y AgentsView | Separar gasto del agente y del proveedor de modelo | 68 |
 | OpenClaw | Aparece en CodeBurn y AgentsView | Fijar identidad y fuente agregada; no leer conversaciones | 69 |
 | Pi | Aparece en CodeBurn y AgentsView | Distinguir Pi de OMP y fijar deduplicación | 70 |
 | Qwen | Aparece en CodeBurn y AgentsView | Separar Qwen Code del proveedor de modelos Qwen | 71 |
@@ -83,14 +88,12 @@ probar una fuente apta para Windows.
 | Trae | AgentsView declara varias rutas Windows | Separar variantes del editor y excluir chats, tareas y credenciales | 79 |
 | Aider | AgentsView lo trata como raíz opt-in | Fijar consentimiento y aceptar solo métricas mínimas documentadas | 80 |
 | OpenHands CLI | AgentsView registra sesiones locales | Separar CLI, servicio y proveedor de modelo; no leer contenido | 81 |
-| Amp | AgentsView registra threads locales | Mantener en inventario hasta probar una fuente Windows apta | 82 |
 | Codebuff | CodeBurn registra gasto desde sesiones | Buscar un agregado oficial que no exponga mensajes ni herramientas | 83 |
 | Piebald | AgentsView declara almacenamiento Windows propio | Confirmar producto, soporte y fuente antes de crear un provider ID | 84 |
 | Crush | CodeBurn lo registra como agente distinto | Fijar producto, publisher y una fuente agregada apta para Windows | 86 |
 | Droid | CodeBurn lo registra como identidad propia | Resolver el nombre ambiguo y separar agente, cuenta y proveedor de modelo | 87 |
 | IBM Bob | CodeBurn incluye un adapter dedicado | Confirmar producto vigente, soporte Windows y exportación mínima | 88 |
 | LingTai TUI | CodeBurn incluye sesiones propias | Fijar identidad y soporte Windows antes de evaluar métricas | 89 |
-| Mux | CodeBurn lo separa de otros agentes | Exigir fuente agregada y evitar datos de conversación | 90 |
 | Open Design | CodeBurn incluye un adapter dedicado | Confirmar que es un agente medible y no un formato auxiliar | 91 |
 | Quick Desktop | CodeBurn usa la identidad `quickdesk` | Fijar nombre canónico, publisher y fuente Windows | 92 |
 | Zerostack | CodeBurn incluye un adapter dedicado | Confirmar producto, versión y contrato de métricas | 93 |
@@ -132,6 +135,10 @@ La revisión de referencias que motivó esta ampliación está en
 [inventario de cobertura](research/2026-07-22-provider-reference-inventory.md).
 
 ## Gate de publicación
+
+Toda integración comienza con un Issue de proveedor. La PR debe seguir la
+[guía de pruebas para contribuciones](CONTRIBUTOR-TESTING.md), incluso cuando
+el proveedor no esté disponible para los mantenedores.
 
 Cada proveedor necesita:
 

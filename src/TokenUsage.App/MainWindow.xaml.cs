@@ -8,6 +8,7 @@ using Windows.UI.ViewManagement;
 using TokenUsage.Core.Appearance;
 using TokenUsage.App.Composition;
 using TokenUsage.App.ViewModels.Reports;
+using TokenUsage.App.ViewModels.Tray;
 using TokenUsage.Core.Session;
 using TokenUsage.Platform.Windows.Display;
 using TokenUsage.Platform.Windows.Placement;
@@ -23,17 +24,21 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly ResourceLoader _resources = new();
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _activationGuardTimer;
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _systemVisualSettingsTimer;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _traySummaryDismissTimer;
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly UISettings _uiSettings = new();
     private readonly nint _windowHandle;
     private readonly double _preferredWidthDips;
+    private AppearanceSettings? _appliedAppearance;
     private TrayIconHost? _trayIcon;
+    private TraySummaryWindow? _traySummaryWindow;
     private UsageReportWindow? _reportWindow;
     private bool _isFlyoutVisible;
     private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
     private bool _hasRequestedInitialOfficialLimits;
     private bool _layoutAnimationPositionPending;
+    private readonly bool _traySummaryPinnedForTest;
     private bool _disposed;
     private bool _lastHighContrast;
     private Windows.UI.Color _lastSystemBackground;
@@ -42,11 +47,13 @@ public sealed partial class MainWindow : Window, IDisposable
     public MainWindow(
         bool showForTest = false,
         bool useSampleForTest = false,
-        double? preferredWidthDipsForTest = null)
+        double? preferredWidthDipsForTest = null,
+        bool showTraySummaryForTest = false)
     {
         InitializeComponent();
 
         _preferredWidthDips = preferredWidthDipsForTest ?? FlyoutSizePolicy.WidthDips;
+        _traySummaryPinnedForTest = showTraySummaryForTest;
 
         _activationGuardTimer = DispatcherQueue.CreateTimer();
         _activationGuardTimer.Interval = TimeSpan.FromMilliseconds(500);
@@ -58,6 +65,11 @@ public sealed partial class MainWindow : Window, IDisposable
         _systemVisualSettingsTimer.IsRepeating = true;
         _systemVisualSettingsTimer.Tick += OnSystemVisualSettingsTimerElapsed;
         CaptureSystemVisualSettings();
+
+        _traySummaryDismissTimer = DispatcherQueue.CreateTimer();
+        _traySummaryDismissTimer.Interval = TimeSpan.FromMilliseconds(120);
+        _traySummaryDismissTimer.IsRepeating = true;
+        _traySummaryDismissTimer.Tick += OnTraySummaryDismissTimerElapsed;
 
         _windowHandle = WindowNative.GetWindowHandle(this);
         ConfigureFlyoutWindow();
@@ -72,6 +84,21 @@ public sealed partial class MainWindow : Window, IDisposable
 
         AppWindow.Hide();
         InstallTrayIcon();
+
+        if (showTraySummaryForTest)
+        {
+            RootPage.ViewModel.IsSampleModeEnabled = useSampleForTest;
+            _ = DispatcherQueue.TryEnqueue(async () =>
+            {
+                await Task.Delay(750);
+                if (!_disposed
+                    && _trayIcon is not null
+                    && _trayIcon.TryGetIconBounds(out PlatformRect iconBounds))
+                {
+                    ShowTraySummary(iconBounds);
+                }
+            });
+        }
 
         if (showForTest)
         {
@@ -113,6 +140,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 GetString("TrayMenuExit")));
 
         _trayIcon.Activated += OnTrayActivated;
+        _trayIcon.Hovered += OnTrayHovered;
+        _trayIcon.ContextMenuOpening += OnTrayContextMenuOpening;
         _trayIcon.UpdateRequested += OnTrayUpdateRequested;
         _trayIcon.SettingsRequested += OnTraySettingsRequested;
         _trayIcon.ExitRequested += OnTrayExitRequested;
@@ -122,6 +151,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         _ = DispatcherQueue.TryEnqueue(() =>
         {
+            HideTraySummary(force: true);
             if (e.Kind == TrayActivationKind.Mouse && _isFlyoutVisible)
             {
                 HideFlyout();
@@ -132,9 +162,29 @@ public sealed partial class MainWindow : Window, IDisposable
         });
     }
 
+    private void OnTrayHovered(object? sender, TrayHoveredEventArgs e)
+    {
+        _ = DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_disposed || _isFlyoutVisible || _traySummaryWindow?.IsVisible is true)
+            {
+                return;
+            }
+
+            ShowTraySummary(e.IconBounds);
+        });
+    }
+
+    private void OnTrayContextMenuOpening(object? sender, EventArgs e) =>
+        _ = DispatcherQueue.TryEnqueue(() => HideTraySummary(force: true));
+
     private void OnTrayUpdateRequested(object? sender, EventArgs e)
     {
-        _ = DispatcherQueue.TryEnqueue(() => _ = RefreshFromTrayAsync());
+        _ = DispatcherQueue.TryEnqueue(() =>
+        {
+            HideTraySummary(force: true);
+            _ = RefreshFromTrayAsync();
+        });
     }
 
     private async Task RefreshFromTrayAsync()
@@ -149,6 +199,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         _ = DispatcherQueue.TryEnqueue(() =>
         {
+            HideTraySummary(force: true);
             RootPage.ViewModel.OpenOptionsCommand.Execute(null);
             ShowFlyout(true);
         });
@@ -165,6 +216,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void ShowFlyout(bool focusPrimaryAction)
     {
+        HideTraySummary(force: true);
         BeginActivationGuard();
         ApplyAppearance();
         PositionFlyout();
@@ -297,6 +349,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         AppWindow.MoveAndResize(
             new RectInt32(bounds.Left, bounds.Top, bounds.Width, bounds.Height));
+        _ = WindowBorderStyle.TryClipRoundedCorners(_windowHandle, radiusDips: 12);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -323,12 +376,21 @@ public sealed partial class MainWindow : Window, IDisposable
             StringComparison.Ordinal);
         if (appearanceChanged)
         {
-            ApplyAppearance();
-            _reportWindow?.ApplyAppearance(RootPage.ViewModel.Appearance);
-            ApplyBorderlessChrome();
-            if (_isFlyoutVisible)
+            AppearanceSettings settings = RootPage.ViewModel.Appearance;
+            bool shellAppearanceChanged = HasShellAppearanceChanged(
+                _appliedAppearance,
+                settings);
+            _appliedAppearance = settings;
+            if (shellAppearanceChanged)
             {
-                SchedulePositionAfterLayout();
+                ApplyAppearance();
+                _reportWindow?.ApplyAppearance(settings);
+                UpdateVisibleTraySummary();
+                ApplyBorderlessChrome();
+                if (_isFlyoutVisible)
+                {
+                    SchedulePositionAfterLayout();
+                }
             }
         }
 
@@ -347,11 +409,17 @@ public sealed partial class MainWindow : Window, IDisposable
             BeginActivationGuard();
             SchedulePositionAfterLayout();
         }
+
+        if (layoutChanged)
+        {
+            UpdateVisibleTraySummary();
+        }
     }
 
     private void ApplyAppearance()
     {
         AppearanceSettings settings = RootPage.ViewModel.Appearance;
+        _appliedAppearance = settings;
         bool transparencyActive = settings.IncreaseTransparency
             && !_accessibilitySettings.HighContrast
             && _uiSettings.AdvancedEffectsEnabled;
@@ -366,6 +434,85 @@ public sealed partial class MainWindow : Window, IDisposable
 
         RootPage.ApplyAppearance(settings, transparencyActive);
     }
+
+    private void ShowTraySummary(PlatformRect iconBounds)
+    {
+        _traySummaryWindow ??= new TraySummaryWindow();
+        _traySummaryWindow.Show(
+            CreateTrayProviderSummaries(),
+            RootPage.ViewModel.Appearance,
+            iconBounds);
+        _traySummaryDismissTimer.Start();
+        _systemVisualSettingsTimer.Start();
+    }
+
+    private IReadOnlyList<TrayProviderSummary> CreateTrayProviderSummaries()
+    {
+        TrayProviderPreference[] preferences = RootPage.ViewModel.Personalization.Providers
+            .Select(row => new TrayProviderPreference(
+                row.ProviderId,
+                row.Name,
+                row.IsVisible,
+                row.IsHighlighted))
+            .ToArray();
+        return TraySummaryProjector.Create(
+            preferences,
+            RootPage.ViewModel.Dashboard.ProviderSummaries,
+            RootPage.ViewModel.Dashboard.GetProviderLimits,
+            GetString);
+    }
+
+    private void UpdateVisibleTraySummary()
+    {
+        if (_traySummaryWindow?.IsVisible is not true
+            || _trayIcon is null
+            || !_trayIcon.TryGetIconBounds(out PlatformRect iconBounds))
+        {
+            return;
+        }
+
+        _traySummaryWindow.Show(
+            CreateTrayProviderSummaries(),
+            RootPage.ViewModel.Appearance,
+            iconBounds);
+    }
+
+    private void HideTraySummary(bool force = false)
+    {
+        if (_traySummaryPinnedForTest && !force)
+        {
+            return;
+        }
+
+        _traySummaryDismissTimer.Stop();
+        _traySummaryWindow?.Hide();
+        if (!_isFlyoutVisible)
+        {
+            _systemVisualSettingsTimer.Stop();
+        }
+    }
+
+    private void OnTraySummaryDismissTimerElapsed(
+        Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
+        object args)
+    {
+        if (_traySummaryPinnedForTest)
+        {
+            return;
+        }
+
+        if (_trayIcon is null || !_trayIcon.IsPointerOverIcon())
+        {
+            HideTraySummary();
+        }
+    }
+
+    private static bool HasShellAppearanceChanged(
+        AppearanceSettings? previous,
+        AppearanceSettings current) => previous is null
+        || previous.Theme != current.Theme
+        || previous.Density != current.Density
+        || previous.IncreaseTransparency != current.IncreaseTransparency;
 
     private void UpdateStatusText()
     {
@@ -530,6 +677,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _lastSystemForeground = foreground;
         ApplyAppearance();
         _reportWindow?.ApplyAppearance(RootPage.ViewModel.Appearance);
+        UpdateVisibleTraySummary();
         ApplyBorderlessChrome();
     }
 
@@ -607,6 +755,8 @@ public sealed partial class MainWindow : Window, IDisposable
         _activationGuardTimer.Tick -= OnActivationGuardElapsed;
         _systemVisualSettingsTimer.Stop();
         _systemVisualSettingsTimer.Tick -= OnSystemVisualSettingsTimerElapsed;
+        _traySummaryDismissTimer.Stop();
+        _traySummaryDismissTimer.Tick -= OnTraySummaryDismissTimerElapsed;
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
         RootPage.UsageReportRequested -= OnUsageReportRequested;
@@ -617,6 +767,8 @@ public sealed partial class MainWindow : Window, IDisposable
             _reportWindow.Close();
             _reportWindow = null;
         }
+        _traySummaryWindow?.Dispose();
+        _traySummaryWindow = null;
         RootPage.Dispose();
         DisposeTrayIcon();
         GC.SuppressFinalize(this);
@@ -637,6 +789,8 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _trayIcon.Activated -= OnTrayActivated;
+        _trayIcon.Hovered -= OnTrayHovered;
+        _trayIcon.ContextMenuOpening -= OnTrayContextMenuOpening;
         _trayIcon.UpdateRequested -= OnTrayUpdateRequested;
         _trayIcon.SettingsRequested -= OnTraySettingsRequested;
         _trayIcon.ExitRequested -= OnTrayExitRequested;

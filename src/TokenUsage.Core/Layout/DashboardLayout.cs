@@ -9,6 +9,7 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
 {
     public const int MaxProviders = 100;
     public const int MaxMetricsPerProvider = 100;
+    public const int MaxHighlightedProviders = 4;
     public const int MaxHighlightedMetricsPerProvider = 2;
 
     public static DashboardLayout Empty { get; } = new(Array.Empty<ProviderLayoutPreference>());
@@ -100,6 +101,13 @@ public sealed class DashboardLayout : IEquatable<DashboardLayout>
         var index = IndexOfProvider(providerId);
         var current = _providers[index];
         if (current.IsHighlighted == isHighlighted)
+        {
+            return this;
+        }
+
+        if (isHighlighted
+            && _providers.Count(provider => provider.IsHighlighted)
+                >= MaxHighlightedProviders)
         {
             return this;
         }

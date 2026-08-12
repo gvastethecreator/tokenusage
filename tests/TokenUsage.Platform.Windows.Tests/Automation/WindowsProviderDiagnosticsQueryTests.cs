@@ -2,6 +2,7 @@ using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Runtime.Windows.Automation;
+using TokenUsage.Runtime.Windows.Providers;
 
 namespace TokenUsage.Platform.Windows.Tests.Automation;
 
@@ -21,13 +22,20 @@ public sealed class WindowsProviderDiagnosticsQueryTests
 
         ProviderDiagnosticsSnapshot result = await query.ExecuteAsync();
 
-        Assert.Equal(5, result.Providers.Count);
-        Assert.Equal(7, result.Checks.Count);
+        Assert.Equal(WindowsProviderCatalog.Entries.Count, result.Providers.Count);
+        Assert.Equal(
+            WindowsProviderCatalog.Entries.Count
+            + WindowsProviderCatalog.Entries.Count(entry => entry.DetectionCheckId is not null)
+            + 1,
+            result.Checks.Count);
+        Assert.Contains(result.Checks, check => check.Id == "local-usage-amp");
         Assert.Contains(result.Checks, check => check.Id == "local-usage-antigravity");
+        Assert.Contains(result.Checks, check => check.Id == "local-usage-claude");
         Assert.Contains(result.Checks, check => check.Id == "local-usage-cursor");
+        Assert.Contains(result.Checks, check => check.Id == "local-usage-hermes");
         Assert.DoesNotContain(
             result.Providers,
-            provider => provider.Id is "claude" or "vercel-ai-gateway");
+            provider => provider.Id == "vercel-ai-gateway");
         Assert.All(result.Providers, provider =>
             Assert.Equal(ProviderDetectionStatus.Missing, provider.Detection));
         Assert.False(Directory.Exists(dataDirectory));

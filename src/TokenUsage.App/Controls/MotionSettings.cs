@@ -26,6 +26,14 @@ internal static class MotionSettings
 
     public const double ProviderSwitchMinimumOpacity = 0;
 
+    public static readonly TimeSpan ProviderCarouselDuration = TimeSpan.FromMilliseconds(220);
+
+    public const double ProviderCarouselMinimumOpacity = 0.68;
+
+    public const double ProviderCarouselOffset = 10;
+
+    public static readonly TimeSpan VisualizationSwitchDuration = TimeSpan.FromMilliseconds(280);
+
     public static readonly TimeSpan ProviderLimitsRevealDuration = TimeSpan.FromMilliseconds(260);
 
     public static readonly TimeSpan ProviderLimitsFadeDuration = TimeSpan.FromMilliseconds(200);

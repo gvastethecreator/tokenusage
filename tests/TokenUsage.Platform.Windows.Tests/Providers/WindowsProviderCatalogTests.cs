@@ -12,7 +12,7 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] entries = WindowsProviderCatalog.Entries.ToArray();
 
         Assert.Equal(
-            ["codex", "grok", "opencode", "antigravity", "cursor"],
+            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode"],
             entries.Select(entry => entry.Id.Value));
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.Equal(
@@ -25,18 +25,20 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] deferredEntries =
             WindowsProviderCatalog.DeferredEntries.ToArray();
         Assert.Equal(
-            ["claude", "vercel-ai-gateway"],
+            ["vercel-ai-gateway"],
             deferredEntries.Select(entry => entry.Id.Value));
         Assert.All(deferredEntries, entry => Assert.False(entry.IsEnabledByDefault));
         Assert.Equal(
             [ProviderCapability.Limits, ProviderCapability.Spend],
             deferredEntries.Single(entry => entry.Id.Value == "vercel-ai-gateway").Capabilities);
+        Assert.Equal(35, WindowsProviderCatalog.PreparedEntries.Count);
+        Assert.Contains(
+            WindowsProviderCatalog.PreparedEntries,
+            entry => entry.Id.Value == "openrouter");
         Assert.Equal(
-            ["copilot", "devin", "openrouter"],
-            WindowsProviderCatalog.PreparedEntries.Select(entry => entry.Id.Value));
-        Assert.Equal(
-            ["zai"],
+            ["cline", "cline-cli", "kilo-code", "kimi-cli", "kimi-code", "perplexity", "zai", "zcode", "zed"],
             WindowsProviderCatalog.PolicyBlockedEntries.Select(entry => entry.Id.Value));
+        Assert.Equal(55, WindowsProviderCatalog.AllEntries.Count);
         Assert.Equal(
             ProviderModuleCatalog.Entries.Select(entry => entry.Id.Value).Order(),
             WindowsProviderCatalog.AllEntries.Select(entry => entry.Id.Value).Order());
@@ -47,30 +49,15 @@ public sealed class WindowsProviderCatalogTests
     {
         ProviderModuleDefinition[] entries = ProviderModuleCatalog.OpenUsageEntries.ToArray();
 
-        Assert.Equal(
-            [
-                "antigravity",
-                "claude",
-                "codex",
-                "copilot",
-                "cursor",
-                "devin",
-                "grok",
-                "opencode",
-                "openrouter",
-                "zai",
-            ],
-            entries.Select(entry => entry.Id.Value).Order());
+        Assert.Equal(38, entries.Length);
+        Assert.Contains(entries, entry => entry.Id.Value == "claude");
+        Assert.Contains(entries, entry => entry.Id.Value == "cursor");
+        Assert.Contains(entries, entry => entry.Id.Value == "ollama");
+        Assert.Contains(entries, entry => entry.Id.Value == "qwen-cli");
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.All(entries, entry => Assert.NotEmpty(entry.Capabilities));
-        Assert.Equal(
-            ["copilot", "devin", "openrouter"],
-            entries.Where(entry => entry.Stage == ProviderModuleStage.Prepared)
-                .Select(entry => entry.Id.Value));
-        Assert.Equal(
-            ["zai"],
-            entries.Where(entry => entry.Stage == ProviderModuleStage.PolicyBlocked)
-                .Select(entry => entry.Id.Value));
+        Assert.Contains("claude-code", ProviderModuleCatalog.Get("claude").Aliases);
+        Assert.Equal("claude", ProviderModuleCatalog.Resolve("claude-code").Id.Value);
     }
 
     [Fact]
@@ -87,7 +74,7 @@ public sealed class WindowsProviderCatalogTests
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
-            ["codex", "grok", "opencode", "antigravity", "cursor"],
+            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode"],
             composition.LocalUsageSources.Select(source => source.AgentId.Value));
         Assert.Equal(
             SourceKind.OfficialLocalApi,
@@ -97,16 +84,14 @@ public sealed class WindowsProviderCatalogTests
     }
 
     [Fact]
-    public void ClaudeLocalUsageRequiresExplicitOptIn()
+    public void ClaudeLocalUsageIsActiveByDefault()
     {
         using var folder = new TemporaryFolder();
 
         WindowsProviderComposition composition = WindowsProviderCatalog.CreateComposition(
             folder.Path,
             TimeProvider.System,
-            options: new WindowsProviderCompositionOptions(
-                TimeZoneId: "UTC",
-                EnableClaudeLocalUsage: true));
+            options: new WindowsProviderCompositionOptions(TimeZoneId: "UTC"));
 
         Assert.Contains(
             composition.LocalUsageSources,

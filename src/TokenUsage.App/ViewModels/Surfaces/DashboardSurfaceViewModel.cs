@@ -15,6 +15,8 @@ namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDisposable
 {
+    private static readonly string[] DefaultProviderIds =
+        ["codex", "opencode", "antigravity", "grok", "cursor", "claude", "amp", "mux", "goose", "hermes"];
     private readonly SampleDashboardSession _sampleSession;
     private readonly LiveDashboardSession _liveSession;
     private readonly GeneralOptionsViewModel _general;
@@ -22,6 +24,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private readonly PersonalizationSurfaceViewModel _personalization;
     private readonly ProviderStatusSurfaceViewModel _providerStatus;
     private readonly Func<string, string> _getString;
+    private AppearanceSettings _lastAppearanceSettings;
     private CancellationTokenSource? _refreshCancellation;
     private SampleScenario? _activeScenario;
     private bool _hasPublishedDashboard;
@@ -53,6 +56,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             ?? throw new ArgumentNullException(nameof(personalization));
         _providerStatus = providerStatus ?? throw new ArgumentNullException(nameof(providerStatus));
         _getString = getString ?? throw new ArgumentNullException(nameof(getString));
+        _lastAppearanceSettings = _appearance.Settings;
         _providerStatus.BindRefresh(() => RunRefreshAsync(scenario: null, forceRefresh: true));
         _general.SampleModeChanged += OnSampleModeChanged;
         _general.SampleScenarioChanged += OnSampleScenarioChanged;
@@ -274,6 +278,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                 "grok" => _getString("CompactProviderGrokCoverageHint"),
                 "opencode" => _getString("CompactProviderOpenCodeCoverageHint"),
                 "antigravity" => _getString("CompactProviderAntigravityCoverageHint"),
+                "claude" => _getString("CompactProviderClaudeCoverageHint"),
+                "amp" => _getString("CompactProviderAmpCoverageHint"),
+                "mux" => _getString("CompactProviderMuxCoverageHint"),
+                "goose" => _getString("CompactProviderGooseCoverageHint"),
+                "hermes" => _getString("CompactProviderHermesCoverageHint"),
                 _ => string.Empty,
             };
             string[] statuses = !SelectedProviderHasData
@@ -286,8 +295,13 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                         ? [_getString("UsageReportCoverageUnpriced")]
                         : Array.Empty<string>(),
                 ];
-            return statuses.Length == 0
-                ? detail
+            if (statuses.Length == 0)
+            {
+                return detail;
+            }
+
+            return string.IsNullOrWhiteSpace(detail)
+                ? string.Join(". ", statuses)
                 : $"{string.Join(". ", statuses)}. {detail}";
         }
     }
@@ -778,6 +792,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     private void OnAppearanceChanged(object? sender, AppearanceSettings settings)
     {
+        AppearanceSettings previous = _lastAppearanceSettings;
+        _lastAppearanceSettings = settings;
         OnPropertyChanged(nameof(Visualization));
         OnPropertyChanged(nameof(IsListVisualization));
         OnPropertyChanged(nameof(IsDonutVisualization));
@@ -785,7 +801,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(VisualizationToggleGlyph));
         OnPropertyChanged(nameof(VisualizationToggleText));
         OnPropertyChanged(nameof(IsActivitySummaryVisible));
-        if (_rawDashboard is not null)
+        bool dashboardProjectionChanged = previous.UsageDisplay != settings.UsageDisplay
+            || previous.ResetTimeDisplay != settings.ResetTimeDisplay;
+        if (dashboardProjectionChanged && _rawDashboard is not null)
         {
             PublishActiveDashboard(_rawDashboard);
         }
@@ -901,9 +919,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private DashboardProviderSummary[] CreateProviderSummaries(
         IReadOnlyList<DailyUsageRollup> rollups)
     {
-        string[] providerIds = ["codex", "opencode", "antigravity", "grok", "cursor"];
+        string[] providerIds = DefaultProviderIds
+            .Concat(rollups.Select(rollup => rollup.AgentId.Value))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
         var grouped = rollups
-            .Where(rollup => providerIds.Contains(rollup.AgentId.Value, StringComparer.Ordinal))
             .GroupBy(rollup => rollup.AgentId.Value, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         decimal totalCost = grouped.Values
@@ -1116,19 +1136,47 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private static string ProviderColorHex(string providerId) => providerId switch
     {
         "antigravity" => "#4285F4",
+        "amp" => "#F34E3F",
+        "claude" => "#DE7356",
         "codex" => "#10A37F",
         "cursor" => "#D7D7D7",
         "grok" => "#7C5CFC",
+        "goose" => "#06B6D4",
+        "hermes" => "#D97706",
+        "mux" => "#F59E0B",
         "opencode" => "#E5488C",
-        _ => "#6B7280",
+        _ => StableProviderColor(providerId),
     };
+
+    private static string StableProviderColor(string providerId)
+    {
+        string[] colors =
+        [
+            "#14B8A6", "#F97316", "#A855F7", "#06B6D4",
+            "#84CC16", "#EC4899", "#EAB308", "#8B5CF6",
+            "#22C55E", "#EF4444", "#3B82F6", "#D946EF",
+        ];
+        uint hash = 2166136261;
+        foreach (char character in providerId)
+        {
+            hash ^= character;
+            hash *= 16777619;
+        }
+
+        return colors[(int)(hash % (uint)colors.Length)];
+    }
 
     private string ProviderName(string providerId) => providerId switch
     {
         "antigravity" => _getString("LocalUsageAgentAntigravity"),
+        "amp" => "Amp",
+        "claude" => _getString("LocalUsageAgentClaude"),
         "codex" => _getString("LocalUsageAgentCodex"),
         "cursor" => _getString("LocalUsageAgentCursor"),
         "grok" => _getString("LocalUsageAgentGrok"),
+        "goose" => "Goose",
+        "hermes" => "Hermes",
+        "mux" => "Mux",
         "opencode" => _getString("LocalUsageAgentOpenCode"),
         _ => providerId,
     };

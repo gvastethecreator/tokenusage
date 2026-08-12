@@ -1,6 +1,11 @@
 <Project>
   <PropertyGroup>
     <Product>TokenUsage</Product>
+    <Version>0.0.1</Version>
+    <AssemblyVersion>0.0.1.0</AssemblyVersion>
+    <FileVersion>0.0.1.0</FileVersion>
+    <InformationalVersion>0.0.1</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Description>Windows quota, token usage, and spend tracking for AI coding tools.</Description>
     <Authors>TokenUsage contributors</Authors>
     <RepositoryType>git</RepositoryType>

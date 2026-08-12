@@ -80,6 +80,30 @@ public sealed class CursorUsageEventSourceTests
         Assert.True(updated.OccurredAtUtc > first.OccurredAtUtc);
     }
 
+    [Fact]
+    public async Task PrefersRealTurnCountersAndPricesKnownModelsWithoutReadingText()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(new TokenBreakdown(1_000_000, 100_000, 0, 0, 0), usageEvent.Tokens);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
+        Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
+    }
+
     private sealed class CursorCorpus : IDisposable
     {
         public CursorCorpus(bool createCursorHome = true)
@@ -180,6 +204,24 @@ public sealed class CursorUsageEventSourceTests
             command.Parameters.AddWithValue("$key", key);
             command.Parameters.AddWithValue("$value", value);
             command.ExecuteNonQuery();
+        }
+
+        public void WriteBubble(
+            string composerId,
+            string bubbleId,
+            string timestamp,
+            string model,
+            long inputTokens,
+            long outputTokens,
+            string privateText)
+        {
+            WriteRaw($"bubbleId:{composerId}:{bubbleId}", JsonSerializer.Serialize(new
+            {
+                createdAt = timestamp,
+                modelInfo = new { modelName = model },
+                tokenCount = new { inputTokens, outputTokens },
+                text = privateText,
+            }));
         }
 
         public void Dispose()

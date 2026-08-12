@@ -46,15 +46,6 @@
                 <Setter Property="FontSize" Value="16" />
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
-            <Style x:Key="OptionsCategoryHintIconStyle" TargetType="FontIcon">
-                <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
-                <Setter Property="FontSize" Value="11" />
-                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-                <Setter Property="Glyph" Value="&#xE946;" />
-                <Setter Property="IsTextScaleFactorEnabled" Value="False" />
-                <Setter Property="Opacity" Value="0.72" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-            </Style>
             <DataTemplate x:Key="QuotaWindowRowTemplate">
                 <Grid Padding="0,9,0,8" ColumnSpacing="10" RowSpacing="6">
                     <Grid.ColumnDefinitions>
@@ -127,6 +118,7 @@
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
+                    <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconDark.png" />
                     <SolidColorBrush x:Key="TokenUsageShellBrush" Color="#FFF5F5F5" />
                     <SolidColorBrush x:Key="TokenUsageCardBrush" Color="#FFFFFFFF" />
                     <SolidColorBrush x:Key="TokenUsageStrokeBrush" Color="#0D000000" />
@@ -167,6 +159,7 @@
                     <StaticResource x:Key="ProviderFallbackBrush" ResourceKey="TextFillColorSecondaryBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
+                    <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <SolidColorBrush x:Key="TokenUsageShellBrush" Color="#FF050505" />
                     <SolidColorBrush x:Key="TokenUsageCardBrush" Color="#FF0A0A0A" />
                     <SolidColorBrush x:Key="TokenUsageStrokeBrush" Color="#0DFFFFFF" />
@@ -207,6 +200,7 @@
                     <StaticResource x:Key="ProviderFallbackBrush" ResourceKey="TextFillColorSecondaryBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
+                    <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <StaticResource x:Key="TokenUsageShellBrush" ResourceKey="SystemColorWindowColorBrush" />
                     <StaticResource x:Key="TokenUsageCardBrush" ResourceKey="SystemColorWindowColorBrush" />
                     <StaticResource x:Key="TokenUsageStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />

@@ -19,6 +19,41 @@ identify the measured tools. TokenUsage is not endorsed by those providers.
 
 The OpenUsage name and logo are not included as TokenUsage product identity.
 
+TokenUsage also includes adapted provider marks copied from
+`janekbaraniewski/openusage` at commit
+`ddc05f24b159bfd1a24bbf641dcfb841410a77ab`:
+
+- `alibaba-cloud.svg`
+- `amp.svg`
+- `anthropic.svg`
+- `deepseek.svg`
+- `droid.svg`
+- `gemini-api.svg`
+- `gemini-cli.svg`
+- `goose.svg`
+- `groq.svg`
+- `hermes.svg`
+- `kilo-code.svg`
+- `kimi.svg`
+- `kiro.svg`
+- `mistral.svg`
+- `moonshot.svg`
+- `mux.svg`
+- `ollama.svg`
+- `openai.svg`
+- `openclaw.svg`
+- `perplexity.svg`
+- `pi.svg`
+- `qwen-cli.svg`
+- `roo-code.svg`
+- `xai.svg`
+- `zed.svg`
+
+Their vector paths are unchanged. TokenUsage replaces `currentColor` with its
+own provider palette so the external SVG files remain visible in both themes.
+Provider names and marks belong to their respective owners and only identify
+the measured tools.
+
 The provider foundation also includes adapted marks copied from
 `robinebers/openusage` at commit
 `487cc8f19a9a28676f6924aafa48dee79ad7a7f6`:
@@ -34,6 +69,8 @@ its own accessible palette and does not use the OpenUsage product mark.
 MIT License
 
 Copyright (c) 2026 Robin Ebers
+
+Copyright (c) 2026 Jan Baraniewski
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

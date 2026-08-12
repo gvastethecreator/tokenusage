@@ -3,6 +3,16 @@
   "generatedAt": "2026-07-23T04:00:00+00:00",
   "providers": [
     {
+      "id": "amp",
+      "name": "Amp",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "detected",
+      "data": "present"
+    },
+    {
       "id": "antigravity",
       "name": "Antigravity",
       "capabilities": [
@@ -11,6 +21,16 @@
       ],
       "detection": "detected",
       "data": "present"
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "detected",
+      "data": "absent"
     },
     {
       "id": "codex",
@@ -27,25 +47,58 @@
       "id": "cursor",
       "name": "Cursor",
       "capabilities": [
-        "localUsage"
+        "localUsage",
+        "spend"
       ],
       "detection": "detected",
+      "data": "absent"
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "missing",
       "data": "absent"
     },
     {
       "id": "grok",
       "name": "Grok Build",
       "capabilities": [
-        "localUsage"
+        "localUsage",
+        "spend"
       ],
       "detection": "detected",
       "data": "present"
     },
     {
+      "id": "hermes",
+      "name": "Hermes",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "detected",
+      "data": "absent"
+    },
+    {
+      "id": "mux",
+      "name": "Mux",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "missing",
+      "data": "absent"
+    },
+    {
       "id": "opencode",
       "name": "OpenCode",
       "capabilities": [
-        "localUsage"
+        "localUsage",
+        "spend"
       ],
       "detection": "unavailable",
       "data": "unreadable"

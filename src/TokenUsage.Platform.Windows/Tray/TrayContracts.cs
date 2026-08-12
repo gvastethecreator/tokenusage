@@ -1,3 +1,5 @@
+using TokenUsage.Platform.Windows.Placement;
+
 namespace TokenUsage.Platform.Windows.Tray;
 
 public enum TrayMenuCommand
@@ -19,4 +21,9 @@ public sealed record TrayMenuLabels(string Update, string Settings, string Exit)
 public sealed class TrayActivatedEventArgs(TrayActivationKind kind) : EventArgs
 {
     public TrayActivationKind Kind { get; } = kind;
+}
+
+public sealed class TrayHoveredEventArgs(PlatformRect iconBounds) : EventArgs
+{
+    public PlatformRect IconBounds { get; } = iconBounds;
 }

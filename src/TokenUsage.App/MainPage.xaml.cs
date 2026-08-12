@@ -100,16 +100,19 @@ public sealed partial class MainPage : Page, IDisposable
             new UsageReportRequestedEventArgs(ViewModel.Dashboard.CreateReportRequest()));
 
     private void OnVisualizationToggleClick(object sender, RoutedEventArgs e) =>
-        ViewModel.Dashboard.CycleVisualization();
+        DashboardSurfaceView.CycleVisualizationWithTransition();
 
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
+        Visibility actionButtonsVisibility = HeaderActionButtons.Visibility;
         try
         {
+            HeaderActionButtons.Visibility = Visibility.Collapsed;
+            FlyoutChrome.UpdateLayout();
             ShareCaptureResult result = await ShareCaptureService.CaptureAsync(
-                CompactCaptureRoot,
+                FlyoutChrome,
                 "compact",
-                CompactCaptureRoot.ActualTheme == ElementTheme.Light
+                FlyoutChrome.ActualTheme == ElementTheme.Light
                     ? Microsoft.UI.Colors.White
                     : Microsoft.UI.Colors.Black);
             ShowShareStatus(
@@ -125,6 +128,11 @@ public sealed partial class MainPage : Page, IDisposable
             or System.Runtime.InteropServices.COMException)
         {
             ShowShareStatus(GetString("ShareCaptureError"), isError: true);
+        }
+        finally
+        {
+            HeaderActionButtons.Visibility = actionButtonsVisibility;
+            FlyoutChrome.UpdateLayout();
         }
     }
 

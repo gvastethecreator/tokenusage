@@ -1,13 +1,16 @@
-name: Feature request
-description: Suggest a focused product or provider improvement.
-title: "[Feature]: "
+name: Change proposal
+description: Propose a focused product, interface, CLI, or documentation change.
+title: "[Proposal]: "
 labels: [enhancement]
 body:
+  - type: markdown
+    attributes:
+      value: Open this issue before implementation. Provider work uses the dedicated provider integration form.
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: What user need should this change solve?
+      description: What user need does this change solve?
     validations:
       required: true
   - type: textarea
@@ -27,3 +30,19 @@ body:
     attributes:
       label: Limits and alternatives
       description: Note known gaps, privacy concerns, or other approaches.
+  - type: textarea
+    id: proof
+    attributes:
+      label: Verification plan
+      description: Explain which focused tests and real runtime states will prove the change.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched for an existing issue.
+          required: true
+        - label: I will keep the pull request within the agreed scope.
+          required: true

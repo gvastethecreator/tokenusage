@@ -59,18 +59,28 @@ public sealed class ProviderDiagnosticsCommandTests
             new FixedTimeProvider(Now));
 
         Assert.Equal(
-            "antigravity: detected; data present; localUsage,spend\n"
+            "amp: detected; data present; localUsage,spend\n"
+            + "antigravity: detected; data present; localUsage,spend\n"
+            + "claude: detected; data absent; localUsage,spend\n"
             + "codex: detected; data present; limits,localUsage,spend\n"
-            + "cursor: detected; data absent; localUsage\n"
-            + "grok: detected; data present; localUsage\n"
-            + "opencode: unavailable; data unreadable; localUsage\n",
+            + "cursor: detected; data absent; localUsage,spend\n"
+            + "goose: missing; data absent; localUsage,spend\n"
+            + "grok: detected; data present; localUsage,spend\n"
+            + "hermes: detected; data absent; localUsage,spend\n"
+            + "mux: missing; data absent; localUsage,spend\n"
+            + "opencode: unavailable; data unreadable; localUsage,spend\n",
             providers.ToString().Replace("\r\n", "\n", StringComparison.Ordinal));
         Assert.Equal(
             "codex-cache: present\n"
             + "codex-cli: detected\n"
+            + "local-usage-amp: present\n"
             + "local-usage-antigravity: present\n"
+            + "local-usage-claude: absent\n"
             + "local-usage-cursor: absent\n"
+            + "local-usage-goose: absent\n"
             + "local-usage-grok: present\n"
+            + "local-usage-hermes: absent\n"
+            + "local-usage-mux: absent\n"
             + "local-usage-opencode: unreadable\n"
             + "usage-db: present\n",
             doctor.ToString().Replace("\r\n", "\n", StringComparison.Ordinal));
@@ -228,12 +238,20 @@ public sealed class ProviderDiagnosticsCommandTests
     internal static ProviderDiagnosticsSnapshot CreateSnapshot() =>
         new(
         [
+            new("amp", "Amp",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             new("antigravity", "Antigravity",
                 [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
-            new("opencode", "OpenCode", [ProviderCapability.LocalUsage],
+            new("claude", "Claude",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
+            new("opencode", "OpenCode",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Unavailable, ProviderDataStatus.Unreadable),
-            new("grok", "Grok Build", [ProviderCapability.LocalUsage],
+            new("grok", "Grok Build",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             new("codex", "Codex",
                 [
@@ -242,15 +260,30 @@ public sealed class ProviderDiagnosticsCommandTests
                     ProviderCapability.Spend,
                 ],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
-            new("cursor", "Cursor", [ProviderCapability.LocalUsage],
+            new("cursor", "Cursor",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
+            new("goose", "Goose",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Missing, ProviderDataStatus.Absent),
+            new("hermes", "Hermes",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
+            new("mux", "Mux",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Missing, ProviderDataStatus.Absent),
         ],
         [
             new("usage-db", DoctorCheckStatus.Present),
+            new("local-usage-amp", DoctorCheckStatus.Present),
             new("local-usage-antigravity", DoctorCheckStatus.Present),
+            new("local-usage-claude", DoctorCheckStatus.Absent),
             new("local-usage-cursor", DoctorCheckStatus.Absent),
+            new("local-usage-goose", DoctorCheckStatus.Absent),
             new("local-usage-opencode", DoctorCheckStatus.Unreadable),
             new("local-usage-grok", DoctorCheckStatus.Present),
+            new("local-usage-hermes", DoctorCheckStatus.Absent),
+            new("local-usage-mux", DoctorCheckStatus.Absent),
             new("codex-cli", DoctorCheckStatus.Detected),
             new("codex-cache", DoctorCheckStatus.Present),
         ]);

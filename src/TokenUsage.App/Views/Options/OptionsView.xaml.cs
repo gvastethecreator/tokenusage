@@ -37,7 +37,7 @@ public sealed partial class OptionsView : UserControl
     {
         OptionsSection.General => GeneralView.PrimaryAction,
         OptionsSection.Appearance => AppearanceView.PrimaryAction,
-        OptionsSection.Personalization => PersonalizationView.PrimaryAction,
+        OptionsSection.Personalization => AppearanceView.PersonalizationPrimaryAction,
         OptionsSection.ProviderStatus => ProviderStatusView.PrimaryAction,
         _ => GeneralView.PrimaryAction,
     };
