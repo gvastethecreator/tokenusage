@@ -1,7 +1,7 @@
 {
-  "current_commit": "d8f40d0c6265c0bc96d5e9a7f324ed06eeee5e58",
+  "current_commit": "6394a178634dec86414dd2f7f298f672d69ea05c",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-12T05:14:48Z",
+  "generated_at": "2026-08-12T05:41:48Z",
   "scanned_scope": [
     "."
   ],
@@ -43,8 +43,8 @@
     {
       "id": ".github",
       "path": ".github",
-      "file_count": 6,
-      "fingerprint": "b03930fb3b41ef4e8d544f03d90db613a11fc3bb86d2e1376863f69719fdba22"
+      "file_count": 7,
+      "fingerprint": "85ddf4eaa546c6c99838fc36edfa63a6fd0f219ade477e10c3eaf1aae40e9869"
     },
     {
       "id": ".vscode",
@@ -55,14 +55,8 @@
     {
       "id": "docs",
       "path": "docs",
-      "file_count": 101,
-      "fingerprint": "0ace9a42e0ab91db688a81cf6f39bfbada10f2c652fcd69c6c8ed15dd084c58f"
-    },
-    {
-      "id": "plans",
-      "path": "plans",
-      "file_count": 6,
-      "fingerprint": "ece1d9ad33f4f66e9a16109cc035f18629735a1b1ac9d6e50d7923d316d3348f"
+      "file_count": 106,
+      "fingerprint": "5dad915f0816d3681d77670e9cead12eb34edbc7bbb2cbf8e00e9f4e0395dbb8"
     },
     {
       "id": "scripts",
@@ -73,14 +67,14 @@
     {
       "id": "src",
       "path": "src",
-      "file_count": 259,
-      "fingerprint": "f0e663fd43af14a7ed1ad73aec1c6b649e463fb2dc00ade0f7aef92448ff1b00"
+      "file_count": 301,
+      "fingerprint": "80d26cef4cc712938a2895bf38594bd22bfb3034fd75331e0b826f8ac6551d1a"
     },
     {
       "id": "tests",
       "path": "tests",
-      "file_count": 138,
-      "fingerprint": "f602c7cf090d7b2f7b460ae7f8cb9d153d76b570c96fea882e5df373d205d379"
+      "file_count": 144,
+      "fingerprint": "a329a42bc46d5fbf154dee1138a9eb4a8b0ea59725c5bf0bedf78dc20101897a"
     }
   ]
 }

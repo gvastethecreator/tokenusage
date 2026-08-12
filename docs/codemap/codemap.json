@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-12T05:14:48Z",
-  "generated_from_commit": "d8f40d0c6265c0bc96d5e9a7f324ed06eeee5e58",
+  "generated_at": "2026-08-12T05:41:48Z",
+  "generated_from_commit": "6394a178634dec86414dd2f7f298f672d69ea05c",
   "scope": [
     "."
   ],
@@ -679,36 +679,36 @@
         "status": "verified",
         "locations": [
           {
+            "path": "src/TokenUsage.Providers/Amp/AmpUsageEventSource.cs",
+            "symbol": "UsageSourceReadResult"
+          },
+          {
+            "path": "src/TokenUsage.Providers/Amp/AmpUsageEventSource.cs",
+            "symbol": "TokenBreakdown"
+          },
+          {
+            "path": "src/TokenUsage.Providers/Amp/AmpUsageEventSource.cs",
+            "symbol": "UsageEvent"
+          },
+          {
+            "path": "src/TokenUsage.Providers/Amp/AmpUsageEventSource.cs",
+            "symbol": "UsageEventKey"
+          },
+          {
+            "path": "src/TokenUsage.Providers/Amp/AmpUsageEventSource.cs",
+            "symbol": "ModelId"
+          },
+          {
+            "path": "src/TokenUsage.Providers/Amp/AmpUsageEventSource.cs",
+            "symbol": "CostObservation"
+          },
+          {
             "path": "src/TokenUsage.Providers/Antigravity/AntigravityPricingCatalog.cs",
             "symbol": "CostObservation"
           },
           {
             "path": "src/TokenUsage.Providers/Antigravity/AntigravityUsageEventSource.cs",
             "symbol": "UsageSourceReadResult"
-          },
-          {
-            "path": "src/TokenUsage.Providers/Antigravity/AntigravityUsageEventSource.cs",
-            "symbol": "TokenBreakdown"
-          },
-          {
-            "path": "src/TokenUsage.Providers/Antigravity/AntigravityUsageEventSource.cs",
-            "symbol": "UsageEvent"
-          },
-          {
-            "path": "src/TokenUsage.Providers/Antigravity/AntigravityUsageEventSource.cs",
-            "symbol": "UsageEventKey"
-          },
-          {
-            "path": "src/TokenUsage.Providers/Antigravity/AntigravityUsageEventSource.cs",
-            "symbol": "ModelId"
-          },
-          {
-            "path": "src/TokenUsage.Providers/Antigravity/AntigravityUsageEventSource.cs",
-            "symbol": "ModelProviderId"
-          },
-          {
-            "path": "src/TokenUsage.Providers/Catalog/ProviderModuleCatalog.cs",
-            "symbol": "ProviderId"
           }
         ]
       }
@@ -844,15 +844,15 @@
           },
           {
             "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
+            "symbol": "AmpUsageEventSource"
+          },
+          {
+            "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
             "symbol": "ClaudeUsageEventSource"
           },
           {
             "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
             "symbol": "CodexUsageEventSource"
-          },
-          {
-            "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
-            "symbol": "GrokUsageEventSource"
           }
         ]
       }
