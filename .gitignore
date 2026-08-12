@@ -24,6 +24,11 @@ BundleArtifacts/
 *.msix
 *.msixbundle
 .vs/
+TestResults/
+*.trx
+*.nupkg
+*.snupkg
+.dotnet/
 
 # Python cache from portable contributor skills.
 __pycache__/

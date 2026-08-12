@@ -1,7 +1,7 @@
 {
-  "current_commit": "fa9b4d27b301ea48fcf332b8962c4ece0d9781fa",
+  "current_commit": "b4cad94774cf6c704491360ed2d9465c03de411a",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-12T06:15:27Z",
+  "generated_at": "2026-08-12T08:48:20Z",
   "scanned_scope": [
     "."
   ],
@@ -11,17 +11,23 @@
     ".hg",
     ".next",
     ".nuxt",
+    ".reference",
+    ".scratch",
+    ".snapshots",
     ".svn",
     ".turbo",
     ".venv",
     "__pycache__",
+    "bin",
     "build",
     "coverage",
     "dist",
     "docs/codemap",
     "generated",
     "node_modules",
+    "obj",
     "out",
+    "src/TokenUsage.Package/AppPackages",
     "target",
     "vendor",
     "venv"
@@ -32,7 +38,7 @@
       "id": ".",
       "path": ".",
       "file_count": 11,
-      "fingerprint": "7ac1a4f4060bffd6467b8690bf5acb4cad03faf7e3e6fd72c635f5832ad16a3d"
+      "fingerprint": "5982b3fe2c8661ce948b01144281f995276d07f3cc578262eebbce7392fa1cce"
     },
     {
       "id": ".agents",
@@ -50,7 +56,7 @@
       "id": ".vscode",
       "path": ".vscode",
       "file_count": 2,
-      "fingerprint": "ccbb3a1d5527f5b35e4a934889dea3cb59e89a9fe4e322f1c8794f9ecdd1e682"
+      "fingerprint": "25f048f5cad67c0af33f4a18b7c3fdca9396bfe8e0794c1ade5a1cbc2da55794"
     },
     {
       "id": "docs",
@@ -68,13 +74,13 @@
       "id": "src",
       "path": "src",
       "file_count": 302,
-      "fingerprint": "c83a7fc7df8bdf81342858569f98cf62ac49e21abb9d1e26d2561a0c373820e9"
+      "fingerprint": "92319f00a3e939cb57d953d09288095b1b994f1f298c8015cfabb4396abfd89f"
     },
     {
       "id": "tests",
       "path": "tests",
       "file_count": 145,
-      "fingerprint": "251c64c859bec7ad96b20a56a82c6c037ec7aef5d9ef5af9a46697e70d72054f"
+      "fingerprint": "7883532b1def7ea5eafaece139fce042915319acff350451341bdfcdf1bd56e0"
     }
   ]
 }
