@@ -51,6 +51,12 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.5.0" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(WindowsPackageType)' == 'None'">
+    <Content Update="Assets\**\*"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\TokenUsage.Core\TokenUsage.Core.csproj" />
     <ProjectReference Include="..\TokenUsage.Providers\TokenUsage.Providers.csproj" />

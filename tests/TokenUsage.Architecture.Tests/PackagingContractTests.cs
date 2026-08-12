@@ -142,6 +142,23 @@ public sealed class PackagingContractTests
         Assert.Equal("false", profile.Descendants(MsBuild + "PublishTrimmed").Single().Value);
     }
 
+    [Fact]
+    public void PortableApplicationPublishesRuntimeAssets()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        XDocument appProject = XDocument.Load(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "TokenUsage.App.csproj"));
+        XElement assets = appProject
+            .Descendants("Content")
+            .Single(element => (string?)element.Attribute("Update") == @"Assets\**\*");
+
+        Assert.Equal("PreserveNewest", (string?)assets.Attribute("CopyToOutputDirectory"));
+        Assert.Equal("PreserveNewest", (string?)assets.Attribute("CopyToPublishDirectory"));
+    }
+
     private static string PackagePath(string fileName) => Path.Combine(
         ProjectReferenceGraph.FindRepoRoot(),
         "src",
