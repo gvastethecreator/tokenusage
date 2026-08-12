@@ -25,7 +25,7 @@
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             <Setter Property="Height" Value="36" />
             <Setter Property="MinHeight" Value="36" />
-            <Setter Property="Padding" Value="7,4" />
+            <Setter Property="Padding" Value="2,4" />
             <Setter Property="UseSystemFocusVisuals" Value="True" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Template">
@@ -388,9 +388,9 @@
                 ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
                 <ItemsRepeater.Layout>
                     <UniformGridLayout
-                        MaximumRowsOrColumns="4"
+                        MaximumRowsOrColumns="5"
                         MinColumnSpacing="2"
-                        MinItemWidth="110"
+                        MinItemWidth="86"
                         Orientation="Horizontal" />
                 </ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
@@ -404,9 +404,21 @@
                             Style="{StaticResource CompactProviderTabStyle}"
                             Tag="{x:Bind ProviderId}"
                             Click="OnProviderClick">
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <controls:ProviderMarkImage Height="16" ProviderId="{x:Bind ProviderId}" Width="16" />
-                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                Spacing="5">
+                                <controls:ProviderMarkImage
+                                    Height="14"
+                                    ProviderId="{x:Bind ProviderId}"
+                                    Width="14" />
+                                <TextBlock
+                                    FontSize="10.5"
+                                    FontWeight="SemiBold"
+                                    MaxLines="1"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis"
+                                    VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
                     </DataTemplate>

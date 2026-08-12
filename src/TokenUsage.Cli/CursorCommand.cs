@@ -1,4 +1,6 @@
 using TokenUsage.Runtime.Windows.Cursor;
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Cursor;
 
 namespace TokenUsage.Cli;
 
@@ -11,7 +13,8 @@ public static class CursorCommand
         IReadOnlyList<string> arguments,
         TextWriter standardOutput,
         TextWriter standardError,
-        CursorHookInstaller? installer = null)
+        CursorHookInstaller? installer = null,
+        CursorUsageEventSource? source = null)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(standardOutput);
@@ -24,13 +27,14 @@ public static class CursorCommand
         }
 
         installer ??= new CursorHookInstaller();
+        source ??= new CursorUsageEventSource(TimeZoneInfo.Local.Id);
         try
         {
             return arguments[0] switch
             {
-                "install-hook" => await InstallAsync(installer, standardOutput)
+                "install-hook" => await WriteDirectReadNoticeAsync(standardOutput)
                     .ConfigureAwait(false),
-                "status" => await WriteStatusAsync(installer, standardOutput)
+                "status" => await WriteStatusAsync(installer, source, standardOutput)
                     .ConfigureAwait(false),
                 "uninstall-hook" => await UninstallAsync(installer, standardOutput)
                     .ConfigureAwait(false),
@@ -42,33 +46,46 @@ public static class CursorCommand
                                            or InvalidDataException
                                            or InvalidOperationException)
         {
-            await standardError.WriteLineAsync("Unable to update the Cursor hook.")
+            await standardError.WriteLineAsync("Unable to inspect or update the Cursor local integration.")
                 .ConfigureAwait(false);
             return UsageCommand.NoDataExitCode;
         }
     }
 
-    private static async Task<int> InstallAsync(
-        CursorHookInstaller installer,
-        TextWriter standardOutput)
+    private static async Task<int> WriteDirectReadNoticeAsync(TextWriter standardOutput)
     {
-        installer.Install();
         await standardOutput.WriteLineAsync(
-            "Cursor usage hook installed. New local Agent turns will be recorded as partial, unpriced usage.")
+            "Cursor no longer requires a hook. TokenUsage reads estimated Agent context totals directly from Cursor's local state.")
             .ConfigureAwait(false);
         return UsageCommand.SuccessExitCode;
     }
 
     private static async Task<int> WriteStatusAsync(
         CursorHookInstaller installer,
+        CursorUsageEventSource source,
         TextWriter standardOutput)
     {
-        await standardOutput.WriteLineAsync(installer.GetStatus() switch
+        UsageSourceReadResult result = await source.ReadAsync().ConfigureAwait(false);
+        await standardOutput.WriteLineAsync(result.Events.Count > 0
+            ? $"Cursor local usage: available ({result.Events.Count} estimated context records)"
+            : result.Issue == UsageSourceIssueKind.RootUnavailable
+                ? "Cursor local usage: Cursor profile not found"
+                : "Cursor local usage: no estimated context records found")
+            .ConfigureAwait(false);
+
+        string? legacyHookStatus = installer.GetStatus() switch
         {
-            CursorHookInstallationStatus.Installed => "Cursor usage hook: installed",
-            CursorHookInstallationStatus.Incomplete => "Cursor usage hook: incomplete",
-            _ => "Cursor usage hook: not installed",
-        }).ConfigureAwait(false);
+            CursorHookInstallationStatus.Installed =>
+                "Legacy TokenUsage hook: installed; run 'tokenusage cursor uninstall-hook' to remove it",
+            CursorHookInstallationStatus.Incomplete =>
+                "Legacy TokenUsage hook: incomplete; run 'tokenusage cursor uninstall-hook' to remove it",
+            _ => null,
+        };
+        if (legacyHookStatus is not null)
+        {
+            await standardOutput.WriteLineAsync(legacyHookStatus).ConfigureAwait(false);
+        }
+
         return UsageCommand.SuccessExitCode;
     }
 

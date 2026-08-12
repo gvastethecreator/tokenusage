@@ -12,10 +12,14 @@ public static class ProviderColorPalette
             ["antigravity"] = "#4285F4",
             ["claude"] = "#DE7356",
             ["codex"] = "#10A37F",
+            ["copilot"] = "#8B5CF6",
             ["cursor"] = "#D7D7D7",
+            ["devin"] = "#7C3AED",
             ["grok"] = "#7C5CFC",
             ["opencode"] = "#E5488C",
+            ["openrouter"] = "#6366F1",
             ["vercel-ai-gateway"] = "#6B7280",
+            ["zai"] = "#2D5BFF",
         };
 
     public static string GetEffectiveHex(string providerId, string? customColorHex)

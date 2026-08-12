@@ -72,11 +72,11 @@
   <data name="OptionsProvidersDescription.Text" xml:space="preserve"><value>Connections and source health</value></data>
   <data name="OptionsProvidersButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
   <data name="GeneralSectionTitle.Text" xml:space="preserve"><value>General</value></data>
-  <data name="GeneralSectionDescription.Text" xml:space="preserve"><value>Set the app language and default flyout behavior.</value></data>
+  <data name="GeneralSectionDescription.Content" xml:space="preserve"><value>Set the app language and default flyout behavior.</value></data>
   <data name="AppearanceSectionTitle.Text" xml:space="preserve"><value>Appearance</value></data>
-  <data name="AppearanceSectionDescription.Text" xml:space="preserve"><value>Changes apply to the dashboard as soon as you select them.</value></data>
+  <data name="AppearanceSectionDescription.Content" xml:space="preserve"><value>Changes apply to the dashboard as soon as you select them.</value></data>
   <data name="PersonalizationSectionTitle.Text" xml:space="preserve"><value>Dashboard</value></data>
-  <data name="PersonalizationSectionDescription.Text" xml:space="preserve"><value>Choose which providers and metrics get the most space.</value></data>
+  <data name="PersonalizationSectionDescription.Content" xml:space="preserve"><value>Choose which providers and metrics get the most space.</value></data>
   <data name="ProvidersSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="ProvidersSectionDescription.Text" xml:space="preserve"><value>Manage connections and inspect each source.</value></data>
   <data name="OptionsVercelLabel.Text" xml:space="preserve"><value>Vercel connection</value></data>
@@ -169,6 +169,12 @@
   <data name="SamplePlanPlus" xml:space="preserve"><value>Plus</value></data>
   <data name="SamplePlanPro" xml:space="preserve"><value>Pro</value></data>
   <data name="SamplePlanLocal" xml:space="preserve"><value>Local</value></data>
+  <data name="SamplePlanPreview" xml:space="preserve"><value>Preview</value></data>
+  <data name="SampleCapabilityPreview" xml:space="preserve"><value>Synthetic provider preview</value></data>
+  <data name="SampleNoticePreviewOnly" xml:space="preserve"><value>Preview data only. No provider connection is active.</value></data>
+  <data name="SampleMetricCredits" xml:space="preserve"><value>Credits</value></data>
+  <data name="SampleMetricAcus" xml:space="preserve"><value>ACUs</value></data>
+  <data name="SampleMetricUsage" xml:space="preserve"><value>Usage</value></data>
   <data name="SamplePlanExperimental" xml:space="preserve"><value>Experimental</value></data>
   <data name="CodexQuotaTitle" xml:space="preserve"><value>Codex quota</value></data>
   <data name="CodexQuotaPeriod" xml:space="preserve"><value>Current Codex limits</value></data>
@@ -287,7 +293,7 @@
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:N2} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
   <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
-  <data name="ProviderStatusSectionDescription.Text" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
+  <data name="ProviderStatusSectionDescription.Content" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
   <data name="ProviderStatusRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh provider status</value></data>
   <data name="ProviderStatusQuota" xml:space="preserve"><value>Quota</value></data>
   <data name="ProviderStatusUsage" xml:space="preserve"><value>Local usage</value></data>
@@ -307,6 +313,18 @@
   <data name="ProviderStatusEstimatedLastReliable" xml:space="preserve"><value>Estimated · last reliable</value></data>
   <data name="ProviderStatusCoverageLastReliableFormat" xml:space="preserve"><value>Last reliable · {0}</value></data>
   <data name="ProviderStatusUnavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="ProviderStatusPrepared" xml:space="preserve"><value>Foundation ready</value></data>
+  <data name="ProviderStatusOptional" xml:space="preserve"><value>Optional integration</value></data>
+  <data name="ProviderStatusRecoveryManualSetup" xml:space="preserve"><value>Manual connection and an authorized smoke test are still required.</value></data>
+  <data name="ProviderStatusRecoveryPolicyContract" xml:space="preserve"><value>Waiting for a public third-party contract or written permission.</value></data>
+  <data name="ProviderStatusRecoveryOptional" xml:space="preserve"><value>The local reader exists but remains disabled by default.</value></data>
+  <data name="ProviderStatusSummaryAvailable" xml:space="preserve"><value>Detected</value></data>
+  <data name="ProviderStatusSummaryPartial" xml:space="preserve"><value>Partial</value></data>
+  <data name="ProviderStatusSummaryMissing" xml:space="preserve"><value>Not found</value></data>
+  <data name="ProviderStatusSummaryPending" xml:space="preserve"><value>Pending</value></data>
+  <data name="ProviderStatusSummaryPrepared" xml:space="preserve"><value>Prepared</value></data>
+  <data name="ProviderStatusSummaryOptional" xml:space="preserve"><value>Optional</value></data>
+  <data name="ProviderStatusSummaryBlocked" xml:space="preserve"><value>Blocked</value></data>
   <data name="ProviderStatusRootDetected" xml:space="preserve"><value>Data source detected</value></data>
   <data name="ProviderStatusRootMissing" xml:space="preserve"><value>Data source not found</value></data>
   <data name="ProviderStatusRootPending" xml:space="preserve"><value>Detection pending</value></data>
@@ -578,7 +596,7 @@
   <data name="CompactProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Select provider</value></data>
   <data name="UsageReportProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report provider</value></data>
   <data name="CompactProviderCodexCoverageHint" xml:space="preserve"><value>Codex: daily totals are official; model mix and cost are estimated. Cost can differ from your plan charge.</value></data>
-  <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: Agent tokens observed by the local hook since it was enabled. Tab, cloud agents, quota, and cost are not included.</value></data>
+  <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: local estimate of the current context in each Agent conversation. This is not billed usage and excludes Tab, quota, and cost.</value></data>
   <data name="CompactProviderGrokCoverageHint" xml:space="preserve"><value>Grok Build: usage is read from local logs. Official quota is unavailable.</value></data>
   <data name="CompactProviderOpenCodeCoverageHint" xml:space="preserve"><value>OpenCode: usage is observed in local logs; cost is estimated from catalog prices.</value></data>
   <data name="CompactProviderAntigravityCoverageHint" xml:space="preserve"><value>Antigravity: usage is observed in local logs; cost is estimated from catalog prices.</value></data>

@@ -19,6 +19,18 @@ identify the measured tools. TokenUsage is not endorsed by those providers.
 
 The OpenUsage name and logo are not included as TokenUsage product identity.
 
+The provider foundation also includes adapted marks copied from
+`robinebers/openusage` at commit
+`487cc8f19a9a28676f6924aafa48dee79ad7a7f6`:
+
+- `copilot.svg`
+- `devin.svg`
+- `openrouter.svg`
+- `zai.svg`
+
+Their vector paths identify the corresponding providers. TokenUsage applies
+its own accessible palette and does not use the OpenUsage product mark.
+
 MIT License
 
 Copyright (c) 2026 Robin Ebers

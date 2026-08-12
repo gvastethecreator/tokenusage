@@ -1,6 +1,7 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
+using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
@@ -8,48 +9,59 @@ using TokenUsage.Providers.LocalScan;
 namespace TokenUsage.Providers.Cursor;
 
 /// <summary>
-/// Reads the numeric-only spool produced by the opt-in Cursor stop hook.
-/// The hook does not persist prompts, responses, paths, emails, or raw session IDs.
+/// Reads Cursor's locally stored, estimated composer context totals.
+/// The SQL projection only selects allowlisted metadata and never materializes
+/// prompts, responses, workspace paths, account data, or authentication values.
 /// </summary>
 public sealed class CursorUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "cursor-hook/1";
+    public const string ParserVersion = "cursor-composer-state/1";
     private const int LookbackDays = 35;
+    private const int DefaultMaximumValueBytes = 2 * 1024 * 1024;
+    private const long MaximumPlausibleContextTokens = 16 * 1024 * 1024;
     private readonly string _cursorHome;
-    private readonly string _spoolPath;
+    private readonly string _databasePath;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
+    private readonly int _maximumRows;
+    private readonly int _maximumValueBytes;
 
     public CursorUsageEventSource(
         string groupingTimeZoneId,
         string? homeDirectory = null,
-        string? localAppDataDirectory = null,
-        string? spoolPathOverride = null,
-        long maximumFileBytes = 16 * 1024 * 1024,
-        int maximumLineBytes = 64 * 1024)
+        string? roamingAppDataDirectory = null,
+        string? databasePathOverride = null,
+        long maximumDatabaseBytes = 512L * 1024 * 1024,
+        int maximumRows = 100_000,
+        int maximumValueBytes = DefaultMaximumValueBytes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDatabaseBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumRows, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumValueBytes, 1);
 
         _cursorHome = CursorUsagePaths.ResolveCursorHome(homeDirectory);
-        _spoolPath = spoolPathOverride is null
-            ? CursorUsagePaths.ResolveSpoolPath(localAppDataDirectory)
-            : Path.GetFullPath(spoolPathOverride);
+        _databasePath = databasePathOverride is null
+            ? CursorUsagePaths.ResolveStateDatabasePath(roamingAppDataDirectory)
+            : Path.GetFullPath(databasePathOverride);
         _groupingTimeZoneId = groupingTimeZoneId;
-        _budget = new LocalScanBudget(2, maximumFileBytes, maximumLineBytes);
+        _budget = new LocalScanBudget(1, maximumDatabaseBytes);
+        _maximumRows = maximumRows;
+        _maximumValueBytes = maximumValueBytes;
     }
 
     public AgentId AgentId { get; } = new("cursor");
 
-    public SourceKind SourceKind => SourceKind.LocalLog;
+    public SourceKind SourceKind => SourceKind.LocalDatabase;
 
     public string EventParserVersion => ParserVersion;
 
     public int ReconciliationWindowDays => LookbackDays;
 
-    public bool IsRootAvailable => Directory.Exists(_cursorHome) || File.Exists(_spoolPath);
+    public bool IsRootAvailable => Directory.Exists(_cursorHome) || File.Exists(_databasePath);
 
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default) =>
@@ -66,8 +78,7 @@ public sealed class CursorUsageEventSource :
                 UsageSourceIssueKind.RootUnavailable);
         }
 
-        string[] paths = [_spoolPath + ".1", _spoolPath];
-        if (!paths.Any(File.Exists))
+        if (!File.Exists(_databasePath))
         {
             return new UsageSourceReadResult(
                 [],
@@ -77,15 +88,31 @@ public sealed class CursorUsageEventSource :
 
         var state = new LocalScanState(_budget);
         var events = new Dictionary<string, UsageEvent>(StringComparer.Ordinal);
-        foreach (string path in paths.Where(File.Exists))
+        bool accessBlocked = false;
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!state.TryConsumeFile())
+            var info = new FileInfo(_databasePath);
+            if ((info.Attributes & FileAttributes.ReparsePoint) != 0
+                || state.IsFileTooLarge(info.Length)
+                || !state.TryConsumeFile())
             {
-                break;
+                state.MarkPartial();
+                accessBlocked = true;
             }
-
-            ReadFile(path, events, state, cancellationToken);
+            else
+            {
+                ReadDatabase(events, state, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (
+            exception is SqliteException or IOException or UnauthorizedAccessException)
+        {
+            state.MarkPartial();
+            accessBlocked = true;
         }
 
         UsageEvent[] ordered = events.Values
@@ -99,152 +126,261 @@ public sealed class CursorUsageEventSource :
                 UsageSourceReadStatus.NoData,
                 state.UnsupportedSchema
                     ? UsageSourceIssueKind.UnsupportedSchema
-                    : state.IsPartial
+                    : accessBlocked || state.IsPartial
                         ? UsageSourceIssueKind.AccessBlocked
                         : UsageSourceIssueKind.Empty);
         }
 
-        // The hook covers local Agent turns after opt-in. It does not cover Tab,
-        // cloud agents, reasoning tokens, quota, or provider-reported cost.
+        // Cursor labels these values as estimated context tokens. They are useful
+        // local activity evidence, but not cumulative billing usage or quota data.
         return new UsageSourceReadResult(
             ordered,
             UsageSourceReadStatus.Partial,
             UsageSourceIssueKind.PartialScan);
     }
 
-    private void ReadFile(
-        string path,
-        Dictionary<string, UsageEvent> events,
+    private void ReadDatabase(
+        Dictionary<string, UsageEvent> output,
         LocalScanState state,
         CancellationToken cancellationToken)
     {
-        try
+        var builder = new SqliteConnectionStringBuilder
         {
-            var info = new FileInfo(path);
-            if (!info.Exists
-                || (info.Attributes & FileAttributes.ReparsePoint) != 0
-                || state.IsFileTooLarge(info.Length))
+            DataSource = _databasePath,
+            Mode = SqliteOpenMode.ReadOnly,
+            Cache = SqliteCacheMode.Private,
+            Pooling = false,
+        };
+        using var connection = new SqliteConnection(builder.ToString());
+        connection.Open();
+        ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
+        ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
+
+        HashSet<string> columns = GetColumns(connection, "cursorDiskKV", cancellationToken);
+        if (!columns.Contains("key") || !columns.Contains("value"))
+        {
+            state.UnsupportedSchema = true;
+            state.MarkPartial();
+            return;
+        }
+
+        MarkSkippedRows(connection, state, cancellationToken);
+
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+              key,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.conversationCheckpointLastUpdatedAt') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.lastUpdatedAt') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.createdAt') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.modelConfig.modelName') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.promptTokenBreakdown.totalUsedTokens') END,
+              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
+                json_extract(CAST(value AS TEXT), '$.contextTokensUsed') END,
+              length(value)
+            FROM cursorDiskKV
+            WHERE key GLOB 'composerData:*'
+              AND length(value) <= $value_limit
+              AND json_valid(CAST(value AS TEXT))
+            ORDER BY key
+            LIMIT $row_limit
+            """;
+        command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
+        command.Parameters.AddWithValue("$row_limit", checked(_maximumRows + 1L));
+        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
+        using SqliteDataReader reader = command.ExecuteReader();
+        int rowsRead = 0;
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++rowsRead > _maximumRows)
             {
                 state.MarkPartial();
-                return;
+                break;
             }
 
-            using var stream = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
-            using var reader = new StreamReader(
-                stream,
-                new UTF8Encoding(false, true),
-                detectEncodingFromByteOrderMarks: false,
-                bufferSize: 16 * 1024,
-                leaveOpen: false);
-            while (reader.ReadLine() is { } line)
+            if (!TryReadCandidate(reader, out CursorComposerCandidate? candidate)
+                || candidate is null)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (Encoding.UTF8.GetByteCount(line) > state.MaximumLineBytes)
-                {
-                    state.MarkPartial();
-                    continue;
-                }
-
-                if (TryParse(line, out UsageEvent? usageEvent) && usageEvent is not null)
-                {
-                    events[usageEvent.EventKey.Value] = usageEvent;
-                }
-                else if (!string.IsNullOrWhiteSpace(line))
-                {
-                    state.UnsupportedSchema = true;
-                    state.MarkPartial();
-                }
+                continue;
             }
+
+            var usageEvent = new UsageEvent(
+                new UsageEventKey(Hash($"cursor\0composer-state-v1\0{candidate.Identity}")),
+                AgentId,
+                ResolveModelProvider(candidate.Model),
+                CreateModelId(candidate.Model),
+                candidate.Timestamp,
+                _groupingTimeZoneId,
+                new TokenBreakdown(candidate.EstimatedContextTokens, 0, 0, 0, 0),
+                CostObservation.Unavailable(),
+                ParserVersion,
+                CoverageKind.Unpriced);
+            output[usageEvent.EventKey.Value] = usageEvent;
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException
-                                           or JsonException
-                                           or DecoderFallbackException)
+    }
+
+    private void MarkSkippedRows(
+        SqliteConnection connection,
+        LocalScanState state,
+        CancellationToken cancellationToken)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+              COUNT(*),
+              COALESCE(SUM(CASE
+                WHEN length(value) > $value_limit
+                  OR NOT json_valid(CAST(value AS TEXT))
+                THEN 1 ELSE 0 END), 0)
+            FROM cursorDiskKV
+            WHERE key GLOB 'composerData:*'
+            """;
+        command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
+        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
+        using SqliteDataReader reader = command.ExecuteReader();
+        if (reader.Read()
+            && (reader.GetInt64(0) > _maximumRows || reader.GetInt64(1) > 0))
         {
             state.MarkPartial();
         }
     }
 
-    private bool TryParse(string line, out UsageEvent? usageEvent)
+    private static bool TryReadCandidate(
+        SqliteDataReader reader,
+        out CursorComposerCandidate? candidate)
     {
-        usageEvent = null;
-        try
+        candidate = null;
+        if (reader.GetValue(0) is not string identity
+            || reader.GetValue(4) is not string rawModel
+            || !TryGetInt64(reader, 7, out long valueBytes)
+            || valueBytes <= 0)
         {
-            using JsonDocument document = JsonDocument.Parse(line);
-            JsonElement root = document.RootElement;
-            if (!TryGetInt64(root, "version", out long version) || version != 1
-                || !TryGetString(root, "event_key", out string? eventKey)
-                || !TryGetString(root, "occurred_at_utc", out string? timestampText)
-                || !DateTimeOffset.TryParse(
-                    timestampText,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-                    out DateTimeOffset timestamp)
-                || timestamp.Offset != TimeSpan.Zero
-                || !TryGetString(root, "model", out string? model)
-                || !TryGetInt64(root, "input_tokens", out long input)
-                || !TryGetInt64(root, "output_tokens", out long output)
-                || !TryGetInt64(root, "cache_read_tokens", out long cacheRead)
-                || !TryGetInt64(root, "cache_write_tokens", out long cacheWrite))
+            return false;
+        }
+
+        string model = rawModel.Trim();
+        if (!identity.StartsWith("composerData:", StringComparison.Ordinal)
+            || identity.Length <= "composerData:".Length
+            || string.IsNullOrWhiteSpace(model)
+            || model.Length > 200)
+        {
+            return false;
+        }
+
+        long tokens;
+        bool hasBreakdown = TryGetInt64(reader, 5, out long breakdownTokens);
+        bool hasContext = TryGetInt64(reader, 6, out long contextTokens);
+        if (hasBreakdown)
+        {
+            tokens = breakdownTokens;
+        }
+        else if (hasContext)
+        {
+            tokens = contextTokens;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (tokens <= 0 || tokens > MaximumPlausibleContextTokens
+            || !TryGetTimestamp(reader, out DateTimeOffset timestamp))
+        {
+            return false;
+        }
+
+        candidate = new CursorComposerCandidate(identity, timestamp, model, tokens);
+        return true;
+    }
+
+    private static bool TryGetTimestamp(
+        SqliteDataReader reader,
+        out DateTimeOffset timestamp)
+    {
+        foreach (int ordinal in new[] { 1, 2, 3 })
+        {
+            if (TryGetInt64(reader, ordinal, out long milliseconds))
             {
-                return false;
+                try
+                {
+                    timestamp = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds);
+                    if (timestamp.Year is >= 2000 and <= 2100)
+                    {
+                        return true;
+                    }
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                }
             }
+        }
 
-            usageEvent = new UsageEvent(
-                new UsageEventKey(eventKey!),
-                AgentId,
-                ResolveModelProvider(model!),
-                CreateModelId(model!),
-                timestamp,
-                _groupingTimeZoneId,
-                new TokenBreakdown(input, output, 0, cacheRead, cacheWrite),
-                CostObservation.Unavailable(),
-                ParserVersion,
-                CoverageKind.Unpriced);
-            return true;
-        }
-        catch (Exception exception) when (exception is JsonException
-                                           or ArgumentException
-                                           or OverflowException)
-        {
-            return false;
-        }
+        timestamp = default;
+        return false;
     }
 
-    private static bool TryGetString(
-        JsonElement element,
-        string propertyName,
-        out string? value)
-    {
-        value = null;
-        if (!element.TryGetProperty(propertyName, out JsonElement property)
-            || property.ValueKind != JsonValueKind.String)
-        {
-            return false;
-        }
-
-        value = property.GetString()?.Trim();
-        return !string.IsNullOrWhiteSpace(value);
-    }
-
-    private static bool TryGetInt64(
-        JsonElement element,
-        string propertyName,
-        out long value)
+    private static bool TryGetInt64(SqliteDataReader reader, int ordinal, out long value)
     {
         value = 0;
-        return element.TryGetProperty(propertyName, out JsonElement property)
-            && property.ValueKind == JsonValueKind.Number
-            && property.TryGetInt64(out value)
-            && value >= 0;
+        if (reader.IsDBNull(ordinal))
+        {
+            return false;
+        }
+
+        object raw = reader.GetValue(ordinal);
+        return raw switch
+        {
+            long number when number >= 0 => Assign(number, out value),
+            int number when number >= 0 => Assign(number, out value),
+            string text when long.TryParse(
+                text,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out long number) && number >= 0 => Assign(number, out value),
+            _ => false,
+        };
+    }
+
+    private static bool Assign(long source, out long destination)
+    {
+        destination = source;
+        return true;
+    }
+
+    private static void ExecuteControl(
+        SqliteConnection connection,
+        string text,
+        CancellationToken cancellationToken)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = text;
+        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
+        command.ExecuteNonQuery();
+    }
+
+    private static HashSet<string> GetColumns(
+        SqliteConnection connection,
+        string table,
+        CancellationToken cancellationToken)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info({table})";
+        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
+        using SqliteDataReader reader = command.ExecuteReader();
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            columns.Add(reader.GetString(1));
+        }
+
+        return columns;
     }
 
     private static ModelId CreateModelId(string model)
@@ -276,4 +412,14 @@ public sealed class CursorUsageEventSource :
             _ => null,
         };
     }
+
+    private static string Hash(string value) => Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(value)))
+        .ToLowerInvariant();
+
+    private sealed record CursorComposerCandidate(
+        string Identity,
+        DateTimeOffset Timestamp,
+        string Model,
+        long EstimatedContextTokens);
 }

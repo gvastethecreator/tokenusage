@@ -1,4 +1,5 @@
 using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Catalog;
 using TokenUsage.Runtime.Windows.Providers;
 
 namespace TokenUsage.Platform.Windows.Tests.Providers;
@@ -30,6 +31,46 @@ public sealed class WindowsProviderCatalogTests
         Assert.Equal(
             [ProviderCapability.Limits, ProviderCapability.Spend],
             deferredEntries.Single(entry => entry.Id.Value == "vercel-ai-gateway").Capabilities);
+        Assert.Equal(
+            ["copilot", "devin", "openrouter"],
+            WindowsProviderCatalog.PreparedEntries.Select(entry => entry.Id.Value));
+        Assert.Equal(
+            ["zai"],
+            WindowsProviderCatalog.PolicyBlockedEntries.Select(entry => entry.Id.Value));
+        Assert.Equal(
+            ProviderModuleCatalog.Entries.Select(entry => entry.Id.Value).Order(),
+            WindowsProviderCatalog.AllEntries.Select(entry => entry.Id.Value).Order());
+    }
+
+    [Fact]
+    public void OpenUsageParityCatalogHasEveryCurrentProviderOnce()
+    {
+        ProviderModuleDefinition[] entries = ProviderModuleCatalog.OpenUsageEntries.ToArray();
+
+        Assert.Equal(
+            [
+                "antigravity",
+                "claude",
+                "codex",
+                "copilot",
+                "cursor",
+                "devin",
+                "grok",
+                "opencode",
+                "openrouter",
+                "zai",
+            ],
+            entries.Select(entry => entry.Id.Value).Order());
+        Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
+        Assert.All(entries, entry => Assert.NotEmpty(entry.Capabilities));
+        Assert.Equal(
+            ["copilot", "devin", "openrouter"],
+            entries.Where(entry => entry.Stage == ProviderModuleStage.Prepared)
+                .Select(entry => entry.Id.Value));
+        Assert.Equal(
+            ["zai"],
+            entries.Where(entry => entry.Stage == ProviderModuleStage.PolicyBlocked)
+                .Select(entry => entry.Id.Value));
     }
 
     [Fact]

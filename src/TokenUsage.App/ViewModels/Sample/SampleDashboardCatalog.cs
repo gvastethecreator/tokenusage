@@ -1,11 +1,74 @@
 using System.Globalization;
 
 using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels.Sample;
 
 public static class SampleDashboardCatalog
 {
+    public static DashboardSnapshot CreateProviderParityPreview(Func<string, string> getString)
+    {
+        ArgumentNullException.ThrowIfNull(getString);
+        DashboardSnapshot baseline = CreateNormal(getString);
+        ProviderCard[] additionalProviders =
+        [
+            PreviewMetricProvider(
+                "cursor",
+                "Cursor",
+                getString("SampleMetricTokens"),
+                CompactTokens(1_460_000, includeUnit: true, getString),
+                getString),
+            PreviewMetricProvider(
+                "copilot",
+                "GitHub Copilot",
+                getString("SampleMetricCredits"),
+                "184",
+                getString),
+            PreviewMetricProvider(
+                "devin",
+                "Devin",
+                getString("SampleMetricAcus"),
+                "128",
+                getString),
+            PreviewMetricProvider(
+                "openrouter",
+                "OpenRouter",
+                getString("SampleMetricCredits"),
+                Money(18.42, getString),
+                getString),
+            PreviewMetricProvider(
+                "zai",
+                "Z.ai",
+                getString("SampleMetricUsage"),
+                CompactTokens(920_000, includeUnit: true, getString),
+                getString),
+        ];
+        Dictionary<string, ProviderCard> providers = baseline.Providers
+            .Concat(additionalProviders)
+            .ToDictionary(provider => provider.ProviderId, StringComparer.Ordinal);
+        ProviderCard[] orderedProviders = ProviderModuleCatalog.OpenUsageEntries
+            .Select(entry => providers[entry.Id.Value])
+            .ToArray();
+        SpendSlice[] slices = baseline.SpendSlices
+            .Concat(
+            [
+                Spend("cursor", "Cursor", 1.35),
+                Spend("copilot", "GitHub Copilot", 3.20),
+                Spend("openrouter", "OpenRouter", 2.45),
+                Spend("zai", "Z.ai", 0.85),
+            ])
+            .ToArray();
+        double total = slices.Sum(slice => slice.Amount);
+
+        return Snapshot(
+            SampleScenario.Normal,
+            total,
+            getString,
+            slices,
+            orderedProviders);
+    }
+
     public static DashboardSnapshot Create(
         SampleScenario scenario,
         Func<string, string> getString)
@@ -253,6 +316,30 @@ public static class SampleDashboardCatalog
             new ProviderCard(providerId, id, name, plan, capability, notice, [], metrics),
             text);
     }
+
+    private static ProviderCard PreviewMetricProvider(
+        string providerId,
+        string name,
+        string metricLabel,
+        string metricValue,
+        Func<string, string> text) =>
+        WithSampleDetails(
+            new ProviderCard(
+                providerId,
+                $"ProviderParityPreview.{providerId}",
+                name,
+                text("SamplePlanPreview"),
+                text("SampleCapabilityPreview"),
+                text("SampleNoticePreviewOnly"),
+                [],
+                [
+                    new DashboardMetric(
+                        metricLabel,
+                        metricValue,
+                        $"ProviderParityPreview.{providerId}.Usage",
+                        "usage.preview"),
+                ]),
+            text);
 
     private static ProviderCard CodexProvider(
         SampleScenario scenario,

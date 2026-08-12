@@ -2,6 +2,7 @@ using System.Globalization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Providers;
+using TokenUsage.Providers.Catalog;
 using TokenUsage.Providers.Fakes;
 
 namespace TokenUsage.Providers.Tests;
@@ -110,6 +111,26 @@ public sealed class SampleDashboardProjectorTests
             Assert.All(ids, id => Assert.False(string.IsNullOrWhiteSpace(id)));
             Assert.Equal(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());
         }
+    }
+
+    [Fact]
+    public void ProviderParityPreviewCoversTheCurrentOpenUsageCatalog()
+    {
+        DashboardSnapshot preview = SampleDashboardCatalog.CreateProviderParityPreview(GetString);
+
+        Assert.Equal(
+            ProviderModuleCatalog.OpenUsageEntries.Select(entry => entry.Id.Value),
+            preview.Providers.Select(provider => provider.ProviderId));
+        Assert.All(preview.Providers, provider =>
+        {
+            Assert.Equal("Sample data", provider.SourceValue);
+            Assert.True(provider.HasDetails);
+        });
+        Assert.Contains(preview.Providers, provider => provider.ProviderId == "cursor");
+        Assert.Contains(preview.Providers, provider => provider.ProviderId == "copilot");
+        Assert.Contains(preview.Providers, provider => provider.ProviderId == "devin");
+        Assert.Contains(preview.Providers, provider => provider.ProviderId == "openrouter");
+        Assert.Contains(preview.Providers, provider => provider.ProviderId == "zai");
     }
 
     private static string GetString(string key) =>

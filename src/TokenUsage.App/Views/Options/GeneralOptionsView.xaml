@@ -15,18 +15,26 @@
         AutomationProperties.AutomationId="GeneralSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <Grid ColumnSpacing="9" RowSpacing="2">
+            <Grid ColumnSpacing="10" MinHeight="28">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="26" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <FontIcon Grid.RowSpan="2" FontSize="15" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Glyph="&#xE713;" VerticalAlignment="Top" />
-                <TextBlock x:Uid="GeneralSectionTitle" Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <TextBlock x:Uid="GeneralSectionDescription" Grid.Row="1" Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
+                <FontIcon Glyph="&#xE713;" Style="{StaticResource OptionsCategoryIconStyle}" />
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+                    <ToolTipService.ToolTip>
+                        <ToolTip
+                            x:Uid="GeneralSectionDescription"
+                            ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
+                            MaxWidth="300" />
+                    </ToolTipService.ToolTip>
+                    <TextBlock x:Uid="GeneralSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
+                    <FontIcon Style="{StaticResource OptionsCategoryHintIconStyle}" />
+                </StackPanel>
             </Grid>
             <StackPanel
                 AutomationProperties.AutomationId="LanguageSection"

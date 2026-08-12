@@ -1,13 +1,13 @@
 # Assets de marca de proveedores
 
-Fecha: 2026-07-22
+Fecha: 2026-08-11
 
-Estado: assets de prototipo para el corte visual 11A
+Estado: assets empaquetados para proveedores activos y módulos preparados
 
 ## Procedencia
 
-Los cinco SVG fuente bajo `src/TokenUsage.App/Assets/ProviderMarks/` proceden de
-`robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`, ruta
+Nueve SVG fuente bajo `src/TokenUsage.App/Assets/ProviderMarks/` proceden de
+`robinebers/openusage@487cc8f19a9a28676f6924aafa48dee79ad7a7f6`, ruta
 `Sources/OpenUsage/Resources/ProviderIcons/`. El repositorio fuente publica el
 código con licencia MIT. El aviso requerido está en `THIRD-PARTY-NOTICES.md`.
 
@@ -18,6 +18,14 @@ código con licencia MIT. El aviso requerido está en `THIRD-PARTY-NOTICES.md`.
 | `grok.svg` | Grok Build | relleno `#7C5CFC` |
 | `opencode.svg` | OpenCode | relleno `#E5488C` |
 | `antigravity.svg` | Antigravity CLI | conserva `#4285F4` |
+| `copilot.svg` | GitHub Copilot | relleno visible fijo para temas claro y oscuro |
+| `devin.svg` | Devin | relleno visible fijo para temas claro y oscuro |
+| `openrouter.svg` | OpenRouter | relleno visible fijo para temas claro y oscuro |
+| `zai.svg` | Z.ai | relleno visible fijo para temas claro y oscuro |
+
+`cursor.svg` conserva su procedencia oficial de Cursor registrada en
+`THIRD-PARTY-NOTICES.md`; no forma parte de esos nueve archivos derivados del
+upstream de OpenUsage.
 
 No se modificaron los trazados. Los rellenos sólidos enlazan cada marca con el
 color base al que llega su gradiente en el donut. Son colores de visualización propios de
@@ -37,7 +45,7 @@ derivado.
 - La revisión de identidad final, dominio, logo, Publisher y canal sigue en el
   Ticket 02.
 - Un cambio de asset debe conservar fuente, commit, licencia y revisión visual
-  a 16 DIPs antes de aceptarse.
+  a 14 y 16 DIPs antes de aceptarse.
 
 El donut se genera con geometría de datos en WinUI. Cada arco parte de una
 variante oscura y llega al color base mediante un `LinearGradientBrush`. Un
@@ -47,7 +55,9 @@ el usuario eligió en Windows y oculta la sombra.
 
 ## Proveedores en gate
 
+Copilot, Devin y OpenRouter pueden empaquetar su marca porque la UI los identifica
+como módulos preparados, no como fuentes activas. Z.ai aparece como bloqueado.
 Kilo Code y Zed no añaden una marca al paquete mientras sus gates no permitan
-una tarjeta pública. Cuando una fuente se apruebe, el ticket de integración debe
-fijar el asset oficial, licencia, SHA de procedencia, color de visualización y
-captura a 16 DIPs antes de incluirlo.
+una superficie pública. Cuando una fuente se apruebe, el ticket de integración
+debe fijar el asset oficial, licencia, SHA de procedencia, color de visualización
+y captura a 14 y 16 DIPs antes de incluirlo.

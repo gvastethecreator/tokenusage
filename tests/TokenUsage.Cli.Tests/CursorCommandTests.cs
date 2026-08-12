@@ -1,5 +1,6 @@
 using System.Globalization;
 using TokenUsage.Cli;
+using TokenUsage.Providers.Cursor;
 using TokenUsage.Runtime.Windows.Cursor;
 
 namespace TokenUsage.Cli.Tests;
@@ -7,34 +8,42 @@ namespace TokenUsage.Cli.Tests;
 public sealed class CursorCommandTests
 {
     [Fact]
-    public async Task InstallAndStatusUseTheExplicitUserHookLocation()
+    public async Task InstallIsANoOpAndStatusReportsTheLocalProfile()
     {
         string home = Path.Combine(
             Path.GetTempPath(),
             "tokenusage-cursor-command-tests",
             Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(home);
+        Directory.CreateDirectory(Path.Combine(home, ".cursor"));
         try
         {
             var installer = new CursorHookInstaller(home);
+            var source = new CursorUsageEventSource(
+                "UTC",
+                home,
+                Path.Combine(home, "roaming"));
             var output = new StringWriter(CultureInfo.InvariantCulture);
 
             int installExitCode = await CursorCommand.RunAsync(
                 ["install-hook"],
                 output,
                 TextWriter.Null,
-                installer);
+                installer,
+                source);
             output.GetStringBuilder().Clear();
             int statusExitCode = await CursorCommand.RunAsync(
                 ["status"],
                 output,
                 TextWriter.Null,
-                installer);
+                installer,
+                source);
 
             Assert.Equal(0, installExitCode);
             Assert.Equal(0, statusExitCode);
+            Assert.False(File.Exists(installer.ScriptPath));
             Assert.Equal(
-                "Cursor usage hook: installed" + Environment.NewLine,
+                "Cursor local usage: no estimated context records found" + Environment.NewLine,
                 output.ToString());
         }
         finally

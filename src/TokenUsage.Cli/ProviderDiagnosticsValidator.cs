@@ -11,8 +11,8 @@ internal static class ProviderDiagnosticsValidator
 
     private static readonly string[] ExpectedChecks = WindowsProviderCatalog.Entries
         .SelectMany(entry => entry.DetectionCheckId is null
-            ? [entry.DataCheckId]
-            : new[] { entry.DetectionCheckId, entry.DataCheckId })
+            ? [entry.DataCheckId!]
+            : new[] { entry.DetectionCheckId, entry.DataCheckId! })
         .Append("usage-db")
         .OrderBy(id => id, StringComparer.Ordinal)
         .ToArray();

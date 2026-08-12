@@ -186,6 +186,98 @@ public sealed class ProviderPaletteTests
         }
     }
 
+    [Fact]
+    public void CursorProviderMarkUsesTheOfficialCubeShape()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        XDocument mark = XDocument.Load(
+            Path.Combine(
+                repoRoot,
+                "src",
+                "TokenUsage.App",
+                "Assets",
+                "ProviderMarks",
+                "cursor.svg"));
+
+        Assert.Equal("0 0 466.73 533.32", (string?)mark.Root?.Attribute("viewBox"));
+        Assert.Equal(5, mark.Descendants().Count(element => element.Name.LocalName == "path"));
+        Assert.Equal(
+            ["#72716d", "#55544f", "#43413c", "#d6d5d2", "#fff"],
+            mark.Descendants()
+                .Attributes("fill")
+                .Select(attribute => attribute.Value)
+                .ToArray());
+    }
+
+    [Fact]
+    public void CompactProviderTabsRenderTheProviderMark()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        XDocument dashboard = XDocument.Load(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Dashboard",
+            "CompactUsageDashboard.xaml"));
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        XElement tab = dashboard
+            .Descendants(xaml + "RadioButton")
+            .Single(element => string.Equals(
+                (string?)element.Attribute("GroupName"),
+                "CompactProviderTabs",
+                StringComparison.Ordinal));
+        XElement mark = tab.Descendants().Single(element =>
+            string.Equals(element.Name.LocalName, "ProviderMarkImage", StringComparison.Ordinal));
+
+        Assert.Equal("{x:Bind ProviderId}", (string?)mark.Attribute("ProviderId"));
+        Assert.Equal("14", (string?)mark.Attribute("Width"));
+        Assert.Equal("14", (string?)mark.Attribute("Height"));
+    }
+
+    [Fact]
+    public void CurrentOpenUsageProviderMarksArePackagedWithVisibleFills()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string[] assetNames =
+        [
+            "antigravity.svg",
+            "claude.svg",
+            "codex.svg",
+            "copilot.svg",
+            "cursor.svg",
+            "devin.svg",
+            "grok.svg",
+            "opencode.svg",
+            "openrouter.svg",
+            "zai.svg",
+        ];
+
+        foreach (string assetName in assetNames)
+        {
+            XDocument mark = XDocument.Load(Path.Combine(
+                repoRoot,
+                "src",
+                "TokenUsage.App",
+                "Assets",
+                "ProviderMarks",
+                assetName));
+            string[] fills = mark
+                .Descendants()
+                .Attributes("fill")
+                .Select(attribute => attribute.Value)
+                .Where(value => !string.Equals(value, "none", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            Assert.NotEmpty(fills);
+            Assert.DoesNotContain(fills, value => string.Equals(
+                value,
+                "currentColor",
+                StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     private static XElement FindThemeDictionary(
         XDocument resources,
         string theme,

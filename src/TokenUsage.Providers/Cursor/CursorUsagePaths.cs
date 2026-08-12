@@ -21,4 +21,16 @@ public static class CursorUsagePaths
             "cursor",
             SpoolFileName);
     }
+
+    public static string ResolveStateDatabasePath(string? roamingAppDataDirectory = null)
+    {
+        string roamingAppData = roamingAppDataDirectory
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return Path.Combine(
+            Path.GetFullPath(roamingAppData),
+            "Cursor",
+            "User",
+            "globalStorage",
+            "state.vscdb");
+    }
 }

@@ -391,6 +391,18 @@ public sealed record ProviderCapabilityRow(
     public string AutomationName => $"{Label}: {Value}";
 }
 
+public enum ProviderStatusKind
+{
+    Neutral,
+    Available,
+    Partial,
+    Missing,
+    Pending,
+    Prepared,
+    Optional,
+    Blocked,
+}
+
 public sealed record ProviderStatusRow(
     string ProviderId,
     string Name,
@@ -399,7 +411,45 @@ public sealed record ProviderStatusRow(
     IReadOnlyList<ProviderCapabilityRow> Capabilities,
     string AutomationId)
 {
-    public string AutomationName => $"{Name}. {RootState}. {RecoveryText}";
+    public ProviderStatusKind StatusKind { get; init; } = ProviderStatusKind.Neutral;
+
+    public string CompactState { get; init; } = RootState;
+
+    public string StatusGlyph => StatusKind switch
+    {
+        ProviderStatusKind.Available => "\uE73E",
+        ProviderStatusKind.Partial => "\uE7BA",
+        ProviderStatusKind.Missing => "\uE711",
+        ProviderStatusKind.Pending => "\uE823",
+        ProviderStatusKind.Blocked => "\uE711",
+        _ => "\uE946",
+    };
+
+    public bool IsAvailableStatus => StatusKind == ProviderStatusKind.Available;
+
+    public bool IsWarningStatus => StatusKind is ProviderStatusKind.Partial
+        or ProviderStatusKind.Pending;
+
+    public bool IsUnavailableStatus => StatusKind is ProviderStatusKind.Missing
+        or ProviderStatusKind.Blocked;
+
+    public bool IsNeutralStatus => !IsAvailableStatus
+        && !IsWarningStatus
+        && !IsUnavailableStatus;
+
+    public string DetailsAutomationId => $"{AutomationId}.Details";
+
+    public string DetailsText => string.Join(
+        Environment.NewLine,
+        new[] { $"{Name} · {RootState}" }
+            .Concat(Capabilities.Select(capability => capability.AutomationName))
+            .Append(RecoveryText));
+
+    public string AutomationName => string.Join(
+        ". ",
+        new[] { Name, RootState }
+            .Concat(Capabilities.Select(capability => capability.AutomationName))
+            .Append(RecoveryText));
 }
 
 public sealed record LocalUsagePeriodRow(

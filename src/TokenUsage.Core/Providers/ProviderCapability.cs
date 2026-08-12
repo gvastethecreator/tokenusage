@@ -5,6 +5,7 @@ public enum ProviderCapability
     Limits,
     LocalUsage,
     Spend,
+    Usage,
 }
 
 public sealed record CapabilityId

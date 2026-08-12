@@ -4,7 +4,7 @@ Fecha de corte: 2026-08-11
 
 Estado temporal: Vercel AI Gateway queda fuera del catálogo activo desde el Ticket 117. Su implementación se conserva para reactivarla en una entrega posterior.
 
-Upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
+Upstream de paridad: `robinebers/openusage@487cc8f19a9a28676f6924aafa48dee79ad7a7f6`
 
 Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
@@ -17,6 +17,24 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 - `Experimental`: fuente frágil; sin promesa de soporte.
 - `Bloqueado`: la fuente conocida no se puede usar en una build pública.
 
+## Base de módulos OpenUsage
+
+El catálogo de runtime ya representa los diez proveedores del upstream de
+paridad sin confundir identidad con disponibilidad de datos:
+
+- `Active`: Codex, Cursor, Antigravity, Grok Build y OpenCode.
+- `OptIn`: Claude, con su lector local existente desactivado por defecto.
+- `Prepared`: GitHub Copilot, Devin y OpenRouter. Tienen identidad, capacidades,
+  icono y estado visible, pero no crean readers ni conexiones.
+- `PolicyBlocked`: Z.ai. Conserva identidad y capacidades investigadas, sin leer
+  credenciales ni invocar endpoints privados.
+
+La vista simulada cubre los diez IDs para desarrollo visual. Sus registros usan
+procedencia `sample` y no entran en almacenamiento, informes ni totales reales.
+El inventario ampliado del otro proyecto homónimo OpenUsage.sh queda documentado
+en [la investigación de paridad](research/2026-08-11-openusage-provider-parity.md)
+como una fase distinta; no agrega 25 integraciones ficticias a esta build.
+
 ## Resumen
 
 | Proveedor | Cuota en vivo | Tokens y gasto local | Fuente elegida | Estado | Entrega |
@@ -27,7 +45,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 | Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
-| Cursor | No con el contrato actual | Sí, Agent local desde opt-in; facturable para equipos | hook `stop` numérico; Admin API futura | Local experimental | Integrado; costo y cuota pendientes |
+| Cursor | No con el contrato actual | Sí, contexto estimado de Agent local; facturable para equipos | SQLite local con proyección allowlist; Admin API futura | Local parcial | Integrado; costo y cuota pendientes |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
 | ZCode | Bloqueada sin contrato público | Bloqueados sin exportación segura | Hooks sin tokens; UI sin API | Bloqueado | Revalidado en 3.7.6; Ticket 49 `needs-info` |
 | Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
@@ -475,9 +493,9 @@ Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gat
 
 ### Fuente elegida
 
-Para cuentas individuales, TokenUsage instala de forma explícita un hook de usuario `stop`. El hook descarta el payload original y guarda solo tokens de entrada, salida y caché, modelo, versión de Cursor, hora local de recepción y un hash de la conversación y generación. No guarda prompts, respuestas, rutas, correo, comandos, transcript ni IDs sin hash.
+Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo lectura y proyecta únicamente el modelo, los timestamps y el total de contexto estimado que Cursor guarda en cada `composerData:`. La consulta no devuelve el valor completo, prompts, respuestas, rutas, correo, comandos, transcript, credenciales ni IDs sin hash.
 
-La fuente está ligada al contrato observado en Cursor `3.15.6`. Los campos de tokens llegan al hook, pero aún no forman parte del esquema público. Por eso la app marca la lectura como local, parcial y sin precio. El comando `tokenusage cursor install-hook` instala el colector; `status` lo comprueba y `uninstall-hook` lo quita sin tocar otros hooks.
+La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial, estimada y sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens.
 
 La Admin API pública de Cursor sigue siendo la fuente facturable para Teams y Enterprise. Requiere una clave administrativa separada y no reutiliza el login del editor. Queda fuera de esta integración individual hasta añadir una conexión manual y un smoke autorizado.
 
@@ -485,14 +503,14 @@ Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso i
 
 ### Cobertura y política
 
-- Individual: tokens de Agent locales desde que se instala el hook; sin historial previo, Tab, agentes cloud, cuota ni costo.
-- Teams: el hook local conserva la misma cobertura parcial; gasto y facturación requieren una futura conexión Admin API.
+- Individual: estimación del contexto actual de conversaciones Agent retenidas localmente; sin Tab, agentes cloud, cuota ni costo.
+- Teams: la lectura local conserva la misma cobertura parcial; gasto y facturación requieren una futura conexión Admin API.
 - Business: nombre legado que puede aparecer en eventos; usa la semántica de Teams.
 - Enterprise: mismo contrato por conexión configurada; varias conexiones no se mezclan por correo.
 
-Quedan prohibidos `state.vscdb`, bases de conversaciones, AI Code Tracking, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado. El scanner solo abre el spool numérico que TokenUsage creó.
+Dentro de `state.vscdb` solo se permite `cursorDiskKV` con claves `composerData:` y una proyección JSON fija de metadatos escalares. Quedan prohibidos el resto de sus tablas y valores, bases de búsqueda, AI Code Tracking, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado.
 
-Gate local resuelto como `experimental-opt-in`. El smoke sintético confirma que el hook no persiste campos de contenido. La Admin API conserva su gate manual aparte.
+Gate local resuelto como `integrated-local-estimate`. Las pruebas confirman identidad estable, reemplazo de snapshots y lectura de los campos allowlist. La Admin API conserva su gate manual aparte.
 
 Investigación: [fuente local Cursor 3.15.6](research/2026-08-11-cursor-local-usage-source.md) y [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md).
 
@@ -575,7 +593,7 @@ Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/
 5. Spike pasivo Antigravity CLI con una `.db` real.
 6. OpenRouter con clave manual.
 7. Reabrir Z.ai solo con contrato público o permiso escrito.
-8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado; el hook local Cursor ya está integrado.
+8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado; la estimación local de Cursor ya está integrada.
 9. Cuota Claude o Grok tras permiso o interfaz pública.
 10. Devin experimental para ACUs de organización mediante API v3.
 11. Kilo Code tras cerrar el contrato de `kilo stats`; Zed solo tras una fuente

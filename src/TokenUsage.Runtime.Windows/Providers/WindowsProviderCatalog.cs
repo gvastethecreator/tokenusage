@@ -5,6 +5,7 @@ using TokenUsage.Providers.Antigravity;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Providers.Cursor;
+using TokenUsage.Providers.Catalog;
 using TokenUsage.Providers.Grok;
 using TokenUsage.Providers.OpenCode;
 using TokenUsage.Runtime.Windows.Codex;
@@ -18,54 +19,53 @@ public sealed class WindowsProviderCatalogEntry
     private readonly Func<string, IRootDetectingUsageEventSource>? _localUsageFactory;
 
     internal WindowsProviderCatalogEntry(
-        string id,
-        string displayName,
-        IEnumerable<ProviderCapability> capabilities,
+        ProviderModuleDefinition module,
         string? cacheDirectoryName,
         string? localUsageAgentId,
         string? detectionCheckId,
-        string dataCheckId,
-        bool isEnabledByDefault = true,
+        string? dataCheckId,
         Func<CompositionContext, ProviderBinding>? compose = null,
         Func<string, IRootDetectingUsageEventSource>? localUsageFactory = null)
     {
-        Id = new ProviderId(id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
-        ArgumentNullException.ThrowIfNull(capabilities);
-        ProviderCapability[] capabilityArray = capabilities.Distinct().ToArray();
-        if (capabilityArray.Length == 0 || capabilityArray.Any(value => !Enum.IsDefined(value)))
-        {
-            throw new ArgumentException(
-                "At least one valid provider capability is required.",
-                nameof(capabilities));
-        }
+        Module = module ?? throw new ArgumentNullException(nameof(module));
 
         if (cacheDirectoryName is not null)
         {
             _ = new ProviderId(cacheDirectoryName);
         }
 
-        DisplayName = displayName;
-        Capabilities = Array.AsReadOnly(capabilityArray);
         CacheDirectoryName = cacheDirectoryName;
         LocalUsageAgentId = localUsageAgentId is null ? null : new AgentId(localUsageAgentId);
         DetectionCheckId = detectionCheckId;
-        ArgumentException.ThrowIfNullOrWhiteSpace(dataCheckId);
         DataCheckId = dataCheckId;
-        IsEnabledByDefault = isEnabledByDefault;
         _compose = compose;
         _localUsageFactory = localUsageFactory;
-        if (_compose is null && _localUsageFactory is null)
+        bool needsRuntime = module.Stage is ProviderModuleStage.Active or ProviderModuleStage.OptIn;
+        if (needsRuntime && (_compose is null && _localUsageFactory is null))
         {
             throw new ArgumentException("A provider integration factory is required.");
         }
+
+        if (needsRuntime && string.IsNullOrWhiteSpace(dataCheckId))
+        {
+            throw new ArgumentException("A provider data check is required.", nameof(dataCheckId));
+        }
+
+        if (!needsRuntime && (_compose is not null || _localUsageFactory is not null))
+        {
+            throw new ArgumentException("A prepared provider cannot activate a runtime factory.");
+        }
     }
 
-    public ProviderId Id { get; }
+    public ProviderModuleDefinition Module { get; }
 
-    public string DisplayName { get; }
+    public ProviderId Id => Module.Id;
 
-    public IReadOnlyList<ProviderCapability> Capabilities { get; }
+    public string DisplayName => Module.DisplayName;
+
+    public IReadOnlyList<ProviderCapability> Capabilities => Module.Capabilities;
+
+    public ProviderModuleStage Stage => Module.Stage;
 
     public string? CacheDirectoryName { get; }
 
@@ -73,9 +73,9 @@ public sealed class WindowsProviderCatalogEntry
 
     public string? DetectionCheckId { get; }
 
-    public string DataCheckId { get; }
+    public string? DataCheckId { get; }
 
-    public bool IsEnabledByDefault { get; }
+    public bool IsEnabledByDefault => Stage == ProviderModuleStage.Active;
 
     public IRootDetectingUsageEventSource? CreateLocalUsageSource(string timeZoneId)
     {
@@ -126,23 +126,14 @@ public static class WindowsProviderCatalog
         Array.AsReadOnly<WindowsProviderCatalogEntry>(
         [
             new(
-                "claude",
-                "Claude",
-                [ProviderCapability.LocalUsage],
+                ProviderModuleCatalog.Get("claude"),
                 cacheDirectoryName: null,
                 localUsageAgentId: "claude",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-claude",
-                isEnabledByDefault: false,
                 localUsageFactory: timeZoneId => new ClaudeUsageEventSource(timeZoneId)),
             new(
-                "codex",
-                "Codex",
-                [
-                    ProviderCapability.Limits,
-                    ProviderCapability.LocalUsage,
-                    ProviderCapability.Spend,
-                ],
+                ProviderModuleCatalog.Get("codex"),
                 cacheDirectoryName: "codex",
                 localUsageAgentId: "codex",
                 detectionCheckId: "codex-cli",
@@ -162,58 +153,79 @@ public static class WindowsProviderCatalog
                         clock: context.Clock)),
                 localUsageFactory: timeZoneId => new CodexUsageEventSource(timeZoneId)),
             new(
-                "grok",
-                "Grok Build",
-                [ProviderCapability.LocalUsage],
+                ProviderModuleCatalog.Get("grok"),
                 cacheDirectoryName: null,
                 localUsageAgentId: "grok",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-grok",
                 localUsageFactory: timeZoneId => new GrokUsageEventSource(timeZoneId)),
             new(
-                "opencode",
-                "OpenCode",
-                [ProviderCapability.LocalUsage],
+                ProviderModuleCatalog.Get("opencode"),
                 cacheDirectoryName: null,
                 localUsageAgentId: "opencode",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-opencode",
                 localUsageFactory: timeZoneId => new OpenCodeUsageEventSource(timeZoneId)),
             new(
-                "antigravity",
-                "Antigravity",
-                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderModuleCatalog.Get("antigravity"),
                 cacheDirectoryName: null,
                 localUsageAgentId: "antigravity",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-antigravity",
                 localUsageFactory: timeZoneId => new AntigravityUsageEventSource(timeZoneId)),
             new(
-                "cursor",
-                "Cursor",
-                [ProviderCapability.LocalUsage],
+                ProviderModuleCatalog.Get("cursor"),
                 cacheDirectoryName: null,
                 localUsageAgentId: "cursor",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-cursor",
                 localUsageFactory: timeZoneId => new CursorUsageEventSource(timeZoneId)),
             new(
-                "vercel-ai-gateway",
-                "Vercel AI Gateway",
-                [ProviderCapability.Limits, ProviderCapability.Spend],
+                ProviderModuleCatalog.Get("copilot"),
+                cacheDirectoryName: null,
+                localUsageAgentId: null,
+                detectionCheckId: null,
+                dataCheckId: null),
+            new(
+                ProviderModuleCatalog.Get("devin"),
+                cacheDirectoryName: null,
+                localUsageAgentId: null,
+                detectionCheckId: null,
+                dataCheckId: null),
+            new(
+                ProviderModuleCatalog.Get("openrouter"),
+                cacheDirectoryName: null,
+                localUsageAgentId: null,
+                detectionCheckId: null,
+                dataCheckId: null),
+            new(
+                ProviderModuleCatalog.Get("zai"),
+                cacheDirectoryName: null,
+                localUsageAgentId: null,
+                detectionCheckId: null,
+                dataCheckId: null),
+            new(
+                ProviderModuleCatalog.Get("vercel-ai-gateway"),
                 cacheDirectoryName: "vercel-ai-gateway",
                 localUsageAgentId: null,
                 detectionCheckId: "vercel-ai-gateway-credential",
                 dataCheckId: "vercel-ai-gateway-cache",
-                isEnabledByDefault: false,
                 compose: CreateVercelBinding),
         ]);
+
+    public static IReadOnlyList<WindowsProviderCatalogEntry> AllEntries { get; } = Catalog;
 
     public static IReadOnlyList<WindowsProviderCatalogEntry> Entries { get; } =
         Array.AsReadOnly(Catalog.Where(entry => entry.IsEnabledByDefault).ToArray());
 
     public static IReadOnlyList<WindowsProviderCatalogEntry> DeferredEntries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => !entry.IsEnabledByDefault).ToArray());
+        Array.AsReadOnly(Catalog.Where(entry => entry.Stage == ProviderModuleStage.OptIn).ToArray());
+
+    public static IReadOnlyList<WindowsProviderCatalogEntry> PreparedEntries { get; } =
+        Array.AsReadOnly(Catalog.Where(entry => entry.Stage == ProviderModuleStage.Prepared).ToArray());
+
+    public static IReadOnlyList<WindowsProviderCatalogEntry> PolicyBlockedEntries { get; } =
+        Array.AsReadOnly(Catalog.Where(entry => entry.Stage == ProviderModuleStage.PolicyBlocked).ToArray());
 
     public static WindowsProviderComposition CreateComposition(
         string dataDirectory,
@@ -239,7 +251,7 @@ public static class WindowsProviderCatalog
             vercelHttpClient,
             options.VercelCoordinator);
         ProviderBinding[] bindings = Catalog
-            .Where(entry => entry.IsEnabledByDefault
+            .Where(entry => entry.Stage == ProviderModuleStage.Active
                 || options.EnableClaudeLocalUsage && entry.Id.Value == "claude"
                 || options.EnableVercelGateway && entry.Id.Value == "vercel-ai-gateway")
             .Select(entry => entry.Compose(context))
