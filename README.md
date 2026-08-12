@@ -107,6 +107,21 @@ Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
 TokenUsage uses C#, WinUI 3, Windows App SDK, and a full-trust MSIX package. `AnyCPU` and `x86` are not supported.
 
+## Release downloads
+
+Published releases can include two Windows x64 files:
+
+- A signed MSIX package for normal installation
+- A portable ZIP that does not require installation
+
+The portable ZIP contains the app and CLI. Both use the `Data` folder beside the executable files.
+
+Keep `TokenUsage.portable` in the extracted folder. Move the complete folder when you move or update the portable app.
+
+The MSIX and portable builds use separate data folders. Installing one build does not delete or import data from the other build.
+
+Read the [release procedure](docs/RELEASING.md) for build, signature, and publication details.
+
 ## Build and run
 
 Build from PowerShell at the repository root:

@@ -12,6 +12,7 @@ using TokenUsage.App.ViewModels.Tray;
 using TokenUsage.Core.Session;
 using TokenUsage.Platform.Windows.Display;
 using TokenUsage.Platform.Windows.Placement;
+using TokenUsage.Platform.Windows.Storage;
 using TokenUsage.Platform.Windows.Tray;
 using TokenUsage.Platform.Windows.Windowing;
 using WinRT.Interop;
@@ -581,10 +582,10 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         if (_reportWindow is null)
         {
-            string databasePath = AppComposition.GetUsageDatabasePath(
-                ApplicationData.Current.LocalFolder.Path);
-            string resetHistoryPath = AppComposition.GetQuotaResetHistoryPath(
-                ApplicationData.Current.LocalFolder.Path);
+            string localFolderPath = TokenUsageDataDirectory.Resolve(
+                () => ApplicationData.Current.LocalFolder.Path);
+            string databasePath = AppComposition.GetUsageDatabasePath(localFolderPath);
+            string resetHistoryPath = AppComposition.GetQuotaResetHistoryPath(localFolderPath);
             PlatformRect? iconBounds = _trayIcon is not null
                 && _trayIcon.TryGetIconBounds(out PlatformRect trayIconBounds)
                     ? trayIconBounds

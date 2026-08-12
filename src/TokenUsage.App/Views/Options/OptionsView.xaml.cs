@@ -5,6 +5,8 @@ using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Appearance;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.ApplicationModel;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace TokenUsage.App.Views.Options;
 
@@ -46,11 +48,11 @@ public sealed partial class OptionsView : UserControl
     {
         get
         {
-            PackageVersion version = Package.Current.Id.Version;
+            string version = GetProductVersion();
             return string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 GetString("AboutVersionFormat"),
-                $"{version.Major}.{version.Minor}.{version.Build}");
+                version);
         }
     }
 
@@ -67,5 +69,23 @@ public sealed partial class OptionsView : UserControl
         return string.IsNullOrWhiteSpace(value)
             ? throw new InvalidOperationException($"The resource '{key}' is missing.")
             : value;
+    }
+
+    private static string GetProductVersion()
+    {
+        try
+        {
+            PackageVersion version = Package.Current.Id.Version;
+            return $"{version.Major}.{version.Minor}.{version.Build}";
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or COMException)
+        {
+            string? informationalVersion = typeof(OptionsView).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion;
+            return informationalVersion?.Split('+', 2)[0]
+                ?? typeof(OptionsView).Assembly.GetName().Version?.ToString(3)
+                ?? "0.0.1";
+        }
     }
 }
