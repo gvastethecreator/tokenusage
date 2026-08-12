@@ -44,7 +44,7 @@ public sealed class ClaudeUsageEventSource :
 
     public string EventParserVersion => ParserVersion;
 
-    public int ReconciliationWindowDays => 35;
+    public int ReconciliationWindowDays => UsagePeriodPolicy.ReconciliationDays;
 
     public bool IsRootAvailable => ClaudeConfigLocator.FindProjectDirectories(
         _homeDirectory,

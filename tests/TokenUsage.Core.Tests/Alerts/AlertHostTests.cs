@@ -74,6 +74,41 @@ public sealed class AlertHostTests
     }
 
     [Fact]
+    public async Task HostLeavesTheDecisionRecordAloneWhenNothingCrossesAThreshold()
+    {
+        using var folder = new TemporaryFolder();
+        string decisionPath = Path.Combine(folder.Root, AlertDecisionStore.DefaultFileName);
+        var settingsStore = new AlertSettingsStore(
+            Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName));
+        var decisionStore = new AlertDecisionStore(decisionPath);
+        await settingsStore.SaveAsync(new AlertSettings(
+            enabled: true,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: true,
+            exhaustionForecastEnabled: true,
+            staleDataEnabled: true,
+            credentialFailureEnabled: true));
+
+        // A file the store cannot parse is quarantined the moment it is read, so the file staying
+        // in place is proof the read never happened.
+        await File.WriteAllTextAsync(decisionPath, "{ not json");
+        var host = new AlertHost(decisionStore, settingsStore);
+
+        IReadOnlyList<AlertNotificationIntent> quiet = await host.EvaluateAsync(
+            Now,
+            [CreateFacts(remainingPercent: 90m)]);
+
+        Assert.Empty(quiet);
+        Assert.True(File.Exists(decisionPath));
+
+        IReadOnlyList<AlertNotificationIntent> crossing = await host.EvaluateAsync(
+            Now,
+            [CreateFacts(remainingPercent: 5m)]);
+
+        Assert.Single(crossing);
+    }
+
+    [Fact]
     public void EvaluatorStillProducesThresholdCandidates()
     {
         var settings = new AlertSettings(
@@ -99,6 +134,18 @@ public sealed class AlertHostTests
         Assert.Single(candidates);
         Assert.Equal(AlertKind.QuotaThreshold, candidates[0].ConditionKey.Kind);
     }
+
+    private static ProviderAlertFacts CreateFacts(decimal remainingPercent) => new(
+        new ProviderId("codex"),
+        isStale: false,
+        hasCredentialFailure: false,
+        [
+            new QuotaAlertFacts(
+                new MetricId("session"),
+                remainingPercent,
+                resetsAtUtc: Now.AddDays(1),
+                projectedExhaustionAtUtc: null),
+        ]);
 
     private static ProviderSnapshot CreateSnapshot(decimal used, decimal limit, DateTimeOffset observedAt) =>
         new(

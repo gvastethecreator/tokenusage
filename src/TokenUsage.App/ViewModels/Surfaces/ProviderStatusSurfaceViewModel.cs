@@ -289,17 +289,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         };
 
     private string GetCompactState(ProviderStatusKind kind) =>
-        _getString(kind switch
-        {
-            ProviderStatusKind.Available => "ProviderStatusSummaryAvailable",
-            ProviderStatusKind.Partial => "ProviderStatusSummaryPartial",
-            ProviderStatusKind.Missing => "ProviderStatusSummaryMissing",
-            ProviderStatusKind.Pending => "ProviderStatusSummaryPending",
-            ProviderStatusKind.Prepared => "ProviderStatusSummaryPrepared",
-            ProviderStatusKind.Optional => "ProviderStatusSummaryOptional",
-            ProviderStatusKind.Blocked => "ProviderStatusSummaryBlocked",
-            _ => "ProviderStatusUnavailable",
-        });
+        _getString(ProviderStatusPolicy.CompactStateKey(kind));
 
     private static ProviderStatusRow MergeCodex(
         ProviderStatusRow quotaStatus,

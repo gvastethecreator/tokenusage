@@ -84,6 +84,7 @@ public sealed partial class MainWindow : Window, IDisposable
         Closed += OnWindowClosed;
 
         AppWindow.Hide();
+        RootPage.ViewModel.SetPanelVisible(false);
         InstallTrayIcon();
 
         if (showTraySummaryForTest)
@@ -222,6 +223,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ApplyAppearance();
         PositionFlyout();
         _isFlyoutVisible = true;
+        RootPage.ViewModel.SetPanelVisible(true);
         AppWindow.Show();
         ApplyBorderlessChrome();
         _systemVisualSettingsTimer.Start();
@@ -265,10 +267,12 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _hasRequestedInitialOfficialLimits = true;
-        if (!RootPage.ViewModel.Dashboard.HasGlobalCodexLimits)
+        if (!RootPage.ViewModel.Dashboard.HasGlobalCodexLimits
+            && !RootPage.ViewModel.Dashboard.HasCompletedForcedRefresh)
         {
             // Run after the window is active so this follows the same stable UI/session path
-            // as the refresh action instead of racing the hidden startup surface.
+            // as the refresh action instead of racing the hidden startup surface. Startup may
+            // have already forced this pass, and repeating it finds nothing new.
             _ = RootPage.ViewModel.Dashboard.RefreshLiveAsync();
         }
     }
@@ -700,6 +704,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
         AppWindow.Hide();
         _isFlyoutVisible = false;
+        RootPage.ViewModel.SetPanelVisible(false);
         _activationGuardTimer.Stop();
         _systemVisualSettingsTimer.Stop();
         _suppressDeactivateHide = false;

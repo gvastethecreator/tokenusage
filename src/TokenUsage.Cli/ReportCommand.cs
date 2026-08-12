@@ -574,9 +574,7 @@ public static class ReportCommand
             CultureInfo.InvariantCulture,
             $"  {name.PadRight(nameWidth)} {tokens,12:N0} {cost,14:0.######} {coverage,8:0.0}%");
 
-    private static string FormatCost(decimal? value) => value is null
-        ? "unavailable"
-        : value.Value.ToString("0.######", CultureInfo.InvariantCulture);
+    private static string FormatCost(decimal? value) => CliCostText.Format(value);
 
     private static string CoverageName(CoverageKind coverage) => coverage switch
     {

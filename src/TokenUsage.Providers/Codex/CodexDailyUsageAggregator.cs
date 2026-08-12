@@ -1,3 +1,5 @@
+using TokenUsage.Core.Usage;
+
 namespace TokenUsage.Providers.Codex;
 
 public sealed record CodexLocalUsageTotals(
@@ -29,7 +31,7 @@ public static class CodexDailyUsageAggregator
                 TimeZoneInfo.ConvertTime(observedAtUtc, timeZone).DateTime);
             DateOnly yesterday = today.AddDays(-1);
             DateOnly first7Day = today.AddDays(-6);
-            DateOnly first30Day = today.AddDays(-29);
+            DateOnly first30Day = UsagePeriodPolicy.RollingDisplayStart(today);
             var dates = new HashSet<DateOnly>();
             long? todayTokens = null;
             long? yesterdayTokens = null;

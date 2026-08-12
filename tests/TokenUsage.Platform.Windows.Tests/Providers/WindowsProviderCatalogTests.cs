@@ -45,6 +45,44 @@ public sealed class WindowsProviderCatalogTests
     }
 
     [Fact]
+    public void CatalogNamesTheToolsReadFromDiskSoNoScreenKeepsItsOwnList()
+    {
+        string[] localUsageIds = ProviderModuleCatalog.ActiveLocalUsageEntries
+            .Select(entry => entry.Id.Value)
+            .Order()
+            .ToArray();
+
+        Assert.Equal(
+            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode"],
+            localUsageIds);
+        Assert.All(localUsageIds, id => Assert.True(
+            ProviderModuleCatalog.IsActiveLocalUsageProvider(id)));
+        Assert.False(ProviderModuleCatalog.IsActiveLocalUsageProvider("vercel-ai-gateway"));
+        Assert.False(ProviderModuleCatalog.IsActiveLocalUsageProvider("gemini-cli"));
+        Assert.False(ProviderModuleCatalog.IsActiveLocalUsageProvider("unknown"));
+    }
+
+    [Fact]
+    public void CatalogRecordsWhichProvidersKeepTheirQuotaOutOfReach()
+    {
+        Assert.Equal(
+            ["antigravity", "grok"],
+            ProviderModuleCatalog.Entries
+                .Where(entry => entry.IsQuotaBlocked)
+                .Select(entry => entry.Id.Value)
+                .Order());
+        Assert.False(ProviderModuleCatalog.Get("codex").IsQuotaBlocked);
+        Assert.Throws<ArgumentException>(() => new ProviderModuleDefinition(
+            "quota-contradiction",
+            "Quota contradiction",
+            [ProviderCapability.Limits],
+            ProviderModuleStage.Active,
+            ProviderReference.CodeBurn,
+            aliases: null,
+            isQuotaBlocked: true));
+    }
+
+    [Fact]
     public void OpenUsageParityCatalogHasEveryCurrentProviderOnce()
     {
         ProviderModuleDefinition[] entries = ProviderModuleCatalog.OpenUsageEntries.ToArray();
