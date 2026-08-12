@@ -7,7 +7,13 @@ param(
 
     [Parameter()]
     [ValidateSet('Debug', 'Release')]
-    [string] $Configuration = 'Debug'
+    [string] $Configuration = 'Debug',
+
+    [Parameter()]
+    [string] $PackageCertificateKeyFile,
+
+    [Parameter()]
+    [string] $PackageCertificatePassword
 )
 
 $ErrorActionPreference = 'Stop'
@@ -79,6 +85,29 @@ if (-not (Test-Path -LiteralPath $packageProject)) {
 
 $script:MSBuild = Resolve-MSBuild
 
+if ($PackageCertificatePassword -and -not $PackageCertificateKeyFile) {
+    throw 'PackageCertificateKeyFile is required when PackageCertificatePassword is set.'
+}
+
+$packageBuildArguments = @(
+    $solution,
+    '/restore',
+    "/p:Configuration=$Configuration",
+    "/p:Platform=$Platform",
+    '/p:GenerateAppxPackageOnBuild=true',
+    '/verbosity:minimal',
+    '/nologo'
+)
+
+if ($PackageCertificateKeyFile) {
+    $resolvedCertificate = (Resolve-Path -LiteralPath $PackageCertificateKeyFile).Path
+    $packageBuildArguments += '/p:AppxPackageSigningEnabled=true'
+    $packageBuildArguments += "/p:PackageCertificateKeyFile=$resolvedCertificate"
+    if ($PackageCertificatePassword) {
+        $packageBuildArguments += "/p:PackageCertificatePassword=$PackageCertificatePassword"
+    }
+}
+
 foreach ($testProject in @($architectureTests, $coreTests, $cliTests, $providerTests, $platformWindowsTests)) {
     if (-not (Test-Path -LiteralPath $testProject)) {
         throw "Missing test project: $testProject"
@@ -127,15 +156,7 @@ try {
         '--verbosity', 'minimal'
     )
 
-    Invoke-MSBuildStep 'Solution and package build' @(
-        $solution,
-        '/restore',
-        "/p:Configuration=$Configuration",
-        "/p:Platform=$Platform",
-        '/p:GenerateAppxPackageOnBuild=true',
-        '/verbosity:minimal',
-        '/nologo'
-    )
+    Invoke-MSBuildStep 'Solution and package build' $packageBuildArguments
 }
 finally {
     Pop-Location

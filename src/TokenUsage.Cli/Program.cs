@@ -1,5 +1,6 @@
 using Windows.Storage;
 using TokenUsage.Cli;
+using TokenUsage.Platform.Windows.Storage;
 
 if (CliApplication.IsHelpRequest(args))
 {
@@ -16,15 +17,8 @@ if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal
 string dataDirectory;
 try
 {
-    string? dataDirectoryOverride =
-        Environment.GetEnvironmentVariable("TOKENUSAGE_DATA_DIR");
-    if (dataDirectoryOverride is not null && string.IsNullOrWhiteSpace(dataDirectoryOverride))
-    {
-        throw new InvalidOperationException("The data directory override is empty.");
-    }
-
-    dataDirectory = dataDirectoryOverride ?? ApplicationData.Current.LocalFolder.Path;
-    dataDirectory = Path.GetFullPath(dataDirectory);
+    dataDirectory = TokenUsageDataDirectory.Resolve(
+        () => ApplicationData.Current.LocalFolder.Path);
 }
 catch (Exception)
 {

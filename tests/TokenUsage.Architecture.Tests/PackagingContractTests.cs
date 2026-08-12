@@ -111,6 +111,36 @@ public sealed class PackagingContractTests
             (string?)packageManifest.Root!.Element(Package + "Identity")!.Attribute("Version"));
     }
 
+    [Theory]
+    [InlineData("portable-x64.pubxml", "x64", "win-x64")]
+    [InlineData("portable-arm64.pubxml", "ARM64", "win-arm64")]
+    public void PortableProfilesAreUnpackagedAndSelfContained(
+        string profileName,
+        string platform,
+        string runtimeIdentifier)
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        XDocument profile = XDocument.Load(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "Properties",
+            "PublishProfiles",
+            profileName));
+
+        Assert.Equal(platform, profile.Descendants(MsBuild + "Platform").Single().Value);
+        Assert.Equal(
+            runtimeIdentifier,
+            profile.Descendants(MsBuild + "RuntimeIdentifier").Single().Value);
+        Assert.Equal("None", profile.Descendants(MsBuild + "WindowsPackageType").Single().Value);
+        Assert.Equal(
+            "true",
+            profile.Descendants(MsBuild + "WindowsAppSDKSelfContained").Single().Value);
+        Assert.Equal("true", profile.Descendants(MsBuild + "SelfContained").Single().Value);
+        Assert.Equal("false", profile.Descendants(MsBuild + "PublishSingleFile").Single().Value);
+        Assert.Equal("false", profile.Descendants(MsBuild + "PublishTrimmed").Single().Value);
+    }
+
     private static string PackagePath(string fileName) => Path.Combine(
         ProjectReferenceGraph.FindRepoRoot(),
         "src",
