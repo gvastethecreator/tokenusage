@@ -153,20 +153,18 @@ if (Test-Path -LiteralPath $packageOutput) {
 Push-Location $repoRoot
 try {
     if (-not $SkipTests) {
-        $checkArguments = @(
-            '-Platform', $Platform,
-            '-Configuration', 'Release'
-        )
+        $checkParameters = @{
+            Platform = $Platform
+            Configuration = 'Release'
+        }
         if ($PackageCertificateKeyFile) {
-            $checkArguments += '-PackageCertificateKeyFile'
-            $checkArguments += $PackageCertificateKeyFile
+            $checkParameters.PackageCertificateKeyFile = $PackageCertificateKeyFile
             if ($PackageCertificatePassword) {
-                $checkArguments += '-PackageCertificatePassword'
-                $checkArguments += $PackageCertificatePassword
+                $checkParameters.PackageCertificatePassword = $PackageCertificatePassword
             }
         }
 
-        & (Join-Path $repoRoot 'scripts\check.ps1') @checkArguments
+        & (Join-Path $repoRoot 'scripts\check.ps1') @checkParameters
         if ($LASTEXITCODE -ne 0) {
             throw "The release check failed with exit code $LASTEXITCODE."
         }
