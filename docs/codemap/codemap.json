@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-12T05:41:48Z",
-  "generated_from_commit": "6394a178634dec86414dd2f7f298f672d69ea05c",
+  "generated_at": "2026-08-12T06:15:27Z",
+  "generated_from_commit": "fa9b4d27b301ea48fcf332b8962c4ece0d9781fa",
   "scope": [
     "."
   ],
@@ -397,6 +397,10 @@
         "status": "verified",
         "locations": [
           {
+            "path": "src/TokenUsage.App/MainPage.xaml.cs",
+            "symbol": "TokenUsageDataDirectory"
+          },
+          {
             "path": "src/TokenUsage.App/MainWindow.xaml.cs",
             "symbol": "TrayIconHost"
           },
@@ -423,10 +427,6 @@
           {
             "path": "src/TokenUsage.App/MainWindow.xaml.cs",
             "symbol": "WindowBorderStyle"
-          },
-          {
-            "path": "src/TokenUsage.App/MainWindow.xaml.cs",
-            "symbol": "ForegroundWindowInspector"
           }
         ]
       }
@@ -585,6 +585,20 @@
           {
             "path": "src/TokenUsage.Cli/TokenUsage.Cli.csproj",
             "symbol": "..\\TokenUsage.Core\\TokenUsage.Core.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-cli",
+      "to": "src-tokenusage-platform-windows",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Cli/Program.cs",
+            "symbol": "TokenUsageDataDirectory"
           }
         ]
       }
