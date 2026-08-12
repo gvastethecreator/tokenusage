@@ -15,8 +15,6 @@ namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDisposable
 {
-    private static readonly string[] DefaultProviderIds =
-        ["codex", "opencode", "antigravity", "grok", "cursor", "claude", "amp", "mux", "goose", "hermes"];
     private readonly SampleDashboardSession _sampleSession;
     private readonly LiveDashboardSession _liveSession;
     private readonly GeneralOptionsViewModel _general;
@@ -310,6 +308,30 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     public bool AreAllProvidersHidden => _personalization.AreAllProvidersHidden;
 
+    /// <summary>
+    /// True once a presence probe or a scan has answered for every configured provider.
+    /// </summary>
+    public bool HasProviderDetection => _rawLocalUsage?.ProviderStatuses.Count > 0;
+
+    /// <summary>
+    /// True when detection ran and found no installed tool. This is a real state, not a
+    /// provider failure, so it deserves its own message.
+    /// </summary>
+    public bool HasNoDetectedProviders => !IsSampleModeEnabled
+        && HasProviderDetection
+        && DetectedProviderIds.Length == 0;
+
+    /// <summary>
+    /// Providers whose local root was found. A missing root means the tool is not installed,
+    /// so it must not appear in the dashboard list or the tray popover.
+    /// </summary>
+    private string[] DetectedProviderIds => _rawLocalUsage is null
+        ? []
+        : _rawLocalUsage.ProviderStatuses
+            .Where(status => status.StatusKind != ProviderStatusKind.Missing)
+            .Select(status => status.ProviderId)
+            .ToArray();
+
     public string Heading => _getString(
         IsSampleModeEnabled ? "SampleTotalSpendHeading" : "LiveDashboardHeading");
 
@@ -598,6 +620,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _hasLocalUsage = session.HasLocalUsage;
             RebuildProviderStatuses();
             OnPropertyChanged(nameof(IsLocalUsageVisible));
+            OnPropertyChanged(nameof(HasProviderDetection));
+            OnPropertyChanged(nameof(HasNoDetectedProviders));
             RebuildCompactProjection();
         }
 
@@ -700,6 +724,13 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             UnavailableBody = _getString("SampleUnavailableBody");
             RetryButtonText = _getString("SampleRetry");
             RetryAutomationName = _getString("SampleRetry");
+        }
+        else if (HasNoDetectedProviders)
+        {
+            UnavailableTitle = _getString("ProvidersUndetectedTitle");
+            UnavailableBody = _getString("ProvidersUndetectedBody");
+            RetryButtonText = _getString("SampleRetry");
+            RetryAutomationName = _getString("CodexRetry");
         }
         else
         {
@@ -842,7 +873,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             .Where(rollup => rollup.Date >= from && rollup.Date <= today)
             .ToArray();
 
-        DashboardProviderSummary[] summaries = rollups.Length == 0
+        DashboardProviderSummary[] summaries = IsSampleModeEnabled && rollups.Length == 0
             ? CreateFallbackProviderSummaries()
             : CreateProviderSummaries(rollups);
         ProviderSummaries = summaries;
@@ -919,7 +950,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private DashboardProviderSummary[] CreateProviderSummaries(
         IReadOnlyList<DailyUsageRollup> rollups)
     {
-        string[] providerIds = DefaultProviderIds
+        string[] providerIds = DetectedProviderIds
             .Concat(rollups.Select(rollup => rollup.AgentId.Value))
             .Distinct(StringComparer.Ordinal)
             .ToArray();

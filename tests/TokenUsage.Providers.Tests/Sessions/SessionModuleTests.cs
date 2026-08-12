@@ -341,7 +341,11 @@ public sealed class SessionModuleTests
             appSession,
             new LocalUsageCoordinator(
                 Path.Combine(folder.Root, "usage.db"),
-                new SingleCodexUsageSource(clock),
+                [
+                    new SingleCodexUsageSource(clock),
+                    new EmptyRootDetectingUsageSource("opencode", isRootAvailable: true),
+                    new EmptyRootDetectingUsageSource("grok", isRootAvailable: false),
+                ],
                 clock));
         using var surface = new DashboardSurfaceViewModel(
             new SampleDashboardSession(new SampleRefreshCoordinator(
@@ -380,6 +384,10 @@ public sealed class SessionModuleTests
         Assert.Equal("No data", openCode.CostText);
         Assert.Equal("No data", openCode.TokensText);
 
+        Assert.DoesNotContain(
+            "grok",
+            surface.ProviderSummaries.Select(summary => summary.ProviderId));
+
         surface.SelectProvider("opencode");
         Assert.False(surface.SelectedProviderHasData);
         Assert.StartsWith("No data yet.", surface.SelectedProviderCoverageHintText);
@@ -390,6 +398,58 @@ public sealed class SessionModuleTests
         surface.SelectProvider("codex");
         Assert.Contains("Partial read", surface.SelectedProviderCoverageHintText);
         Assert.Contains("Unpriced usage", surface.SelectedProviderCoverageHintText);
+    }
+
+    [Fact]
+    public async Task FirstInstallWithNoToolInstalledListsNoProviderAndSaysSo()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(
+            new DateTimeOffset(2026, 7, 25, 12, 0, 0, TimeSpan.Zero));
+        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var appearance = new AppearanceSurfaceViewModel(
+            new AppearanceSession(new AppearanceSettingsStore(
+                Path.Combine(folder.Root, "appearance.json"),
+                clock)),
+            key => key);
+        await appearance.Initialization;
+        var personalization = new PersonalizationSurfaceViewModel(
+            new DashboardLayoutEditor(new DashboardLayoutStore(
+                Path.Combine(folder.Root, "layout.json"),
+                clock)),
+            key => key);
+        await personalization.Initialization;
+        var providerStatus = new ProviderStatusSurfaceViewModel(key => key);
+        await using AppSessionHost appSession = CreateAppSession(folder.Root, clock);
+        var live = new LiveDashboardSession(
+            appSession,
+            new LocalUsageCoordinator(
+                Path.Combine(folder.Root, "usage.db"),
+                [
+                    new EmptyRootDetectingUsageSource("codex", isRootAvailable: false),
+                    new EmptyRootDetectingUsageSource("opencode", isRootAvailable: false),
+                ],
+                clock));
+        using var surface = new DashboardSurfaceViewModel(
+            new SampleDashboardSession(new SampleRefreshCoordinator(
+                Path.Combine(folder.Root, "sample"),
+                clock,
+                providerDelay: TimeSpan.Zero)),
+            live,
+            general,
+            appearance,
+            personalization,
+            providerStatus,
+            key => key,
+            synchronizationContext: null);
+
+        await surface.RefreshCommand.ExecuteAsync(null);
+
+        Assert.True(surface.HasProviderDetection);
+        Assert.True(surface.HasNoDetectedProviders);
+        Assert.Empty(surface.ProviderSummaries);
+        Assert.Equal("ProvidersUndetectedTitle", surface.UnavailableTitle);
+        Assert.Equal("ProvidersUndetectedBody", surface.UnavailableBody);
     }
 
     [Fact]
@@ -656,6 +716,29 @@ public sealed class SessionModuleTests
                     "test-v1",
                     CoverageKind.Unpriced)],
                 UsageSourceReadStatus.Complete));
+    }
+
+    /// <summary>
+    /// A configured source with no events. The root flag separates "installed and idle"
+    /// from "not installed".
+    /// </summary>
+    private sealed class EmptyRootDetectingUsageSource(string agentId, bool isRootAvailable)
+        : IRootDetectingUsageEventSource
+    {
+        public AgentId AgentId { get; } = new(agentId);
+
+        public SourceKind SourceKind => SourceKind.Synthetic;
+
+        public bool IsRootAvailable { get; } = isRootAvailable;
+
+        public Task<UsageSourceReadResult> ReadAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new UsageSourceReadResult(
+                [],
+                UsageSourceReadStatus.NoData,
+                IsRootAvailable
+                    ? UsageSourceIssueKind.Empty
+                    : UsageSourceIssueKind.RootUnavailable));
     }
 
     [Fact]

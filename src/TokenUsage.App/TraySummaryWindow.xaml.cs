@@ -12,9 +12,8 @@ namespace TokenUsage.App;
 
 public sealed partial class TraySummaryWindow : Window, IDisposable
 {
-    private const double ItemWidthDips = 76d;
     private const double HorizontalChromeDips = 16d;
-    private const double HeightDips = 58d;
+    private const double VerticalChromeDips = 16d;
     private const double IconGapDips = 5d;
 
     private readonly nint _windowHandle;
@@ -92,14 +91,13 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
     private void PositionAndShow(PlatformRect iconBounds)
     {
         MonitorPlacementContext display = MonitorPlacementContextProvider.Resolve(iconBounds);
-        double widthDips = Math.Max(
-            ItemWidthDips + HorizontalChromeDips,
-            (SummaryView.ItemCount * ItemWidthDips) + HorizontalChromeDips);
+        double widthDips = SummaryView.ContentWidthDips + HorizontalChromeDips;
+        double heightDips = SummaryView.ContentHeightDips + VerticalChromeDips;
         FlyoutPlacementResult initial = FlyoutPlacementCalculator.Calculate(
             iconBounds,
             display.WorkArea,
             widthDips,
-            HeightDips,
+            heightDips,
             96,
             display.FallbackAnchor);
         PlatformRect initialBounds = TrayPopoverPlacement.MoveNextToIcon(
@@ -118,7 +116,7 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
             iconBounds,
             display.WorkArea,
             widthDips,
-            HeightDips,
+            heightDips,
             dpi,
             display.FallbackAnchor);
         PlatformRect finalBounds = TrayPopoverPlacement.MoveNextToIcon(

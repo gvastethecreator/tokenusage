@@ -92,6 +92,7 @@ public sealed class LiveDashboardSession : IDisposable
 
         try
         {
+            PublishProviderDetection(version);
             LocalUsageDashboardResult? cached = await _localUsage
                 .ReadCachedDashboardAsync(_getString, cancellationToken)
                 .ConfigureAwait(true);
@@ -308,6 +309,36 @@ public sealed class LiveDashboardSession : IDisposable
 
                 break;
         }
+    }
+
+    /// <summary>
+    /// A fresh install has no cache and no store, so the first honest provider state comes
+    /// from a presence probe. Publishing it here keeps the surfaces from showing an absent
+    /// tool as detected while the first scan runs.
+    /// </summary>
+    private void PublishProviderDetection(int version)
+    {
+        if (RawLocalUsage is not null
+            || _getString is null
+            || _onChanged is null
+            || !_publishingEnabled
+            || version != Volatile.Read(ref _refreshVersion))
+        {
+            return;
+        }
+
+        try
+        {
+            RawLocalUsage = _localUsage.DetectProviders(_getString);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or System.Security.SecurityException)
+        {
+            return;
+        }
+
+        _onChanged(this);
     }
 
     private void PublishChanged(int version)

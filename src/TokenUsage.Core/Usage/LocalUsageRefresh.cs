@@ -95,9 +95,22 @@ public sealed class LocalUsageRefresh
         ? SourceKind.LocalLog
         : _sources[0].SourceKind;
 
-    private bool HasMultipleRealSources => _sources.Count > 1
+    public bool HasMultipleRealSources => _sources.Count > 1
         && _sources.All(source => source.SourceKind is
             SourceKind.OfficialLocalApi or SourceKind.LocalLog or SourceKind.LocalDatabase);
+
+    /// <summary>
+    /// Presence probe for every configured source. This reads no usage file and needs no
+    /// store, so a first install can separate "the tool is not installed" from
+    /// "the tool is installed and not scanned yet" before any scan runs.
+    /// </summary>
+    public IReadOnlyList<UsageSourceDiagnostic> DetectSources() => _sources
+        .Select(source => new UsageSourceDiagnostic(
+            source.AgentId,
+            UsageSourceReadStatus.NoData,
+            ProbeRoot(source),
+            RetainsLastReliableSnapshot: false))
+        .ToArray();
 
     public async Task<LocalUsageRefreshResult?> ReadCachedAsync(
         CancellationToken cancellationToken = default)
@@ -135,16 +148,9 @@ public sealed class LocalUsageRefresh
         HashSet<AgentId> cachedAgents = rollups
             .Select(rollup => rollup.AgentId)
             .ToHashSet();
-        UsageSourceDiagnostic[] diagnostics = _sources.Select(source =>
-            new UsageSourceDiagnostic(
-                source.AgentId,
-                cachedAgents.Contains(source.AgentId)
-                    ? UsageSourceReadStatus.Complete
-                    : UsageSourceReadStatus.NoData,
-                cachedAgents.Contains(source.AgentId)
-                    ? UsageSourceIssueKind.None
-                    : UsageSourceIssueKind.Empty,
-                RetainsLastReliableSnapshot: true)).ToArray();
+        UsageSourceDiagnostic[] diagnostics = _sources
+            .Select(source => CreateCachedDiagnostic(source, cachedAgents))
+            .ToArray();
         UsageSourceReadStatus status = diagnostics.All(diagnostic =>
             diagnostic.Status == UsageSourceReadStatus.Complete)
                 ? UsageSourceReadStatus.Complete
@@ -285,6 +291,59 @@ public sealed class LocalUsageRefresh
 
     private static DateOnly Min(DateOnly left, DateOnly right) =>
         left <= right ? left : right;
+
+    /// <summary>
+    /// Cached rollups prove past usage, not current presence. The root probe keeps an
+    /// uninstalled tool from reporting a detected source while retained history stays visible.
+    /// </summary>
+    private static UsageSourceDiagnostic CreateCachedDiagnostic(
+        IUsageEventSource source,
+        HashSet<AgentId> cachedAgents)
+    {
+        bool hasCachedData = cachedAgents.Contains(source.AgentId);
+        UsageSourceIssueKind rootIssue = ProbeRoot(source);
+        if (rootIssue != UsageSourceIssueKind.Empty)
+        {
+            return new UsageSourceDiagnostic(
+                source.AgentId,
+                UsageSourceReadStatus.NoData,
+                rootIssue,
+                RetainsLastReliableSnapshot: hasCachedData);
+        }
+
+        return hasCachedData
+            ? new UsageSourceDiagnostic(
+                source.AgentId,
+                UsageSourceReadStatus.Complete,
+                UsageSourceIssueKind.None,
+                RetainsLastReliableSnapshot: true)
+            : new UsageSourceDiagnostic(
+                source.AgentId,
+                UsageSourceReadStatus.NoData,
+                UsageSourceIssueKind.Empty,
+                RetainsLastReliableSnapshot: false);
+    }
+
+    private static UsageSourceIssueKind ProbeRoot(IUsageEventSource source)
+    {
+        if (source is not IRootDetectingUsageEventSource rootDetecting)
+        {
+            return UsageSourceIssueKind.Empty;
+        }
+
+        try
+        {
+            return rootDetecting.IsRootAvailable
+                ? UsageSourceIssueKind.Empty
+                : UsageSourceIssueKind.RootUnavailable;
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or System.Security.SecurityException)
+        {
+            return UsageSourceIssueKind.AccessBlocked;
+        }
+    }
 
     private static async Task<UsageSourceReadResult> ReadSourceSafelyAsync(
         IUsageEventSource source,

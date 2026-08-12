@@ -411,7 +411,7 @@ public sealed partial class MainWindow : Window, IDisposable
             SchedulePositionAfterLayout();
         }
 
-        if (layoutChanged)
+        if (layoutChanged || refreshChanged)
         {
             UpdateVisibleTraySummary();
         }
@@ -460,7 +460,8 @@ public sealed partial class MainWindow : Window, IDisposable
             preferences,
             RootPage.ViewModel.Dashboard.ProviderSummaries,
             RootPage.ViewModel.Dashboard.GetProviderLimits,
-            GetString);
+            GetString,
+            RootPage.ViewModel.Appearance.TrayPopover);
     }
 
     private void UpdateVisibleTraySummary()
@@ -513,7 +514,8 @@ public sealed partial class MainWindow : Window, IDisposable
         AppearanceSettings current) => previous is null
         || previous.Theme != current.Theme
         || previous.Density != current.Density
-        || previous.IncreaseTransparency != current.IncreaseTransparency;
+        || previous.IncreaseTransparency != current.IncreaseTransparency
+        || previous.TrayPopover != current.TrayPopover;
 
     private void UpdateStatusText()
     {
