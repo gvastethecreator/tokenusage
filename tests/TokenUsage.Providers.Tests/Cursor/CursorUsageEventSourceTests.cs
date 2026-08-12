@@ -104,6 +104,60 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
     }
 
+    [Fact]
+    public async Task BuildThatWritesZeroTurnCountersFallsBackToTheConversationEstimate()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        for (int index = 0; index < 5; index++)
+        {
+            corpus.WriteBubble(
+                "conversation-1",
+                $"bubble-{index}",
+                "2026-08-12T10:00:00.000Z",
+                "gpt-5",
+                inputTokens: 0,
+                outputTokens: 0,
+                privateText: "private prompt and response");
+        }
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(90_000, usageEvent.Tokens.Input);
+        Assert.Equal(CoverageKind.Unpriced, usageEvent.Coverage);
+        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
+    }
+
+    [Fact]
+    public async Task TurnCountersWinOverTheEstimateEvenWhenOtherTurnsReportZero()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-empty",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 0,
+            outputTokens: 0,
+            privateText: "private");
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-counted",
+            "2026-08-12T10:05:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private");
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(new TokenBreakdown(1_000_000, 100_000, 0, 0, 0), usageEvent.Tokens);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+    }
+
     private sealed class CursorCorpus : IDisposable
     {
         public CursorCorpus(bool createCursorHome = true)
