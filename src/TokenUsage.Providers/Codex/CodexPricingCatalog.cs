@@ -5,23 +5,33 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-07-27";
+    public const string Version = "openai-api-2026-08-12";
     private const decimal TokensPerMillion = 1_000_000m;
-    private const long Gpt55LongContextThreshold = 272_000;
+    private const long LongContextThreshold = 272_000;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
         {
-            ["gpt-5.6"] = new("gpt-5.6-sol", 5m, 0.5m, 30m),
-            ["gpt-5.6-sol"] = new("gpt-5.6-sol", 5m, 0.5m, 30m),
-            ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2.5m, 0.25m, 15m),
-            ["gpt-5.6-luna"] = new("gpt-5.6-luna", 1m, 0.1m, 6m),
-            ["gpt-5.5"] = new("gpt-5.5", 5m, 0.5m, 30m),
-            ["gpt-5.4"] = new("gpt-5.4", 2.5m, 0.25m, 15m),
-            ["gpt-5.4-mini"] = new("gpt-5.4-mini", 0.75m, 0.075m, 4.5m),
-            ["gpt-5.3-codex"] = new("gpt-5.3-codex", 1.75m, 0.175m, 14m),
-            ["gpt-5.2-codex"] = new("gpt-5.2-codex", 1.75m, 0.175m, 14m),
-            ["gpt-5"] = new("gpt-5", 1.25m, 0.125m, 10m),
+            ["gpt-5"] = new("gpt-5", 1.25m, 0.125m, 10m, 1.25m, false),
+            ["gpt-5-codex"] = new("gpt-5-codex", 1.25m, 0.125m, 10m, 1.25m, false),
+            ["gpt-5-fast"] = new("gpt-5-fast", 2.5m, 0.25m, 20m, 2.5m, false),
+            ["gpt-5-mini"] = new("gpt-5-mini", 0.25m, 0.025m, 2m, 0.25m, false),
+            ["gpt-5-nano"] = new("gpt-5-nano", 0.05m, 0.005m, 0.4m, 0.05m, false),
+            ["gpt-5.1"] = new("gpt-5.1", 1.25m, 0.125m, 10m, 1.25m, false),
+            ["gpt-5.1-codex"] = new("gpt-5.1-codex", 1.25m, 0.125m, 10m, 1.25m, false),
+            ["gpt-5.1-codex-max"] = new("gpt-5.1-codex-max", 1.25m, 0.125m, 10m, 1.25m, false),
+            ["gpt-5.1-codex-mini"] = new("gpt-5.1-codex-mini", 0.25m, 0.025m, 2m, 0.25m, false),
+            ["gpt-5.2"] = new("gpt-5.2", 1.75m, 0.175m, 14m, 1.75m, false),
+            ["gpt-5.2-codex"] = new("gpt-5.2-codex", 1.75m, 0.175m, 14m, 1.75m, false),
+            ["gpt-5.3-codex"] = new("gpt-5.3-codex", 1.75m, 0.175m, 14m, 1.75m, false),
+            ["gpt-5.4"] = new("gpt-5.4", 2.5m, 0.25m, 15m, 2.5m, true),
+            ["gpt-5.4-mini"] = new("gpt-5.4-mini", 0.75m, 0.075m, 4.5m, 0.75m, false),
+            ["gpt-5.4-nano"] = new("gpt-5.4-nano", 0.2m, 0.02m, 1.25m, 0.2m, false),
+            ["gpt-5.5"] = new("gpt-5.5", 5m, 0.5m, 30m, 5m, true),
+            ["gpt-5.6"] = new("gpt-5.6-sol", 5m, 0.5m, 30m, 6.25m, true),
+            ["gpt-5.6-luna"] = new("gpt-5.6-luna", 0.2m, 0.02m, 1.2m, 0.25m, true),
+            ["gpt-5.6-sol"] = new("gpt-5.6-sol", 5m, 0.5m, 30m, 6.25m, true),
+            ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
         };
 
     public static CostObservation Resolve(string model, TokenBreakdown tokens)
@@ -37,16 +47,17 @@ public static class CodexPricingCatalog
 
         decimal inputMultiplier = 1m;
         decimal outputMultiplier = 1m;
-        if (string.Equals(rates.PriceMatch, "gpt-5.5", StringComparison.Ordinal)
+        if (rates.HasLongContext
             && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
-                > Gpt55LongContextThreshold)
+                > LongContextThreshold)
         {
             inputMultiplier = 2m;
             outputMultiplier = 1.5m;
         }
 
         decimal amount =
-            (((tokens.Input + tokens.CacheWrite) * rates.Input * inputMultiplier)
+            ((tokens.Input * rates.Input * inputMultiplier)
+             + (tokens.CacheWrite * rates.CacheWrite * inputMultiplier)
              + (tokens.CacheRead * rates.CachedInput * inputMultiplier)
              + ((tokens.Output + tokens.Reasoning) * rates.Output * outputMultiplier))
             / TokensPerMillion;
@@ -100,5 +111,7 @@ public static class CodexPricingCatalog
         string PriceMatch,
         decimal Input,
         decimal CachedInput,
-        decimal Output);
+        decimal Output,
+        decimal CacheWrite,
+        bool HasLongContext);
 }

@@ -277,7 +277,7 @@ public sealed class ClaudeUsageEventSourceTests
     }
 
     [Fact]
-    public void SonnetFiveUsesTheDocumentedPostIntroductoryPrice()
+    public void SonnetFiveKeepsTheDocumentedStandardTwoDollarRate()
     {
         CostObservation cost = ClaudePricingCatalog.Resolve(
             "claude-sonnet-5",
@@ -288,8 +288,24 @@ public sealed class ClaudeUsageEventSourceTests
             reportedCostUsd: null,
             isFast: false);
 
-        Assert.Equal(4.5m, cost.EstimatedCostUsd);
-        Assert.Equal(ClaudePricingCatalog.SonnetFiveStandardVersion, cost.CatalogVersion);
+        Assert.Equal(3m, cost.EstimatedCostUsd);
+        Assert.Equal(ClaudePricingCatalog.Version, cost.CatalogVersion);
+    }
+
+    [Fact]
+    public void OpusFiveFastUsesTheDocumentedFastApiRate()
+    {
+        CostObservation cost = ClaudePricingCatalog.Resolve(
+            "claude-opus-5",
+            new DateTimeOffset(2026, 8, 12, 0, 0, 0, TimeSpan.Zero),
+            new TokenBreakdown(1_000_000, 100_000, 0, 0, 0),
+            cacheWrite5Minutes: 0,
+            cacheWrite1Hour: 0,
+            reportedCostUsd: null,
+            isFast: true);
+
+        Assert.Equal(15m, cost.EstimatedCostUsd);
+        Assert.Equal(ClaudePricingCatalog.Version, cost.CatalogVersion);
     }
 
     private static string UsageLine(

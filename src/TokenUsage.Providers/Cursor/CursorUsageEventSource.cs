@@ -17,7 +17,7 @@ public sealed class CursorUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "cursor-local-token-metrics/2";
+    public const string ParserVersion = "cursor-local-token-metrics/3";
     private const int LookbackDays = 35;
     private const int DefaultMaximumValueBytes = 2 * 1024 * 1024;
     private const long MaximumPlausibleContextTokens = 16 * 1024 * 1024;
@@ -33,7 +33,7 @@ public sealed class CursorUsageEventSource :
         string? homeDirectory = null,
         string? roamingAppDataDirectory = null,
         string? databasePathOverride = null,
-        long maximumDatabaseBytes = 512L * 1024 * 1024,
+        long maximumDatabaseBytes = 2L * 1024 * 1024 * 1024,
         int maximumRows = 100_000,
         int maximumValueBytes = DefaultMaximumValueBytes)
     {
@@ -131,12 +131,15 @@ public sealed class CursorUsageEventSource :
                         : UsageSourceIssueKind.Empty);
         }
 
-        // Cursor labels these values as estimated context tokens. They are useful
-        // local activity evidence, but not cumulative billing usage or quota data.
-        return new UsageSourceReadResult(
-            ordered,
-            UsageSourceReadStatus.Partial,
-            UsageSourceIssueKind.PartialScan);
+        // Event coverage stays Partial or Unpriced. Scan status is Complete when
+        // this read finished inside the row and size limits, so refresh can replace
+        // stored Cursor events instead of leaving stale composer snapshots in place.
+        return state.IsPartial
+            ? new UsageSourceReadResult(
+                ordered,
+                UsageSourceReadStatus.Partial,
+                UsageSourceIssueKind.PartialScan)
+            : new UsageSourceReadResult(ordered, UsageSourceReadStatus.Complete);
     }
 
     private void ReadDatabase(
@@ -153,7 +156,7 @@ public sealed class CursorUsageEventSource :
         };
         using var connection = new SqliteConnection(builder.ToString());
         connection.Open();
-        ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
+        ExecuteControl(connection, "PRAGMA busy_timeout=5000", cancellationToken);
         ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
 
         HashSet<string> columns = GetColumns(connection, "cursorDiskKV", cancellationToken);
@@ -163,8 +166,6 @@ public sealed class CursorUsageEventSource :
             state.MarkPartial();
             return;
         }
-
-        MarkSkippedRows(connection, state, cancellationToken);
 
         HashSet<string> composersWithTurnTokens = ReadBubbleTokenRows(
             connection,
@@ -176,23 +177,17 @@ public sealed class CursorUsageEventSource :
         command.CommandText = """
             SELECT
               key,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.conversationCheckpointLastUpdatedAt') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.lastUpdatedAt') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.createdAt') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.modelConfig.modelName') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.promptTokenBreakdown.totalUsedTokens') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.contextTokensUsed') END,
+              json_extract(value, '$.conversationCheckpointLastUpdatedAt'),
+              json_extract(value, '$.lastUpdatedAt'),
+              json_extract(value, '$.createdAt'),
+              json_extract(value, '$.modelConfig.modelName'),
+              json_extract(value, '$.promptTokenBreakdown.totalUsedTokens'),
+              json_extract(value, '$.contextTokensUsed'),
               length(value)
             FROM cursorDiskKV
             WHERE key GLOB 'composerData:*'
               AND length(value) <= $value_limit
-              AND json_valid(CAST(value AS TEXT))
+              AND json_extract(value, '$.modelConfig.modelName') IS NOT NULL
             ORDER BY key
             LIMIT $row_limit
             """;
@@ -221,6 +216,11 @@ public sealed class CursorUsageEventSource :
                 continue;
             }
 
+            var tokens = new TokenBreakdown(candidate.EstimatedContextTokens, 0, 0, 0, 0);
+            (CostObservation cost, CoverageKind coverage) = PriceCursorTokens(
+                candidate.Model,
+                candidate.Timestamp,
+                tokens);
             var usageEvent = new UsageEvent(
                 new UsageEventKey(Hash($"cursor\0composer-state-v1\0{candidate.Identity}")),
                 AgentId,
@@ -228,12 +228,18 @@ public sealed class CursorUsageEventSource :
                 CreateModelId(candidate.Model),
                 candidate.Timestamp,
                 _groupingTimeZoneId,
-                new TokenBreakdown(candidate.EstimatedContextTokens, 0, 0, 0, 0),
-                CostObservation.Unavailable(),
+                tokens,
+                cost,
                 ParserVersion,
-                CoverageKind.Unpriced);
+                coverage);
             output[usageEvent.EventKey.Value] = usageEvent;
         }
+
+        MarkSkippedComposerRows(
+            connection,
+            composersWithTurnTokens,
+            state,
+            cancellationToken);
     }
 
     /// <summary>
@@ -253,20 +259,15 @@ public sealed class CursorUsageEventSource :
         command.CommandText = """
             SELECT
               key,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.createdAt') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.modelInfo.modelName') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.tokenCount.inputTokens') END,
-              CASE WHEN json_valid(CAST(value AS TEXT)) THEN
-                json_extract(CAST(value AS TEXT), '$.tokenCount.outputTokens') END
+              json_extract(value, '$.createdAt'),
+              json_extract(value, '$.modelInfo.modelName'),
+              json_extract(value, '$.tokenCount.inputTokens'),
+              json_extract(value, '$.tokenCount.outputTokens')
             FROM cursorDiskKV
             WHERE key GLOB 'bubbleId:*'
               AND length(value) <= $value_limit
-              AND json_valid(CAST(value AS TEXT))
-              AND COALESCE(json_extract(CAST(value AS TEXT), '$.tokenCount.inputTokens'), 0)
-                + COALESCE(json_extract(CAST(value AS TEXT), '$.tokenCount.outputTokens'), 0) > 0
+              AND COALESCE(json_extract(value, '$.tokenCount.inputTokens'), 0)
+                + COALESCE(json_extract(value, '$.tokenCount.outputTokens'), 0) > 0
             ORDER BY ROWID DESC
             LIMIT $row_limit
             """;
@@ -298,13 +299,10 @@ public sealed class CursorUsageEventSource :
                 reasoning: 0,
                 cacheRead: 0,
                 cacheWrite: 0);
-            CostObservation cost = CursorPricingCatalog.Resolve(
+            (CostObservation cost, CoverageKind coverage) = PriceCursorTokens(
                 candidate.Model,
                 candidate.Timestamp,
                 tokens);
-            CoverageKind coverage = cost.Kind == CostKind.CatalogEstimated
-                ? CoverageKind.Partial
-                : CoverageKind.Unpriced;
             var usageEvent = new UsageEvent(
                 new UsageEventKey(Hash($"cursor\0bubble-token-v2\0{candidate.Identity}")),
                 AgentId,
@@ -376,29 +374,54 @@ public sealed class CursorUsageEventSource :
             && composerId.All(character => !char.IsControl(character));
     }
 
-    private void MarkSkippedRows(
+    /// <summary>
+    /// A skipped composer blob is only a truncated scan when that conversation has no
+    /// turn counters. A blob we cannot read for a conversation that already has bubbles
+    /// does not keep refresh from replacing stored events.
+    /// </summary>
+    private void MarkSkippedComposerRows(
         SqliteConnection connection,
+        HashSet<string> composersWithTurnTokens,
         LocalScanState state,
         CancellationToken cancellationToken)
     {
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
-            SELECT
-              COUNT(*),
-              COALESCE(SUM(CASE
-                WHEN length(value) > $value_limit
-                  OR NOT json_valid(CAST(value AS TEXT))
-                THEN 1 ELSE 0 END), 0)
+            SELECT key
             FROM cursorDiskKV
             WHERE key GLOB 'composerData:*'
+              AND (length(value) > $value_limit
+                OR (length(value) <= 65536
+                    AND NOT json_valid(CAST(value AS TEXT))))
+            LIMIT $row_limit
             """;
         command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
+        command.Parameters.AddWithValue("$row_limit", checked(_maximumRows + 1L));
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
-        if (reader.Read()
-            && (reader.GetInt64(0) > _maximumRows || reader.GetInt64(1) > 0))
+        int rowsRead = 0;
+        while (reader.Read())
         {
-            state.MarkPartial();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++rowsRead > _maximumRows)
+            {
+                state.MarkPartial();
+                return;
+            }
+
+            if (reader.GetValue(0) is not string key
+                || !key.StartsWith("composerData:", StringComparison.Ordinal)
+                || key.Length <= "composerData:".Length)
+            {
+                state.MarkPartial();
+                return;
+            }
+
+            if (!composersWithTurnTokens.Contains(key["composerData:".Length..]))
+            {
+                state.MarkPartial();
+                return;
+            }
         }
     }
 
@@ -585,6 +608,18 @@ public sealed class CursorUsageEventSource :
         }
 
         return columns;
+    }
+
+    private static (CostObservation Cost, CoverageKind Coverage) PriceCursorTokens(
+        string model,
+        DateTimeOffset timestamp,
+        TokenBreakdown tokens)
+    {
+        CostObservation cost = CursorPricingCatalog.Resolve(model, timestamp, tokens);
+        CoverageKind coverage = cost.Kind == CostKind.CatalogEstimated
+            ? CoverageKind.Partial
+            : CoverageKind.Unpriced;
+        return (cost, coverage);
     }
 
     private static ModelId CreateModelId(string model)
