@@ -1,6 +1,6 @@
 using Windows.Security.Credentials;
 
-namespace TokenUsage.Runtime.Windows.Credentials;
+namespace TokenUsage.Platform.Windows.Credentials;
 
 public sealed class WindowsCredentialVault : IWindowsCredentialVault
 {

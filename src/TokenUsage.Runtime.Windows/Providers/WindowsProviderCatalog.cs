@@ -280,7 +280,9 @@ public static class WindowsProviderCatalog
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         ArgumentNullException.ThrowIfNull(clock);
         options ??= new WindowsProviderCompositionOptions();
-        if (options.EnableVercelGateway && vercelHttpClient is null)
+        if (options.EnableVercelGateway
+            && vercelHttpClient is null
+            && options.VercelCoordinator is null)
         {
             throw new ArgumentNullException(
                 nameof(vercelHttpClient),

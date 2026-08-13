@@ -2,7 +2,7 @@ using System.Text;
 
 namespace TokenUsage.App.Localization;
 
-internal static class AppLanguageRestartArguments
+public static class AppLanguageRestartArguments
 {
     public static string Create(IEnumerable<string> launchArguments) => string.Join(
         " ",

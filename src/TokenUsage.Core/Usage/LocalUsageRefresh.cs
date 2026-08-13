@@ -62,6 +62,7 @@ public sealed record LocalUsageRefreshResult
 /// </summary>
 public sealed class LocalUsageRefresh
 {
+    private static readonly TimeSpan RetentionMinInterval = TimeSpan.FromHours(6);
     private readonly string _databasePath;
     private readonly IReadOnlyList<IUsageEventSource> _sources;
     private readonly TimeProvider _clock;
@@ -138,6 +139,14 @@ public sealed class LocalUsageRefresh
         catch (FileNotFoundException)
         {
             return null;
+        }
+        catch (UsageSchemaTooOldException)
+        {
+            // This is TokenUsage's own durable store. Migrate it before the cache-first
+            // read so an app upgrade cannot abort startup before the live refresh runs.
+            repository = await UsageRepository.OpenAsync(
+                _databasePath,
+                cancellationToken).ConfigureAwait(false);
         }
 
         DateOnly today = Today;
@@ -264,8 +273,9 @@ public sealed class LocalUsageRefresh
                         ? UsageSourceReadStatus.Partial
                     : UsageSourceReadStatus.Complete;
 
-        await repository.ApplyRetentionAsync(
+        await repository.ApplyRetentionIfDueAsync(
                 _clock.GetUtcNow().ToUniversalTime(),
+                RetentionMinInterval,
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 

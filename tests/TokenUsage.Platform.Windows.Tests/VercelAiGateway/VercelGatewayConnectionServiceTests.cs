@@ -24,8 +24,8 @@ public sealed class VercelGatewayConnectionServiceTests
             reportClient,
             new NoBudgetQuotaClient(),
             clock);
-        await using IAsyncEnumerator<CacheFirstEvent> events = coordinator
-            .RunAsync(forceRefresh: true, CancellationToken.None)
+        await using IAsyncEnumerator<CacheFirstEvent> events = CoordinatorRefresh
+            .Run(coordinator, forceRefresh: true, CancellationToken.None)
             .GetAsyncEnumerator();
 
         Assert.True(await events.MoveNextAsync());
@@ -55,7 +55,7 @@ public sealed class VercelGatewayConnectionServiceTests
         Assert.Empty(afterDisconnect.Snapshots);
 
         IReadOnlyList<CacheFirstEvent> after = await CollectAsync(
-            coordinator.RunAsync(forceRefresh: true, CancellationToken.None));
+            CoordinatorRefresh.Run(coordinator, forceRefresh: true, CancellationToken.None));
         CacheFirstEvent.ProviderCompleted disconnectedRefresh =
             Assert.IsType<CacheFirstEvent.ProviderCompleted>(after[1]);
         Assert.IsType<ProviderOutcome.NotConfigured>(disconnectedRefresh.Outcome);
@@ -75,8 +75,8 @@ public sealed class VercelGatewayConnectionServiceTests
             reportClient,
             new NoBudgetQuotaClient(),
             clock);
-        await using IAsyncEnumerator<CacheFirstEvent> events = coordinator
-            .RunAsync(forceRefresh: true, CancellationToken.None)
+        await using IAsyncEnumerator<CacheFirstEvent> events = CoordinatorRefresh
+            .Run(coordinator, forceRefresh: true, CancellationToken.None)
             .GetAsyncEnumerator();
         Assert.True(await events.MoveNextAsync());
         Task<bool> refreshCompletion = events.MoveNextAsync().AsTask();

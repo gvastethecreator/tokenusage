@@ -94,6 +94,36 @@ public sealed class UsageReportQuery
         return Build(rollups);
     }
 
+    /// <summary>
+    /// Same agent slice as a second repository read for that agent, taken from a report
+    /// that already covers every agent in the range.
+    /// </summary>
+    public static UsageReport FilterByAgent(UsageReport report, AgentId agentId)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(agentId);
+
+        UsageAgentReport[] agents = report.Agents
+            .Where(item => item.AgentId == agentId)
+            .ToArray();
+        UsageModelReport[] models = report.Models
+            .Where(item => item.AgentId == agentId)
+            .ToArray();
+        UsageAgentDayReport[] agentDays = report.AgentDays
+            .Where(item => item.AgentId == agentId)
+            .ToArray();
+        UsageDayReport[] days = agentDays
+            .Select(item => new UsageDayReport(item.Date, item.Metrics))
+            .OrderBy(item => item.Date)
+            .ToArray();
+        return new UsageReport(
+            agents.Length == 0 ? Build([]).Totals : agents[0].Metrics,
+            agents,
+            models,
+            days,
+            agentDays);
+    }
+
     public static UsageReport Build(IEnumerable<DailyUsageRollup> rollups)
     {
         ArgumentNullException.ThrowIfNull(rollups);

@@ -1,4 +1,4 @@
-namespace TokenUsage.Runtime.Windows.Credentials;
+namespace TokenUsage.Platform.Windows.Credentials;
 
 public interface IWindowsCredentialVault
 {

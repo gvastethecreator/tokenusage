@@ -1,3 +1,5 @@
+using TokenUsage.Providers.Catalog;
+
 namespace TokenUsage.App.ViewModels;
 
 /// <summary>
@@ -7,28 +9,12 @@ namespace TokenUsage.App.ViewModels;
 /// </summary>
 public static class ProviderDisplayOrder
 {
-    private static readonly Dictionary<string, int> CuratedRanks = new(StringComparer.Ordinal)
-    {
-        ["codex"] = 0,
-        ["opencode"] = 1,
-        ["antigravity"] = 2,
-        ["grok"] = 3,
-        ["cursor"] = 4,
-        ["claude"] = 5,
-        ["amp"] = 6,
-        ["mux"] = 7,
-        ["goose"] = 8,
-        ["hermes"] = 9,
-    };
-
     /// <summary>
     /// Rank in the curated list. A provider outside the list sorts last instead of landing on
     /// another provider's rank.
     /// </summary>
     public static int CuratedRank(string providerId) =>
-        providerId is not null && CuratedRanks.TryGetValue(providerId, out int rank)
-            ? rank
-            : int.MaxValue;
+        ProviderPresentationCatalog.CuratedRank(providerId);
 
     public static IOrderedEnumerable<T> ByCuratedRank<T>(
         this IEnumerable<T> items,

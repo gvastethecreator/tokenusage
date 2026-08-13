@@ -1,3 +1,4 @@
+using TokenUsage.Platform.Windows.Credentials;
 using TokenUsage.Providers.VercelAiGateway;
 
 namespace TokenUsage.Runtime.Windows.VercelAiGateway;
@@ -24,14 +25,14 @@ public sealed class VercelGatewayCredentialStore : IVercelGatewayCredentialStore
         "D6C94EDD-3747-465C-9A81-05DF5A4108C5/vercel-ai-gateway/v1";
     public const string UserName = "manual";
 
-    private readonly IVercelGatewayCredentialVault _vault;
+    private readonly IWindowsCredentialVault _vault;
 
     public VercelGatewayCredentialStore()
-        : this(new WindowsVercelGatewayCredentialVault())
+        : this(new WindowsCredentialVault())
     {
     }
 
-    public VercelGatewayCredentialStore(IVercelGatewayCredentialVault vault)
+    public VercelGatewayCredentialStore(IWindowsCredentialVault vault)
     {
         _vault = vault ?? throw new ArgumentNullException(nameof(vault));
     }
