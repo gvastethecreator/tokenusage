@@ -61,11 +61,16 @@ public sealed partial class LocalizationContractTests
     public void LiteralResourceLookupsExistInBothLanguages()
     {
         string appRoot = AppRoot();
+        string presentationRoot = Path.Combine(
+            ProjectReferenceGraph.FindRepoRoot(),
+            "src",
+            "TokenUsage.Presentation");
         ResourceSet english = LoadResources("en-US");
         ResourceSet spanish = LoadResources("es-ES");
         HashSet<string> referencedKeys = [];
 
         foreach (string path in Directory.EnumerateFiles(appRoot, "*.cs", SearchOption.AllDirectories)
+                     .Concat(Directory.EnumerateFiles(presentationRoot, "*.cs", SearchOption.AllDirectories))
                      .Where(path => !IsGeneratedPath(path)))
         {
             string source = File.ReadAllText(path);

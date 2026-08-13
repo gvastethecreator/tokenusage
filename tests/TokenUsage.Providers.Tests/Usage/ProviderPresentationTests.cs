@@ -3,6 +3,7 @@ using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.Providers.Tests.Usage;
 
@@ -59,6 +60,13 @@ public sealed class ProviderPresentationTests
         Assert.Equal("Gemini CLI", ProviderDisplayName.Resolve("gemini-cli", Translate));
         Assert.Equal("brand-new", ProviderDisplayName.Resolve("brand-new", Translate));
         Assert.Equal(string.Empty, ProviderDisplayName.Resolve("  ", Translate));
+        Assert.Equal(
+            ProviderPresentationCatalog.CuratedRank("codex"),
+            ProviderDisplayOrder.CuratedRank("codex"));
+        Assert.Equal("codex.svg", ProviderPresentationCatalog.MarkFileName("codex"));
+        Assert.Equal(
+            "LocalUsageAgentCodex",
+            ProviderPresentationCatalog.DisplayNameResourceKey("codex"));
     }
 
     /// <summary>

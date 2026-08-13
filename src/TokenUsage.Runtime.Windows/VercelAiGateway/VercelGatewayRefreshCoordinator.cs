@@ -9,7 +9,6 @@ public sealed class VercelGatewayRefreshCoordinator
     private readonly SnapshotStore _store;
     private readonly ProviderOperationGate _operationGate;
     private readonly IProviderRuntime _provider;
-    private readonly ProviderRefreshHost _refreshHost;
 
     public VercelGatewayRefreshCoordinator(
         string cacheDirectory,
@@ -42,7 +41,6 @@ public sealed class VercelGatewayRefreshCoordinator
         _operationGate = new ProviderOperationGate();
         _provider = new ResilientProviderRuntime(
             new VercelGatewayProviderRuntime(credentialStore, reportClient, quotaClient));
-        _refreshHost = new ProviderRefreshHost([CreateRegistration()], clock);
         Connections = new VercelGatewayConnectionService(
             credentialStore,
             snapshotStore,
@@ -55,11 +53,6 @@ public sealed class VercelGatewayRefreshCoordinator
 
     public ProviderRefreshRegistration CreateRegistration() =>
         new(_provider, _store, _operationGate);
-
-    public IAsyncEnumerable<CacheFirstEvent> RunAsync(
-        bool forceRefresh,
-        CancellationToken cancellationToken) =>
-        _refreshHost.RunAsync(forceRefresh, cancellationToken);
 
     private static SnapshotStore CreateStore(string cacheDirectory, TimeProvider clock)
     {

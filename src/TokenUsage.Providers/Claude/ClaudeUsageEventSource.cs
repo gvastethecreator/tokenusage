@@ -106,6 +106,11 @@ public sealed class ClaudeUsageEventSource :
                 return false;
             }
 
+            if (info.LastWriteTimeUtc < DateTimeOffset.UtcNow.AddDays(-ReconciliationWindowDays))
+            {
+                return true;
+            }
+
             using var stream = new FileStream(
                 path,
                 FileMode.Open,

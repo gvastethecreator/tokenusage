@@ -1,3 +1,4 @@
+using TokenUsage.Platform.Windows.Credentials;
 using TokenUsage.Providers.VercelAiGateway;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 
@@ -234,7 +235,7 @@ public sealed class VercelGatewayCredentialStoreTests
         Assert.Equal(VercelGatewayCredentialStore.UserName, vault.LastUserName);
     }
 
-    private sealed class FakeVault : IVercelGatewayCredentialVault
+    private sealed class FakeVault : IWindowsCredentialVault
     {
         public bool ContainsResult { get; set; }
 

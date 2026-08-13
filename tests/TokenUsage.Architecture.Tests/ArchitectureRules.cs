@@ -14,11 +14,13 @@ public static class ArchitectureRules
                 "TokenUsage.Core",
                 "TokenUsage.Providers",
                 "TokenUsage.Platform.Windows"),
+            ["TokenUsage.Presentation"] = CreateSet("TokenUsage.Core", "TokenUsage.Providers"),
             ["TokenUsage.App"] = CreateSet(
                 "TokenUsage.Core",
                 "TokenUsage.Providers",
                 "TokenUsage.Platform.Windows",
-                "TokenUsage.Runtime.Windows"),
+                "TokenUsage.Runtime.Windows",
+                "TokenUsage.Presentation"),
             ["TokenUsage.Cli"] = CreateSet(
                 "TokenUsage.Core",
                 "TokenUsage.Providers",
@@ -99,6 +101,41 @@ public static class ArchitectureRules
             if (bannedPackages.Any(banned => packageId.Contains(banned, StringComparison.OrdinalIgnoreCase)))
             {
                 violations.Add($"Core must not reference a UI or Windows package: {packageId}");
+            }
+        }
+
+        return violations;
+    }
+
+    public static IReadOnlyList<string> FindPresentationIsolationViolations(string presentationProjectPath)
+    {
+        var violations = new List<string>();
+        XDocument project = XDocument.Load(presentationProjectPath);
+
+        string? targetFramework = project
+            .Descendants("TargetFramework")
+            .Select(element => element.Value.Trim())
+            .FirstOrDefault();
+
+        if (!string.Equals(targetFramework, "net10.0", StringComparison.OrdinalIgnoreCase))
+        {
+            violations.Add($"Presentation TargetFramework must be net10.0; found '{targetFramework}'.");
+        }
+
+        string[] bannedPackages =
+        [
+            "Microsoft.WindowsAppSDK",
+            "Microsoft.WinUI",
+            "Microsoft.Windows.SDK.BuildTools",
+            "CommunityToolkit.WinUI",
+        ];
+
+        foreach (XElement reference in project.Descendants("PackageReference"))
+        {
+            string packageId = (string?)reference.Attribute("Include") ?? string.Empty;
+            if (bannedPackages.Any(banned => packageId.Contains(banned, StringComparison.OrdinalIgnoreCase)))
+            {
+                violations.Add($"Presentation must not reference a UI or Windows package: {packageId}");
             }
         }
 

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-12T14:18:27Z",
-  "generated_from_commit": "d76e0e5c3775bb81d27f6cd5768fe6e2c7644035",
+  "generated_at": "2026-08-13T19:06:48Z",
+  "generated_from_commit": "1deee15311d4e8d2da202bdf57a5c0286dcde560",
   "scope": [
     "."
   ],
@@ -31,7 +31,7 @@
     {
       "id": "buildandrun",
       "path": "BuildAndRun.ps1",
-      "role": "Owns the tracked files for the BuildAndRun module.",
+      "role": "Builds, deploys, and optionally launches the packaged WinUI application.",
       "type": "interface",
       "boundary": "Buildandrun",
       "entrypoints": [
@@ -100,28 +100,31 @@
     {
       "id": "src-tokenusage-app",
       "path": "src/TokenUsage.App",
-      "role": "Owns the tracked files for the src / TokenUsage.App module.",
+      "role": "Owns WinUI views, view models that need XAML, and application composition.",
       "type": "module",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.App/App.xaml:<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        "src/TokenUsage.App/Program.cs:Program",
+        "src/TokenUsage.App/Composition/AppComposition.cs:AppComposition"
       ],
       "tests": [
-        "tests/TokenUsage.Architecture.Tests/AppLanguageCatalogTests.cs",
-        "tests/TokenUsage.Architecture.Tests/AppLanguageRestartArgumentsTests.cs",
-        "tests/TokenUsage.Architecture.Tests/ArchitectureRulesTests.cs",
-        "tests/TokenUsage.Architecture.Tests/SpendDonutGeometryTests.cs",
-        "tests/TokenUsage.Architecture.Tests/UsageReportProviderOptionReconcilerTests.cs"
+        "tests/TokenUsage.Architecture.Tests/ArchitectureRulesTests.cs"
       ],
       "constraints": [
-        "This baseline uses tracked source and explicit dependency references only."
+        "Build the packaged WinUI app for x64 or ARM64.",
+        "Never use AnyCPU.",
+        "Never run the packaged executable directly."
       ],
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.App/App.xaml",
-            "symbol": "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+            "path": "src/TokenUsage.App/Program.cs",
+            "symbol": "Program"
+          },
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "AppComposition"
           }
         ]
       }
@@ -129,11 +132,11 @@
     {
       "id": "src-tokenusage-cli",
       "path": "src/TokenUsage.Cli",
-      "role": "Owns the tracked files for the src / TokenUsage.Cli module.",
+      "role": "Owns commands and stable JSON output.",
       "type": "interface",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.Cli/CliApplication.cs:namespace TokenUsage.Cli;"
+        "src/TokenUsage.Cli/CliApplication.cs:CliApplication"
       ],
       "tests": [
         "tests/TokenUsage.Cli.Tests/CliApplicationTests.cs",
@@ -143,14 +146,15 @@
         "tests/TokenUsage.Cli.Tests/LocalProviderDiagnosticsAccessTests.cs"
       ],
       "constraints": [
-        "This baseline uses tracked source and explicit dependency references only."
+        "Keep CLI JSON goldens stable.",
+        "Do not put LocalApi behind a Cli project reference."
       ],
       "evidence": {
         "status": "verified",
         "locations": [
           {
             "path": "src/TokenUsage.Cli/CliApplication.cs",
-            "symbol": "namespace TokenUsage.Cli;"
+            "symbol": "CliApplication"
           }
         ]
       }
@@ -158,28 +162,62 @@
     {
       "id": "src-tokenusage-core",
       "path": "src/TokenUsage.Core",
-      "role": "Owns the tracked files for the src / TokenUsage.Core module.",
+      "role": "Owns portable domain, storage, cache, and coordination contracts.",
       "type": "service",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.Core/TokenUsage.Core.csproj:﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+        "src/TokenUsage.Core/Usage/UsageRepository.cs:UsageRepository",
+        "src/TokenUsage.Core/Usage/LocalUsageRefresh.cs:LocalUsageRefresh"
       ],
       "tests": [
-        "tests/TokenUsage.Cli.Tests/LimitsCliProcessTests.cs",
-        "tests/TokenUsage.Cli.Tests/LimitsCommandTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalLimitsCliAccessTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalProviderDiagnosticsAccessTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalUsageCliAccessTests.cs"
+        "tests/TokenUsage.Core.Tests/Usage/UsageRepositoryTests.cs",
+        "tests/TokenUsage.Core.Tests/Automation/AutomationQueryTests.cs"
       ],
       "constraints": [
-        "This baseline uses tracked source and explicit dependency references only."
+        "Keep prompts, conversations, commands, tool calls, emails, account identifiers, and full local paths out of usage storage.",
+        "Preserve reported cost, estimated cost, unavailable cost, coverage, and unpriced tokens as separate states."
       ],
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.Core/TokenUsage.Core.csproj",
-            "symbol": "﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+            "path": "src/TokenUsage.Core/Usage/UsageRepository.cs",
+            "symbol": "UsageRepository"
+          },
+          {
+            "path": "src/TokenUsage.Core/Usage/LocalUsageRefresh.cs",
+            "symbol": "LocalUsageRefresh"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-tokenusage-package",
+      "path": "src/TokenUsage.Package",
+      "role": "Owns the MSIX manifest and packages the WinUI and CLI payloads for x64 and ARM64.",
+      "type": "interface",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/TokenUsage.Package/TokenUsage.Package.wapproj:EntryPointProjectUniqueName",
+        "src/TokenUsage.Package/Package.appxmanifest:Application"
+      ],
+      "tests": [
+        "tests/TokenUsage.Architecture.Tests/PackagingContractTests.cs"
+      ],
+      "constraints": [
+        "Supports x64 and ARM64 only.",
+        "Packages both the WinUI entry point and the stable CLI execution alias."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Package/TokenUsage.Package.wapproj",
+            "symbol": "EntryPointProjectUniqueName"
+          },
+          {
+            "path": "src/TokenUsage.Package/Package.appxmanifest",
+            "symbol": "Application"
           }
         ]
       }
@@ -187,11 +225,11 @@
     {
       "id": "src-tokenusage-platform-windows",
       "path": "src/TokenUsage.Platform.Windows",
-      "role": "Owns the tracked files for the src / TokenUsage.Platform.Windows module.",
+      "role": "Owns Windows integration: tray, flyout placement, process, and storage paths.",
       "type": "module",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.Platform.Windows/TokenUsage.Platform.Windows.csproj:﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+        "src/TokenUsage.Platform.Windows/Placement/FlyoutPlacementCalculator.cs:FlyoutPlacementCalculator"
       ],
       "tests": [
         "tests/TokenUsage.Platform.Windows.Tests/CodexAppServerProcessTests.cs",
@@ -201,14 +239,53 @@
         "tests/TokenUsage.Platform.Windows.Tests/FlyoutSizePolicyTests.cs"
       ],
       "constraints": [
-        "This baseline uses tracked source and explicit dependency references only."
+        "Owns Windows integration only.",
+        "Does not own WinUI views."
       ],
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.Platform.Windows/TokenUsage.Platform.Windows.csproj",
-            "symbol": "﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+            "path": "src/TokenUsage.Platform.Windows/Placement/FlyoutPlacementCalculator.cs",
+            "symbol": "FlyoutPlacementCalculator"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-tokenusage-presentation",
+      "path": "src/TokenUsage.Presentation",
+      "role": "Owns WinUI-free view models, projectors, and formatters for dashboard and report surfaces.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/TokenUsage.Presentation/ViewModels/Surfaces/DashboardSurfaceViewModel.cs:DashboardSurfaceViewModel",
+        "src/TokenUsage.Presentation/ViewModels/CompactDashboardProjector.cs:CompactDashboardProjector"
+      ],
+      "tests": [
+        "tests/TokenUsage.Architecture.Tests/CompactDashboardProjectorTests.cs",
+        "tests/TokenUsage.Architecture.Tests/ArchitectureRulesTests.cs",
+        "tests/TokenUsage.Architecture.Tests/AppLanguageCatalogTests.cs",
+        "tests/TokenUsage.Architecture.Tests/AppLanguageRestartArgumentsTests.cs",
+        "tests/TokenUsage.Architecture.Tests/ProviderTabCarouselLayoutTests.cs",
+        "tests/TokenUsage.Architecture.Tests/SpendDonutGeometryTests.cs",
+        "tests/TokenUsage.Architecture.Tests/UsageReportProviderOptionReconcilerTests.cs"
+      ],
+      "constraints": [
+        "Target framework is net10.0.",
+        "Must not reference WinUI or Windows App SDK packages.",
+        "May reference TokenUsage.Core and TokenUsage.Providers only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Presentation/TokenUsage.Presentation.csproj",
+            "symbol": "net10.0"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/DashboardSurfaceViewModel.cs",
+            "symbol": "DashboardSurfaceViewModel"
           }
         ]
       }
@@ -216,13 +293,15 @@
     {
       "id": "src-tokenusage-providers",
       "path": "src/TokenUsage.Providers",
-      "role": "Owns the tracked files for the src / TokenUsage.Providers module.",
+      "role": "Owns provider adapters that read local usage without writing foreign databases.",
       "type": "module",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.Providers/TokenUsage.Providers.csproj:﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+        "src/TokenUsage.Providers/Codex/CodexUsageEventSource.cs:CodexUsageEventSource",
+        "src/TokenUsage.Providers/Catalog/ProviderPresentationCatalog.cs:ProviderPresentationCatalog"
       ],
       "tests": [
+        "tests/TokenUsage.Providers.Tests/Codex/CodexUsageEventSourceTests.cs",
         "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
         "tests/TokenUsage.Cli.Tests/LocalUsageCliAccessTests.cs",
         "tests/TokenUsage.Cli.Tests/UsageCliProcessTests.cs",
@@ -230,14 +309,19 @@
         "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs"
       ],
       "constraints": [
-        "This baseline uses tracked source and explicit dependency references only."
+        "Do not copy another application's session token or read another application's credential store.",
+        "Do not write to Cursor state.vscdb or OpenCode databases."
       ],
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.Providers/TokenUsage.Providers.csproj",
-            "symbol": "﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+            "path": "src/TokenUsage.Providers/Codex/CodexUsageEventSource.cs",
+            "symbol": "CodexUsageEventSource"
+          },
+          {
+            "path": "src/TokenUsage.Providers/Catalog/ProviderPresentationCatalog.cs",
+            "symbol": "ProviderPresentationCatalog"
           }
         ]
       }
@@ -245,28 +329,29 @@
     {
       "id": "src-tokenusage-runtime-windows",
       "path": "src/TokenUsage.Runtime.Windows",
-      "role": "Owns the tracked files for the src / TokenUsage.Runtime.Windows module.",
+      "role": "Composes Core, Providers, and Platform services for Windows App and CLI.",
       "type": "service",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj:<Project Sdk=\"Microsoft.NET.Sdk\">"
+        "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs:WindowsProviderCatalog"
       ],
       "tests": [
         "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/Automation/WindowsProviderDiagnosticsQueryTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/Cursor/CursorHookInstallerTests.cs"
+        "tests/TokenUsage.Platform.Windows.Tests/Credentials/WindowsManualProviderCredentialStoreTests.cs"
       ],
       "constraints": [
-        "This baseline uses tracked source and explicit dependency references only."
+        "References TokenUsage.Core.",
+        "Composes Providers and Platform.Windows for App and CLI."
       ],
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj",
-            "symbol": "<Project Sdk=\"Microsoft.NET.Sdk\">"
+            "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
+            "symbol": "WindowsProviderCatalog"
           }
         ]
       }
@@ -316,19 +401,15 @@
       }
     },
     {
-      "from": "src-tokenusage-app",
-      "to": "src-tokenusage-cli",
+      "from": "buildandrun",
+      "to": "src-tokenusage-package",
       "type": "calls",
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs",
-            "symbol": "RefreshCommand"
-          },
-          {
-            "path": "src/TokenUsage.App/ViewModels/Surfaces/DashboardSurfaceViewModel.cs",
-            "symbol": "RefreshCommand"
+            "path": "BuildAndRun.ps1",
+            "symbol": "TokenUsage.Package\\TokenUsage.Package.wapproj"
           }
         ]
       }
@@ -447,39 +528,53 @@
     },
     {
       "from": "src-tokenusage-app",
-      "to": "src-tokenusage-providers",
+      "to": "src-tokenusage-presentation",
       "type": "calls",
       "evidence": {
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.App/MainPage.xaml.cs",
-            "symbol": "VercelGatewayConnection"
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "SampleRefreshCoordinator"
+          },
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "LocalUsageCoordinator"
+          },
+          {
+            "path": "src/TokenUsage.App/Controls/AnimatedProgressBar.xaml.cs",
+            "symbol": "SpendDonutGeometry"
+          },
+          {
+            "path": "src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs",
+            "symbol": "SpendDonutGeometry"
+          },
+          {
+            "path": "src/TokenUsage.App/Controls/UsageTrendChart.xaml.cs",
+            "symbol": "UsageReportTrendSeries"
+          },
+          {
+            "path": "src/TokenUsage.App/Controls/UsageTrendChart.xaml.cs",
+            "symbol": "UsageTrendGeometry"
+          },
+          {
+            "path": "src/TokenUsage.App/Localization/AppLanguageRuntime.cs",
+            "symbol": "AppLanguageCatalog"
           },
           {
             "path": "src/TokenUsage.App/MainPage.xaml.cs",
-            "symbol": "VercelGatewayReport"
-          },
-          {
-            "path": "src/TokenUsage.App/MainPage.xaml.cs",
-            "symbol": "VercelGatewayDailyReportRow"
-          },
-          {
-            "path": "src/TokenUsage.App/MainPage.xaml.cs",
-            "symbol": "Found"
-          },
-          {
-            "path": "src/TokenUsage.App/MainPage.xaml.cs",
-            "symbol": "VercelGatewayQuota"
-          },
-          {
-            "path": "src/TokenUsage.App/MainPage.xaml.cs",
-            "symbol": "VercelGatewayQuotaLookupResult"
-          },
-          {
-            "path": "src/TokenUsage.App/Services/SampleRefreshCoordinator.cs",
-            "symbol": "FakeProviderRuntime"
-          },
+            "symbol": "UsageReportRequestedEventArgs"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-app",
+      "to": "src-tokenusage-providers",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
           {
             "path": "src/TokenUsage.App/ViewModels/VercelGatewaySettingsViewModel.cs",
             "symbol": "VercelGatewayConnection"
@@ -508,6 +603,14 @@
       "evidence": {
         "status": "verified",
         "locations": [
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "WindowsProviderCompositionOptions"
+          },
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "WindowsManualProviderCredentialStore"
+          },
           {
             "path": "src/TokenUsage.App/Composition/AppComposition.cs",
             "symbol": "VercelGatewayRefreshCoordinator"
@@ -557,10 +660,6 @@
             "symbol": "SnapshotFreshness"
           },
           {
-            "path": "src/TokenUsage.Cli/LimitsDocument.cs",
-            "symbol": "SnapshotFreshness"
-          },
-          {
             "path": "src/TokenUsage.Cli/LocalLimitsCliAccess.cs",
             "symbol": "LimitsQuery"
           },
@@ -571,6 +670,10 @@
           {
             "path": "src/TokenUsage.Cli/LocalLimitsCliAccess.cs",
             "symbol": "QuotaResetHistoryStore"
+          },
+          {
+            "path": "src/TokenUsage.Cli/LocalUsageCliAccess.cs",
+            "symbol": "LocalUsageRefresh"
           }
         ]
       }
@@ -672,6 +775,34 @@
       }
     },
     {
+      "from": "src-tokenusage-package",
+      "to": "src-tokenusage-app",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Package/TokenUsage.Package.wapproj",
+            "symbol": "..\\TokenUsage.App\\TokenUsage.App.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-package",
+      "to": "src-tokenusage-cli",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Package/TokenUsage.Package.wapproj",
+            "symbol": "..\\TokenUsage.Cli\\TokenUsage.Cli.csproj"
+          }
+        ]
+      }
+    },
+    {
       "from": "src-tokenusage-platform-windows",
       "to": "src-tokenusage-core",
       "type": "imports",
@@ -681,6 +812,98 @@
           {
             "path": "src/TokenUsage.Platform.Windows/TokenUsage.Platform.Windows.csproj",
             "symbol": "..\\TokenUsage.Core\\TokenUsage.Core.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-presentation",
+      "to": "src-tokenusage-core",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Presentation/Services/LocalUsageCoordinator.cs",
+            "symbol": "LocalUsageRefresh"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/Services/SampleRefreshCoordinator.cs",
+            "symbol": "ProviderId"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/Services/SampleRefreshCoordinator.cs",
+            "symbol": "SnapshotStore"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/Services/SampleRefreshCoordinator.cs",
+            "symbol": "CacheFirstRefresh"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/CodexDashboardProjector.cs",
+            "symbol": "QuotaPace"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/DashboardLayoutProjector.cs",
+            "symbol": "ProviderId"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/DashboardLayoutProjector.cs",
+            "symbol": "MetricId"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/DashboardLayoutProjector.cs",
+            "symbol": "MetricLayoutCatalogEntry"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-presentation",
+      "to": "src-tokenusage-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Presentation/TokenUsage.Presentation.csproj",
+            "symbol": "..\\TokenUsage.Core\\TokenUsage.Core.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-presentation",
+      "to": "src-tokenusage-providers",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Presentation/Services/SampleRefreshCoordinator.cs",
+            "symbol": "FakeProviderRuntime"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/LocalUsageCardProjector.cs",
+            "symbol": "ProviderModuleCatalog"
+          },
+          {
+            "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/ProviderStatusSurfaceViewModel.cs",
+            "symbol": "ProviderModuleCatalog"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-tokenusage-presentation",
+      "to": "src-tokenusage-providers",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/TokenUsage.Presentation/TokenUsage.Presentation.csproj",
+            "symbol": "..\\TokenUsage.Providers\\TokenUsage.Providers.csproj"
           }
         ]
       }
@@ -853,6 +1076,10 @@
             "symbol": "CodexProviderRuntime"
           },
           {
+            "path": "src/TokenUsage.Runtime.Windows/Credentials/WindowsManualProviderCredentialStore.cs",
+            "symbol": "ProviderModuleCatalog"
+          },
+          {
             "path": "src/TokenUsage.Runtime.Windows/Cursor/CursorHookInstaller.cs",
             "symbol": "CursorUsagePaths"
           },
@@ -863,10 +1090,6 @@
           {
             "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
             "symbol": "ClaudeUsageEventSource"
-          },
-          {
-            "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
-            "symbol": "CodexUsageEventSource"
           }
         ]
       }
@@ -888,56 +1111,52 @@
   ],
   "flows": [
     {
-      "trigger": "Tracked reference src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs:RefreshCommand",
+      "trigger": "MainPage starts the compact dashboard session",
       "steps": [
         "src-tokenusage-app",
-        "src-tokenusage-cli",
-        "src-tokenusage-runtime-windows",
-        "src-tokenusage-platform-windows",
+        "src-tokenusage-presentation",
         "src-tokenusage-core"
       ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 4 step(s)."
+      "outcome": "The presentation layer publishes cached usage first, then coordinates the live refresh through Core."
     },
     {
-      "trigger": "Tracked reference src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs:RefreshCommand to src-tokenusage-core",
-      "steps": [
-        "src-tokenusage-app",
-        "src-tokenusage-cli",
-        "src-tokenusage-runtime-windows",
-        "src-tokenusage-providers",
-        "src-tokenusage-core"
-      ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 4 step(s)."
-    },
-    {
-      "trigger": "Tracked reference src/TokenUsage.App/Composition/AppComposition.cs:VercelGatewayRefreshCoordinator",
-      "steps": [
-        "src-tokenusage-app",
-        "src-tokenusage-runtime-windows",
-        "src-tokenusage-platform-windows",
-        "src-tokenusage-core"
-      ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 3 step(s)."
-    },
-    {
-      "trigger": "Tracked reference src/TokenUsage.App/Composition/AppComposition.cs:VercelGatewayRefreshCoordinator to src-tokenusage-core",
+      "trigger": "The packaged app refreshes Windows providers",
       "steps": [
         "src-tokenusage-app",
         "src-tokenusage-runtime-windows",
         "src-tokenusage-providers",
         "src-tokenusage-core"
       ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 3 step(s)."
+      "outcome": "Windows composition invokes read-only provider adapters and Core normalizes their usage events."
     },
     {
-      "trigger": "Tracked reference src/TokenUsage.Cli/CursorCommand.cs:CursorHookInstaller",
+      "trigger": "The report window loads or changes provider scope",
+      "steps": [
+        "src-tokenusage-app",
+        "src-tokenusage-core"
+      ],
+      "outcome": "One durable report read is projected globally or filtered by provider in memory."
+    },
+    {
+      "trigger": "A CLI usage, limits, doctor, or report command runs",
       "steps": [
         "src-tokenusage-cli",
         "src-tokenusage-runtime-windows",
-        "src-tokenusage-platform-windows",
+        "src-tokenusage-providers",
         "src-tokenusage-core"
       ],
-      "outcome": "The verified dependency path reaches src-tokenusage-core through 3 step(s)."
+      "outcome": "The CLI uses the same provider composition and Core stores while preserving its stable JSON contract."
+    },
+    {
+      "trigger": "BuildAndRun targets the TokenUsage package",
+      "steps": [
+        "buildandrun",
+        "src-tokenusage-package",
+        "src-tokenusage-app",
+        "src-tokenusage-presentation",
+        "src-tokenusage-core"
+      ],
+      "outcome": "The x64 or ARM64 MSIX contains the WinUI entry point, CLI alias, and portable presentation/Core dependencies."
     }
   ]
 }

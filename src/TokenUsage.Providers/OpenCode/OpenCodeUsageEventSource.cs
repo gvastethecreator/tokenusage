@@ -256,13 +256,15 @@ public sealed class OpenCodeUsageEventSource :
         using SqliteCommand command = connection.CreateCommand();
         string partJoin = hasPartFallback
             ? """
-              LEFT JOIN part p ON p.id = (
-                SELECT p2.id FROM part p2
-                WHERE p2.message_id = m.id
-                  AND json_valid(p2.data)
-                  AND json_extract(p2.data, '$.type') = 'step-finish'
-                ORDER BY p2.time_created DESC, p2.id DESC
-                LIMIT 1)
+              LEFT JOIN (
+                SELECT message_id, data,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY message_id
+                    ORDER BY time_created DESC, id DESC) AS rn
+                FROM part
+                WHERE json_valid(data)
+                  AND json_extract(data, '$.type') = 'step-finish'
+              ) p ON p.message_id = m.id AND p.rn = 1
               """
             : string.Empty;
         string PartValue(string path) => hasPartFallback

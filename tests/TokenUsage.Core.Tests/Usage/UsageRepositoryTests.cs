@@ -97,6 +97,77 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task ReconcilingAfterRetentionKeepsHistoricalRollup()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "long-lived-grok-session",
+                new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero),
+                agentId: "grok",
+                parserVersion: "grok-local/1"),
+        ]);
+        await repository.ApplyRetentionAsync(
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
+
+        UsageIngestResult result = await repository.ReconcileAgentEventRangeAsync(
+            new AgentId("grok"),
+            "grok-local/1",
+            new DateOnly(2026, 6, 23),
+            new DateOnly(2026, 7, 22),
+            [CreateEvent(
+                "recent-grok-session",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                agentId: "grok",
+                parserVersion: "grok-local/1")]);
+
+        Assert.Equal(new UsageIngestResult(1, 0), result);
+        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2025, 1, 1),
+            new DateOnly(2026, 12, 31),
+            new AgentId("grok"));
+        Assert.Equal(2, rollups.Count);
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2025, 6, 16));
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2026, 7, 22));
+    }
+
+    [Fact]
+    public async Task UpsertingAfterRetentionKeepsHistoricalRollup()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "long-lived-grok-session",
+                new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero),
+                agentId: "grok",
+                parserVersion: "grok-local/1"),
+        ]);
+        await repository.ApplyRetentionAsync(
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
+
+        UsageIngestResult result = await repository.UpsertAgentEventsAsync(
+            new AgentId("grok"),
+            [CreateEvent(
+                "recent-grok-session",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                agentId: "grok",
+                parserVersion: "grok-local/1")]);
+
+        Assert.Equal(new UsageIngestResult(1, 0), result);
+        IReadOnlyList<DailyUsageRollup> rollups = await repository.QueryDailyRollupsByAgentAsync(
+            new DateOnly(2025, 1, 1),
+            new DateOnly(2026, 12, 31),
+            new AgentId("grok"));
+        Assert.Equal(2, rollups.Count);
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2025, 6, 16));
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2026, 7, 22));
+    }
+
+    [Fact]
     public async Task ReplacingAgentRangeUsesExactCurrentSnapshotAndKeepsOlderHistory()
     {
         using var folder = new TemporaryFolder();
@@ -173,6 +244,71 @@ public sealed class UsageRepositoryTests
             new DateOnly(2026, 7, 22),
             new AgentId("claude")));
         Assert.Equal(400, rollup.Tokens.Total);
+        Assert.Equal(1, rollup.EventCount);
+    }
+
+    [Fact]
+    public async Task UpsertingMutableEventOnAnotherDayRemovesItsPreviousRollup()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "claude-stream",
+                new DateTimeOffset(2026, 7, 21, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2"),
+        ]);
+
+        await repository.UpsertAgentEventsAsync(
+            new AgentId("claude"),
+            [CreateEvent(
+                "claude-stream",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2")]);
+
+        DailyUsageRollup rollup = Assert.Single(
+            await repository.QueryDailyRollupsByAgentAsync(
+                new DateOnly(2026, 7, 21),
+                new DateOnly(2026, 7, 22),
+                new AgentId("claude")));
+        Assert.Equal(new DateOnly(2026, 7, 22), rollup.Date);
+        Assert.Equal(1, rollup.EventCount);
+    }
+
+    [Fact]
+    public async Task ReconcilingEventMovedIntoRangeRemovesItsPreviousRollup()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "claude-stream",
+                new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2"),
+        ]);
+
+        await repository.ReconcileAgentEventRangeAsync(
+            new AgentId("claude"),
+            "claude-jsonl/2",
+            new DateOnly(2026, 7, 1),
+            new DateOnly(2026, 7, 22),
+            [CreateEvent(
+                "claude-stream",
+                new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+                agentId: "claude",
+                parserVersion: "claude-jsonl/2")]);
+
+        DailyUsageRollup rollup = Assert.Single(
+            await repository.QueryDailyRollupsByAgentAsync(
+                new DateOnly(2026, 6, 1),
+                new DateOnly(2026, 7, 22),
+                new AgentId("claude")));
+        Assert.Equal(new DateOnly(2026, 7, 22), rollup.Date);
         Assert.Equal(1, rollup.EventCount);
     }
 
@@ -257,8 +393,8 @@ public sealed class UsageRepositoryTests
             """;
         Assert.Equal(6L, (long)(await command.ExecuteScalarAsync())!);
 
-        command.CommandText = "SELECT COUNT(*) FROM schema_migration WHERE version IN (1, 2, 3);";
-        Assert.Equal(3L, (long)(await command.ExecuteScalarAsync())!);
+        command.CommandText = "SELECT COUNT(*) FROM schema_migration WHERE version IN (1, 2, 3, 4);";
+        Assert.Equal(4L, (long)(await command.ExecuteScalarAsync())!);
 
         command.CommandText = "PRAGMA journal_mode;";
         Assert.Equal("wal", (string)(await command.ExecuteScalarAsync())!);
@@ -300,7 +436,7 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (4, '2026-07-22T12:00:00Z');
+                VALUES (5, '2026-07-22T12:00:00Z');
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -308,7 +444,7 @@ public sealed class UsageRepositoryTests
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(4, error.ActualVersion);
+        Assert.Equal(5, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -363,20 +499,20 @@ public sealed class UsageRepositoryTests
         {
             await setup.OpenAsync();
             await using SqliteCommand command = setup.CreateCommand();
-            command.CommandText = "DELETE FROM schema_migration WHERE version = 3;";
+            command.CommandText = "DELETE FROM schema_migration WHERE version = 4;";
             await command.ExecuteNonQueryAsync();
         }
 
         UsageSchemaTooOldException error = await Assert.ThrowsAsync<UsageSchemaTooOldException>(
             () => UsageRepository.OpenReadOnlyAsync(folder.DatabasePath));
 
-        Assert.Equal(2, error.ActualVersion);
+        Assert.Equal(3, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
         await using SqliteCommand verifyCommand = verify.CreateCommand();
         verifyCommand.CommandText = "SELECT COALESCE(MAX(version), 0) FROM schema_migration;";
-        Assert.Equal(2L, (long)(await verifyCommand.ExecuteScalarAsync())!);
+        Assert.Equal(3L, (long)(await verifyCommand.ExecuteScalarAsync())!);
     }
 
     [Fact]
@@ -430,7 +566,7 @@ public sealed class UsageRepositoryTests
             await using SqliteCommand command = setup.CreateCommand();
             command.CommandText =
                 """
-                DELETE FROM schema_migration WHERE version IN (2, 3);
+                DELETE FROM schema_migration WHERE version IN (2, 3, 4);
                 DROP TABLE usage_event_tombstone;
                 """;
             await command.ExecuteNonQueryAsync();
@@ -443,8 +579,8 @@ public sealed class UsageRepositoryTests
         await verify.OpenAsync();
         await using SqliteCommand verifyCommand = verify.CreateCommand();
         verifyCommand.CommandText =
-            "SELECT COUNT(*) FROM schema_migration WHERE version IN (2, 3);";
-        Assert.Equal(2L, (long)(await verifyCommand.ExecuteScalarAsync())!);
+            "SELECT COUNT(*) FROM schema_migration WHERE version IN (2, 3, 4);";
+        Assert.Equal(3L, (long)(await verifyCommand.ExecuteScalarAsync())!);
         verifyCommand.CommandText =
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'usage_event_tombstone';";
         Assert.Equal(1L, (long)(await verifyCommand.ExecuteScalarAsync())!);
@@ -469,7 +605,7 @@ public sealed class UsageRepositoryTests
         {
             await setup.OpenAsync();
             await using SqliteCommand command = setup.CreateCommand();
-            command.CommandText = "DELETE FROM schema_migration WHERE version = 3;";
+            command.CommandText = "DELETE FROM schema_migration WHERE version IN (3, 4);";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -486,6 +622,132 @@ public sealed class UsageRepositoryTests
         Assert.Single(claude);
         Assert.Equal("claude", all[0].AgentId.Value);
         Assert.Equal(1, all[0].EventCount);
+    }
+
+    [Fact]
+    public async Task VersionFourCreatesUsageQueryIndexes()
+    {
+        using var folder = new TemporaryFolder();
+        await UsageRepository.OpenAsync(folder.DatabasePath);
+
+        await using var connection = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Pooling=False");
+        await connection.OpenAsync();
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT name FROM sqlite_master
+            WHERE type = 'index'
+              AND name IN (
+                'ix_usage_event_agent_civil_date',
+                'ix_usage_event_occurred_at_utc',
+                'ix_daily_usage_rollup_agent_civil_date');
+            """;
+        var names = new List<string>();
+        await using (SqliteDataReader reader = await command.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                names.Add(reader.GetString(0));
+            }
+        }
+
+        Assert.Equal(4, UsageRepository.CurrentSchemaVersion);
+        Assert.Contains("ix_usage_event_agent_civil_date", names);
+        Assert.Contains("ix_usage_event_occurred_at_utc", names);
+        Assert.Contains("ix_daily_usage_rollup_agent_civil_date", names);
+    }
+
+    [Fact]
+    public async Task QueryPlansUseSchemaFourIndexes()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent("indexed-event"),
+            CreateEvent("other-agent", agentId: "claude", parserVersion: "claude-jsonl/1"),
+        ]);
+
+        await using var connection = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Pooling=False");
+        await connection.OpenAsync();
+        string eventPlan = await ExplainAsync(
+            connection,
+            """
+            EXPLAIN QUERY PLAN
+            SELECT event_key FROM usage_event
+            WHERE agent_id = 'grok' AND civil_date BETWEEN '2026-01-01' AND '2026-12-31';
+            """);
+        string retentionPlan = await ExplainAsync(
+            connection,
+            """
+            EXPLAIN QUERY PLAN
+            SELECT event_key FROM usage_event
+            WHERE occurred_at_utc < '2026-01-01T00:00:00.0000000+00:00';
+            """);
+        string rollupPlan = await ExplainAsync(
+            connection,
+            """
+            EXPLAIN QUERY PLAN
+            SELECT civil_date FROM daily_usage_rollup
+            WHERE agent_id = 'grok' AND civil_date >= '2026-01-01' AND civil_date <= '2026-12-31';
+            """);
+
+        Assert.Contains("ix_usage_event_agent_civil_date", eventPlan, StringComparison.Ordinal);
+        Assert.Contains("ix_usage_event_occurred_at_utc", retentionPlan, StringComparison.Ordinal);
+        Assert.Contains("ix_daily_usage_rollup_agent_civil_date", rollupPlan, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RetentionIfDueSkipsWithinTheIntervalAndRunsAfterIt()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "old-event",
+                new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero)),
+        ]);
+        var now = new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
+
+        int first = await repository.ApplyRetentionIfDueAsync(now, TimeSpan.FromHours(6));
+        int skipped = await repository.ApplyRetentionIfDueAsync(
+            now.AddHours(1),
+            TimeSpan.FromHours(6));
+        int later = await repository.ApplyRetentionIfDueAsync(
+            now.AddHours(6),
+            TimeSpan.FromHours(6),
+            batchSize: 1);
+
+        Assert.Equal(1, first);
+        Assert.Equal(-1, skipped);
+        Assert.Equal(0, later);
+    }
+
+    [Fact]
+    public async Task LargeIngestBatchSkipsTombstonedKeysAndKeepsOneRollup()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent retired = CreateEvent(
+            "retired-key",
+            new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero));
+        await repository.IngestAsync([retired]);
+        await repository.ApplyRetentionAsync(
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
+
+        UsageEvent[] batch = Enumerable.Range(0, 500)
+            .Select(index => CreateEvent($"batch-{index}"))
+            .Append(retired)
+            .ToArray();
+        UsageIngestResult result = await repository.IngestAsync(batch);
+
+        Assert.Equal(new UsageIngestResult(500, 1), result);
+        Assert.Equal(501, (await repository.QueryDailyRollupsAsync(
+            new DateOnly(2025, 1, 1),
+            new DateOnly(2026, 12, 31))).Sum(rollup => rollup.EventCount));
     }
 
     [Fact]
@@ -625,6 +887,20 @@ public sealed class UsageRepositoryTests
             CostObservation.ProviderReported(0.25m),
             parserVersion,
             CoverageKind.Complete);
+
+    private static async Task<string> ExplainAsync(SqliteConnection connection, string sql)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = sql;
+        var details = new List<string>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            details.Add(reader.GetString(reader.FieldCount - 1));
+        }
+
+        return string.Join('\n', details);
+    }
 
     private sealed class TemporaryFolder : IDisposable
     {

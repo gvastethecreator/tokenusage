@@ -571,6 +571,7 @@ public sealed class SessionModuleTests
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
             spark => Assert.Equal("CodexWindowSpark", spark.Title));
         Assert.Equal(surface.GlobalCodexLimits, surface.SelectedProviderLimits);
+        Assert.Same(surface.GlobalCodexLimits, surface.GetProviderLimits("codex"));
         Assert.True(surface.HasGlobalCodexLimits);
         Assert.True(surface.SelectedProviderHasLimits);
     }
@@ -620,6 +621,7 @@ public sealed class SessionModuleTests
             synchronizationContext: null);
 
         await surface.StartAsync();
+        await surface.StartAsync();
         surface.SelectProvider("codex");
 
         Assert.Collection(
@@ -628,6 +630,8 @@ public sealed class SessionModuleTests
             spark => Assert.Equal("CodexWindowSpark", spark.Title));
         Assert.True(surface.SelectedProviderHasLimits);
         Assert.True(codexProvider.SawForcedRefresh);
+        Assert.Equal([false, true], codexProvider.ForceRefreshRequests.Take(2));
+        Assert.Equal(1, codexProvider.ForceRefreshRequests.Count(force => force));
     }
 
     private static AppSessionHost CreateAppSession(string root, TimeProvider clock)
@@ -690,6 +694,8 @@ public sealed class SessionModuleTests
 
         public bool SawForcedRefresh { get; private set; }
 
+        public List<bool> ForceRefreshRequests { get; } = [];
+
         public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
 
@@ -697,6 +703,7 @@ public sealed class SessionModuleTests
             RefreshContext context,
             CancellationToken cancellationToken)
         {
+            ForceRefreshRequests.Add(context.ForceRefresh);
             SawForcedRefresh |= context.ForceRefresh;
             if (requireForceRefresh && !context.ForceRefresh)
             {

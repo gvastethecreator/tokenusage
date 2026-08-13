@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text.Json;
 
 namespace TokenUsage.Cli;
 
@@ -11,7 +10,7 @@ public delegate Task<UsageCliSummary> UsageSummaryReader(
 
 public static class UsageCommand
 {
-    public const string SchemaVersion = "tokenusage.usage.v1";
+    public const string SchemaVersion = UsageJson.SchemaVersion;
     public const string UsageText =
         "Usage: tokenusage usage [--days 1-3650] [--format human|json]";
 
@@ -21,12 +20,6 @@ public static class UsageCommand
 
     private const int DefaultDays = 30;
     private const int MaximumDays = 3650;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-    };
 
     [SuppressMessage(
         "Design",
@@ -81,13 +74,12 @@ public static class UsageCommand
 
         if (options.Format == OutputFormat.Json)
         {
-            UsageDocument document = CreateDocument(
-                generatedAt,
-                fromInclusive,
-                toInclusive,
-                options.Days,
-                summary);
-            await standardOutput.WriteLineAsync(JsonSerializer.Serialize(document, JsonOptions))
+            await standardOutput.WriteLineAsync(UsageJson.Serialize(
+                    generatedAt,
+                    fromInclusive,
+                    toInclusive,
+                    options.Days,
+                    summary))
                 .ConfigureAwait(false);
         }
         else
@@ -218,20 +210,6 @@ public static class UsageCommand
         || summary.ReportedCostUsd is not null
         || summary.EstimatedCostUsd is not null;
 
-    private static UsageDocument CreateDocument(
-        DateTimeOffset generatedAt,
-        DateOnly fromInclusive,
-        DateOnly toInclusive,
-        int days,
-        UsageCliSummary summary) =>
-        new(
-            SchemaVersion,
-            generatedAt,
-            new UsageRange(fromInclusive, toInclusive, days),
-            summary.EventCount,
-            new UsageTokens(summary.TotalTokens, summary.UnpricedTokens),
-            new UsageCost(summary.ReportedCostUsd, summary.EstimatedCostUsd));
-
     private static async Task WriteHumanAsync(
         TextWriter output,
         DateOnly fromInclusive,
@@ -271,18 +249,4 @@ public static class UsageCommand
         Human,
         Json,
     }
-
-    private sealed record UsageDocument(
-        string SchemaVersion,
-        DateTimeOffset GeneratedAt,
-        UsageRange Range,
-        int Events,
-        UsageTokens Tokens,
-        UsageCost CostUsd);
-
-    private sealed record UsageRange(DateOnly From, DateOnly To, int Days);
-
-    private sealed record UsageTokens(long Total, long Unpriced);
-
-    private sealed record UsageCost(decimal? Reported, decimal? Estimated);
 }

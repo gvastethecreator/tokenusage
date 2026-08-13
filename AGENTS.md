@@ -33,9 +33,10 @@ Use the single-context TokenUsage product, provider, architecture, and research 
 
 - `TokenUsage.Core` owns portable domain, storage, cache, and coordination contracts.
 - `TokenUsage.Providers` references `TokenUsage.Core` and owns provider adapters.
+- `TokenUsage.Presentation` references `TokenUsage.Core` and `TokenUsage.Providers` and owns WinUI-free view models, projectors, and formatters (`net10.0`).
 - `TokenUsage.Platform.Windows` references `TokenUsage.Core` and owns Windows integration.
 - `TokenUsage.Runtime.Windows` composes Core, Providers, and Platform services.
-- `TokenUsage.App` owns WinUI views, view models, and application composition.
+- `TokenUsage.App` references Presentation plus Core, Providers, Platform, and Runtime, and owns WinUI views and application composition.
 - `TokenUsage.Cli` owns commands and stable JSON output.
 - `TokenUsage.Package` owns the MSIX manifest, app payload, CLI payload, and execution alias.
 

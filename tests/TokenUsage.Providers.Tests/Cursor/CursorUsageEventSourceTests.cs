@@ -8,6 +8,9 @@ namespace TokenUsage.Providers.Tests.Cursor;
 
 public sealed class CursorUsageEventSourceTests
 {
+    private static readonly DateTimeOffset Now =
+        new(2026, 8, 13, 12, 0, 0, TimeSpan.Zero);
+
     [Fact]
     public async Task DatabaseOverTheSizeCapDoesNotReadUsage()
     {
@@ -276,6 +279,91 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
     }
 
+    [Fact]
+    public async Task SqlCutoffExcludesOldIsoBubbleAndKeepsRecentNumericBubble()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteBubble(
+            "old-conversation",
+            "old-bubble",
+            Now.AddDays(-60).ToString("O"),
+            "gpt-5",
+            inputTokens: 100,
+            outputTokens: 10,
+            privateText: "private old content");
+        corpus.WriteBubble(
+            "recent-conversation",
+            "recent-bubble",
+            Now.AddDays(-1).ToUnixTimeMilliseconds(),
+            "gpt-5",
+            inputTokens: 200,
+            outputTokens: 20,
+            privateText: "private recent content");
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+
+        UsageEvent usageEvent = Assert.Single(result.Events);
+        Assert.Equal(Now.AddDays(-1), usageEvent.OccurredAtUtc);
+        Assert.Equal(220, usageEvent.Tokens.Total);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+    }
+
+    [Fact]
+    public async Task SqlCutoffExcludesOldIsoComposerAndReadsRecentIsoComposer()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposerWithTimestamp(
+            "old-conversation",
+            Now.AddDays(-60).ToString("O"),
+            "gpt-5",
+            100);
+        corpus.WriteComposerWithTimestamp(
+            "recent-conversation",
+            Now.AddDays(-1).ToString("O"),
+            "gpt-5",
+            200);
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+
+        UsageEvent usageEvent = Assert.Single(result.Events);
+        Assert.Equal(Now.AddDays(-1), usageEvent.OccurredAtUtc);
+        Assert.Equal(200, usageEvent.Tokens.Total);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+    }
+
+    [Fact]
+    public async Task ReadsRecentNumericTextComposerTimestamp()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposerWithTimestamp(
+            "recent-conversation",
+            Now.AddDays(-1).ToUnixTimeMilliseconds().ToString(
+                System.Globalization.CultureInfo.InvariantCulture),
+            "gpt-5",
+            200);
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(Now.AddDays(-1), usageEvent.OccurredAtUtc);
+        Assert.Equal(200, usageEvent.Tokens.Total);
+    }
+
+    [Fact]
+    public async Task ReadsRecentRealComposerTimestamp()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposerWithTimestamp(
+            "recent-conversation",
+            (double)Now.AddDays(-1).ToUnixTimeMilliseconds(),
+            "gpt-5",
+            200);
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(Now.AddDays(-1), usageEvent.OccurredAtUtc);
+        Assert.Equal(200, usageEvent.Tokens.Total);
+    }
+
     private sealed class CursorCorpus : IDisposable
     {
         public CursorCorpus(bool createCursorHome = true)
@@ -305,7 +393,8 @@ public sealed class CursorUsageEventSourceTests
         public CursorUsageEventSource CreateSource() => new(
             "UTC",
             Home,
-            Roaming);
+            Roaming,
+            clock: new FixedTimeProvider(Now));
 
         public void WriteComposer(
             string composerId,
@@ -353,6 +442,21 @@ public sealed class CursorUsageEventSourceTests
             command.ExecuteNonQuery();
         }
 
+        public void WriteComposerWithTimestamp(
+            string composerId,
+            object timestamp,
+            string model,
+            long estimatedContextTokens) =>
+            WriteRaw($"composerData:{composerId}", JsonSerializer.Serialize(new
+            {
+                conversationCheckpointLastUpdatedAt = timestamp,
+                createdAt = timestamp,
+                modelConfig = new { modelName = model },
+                promptTokenBreakdown = new { totalUsedTokens = estimatedContextTokens },
+                contextTokensUsed = estimatedContextTokens,
+                text = "private",
+            }));
+
         public void WriteRaw(string key, string value)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(DatabasePath)!);
@@ -381,7 +485,7 @@ public sealed class CursorUsageEventSourceTests
         public void WriteBubble(
             string composerId,
             string bubbleId,
-            string timestamp,
+            object timestamp,
             string model,
             long inputTokens,
             long outputTokens,

@@ -27,6 +27,7 @@ public sealed class CursorUsageEventSource :
     private readonly LocalScanBudget _budget;
     private readonly int _maximumRows;
     private readonly int _maximumValueBytes;
+    private readonly TimeProvider _clock;
 
     public CursorUsageEventSource(
         string groupingTimeZoneId,
@@ -35,7 +36,8 @@ public sealed class CursorUsageEventSource :
         string? databasePathOverride = null,
         long maximumDatabaseBytes = 2L * 1024 * 1024 * 1024,
         int maximumRows = 100_000,
-        int maximumValueBytes = DefaultMaximumValueBytes)
+        int maximumValueBytes = DefaultMaximumValueBytes,
+        TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
@@ -51,6 +53,7 @@ public sealed class CursorUsageEventSource :
         _budget = new LocalScanBudget(1, maximumDatabaseBytes);
         _maximumRows = maximumRows;
         _maximumValueBytes = maximumValueBytes;
+        _clock = clock ?? TimeProvider.System;
     }
 
     public AgentId AgentId { get; } = new("cursor");
@@ -175,24 +178,74 @@ public sealed class CursorUsageEventSource :
 
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
+            WITH raw_composer_rows AS (
+              SELECT
+                key,
+                json_extract(value, '$.conversationCheckpointLastUpdatedAt') AS checkpoint_at,
+                json_extract(value, '$.lastUpdatedAt') AS last_updated_at,
+                json_extract(value, '$.createdAt') AS created_at,
+                json_extract(value, '$.modelConfig.modelName') AS model_name,
+                json_extract(value, '$.promptTokenBreakdown.totalUsedTokens') AS breakdown_tokens,
+                json_extract(value, '$.contextTokensUsed') AS context_tokens,
+                length(value) AS value_bytes
+              FROM cursorDiskKV
+              WHERE key GLOB 'composerData:*'
+                AND length(value) <= $value_limit
+            ),
+            composer_rows AS (
+              SELECT
+                *,
+                CASE
+                  WHEN typeof(checkpoint_at) IN ('integer', 'real') THEN CAST(checkpoint_at AS INTEGER)
+                  WHEN typeof(checkpoint_at) = 'text'
+                    AND length(trim(CAST(checkpoint_at AS TEXT))) BETWEEN 10 AND 16
+                    AND trim(CAST(checkpoint_at AS TEXT)) NOT GLOB '*[^0-9]*'
+                    THEN CAST(checkpoint_at AS INTEGER)
+                  WHEN typeof(checkpoint_at) = 'text' THEN unixepoch(checkpoint_at) * 1000
+                  ELSE NULL
+                END AS checkpoint_at_ms,
+                CASE
+                  WHEN typeof(last_updated_at) IN ('integer', 'real') THEN CAST(last_updated_at AS INTEGER)
+                  WHEN typeof(last_updated_at) = 'text'
+                    AND length(trim(CAST(last_updated_at AS TEXT))) BETWEEN 10 AND 16
+                    AND trim(CAST(last_updated_at AS TEXT)) NOT GLOB '*[^0-9]*'
+                    THEN CAST(last_updated_at AS INTEGER)
+                  WHEN typeof(last_updated_at) = 'text' THEN unixepoch(last_updated_at) * 1000
+                  ELSE NULL
+                END AS last_updated_at_ms,
+                CASE
+                  WHEN typeof(created_at) IN ('integer', 'real') THEN CAST(created_at AS INTEGER)
+                  WHEN typeof(created_at) = 'text'
+                    AND length(trim(CAST(created_at AS TEXT))) BETWEEN 10 AND 16
+                    AND trim(CAST(created_at AS TEXT)) NOT GLOB '*[^0-9]*'
+                    THEN CAST(created_at AS INTEGER)
+                  WHEN typeof(created_at) = 'text' THEN unixepoch(created_at) * 1000
+                  ELSE NULL
+                END AS created_at_ms
+              FROM raw_composer_rows
+            )
             SELECT
               key,
-              json_extract(value, '$.conversationCheckpointLastUpdatedAt'),
-              json_extract(value, '$.lastUpdatedAt'),
-              json_extract(value, '$.createdAt'),
-              json_extract(value, '$.modelConfig.modelName'),
-              json_extract(value, '$.promptTokenBreakdown.totalUsedTokens'),
-              json_extract(value, '$.contextTokensUsed'),
-              length(value)
-            FROM cursorDiskKV
-            WHERE key GLOB 'composerData:*'
-              AND length(value) <= $value_limit
-              AND json_extract(value, '$.modelConfig.modelName') IS NOT NULL
+              checkpoint_at,
+              last_updated_at,
+              created_at,
+              model_name,
+              breakdown_tokens,
+              context_tokens,
+              value_bytes
+            FROM composer_rows
+            WHERE model_name IS NOT NULL
+              AND (
+                checkpoint_at_ms >= $cutoff
+                OR last_updated_at_ms >= $cutoff
+                OR created_at_ms >= $cutoff
+              )
             ORDER BY key
             LIMIT $row_limit
             """;
         command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
         command.Parameters.AddWithValue("$row_limit", checked(_maximumRows + 1L));
+        command.Parameters.AddWithValue("$cutoff", CutoffUnixMilliseconds());
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
         int rowsRead = 0;
@@ -257,22 +310,46 @@ public sealed class CursorUsageEventSource :
         var composers = new HashSet<string>(StringComparer.Ordinal);
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
+            WITH bubble_rows AS (
+              SELECT
+                ROWID AS row_id,
+                key,
+                json_extract(value, '$.createdAt') AS created_at,
+                json_extract(value, '$.modelInfo.modelName') AS model_name,
+                json_extract(value, '$.tokenCount.inputTokens') AS input_tokens,
+                json_extract(value, '$.tokenCount.outputTokens') AS output_tokens,
+                CASE
+                  WHEN json_type(value, '$.createdAt') IN ('integer', 'real') THEN
+                    CAST(json_extract(value, '$.createdAt') AS INTEGER)
+                  WHEN json_type(value, '$.createdAt') = 'text'
+                    AND length(trim(CAST(json_extract(value, '$.createdAt') AS TEXT)))
+                      BETWEEN 10 AND 16
+                    AND trim(CAST(json_extract(value, '$.createdAt') AS TEXT))
+                      NOT GLOB '*[^0-9]*' THEN
+                    CAST(json_extract(value, '$.createdAt') AS INTEGER)
+                  WHEN json_type(value, '$.createdAt') = 'text' THEN
+                    unixepoch(json_extract(value, '$.createdAt')) * 1000
+                  ELSE NULL
+                END AS created_at_ms
+              FROM cursorDiskKV
+              WHERE key GLOB 'bubbleId:*'
+                AND length(value) <= $value_limit
+            )
             SELECT
               key,
-              json_extract(value, '$.createdAt'),
-              json_extract(value, '$.modelInfo.modelName'),
-              json_extract(value, '$.tokenCount.inputTokens'),
-              json_extract(value, '$.tokenCount.outputTokens')
-            FROM cursorDiskKV
-            WHERE key GLOB 'bubbleId:*'
-              AND length(value) <= $value_limit
-              AND COALESCE(json_extract(value, '$.tokenCount.inputTokens'), 0)
-                + COALESCE(json_extract(value, '$.tokenCount.outputTokens'), 0) > 0
-            ORDER BY ROWID DESC
+              created_at,
+              model_name,
+              input_tokens,
+              output_tokens
+            FROM bubble_rows
+            WHERE COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0) > 0
+              AND created_at_ms >= $cutoff
+            ORDER BY row_id DESC
             LIMIT $row_limit
             """;
         command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
         command.Parameters.AddWithValue("$row_limit", checked(_maximumRows + 1L));
+        command.Parameters.AddWithValue("$cutoff", CutoffUnixMilliseconds());
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
         int rowsRead = 0;
@@ -387,12 +464,18 @@ public sealed class CursorUsageEventSource :
     {
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
+            WITH composer_rows AS (
+              SELECT key, value, length(value) AS value_bytes
+              FROM cursorDiskKV
+              WHERE key GLOB 'composerData:*'
+            )
             SELECT key
-            FROM cursorDiskKV
-            WHERE key GLOB 'composerData:*'
-              AND (length(value) > $value_limit
-                OR (length(value) <= 65536
-                    AND NOT json_valid(CAST(value AS TEXT))))
+            FROM composer_rows
+            WHERE CASE
+              WHEN value_bytes > $value_limit THEN 1
+              WHEN value_bytes <= 65536 THEN NOT json_valid(CAST(value AS TEXT))
+              ELSE 0
+            END = 1
             LIMIT $row_limit
             """;
         command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
@@ -479,19 +562,9 @@ public sealed class CursorUsageEventSource :
     {
         foreach (int ordinal in new[] { 1, 2, 3 })
         {
-            if (TryGetInt64(reader, ordinal, out long milliseconds))
+            if (TryGetTimestamp(reader, ordinal, out timestamp))
             {
-                try
-                {
-                    timestamp = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds);
-                    if (timestamp.Year is >= 2000 and <= 2100)
-                    {
-                        return true;
-                    }
-                }
-                catch (ArgumentOutOfRangeException)
-                {
-                }
+                return true;
             }
         }
 
@@ -522,15 +595,27 @@ public sealed class CursorUsageEventSource :
     private static bool TryConvertTimestamp(object raw, out DateTimeOffset timestamp)
     {
         timestamp = default;
-        if (raw is string text
-            && DateTimeOffset.TryParse(
-                text,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind,
-                out DateTimeOffset parsed))
+        if (raw is string text)
         {
-            timestamp = parsed.ToUniversalTime();
-            return true;
+            if (long.TryParse(
+                    text,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out long numericText)
+                && numericText >= 0)
+            {
+                return TryConvertTimestamp(numericText, out timestamp);
+            }
+
+            if (DateTimeOffset.TryParse(
+                    text,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTimeOffset parsed))
+            {
+                timestamp = parsed.ToUniversalTime();
+                return true;
+            }
         }
 
         if (raw is long milliseconds)
@@ -544,6 +629,14 @@ public sealed class CursorUsageEventSource :
             {
                 return false;
             }
+        }
+
+        if (raw is double realMilliseconds
+            && double.IsFinite(realMilliseconds)
+            && realMilliseconds >= 0
+            && realMilliseconds <= long.MaxValue)
+        {
+            return TryConvertTimestamp((long)realMilliseconds, out timestamp);
         }
 
         return false;
@@ -579,6 +672,9 @@ public sealed class CursorUsageEventSource :
 
     private static long GetNonNegativeOrZero(SqliteDataReader reader, int ordinal) =>
         TryGetInt64(reader, ordinal, out long value) ? value : 0;
+
+    private long CutoffUnixMilliseconds() =>
+        _clock.GetUtcNow().AddDays(-LookbackDays).ToUnixTimeMilliseconds();
 
     private static void ExecuteControl(
         SqliteConnection connection,

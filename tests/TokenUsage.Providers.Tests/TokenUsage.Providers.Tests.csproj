@@ -17,48 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TokenUsage.Core\TokenUsage.Core.csproj" />
     <ProjectReference Include="..\..\src\TokenUsage.Providers\TokenUsage.Providers.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Sample\SampleScenario.cs" Link="Sample\SampleScenario.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Dashboard\DashboardModels.cs" Link="Dashboard\DashboardModels.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Sample\SampleDashboardCatalog.cs" Link="Sample\SampleDashboardCatalog.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Sample\SampleDashboardProjector.cs" Link="Sample\SampleDashboardProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Services\SampleRefreshCoordinator.cs" Link="Sample\SampleRefreshCoordinator.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\CodexDashboardProjector.cs" Link="Codex\CodexDashboardProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\CodexLiveStateFormatter.cs" Link="Codex\CodexLiveStateFormatter.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\DashboardLayoutProjector.cs" Link="Dashboard\DashboardLayoutProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\DashboardMetricActionModels.cs" Link="Dashboard\DashboardMetricActionModels.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\DashboardLayoutSessionHistory.cs" Link="Dashboard\DashboardLayoutSessionHistory.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\AppearanceDashboardProjector.cs" Link="Dashboard\AppearanceDashboardProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\FlyoutSurfaceState.cs" Link="Codex\FlyoutSurfaceState.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Services\LocalUsageCoordinator.cs" Link="Usage\LocalUsageCoordinator.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\AppearanceSession.cs" Link="Sessions\AppearanceSession.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\AppearanceOption.cs" Link="Sessions\AppearanceOption.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\AppearanceSurfaceViewModel.cs" Link="Sessions\AppearanceSurfaceViewModel.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Localization\AppLanguageCatalog.cs" Link="Sessions\AppLanguageCatalog.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Localization\AppLanguageOption.cs" Link="Sessions\AppLanguageOption.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\GeneralOptionsViewModel.cs" Link="Sessions\GeneralOptionsViewModel.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\OptionsSection.cs" Link="Sessions\OptionsSection.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\OptionsNavigationViewModel.cs" Link="Sessions\OptionsNavigationViewModel.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\PersonalizationSurfaceViewModel.cs" Link="Sessions\PersonalizationSurfaceViewModel.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\ProviderStatusSurfaceViewModel.cs" Link="Sessions\ProviderStatusSurfaceViewModel.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\LiveDashboardSession.cs" Link="Sessions\LiveDashboardSession.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\IVercelDashboardModule.cs" Link="Sessions\IVercelDashboardModule.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\VercelGatewayUiState.cs" Link="Sessions\VercelGatewayUiState.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Surfaces\DashboardSurfaceViewModel.cs" Link="Sessions\DashboardSurfaceViewModel.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\DashboardLayoutEditor.cs" Link="Sessions\DashboardLayoutEditor.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\SampleDashboardSession.cs" Link="Sessions\SampleDashboardSession.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\LocalUsageCardProjector.cs" Link="Usage\LocalUsageCardProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\UsageValueFormatter.cs" Link="Usage\UsageValueFormatter.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\ProviderDisplayOrder.cs" Link="Usage\ProviderDisplayOrder.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\ProviderStatusPolicy.cs" Link="Usage\ProviderStatusPolicy.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Localization\ProviderDisplayName.cs" Link="Sessions\ProviderDisplayName.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\LiveDashboardComposer.cs" Link="Dashboard\LiveDashboardComposer.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\VercelGatewayCardProjector.cs" Link="VercelAiGateway\VercelGatewayCardProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\UsageHeatmapProjector.cs" Link="Usage\UsageHeatmapProjector.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportModels.cs" Link="Reports\UsageReportModels.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportRequest.cs" Link="Reports\UsageReportRequest.cs" />
+    <ProjectReference Include="..\..\src\TokenUsage.Presentation\TokenUsage.Presentation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

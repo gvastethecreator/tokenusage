@@ -82,6 +82,44 @@ public sealed class ClaudeUsageEventSourceTests
     }
 
     [Fact]
+    public async Task SkipsJsonlFilesOlderThanTheReconciliationWindowWithoutParsingThem()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteFile(
+            "old-session.jsonl",
+            UsageLine(
+                "old-message",
+                "old-request",
+                input: 999,
+                output: 9,
+                cacheRead: 0,
+                cacheWrite: 0,
+                costUsd: 1m,
+                content: "OLD FILE SHOULD BE SKIPPED"));
+        File.SetLastWriteTimeUtc(
+            Path.Combine(corpus.ProjectRoot, "old-session.jsonl"),
+            DateTime.UtcNow.AddDays(-40));
+        corpus.WriteFile(
+            "new-session.jsonl",
+            UsageLine(
+                "new-message",
+                "new-request",
+                input: 10,
+                output: 2,
+                cacheRead: 0,
+                cacheWrite: 0,
+                costUsd: 0.01m,
+                content: "recent"));
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(12, usageEvent.Tokens.Total);
+        Assert.DoesNotContain(result.Events, item => item.Tokens.Input == 999);
+    }
+
+    [Fact]
     public async Task DeduplicatesExactMessagesAndSidechainReplays()
     {
         using var corpus = new ClaudeCorpus();

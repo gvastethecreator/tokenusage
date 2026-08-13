@@ -46,9 +46,33 @@ public static class AppComposition
             GetQuotaResetHistoryPath(localFolderPath),
             resolvedClock);
 
+        WindowsProviderCompositionOptions? providerOptions = null;
+#if DEBUG || UI_TEST_FIXTURES
+        if (Environment.GetCommandLineArgs().Contains(
+                "--test-vercel-fake",
+                StringComparer.OrdinalIgnoreCase))
+        {
+            string vercelCache = Path.Combine(
+                localFolderPath,
+                "cache",
+                "providers",
+                "vercel-ai-gateway");
+            providerOptions = new WindowsProviderCompositionOptions(
+                VercelCoordinator: CreateVercelCoordinator(
+                    vercelCache,
+                    resolvedClock,
+                    new DebugVercelCredentialStore(),
+                    new DebugVercelReportClient(),
+                    new DebugVercelQuotaClient()),
+                EnableVercelGateway: true);
+        }
+#endif
+
         WindowsProviderComposition providers = WindowsProviderCatalog.CreateComposition(
             localFolderPath,
-            resolvedClock);
+            resolvedClock,
+            vercelHttpClient: null,
+            providerOptions);
         var sessionHost = new AppSessionHost(
             providers.RefreshHost,
             new AlertHost(

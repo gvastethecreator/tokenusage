@@ -14,22 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="..\..\src\TokenUsage.Presentation\TokenUsage.Presentation.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\TokenUsage.App\Localization\AppLanguageCatalog.cs"
-             Link="AppLanguageCatalog.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Localization\AppLanguageRestartArguments.cs"
-             Link="AppLanguageRestartArguments.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Controls\SpendDonutGeometry.cs"
-             Link="SpendDonutGeometry.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\Controls\UsageTrendGeometry.cs"
-             Link="UsageTrendGeometry.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportModels.cs"
-             Link="UsageReportModels.cs" />
-    <Compile Include="..\..\src\TokenUsage.App\ViewModels\ProviderTabCarouselLayout.cs"
-             Link="ProviderTabCarouselLayout.cs" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>

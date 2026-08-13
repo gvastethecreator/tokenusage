@@ -37,7 +37,6 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isFlyoutVisible;
     private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
-    private bool _hasRequestedInitialOfficialLimits;
     private bool _layoutAnimationPositionPending;
     private readonly bool _traySummaryPinnedForTest;
     private bool _disposed;
@@ -229,7 +228,6 @@ public sealed partial class MainWindow : Window, IDisposable
         _systemVisualSettingsTimer.Start();
         Activate();
         _ = ForegroundWindowActivator.TryActivate(_windowHandle);
-        EnsureOfficialCodexLimitsOnFirstOpen();
 
         _ = DispatcherQueue.TryEnqueue(() =>
         {
@@ -256,24 +254,6 @@ public sealed partial class MainWindow : Window, IDisposable
         if (!_disposed)
         {
             ShowFlyout(true);
-        }
-    }
-
-    private void EnsureOfficialCodexLimitsOnFirstOpen()
-    {
-        if (_hasRequestedInitialOfficialLimits)
-        {
-            return;
-        }
-
-        _hasRequestedInitialOfficialLimits = true;
-        if (!RootPage.ViewModel.Dashboard.HasGlobalCodexLimits
-            && !RootPage.ViewModel.Dashboard.HasCompletedForcedRefresh)
-        {
-            // Run after the window is active so this follows the same stable UI/session path
-            // as the refresh action instead of racing the hidden startup surface. Startup may
-            // have already forced this pass, and repeating it finds nothing new.
-            _ = RootPage.ViewModel.Dashboard.RefreshLiveAsync();
         }
     }
 
