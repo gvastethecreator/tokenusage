@@ -28,7 +28,8 @@ public sealed record ProviderModuleDefinition
         ProviderModuleStage stage,
         ProviderReference references,
         IEnumerable<string>? aliases = null,
-        bool isQuotaBlocked = false)
+        bool isQuotaBlocked = false,
+        ManualCredentialKind manualCredentialKind = ManualCredentialKind.None)
     {
         Id = new ProviderId(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
@@ -36,6 +37,19 @@ public sealed record ProviderModuleDefinition
         if (!Enum.IsDefined(stage) || references == ProviderReference.None)
         {
             throw new ArgumentOutOfRangeException(nameof(stage));
+        }
+
+        if (!Enum.IsDefined(manualCredentialKind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(manualCredentialKind));
+        }
+
+        if (stage == ProviderModuleStage.PolicyBlocked
+            && manualCredentialKind != ManualCredentialKind.None)
+        {
+            throw new ArgumentException(
+                "A policy-blocked provider cannot accept a manual credential.",
+                nameof(manualCredentialKind));
         }
 
         ProviderCapability[] capabilityArray = capabilities.Distinct().ToArray();
@@ -68,6 +82,7 @@ public sealed record ProviderModuleDefinition
         References = references;
         Aliases = Array.AsReadOnly(aliasArray);
         IsQuotaBlocked = isQuotaBlocked;
+        ManualCredentialKind = manualCredentialKind;
     }
 
     public ProviderId Id { get; }
@@ -89,6 +104,10 @@ public sealed record ProviderModuleDefinition
     /// See <c>docs/PROVIDER-MATRIX.md</c>.
     /// </summary>
     public bool IsQuotaBlocked { get; }
+
+    public ManualCredentialKind ManualCredentialKind { get; }
+
+    public bool AcceptsManualCredential => ManualCredentialKind != ManualCredentialKind.None;
 
     public bool IsOpenUsageProvider => References.HasFlag(ProviderReference.OpenUsage);
 
@@ -114,23 +133,23 @@ public static class ProviderModuleCatalog
             Module("grok", "Grok Build", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["grok-build"], quotaBlocked: true),
             Module("opencode", "OpenCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
 
-            Module("openai", "OpenAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("anthropic", "Anthropic API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("azure-openai", "Azure OpenAI", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, ["azure-openai-api"]),
-            Module("alibaba-cloud", "Alibaba Cloud", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("openrouter", "OpenRouter", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage | ProviderReference.CodexBar),
+            Module("openai", "OpenAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("anthropic", "Anthropic API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("azure-openai", "Azure OpenAI", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, ["azure-openai-api"], credential: ManualCredentialKind.ApiKeyAndEndpoint),
+            Module("alibaba-cloud", "Alibaba Cloud", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("openrouter", "OpenRouter", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage | ProviderReference.CodexBar, credential: ManualCredentialKind.ApiKey),
             Module("perplexity", "Perplexity", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.OpenUsage),
-            Module("groq", "Groq", [ProviderCapability.Limits, ProviderCapability.Usage], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("mistral", "Mistral AI", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("moonshot", "Moonshot", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("deepseek", "DeepSeek", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
-            Module("xai", "xAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("groq", "Groq", [ProviderCapability.Limits, ProviderCapability.Usage], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("mistral", "Mistral AI", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("moonshot", "Moonshot", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("deepseek", "DeepSeek", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
+            Module("xai", "xAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
             Module("zai", "Z.ai", [ProviderCapability.Limits, ProviderCapability.Usage], ProviderModuleStage.PolicyBlocked, ProviderReference.OpenUsage | ProviderReference.CodexBar),
-            Module("gemini-api", "Gemini API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage),
+            Module("gemini-api", "Gemini API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
             Module("gemini-cli", "Gemini CLI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, AllReferences),
             Module("ollama", "Ollama", [ProviderCapability.LocalUsage], ProviderModuleStage.Prepared, ProviderReference.OpenUsage | ProviderReference.CodexBar),
-            Module("copilot", "GitHub Copilot", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, AllReferences),
-            Module("devin", "Devin", [ProviderCapability.Usage], ProviderModuleStage.Prepared, AllReferences),
+            Module("copilot", "GitHub Copilot", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, AllReferences, credential: ManualCredentialKind.ApiKeyAndOptionalOrganization),
+            Module("devin", "Devin", [ProviderCapability.Usage], ProviderModuleStage.Prepared, AllReferences, credential: ManualCredentialKind.ApiKeyAndOrganization),
             Module("amp", "Amp", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
             Module("goose", "Goose", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
             Module("hermes", "Hermes", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
@@ -160,7 +179,7 @@ public static class ProviderModuleCatalog
             Module("open-design", "OpenDesign", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
             Module("omp", "OMP", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
             Module("quickdesk", "QuickDesk", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
-            Module("vercel-ai-gateway", "Vercel AI Gateway", [ProviderCapability.Limits, ProviderCapability.Spend], ProviderModuleStage.OptIn, ProviderReference.CodeBurn),
+            Module("vercel-ai-gateway", "Vercel AI Gateway", [ProviderCapability.Limits, ProviderCapability.Spend], ProviderModuleStage.OptIn, ProviderReference.CodeBurn, credential: ManualCredentialKind.ApiKeyAndOptionalKeyId),
             Module("warp", "Warp", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
             Module("zcode", "ZCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.CodeBurn),
             Module("zerostack", "ZeroStack", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
@@ -187,6 +206,13 @@ public static class ProviderModuleCatalog
             .Where(entry => entry.Stage == ProviderModuleStage.Active
                 && entry.Capabilities.Contains(ProviderCapability.LocalUsage))
             .ToArray());
+
+    /// <summary>
+    /// Providers that accept a key the user pastes into TokenUsage. The list can store that
+    /// key before a live client exists. Policy-blocked providers are never included.
+    /// </summary>
+    public static IReadOnlyList<ProviderModuleDefinition> ManualCredentialEntries { get; } =
+        Array.AsReadOnly(Catalog.Where(entry => entry.AcceptsManualCredential).ToArray());
 
     private static readonly HashSet<string> ActiveLocalUsageIds = ActiveLocalUsageEntries
         .Select(entry => entry.Id.Value)
@@ -218,6 +244,7 @@ public static class ProviderModuleCatalog
         ProviderModuleStage stage,
         ProviderReference references,
         string[]? aliases = null,
-        bool quotaBlocked = false) =>
-        new(id, displayName, capabilities, stage, references, aliases, quotaBlocked);
+        bool quotaBlocked = false,
+        ManualCredentialKind credential = ManualCredentialKind.None) =>
+        new(id, displayName, capabilities, stage, references, aliases, quotaBlocked, credential);
 }

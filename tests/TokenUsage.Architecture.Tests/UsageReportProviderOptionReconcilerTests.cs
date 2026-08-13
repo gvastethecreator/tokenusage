@@ -22,4 +22,39 @@ public sealed class UsageReportProviderOptionReconcilerTests
         Assert.Same(openCode, result.Options[1]);
         Assert.Same(openCode, result.Selected);
     }
+
+    [Fact]
+    public void ReconcileWithNoUsedProvidersClearsTheSelection()
+    {
+        UsageReportProviderOption[] current =
+        [
+            new("codex", "Codex"),
+            new("amp", "Amp"),
+        ];
+
+        UsageReportProviderSelectionState result = UsageReportProviderOptionReconciler.Reconcile(
+            current,
+            "amp",
+            [],
+            id => id);
+
+        Assert.True(result.OptionsChanged);
+        Assert.Empty(result.Options);
+        Assert.Null(result.Selected);
+    }
+
+    [Fact]
+    public void SelectUsedProviderIdsKeepsAgentsWithEventsOrTokens()
+    {
+        IReadOnlyList<string> ids = UsageReportProviderOptionReconciler.SelectUsedProviderIds(
+        [
+            ("codex", 12, 100),
+            ("amp", 0, 0),
+            ("cursor", 0, 40),
+            ("", 8, 0),
+            ("codex", 3, 10),
+        ]);
+
+        Assert.Equal(["codex", "cursor"], ids);
+    }
 }

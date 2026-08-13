@@ -415,6 +415,28 @@ public sealed record ProviderStatusRow(
 
     public string CompactState { get; init; } = RootState;
 
+    public bool CanConfigure { get; init; }
+
+    public bool HasSavedCredential { get; init; }
+
+    public bool RequiresSecondaryField { get; init; }
+
+    public string SecondaryFieldLabel { get; init; } = string.Empty;
+
+    public string SecondaryFieldPlaceholder { get; init; } = string.Empty;
+
+    public string CredentialHelpText { get; init; } = string.Empty;
+
+    public string SecretFieldLabel { get; init; } = string.Empty;
+
+    public string SecretFieldPlaceholder { get; init; } = string.Empty;
+
+    public bool HasSecondaryField => SecondaryFieldLabel.Length > 0;
+
+    public string ConfigureAutomationId => $"{AutomationId}.Configure";
+
+    public string ConfigureAutomationName { get; init; } = string.Empty;
+
     public string StatusGlyph => StatusKind switch
     {
         ProviderStatusKind.Available => "\uE73E",

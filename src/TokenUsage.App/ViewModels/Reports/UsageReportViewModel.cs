@@ -5,11 +5,11 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
 using TokenUsage.App.Controls;
 using TokenUsage.App.Localization;
+using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
-using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
@@ -252,6 +252,10 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         get => _sourceRows;
         private set => SetProperty(ref _sourceRows, value);
     }
+
+    public bool HasProviderOptions => ProviderOptions.Count > 0;
+
+    public bool IsProviderPickerVisible => IsProviderScope && HasProviderOptions;
 
     public IReadOnlyList<UsageReportProviderOption> ProviderOptions
     {
@@ -618,6 +622,11 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (scope == UsageReportScope.Provider && ProviderOptions.Count == 0)
+        {
+            return;
+        }
+
         _scope = scope;
         if (scope == UsageReportScope.Global)
         {
@@ -685,6 +694,8 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Scope));
         OnPropertyChanged(nameof(IsGlobalScope));
         OnPropertyChanged(nameof(IsProviderScope));
+        OnPropertyChanged(nameof(IsProviderPickerVisible));
+        OnPropertyChanged(nameof(HasProviderOptions));
         OnPropertyChanged(nameof(IsValueModeVisible));
         OnPropertyChanged(nameof(CanUseResetCycles));
         OnPropertyChanged(nameof(IsResetCycleWindow));
@@ -712,11 +723,15 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildProviderOptions()
     {
-        string[] ids = ProviderModuleCatalog.ActiveLocalUsageEntries
-            .Select(entry => entry.Id.Value)
-            .Concat(_globalReport.Agents
-                .Select(agent => agent.AgentId.Value))
-            .Distinct(StringComparer.Ordinal)
+        // Only providers with usage in the current range. The active catalog still lists
+        // unused readers, and putting those in the picker replaces the report with the
+        // empty state.
+        string[] ids = UsageReportProviderOptionReconciler.SelectUsedProviderIds(
+                _globalReport.Agents.Select(agent => (
+                    agent.AgentId.Value,
+                    agent.Metrics.EventCount,
+                    agent.Metrics.Tokens.Total)))
+            .ByCuratedRank(id => id)
             .ToArray();
         string? selectedId = _selectedProvider?.ProviderId;
         UsageReportProviderSelectionState state = UsageReportProviderOptionReconciler.Reconcile(
@@ -728,6 +743,16 @@ public sealed class UsageReportViewModel : ObservableObject, IDisposable
         {
             ProviderOptions = state.Options;
         }
+
+        OnPropertyChanged(nameof(HasProviderOptions));
+        OnPropertyChanged(nameof(IsProviderPickerVisible));
+        if (IsProviderScope && state.Selected is null)
+        {
+            _scope = UsageReportScope.Global;
+            _usesResetCycle = false;
+            NotifyScopeChanged();
+        }
+
         if (!ReferenceEquals(_selectedProvider, state.Selected))
         {
             _selectedProvider = state.Selected;

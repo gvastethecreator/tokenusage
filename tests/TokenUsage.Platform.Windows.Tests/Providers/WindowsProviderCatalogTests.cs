@@ -72,6 +72,44 @@ public sealed class WindowsProviderCatalogTests
                 .Select(entry => entry.Id.Value)
                 .Order());
         Assert.False(ProviderModuleCatalog.Get("codex").IsQuotaBlocked);
+        Assert.Equal(
+            [
+                "alibaba-cloud",
+                "anthropic",
+                "azure-openai",
+                "copilot",
+                "deepseek",
+                "devin",
+                "gemini-api",
+                "groq",
+                "mistral",
+                "moonshot",
+                "openai",
+                "openrouter",
+                "vercel-ai-gateway",
+                "xai",
+            ],
+            ProviderModuleCatalog.ManualCredentialEntries
+                .Select(entry => entry.Id.Value)
+                .Order());
+        Assert.All(
+            WindowsProviderCatalog.PolicyBlockedEntries,
+            entry => Assert.False(entry.Module.AcceptsManualCredential));
+        Assert.Equal(
+            ManualCredentialKind.ApiKeyAndEndpoint,
+            ProviderModuleCatalog.Get("azure-openai").ManualCredentialKind);
+        Assert.Equal(
+            ManualCredentialKind.ApiKeyAndOrganization,
+            ProviderModuleCatalog.Get("devin").ManualCredentialKind);
+        Assert.Throws<ArgumentException>(() => new ProviderModuleDefinition(
+            "blocked-key",
+            "Blocked key",
+            [ProviderCapability.Usage],
+            ProviderModuleStage.PolicyBlocked,
+            ProviderReference.OpenUsage,
+            aliases: null,
+            isQuotaBlocked: false,
+            manualCredentialKind: ManualCredentialKind.ApiKey));
         Assert.Throws<ArgumentException>(() => new ProviderModuleDefinition(
             "quota-contradiction",
             "Quota contradiction",

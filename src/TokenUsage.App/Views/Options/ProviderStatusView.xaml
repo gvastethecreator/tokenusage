@@ -8,6 +8,7 @@
     xmlns:controls="using:TokenUsage.App.Controls"
     xmlns:converters="using:TokenUsage.App.Converters"
     xmlns:dashboard="using:TokenUsage.App.ViewModels.Dashboard"
+    xmlns:options="using:TokenUsage.App.Views.Options"
     xmlns:viewModels="using:TokenUsage.App.ViewModels"
     mc:Ignorable="d">
 
@@ -27,6 +28,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="18" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="28" />
                     </Grid.ColumnDefinitions>
@@ -50,6 +52,32 @@
                         VerticalAlignment="Center" />
                     <Button
                         Grid.Column="3"
+                        AutomationProperties.AutomationId="{x:Bind ConfigureAutomationId, Mode=OneTime}"
+                        AutomationProperties.Name="{x:Bind ConfigureAutomationName, Mode=OneTime}"
+                        MinHeight="28"
+                        Padding="8,4"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="{x:Bind CanConfigure, Mode=OneTime}">
+                        <Button.Flyout>
+                            <Flyout Placement="Left" ShouldConstrainToRootBounds="True">
+                                <options:ProviderCredentialEditor
+                                    HasSavedCredential="{x:Bind HasSavedCredential, Mode=OneTime}"
+                                    Loaded="OnCredentialEditorLoaded"
+                                    ProviderId="{x:Bind ProviderId, Mode=OneTime}"
+                                    ProviderName="{x:Bind Name, Mode=OneTime}"
+                                    SecondaryFieldLabel="{x:Bind SecondaryFieldLabel, Mode=OneTime}"
+                                    SecondaryFieldPlaceholder="{x:Bind SecondaryFieldPlaceholder, Mode=OneTime}"
+                                    CredentialHelpText="{x:Bind CredentialHelpText, Mode=OneTime}"
+                                    SecretFieldLabel="{x:Bind SecretFieldLabel, Mode=OneTime}"
+                                    SecretFieldPlaceholder="{x:Bind SecretFieldPlaceholder, Mode=OneTime}" />
+                            </Flyout>
+                        </Button.Flyout>
+                        <TextBlock
+                            x:Uid="ProviderConfigureButton"
+                            Style="{StaticResource CaptionTextBlockStyle}" />
+                    </Button>
+                    <Button
+                        Grid.Column="4"
                         AutomationProperties.AutomationId="{x:Bind DetailsAutomationId, Mode=OneTime}"
                         AutomationProperties.Name="{x:Bind AutomationName, Mode=OneTime}"
                         MinHeight="28"
