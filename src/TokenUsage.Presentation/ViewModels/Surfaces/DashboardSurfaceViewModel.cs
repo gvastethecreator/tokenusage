@@ -1,14 +1,11 @@
 using System.ComponentModel;
-using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Cache;
-using TokenUsage.Core.Layout;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
@@ -36,6 +33,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private bool _hasLocalUsage;
     private LocalUsageCard? _rawLocalUsage;
     private IReadOnlyList<DailyUsageRollup> _localUsageRollups = [];
+    private readonly Dictionary<string, IReadOnlyList<QuotaWindow>> _providerLimitsById =
+        new(StringComparer.Ordinal);
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
     private DashboardSnapshot? _rawDashboard;
@@ -483,30 +482,43 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public IReadOnlyList<QuotaWindow> GetProviderLimits(string providerId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        if (_providerLimitsById.TryGetValue(
+                providerId,
+                out IReadOnlyList<QuotaWindow>? cachedLimits))
+        {
+            return cachedLimits;
+        }
+
         DashboardSnapshot source = _appearanceDashboard ?? ActiveSample;
         ProviderCard? providerCard = source.Providers.FirstOrDefault(card =>
             string.Equals(card.ProviderId, providerId, StringComparison.Ordinal));
-        return providerCard is null
+        IReadOnlyList<QuotaWindow> limits = providerCard is null
             ? []
             : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).ToArray();
+        _providerLimitsById.Add(providerId, limits);
+        return limits;
     }
 
     public async Task StartAsync()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         await RunRefreshAsync(scenario: null, forceRefresh: false).ConfigureAwait(true);
-        if (!_disposed && !HasGlobalCodexLimits)
+        if (!_disposed && !HasGlobalCodexLimits && !HasRequestedForcedRefresh)
         {
-            // Finish startup through the same refresh cycle as the toolbar action when the
-            // cache-first pass did not project the official Codex quota windows.
+            // One live pass per process when the cache-first snapshot has no official
+            // Codex quota windows. The first panel open must not start a second pass.
             await RunRefreshAsync(scenario: null, forceRefresh: true).ConfigureAwait(true);
         }
     }
 
     /// <summary>
-    /// True once a forced refresh has run to completion. Startup forces one when the cached pass
-    /// carries no official quota, and the first panel open forced another: on a machine where
-    /// the tool has no quota to report, that second pass could never find anything new.
+    /// True once this process has asked for a live refresh. Startup uses this so the first
+    /// panel open cannot start a second live pass.
+    /// </summary>
+    public bool HasRequestedForcedRefresh { get; private set; }
+
+    /// <summary>
+    /// True once a forced refresh has run to completion.
     /// </summary>
     public bool HasCompletedForcedRefresh { get; private set; }
 
@@ -561,7 +573,12 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                     StringComparison.Ordinal),
             })
             .ToArray();
-        RebuildSelectedProviderProjection();
+        ApplySelectedProviderProjection(CompactDashboardProjector.CreateSelectedProvider(
+            value.ProviderId,
+            _localUsageRollups,
+            DateOnly.FromDateTime(_liveSession.Clock.GetLocalNow().DateTime),
+            _getString,
+            GetProviderLimits));
     }
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
@@ -573,6 +590,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     private async Task RunRefreshAsync(SampleScenario? scenario, bool forceRefresh)
     {
+        if (forceRefresh)
+        {
+            HasRequestedForcedRefresh = true;
+        }
+
         _refreshCancellation?.Cancel();
         _sampleSession.Cancel();
         _liveSession.Cancel();
@@ -812,6 +834,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             GetClock(IsSampleModeEnabled ? _activeScenario : null).GetUtcNow(),
             _getString);
         _appearanceDashboard = appearanceDashboard;
+        _providerLimitsById.Clear();
         ActiveSample = _personalization.Apply(appearanceDashboard);
         RebuildCompactProjection();
         OnPropertyChanged(nameof(LiveDataStateText));
@@ -940,73 +963,29 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     private void RebuildCompactProjectionCore()
     {
-        DateOnly today = DateOnly.FromDateTime(
-            _liveSession.Clock.GetLocalNow().DateTime);
-        DateOnly from = UsagePeriodPolicy.RollingDisplayStart(today);
-        DailyUsageRollup[] rollups = _localUsageRollups
-            .Where(rollup => rollup.Date >= from && rollup.Date <= today)
-            .ToArray();
-
-        DashboardProviderSummary[] summaries = IsSampleModeEnabled && rollups.Length == 0
-            ? CreateFallbackProviderSummaries()
-            : CreateProviderSummaries(rollups);
-        ProviderSummaries = summaries;
-        string? selectedId = SelectedProvider?.ProviderId;
-        string? nextSelectedId = summaries.Any(summary => string.Equals(
-            summary.ProviderId,
-            selectedId,
-            StringComparison.Ordinal))
-                ? selectedId
-                : summaries.FirstOrDefault(summary => string.Equals(
-                    summary.ProviderId,
-                    "codex",
-                    StringComparison.Ordinal))?.ProviderId
-                    ?? summaries.FirstOrDefault()?.ProviderId;
-        ProviderOptions = summaries
-            .Select(summary => new DashboardProviderOption(
-                summary.ProviderId,
-                summary.Name,
-                string.Equals(
-                    summary.ProviderId,
-                    nextSelectedId,
-                    StringComparison.Ordinal)))
-            .ToArray();
-        GlobalSpendSlices = summaries
-            .Where(summary => summary.CostUsd > 0m)
-            .Select(summary => new SpendSlice(
-                summary.ProviderId,
-                summary.Name,
-                decimal.ToDouble(summary.CostUsd),
-                summary.CostText,
-                summary.ColorHex,
-                summary.CostText))
-            .ToArray();
-        decimal totalCost = summaries.Sum(summary => summary.CostUsd);
-        long totalTokens = summaries.Sum(summary => summary.TotalTokens);
-        GlobalCostText = summaries.Length == 0 && ActiveSample is not null
-            ? ActiveSample.TotalSpendAmount
-            : FormatCost(totalCost);
-        GlobalDonutCenterText = GlobalCostText.Replace(" USD", "\nUSD", StringComparison.Ordinal);
-        GlobalFooterText = string.Format(
-            CultureInfo.CurrentCulture,
-            _getString("CompactGlobalFooterFormat"),
-            GlobalCostText,
-            summaries.Length);
-        GlobalTokensText = totalTokens == 0
-            ? LocalUsage.TotalTokensMetric.Value
-            : FormatCompactTokens(totalTokens);
-        GlobalHeatmap = rollups.Length == 0
-            ? LocalUsage.Heatmap
-            : UsageHeatmapProjector.Create(
-                rollups,
-                today,
-                _getString,
-                "CompactUsageHeatmap");
-        GlobalActivity = CreateActivitySummaries(rollups, today);
-        GlobalCodexLimits = GetProviderLimits("codex");
+        CompactDashboardProjection projection = CompactDashboardProjector.Create(
+            DateOnly.FromDateTime(_liveSession.Clock.GetLocalNow().DateTime),
+            _localUsageRollups,
+            DetectedProviderIds,
+            IsSampleModeEnabled,
+            ActiveSample,
+            LocalUsage,
+            SelectedProvider?.ProviderId,
+            _getString,
+            GetProviderLimits);
+        ProviderSummaries = projection.ProviderSummaries;
+        ProviderOptions = projection.ProviderOptions;
+        GlobalSpendSlices = projection.GlobalSpendSlices;
+        GlobalCostText = projection.GlobalCostText;
+        GlobalDonutCenterText = projection.GlobalDonutCenterText;
+        GlobalFooterText = projection.GlobalFooterText;
+        GlobalTokensText = projection.GlobalTokensText;
+        GlobalHeatmap = projection.GlobalHeatmap;
+        GlobalActivity = projection.GlobalActivity;
+        GlobalCodexLimits = projection.GlobalCodexLimits;
 
         DashboardProviderOption? nextSelection = ProviderOptions.FirstOrDefault(option =>
-            string.Equals(option.ProviderId, nextSelectedId, StringComparison.Ordinal))
+            string.Equals(option.ProviderId, projection.SelectedProviderId, StringComparison.Ordinal))
             ?? (ProviderOptions.Count == 0 ? null : ProviderOptions[0]);
         if (!Equals(SelectedProvider, nextSelection))
         {
@@ -1014,190 +993,21 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
         else
         {
-            RebuildSelectedProviderProjection();
+            ApplySelectedProviderProjection(new CompactSelectedProviderProjection(
+                projection.SelectedProviderHeatmap,
+                projection.SelectedProviderTrend,
+                projection.SelectedProviderLimits));
         }
 
         OnPropertyChanged(nameof(HasCoverageHint));
         OnPropertyChanged(nameof(CoverageHintText));
     }
 
-    private DashboardProviderSummary[] CreateProviderSummaries(
-        IReadOnlyList<DailyUsageRollup> rollups)
+    private void ApplySelectedProviderProjection(CompactSelectedProviderProjection projection)
     {
-        // Detected roots only. A retained rollup from an uninstalled tool must not put that
-        // tool back on the list or the tray; the report still keeps the history.
-        string[] providerIds = DetectedProviderIds;
-        var grouped = rollups
-            .GroupBy(rollup => rollup.AgentId.Value, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
-        decimal totalCost = grouped.Values
-            .SelectMany(items => items)
-            .Sum(item => (item.ReportedCostUsd ?? 0m) + (item.EstimatedCostUsd ?? 0m));
-        long totalTokens = grouped.Values.SelectMany(items => items).Sum(item => item.Tokens.Total);
-
-        return providerIds
-            .Select(providerId =>
-            {
-                DailyUsageRollup[] items = grouped.GetValueOrDefault(providerId) ?? [];
-                bool hasData = items.Length > 0;
-                bool hasCostData = items.Any(item =>
-                    item.ReportedCostUsd is not null || item.EstimatedCostUsd is not null);
-                bool isPartial = items.Any(item => item.Coverage is
-                    CoverageKind.Partial or CoverageKind.SummaryOnly);
-                bool hasUnpricedData = items.Any(item =>
-                    item.UnpricedTokens > 0 || item.Coverage == CoverageKind.Unpriced);
-                decimal cost = items.Sum(item =>
-                    (item.ReportedCostUsd ?? 0m) + (item.EstimatedCostUsd ?? 0m));
-                long tokens = items.Sum(item => item.Tokens.Total);
-                double share = totalCost > 0
-                    ? decimal.ToDouble(cost * 100m / totalCost)
-                    : totalTokens > 0
-                        ? (double)tokens * 100d / totalTokens
-                        : 0d;
-                string name = ProviderName(providerId);
-                string costAccessibilityText = !hasData
-                    ? _getString("CodexUsageMissing")
-                    : hasCostData
-                        ? FormatCost(cost)
-                        : _getString("CompactCostUnavailable");
-                string costText = hasData && !hasCostData
-                    ? "—"
-                    : costAccessibilityText;
-                string tokensText = hasData
-                    ? FormatCompactTokens(tokens)
-                    : _getString("CodexUsageMissing");
-                string detailText = hasData
-                    ? string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", share)
-                    : "—";
-                return new DashboardProviderSummary(
-                    providerId,
-                    name,
-                    cost,
-                    tokens,
-                    share,
-                    costText,
-                    tokensText,
-                    detailText,
-                    hasData
-                        ? $"{name}: {costAccessibilityText}, {tokensText} tokens, {share:0.#}%"
-                            + (hasUnpricedData
-                                ? $". {_getString("UsageReportCoverageUnpriced")}"
-                                : string.Empty)
-                        : $"{name}: {_getString("ProviderStatusNoData")}",
-                    ProviderColorHex(providerId),
-                    $"CompactProvider.{providerId}",
-                    share <= 0d ? 0d : Math.Max(2d, share * 4.36d),
-                    hasData,
-                    hasCostData,
-                    isPartial,
-                    hasUnpricedData);
-            })
-            .ToArray();
-    }
-
-    private DashboardProviderSummary[] CreateFallbackProviderSummaries()
-    {
-        if (ActiveSample?.SpendSlices is not { Count: > 0 } slices)
-        {
-            return [];
-        }
-
-        double total = slices.Sum(slice => Math.Max(0, slice.Amount));
-        return slices.Select(slice =>
-        {
-            double share = total <= 0 ? 0 : slice.Amount * 100 / total;
-            decimal cost = Convert.ToDecimal(slice.Amount, CultureInfo.InvariantCulture);
-            string costText = string.IsNullOrWhiteSpace(slice.LegendAmountText)
-                ? FormatCost(cost)
-                : slice.LegendAmountText;
-            return new DashboardProviderSummary(
-                slice.ProviderId,
-                slice.ProviderName,
-                cost,
-                0,
-                share,
-                costText,
-                "—",
-                string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", share),
-                $"{slice.ProviderName}: {costText}, {share:0.#}%",
-                slice.ColorHex ?? ProviderColorHex(slice.ProviderId),
-                $"CompactProvider.{slice.ProviderId}",
-                Math.Max(2d, share * 4.36d));
-        }).ToArray();
-    }
-
-    private IReadOnlyList<DashboardActivitySummary> CreateActivitySummaries(
-        IReadOnlyList<DailyUsageRollup> rollups,
-        DateOnly today)
-    {
-        long SumSince(int days) => rollups
-            .Where(item => item.Date >= today.AddDays(-(days - 1)) && item.Date <= today)
-            .Sum(item => item.Tokens.Total);
-
-        return
-        [
-            new(
-                _getString("CompactActivityToday"),
-                FormatCompactTokens(SumSince(1)),
-                _getString("CompactActivityTokens")),
-            new(
-                _getString("CompactActivity7Days"),
-                FormatCompactTokens(SumSince(7)),
-                _getString("CompactActivityTokens")),
-            new(
-                _getString("CompactActivity30Days"),
-                FormatCompactTokens(SumSince(30)),
-                _getString("CompactActivityTokens")),
-        ];
-    }
-
-    private void RebuildSelectedProviderProjection()
-    {
-        string? providerId = SelectedProvider?.ProviderId;
-        if (string.IsNullOrWhiteSpace(providerId))
-        {
-            SelectedProviderHeatmap = UsageHeatmapModel.Empty;
-            SelectedProviderTrend = UsageReportTrendDataset.Empty;
-            SelectedProviderLimits = [];
-            return;
-        }
-
-        DateOnly today = DateOnly.FromDateTime(_liveSession.Clock.GetLocalNow().DateTime);
-        DailyUsageRollup[] providerRollups = _localUsageRollups
-            .Where(rollup => string.Equals(
-                rollup.AgentId.Value,
-                providerId,
-                StringComparison.Ordinal))
-            .ToArray();
-        SelectedProviderHeatmap = providerRollups.Length == 0
-            ? UsageHeatmapModel.Empty
-            : UsageHeatmapProjector.Create(
-                providerRollups,
-                today,
-                _getString,
-                $"ProviderUsageHeatmap.{providerId}");
-        UsageReportTrendDay[] days = Enumerable.Range(0, 30)
-            .Select(offset => today.AddDays(offset - 29))
-            .Select(date => new UsageReportTrendDay(
-                date,
-                date.ToString("d MMM", CultureInfo.CurrentCulture)))
-            .ToArray();
-        var dailyTokens = providerRollups
-            .GroupBy(rollup => rollup.Date)
-            .ToDictionary(group => group.Key, group => group.Sum(item => item.Tokens.Total));
-        SelectedProviderTrend = providerRollups.Length == 0
-            ? UsageReportTrendDataset.Empty
-            : new UsageReportTrendDataset(
-                UsageReportMetric.Tokens,
-                days,
-                [
-                    new UsageReportTrendSeries(
-                        providerId,
-                        ProviderName(providerId),
-                        ProviderColorHex(providerId),
-                        days.Select(day => (double)dailyTokens.GetValueOrDefault(day.Date, 0)).ToArray()),
-                ]);
-        SelectedProviderLimits = GetProviderLimits(providerId);
+        SelectedProviderHeatmap = projection.Heatmap;
+        SelectedProviderTrend = projection.Trend;
+        SelectedProviderLimits = projection.Limits;
         OnPropertyChanged(nameof(SelectedProviderSummary));
         OnPropertyChanged(nameof(SelectedProviderName));
         OnPropertyChanged(nameof(SelectedProviderCostText));
@@ -1209,15 +1019,4 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(SelectedProviderCoverageHintText));
         OnPropertyChanged(nameof(SelectedProviderHasLimits));
     }
-
-    private string FormatCost(decimal cost) => UsageValueFormatter.Usd(cost, _getString);
-
-    private static string FormatCompactTokens(long value) =>
-        UsageValueFormatter.CompactTokens(value);
-
-    private static string ProviderColorHex(string providerId) =>
-        ProviderColorPreference.Resolve(providerId, customColorHex: null);
-
-    private string ProviderName(string providerId) =>
-        ProviderDisplayName.Resolve(providerId, _getString);
 }

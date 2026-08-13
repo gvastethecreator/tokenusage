@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 
@@ -14,7 +13,7 @@ public delegate Task<UsageReport> UsageReportReader(
 
 public static class ReportCommand
 {
-    public const string SchemaVersion = "tokenusage.report.v1";
+    public const string SchemaVersion = ReportJson.SchemaVersion;
     public const string UsageText =
         "Usage: tokenusage report [--days 1-3650 | --from YYYY-MM-DD --to YYYY-MM-DD] [--agent id] [--format human|json]";
 
@@ -25,13 +24,6 @@ public static class ReportCommand
     private const int DefaultDays = 30;
     private const int MaximumDays = 3650;
     private const int TopModelCount = 10;
-    private const int TopDayCount = 5;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-    };
 
     [SuppressMessage(
         "Design",
@@ -90,14 +82,13 @@ public static class ReportCommand
 
         if (options.Format == OutputFormat.Json)
         {
-            ReportDocument document = CreateDocument(
-                generatedAt,
-                fromInclusive,
-                toInclusive,
-                days,
-                options.AgentId,
-                report);
-            await standardOutput.WriteLineAsync(JsonSerializer.Serialize(document, JsonOptions))
+            await standardOutput.WriteLineAsync(ReportJson.Serialize(
+                    generatedAt,
+                    fromInclusive,
+                    toInclusive,
+                    days,
+                    options.AgentId,
+                    report))
                 .ConfigureAwait(false);
         }
         else
@@ -364,58 +355,6 @@ public static class ReportCommand
         || metrics.ReportedCostUsd is not null
         || metrics.EstimatedCostUsd is not null;
 
-    private static ReportDocument CreateDocument(
-        DateTimeOffset generatedAt,
-        DateOnly fromInclusive,
-        DateOnly toInclusive,
-        int days,
-        AgentId? agentId,
-        UsageReport report) =>
-        new(
-            SchemaVersion,
-            generatedAt,
-            new ReportRange(fromInclusive, toInclusive, days),
-            new ReportFilter(agentId?.Value),
-            CreateMetrics(report.Totals),
-            report.Agents.Select(item => new AgentDocument(
-                item.AgentId.Value,
-                CreateMetrics(item.Metrics))).ToArray(),
-            report.Models.Select(item => new ModelDocument(
-                item.AgentId.Value,
-                item.ModelProviderId?.Value,
-                item.ModelId.Value,
-                CreateMetrics(item.Metrics))).ToArray(),
-            report.Days
-                .OrderByDescending(item => item.Metrics.TotalCostUsd)
-                .ThenByDescending(item => item.Metrics.Tokens.Total)
-                .ThenBy(item => item.Date)
-                .Take(TopDayCount)
-                .Select(CreateDay)
-                .ToArray(),
-            report.Days.Select(CreateDay).ToArray());
-
-    private static MetricsDocument CreateMetrics(UsageReportMetrics metrics) =>
-        new(
-            metrics.EventCount,
-            new TokenDocument(
-                metrics.Tokens.Input,
-                metrics.Tokens.Output,
-                metrics.Tokens.Reasoning,
-                metrics.Tokens.CacheRead,
-                metrics.Tokens.CacheWrite,
-                metrics.Tokens.Total,
-                metrics.UnpricedTokens),
-            new CostDocument(
-                metrics.TotalCostUsd,
-                metrics.ReportedCostUsd,
-                metrics.EstimatedCostUsd),
-            metrics.UnavailableCostEventCount,
-            CoverageName(metrics.Coverage),
-            metrics.PriceCoveragePercent);
-
-    private static DayDocument CreateDay(UsageDayReport item) =>
-        new(item.Date, CreateMetrics(item.Metrics));
-
     private static async Task WriteHumanAsync(
         TextWriter output,
         DateOnly fromInclusive,
@@ -487,7 +426,7 @@ public static class ReportCommand
             .OrderByDescending(item => item.Metrics.TotalCostUsd)
             .ThenByDescending(item => item.Metrics.Tokens.Total)
             .ThenBy(item => item.Date)
-            .Take(TopDayCount)
+            .Take(ReportJson.HighestCostDayCount)
             .ToArray();
         if (topDays.Length > 0)
         {
@@ -545,7 +484,7 @@ public static class ReportCommand
             CultureInfo.InvariantCulture,
             $"  Unpriced tokens: {metrics.UnpricedTokens:N0}"))
             .ConfigureAwait(false);
-        await output.WriteLineAsync($"  Source coverage: {CoverageName(metrics.Coverage)}")
+        await output.WriteLineAsync($"  Source coverage: {ReportJson.CoverageName(metrics.Coverage)}")
             .ConfigureAwait(false);
     }
 
@@ -576,15 +515,6 @@ public static class ReportCommand
 
     private static string FormatCost(decimal? value) => CliCostText.Format(value);
 
-    private static string CoverageName(CoverageKind coverage) => coverage switch
-    {
-        CoverageKind.Complete => "complete",
-        CoverageKind.Partial => "partial",
-        CoverageKind.SummaryOnly => "summary-only",
-        CoverageKind.Unpriced => "unpriced",
-        _ => throw new ArgumentOutOfRangeException(nameof(coverage)),
-    };
-
     private readonly record struct ReportOptions(
         int Days,
         DateOnly? From,
@@ -597,51 +527,4 @@ public static class ReportCommand
         Human,
         Json,
     }
-
-    private sealed record ReportDocument(
-        string SchemaVersion,
-        DateTimeOffset GeneratedAt,
-        ReportRange Range,
-        ReportFilter Filter,
-        MetricsDocument Totals,
-        IReadOnlyList<AgentDocument> ByAgent,
-        IReadOnlyList<ModelDocument> Models,
-        IReadOnlyList<DayDocument> HighestCostDays,
-        IReadOnlyList<DayDocument> Daily);
-
-    private sealed record ReportRange(DateOnly From, DateOnly To, int Days);
-
-    private sealed record ReportFilter(string? Agent);
-
-    private sealed record AgentDocument(string Agent, MetricsDocument Metrics);
-
-    private sealed record ModelDocument(
-        string Agent,
-        string? Provider,
-        string Model,
-        MetricsDocument Metrics);
-
-    private sealed record DayDocument(DateOnly Date, MetricsDocument Metrics);
-
-    private sealed record MetricsDocument(
-        int Events,
-        TokenDocument Tokens,
-        CostDocument CostUsd,
-        int UnavailableCostEvents,
-        string Coverage,
-        decimal PriceCoveragePercent);
-
-    private sealed record TokenDocument(
-        long Input,
-        long Output,
-        long Reasoning,
-        long CacheRead,
-        long CacheWrite,
-        long Total,
-        long Unpriced);
-
-    private sealed record CostDocument(
-        decimal Total,
-        decimal? Reported,
-        decimal? Estimated);
 }

@@ -25,6 +25,38 @@ public sealed class ArchitectureRulesTests
         Assert.True(
             coreIssues.Count == 0,
             "Core isolation violations:" + Environment.NewLine + string.Join(Environment.NewLine, coreIssues));
+
+        string presentationProject = Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.Presentation",
+            "TokenUsage.Presentation.csproj");
+        IReadOnlyList<string> presentationIssues = ArchitectureRules.FindPresentationIsolationViolations(
+            presentationProject);
+
+        Assert.True(
+            presentationIssues.Count == 0,
+            "Presentation isolation violations:" + Environment.NewLine
+                + string.Join(Environment.NewLine, presentationIssues));
+
+        string[] testProjects =
+        [
+            Path.Combine(repoRoot, "tests", "TokenUsage.Providers.Tests", "TokenUsage.Providers.Tests.csproj"),
+            Path.Combine(repoRoot, "tests", "TokenUsage.Architecture.Tests", "TokenUsage.Architecture.Tests.csproj"),
+            Path.Combine(repoRoot, "tests", "TokenUsage.Platform.Windows.Tests", "TokenUsage.Platform.Windows.Tests.csproj"),
+        ];
+        foreach (string testProject in testProjects)
+        {
+            XDocument project = XDocument.Load(testProject);
+            IEnumerable<string> linkedAppSources = project
+                .Descendants("Compile")
+                .Select(element => (string?)element.Attribute("Include") ?? string.Empty)
+                .Where(include => include.Contains("TokenUsage.App", StringComparison.OrdinalIgnoreCase));
+            Assert.True(
+                !linkedAppSources.Any(),
+                $"{Path.GetFileName(testProject)} still compiles App sources:{Environment.NewLine}"
+                    + string.Join(Environment.NewLine, linkedAppSources));
+        }
     }
 
     [Fact]
@@ -77,6 +109,31 @@ public sealed class ArchitectureRulesTests
             "TokenUsage.LocalApi -> TokenUsage.Cli",
             forbidden,
             StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CliOwnsItsStableJsonWireTypes()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string automation = Path.Combine(repoRoot, "src", "TokenUsage.Core", "Automation");
+        string cli = Path.Combine(repoRoot, "src", "TokenUsage.Cli");
+        Assert.False(File.Exists(Path.Combine(automation, "UsageJson.cs")));
+        Assert.False(File.Exists(Path.Combine(automation, "ReportJson.cs")));
+        Assert.False(File.Exists(Path.Combine(automation, "LimitsDocument.cs")));
+        Assert.True(File.Exists(Path.Combine(cli, "UsageJson.cs")));
+        Assert.True(File.Exists(Path.Combine(cli, "ReportJson.cs")));
+        Assert.True(File.Exists(Path.Combine(cli, "LimitsDocument.cs")));
+
+        string usageCommand = File.ReadAllText(Path.Combine(
+            cli,
+            "UsageCommand.cs"));
+        string reportCommand = File.ReadAllText(Path.Combine(
+            cli,
+            "ReportCommand.cs"));
+        Assert.Contains("UsageJson.Serialize", usageCommand, StringComparison.Ordinal);
+        Assert.DoesNotContain("private sealed record UsageDocument", usageCommand, StringComparison.Ordinal);
+        Assert.Contains("ReportJson.Serialize", reportCommand, StringComparison.Ordinal);
+        Assert.DoesNotContain("private sealed record ReportDocument", reportCommand, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -149,7 +206,7 @@ public sealed class ArchitectureRulesTests
         string providerStatusSurface = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
-            "TokenUsage.App",
+            "TokenUsage.Presentation",
             "ViewModels",
             "Surfaces",
             "ProviderStatusSurfaceViewModel.cs"));
@@ -179,6 +236,14 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("RootPage.SessionHost.RefreshAsync", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "RootPage.ViewModel.RefreshCommand",
+            mainWindow,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "EnsureOfficialCodexLimitsOnFirstOpen",
+            mainWindow,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "_ = RootPage.ViewModel.Dashboard.RefreshLiveAsync();",
             mainWindow,
             StringComparison.Ordinal);
 
@@ -510,13 +575,9 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("MotionSettings.ViewTransitionDuration", pageCode, StringComparison.Ordinal);
         Assert.Contains("BodyTransitionTransform", pageCode, StringComparison.Ordinal);
 
-        string compactCode = File.ReadAllText(Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.App",
-            "Views",
-            "Dashboard",
-            "CompactUsageDashboard.xaml.cs"));
+        string compactCode = ReadCsharpSources(
+            Path.Combine(repoRoot, "src", "TokenUsage.App", "Views", "Dashboard"),
+            "CompactUsageDashboard");
         Assert.Contains("MotionSettings.AreAnimationsEnabled()", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderSwitchExitDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderSwitchDuration", compactCode, StringComparison.Ordinal);
@@ -668,6 +729,34 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
+    public void ReportProviderScopeFiltersOneDurableReadInMemory()
+    {
+        string reportViewModel = File.ReadAllText(Path.Combine(
+            ProjectReferenceGraph.FindRepoRoot(),
+            "src",
+            "TokenUsage.App",
+            "ViewModels",
+            "Reports",
+            "UsageReportViewModel.cs"));
+
+        const string durableRead = "query.ReadAsync(";
+        int durableReadIndex = reportViewModel.IndexOf(durableRead, StringComparison.Ordinal);
+        Assert.True(durableReadIndex >= 0);
+        Assert.DoesNotContain(
+            durableRead,
+            reportViewModel[(durableReadIndex + durableRead.Length)..],
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "UsageReportQuery.FilterByAgent",
+            reportViewModel,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "await _refreshSourceAsync()",
+            reportViewModel,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InteractiveChartsAndProviderSelectorsExposeKeyboardNamesAndDetails()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
@@ -784,11 +873,9 @@ public sealed class ArchitectureRulesTests
             reportXaml,
             StringComparison.Ordinal);
 
-        string reportCode = File.ReadAllText(Path.Combine(
-            appRoot,
-            "Views",
-            "Reports",
-            "UsageReportPage.xaml.cs"));
+        string reportCode = ReadCsharpSources(
+            Path.Combine(appRoot, "Views", "Reports"),
+            "UsageReportPage");
         Assert.Contains("ProviderTabCarouselLayout.ReportMaximumPageSize", reportCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTabsTransition", reportCode, StringComparison.Ordinal);
         Assert.Contains("tab.Width = _providerTabItemWidth", reportCode, StringComparison.Ordinal);
@@ -866,5 +953,27 @@ public sealed class ArchitectureRulesTests
             "GeneralOptionsView.xaml.cs"));
         Assert.Contains("DispatcherQueue.TryEnqueue", generalOptionsCode, StringComparison.Ordinal);
         Assert.DoesNotContain("private async void OnLoaded", generalOptionsCode, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CodexScannerIsSplitIntoPathsScanAndMap()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string codex = Path.Combine(repoRoot, "src", "TokenUsage.Providers", "Codex");
+        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.cs")));
+        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.Paths.cs")));
+        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.Scan.cs")));
+        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.Map.cs")));
+        Assert.Contains(
+            "public sealed partial class CodexUsageEventSource",
+            File.ReadAllText(Path.Combine(codex, "CodexUsageEventSource.Paths.cs")),
+            StringComparison.Ordinal);
+    }
+
+    private static string ReadCsharpSources(string directory, string filePrefix)
+    {
+        string[] files = Directory.GetFiles(directory, filePrefix + "*.cs");
+        Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+        return string.Concat(files.Select(File.ReadAllText));
     }
 }

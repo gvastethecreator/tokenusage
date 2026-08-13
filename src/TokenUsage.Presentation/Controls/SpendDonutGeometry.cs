@@ -1,16 +1,16 @@
 namespace TokenUsage.App.Controls;
 
-internal readonly record struct SpendDonutInput(string ProviderId, double Amount);
+public readonly record struct SpendDonutInput(string ProviderId, double Amount);
 
-internal readonly record struct SpendDonutArc(
+public readonly record struct SpendDonutArc(
     string ProviderId,
     double TrueShare,
     double StartFraction,
     double EndFraction);
 
-internal static class SpendDonutGeometry
+public static class SpendDonutGeometry
 {
-    internal const double MinimumDisplayShare = 0.008;
+    public const double MinimumDisplayShare = 0.008;
 
     public static IReadOnlyList<SpendDonutArc> CreateArcs(
         IEnumerable<SpendDonutInput> values)

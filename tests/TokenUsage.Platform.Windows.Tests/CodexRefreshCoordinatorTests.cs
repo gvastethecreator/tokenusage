@@ -21,9 +21,9 @@ public sealed class CodexRefreshCoordinatorTests
             new StubFactory(client));
 
         IReadOnlyList<CacheFirstEvent> first = await CollectAsync(
-            coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
         IReadOnlyList<CacheFirstEvent> second = await CollectAsync(
-            coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
 
         Assert.IsType<SnapshotCacheReadResult.Empty>(
             Assert.IsType<CacheFirstEvent.CachePublished>(first[0]).ReadResult);
@@ -52,13 +52,13 @@ public sealed class CodexRefreshCoordinatorTests
             folder.Path,
             new FixedTimeProvider(Now),
             new StubFactory(client));
-        await CollectAsync(coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+        await CollectAsync(CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
         client.UsageException = new CodexRequestTimeoutException();
 
         IReadOnlyList<CacheFirstEvent> refresh = await CollectAsync(
-            coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
         IReadOnlyList<CacheFirstEvent> after = await CollectAsync(
-            coordinator.RunAsync(forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
 
         CacheFirstEvent.ProviderCompleted completed =
             Assert.IsType<CacheFirstEvent.ProviderCompleted>(refresh[1]);

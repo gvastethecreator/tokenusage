@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 
@@ -178,6 +179,57 @@ public sealed class LocalUsageRefreshTests
         Assert.Equal(
             UsageSourceIssueKind.RootUnavailable,
             Find(cached.SourceDiagnostics, "grok").Issue);
+    }
+
+    [Fact]
+    public async Task ReadCachedMigratesAnOlderOwnedDatabaseBeforeReturningHistory()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "codex",
+                "cached-before-schema-four",
+                new DateTimeOffset(2026, 7, 21, 12, 0, 0, TimeSpan.Zero),
+                input: 100,
+                output: 50,
+                CostObservation.ProviderReported(1m)),
+        ]);
+        await using (var setup = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            await using SqliteCommand command = setup.CreateCommand();
+            command.CommandText =
+                """
+                DELETE FROM schema_migration WHERE version = 4;
+                DROP INDEX ix_usage_event_agent_civil_date;
+                DROP INDEX ix_usage_event_occurred_at_utc;
+                DROP INDEX ix_daily_usage_rollup_agent_civil_date;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var refresh = new LocalUsageRefresh(
+            folder.DatabasePath,
+            new ScriptedRootDetectingSource(
+                new AgentId("codex"),
+                isRootAvailable: true,
+                new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+            new FixedTimeProvider(Now));
+
+        LocalUsageRefreshResult? cached = await refresh.ReadCachedAsync();
+
+        Assert.NotNull(cached);
+        Assert.Equal(1, cached.Rollups.Sum(rollup => rollup.EventCount));
+        Assert.Equal(150, cached.Rollups.Sum(rollup => rollup.Tokens.Total));
+        await using var verify = new SqliteConnection(
+            $"Data Source={folder.DatabasePath};Mode=ReadOnly;Pooling=False");
+        await verify.OpenAsync();
+        await using SqliteCommand verifyCommand = verify.CreateCommand();
+        verifyCommand.CommandText = "SELECT COALESCE(MAX(version), 0) FROM schema_migration;";
+        Assert.Equal(UsageRepository.CurrentSchemaVersion, (long)(await verifyCommand.ExecuteScalarAsync())!);
     }
 
     private static UsageSourceDiagnostic Find(

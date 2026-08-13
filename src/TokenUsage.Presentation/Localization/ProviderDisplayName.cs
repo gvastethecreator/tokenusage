@@ -10,17 +10,6 @@ namespace TokenUsage.App.Localization;
 /// </summary>
 public static class ProviderDisplayName
 {
-    private static readonly Dictionary<string, string> ResourceKeys =
-        new(StringComparer.Ordinal)
-        {
-            ["antigravity"] = "LocalUsageAgentAntigravity",
-            ["claude"] = "LocalUsageAgentClaude",
-            ["codex"] = "LocalUsageAgentCodex",
-            ["cursor"] = "LocalUsageAgentCursor",
-            ["grok"] = "LocalUsageAgentGrok",
-            ["opencode"] = "LocalUsageAgentOpenCode",
-        };
-
     public static string Resolve(string providerId, Func<string, string> getString)
     {
         ArgumentNullException.ThrowIfNull(getString);
@@ -29,7 +18,7 @@ public static class ProviderDisplayName
             return string.Empty;
         }
 
-        if (ResourceKeys.TryGetValue(providerId, out string? key)
+        if (ProviderPresentationCatalog.DisplayNameResourceKey(providerId) is string key
             && TryGetString(key, getString) is string translated)
         {
             return translated;

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TokenUsage.Presentation</RootNamespace>
+    <AssemblyName>TokenUsage.Presentation</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TokenUsage.Core\TokenUsage.Core.csproj" />
+    <ProjectReference Include="..\TokenUsage.Providers\TokenUsage.Providers.csproj" />
+  </ItemGroup>
+
+</Project>

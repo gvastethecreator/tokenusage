@@ -1,6 +1,7 @@
 using System.Text;
 using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Providers;
+using TokenUsage.Platform.Windows.Credentials;
 using TokenUsage.Providers.Catalog;
 using TokenUsage.Providers.VercelAiGateway;
 using TokenUsage.Runtime.Windows.VercelAiGateway;

@@ -1,22 +1,22 @@
 namespace TokenUsage.App.Controls;
 
-internal readonly record struct UsageTrendPoint(double X, double Y);
+public readonly record struct UsageTrendPoint(double X, double Y);
 
-internal readonly record struct UsageTrendSegment(
+public readonly record struct UsageTrendSegment(
     UsageTrendPoint From,
     UsageTrendPoint Control1,
     UsageTrendPoint Control2,
     UsageTrendPoint To);
 
-internal sealed record UsageTrendPath(
+public sealed record UsageTrendPath(
     IReadOnlyList<UsageTrendPoint> Points,
     IReadOnlyList<UsageTrendSegment> Segments);
 
-internal readonly record struct UsageTrendScale(
+public readonly record struct UsageTrendScale(
     double Maximum,
     IReadOnlyList<double> Ticks);
 
-internal static class UsageTrendGeometry
+public static class UsageTrendGeometry
 {
     public static bool ShouldRefreshHover(
         int? currentIndex,

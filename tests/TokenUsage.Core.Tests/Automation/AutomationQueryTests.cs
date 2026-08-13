@@ -85,6 +85,13 @@ public sealed class AutomationQueryTests
         Assert.Single(codexOnly.Agents);
         Assert.Equal("codex", codexOnly.Agents[0].AgentId.Value);
         Assert.Equal(2, codexOnly.AgentDays.Count);
+
+        UsageReport filtered = UsageReportQuery.FilterByAgent(report, new AgentId("codex"));
+        Assert.Equal(codexOnly.Totals, filtered.Totals);
+        Assert.Equal(codexOnly.Agents, filtered.Agents);
+        Assert.Equal(codexOnly.Models, filtered.Models);
+        Assert.Equal(codexOnly.Days, filtered.Days);
+        Assert.Equal(codexOnly.AgentDays, filtered.AgentDays);
     }
 
     [Fact]
