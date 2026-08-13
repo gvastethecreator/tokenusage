@@ -73,6 +73,18 @@ public static class UsageReportProviderOptionReconciler
 
         return new UsageReportProviderSelectionState(options, selected, optionsChanged);
     }
+
+    public static IReadOnlyList<string> SelectUsedProviderIds(
+        IEnumerable<(string ProviderId, int EventCount, long TokenCount)> agents)
+    {
+        ArgumentNullException.ThrowIfNull(agents);
+        return agents
+            .Where(agent => !string.IsNullOrWhiteSpace(agent.ProviderId)
+                && (agent.EventCount > 0 || agent.TokenCount > 0))
+            .Select(agent => agent.ProviderId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
 }
 
 public sealed record UsageReportTrendDay(DateOnly Date, string Label);

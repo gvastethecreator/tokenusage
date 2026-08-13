@@ -91,6 +91,7 @@ public sealed class ArchitectureRulesTests
             "AppComposition.cs"));
 
         Assert.Contains("WindowsProviderCatalog.CreateComposition", composition, StringComparison.Ordinal);
+        Assert.Contains("WindowsManualProviderCredentialStore", composition, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticUsageEventSource", composition, StringComparison.Ordinal);
 
         string providerCatalog = File.ReadAllText(Path.Combine(
@@ -145,6 +146,14 @@ public sealed class ArchitectureRulesTests
             "FlyoutViewModel.cs"));
         Assert.DoesNotContain("Vercel.RefreshAsync", flyoutViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("VercelGatewaySettingsViewModel", flyoutViewModel, StringComparison.Ordinal);
+        string providerStatusSurface = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "ViewModels",
+            "Surfaces",
+            "ProviderStatusSurfaceViewModel.cs"));
+        Assert.DoesNotContain(".ReadAsync(", providerStatusSurface, StringComparison.Ordinal);
         string flyoutConstructor = flyoutViewModel[..flyoutViewModel.IndexOf(
             "[ObservableProperty]",
             StringComparison.Ordinal)];
@@ -280,6 +289,7 @@ public sealed class ArchitectureRulesTests
             Path.Combine("Options", "PersonalizationOptionsView.xaml"),
             Path.Combine("Options", "ProvidersOptionsView.xaml"),
             Path.Combine("Options", "ProviderStatusView.xaml"),
+            Path.Combine("Options", "ProviderCredentialEditor.xaml"),
             Path.Combine("Options", "VercelConnectionView.xaml"),
             Path.Combine("Reports", "UsageReportPage.xaml"),
         ];
@@ -455,8 +465,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(158, matches.Count);
-        Assert.Equal(144, distinctIds.Length);
+        Assert.Equal(162, matches.Count);
+        Assert.Equal(147, distinctIds.Length);
         Assert.Contains("AppearanceTrayPrimarySelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTraySecondarySelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayProviderCountSelector", distinctIds, StringComparer.Ordinal);
@@ -467,6 +477,8 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UnifiedOptionsView", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportCaptureButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportPreviousProviderButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportNextProviderButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCycleSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
@@ -513,9 +525,15 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("ProviderTabsRepeater.TryGetElement", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderCarouselDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTabsTransition", compactCode, StringComparison.Ordinal);
-        Assert.Contains("private const int ProviderTabMaximumPageSize = 5", compactCode, StringComparison.Ordinal);
-        Assert.Contains("private const double ProviderTabMinimumWidth = 92", compactCode, StringComparison.Ordinal);
-        Assert.Contains("private const double ProviderTabViewportInset = 2", compactCode, StringComparison.Ordinal);
+        Assert.Contains("ProviderTabCarouselLayout.PageSize", compactCode, StringComparison.Ordinal);
+        Assert.Contains("ProviderTabCarouselLayout.ItemWidth", compactCode, StringComparison.Ordinal);
+        Assert.Contains("ProviderTabCarouselLayout.MaximumPageSize", compactCode, StringComparison.Ordinal);
+        Assert.Contains("ApplyProviderTabSize(tab)", compactCode, StringComparison.Ordinal);
+        Assert.Contains("tab.Width = _providerTabItemWidth", compactCode, StringComparison.Ordinal);
+        Assert.Contains("tab.MaxWidth = _providerTabItemWidth", compactCode, StringComparison.Ordinal);
+        Assert.Contains("tab.Margin = new Thickness(0)", compactCode, StringComparison.Ordinal);
+        Assert.Contains("ProviderTabsLayout.Spacing = spacing", compactCode, StringComparison.Ordinal);
+        Assert.Contains("tab.HorizontalContentAlignment = HorizontalAlignment.Center", compactCode, StringComparison.Ordinal);
         Assert.Contains("bool hasOverflow = providerCount > _providerTabPageSize", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderLimitsRevealDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("LayoutAnimationProgressed", compactCode, StringComparison.Ordinal);
@@ -583,6 +601,19 @@ public sealed class ArchitectureRulesTests
             reportXaml,
             StringComparison.Ordinal);
         Assert.Contains(
+            "IsEnabled=\"{x:Bind ViewModel.HasProviderOptions, Mode=OneWay}\"",
+            reportXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Visibility=\"{x:Bind ViewModel.IsProviderPickerVisible, Mode=OneWay}\"",
+            reportXaml,
+            StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ReportProviderCarousel\"", reportXaml, StringComparison.Ordinal);
+        Assert.Contains(
+            "ProviderTabCarouselLayout.ReportMaximumPageSize",
+            File.ReadAllText(Path.Combine(reportRoot, "UsageReportPage.xaml.cs")),
+            StringComparison.Ordinal);
+        Assert.Contains(
             "<Setter Property=\"MinWidth\" Value=\"0\" />",
             reportXaml,
             StringComparison.Ordinal);
@@ -624,6 +655,16 @@ public sealed class ArchitectureRulesTests
         Assert.DoesNotContain("ReportSummaryValuesRoot", reportXaml, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportCacheValuesRoot", reportXaml, StringComparison.Ordinal);
         Assert.DoesNotContain("BreakdownContentRoot", reportXaml, StringComparison.Ordinal);
+
+        string reportViewModel = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.App",
+            "ViewModels",
+            "Reports",
+            "UsageReportViewModel.cs"));
+        Assert.Contains("SelectUsedProviderIds", reportViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ActiveLocalUsageEntries", reportViewModel, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -668,11 +709,7 @@ public sealed class ArchitectureRulesTests
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
-            "MaximumRowsOrColumns=\"5\"",
-            compactXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "ItemsJustification=\"SpaceBetween\"",
+            "<StackLayout",
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -680,11 +717,23 @@ public sealed class ArchitectureRulesTests
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
+            "Orientation=\"Horizontal\"",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
             "x:Name=\"ProviderTabsTransitionRoot\" Margin=\"2\"",
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
-            "HorizontalContentAlignment=\"{TemplateBinding HorizontalContentAlignment}\"",
+            "<Setter Property=\"MinWidth\" Value=\"0\" />",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<Setter Property=\"HorizontalContentAlignment\" Value=\"Center\" />",
+            compactXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "HorizontalContentAlignment=\"Center\"",
             compactXaml,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -717,15 +766,32 @@ public sealed class ArchitectureRulesTests
             "Views",
             "Reports",
             "UsageReportPage.xaml"));
-        Assert.Contains("ContainerContentChanging=\"OnProviderContainerContentChanging\"", reportXaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ReportProviderCarousel\"", reportXaml, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.AutomationId=\"UsageReportPreviousProviderButton\"",
+            reportXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.AutomationId=\"UsageReportNextProviderButton\"",
+            reportXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{x:Bind Name}\"",
+            reportXaml,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "GroupName=\"UsageReportProviderTabs\"",
+            reportXaml,
+            StringComparison.Ordinal);
 
         string reportCode = File.ReadAllText(Path.Combine(
             appRoot,
             "Views",
             "Reports",
             "UsageReportPage.xaml.cs"));
-        Assert.Contains("AutomationProperties.SetName(container, option.Name)", reportCode, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.SetAutomationId(container, option.ProviderId)", reportCode, StringComparison.Ordinal);
+        Assert.Contains("ProviderTabCarouselLayout.ReportMaximumPageSize", reportCode, StringComparison.Ordinal);
+        Assert.Contains("PlayProviderTabsTransition", reportCode, StringComparison.Ordinal);
+        Assert.Contains("tab.Width = _providerTabItemWidth", reportCode, StringComparison.Ordinal);
     }
 
     [Fact]

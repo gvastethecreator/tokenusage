@@ -38,4 +38,12 @@ public sealed partial class ProviderStatusView : UserControl
                 !ViewModel.IsAdditionalProvidersExpanded;
         }
     }
+
+    private void OnCredentialEditorLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ProviderCredentialEditor editor)
+        {
+            editor.Host = ViewModel;
+        }
+    }
 }

@@ -24,10 +24,15 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             <Setter Property="Height" Value="36" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="MinHeight" Value="36" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Margin" Value="0" />
             <Setter Property="Padding" Value="2,4" />
             <Setter Property="UseSystemFocusVisuals" Value="True" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
@@ -78,12 +83,15 @@
                                 Content="{TemplateBinding Content}"
                                 ContentTemplate="{TemplateBinding ContentTemplate}"
                                 Foreground="{TemplateBinding Foreground}"
-                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                VerticalAlignment="Stretch"
                                 VerticalContentAlignment="Center" />
                             <Border
                                 x:Name="ActiveIndicator"
                                 Height="2"
                                 Margin="7,0"
+                                HorizontalAlignment="Stretch"
                                 VerticalAlignment="Bottom"
                                 Background="{ThemeResource TextFillColorPrimaryBrush}"
                                 CornerRadius="1"
@@ -449,13 +457,10 @@
                             ElementPrepared="OnProviderTabPrepared"
                             ItemsSource="{x:Bind VisibleProviderTabs, Mode=OneTime}">
                             <ItemsRepeater.Layout>
-                                <UniformGridLayout
+                                <StackLayout
                                     x:Name="ProviderTabsLayout"
-                                    ItemsJustification="SpaceBetween"
-                                    MaximumRowsOrColumns="5"
-                                    MinColumnSpacing="2"
-                                    MinItemWidth="64"
-                                    Orientation="Horizontal" />
+                                    Orientation="Horizontal"
+                                    Spacing="2" />
                             </ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
@@ -472,7 +477,8 @@
                                         <StackPanel
                                             HorizontalAlignment="Center"
                                             Orientation="Horizontal"
-                                            Spacing="4">
+                                            Spacing="4"
+                                            VerticalAlignment="Center">
                                             <controls:ProviderMarkImage
                                                 Height="14"
                                                 ProviderId="{x:Bind ProviderId}"
@@ -482,6 +488,8 @@
                                                 FontWeight="SemiBold"
                                                 MaxLines="1"
                                                 Text="{x:Bind Name}"
+                                                TextAlignment="Center"
+                                                TextTrimming="CharacterEllipsis"
                                                 VerticalAlignment="Center" />
                                         </StackPanel>
                                     </RadioButton>

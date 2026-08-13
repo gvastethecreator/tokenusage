@@ -6,6 +6,7 @@ using TokenUsage.App.Localization;
 using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
@@ -24,7 +25,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         LocalUsageCoordinator localUsageCoordinator,
         DashboardLayoutStore dashboardLayoutStore,
         AppearanceSettingsStore appearanceSettingsStore,
-        QuotaResetHistoryStore quotaResetHistory)
+        QuotaResetHistoryStore quotaResetHistory,
+        IManualProviderCredentialStore? manualCredentials = null)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
@@ -47,7 +49,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             GetString,
             AppLanguageRuntime.ActiveLanguageTag,
             AppLanguageRuntime.RequiresRestart);
-        ProviderStatus = new ProviderStatusSurfaceViewModel(GetString);
+        ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
         Options = new OptionsSurfaceViewModel(
             OptionsNavigation,
             GeneralOptions,
@@ -154,7 +156,11 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     public IAsyncRelayCommand RefreshCommand => Dashboard.RefreshCommand;
 
-    public Task StartAsync() => Dashboard.StartAsync();
+    public async Task StartAsync()
+    {
+        await ProviderStatus.LoadManualCredentialsAsync().ConfigureAwait(true);
+        await Dashboard.StartAsync().ConfigureAwait(true);
+    }
 
     public void RefreshRelativeTime() => Dashboard.RefreshRelativeTime();
 

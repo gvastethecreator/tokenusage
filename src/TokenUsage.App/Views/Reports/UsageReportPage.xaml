@@ -17,8 +17,6 @@
         <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="TokenUsageSelectedBrush" />
         <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="TokenUsageSelectedPointerOverBrush" />
         <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="TokenUsageSelectedPressedBrush" />
-        <StaticResource x:Key="ListViewItemBackgroundSelected" ResourceKey="TokenUsageSelectedBrush" />
-        <StaticResource x:Key="ListViewItemForegroundSelected" ResourceKey="TokenUsageSelectedForegroundBrush" />
         <Style x:Key="ReportCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource TokenUsageCardBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource TokenUsageStrokeBrush}" />
@@ -120,6 +118,33 @@
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="MinWidth" Value="30" />
             <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style
+            x:Key="ReportProviderTabStyle"
+            BasedOn="{StaticResource ReportToolbarToggleButtonStyle}"
+            TargetType="RadioButton">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ReportProviderCarouselButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="MinWidth" Value="28" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="UseSystemFocusVisuals" Value="True" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Width" Value="28" />
         </Style>
         <DataTemplate x:Key="ReportQuotaPillTemplate" x:DataType="dashboard:QuotaWindow">
             <Grid
@@ -244,7 +269,7 @@
                         Spacing="6">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <RadioButton x:Uid="UsageReportGlobalButton" AutomationProperties.AutomationId="UsageReportGlobalButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Global" Click="OnScopeClick" />
-                            <RadioButton x:Uid="UsageReportProviderButton" AutomationProperties.AutomationId="UsageReportProviderButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Provider" Click="OnScopeClick" />
+                            <RadioButton x:Uid="UsageReportProviderButton" AutomationProperties.AutomationId="UsageReportProviderButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasProviderOptions, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Provider" Click="OnScopeClick" />
                         </StackPanel>
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -356,52 +381,98 @@
 
                 <ProgressBar Grid.Row="1" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
 
-                <Border Grid.Row="2" Padding="16,12" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}" CornerRadius="6" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
+                <StackPanel Grid.Row="2" Spacing="12">
+                <Grid
+                    x:Name="ReportProviderCarousel"
+                    Height="40"
+                    ColumnSpacing="4"
+                    Visibility="{x:Bind ViewModel.IsProviderPickerVisible, Mode=OneWay}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button
+                        x:Name="ReportPreviousProviderButton"
+                        x:Uid="PreviousProviderTabButton"
+                        AutomationProperties.AutomationId="UsageReportPreviousProviderButton"
+                        Click="OnPreviousProviderTabClick"
+                        Style="{StaticResource ReportProviderCarouselButtonStyle}">
+                        <FontIcon FontSize="11" Glyph="&#xE76B;" />
+                    </Button>
+                    <Grid
+                        x:Name="ReportProviderTabsViewport"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="UsageReportProviderSelector"
+                        SizeChanged="OnProviderTabsViewportSizeChanged">
+                        <Grid.Clip>
+                            <RectangleGeometry x:Name="ReportProviderTabsClip" />
+                        </Grid.Clip>
+                        <Grid x:Name="ReportProviderTabsTransitionRoot" Margin="2">
+                            <Grid.RenderTransform>
+                                <CompositeTransform x:Name="ReportProviderTabsTransitionTransform" />
+                            </Grid.RenderTransform>
+                            <ItemsRepeater
+                                x:Name="ReportProviderTabsRepeater"
+                                ElementPrepared="OnProviderTabPrepared"
+                                ItemsSource="{x:Bind VisibleProviderTabs, Mode=OneTime}">
+                                <ItemsRepeater.Layout>
+                                    <StackLayout
+                                        x:Name="ReportProviderTabsLayout"
+                                        Orientation="Horizontal"
+                                        Spacing="2" />
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="reports:UsageReportProviderOption">
+                                        <RadioButton
+                                            AutomationProperties.AutomationId="{x:Bind ProviderId}"
+                                            AutomationProperties.Name="{x:Bind Name}"
+                                            GroupName="UsageReportProviderTabs"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"
+                                            Style="{StaticResource ReportProviderTabStyle}"
+                                            Tag="{x:Bind ProviderId}"
+                                            ToolTipService.ToolTip="{x:Bind Name}"
+                                            Click="OnProviderTabClick">
+                                            <StackPanel
+                                                HorizontalAlignment="Center"
+                                                Orientation="Horizontal"
+                                                Spacing="8">
+                                                <controls:ProviderMarkImage Height="17" ProviderId="{x:Bind ProviderId}" Width="17" />
+                                                <TextBlock
+                                                    Text="{x:Bind Name}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </RadioButton>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </Grid>
+                    </Grid>
+                    <Button
+                        x:Name="ReportNextProviderButton"
+                        x:Uid="NextProviderTabButton"
+                        Grid.Column="2"
+                        AutomationProperties.AutomationId="UsageReportNextProviderButton"
+                        Click="OnNextProviderTabClick"
+                        Style="{StaticResource ReportProviderCarouselButtonStyle}">
+                        <FontIcon FontSize="11" Glyph="&#xE76C;" />
+                    </Button>
+                </Grid>
+
+                <Border Padding="16,12" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}" CornerRadius="6" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
                     <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" TextWrapping="Wrap" />
                 </Border>
 
-                <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,72" Spacing="12" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
+                <StackPanel HorizontalAlignment="Center" Margin="0,72" Spacing="12" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
                     <FontIcon FontSize="28" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE9D9;" />
                     <TextBlock x:Uid="UsageReportEmptyTitle" HorizontalAlignment="Center" FontWeight="SemiBold" />
                     <TextBlock x:Uid="UsageReportEmptyBody" MaxWidth="440" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" />
                     <Button x:Uid="UsageReportEmptyRefreshButton" AutomationProperties.AutomationId="UsageReportEmptyRefreshButton" Command="{x:Bind ViewModel.RefreshCommand}" HorizontalAlignment="Center" />
                 </StackPanel>
 
-                <StackPanel x:Name="ReportDataContent" Grid.Row="2" Spacing="12" Visibility="{x:Bind ViewModel.HasData, Mode=OneWay}">
-                    <ListView
-                        x:Name="ReportProviderSelector"
-                        AutomationProperties.AutomationId="UsageReportProviderSelector"
-                        HorizontalAlignment="Stretch"
-                        ItemsSource="{x:Bind ViewModel.ProviderOptions, Mode=OneWay}"
-                        SelectedItem="{x:Bind ViewModel.SelectedProvider, Mode=TwoWay}"
-                        ContainerContentChanging="OnProviderContainerContentChanging"
-                        SelectionChanged="OnProviderSelectionChanged"
-                        SelectionMode="Single"
-                        SizeChanged="OnProviderSelectorSizeChanged"
-                        Visibility="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}">
-                        <ListView.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsStackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ListView.ItemsPanel>
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="AutomationProperties.AutomationId" Value="{Binding ProviderId}" />
-                                <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="MinWidth" Value="0" />
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="reports:UsageReportProviderOption">
-                                <StackPanel Padding="16,8" HorizontalAlignment="Stretch" Orientation="Horizontal" Spacing="8">
-                                    <controls:ProviderMarkImage Height="17" ProviderId="{x:Bind ProviderId}" Width="17" />
-                                    <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-
+                <StackPanel x:Name="ReportDataContent" Spacing="12" Visibility="{x:Bind ViewModel.HasData, Mode=OneWay}">
                     <Border Style="{StaticResource ReportCardStyle}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -691,6 +762,7 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+                </StackPanel>
                 </StackPanel>
             </Grid>
         </ScrollViewer>

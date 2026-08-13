@@ -28,6 +28,8 @@
              Link="UsageTrendGeometry.cs" />
     <Compile Include="..\..\src\TokenUsage.App\ViewModels\Reports\UsageReportModels.cs"
              Link="UsageReportModels.cs" />
+    <Compile Include="..\..\src\TokenUsage.App\ViewModels\ProviderTabCarouselLayout.cs"
+             Link="ProviderTabCarouselLayout.cs" />
   </ItemGroup>
 
 </Project>
