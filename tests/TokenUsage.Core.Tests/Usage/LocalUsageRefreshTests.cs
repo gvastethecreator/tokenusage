@@ -234,6 +234,100 @@ public sealed class LocalUsageRefreshTests
     }
 
     [Fact]
+    public async Task RefreshWindowedPartialUpsertsExistingEventCosts()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var firstSource = new ScriptedWindowedSource(
+            new AgentId("cursor"),
+            eventParserVersion: "test/1",
+            reconciliationWindowDays: 35,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "cursor",
+                        "bubble-1",
+                        new DateTimeOffset(2026, 7, 21, 10, 0, 0, TimeSpan.Zero),
+                        input: 1_000,
+                        output: 100,
+                        CostObservation.Unavailable()),
+                ],
+                UsageSourceReadStatus.Partial));
+        await new LocalUsageRefresh(folder.DatabasePath, firstSource, clock).RefreshAsync();
+
+        var updated = new ScriptedWindowedSource(
+            new AgentId("cursor"),
+            eventParserVersion: "test/1",
+            reconciliationWindowDays: 35,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "cursor",
+                        "bubble-1",
+                        new DateTimeOffset(2026, 7, 21, 10, 0, 0, TimeSpan.Zero),
+                        input: 1_000,
+                        output: 100,
+                        CostObservation.CatalogEstimated(0.75m, "xai-api-2026-08-12", "composer-2.5")),
+                ],
+                UsageSourceReadStatus.Partial));
+        LocalUsageRefreshResult second = await new LocalUsageRefresh(
+            folder.DatabasePath,
+            updated,
+            clock).RefreshAsync();
+
+        Assert.Equal(1, second.Rollups.Sum(r => r.EventCount));
+        Assert.Equal(1_100, second.Rollups.Sum(r => r.Tokens.Total));
+        Assert.Equal(0.75m, second.Rollups.Sum(r => r.EstimatedCostUsd ?? 0m));
+    }
+
+    [Fact]
+    public async Task RefreshWindowedCompleteRemovesStaleKeysOutsideCurrentScan()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var firstSource = new ScriptedWindowedSource(
+            new AgentId("cursor"),
+            eventParserVersion: "test/1",
+            reconciliationWindowDays: 35,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "cursor",
+                        "composer-state",
+                        new DateTimeOffset(2026, 7, 21, 10, 0, 0, TimeSpan.Zero),
+                        input: 90_000,
+                        output: 0,
+                        CostObservation.Unavailable()),
+                ],
+                UsageSourceReadStatus.Complete));
+        await new LocalUsageRefresh(folder.DatabasePath, firstSource, clock).RefreshAsync();
+
+        var updated = new ScriptedWindowedSource(
+            new AgentId("cursor"),
+            eventParserVersion: "test/1",
+            reconciliationWindowDays: 35,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "cursor",
+                        "bubble-turn",
+                        new DateTimeOffset(2026, 7, 21, 10, 5, 0, TimeSpan.Zero),
+                        input: 1_000,
+                        output: 100,
+                        CostObservation.CatalogEstimated(0.75m, "xai-api-2026-08-12", "composer-2.5")),
+                ],
+                UsageSourceReadStatus.Complete));
+        LocalUsageRefreshResult second = await new LocalUsageRefresh(
+            folder.DatabasePath,
+            updated,
+            clock).RefreshAsync();
+
+        Assert.Equal(1, second.Rollups.Sum(r => r.EventCount));
+        Assert.Equal(1_100, second.Rollups.Sum(r => r.Tokens.Total));
+        Assert.Equal(0.75m, second.Rollups.Sum(r => r.EstimatedCostUsd ?? 0m));
+    }
+
+    [Fact]
     public async Task OneBrokenSourceDoesNotDiscardOtherLocalUsage()
     {
         using var folder = new TemporaryFolder();

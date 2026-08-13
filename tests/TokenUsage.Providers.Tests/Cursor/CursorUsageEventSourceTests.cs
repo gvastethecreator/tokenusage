@@ -9,6 +9,24 @@ namespace TokenUsage.Providers.Tests.Cursor;
 public sealed class CursorUsageEventSourceTests
 {
     [Fact]
+    public async Task DatabaseOverTheSizeCapDoesNotReadUsage()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "composer-2.5", 10_000);
+        var source = new CursorUsageEventSource(
+            "UTC",
+            corpus.Home,
+            corpus.Roaming,
+            maximumDatabaseBytes: 1);
+
+        UsageSourceReadResult result = await source.ReadAsync();
+
+        Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
+        Assert.Equal(UsageSourceIssueKind.AccessBlocked, result.Issue);
+        Assert.Empty(result.Events);
+    }
+
+    [Fact]
     public async Task MissingCursorAndDatabaseReturnsRootUnavailable()
     {
         using var corpus = new CursorCorpus(createCursorHome: false);
@@ -36,7 +54,7 @@ public sealed class CursorUsageEventSourceTests
     }
 
     [Fact]
-    public async Task ReadsAllowlistedComposerEstimateAsPartialUnpricedUsage()
+    public async Task ReadsAllowlistedComposerEstimateAsCatalogPricedUsage()
     {
         using var corpus = new CursorCorpus();
         corpus.WriteComposer(
@@ -60,9 +78,23 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(
             DateTimeOffset.FromUnixTimeMilliseconds(1_786_488_925_618),
             usageEvent.OccurredAtUtc);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(0.889936m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
+        Assert.Equal(CursorUsageEventSource.ParserVersion, usageEvent.ParserVersion);
+    }
+
+    [Fact]
+    public async Task LeavesAutoComposerEstimatesUnpriced()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "cursor-auto", 90_000);
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
         Assert.Equal(CostKind.Unavailable, usageEvent.Cost.Kind);
         Assert.Equal(CoverageKind.Unpriced, usageEvent.Coverage);
-        Assert.Equal(CursorUsageEventSource.ParserVersion, usageEvent.ParserVersion);
+        Assert.Equal(90_000, usageEvent.Tokens.Input);
     }
 
     [Fact]
@@ -77,7 +109,11 @@ public sealed class CursorUsageEventSourceTests
 
         Assert.Equal(first.EventKey, updated.EventKey);
         Assert.Equal(18_000, updated.Tokens.Input);
+        Assert.Equal(0.009m, updated.Cost.EstimatedCostUsd);
         Assert.True(updated.OccurredAtUtc > first.OccurredAtUtc);
+        Assert.Equal(
+            UsageSourceReadStatus.Complete,
+            (await corpus.CreateSource().ReadAsync()).Status);
     }
 
     [Fact]
@@ -102,6 +138,85 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(UsageSourceIssueKind.None, result.Issue);
+    }
+
+    [Fact]
+    public async Task UnreadableComposerBlobDoesNotBlockCompleteWhenTurnCountersExist()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        corpus.WriteRaw("composerData:conversation-1", "{");
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+
+        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(1_100_000, usageEvent.Tokens.Total);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
+    }
+
+    [Fact]
+    public async Task RefreshReplacesStoredComposerEstimateWithPricedTurnCounters()
+    {
+        using var corpus = new CursorCorpus();
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(
+            new DateTimeOffset(2026, 8, 12, 15, 0, 0, TimeSpan.Zero));
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        var refresh = new LocalUsageRefresh(
+            folder.DatabasePath,
+            corpus.CreateSource(),
+            clock);
+
+        LocalUsageRefreshResult first = await refresh.RefreshAsync();
+        Assert.Equal(90_000, first.Rollups.Sum(rollup => rollup.Tokens.Total));
+        Assert.Equal(0.1125m, first.Rollups.Sum(rollup => rollup.EstimatedCostUsd ?? 0m));
+
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+        LocalUsageRefreshResult second = await refresh.RefreshAsync();
+
+        Assert.Equal(1, second.Rollups.Sum(rollup => rollup.EventCount));
+        Assert.Equal(1_100_000, second.Rollups.Sum(rollup => rollup.Tokens.Total));
+        Assert.Equal(2.25m, second.Rollups.Sum(rollup => rollup.EstimatedCostUsd ?? 0m));
+    }
+
+    [Fact]
+    public async Task PricesComposerTurnsFromTheOfficialGrokRate()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "composer-2.5", 90_000);
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "composer-2.5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(0.75m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal("composer-2.5", usageEvent.Cost.ExactPriceMatch);
+        Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
     }
 
     [Fact]
@@ -125,8 +240,11 @@ public sealed class CursorUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single(result.Events);
 
         Assert.Equal(90_000, usageEvent.Tokens.Input);
-        Assert.Equal(CoverageKind.Unpriced, usageEvent.Coverage);
-        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(0.1125m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(UsageSourceIssueKind.None, result.Issue);
     }
 
     [Fact]
@@ -286,5 +404,42 @@ public sealed class CursorUsageEventSourceTests
                 Directory.Delete(Root, recursive: true);
             }
         }
+    }
+
+    private sealed class TemporaryFolder : IDisposable
+    {
+        public TemporaryFolder()
+        {
+            Root = Path.Combine(
+                Path.GetTempPath(),
+                "tokenusage-cursor-refresh-tests",
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Root);
+            DatabasePath = Path.Combine(Root, "usage.v1.db");
+        }
+
+        public string Root { get; }
+
+        public string DatabasePath { get; }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Root))
+                {
+                    Directory.Delete(Root, recursive: true);
+                }
+            }
+            catch
+            {
+                // best effort
+            }
+        }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow.ToUniversalTime();
     }
 }

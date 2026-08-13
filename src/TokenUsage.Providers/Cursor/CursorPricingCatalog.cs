@@ -4,8 +4,9 @@ using TokenUsage.Providers.Pricing;
 namespace TokenUsage.Providers.Cursor;
 
 /// <summary>
-/// Estimates raw API value only when Cursor stores a concrete model and real
-/// per-turn token counters. It does not estimate a Cursor subscription charge.
+/// Estimates raw API value from official Anthropic, OpenAI, Google, and xAI
+/// rates when Cursor stores a concrete model and real per-turn token counters.
+/// It does not estimate a Cursor subscription or credit-pool charge.
 /// </summary>
 public static class CursorPricingCatalog
 {
