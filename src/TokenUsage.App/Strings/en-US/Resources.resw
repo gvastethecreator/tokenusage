@@ -354,6 +354,38 @@
   <data name="ProviderStatusRecoveryRetry" xml:space="preserve"><value>Close active session files, then refresh status.</value></data>
   <data name="ProviderStatusRecoveryRefresh" xml:space="preserve"><value>Refresh status after new activity.</value></data>
   <data name="ProviderStatusRecoveryUnavailable" xml:space="preserve"><value>No recovery is available in the app.</value></data>
+  <data name="ProviderStatusSummaryKeySaved" xml:space="preserve"><value>Key saved</value></data>
+  <data name="ProviderStatusRootKeySaved" xml:space="preserve"><value>API key saved</value></data>
+  <data name="ProviderStatusRecoveryKeySaved" xml:space="preserve"><value>The key is stored in Windows Credential Locker. Usage appears when this source is enabled.</value></data>
+  <data name="ProviderConfigureButton.Text" xml:space="preserve"><value>Configure</value></data>
+  <data name="ProviderConfigureButtonAutomationFormat" xml:space="preserve"><value>Configure {0}</value></data>
+  <data name="ProviderCredentialHelp.Text" xml:space="preserve"><value>TokenUsage stores this key in Windows Credential Locker. Usage appears when this source is enabled.</value></data>
+  <data name="ProviderCredentialCopilotHelp" xml:space="preserve"><value>Paste a fine-grained GitHub token with Plan: read. TokenUsage detects your GitHub account from the token and shows used AI credits, not remaining quota. Add an organization only if you administer Copilot billing there.</value></data>
+  <data name="ProviderCredentialCopilotTokenLabel" xml:space="preserve"><value>GitHub token</value></data>
+  <data name="ProviderCredentialCopilotTokenPlaceholder" xml:space="preserve"><value>github_pat_…</value></data>
+  <data name="ProviderCredentialCopilotOrganizationLabel" xml:space="preserve"><value>Organization (optional)</value></data>
+  <data name="ProviderCredentialCopilotOrganizationPlaceholder" xml:space="preserve"><value>Billing organization login</value></data>
+  <data name="ProviderCredentialApiKeyBox.Header" xml:space="preserve"><value>API key</value></data>
+  <data name="ProviderCredentialApiKeyBox.PlaceholderText" xml:space="preserve"><value>Paste a dedicated key</value></data>
+  <data name="ProviderCredentialApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>API key</value></data>
+  <data name="ProviderCredentialSecondaryBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Additional connection value</value></data>
+  <data name="ProviderCredentialSaveButton.Content" xml:space="preserve"><value>Save</value></data>
+  <data name="ProviderCredentialSaveButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Save API key</value></data>
+  <data name="ProviderCredentialRemoveButton.Content" xml:space="preserve"><value>Remove key</value></data>
+  <data name="ProviderCredentialRemoveButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Remove saved API key</value></data>
+  <data name="ProviderCredentialKeyIdLabel" xml:space="preserve"><value>Key ID (optional)</value></data>
+  <data name="ProviderCredentialKeyIdPlaceholder" xml:space="preserve"><value>Example: key_abc123</value></data>
+  <data name="ProviderCredentialOrganizationLabel" xml:space="preserve"><value>Organization</value></data>
+  <data name="ProviderCredentialOrganizationPlaceholder" xml:space="preserve"><value>Organization login or ID</value></data>
+  <data name="ProviderCredentialEndpointLabel" xml:space="preserve"><value>Azure endpoint</value></data>
+  <data name="ProviderCredentialEndpointPlaceholder" xml:space="preserve"><value>https://{resource}.openai.azure.com</value></data>
+  <data name="ProviderCredentialMissingKey" xml:space="preserve"><value>Paste an API key first.</value></data>
+  <data name="ProviderCredentialMissingSecondary" xml:space="preserve"><value>Add the required connection value.</value></data>
+  <data name="ProviderCredentialNotSupported" xml:space="preserve"><value>This provider cannot store a key.</value></data>
+  <data name="ProviderCredentialLocalFailure" xml:space="preserve"><value>Windows could not save the key.</value></data>
+  <data name="ProviderCredentialBusy" xml:space="preserve"><value>Saving the key.</value></data>
+  <data name="ProviderCredentialSaved" xml:space="preserve"><value>The key was saved.</value></data>
+  <data name="ProviderCredentialRemoved" xml:space="preserve"><value>The saved key was removed.</value></data>
   <data name="LocalUsageAgentCodex" xml:space="preserve"><value>Codex</value></data>
   <data name="LanguageSectionTitle.Text" xml:space="preserve"><value>Language</value></data>
   <data name="LanguageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>App language</value></data>

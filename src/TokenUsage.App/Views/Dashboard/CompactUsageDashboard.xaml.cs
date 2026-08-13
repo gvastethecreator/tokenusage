@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using TokenUsage.App.Controls;
+using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Surfaces;
@@ -15,11 +16,6 @@ namespace TokenUsage.App.Views.Dashboard;
 
 public sealed partial class CompactUsageDashboard : UserControl
 {
-    private const int ProviderTabMaximumPageSize = 5;
-    private const double ProviderTabMinimumWidth = 92;
-    private const double ProviderTabSpacing = 2;
-    private const double ProviderTabNavigationWidth = 64;
-    private const double ProviderTabViewportInset = 2;
     private readonly ObservableCollection<DashboardProviderSummary> _visibleProviderTabs = [];
     private DashboardSurfaceViewModel? _viewModel;
     private Storyboard? _providerTransitionStoryboard;
@@ -30,8 +26,9 @@ public sealed partial class CompactUsageDashboard : UserControl
     private int _providerTabsTransitionToken;
     private int _providerLimitsTransitionToken;
     private int _visualizationTransitionToken;
-    private int _providerTabPageSize = ProviderTabMaximumPageSize;
+    private int _providerTabPageSize = ProviderTabCarouselLayout.MaximumPageSize;
     private int _providerTabStartIndex;
+    private double _providerTabItemWidth = 64;
     private bool _isProviderLimitsHeightAnimating;
     private bool _suppressProviderLimitsPropertyTransition;
     private bool _suppressVisualizationPropertyTransition;
@@ -528,6 +525,7 @@ public sealed partial class CompactUsageDashboard : UserControl
                 _visibleProviderTabs[args.Index].ProviderId,
                 ViewModel.SelectedProvider?.ProviderId,
                 StringComparison.Ordinal);
+            ApplyProviderTabSize(tab);
         }
 
     }
@@ -716,27 +714,12 @@ public sealed partial class CompactUsageDashboard : UserControl
     {
         int providerCount = ViewModel.ProviderSummaries.Count;
         double carouselWidth = ProviderTabCarousel.ActualWidth;
-        if (providerCount == 0 || carouselWidth <= 0)
+        if (providerCount == 0)
         {
             return false;
         }
 
-        int nextPageSize = Math.Min(ProviderTabMaximumPageSize, providerCount);
-        for (int candidate = nextPageSize; candidate >= 1; candidate--)
-        {
-            bool needsNavigation = providerCount > candidate;
-            double availableWidth = carouselWidth
-                - (needsNavigation ? ProviderTabNavigationWidth : 0);
-            double itemWidth = (
-                availableWidth - (candidate - 1) * ProviderTabSpacing)
-                / candidate;
-            if (itemWidth >= ProviderTabMinimumWidth || candidate == 1)
-            {
-                nextPageSize = candidate;
-                break;
-            }
-        }
-
+        int nextPageSize = ProviderTabCarouselLayout.PageSize(providerCount, carouselWidth);
         if (nextPageSize == _providerTabPageSize)
         {
             return false;
@@ -753,15 +736,31 @@ public sealed partial class CompactUsageDashboard : UserControl
             return;
         }
 
-        const double spacing = ProviderTabSpacing;
-        double availableWidth = Math.Max(
-            0,
-            ProviderTabsViewport.ActualWidth - ProviderTabViewportInset * 2);
-        ProviderTabsLayout.MinItemWidth = Math.Max(
-            64,
-            (availableWidth
-                - (_visibleProviderTabs.Count - 1) * spacing)
-            / _visibleProviderTabs.Count);
+        double spacing = ProviderTabCarouselLayout.Spacing;
+        int count = _visibleProviderTabs.Count;
+        _providerTabItemWidth = ProviderTabCarouselLayout.ItemWidth(
+            ProviderTabsViewport.ActualWidth,
+            count);
+        ProviderTabsLayout.Spacing = spacing;
+        for (int index = 0; index < count; index++)
+        {
+            if (ProviderTabsRepeater.TryGetElement(index) is RadioButton tab)
+            {
+                ApplyProviderTabSize(tab);
+            }
+        }
+    }
+
+    private void ApplyProviderTabSize(RadioButton tab)
+    {
+        tab.MinWidth = 0;
+        tab.MaxWidth = _providerTabItemWidth;
+        tab.Width = _providerTabItemWidth;
+        tab.Margin = new Thickness(0);
+        tab.HorizontalAlignment = HorizontalAlignment.Stretch;
+        tab.HorizontalContentAlignment = HorizontalAlignment.Center;
+        tab.VerticalAlignment = VerticalAlignment.Stretch;
+        tab.VerticalContentAlignment = VerticalAlignment.Center;
     }
 
     private void PlayProviderTabsTransition(int direction)

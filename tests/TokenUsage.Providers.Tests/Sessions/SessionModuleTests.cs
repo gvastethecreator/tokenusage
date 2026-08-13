@@ -6,6 +6,7 @@ using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Alerts;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Cache;
+using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
@@ -226,9 +227,27 @@ public sealed class SessionModuleTests
             "Complete",
             codex.Capabilities.Single(capability =>
                 capability.AutomationId == "ProviderStatus.codex.Usage").Value);
-        Assert.Equal(
-            "ProviderStatusPrepared",
-            surface.Providers.Single(provider => provider.ProviderId == "openrouter").RootState);
+        ProviderStatusRow openrouter = surface.Providers.Single(provider =>
+            provider.ProviderId == "openrouter");
+        Assert.Equal("ProviderStatusPrepared", openrouter.RootState);
+        Assert.True(openrouter.CanConfigure);
+        Assert.False(openrouter.HasSavedCredential);
+        Assert.Equal("ProviderStatusSummaryPrepared", openrouter.CompactState);
+        Assert.False(surface.Providers.Single(provider => provider.ProviderId == "claude").CanConfigure);
+        Assert.False(surface.Providers.Single(provider => provider.ProviderId == "zai").CanConfigure);
+        Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").CanConfigure);
+        Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").RequiresSecondaryField);
+        Assert.True(surface.Providers.Single(provider => provider.ProviderId == "vercel-ai-gateway").CanConfigure);
+        ProviderStatusRow copilot = surface.Providers.Single(provider =>
+            provider.ProviderId == "copilot");
+        Assert.True(copilot.CanConfigure);
+        Assert.Equal("ProviderCredentialCopilotHelp", copilot.CredentialHelpText);
+        Assert.Equal("ProviderCredentialCopilotTokenLabel", copilot.SecretFieldLabel);
+        Assert.Equal("ProviderCredentialCopilotTokenPlaceholder", copilot.SecretFieldPlaceholder);
+        Assert.Equal("ProviderCredentialCopilotOrganizationLabel", copilot.SecondaryFieldLabel);
+        Assert.Equal("ProviderCredentialCopilotOrganizationPlaceholder", copilot.SecondaryFieldPlaceholder);
+        Assert.False(copilot.RequiresSecondaryField);
+        Assert.True(copilot.HasSecondaryField);
         ProviderStatusRow claude = surface.Providers.Single(provider =>
             provider.ProviderId == "claude");
         Assert.Equal("ProviderStatusUnavailable", claude.RootState);
@@ -242,6 +261,58 @@ public sealed class SessionModuleTests
             "ProviderStatusBlocked",
             surface.Providers.Single(provider => provider.ProviderId == "zai").RootState);
         Assert.Equal(1, refreshCalls);
+    }
+
+    [Fact]
+    public async Task ProviderStatusSurfaceSavesAndRemovesAManualKeyWithoutReadingIt()
+    {
+        var store = new MemoryManualProviderCredentialStore();
+        var surface = new ProviderStatusSurfaceViewModel(key => key, store);
+        surface.Update(
+            codexOutcome: null,
+            hasPublishedDashboard: false,
+            SampleDataState.Idle,
+            []);
+
+        ManualCredentialOperationResult missing = await surface.SaveManualCredentialAsync(
+            "openrouter",
+            apiKey: "  ",
+            secondaryValue: null);
+        Assert.False(missing.Succeeded);
+        Assert.Equal("ProviderCredentialMissingKey", missing.StatusText);
+
+        ManualCredentialOperationResult blocked = await surface.SaveManualCredentialAsync(
+            "zai",
+            "secret-key",
+            secondaryValue: null);
+        Assert.False(blocked.Succeeded);
+        Assert.Equal("ProviderCredentialNotSupported", blocked.StatusText);
+        Assert.False(await store.IsConfiguredAsync("openrouter"));
+
+        ManualCredentialOperationResult missingOrg = await surface.SaveManualCredentialAsync(
+            "devin",
+            "cog_key",
+            secondaryValue: null);
+        Assert.False(missingOrg.Succeeded);
+        Assert.Equal("ProviderCredentialMissingSecondary", missingOrg.StatusText);
+
+        ManualCredentialOperationResult saved = await surface.SaveManualCredentialAsync(
+            "openrouter",
+            "secret-key",
+            secondaryValue: null);
+        Assert.True(saved.Succeeded);
+        ProviderStatusRow openrouter = surface.Providers.Single(provider =>
+            provider.ProviderId == "openrouter");
+        Assert.True(openrouter.HasSavedCredential);
+        Assert.Equal("ProviderStatusRootKeySaved", openrouter.RootState);
+        Assert.Equal("ProviderStatusSummaryKeySaved", openrouter.CompactState);
+        Assert.True(await store.IsConfiguredAsync("openrouter"));
+
+        ManualCredentialOperationResult removed = await surface.DeleteManualCredentialAsync("openrouter");
+        Assert.True(removed.Succeeded);
+        openrouter = surface.Providers.Single(provider => provider.ProviderId == "openrouter");
+        Assert.False(openrouter.HasSavedCredential);
+        Assert.False(await store.IsConfiguredAsync("openrouter"));
     }
 
     [Fact]
@@ -834,5 +905,46 @@ public sealed class SessionModuleTests
         public FixedTimeProvider(DateTimeOffset utcNow) => _utcNow = utcNow.ToUniversalTime();
 
         public override DateTimeOffset GetUtcNow() => _utcNow;
+    }
+
+    private sealed class MemoryManualProviderCredentialStore : IManualProviderCredentialStore
+    {
+        private readonly Dictionary<string, ManualProviderSecret> _secrets = new(StringComparer.Ordinal);
+
+        public Task<bool> IsConfiguredAsync(
+            string providerId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_secrets.ContainsKey(providerId));
+        }
+
+        public Task SaveAsync(
+            string providerId,
+            ManualProviderSecret secret,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(secret);
+            cancellationToken.ThrowIfCancellationRequested();
+            _secrets[providerId] = secret;
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> DeleteAsync(
+            string providerId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_secrets.Remove(providerId));
+        }
+
+        public Task<ManualProviderSecret?> ReadAsync(
+            string providerId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _secrets.TryGetValue(providerId, out ManualProviderSecret? secret);
+            return Task.FromResult(secret);
+        }
     }
 }

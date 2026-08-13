@@ -304,8 +304,9 @@ clave.
 
 Contrato oficial fijado en
 [el gate OpenRouter](research/2026-07-23-openrouter-source-gate.md). El cliente
-offline es el primer corte; Credential Locker, runtime, UI y smoke autorizado
-siguen pendientes. Se marca como configuración manual.
+offline es el primer corte. La lista de proveedores ya puede guardar la clave
+en Credential Locker. Runtime, lectura en vivo y smoke autorizado siguen
+pendientes. Se marca como configuración manual.
 
 Fuente upstream de comparación: [provider OpenRouter](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/openrouter.md).
 
@@ -504,7 +505,7 @@ Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gat
 
 Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo lectura y proyecta únicamente el modelo, los timestamps y el total de contexto estimado que Cursor guarda en cada `composerData:`. La consulta no devuelve el valor completo, prompts, respuestas, rutas, correo, comandos, transcript, credenciales ni IDs sin hash.
 
-La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial, estimada y sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens.
+La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial y estimada. Si el modelo coincide con un catálogo oficial, ese contexto lleva valor API estimado. Auto y modelos desconocidos siguen sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens.
 
 Cuando existen contadores por turno en `bubbleId:`, tienen prioridad sobre la estimación de la conversación. En la comprobación de agosto de 2026 el editor escribía `tokenCount` en las 5738 filas con el valor cero en entrada y salida, así que no había contador por turno que leer y la tarjeta queda con la estimación por conversación. La consulta exige ahora un contador mayor que cero: una build que deje el campo en cero no obliga a extraer y descartar cada fila, y el día que Cursor vuelva a escribir contadores reales la misma consulta los recoge. El tope de filas ordena de lo más nuevo a lo más viejo, para que un recorte deje fuera los turnos antiguos y no los de hoy.
 
@@ -533,7 +534,7 @@ Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers
 
 La Billing REST API pública ofrece reportes dedicados de AI credits para una cuenta personal pagada y para una organización. TokenUsage usa la versión `2026-03-10`, un fine-grained token entregado por el usuario y Windows Credential Locker.
 
-La cuenta personal requiere `Plan: read`. La organización requiere `Administration: read` y un administrador. Cada conexión declara su scope. El resultado muestra créditos usados, descuento cubierto y cargo neto. La vista de organización se etiqueta como total de la entidad.
+La cuenta personal requiere `Plan: read`. La organización requiere `Administration: read` y un administrador. Cada conexión declara su scope. El cliente resuelve el login con `GET /user` y no pide el nombre de usuario. El resultado muestra créditos usados, descuento cubierto y cargo neto. La vista de organización se etiqueta como total de la entidad y, si GitHub lo publica, el `plan_type` Business o Enterprise.
 
 ### Cobertura y política
 

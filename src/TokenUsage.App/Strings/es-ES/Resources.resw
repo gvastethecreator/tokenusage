@@ -354,6 +354,38 @@
   <data name="ProviderStatusRecoveryRetry" xml:space="preserve"><value>Cierra los archivos de sesión activos y actualiza el estado.</value></data>
   <data name="ProviderStatusRecoveryRefresh" xml:space="preserve"><value>Actualiza el estado después de nueva actividad.</value></data>
   <data name="ProviderStatusRecoveryUnavailable" xml:space="preserve"><value>No hay recuperación disponible en la app.</value></data>
+  <data name="ProviderStatusSummaryKeySaved" xml:space="preserve"><value>Clave guardada</value></data>
+  <data name="ProviderStatusRootKeySaved" xml:space="preserve"><value>Clave API guardada</value></data>
+  <data name="ProviderStatusRecoveryKeySaved" xml:space="preserve"><value>La clave está en Windows Credential Locker. El uso aparece cuando esta fuente esté activa.</value></data>
+  <data name="ProviderConfigureButton.Text" xml:space="preserve"><value>Configurar</value></data>
+  <data name="ProviderConfigureButtonAutomationFormat" xml:space="preserve"><value>Configurar {0}</value></data>
+  <data name="ProviderCredentialHelp.Text" xml:space="preserve"><value>TokenUsage guarda esta clave en Windows Credential Locker. El uso aparece cuando esta fuente esté activa.</value></data>
+  <data name="ProviderCredentialCopilotHelp" xml:space="preserve"><value>Pegue un token fine-grained de GitHub con Plan: read. TokenUsage detecta su cuenta de GitHub desde el token y muestra los créditos de IA usados, no la cuota restante. Añada una organización solo si administra la facturación de Copilot allí.</value></data>
+  <data name="ProviderCredentialCopilotTokenLabel" xml:space="preserve"><value>Token de GitHub</value></data>
+  <data name="ProviderCredentialCopilotTokenPlaceholder" xml:space="preserve"><value>github_pat_…</value></data>
+  <data name="ProviderCredentialCopilotOrganizationLabel" xml:space="preserve"><value>Organización (opcional)</value></data>
+  <data name="ProviderCredentialCopilotOrganizationPlaceholder" xml:space="preserve"><value>Inicio de sesión de la organización de facturación</value></data>
+  <data name="ProviderCredentialApiKeyBox.Header" xml:space="preserve"><value>Clave API</value></data>
+  <data name="ProviderCredentialApiKeyBox.PlaceholderText" xml:space="preserve"><value>Pegue una clave dedicada</value></data>
+  <data name="ProviderCredentialApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Clave API</value></data>
+  <data name="ProviderCredentialSecondaryBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Valor adicional de conexión</value></data>
+  <data name="ProviderCredentialSaveButton.Content" xml:space="preserve"><value>Guardar</value></data>
+  <data name="ProviderCredentialSaveButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Guardar clave API</value></data>
+  <data name="ProviderCredentialRemoveButton.Content" xml:space="preserve"><value>Quitar clave</value></data>
+  <data name="ProviderCredentialRemoveButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quitar la clave API guardada</value></data>
+  <data name="ProviderCredentialKeyIdLabel" xml:space="preserve"><value>ID de clave (opcional)</value></data>
+  <data name="ProviderCredentialKeyIdPlaceholder" xml:space="preserve"><value>Ejemplo: key_abc123</value></data>
+  <data name="ProviderCredentialOrganizationLabel" xml:space="preserve"><value>Organización</value></data>
+  <data name="ProviderCredentialOrganizationPlaceholder" xml:space="preserve"><value>Inicio de sesión o ID de organización</value></data>
+  <data name="ProviderCredentialEndpointLabel" xml:space="preserve"><value>Punto de conexión de Azure</value></data>
+  <data name="ProviderCredentialEndpointPlaceholder" xml:space="preserve"><value>https://{resource}.openai.azure.com</value></data>
+  <data name="ProviderCredentialMissingKey" xml:space="preserve"><value>Pegue primero una clave API.</value></data>
+  <data name="ProviderCredentialMissingSecondary" xml:space="preserve"><value>Añada el valor de conexión obligatorio.</value></data>
+  <data name="ProviderCredentialNotSupported" xml:space="preserve"><value>Este proveedor no puede guardar una clave.</value></data>
+  <data name="ProviderCredentialLocalFailure" xml:space="preserve"><value>Windows no pudo guardar la clave.</value></data>
+  <data name="ProviderCredentialBusy" xml:space="preserve"><value>Guardando la clave.</value></data>
+  <data name="ProviderCredentialSaved" xml:space="preserve"><value>La clave se guardó.</value></data>
+  <data name="ProviderCredentialRemoved" xml:space="preserve"><value>Se quitó la clave guardada.</value></data>
   <data name="LocalUsageAgentCodex" xml:space="preserve"><value>Codex</value></data>
   <data name="LanguageSectionTitle.Text" xml:space="preserve"><value>Idioma</value></data>
   <data name="LanguageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Idioma de la aplicación</value></data>

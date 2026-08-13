@@ -7,6 +7,7 @@ using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Runtime.Windows.Credentials;
 using TokenUsage.Runtime.Windows.Providers;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 
@@ -68,7 +69,8 @@ public static class AppComposition
                 resolvedClock),
             new DashboardLayoutStore(dashboardLayoutPath, resolvedClock),
             new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock),
-            quotaResetHistory);
+            quotaResetHistory,
+            new WindowsManualProviderCredentialStore());
     }
 
     public static string GetUsageDatabasePath(string localFolderPath)
