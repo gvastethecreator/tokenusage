@@ -10,6 +10,7 @@ using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Antigravity;
 
@@ -287,6 +288,10 @@ public sealed class AntigravityUsageEventSource :
                 tokenBlock.CacheRead,
                 cacheWrite: 0);
             CostObservation cost = AntigravityPricingCatalog.Resolve(model, tokens);
+            if (cost.Kind == CostKind.Unavailable)
+            {
+                cost = KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
+            }
             string identity = $"{rootName}\0{Path.GetFileName(path)}\0{reader.GetInt64(0)}";
             var usageEvent = new UsageEvent(
                 new UsageEventKey(Hash(identity)),
