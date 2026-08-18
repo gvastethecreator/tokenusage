@@ -8,15 +8,15 @@
   IgnorableNamespaces="uap uap5 rescap">
 
   <Identity
-    Name="D6C94EDD-3747-465C-9A81-05DF5A4108C5"
-    Publisher="CN=AppPublisher"
+    Name="GVASTETHECREATOR.TokenUsage"
+    Publisher="CN=DB97CC4C-CCCD-41DF-8D43-C67641CBBC92"
     Version="0.0.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="D6C94EDD-3747-465C-9A81-05DF5A4108C5" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
   <Properties>
     <DisplayName>TokenUsage</DisplayName>
-    <PublisherDisplayName>AppPublisher</PublisherDisplayName>
+    <PublisherDisplayName>GVASTETHECREATOR</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
