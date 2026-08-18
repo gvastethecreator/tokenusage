@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "product": "TokenUsage",
+  "distributionChannel": "MicrosoftStore",
+  "packageIdentity": {
+    "name": "GVASTETHECREATOR.TokenUsage",
+    "publisher": "CN=DB97CC4C-CCCD-41DF-8D43-C67641CBBC92",
+    "publisherDisplayName": "GVASTETHECREATOR",
+    "packageFamilyName": "GVASTETHECREATOR.TokenUsage_h2dcbfhqhrgv8",
+    "packageSid": "S-1-15-2-1053362801-2461558768-657845133-3595218920-1529770649-1636304934-4044864160"
+  },
+  "store": {
+    "productId": "9NWX6M53B36K",
+    "deepLink": null,
+    "webStoreUrl": null
+  },
+  "notes": [
+    "packageFamilyName and packageSid are derived values and must not be written into Package.appxmanifest.",
+    "deepLink and webStoreUrl remain null until the product is live.",
+    "All values are stored without trailing whitespace or non-breaking spaces."
+  ]
+}
