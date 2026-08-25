@@ -227,14 +227,25 @@ public sealed class LocalUsageRefresh
                 DateOnly reconcileFrom = UsagePeriodPolicy.ReconciliationStart(
                     today,
                     windowedSource.ReconciliationWindowDays);
-                UsageEvent[] eventsInWindow = result.Events.Where(usageEvent =>
-                {
-                    DateOnly eventDate = DateOnly.FromDateTime(
+                DateOnly EventDate(UsageEvent usageEvent) =>
+                    DateOnly.FromDateTime(
                         TimeZoneInfo.ConvertTime(
                             usageEvent.OccurredAtUtc,
                             groupingTimeZone).DateTime);
-                    return eventDate >= reconcileFrom && eventDate <= today;
-                }).ToArray();
+                UsageEvent[] eventsInWindow = result.Events
+                    .Where(usageEvent =>
+                    {
+                        DateOnly eventDate = EventDate(usageEvent);
+                        return eventDate >= reconcileFrom && eventDate <= today;
+                    })
+                    .ToArray();
+                UsageEvent[] olderEvents = result.Events
+                    .Where(usageEvent =>
+                    {
+                        DateOnly eventDate = EventDate(usageEvent);
+                        return eventDate < reconcileFrom && eventDate <= today;
+                    })
+                    .ToArray();
                 bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete
                     || (result.Status == UsageSourceReadStatus.NoData
                         && result.Issue == UsageSourceIssueKind.Empty);
@@ -247,12 +258,19 @@ public sealed class LocalUsageRefresh
                         today,
                         eventsInWindow,
                         cancellationToken).ConfigureAwait(false);
+                    if (olderEvents.Length > 0)
+                    {
+                        await repository.UpsertAgentEventsAsync(
+                            windowedSource.AgentId,
+                            olderEvents,
+                            cancellationToken).ConfigureAwait(false);
+                    }
                 }
-                else if (eventsInWindow.Length > 0)
+                else if (eventsInWindow.Length > 0 || olderEvents.Length > 0)
                 {
                     await repository.UpsertAgentEventsAsync(
                         windowedSource.AgentId,
-                        eventsInWindow,
+                        eventsInWindow.Concat(olderEvents).ToArray(),
                         cancellationToken).ConfigureAwait(false);
                 }
             }

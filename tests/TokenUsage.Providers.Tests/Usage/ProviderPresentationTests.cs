@@ -57,6 +57,7 @@ public sealed class ProviderPresentationTests
         Assert.Equal("Códex traducido", ProviderDisplayName.Resolve("codex", Translate));
         Assert.Equal("Claude", ProviderDisplayName.Resolve("claude", Translate));
         Assert.Equal("Amp", ProviderDisplayName.Resolve("amp", Translate));
+        Assert.Equal("Grok Bot", ProviderDisplayName.Resolve("grok-bot", Translate));
         Assert.Equal("Gemini CLI", ProviderDisplayName.Resolve("gemini-cli", Translate));
         Assert.Equal("brand-new", ProviderDisplayName.Resolve("brand-new", Translate));
         Assert.Equal(string.Empty, ProviderDisplayName.Resolve("  ", Translate));

@@ -1,4 +1,5 @@
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Grok;
 
@@ -67,12 +68,7 @@ public static class GrokPricingCatalog
 
     private static string Normalize(string model)
     {
-        string normalized = model.Trim().ToLowerInvariant();
-        if (normalized.StartsWith("cursor-", StringComparison.Ordinal))
-        {
-            normalized = normalized["cursor-".Length..];
-        }
-
+        string normalized = KnownModelPricingCatalog.Canonicalize(model);
         if (normalized.StartsWith("grok-build-", StringComparison.Ordinal))
         {
             return "grok-build";
