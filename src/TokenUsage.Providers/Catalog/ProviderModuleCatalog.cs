@@ -17,6 +17,7 @@ public enum ProviderReference
     OpenUsage = 1,
     CodexBar = 2,
     CodeBurn = 4,
+    TokenUsage = 8,
 }
 
 public sealed record ProviderModuleDefinition
@@ -131,6 +132,7 @@ public static class ProviderModuleCatalog
             Module("cursor", "Cursor", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
             Module("antigravity", "Antigravity", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, quotaBlocked: true),
             Module("grok", "Grok Build", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["grok-build"], quotaBlocked: true),
+            Module("grok-bot", "Grok Bot", [ProviderCapability.Usage], ProviderModuleStage.Prepared, ProviderReference.TokenUsage, quotaBlocked: true),
             Module("opencode", "OpenCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
 
             Module("openai", "OpenAI API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),

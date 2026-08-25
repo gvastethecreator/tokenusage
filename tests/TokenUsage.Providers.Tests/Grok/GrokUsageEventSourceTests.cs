@@ -74,7 +74,12 @@ public sealed class GrokUsageEventSourceTests
             {
                 Assert.Equal("grok-4.1-fast", usageEvent.ModelId.Value);
                 Assert.Equal(new TokenBreakdown(0, 8, 0, 50, 0), usageEvent.Tokens);
-                Assert.Equal(0m, usageEvent.Cost.ReportedCostUsd);
+                Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+                Assert.Equal(
+                    GrokPricingCatalog.Resolve(
+                        "grok-4.1-fast",
+                        usageEvent.Tokens).EstimatedCostUsd,
+                    usageEvent.Cost.EstimatedCostUsd);
             },
             usageEvent =>
             {
@@ -182,8 +187,10 @@ public sealed class GrokUsageEventSourceTests
 
         Assert.Equal("grok-4.5-build", first.ModelId.Value);
         Assert.Equal(new TokenBreakdown(0, 4, 0, 40, 0), first.Tokens);
-        Assert.Equal(CostKind.ProviderReported, first.Cost.Kind);
-        Assert.Equal(0m, first.Cost.ReportedCostUsd);
+        Assert.Equal(CostKind.CatalogEstimated, first.Cost.Kind);
+        Assert.Equal(
+            GrokPricingCatalog.Resolve("GROK-4.5-BUILD", first.Tokens).EstimatedCostUsd,
+            first.Cost.EstimatedCostUsd);
         Assert.Equal(first.EventKey, second.EventKey);
         Assert.Equal(64, first.EventKey.Value.Length);
     }
@@ -210,12 +217,43 @@ public sealed class GrokUsageEventSourceTests
             "session-preferred",
             Snapshot("2026-07-22T11:00:00Z", 25, 4, model: "grok-session-model"));
         corpus.WriteUnified(
+            "{\"ts\":\"2026-06-17T11:00:00Z\",\"pid\":1,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":1,\"completion_tokens\":1}}",
             "{\"ts\":\"2026-07-22T10:00:00Z\",\"pid\":1,\"msg\":\"model changed\",\"ctx\":{\"model\":\"grok-fallback-model\"}}",
             "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":1,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"completion_tokens\":20}}");
 
-        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+        UsageEvent usageEvent = Assert.Single(
+            (await corpus.CreateSource(clock: GrokCorpus.FixtureClock).ReadAsync()).Events);
 
         Assert.Equal("grok-fallback-model", usageEvent.ModelId.Value);
+    }
+
+    [Fact]
+    public async Task RotatedUnifiedLogFallsBackToSessionSnapshots()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession(
+            "session-history",
+            Snapshot(
+                "2026-08-09T11:00:00Z",
+                250,
+                40,
+                costUsdTicks: 2_500_000_000,
+                model: "grok-4.6-build"));
+        corpus.WriteUnified(
+            "{\"ts\":\"2026-08-25T10:00:00Z\",\"pid\":1,\"msg\":\"model changed\",\"ctx\":{\"model\":\"grok-4.6\"}}",
+            "{\"ts\":\"2026-08-25T10:01:00Z\",\"pid\":1,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"prompt_tokens\":100,\"completion_tokens\":20}}");
+
+        UsageSourceReadResult result = await corpus.CreateSource(
+            clock: new FixedTimeProvider(
+                new DateTimeOffset(2026, 8, 25, 12, 0, 0, TimeSpan.Zero)))
+            .ReadAsync();
+        UsageEvent usageEvent = Assert.Single(result.Events);
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal("grok-4.6-build", usageEvent.ModelId.Value);
+        Assert.Equal(new TokenBreakdown(250, 40, 0, 0, 0), usageEvent.Tokens);
+        Assert.Equal(CostKind.ProviderReported, usageEvent.Cost.Kind);
+        Assert.Equal(0.25m, usageEvent.Cost.ReportedCostUsd);
     }
 
     [Fact]
@@ -274,6 +312,20 @@ public sealed class GrokUsageEventSourceTests
         Assert.Equal(new TokenBreakdown(40, 8, 0, 0, 0), unnamed.Tokens);
         Assert.Equal(CostKind.Unavailable, unnamed.Cost.Kind);
         Assert.Equal(CoverageKind.Unpriced, unnamed.Coverage);
+    }
+
+    [Fact]
+    public async Task InferenceDoneUsesTheModelIdOnTheTurnContext()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteUnified(
+            "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":11,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"current_model_id\":\"grok-4.5\",\"prompt_tokens\":100,\"completion_tokens\":20}}");
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("grok-4.5", usageEvent.ModelId.Value);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(0.00032m, usageEvent.Cost.EstimatedCostUsd);
     }
 
     [Fact]
@@ -409,27 +461,39 @@ public sealed class GrokUsageEventSourceTests
         long cacheRead = 0,
         long? costUsdTicks = null,
         string model = "grok-4.5-build",
-        Dictionary<string, object?>? modelUsage = null) => JsonSerializer.Serialize(
-        new Dictionary<string, object?>
+        Dictionary<string, object?>? modelUsage = null)
+    {
+        var usage = new Dictionary<string, object?>
         {
-            ["method"] = "params.update",
-            ["params"] = new Dictionary<string, object?>
+            ["inputTokens"] = input,
+            ["outputTokens"] = output,
+            ["cacheReadInputTokens"] = cacheRead,
+            ["current_model_id"] = model,
+        };
+        if (costUsdTicks is long ticks)
+        {
+            usage["costUsdTicks"] = ticks;
+        }
+
+        if (modelUsage is not null)
+        {
+            usage["modelUsage"] = modelUsage;
+        }
+
+        return JsonSerializer.Serialize(
+            new Dictionary<string, object?>
             {
-                ["update"] = new Dictionary<string, object?>
+                ["method"] = "params.update",
+                ["params"] = new Dictionary<string, object?>
                 {
-                    ["timestamp"] = timestamp,
-                    ["usage"] = new Dictionary<string, object?>
+                    ["update"] = new Dictionary<string, object?>
                     {
-                        ["inputTokens"] = input,
-                        ["outputTokens"] = output,
-                        ["cacheReadInputTokens"] = cacheRead,
-                        ["costUsdTicks"] = costUsdTicks,
-                        ["current_model_id"] = model,
-                        ["modelUsage"] = modelUsage,
+                        ["timestamp"] = timestamp,
+                        ["usage"] = usage,
                     },
                 },
-            },
-        });
+            });
+    }
 
     private sealed class GrokCorpus : IDisposable
     {
@@ -444,12 +508,17 @@ public sealed class GrokUsageEventSourceTests
 
         public GrokUsageEventSource CreateSource(
             int maximumFiles = 100,
-            int maximumLineCharacters = 8 * 1024 * 1024) => new(
+            int maximumLineCharacters = 8 * 1024 * 1024,
+            TimeProvider? clock = null) => new(
             "UTC",
             homeDirectory: _path,
             grokHomeOverride: _path,
             maximumFiles: maximumFiles,
-            maximumLineCharacters: maximumLineCharacters);
+            maximumLineCharacters: maximumLineCharacters,
+            clock: clock ?? FixtureClock);
+
+        public static TimeProvider FixtureClock { get; } = new FixedTimeProvider(
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
 
         public void WriteSession(string id, params string[] lines)
             => WriteSessionInCwd("cwd", id, lines);
@@ -471,5 +540,10 @@ public sealed class GrokUsageEventSourceTests
         }
 
         public void Dispose() => Directory.Delete(_path, recursive: true);
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow.ToUniversalTime();
     }
 }

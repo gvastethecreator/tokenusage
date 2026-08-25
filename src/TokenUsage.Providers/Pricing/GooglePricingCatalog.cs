@@ -18,11 +18,13 @@ public static class GooglePricingCatalog
             ["gemini-3-flash"] = new("gemini-3-flash", 0.5m, 0.05m, 3m),
             ["gemini-3-flash-preview"] = new("gemini-3-flash", 0.5m, 0.05m, 3m),
             ["gemini-3-pro"] = new("gemini-3-pro", 2m, 0.2m, 12m),
+            ["gemini-3-pro-preview"] = new("gemini-3-pro", 2m, 0.2m, 12m),
             ["gemini-3-pro-image-preview"] = new("gemini-3-pro", 2m, 0.2m, 12m),
             ["gemini-3.1-pro"] = new("gemini-3.1-pro", 2m, 0.2m, 12m),
             ["gemini-3.1-pro-preview"] = new("gemini-3.1-pro", 2m, 0.2m, 12m),
             ["gemini-3.5-flash"] = new("gemini-3.5-flash", 1.5m, 0.15m, 9m),
             ["gemini-3.6-flash"] = new("gemini-3.6-flash", 1.5m, 0.15m, 7.5m),
+            ["gemini-3.7-flash"] = new("gemini-3.7-flash", 0.75m, 0.075m, 3.75m),
         };
 
     public static CostObservation Resolve(string model, TokenBreakdown tokens)

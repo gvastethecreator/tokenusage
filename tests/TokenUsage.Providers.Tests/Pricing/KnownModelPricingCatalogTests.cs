@@ -25,12 +25,19 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("claude-sonnet-5", 3.0, "claude-sonnet-5")]
     [InlineData("gpt-5.1-codex", 2.25, "gpt-5.1-codex")]
     [InlineData("gpt-5-mini", 0.45, "gpt-5-mini")]
-    [InlineData("gpt-5.6 sol", 14.5, "gpt-5.6-sol")]
+    [InlineData("gpt-5.6 sol", 11.0, "gpt-5.6-sol")]
     [InlineData("gpt-5.6-luna", 0.58, "gpt-5.6-luna")]
     [InlineData("gpt-5.6-terra", 5.8, "gpt-5.6-terra")]
     [InlineData("grok-4.6", 5.2, "grok-4.6")]
     [InlineData("gemini-3.6-flash", 2.25, "gemini-3.6-flash")]
     [InlineData("gemini-2.5-flash", 0.55, "gemini-2.5-flash")]
+    [InlineData("gemini-3-pro-preview", 3.2, "gemini-3-pro")]
+    [InlineData("antigravity-gemini-3-pro-high", 3.2, "gemini-3-pro")]
+    [InlineData("gemini-3-6-flash", 2.25, "gemini-3.6-flash")]
+    [InlineData("gemini-3.7-flash", 1.125, "gemini-3.7-flash")]
+    [InlineData("gemini-3.7-flash-control", 1.125, "gemini-3.7-flash")]
+    [InlineData("claude-sonnet-4.6", 4.5, "claude-sonnet-4-6")]
+    [InlineData("grok-4-5", 5.2, "grok-4.5")]
     public void PricesCursorModelIdsFromOfficialProviderRates(
         string model,
         decimal expectedUsd,
@@ -49,7 +56,7 @@ public sealed class KnownModelPricingCatalogTests
     [Theory]
     [InlineData("composer-2.5", "xai-api-2026-08-12")]
     [InlineData("claude-4.5-sonnet", "anthropic-api-2026-08-12")]
-    [InlineData("gpt-5.1-codex", "openai-api-2026-08-12")]
+    [InlineData("gpt-5.1-codex", "openai-api-2026-08-25")]
     [InlineData("gemini-3.6-flash", "google-api-2026-08-12")]
     public void UsesTheOfficialCatalogVersion(string model, string catalogVersion)
     {
@@ -114,6 +121,30 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(cursorName.EstimatedCostUsd, grokName.EstimatedCostUsd);
         Assert.Equal("composer-2.5", cursorName.ExactPriceMatch);
         Assert.Equal("composer-2.5", grokName.ExactPriceMatch);
+    }
+
+    [Fact]
+    public void ReportedZeroPrefersTheCatalogForAKnownModel()
+    {
+        CostObservation cost = KnownModelPricingCatalog.ResolveReportedOrCatalog(
+            0m,
+            "gemini-3.6-flash",
+            OccurredAtUtc,
+            MillionInHundredKOut);
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(2.25m, cost.EstimatedCostUsd);
+        Assert.Null(cost.ReportedCostUsd);
+    }
+
+    [Theory]
+    [InlineData("Gemini 3.6 Flash (High)", "gemini-3.6-flash")]
+    [InlineData("claude-sonnet-4-6@20250929", "claude-sonnet-4-6-20250929")]
+    [InlineData("gpt-5.1-codex_max", "gpt-5.1-codex-max")]
+    public void SanitizesRawModelStringsIntoReadableStableIds(string raw, string expected)
+    {
+        Assert.Equal(expected, ModelIdentity.ForStorage(raw));
+        Assert.False(ModelIdentity.ForStorage(raw).StartsWith("unknown-", StringComparison.Ordinal));
     }
 
     [Fact]

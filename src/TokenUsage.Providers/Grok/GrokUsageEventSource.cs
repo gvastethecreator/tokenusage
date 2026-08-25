@@ -6,6 +6,7 @@ using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Grok;
 
@@ -13,7 +14,7 @@ public sealed class GrokUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "grok-local/4";
+    public const string ParserVersion = "grok-local/6";
 
     /// <summary>
     /// Stands in for the model of a turn the log does not name. It matches no catalog rate, so the
@@ -27,6 +28,7 @@ public sealed class GrokUsageEventSource :
     private readonly string _groupingTimeZoneId;
     private readonly string _grokHome;
     private readonly LocalScanBudget _budget;
+    private readonly TimeProvider _clock;
 
     public GrokUsageEventSource(
         string groupingTimeZoneId,
@@ -34,7 +36,8 @@ public sealed class GrokUsageEventSource :
         string? grokHomeOverride = null,
         int maximumFiles = 10_000,
         long maximumFileBytes = 64 * 1024 * 1024,
-        int maximumLineCharacters = 8 * 1024 * 1024)
+        int maximumLineCharacters = 8 * 1024 * 1024,
+        TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
@@ -45,6 +48,7 @@ public sealed class GrokUsageEventSource :
         _grokHome = ResolveHome(configured, userHome);
         _groupingTimeZoneId = groupingTimeZoneId;
         _budget = new LocalScanBudget(maximumFiles, maximumFileBytes, maximumLineCharacters);
+        _clock = clock ?? TimeProvider.System;
     }
 
     public SourceKind SourceKind => SourceKind.LocalLog;
@@ -73,69 +77,101 @@ public sealed class GrokUsageEventSource :
         }
 
         var state = new LocalScanState(_budget);
+        DateTimeOffset sinceUtc = _clock.GetUtcNow().AddDays(-ReconciliationWindowDays);
+        UnifiedRead? unified = null;
         string unifiedPath = Path.Combine(_grokHome, "logs", "unified.jsonl");
         if (File.Exists(unifiedPath))
         {
             state.FilesRead++;
-            List<UsageEvent> unifiedEvents = ReadUnified(
-                unifiedPath,
-                DateTimeOffset.UtcNow.AddDays(-ReconciliationWindowDays),
-                state,
-                cancellationToken);
-            // A partial unified log is still the primary lower bound when it
-            // yielded events. Session snapshots can overlap those rows, so
-            // merging them would risk charging the same inference twice.
-            if (unifiedEvents.Count > 0)
+            unified = ReadUnified(unifiedPath, sinceUtc, state, cancellationToken);
+            // A log that still reaches the start of the 35-day window is the
+            // primary source. Session snapshots overlap those rows, so they
+            // are not added on top. A rotated log that only kept recent turns
+            // is not that source; sessions keep the durable totals and the
+            // cost Grok itself stored.
+            if (unified.Events.Count > 0 && unified.CoversWindow(sinceUtc))
             {
-                return CreateResult(unifiedEvents, state);
+                return CreateResult(unified.Events, state);
             }
         }
 
+        List<UsageEvent> sessionEvents = ReadSessionEvents(sinceUtc, state, cancellationToken);
+        if (sessionEvents.Count > 0)
+        {
+            return CreateResult(sessionEvents, state);
+        }
+
+        return CreateResult(unified?.Events ?? [], state);
+    }
+
+    private List<UsageEvent> ReadSessionEvents(
+        DateTimeOffset sinceUtc,
+        LocalScanState state,
+        CancellationToken cancellationToken)
+    {
         var sessionEvents = new List<UsageEvent>();
         string sessionsRoot = Path.Combine(_grokHome, "sessions");
-        if (Directory.Exists(sessionsRoot))
+        if (!Directory.Exists(sessionsRoot))
         {
-            foreach (string summaryPath in EnumerateNamedFiles(
-                         sessionsRoot,
-                         "summary.json",
-                         state,
-                         cancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (++state.FilesRead > _budget.MaximumFiles)
-                {
-                    state.IsPartial = true;
-                    break;
-                }
+            return sessionEvents;
+        }
 
-                string sessionDirectory = Path.GetDirectoryName(summaryPath)!;
-                string updatesPath = Path.Combine(sessionDirectory, "updates.jsonl");
+        foreach (string summaryPath in EnumerateNamedFiles(
+                     sessionsRoot,
+                     "summary.json",
+                     state,
+                     cancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++state.FilesRead > _budget.MaximumFiles)
+            {
+                state.IsPartial = true;
+                break;
+            }
+
+            string sessionDirectory = Path.GetDirectoryName(summaryPath)!;
+            string updatesPath = Path.Combine(sessionDirectory, "updates.jsonl");
+            DateTime lastWriteUtc;
+            try
+            {
                 if (!File.Exists(updatesPath))
                 {
                     continue;
                 }
 
-                if (++state.FilesRead > _budget.MaximumFiles)
-                {
-                    state.IsPartial = true;
-                    break;
-                }
+                lastWriteUtc = File.GetLastWriteTimeUtc(updatesPath);
+            }
+            catch (Exception exception) when (IsDataFailure(exception))
+            {
+                state.IsPartial = true;
+                continue;
+            }
 
-                SummaryInfo summary = ReadSummary(summaryPath, state, cancellationToken);
-                Snapshot? snapshot = ReadLatestSnapshot(updatesPath, summary, state, cancellationToken);
-                if (snapshot is not null)
-                {
-                    string sessionKey = Path.GetRelativePath(sessionsRoot, sessionDirectory)
-                        .Replace(Path.DirectorySeparatorChar, '/')
-                        .Replace(Path.AltDirectorySeparatorChar, '/');
-                    sessionEvents.AddRange(CreateSessionEvents(
-                        sessionKey,
-                        snapshot));
-                }
+            if (lastWriteUtc < sinceUtc.UtcDateTime)
+            {
+                continue;
+            }
+
+            if (++state.FilesRead > _budget.MaximumFiles)
+            {
+                state.IsPartial = true;
+                break;
+            }
+
+            SummaryInfo summary = ReadSummary(summaryPath, state, cancellationToken);
+            Snapshot? snapshot = ReadLatestSnapshot(updatesPath, summary, state, cancellationToken);
+            if (snapshot is not null)
+            {
+                string sessionKey = Path.GetRelativePath(sessionsRoot, sessionDirectory)
+                    .Replace(Path.DirectorySeparatorChar, '/')
+                    .Replace(Path.AltDirectorySeparatorChar, '/');
+                sessionEvents.AddRange(CreateSessionEvents(
+                    sessionKey,
+                    snapshot));
             }
         }
 
-        return CreateResult(sessionEvents, state);
+        return sessionEvents;
     }
 
     private static UsageSourceReadResult CreateResult(
@@ -245,13 +281,13 @@ public sealed class GrokUsageEventSource :
         return latest;
     }
 
-    private List<UsageEvent> ReadUnified(
+    private UnifiedRead ReadUnified(
         string path,
         DateTimeOffset sinceUtc,
         LocalScanState state,
         CancellationToken cancellationToken)
     {
-        var events = new List<UsageEvent>();
+        var read = new UnifiedRead();
         var modelsByProcess = new Dictionary<long, string>();
         bool complete = ReadLines(
             path,
@@ -259,18 +295,18 @@ public sealed class GrokUsageEventSource :
                 line,
                 lineNumber,
                 modelsByProcess,
-                events,
+                read,
                 sinceUtc),
             cancellationToken);
         state.IsPartial |= !complete;
-        return events;
+        return read;
     }
 
     private bool ProcessUnifiedLine(
         ReadOnlyMemory<byte> utf8,
         int lineNumber,
         Dictionary<long, string> modelsByProcess,
-        List<UsageEvent> events,
+        UnifiedRead read,
         DateTimeOffset sinceUtc)
     {
         ReadOnlySpan<byte> bytes = utf8.Span;
@@ -309,8 +345,17 @@ public sealed class GrokUsageEventSource :
             if (!string.Equals(message, "shell.turn.inference_done", StringComparison.Ordinal)
                 || processId is null
                 || !TryGetUtcTimestamp(root, "ts", out DateTimeOffset timestamp)
-                || timestamp < sinceUtc
                 || !TryGetNonNegativeInt64(context, "prompt_tokens", out long input))
+            {
+                return true;
+            }
+
+            if (read.OldestInferenceUtc is null || timestamp < read.OldestInferenceUtc)
+            {
+                read.OldestInferenceUtc = timestamp;
+            }
+
+            if (timestamp < sinceUtc)
             {
                 return true;
             }
@@ -318,9 +363,11 @@ public sealed class GrokUsageEventSource :
             // A turn whose process announced its model before the retained part of the log has
             // real tokens and no name for them. Dropping it hid about one turn in twenty from the
             // total, so it is counted under an unnamed model, which prices as unavailable.
+            // Newer unified lines also put the model on the turn ctx itself.
             if (!modelsByProcess.TryGetValue(processId.Value, out model))
             {
-                model = UnknownModel;
+                model = GetFirstString(context, "current_model_id", "model", "model_id")
+                    ?? UnknownModel;
             }
 
             long cacheRead = GetNonNegativeInt64OrZero(context, "cached_prompt_tokens");
@@ -328,7 +375,7 @@ public sealed class GrokUsageEventSource :
             long reasoning = GetNonNegativeInt64OrZero(context, "reasoning_tokens");
             cacheRead = Math.Min(cacheRead, input);
             TokenBreakdown tokens = new(input - cacheRead, output, reasoning, cacheRead, 0);
-            events.Add(CreateEvent(
+            read.Events.Add(CreateEvent(
                 $"grok-unified\0{lineNumber}",
                 model,
                 timestamp,
@@ -350,12 +397,10 @@ public sealed class GrokUsageEventSource :
                          pair => pair.Key,
                          StringComparer.Ordinal))
             {
-                CostObservation cost = counters.CostUsdTicks is long modelTicks
-                    ? CostObservation.ProviderReported(decimal.Round(
-                        ToUsd(modelTicks),
-                        6,
-                        MidpointRounding.AwayFromZero))
-                    : GrokPricingCatalog.Resolve(model, counters.Tokens);
+                CostObservation cost = ResolveSessionCost(
+                    model,
+                    snapshot.Timestamp,
+                    counters);
                 yield return CreateEvent(
                     $"grok-session\0{sessionKey}\0{model.ToLowerInvariant()}",
                     model,
@@ -367,18 +412,31 @@ public sealed class GrokUsageEventSource :
             yield break;
         }
 
-        CostObservation totalCost = snapshot.Totals.CostUsdTicks is long totalTicks
-            ? CostObservation.ProviderReported(decimal.Round(
-                ToUsd(totalTicks),
-                6,
-                MidpointRounding.AwayFromZero))
-            : GrokPricingCatalog.Resolve(snapshot.Model, snapshot.Totals.Tokens);
+        CostObservation totalCost = ResolveSessionCost(
+            snapshot.Model,
+            snapshot.Timestamp,
+            snapshot.Totals);
         yield return CreateEvent(
             $"grok-session\0{sessionKey}\0{snapshot.Model.ToLowerInvariant()}",
             snapshot.Model,
             snapshot.Timestamp,
             snapshot.Totals.Tokens,
             totalCost);
+    }
+
+    private static CostObservation ResolveSessionCost(
+        string model,
+        DateTimeOffset timestamp,
+        Counters counters)
+    {
+        decimal? reportedUsd = counters.CostUsdTicks is long ticks
+            ? decimal.Round(ToUsd(ticks), 6, MidpointRounding.AwayFromZero)
+            : null;
+        return KnownModelPricingCatalog.ResolveReportedOrCatalog(
+            reportedUsd,
+            model,
+            timestamp,
+            counters.Tokens);
     }
 
     private UsageEvent CreateEvent(
@@ -398,7 +456,7 @@ public sealed class GrokUsageEventSource :
             new UsageEventKey(Hash(identity)),
             AgentId,
             new ModelProviderId("xai"),
-            CreateModelId(model),
+            ModelIdentity.ToModelId(model),
             timestamp,
             _groupingTimeZoneId,
             tokens,
@@ -611,6 +669,8 @@ public sealed class GrokUsageEventSource :
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
                                            or NotSupportedException
+                                           or PathTooLongException
+                                           or ArgumentException
                                            or System.Security.SecurityException)
         {
             return false;
@@ -728,6 +788,8 @@ public sealed class GrokUsageEventSource :
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
                                            or NotSupportedException
+                                           or PathTooLongException
+                                           or ArgumentException
                                            or System.Security.SecurityException)
         {
             return false;
@@ -743,6 +805,8 @@ public sealed class GrokUsageEventSource :
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
                                            or NotSupportedException
+                                           or PathTooLongException
+                                           or ArgumentException
                                            or System.Security.SecurityException)
         {
             return -1;
@@ -846,6 +910,9 @@ public sealed class GrokUsageEventSource :
             }
             catch (Exception exception) when (exception is IOException
                                                or UnauthorizedAccessException
+                                               or NotSupportedException
+                                               or PathTooLongException
+                                               or ArgumentException
                                                or System.Security.SecurityException)
             {
                 state.IsPartial = true;
@@ -871,6 +938,9 @@ public sealed class GrokUsageEventSource :
                 }
                 catch (Exception exception) when (exception is IOException
                                                    or UnauthorizedAccessException
+                                                   or NotSupportedException
+                                                   or PathTooLongException
+                                                   or ArgumentException
                                                    or System.Security.SecurityException)
                 {
                     state.IsPartial = true;
@@ -1008,18 +1078,6 @@ public sealed class GrokUsageEventSource :
 
     private static decimal ToUsd(long ticks) => ticks / TicksPerUsd;
 
-    private static ModelId CreateModelId(string model)
-    {
-        try
-        {
-            return new ModelId(model.Trim().ToLowerInvariant());
-        }
-        catch (ArgumentException)
-        {
-            return new ModelId($"unknown-{Hash(model)[..16]}");
-        }
-    }
-
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))
             .ToLowerInvariant();
@@ -1032,6 +1090,16 @@ public sealed class GrokUsageEventSource :
         or OverflowException
         or NotSupportedException
         or System.Security.SecurityException;
+
+    private sealed class UnifiedRead
+    {
+        public List<UsageEvent> Events { get; } = [];
+
+        public DateTimeOffset? OldestInferenceUtc { get; set; }
+
+        public bool CoversWindow(DateTimeOffset sinceUtc) =>
+            OldestInferenceUtc is DateTimeOffset oldest && oldest <= sinceUtc;
+    }
 
     private sealed record SummaryInfo(string? Model, DateTimeOffset? Timestamp);
 
