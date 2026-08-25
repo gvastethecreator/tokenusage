@@ -286,6 +286,57 @@ public sealed class LocalUsageRefreshTests
     }
 
     [Fact]
+    public async Task RefreshWindowedSnapshotRewritesOlderEventsTheSourceStillReturns()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var firstSource = new ScriptedWindowedSource(
+            new AgentId("antigravity"),
+            eventParserVersion: "test/1",
+            reconciliationWindowDays: 35,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "antigravity",
+                        "old-1",
+                        new DateTimeOffset(2026, 6, 20, 10, 0, 0, TimeSpan.Zero),
+                        input: 1_000,
+                        output: 100,
+                        CostObservation.Unavailable(),
+                        modelId: "antigravity-unknown"),
+                ],
+                UsageSourceReadStatus.Complete));
+        await new LocalUsageRefresh(folder.DatabasePath, firstSource, clock).RefreshAsync();
+
+        var updated = new ScriptedWindowedSource(
+            new AgentId("antigravity"),
+            eventParserVersion: "test/2",
+            reconciliationWindowDays: 7,
+            new UsageSourceReadResult(
+                [
+                    CreateEvent(
+                        "antigravity",
+                        "old-1",
+                        new DateTimeOffset(2026, 6, 20, 10, 0, 0, TimeSpan.Zero),
+                        input: 1_000,
+                        output: 100,
+                        CostObservation.CatalogEstimated(0.75m, "google-api-2026-08-12", "gemini-3.6-flash"),
+                        modelId: "gemini-3.6-flash",
+                        parserVersion: "test/2"),
+                ],
+                UsageSourceReadStatus.Complete));
+        LocalUsageRefreshResult second = await new LocalUsageRefresh(
+            folder.DatabasePath,
+            updated,
+            clock).RefreshAsync();
+
+        DailyUsageRollup rollup = Assert.Single(second.Rollups);
+        Assert.Equal("gemini-3.6-flash", rollup.ModelId.Value);
+        Assert.Equal(0.75m, rollup.EstimatedCostUsd);
+        Assert.Equal(1, rollup.EventCount);
+    }
+
+    [Fact]
     public async Task RefreshWindowedPartialUpsertsExistingEventCosts()
     {
         using var folder = new TemporaryFolder();
@@ -420,7 +471,9 @@ public sealed class LocalUsageRefreshTests
         DateTimeOffset occurredAtUtc,
         long input,
         long output,
-        CostObservation cost)
+        CostObservation cost,
+        string modelId = "model",
+        string parserVersion = "test/1")
     {
         string eventKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)))
             .ToLowerInvariant();
@@ -431,12 +484,12 @@ public sealed class LocalUsageRefreshTests
             new UsageEventKey(eventKey),
             new AgentId(agentId),
             new ModelProviderId("test"),
-            new ModelId("model"),
+            new ModelId(modelId),
             occurredAtUtc,
             "UTC",
             new TokenBreakdown(input, output, 0, 0, 0),
             cost,
-            "test/1",
+            parserVersion,
             coverage);
     }
 

@@ -5,7 +5,7 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-08-12";
+    public const string Version = "openai-api-2026-08-25";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 272_000;
 
@@ -28,9 +28,9 @@ public static class CodexPricingCatalog
             ["gpt-5.4-mini"] = new("gpt-5.4-mini", 0.75m, 0.075m, 4.5m, 0.75m, false),
             ["gpt-5.4-nano"] = new("gpt-5.4-nano", 0.2m, 0.02m, 1.25m, 0.2m, false),
             ["gpt-5.5"] = new("gpt-5.5", 5m, 0.5m, 30m, 5m, true),
-            ["gpt-5.6"] = new("gpt-5.6-sol", 5m, 0.5m, 30m, 6.25m, true),
+            ["gpt-5.6"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
             ["gpt-5.6-luna"] = new("gpt-5.6-luna", 0.2m, 0.02m, 1.2m, 0.25m, true),
-            ["gpt-5.6-sol"] = new("gpt-5.6-sol", 5m, 0.5m, 30m, 6.25m, true),
+            ["gpt-5.6-sol"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
             ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
         };
 

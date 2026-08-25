@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Cursor;
 
@@ -17,9 +18,11 @@ public sealed class CursorUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "cursor-local-token-metrics/3";
+    public const string ParserVersion = "cursor-local-token-metrics/5";
+    public const long DefaultMaximumDatabaseBytes = 64L * 1024 * 1024 * 1024;
+    public const int DefaultMaximumValueBytes = 16 * 1024 * 1024;
     private const int LookbackDays = 35;
-    private const int DefaultMaximumValueBytes = 2 * 1024 * 1024;
+    private const int TurnTokenProbeRows = 64;
     private const long MaximumPlausibleContextTokens = 16 * 1024 * 1024;
     private readonly string _cursorHome;
     private readonly string _databasePath;
@@ -34,7 +37,7 @@ public sealed class CursorUsageEventSource :
         string? homeDirectory = null,
         string? roamingAppDataDirectory = null,
         string? databasePathOverride = null,
-        long maximumDatabaseBytes = 2L * 1024 * 1024 * 1024,
+        long maximumDatabaseBytes = DefaultMaximumDatabaseBytes,
         int maximumRows = 100_000,
         int maximumValueBytes = DefaultMaximumValueBytes,
         TimeProvider? clock = null)
@@ -170,11 +173,15 @@ public sealed class CursorUsageEventSource :
             return;
         }
 
-        HashSet<string> composersWithTurnTokens = ReadBubbleTokenRows(
-            connection,
-            output,
-            state,
-            cancellationToken);
+        HashSet<string> composersWithTurnTokens = HasRecentTurnCounters(
+                connection,
+                cancellationToken)
+            ? ReadBubbleTokenRows(
+                connection,
+                output,
+                state,
+                cancellationToken)
+            : [];
 
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
@@ -293,6 +300,42 @@ public sealed class CursorUsageEventSource :
             composersWithTurnTokens,
             state,
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Recent agent turns are enough to tell whether this Cursor build stores
+    /// real per-turn counters. A scan of every bubble row would parse hundreds
+    /// of thousands of conversation blobs when those counters are still zero.
+    /// </summary>
+    private bool HasRecentTurnCounters(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+              CAST(COALESCE(json_extract(value, '$.tokenCount.inputTokens'), 0) AS INTEGER) AS input_tokens,
+              CAST(COALESCE(json_extract(value, '$.tokenCount.outputTokens'), 0) AS INTEGER) AS output_tokens
+            FROM cursorDiskKV
+            WHERE key GLOB 'bubbleId:*'
+              AND length(value) <= $value_limit
+            ORDER BY ROWID DESC
+            LIMIT $probe_limit
+            """;
+        command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
+        command.Parameters.AddWithValue("$probe_limit", TurnTokenProbeRows);
+        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
+        using SqliteDataReader reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (GetNonNegativeOrZero(reader, 0) + GetNonNegativeOrZero(reader, 1) > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -718,16 +761,7 @@ public sealed class CursorUsageEventSource :
         return (cost, coverage);
     }
 
-    private static ModelId CreateModelId(string model)
-    {
-        string normalized = new string(model.Trim().ToLowerInvariant()
-            .Select(character => char.IsAsciiLetterOrDigit(character)
-                || character is '-' or '.' or '_'
-                    ? character
-                    : '-')
-            .ToArray()).Trim('-');
-        return new ModelId(string.IsNullOrWhiteSpace(normalized) ? "unknown" : normalized);
-    }
+    private static ModelId CreateModelId(string model) => ModelIdentity.ToModelId(model);
 
     private static ModelProviderId? ResolveModelProvider(string model)
     {

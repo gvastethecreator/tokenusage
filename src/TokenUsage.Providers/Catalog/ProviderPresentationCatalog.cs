@@ -44,6 +44,7 @@ public static class ProviderPresentationCatalog
             ["gemini-cli"] = "gemini-cli.svg",
             ["goose"] = "goose.svg",
             ["grok"] = "grok.svg",
+            ["grok-bot"] = "grok.svg",
             ["groq"] = "groq.svg",
             ["hermes"] = "hermes.svg",
             ["kilo-code"] = "kilo-code.svg",
@@ -78,6 +79,7 @@ public static class ProviderPresentationCatalog
             ["codex"] = "LocalUsageAgentCodex",
             ["cursor"] = "LocalUsageAgentCursor",
             ["grok"] = "LocalUsageAgentGrok",
+            ["grok-bot"] = "LocalUsageAgentGrokBot",
             ["opencode"] = "LocalUsageAgentOpenCode",
         };
 

@@ -12,6 +12,16 @@ public sealed class CursorUsageEventSourceTests
         new(2026, 8, 13, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public void DefaultDatabaseSizeCapAllowsCurrentEditorStateFiles()
+    {
+        Assert.True(
+            CursorUsageEventSource.DefaultMaximumDatabaseBytes
+            >= 32L * 1024 * 1024 * 1024);
+        Assert.True(
+            CursorUsageEventSource.DefaultMaximumValueBytes >= 8 * 1024 * 1024);
+    }
+
+    [Fact]
     public async Task DatabaseOverTheSizeCapDoesNotReadUsage()
     {
         using var corpus = new CursorCorpus();

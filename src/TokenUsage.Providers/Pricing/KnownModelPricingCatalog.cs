@@ -35,7 +35,27 @@ public static class KnownModelPricingCatalog
             ["claude-opus-4-5-thinking"] = "claude-opus-4-5",
             ["claude-opus-4-6-thinking"] = "claude-opus-4-6",
             ["claude-opus-4-7-thinking"] = "claude-opus-4-7",
+            ["gemini-3.7-flash-control"] = "gemini-3.7-flash",
         };
+
+    /// <summary>
+    /// A reported <c>0</c> usually means "no rate", not a free turn. Prefer the
+    /// catalog when the source wrote zero or omitted cost.
+    /// </summary>
+    public static CostObservation ResolveReportedOrCatalog(
+        decimal? reportedUsd,
+        string model,
+        DateTimeOffset occurredAtUtc,
+        TokenBreakdown tokens)
+    {
+        if (reportedUsd is decimal reported && reported > 0m)
+        {
+            return CostObservation.ProviderReported(
+                decimal.Round(reported, 6, MidpointRounding.AwayFromZero));
+        }
+
+        return Resolve(model, occurredAtUtc, tokens);
+    }
 
     public static CostObservation Resolve(
         string model,
@@ -78,12 +98,21 @@ public static class KnownModelPricingCatalog
         return CostObservation.Unavailable();
     }
 
-    private static string Canonicalize(string model)
+    public static string Canonicalize(string model)
     {
-        string normalized = model.Trim().ToLowerInvariant().Replace(' ', '-');
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+
+        string normalized = model.Trim().ToLowerInvariant()
+            .Replace(' ', '-')
+            .Replace('_', '-');
         if (normalized.StartsWith("cursor-", StringComparison.Ordinal))
         {
             normalized = normalized["cursor-".Length..];
+        }
+
+        if (normalized.StartsWith("antigravity-", StringComparison.Ordinal))
+        {
+            normalized = normalized["antigravity-".Length..];
         }
 
         int separator = normalized.LastIndexOf('/');
@@ -92,8 +121,49 @@ public static class KnownModelPricingCatalog
             normalized = normalized[(separator + 1)..];
         }
 
-        return OfficialAliases.TryGetValue(normalized, out string? canonical)
+        foreach (string suffix in (string[])["-xhigh", "-thinking", "-medium", "-high", "-low"])
+        {
+            if (normalized.EndsWith(suffix, StringComparison.Ordinal)
+                && normalized.Length > suffix.Length)
+            {
+                normalized = normalized[..^suffix.Length];
+                break;
+            }
+        }
+
+        if (OfficialAliases.TryGetValue(normalized, out string? aliased))
+        {
+            return aliased;
+        }
+
+        string transformed = normalized.StartsWith("claude", StringComparison.Ordinal)
+            ? ReplaceDigitSeparator(normalized, from: '.', to: '-')
+            : ReplaceDigitSeparator(normalized, from: '-', to: '.');
+        return OfficialAliases.TryGetValue(transformed, out string? canonical)
             ? canonical
-            : normalized;
+            : transformed;
+    }
+
+    private static string ReplaceDigitSeparator(string value, char from, char to)
+    {
+        if (value.Length < 3)
+        {
+            return value;
+        }
+
+        char[] characters = value.ToCharArray();
+        for (int index = 1; index < characters.Length - 1; index++)
+        {
+            if (characters[index] == from
+                && char.IsAsciiDigit(characters[index - 1])
+                && char.IsAsciiDigit(characters[index + 1])
+                && (index < 2 || !char.IsAsciiDigit(characters[index - 2]))
+                && (index + 2 >= characters.Length || !char.IsAsciiDigit(characters[index + 2])))
+            {
+                characters[index] = to;
+            }
+        }
+
+        return new string(characters);
     }
 }

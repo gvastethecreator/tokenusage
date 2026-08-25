@@ -22,7 +22,7 @@ Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f
 
 ## Base de módulos OpenUsage, CodexBar y CodeBurn
 
-El catálogo representa 55 identidades de la unión inspeccionada sin confundir
+El catálogo representa 56 identidades de la unión inspeccionada sin confundir
 un módulo visible con una fuente de datos activa:
 
 - `Active`: Amp, Antigravity, Claude, Codex, Cursor, Goose, Grok Build, Hermes,
@@ -46,9 +46,10 @@ copia sesiones OAuth, cookies ni endpoints privados.
 | Claude | Bloqueada sin interfaz pública | Sí, logs y costo informado o estimado | sesiones Claude Code | Local activo + Gate de cuota | Activo; cuota pendiente |
 | OpenCode | No hay cuota común | Sí, coste informado y tokens | `opencode.db` y `storage` | Local | M6A |
 | Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
+| Grok Bot | Bloqueada sin interfaz de datos aprobada | No | La app de escritorio coordina un computador en la nube; el perfil local contiene estado y credenciales | Preparado | Compatibilidad de catálogo; no se leen sesiones ni credenciales |
 | OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
 | Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
-| Cursor | No con el contrato actual | Sí, contadores reales por turno; fallback de contexto para datos antiguos | SQLite local con proyección allowlist; Admin API futura | Local activo parcial | Activo; costo API estimado cuando el modelo coincide |
+| Cursor | No en Individual. Teams/Enterprise: Admin API manual futura | Sí, contadores reales por turno; fallback de contexto para datos antiguos | SQLite local con proyección allowlist; Admin API futura | Local activo parcial | Activo; costo API estimado cuando el modelo coincide |
 | Amp | No hay cuota pública estable | Sí, tokens del ledger | `ledger.jsonl`; no se abren threads | Local activo parcial | Activo; créditos no se muestran como USD |
 | Mux | No hay cuota común | Sí, tokens y costo agregado por modelo | `session-usage.json`; no se abren transcripts | Local activo | Activo |
 | Goose | No hay cuota común | Sí, tokens acumulados por sesión | consulta numérica de solo lectura a `sessions.db` | Local activo parcial | Activo; costo API estimado cuando hay precio |
@@ -269,19 +270,29 @@ Fuente upstream de comparación: [provider OpenCode](https://github.com/robinebe
 - `params.update.usage`, desglose por modelo y `costUsdTicks` cuando existan;
 - estimación por catálogo solo cuando la fuente no informa coste.
 
-El log unificado tiene prioridad, igual que en OpenUsage. La ruta de sesiones se usa cuando el log no aporta eventos válidos y no se suma a la fuente principal.
+El log unificado tiene prioridad cuando su inferencia más antigua llega al inicio de la ventana de 35 días, igual que en OpenUsage. Si Grok rotó el log y solo quedan turnos recientes, TokenUsage usa los snapshots de sesión: mezclar ambas fuentes contaría la misma inferencia dos veces. Los snapshots conservan `costUsdTicks` informado; un `0` no se trata como un turno gratis.
 
 El modelo de un turno no viaja en la línea de `shell.turn.inference_done`: la app lo toma del último anuncio de modelo del mismo `pid`. Cuando el log ya no conserva ese anuncio, el turno se registra bajo el modelo `unknown`, con tokens contados y coste no disponible. Antes se descartaba, y en la prueba con Grok `1.0.0` eso escondía 61 de 1034 turnos mientras la lectura se declaraba completa.
 
 ### Cuota
 
-OpenUsage usa autenticación local y un endpoint de billing no documentado. xAI documenta `/usage` para su producto, pero no una salida de cuota apta para otra app. Su [política de uso aceptable](https://x.ai/legal/acceptable-use-policy) restringe el acceso automatizado. La build pública no lee `auth.json` ni llama el endpoint privado.
+OpenUsage muestra el porcentaje semanal restante con la sesión de `grok login`: lee `auth.json`, llama `GET https://cli-chat-proxy.grok.com/v1/billing` y escribe tokens rotados. xAI documenta ese saldo para personas en Settings → Usage y en el comando TUI `/usage`. No hay subcomando `grok usage` ni JSON de cuota para otra app. `GET /v1/api-key` publica metadatos de la clave, no el pool semanal. El saldo prepaid de Management API es crédito de equipo API con management key, otro producto. Su [política de uso aceptable](https://x.ai/legal/acceptable-use-policy) restringe el acceso automatizado. La build pública no lee `auth.json` ni llama el endpoint privado. Gate: [cuota restante y Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
 
 ### Salida
 
 Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.112`, sesiones y el log unificado sin abrir la credencial. La comprobación en Grok `1.0.0` mantiene el mismo formato: `msg`, `pid`, `ts` en UTC y `ctx` con `prompt_tokens`, `cached_prompt_tokens`, `completion_tokens` y `reasoning_tokens`.
 
 Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
+
+### Grok Bot
+
+Grok Bot queda como proveedor preparado. La documentación oficial describe un agente en un computador persistente en la nube. El usuario entra con una cuenta Cursor. La app de escritorio no publica lector de uso, exportación ni API de cuota para terceros.
+
+OpenUsage muestra un mosaico «Grok Bot» dentro de Cursor: RPC privado `DashboardService/GetSandUsageStatus` con el token del editor. Eso no es un lector del escritorio Grok Bot y no activa el módulo `grok-bot` de TokenUsage.
+
+TokenUsage detectó el paquete de Windows durante la investigación, pero no abre el perfil Electron, el almacenamiento local, la sesión ni las credenciales. Tampoco atribuye logs de Grok Build al Bot, ni trata créditos de API xAI como cuota del Bot. Se puede activar un lector solo con una interfaz pública de datos o un permiso escrito de xAI o Cursor.
+
+Referencias: [Grok Bot](https://docs.x.ai/grok-bot/overview), [inicio](https://docs.x.ai/grok-bot/get-started), [uso y límites de Grok](https://docs.x.ai/grok/faq). Gate: [cuota restante y Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
 
 ## OpenRouter
 
@@ -503,15 +514,17 @@ Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gat
 
 ### Fuente elegida
 
-Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo lectura y proyecta únicamente el modelo, los timestamps y el total de contexto estimado que Cursor guarda en cada `composerData:`. La consulta no devuelve el valor completo, prompts, respuestas, rutas, correo, comandos, transcript, credenciales ni IDs sin hash.
+Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo lectura y proyecta únicamente el modelo, los timestamps y el total de contexto estimado que Cursor guarda en cada `composerData:`. El tope de tamaño admite el estado actual del editor (decenas de GB) porque la consulta no carga el archivo entero. La consulta no devuelve el valor completo, prompts, respuestas, rutas, correo, comandos, transcript, credenciales ni IDs sin hash.
 
 La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial y estimada. Si el modelo coincide con un catálogo oficial, ese contexto lleva valor API estimado. Auto y modelos desconocidos siguen sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens.
 
-Cuando existen contadores por turno en `bubbleId:`, tienen prioridad sobre la estimación de la conversación. En la comprobación de agosto de 2026 el editor escribía `tokenCount` en las 5738 filas con el valor cero en entrada y salida, así que no había contador por turno que leer y la tarjeta queda con la estimación por conversación. La consulta exige ahora un contador mayor que cero: una build que deje el campo en cero no obliga a extraer y descartar cada fila, y el día que Cursor vuelva a escribir contadores reales la misma consulta los recoge. El tope de filas ordena de lo más nuevo a lo más viejo, para que un recorte deje fuera los turnos antiguos y no los de hoy.
+Cuando existen contadores por turno en `bubbleId:`, tienen prioridad sobre la estimación de la conversación. En la comprobación de agosto de 2026 el editor escribía `tokenCount` a cero en entrada y salida, y una instalación con cientos de miles de burbujas no puede escanearlas todas en un refresco. TokenUsage mira primero un puñado de turnos recientes: si siguen en cero, usa la estimación por conversación; si algún contador es real, lee los turnos con valor positivo. El tope de filas ordena de lo más nuevo a lo más viejo, para que un recorte deje fuera los turnos antiguos y no los de hoy.
 
-La Admin API pública de Cursor sigue siendo la fuente facturable para Teams y Enterprise. Requiere una clave administrativa separada y no reutiliza el login del editor. Queda fuera de esta integración individual hasta añadir una conexión manual y un smoke autorizado.
+La Admin API pública de Cursor sigue siendo la fuente facturable para Teams y Enterprise. Requiere una clave administrativa separada y no reutiliza el login del editor. El contrato `POST /organizations/pooled-usage` publica `remainingCents` para el pool de la organización Enterprise. Queda fuera de esta integración individual hasta añadir una conexión manual y un smoke autorizado.
 
-Los endpoints de gasto y eventos no publican el saldo de las dos bolsas de uso incluido que Cursor anunció para Teams en junio de 2026. La tarjeta muestra `Uso y gasto del equipo`, con procedencia y ciclo. No afirma cuota restante.
+Los endpoints de gasto y eventos no sustituyen ese contrato de pool. La tarjeta de equipo muestra uso y gasto, con procedencia y ciclo. No afirma cuota restante sin `remainingCents`. Una cuenta Individual no tiene contrato público de saldo.
+
+OpenUsage obtiene el porcentaje restante del plan, Extra Usage y el mosaico Grok Bot reutilizando el login del editor: RPC en `api2.cursor.sh`, REST privados, Stripe y CSV de dashboard. TokenUsage no llama esas rutas ni lee el token del editor. El `remainingCents` de organización no es el pool semanal de Grok Bot.
 
 ### Cobertura y política
 
@@ -524,7 +537,7 @@ Dentro de `state.vscdb` solo se permite `cursorDiskKV` con claves `composerData:
 
 Gate local resuelto como `integrated-local-estimate`. Las pruebas confirman identidad estable, reemplazo de snapshots y lectura de los campos allowlist. La Admin API conserva su gate manual aparte.
 
-Investigación: [fuente local Cursor 3.15.6](research/2026-08-11-cursor-local-usage-source.md) y [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md).
+Investigación: [fuente local Cursor 3.15.6](research/2026-08-11-cursor-local-usage-source.md), [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md) y [cuota restante y Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
 
 Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
