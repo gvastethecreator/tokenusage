@@ -220,7 +220,7 @@ Esfuerzo: 5–7 días.
 - lote parcial publica proveedores rápidos;
 - ritmo normal, cerca, agotamiento, ventana nueva y reloj que cambia;
 - último valor válido permanece durante fallos;
-- `Sin datos` nunca se convierte en cero.
+- `No data` nunca se convierte en cero.
 
 ### Salida
 
@@ -297,7 +297,7 @@ Esfuerzo: 8–12 días.
 - `M5.7` Implementar personalización, drag accesible, teclado y reset.
 - `M5.8` Añadir hasta dos métricas de resumen por proveedor para tooltip y estado de bandeja.
 - `M5.9` Implementar undo por sesión.
-- `M5.10` Añadir recursos de texto en español e inglés desde el inicio.
+- `M5.10` Mantener recursos de interfaz en inglés.
 - `M5.11` Ajustar alto dinámico sin saltos al cambiar de pantalla.
 - `M5.12` Crear baseline visual a 100% y 200% en claro, oscuro y alto contraste.
 
@@ -487,9 +487,10 @@ Esfuerzo: 5–8 días.
 - `M7.12` Cerrar i18n inicial para `en-US` y `es-ES`: selector persistente,
   paridad de recursos, formatos por cultura, fallback y prueba de texto largo.
 
-Estado 2026-07-22: Ticket 47 completó `M7.12` con selector persistente,
-fallback canónico, formatos por cultura, prueba empaquetada en ambos idiomas y
-evidencia en `docs/evidence/ticket-47-i18n.md`.
+Estado 2026-07-22: Ticket 47 completó inicialmente `M7.12` con selector persistente,
+fallback canónico, formatos por cultura y evidencia en
+`docs/evidence/ticket-47-i18n.md`. Superado el 2026-08-14: la interfaz pública
+es solo en inglés; se retiraron el selector y los recursos `es-ES`.
 
 ### Pruebas
 

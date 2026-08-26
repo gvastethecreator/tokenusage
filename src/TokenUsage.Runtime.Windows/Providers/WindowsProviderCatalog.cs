@@ -12,6 +12,7 @@ using TokenUsage.Providers.Goose;
 using TokenUsage.Providers.Hermes;
 using TokenUsage.Providers.Mux;
 using TokenUsage.Providers.OpenCode;
+using TokenUsage.Providers.Zcode;
 using TokenUsage.Runtime.Windows.Codex;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 
@@ -190,6 +191,13 @@ public static class WindowsProviderCatalog
                 detectionCheckId: null,
                 dataCheckId: "local-usage-cursor",
                 localUsageFactory: timeZoneId => new CursorUsageEventSource(timeZoneId)),
+            new(
+                ProviderModuleCatalog.Get("zcode"),
+                cacheDirectoryName: null,
+                localUsageAgentId: "zcode",
+                detectionCheckId: null,
+                dataCheckId: "local-usage-zcode",
+                localUsageFactory: timeZoneId => new ZcodeUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("mux"),
                 cacheDirectoryName: null,

@@ -8,8 +8,10 @@ using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
+using Microsoft.UI.Dispatching;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
+using TokenUsage.Runtime.Windows;
 
 namespace TokenUsage.App.ViewModels;
 
@@ -26,7 +28,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         DashboardLayoutStore dashboardLayoutStore,
         AppearanceSettingsStore appearanceSettingsStore,
         QuotaResetHistoryStore quotaResetHistory,
-        IManualProviderCredentialStore? manualCredentials = null)
+        IManualProviderCredentialStore? manualCredentials = null,
+        DataCollectionSettingsStore? dataCollectionSettings = null)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
@@ -45,10 +48,9 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             new AppearanceSession(appearanceSettingsStore),
             GetString);
         AppearanceOptions.SettingsChanged += OnAppearanceSettingsChanged;
-        GeneralOptions = new GeneralOptionsViewModel(
-            GetString,
-            AppLanguageRuntime.ActiveLanguageTag,
-            AppLanguageRuntime.RequiresRestart);
+        GeneralOptions = new GeneralOptionsViewModel(GetString, dataCollectionSettings);
+        GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
+        GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
         ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
         Options = new OptionsSurfaceViewModel(
             OptionsNavigation,
@@ -70,6 +72,36 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             SynchronizationContext.Current);
         Dashboard.PropertyChanged += OnDashboardPropertyChanged;
         _resultSurface = Dashboard.ResultSurface;
+        _openRefreshTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _openRefreshTimer.Tick += (_, _) =>
+        {
+            if (!_disposed)
+            {
+                Dashboard.RefreshCommand.Execute(null);
+            }
+        };
+        ApplyOpenRefreshInterval(GeneralOptions.SelectedDataCollectionRefresh?.Minutes ?? 0);
+    }
+
+    private readonly DispatcherQueueTimer _openRefreshTimer;
+
+    private void OnBackgroundCollectionChanged(object? sender, EventArgs args) =>
+        RefreshHookAutoSetup.EnsureInstalled(
+            backgroundCollection: GeneralOptions.IsBackgroundCollectionEnabled);
+
+    private void OnDataCollectionRefreshChanged(object? sender, EventArgs args) =>
+        ApplyOpenRefreshInterval(GeneralOptions.SelectedDataCollectionRefresh?.Minutes ?? 0);
+
+    private void ApplyOpenRefreshInterval(int minutes)
+    {
+        if (minutes <= 0)
+        {
+            _openRefreshTimer.Stop();
+            return;
+        }
+
+        _openRefreshTimer.Interval = TimeSpan.FromMinutes(minutes);
+        _openRefreshTimer.Start();
     }
 
     [ObservableProperty]

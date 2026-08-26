@@ -17,7 +17,7 @@ public sealed class AmpUsageEventSource :
     ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "amp-ledger/1";
+    public const string ParserVersion = "amp-ledger/2";
     private const long DefaultMaximumFileBytes = 256L * 1024 * 1024;
     private const int DefaultMaximumLineCharacters = 8 * 1024 * 1024;
     private readonly string _ledgerPath;
@@ -256,7 +256,7 @@ public sealed class AmpUsageEventSource :
             new UsageEventKey(Hash($"amp\0{record.MessageId}")),
             AgentId,
             null,
-            new ModelId(NormalizeId(record.Model)),
+            ModelIdentity.ToModelId(record.Model),
             record.Timestamp,
             _groupingTimeZoneId,
             record.Tokens,
@@ -315,28 +315,6 @@ public sealed class AmpUsageEventSource :
 
         value = string.Empty;
         return false;
-    }
-
-    private static string NormalizeId(string value)
-    {
-        var output = new StringBuilder(value.Length);
-        bool separator = false;
-        foreach (char character in value.Trim().ToLowerInvariant())
-        {
-            if (char.IsAsciiLetterOrDigit(character))
-            {
-                output.Append(character);
-                separator = false;
-            }
-            else if (!separator && output.Length > 0)
-            {
-                output.Append('-');
-                separator = true;
-            }
-        }
-
-        string normalized = output.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(normalized) ? "unknown" : normalized;
     }
 
     private static string Hash(string value) => Convert.ToHexString(

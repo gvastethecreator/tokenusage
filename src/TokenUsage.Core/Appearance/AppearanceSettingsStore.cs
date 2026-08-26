@@ -5,7 +5,7 @@ namespace TokenUsage.Core.Appearance;
 
 public sealed class AppearanceSettingsStore
 {
-    public const int SchemaVersion = 3;
+    public const int SchemaVersion = 4;
     public const string DefaultFileName = "appearance.v1.json";
     public const int MaxDocumentBytes = 16 * 1024;
     public const int MaxJsonDepth = 8;
@@ -57,7 +57,8 @@ public sealed class AppearanceSettingsStore
                 0 => ReadLegacyDocument(parsed.RootElement),
                 1 => ReadVersionOneDocument(parsed.RootElement),
                 2 => ReadVersionTwoDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionThreeDocument(parsed.RootElement),
+                3 => ReadVersionThreeDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionFourDocument(parsed.RootElement),
                 _ => throw new AppearanceDocumentFormatException(),
             };
             return new AppearanceSettingsLoadResult.Loaded(
@@ -101,7 +102,8 @@ public sealed class AppearanceSettingsStore
                 0 => ReadLegacyDocument(parsed.RootElement),
                 1 => ReadVersionOneDocument(parsed.RootElement),
                 2 => ReadVersionTwoDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionThreeDocument(parsed.RootElement),
+                3 => ReadVersionThreeDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionFourDocument(parsed.RootElement),
                 > SchemaVersion => null,
                 _ => throw new AppearanceDocumentFormatException(),
             };
@@ -131,16 +133,24 @@ public sealed class AppearanceSettingsStore
         ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
         ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"));
 
-    private static AppearanceSettings ReadVersionThreeDocument(JsonElement root) => new(
+    private static AppearanceSettings ReadVersionThreeDocument(JsonElement root) =>
+        ReadTrayPopoverDocument(root, includeEnabled: false);
+
+    private static AppearanceSettings ReadVersionFourDocument(JsonElement root) =>
+        ReadTrayPopoverDocument(root, includeEnabled: true);
+
+    private static AppearanceSettings ReadTrayPopoverDocument(
+        JsonElement root,
+        bool includeEnabled) => new(
         ReadRequiredEnum<AppThemeMode>(root, "theme"),
         ReadRequiredEnum<AppDensityMode>(root, "density"),
         ReadRequiredBoolean(root, "increaseTransparency"),
         ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
         ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
         ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"),
-        ReadTrayPopover(root));
+        ReadTrayPopover(root, includeEnabled));
 
-    private static TrayPopoverSettings ReadTrayPopover(JsonElement root)
+    private static TrayPopoverSettings ReadTrayPopover(JsonElement root, bool includeEnabled)
     {
         EnsureObject(root);
         if (!root.TryGetProperty("trayPopover", out JsonElement popover))
@@ -161,7 +171,10 @@ public sealed class AppearanceSettingsStore
                 ReadRequiredEnum<TrayPopoverMetric>(popover, "primaryMetric"),
                 ReadRequiredEnum<TrayPopoverMetric>(popover, "secondaryMetric"),
                 providerCount,
-                ReadRequiredBoolean(popover, "showProviderName"));
+                ReadRequiredBoolean(popover, "showProviderName"),
+                isEnabled: includeEnabled
+                    ? ReadRequiredBoolean(popover, "isEnabled")
+                    : TrayPopoverSettings.Default.IsEnabled);
         }
         catch (ArgumentOutOfRangeException)
         {
@@ -307,6 +320,7 @@ public sealed class AppearanceSettingsStore
                 ToStorageValue(settings.TrayPopover.SecondaryMetric));
             writer.WriteNumber("providerCount", settings.TrayPopover.ProviderCount);
             writer.WriteBoolean("showProviderName", settings.TrayPopover.ShowProviderName);
+            writer.WriteBoolean("isEnabled", settings.TrayPopover.IsEnabled);
             writer.WriteEndObject();
             writer.WriteEndObject();
         }

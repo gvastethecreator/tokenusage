@@ -70,6 +70,7 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
         SelectedTrayPopoverProviderCount = TrayPopoverProviderCountOptions.Single(option =>
             option.Value == TrayPopoverSettings.Default.ProviderCount);
         ShowTrayPopoverProviderName = TrayPopoverSettings.Default.ShowProviderName;
+        ShowTrayPopover = TrayPopoverSettings.Default.IsEnabled;
         _isApplyingSettings = false;
         Initialization = InitializeAsync();
     }
@@ -126,6 +127,9 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool ShowTrayPopoverProviderName { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowTrayPopover { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditable))]
@@ -194,6 +198,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     partial void OnShowTrayPopoverProviderNameChanged(bool value) => QueueSave();
 
+    partial void OnShowTrayPopoverChanged(bool value) => QueueSave();
+
     private IReadOnlyList<AppearanceOption<TrayPopoverMetric>> CreateTrayMetricOptions(
         bool includeNone) =>
     [
@@ -261,6 +267,7 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             SelectedTrayPopoverProviderCount = TrayPopoverProviderCountOptions.Single(
                 option => option.Value == settings.TrayPopover.ProviderCount);
             ShowTrayPopoverProviderName = settings.TrayPopover.ShowProviderName;
+            ShowTrayPopover = settings.TrayPopover.IsEnabled;
             Settings = settings;
             SettingsChanged?.Invoke(this, settings);
         }
@@ -297,7 +304,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
                 SelectedTrayPopoverPrimary.Value,
                 SelectedTrayPopoverSecondary.Value,
                 SelectedTrayPopoverProviderCount.Value,
-                ShowTrayPopoverProviderName));
+                ShowTrayPopoverProviderName,
+                ShowTrayPopover));
         Settings = settings;
         SettingsChanged?.Invoke(this, settings);
         IsBusy = true;

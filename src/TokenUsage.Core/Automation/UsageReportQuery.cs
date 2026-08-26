@@ -61,6 +61,14 @@ public sealed record UsageReport(
     IReadOnlyList<UsageDayReport> Days,
     IReadOnlyList<UsageAgentDayReport> AgentDays);
 
+public sealed record UsageReportMetricDelta(
+    int EventCount,
+    long Tokens,
+    decimal TotalCostUsd,
+    decimal ReportedCostUsd,
+    decimal EstimatedCostUsd,
+    long UnpricedTokens);
+
 public sealed class UsageReportQuery
 {
     private readonly string _databasePath;
@@ -92,6 +100,27 @@ public sealed class UsageReportQuery
                 cancellationToken).ConfigureAwait(false);
 
         return Build(rollups);
+    }
+
+    /// <summary>
+    /// Reads events in a UTC half-open range. Reset-cycle reports use this path so activity on
+    /// a reset date stays in the cycle that contains its event timestamp.
+    /// </summary>
+    public async Task<UsageReport> ReadExactAsync(
+        DateTimeOffset fromInclusiveUtc,
+        DateTimeOffset toExclusiveUtc,
+        AgentId? agentId = null,
+        CancellationToken cancellationToken = default)
+    {
+        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(
+            _databasePath,
+            cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<UsageEvent> events = await repository.QueryUsageEventsAsync(
+            fromInclusiveUtc,
+            toExclusiveUtc,
+            agentId,
+            cancellationToken).ConfigureAwait(false);
+        return Build(UsageRollupAggregator.Aggregate(events));
     }
 
     /// <summary>
@@ -234,6 +263,22 @@ public sealed class UsageReportQuery
             unpricedTokens,
             unavailableCostEventCount,
             coverage);
+    }
+
+    public static UsageReportMetricDelta Subtract(
+        UsageReportMetrics current,
+        UsageReportMetrics baseline)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(baseline);
+
+        return new UsageReportMetricDelta(
+            current.EventCount - baseline.EventCount,
+            current.Tokens.Total - baseline.Tokens.Total,
+            current.TotalCostUsd - baseline.TotalCostUsd,
+            (current.ReportedCostUsd ?? 0m) - (baseline.ReportedCostUsd ?? 0m),
+            (current.EstimatedCostUsd ?? 0m) - (baseline.EstimatedCostUsd ?? 0m),
+            current.UnpricedTokens - baseline.UnpricedTokens);
     }
 
     private static int CoverageRank(CoverageKind coverage) => coverage switch

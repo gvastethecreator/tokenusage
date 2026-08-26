@@ -83,6 +83,7 @@ public sealed partial class ProviderColorSwatch : UserControl
             "codex" => CodexBrushProxy.Background,
             "grok" => GrokBrushProxy.Background,
             "opencode" => OpenCodeBrushProxy.Background,
+            "zcode" => ZcodeBrushProxy.Background,
             _ => FallbackBrushProxy.Background,
         };
     }

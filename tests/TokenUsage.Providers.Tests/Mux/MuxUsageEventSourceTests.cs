@@ -66,6 +66,46 @@ public sealed class MuxUsageEventSourceTests
         Assert.Equal(CoverageKind.Complete, usageEvent.Coverage);
     }
 
+    [Fact]
+    public async Task DottedGoogleModelIdsKeepTheirVersionWhenReportedCostIsZero()
+    {
+        using var folder = new TemporaryFolder();
+        string sessions = Directory.CreateDirectory(Path.Combine(folder.Path, "sessions")).FullName;
+        string session = Directory.CreateDirectory(Path.Combine(sessions, "workspace-1")).FullName;
+        File.WriteAllText(
+            Path.Combine(session, "session-usage.json"),
+            JsonSerializer.Serialize(new
+            {
+                version = 1,
+                byModel = new Dictionary<string, object>
+                {
+                    ["google:gemini-3.6-flash"] = new
+                    {
+                        input = new { tokens = 1_000_000L, cost_usd = 0m },
+                        cached = new { tokens = 0L, cost_usd = 0m },
+                        cacheCreate = new { tokens = 0L, cost_usd = 0m },
+                        output = new { tokens = 100_000L, cost_usd = 0m },
+                        reasoning = new { tokens = 0L, cost_usd = 0m },
+                    },
+                },
+                lastRequest = new
+                {
+                    model = "google:gemini-3.6-flash",
+                    timestamp = 1_786_488_925_618L,
+                },
+            }));
+
+        UsageEvent usageEvent = Assert.Single(
+            (await new MuxUsageEventSource(
+                "UTC",
+                sessionsDirectoryOverride: sessions).ReadAsync()).Events);
+
+        Assert.Equal("gemini-3.6-flash", usageEvent.ModelId.Value);
+        Assert.Equal("google", usageEvent.ModelProviderId?.Value);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
+    }
+
     private sealed class TemporaryFolder : IDisposable
     {
         public TemporaryFolder()

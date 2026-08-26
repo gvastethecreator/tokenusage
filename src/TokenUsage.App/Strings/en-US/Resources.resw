@@ -63,7 +63,7 @@
   <data name="CompactWeekdayFriday.Text" xml:space="preserve"><value>F</value></data>
   <data name="CompactWeekdaySaturday.Text" xml:space="preserve"><value>S</value></data>
   <data name="CompactWeekdaySunday.Text" xml:space="preserve"><value>S</value></data>
-  <data name="CompactGlobalLimitsTitle.Text" xml:space="preserve"><value>CODEX LIMITS</value></data>
+  <data name="CompactGlobalLimitsTitle.Text" xml:space="preserve"><value>Codex Limits</value></data>
   <data name="CompactGlobalSummaryLabel.Text" xml:space="preserve"><value>Observed cost · 30 days</value></data>
   <data name="CompactHeatmapLegendLow.Text" xml:space="preserve"><value>Very low</value></data>
   <data name="CompactHeatmapLegendHigh.Text" xml:space="preserve"><value>High</value></data>
@@ -78,7 +78,7 @@
   <data name="OptionsHeader.Text" xml:space="preserve"><value>Options</value></data>
   <data name="OptionsHomeDescription.Text" xml:space="preserve"><value>Choose what you want to change.</value></data>
   <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
-  <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Language, window behavior, and sample data</value></data>
+  <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Window behavior and sample data</value></data>
   <data name="OptionsGeneralButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
   <data name="OptionsAppearanceLabel.Text" xml:space="preserve"><value>Appearance</value></data>
   <data name="OptionsAppearanceDescription.Text" xml:space="preserve"><value>Theme, density, and usage formats</value></data>
@@ -241,6 +241,7 @@
   <data name="CodexUsageLast30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="CodexUsageMissing" xml:space="preserve"><value>No data</value></data>
   <data name="CodexTokenCountFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
+  <data name="CodexQuotaUsedTokensFormat" xml:space="preserve"><value>{0} tokens used</value></data>
   <data name="CodexTokenCountSingular" xml:space="preserve"><value>{0:N0} token</value></data>
   <data name="CodexPaceAheadFormat" xml:space="preserve"><value>{0}% projected · below pace</value></data>
   <data name="CodexPaceOnTrackFormat" xml:space="preserve"><value>{0}% projected · on pace</value></data>
@@ -256,7 +257,7 @@
   <data name="LocalUsageTitle" xml:space="preserve"><value>Local usage</value></data>
   <data name="LocalUsageSourceSynthetic" xml:space="preserve"><value>Synthetic fixture · Local SQLite</value></data>
   <data name="LocalUsageSourceClaude" xml:space="preserve"><value>Claude Code · Local logs</value></data>
-  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Codex + Grok Build + OpenCode + Antigravity · Local data</value></data>
+  <data name="LocalUsageSourceAgents" xml:space="preserve"><value>Codex + Grok Build + OpenCode + Antigravity + ZCode · Local data</value></data>
   <data name="LocalUsagePeriod30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="LocalUsageNotice" xml:space="preserve"><value>Local test data</value></data>
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Saved sessions on this device only. Estimated cost uses API list prices and does not represent your plan charge.</value></data>
@@ -309,7 +310,9 @@
   <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
   <data name="LocalUsageAgentCursor" xml:space="preserve"><value>Cursor</value></data>
   <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
+  <data name="LocalUsageAgentGrokBot" xml:space="preserve"><value>Grok Bot</value></data>
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
+  <data name="LocalUsageAgentZcode" xml:space="preserve"><value>ZCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:N2} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
   <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
@@ -387,16 +390,6 @@
   <data name="ProviderCredentialSaved" xml:space="preserve"><value>The key was saved.</value></data>
   <data name="ProviderCredentialRemoved" xml:space="preserve"><value>The saved key was removed.</value></data>
   <data name="LocalUsageAgentCodex" xml:space="preserve"><value>Codex</value></data>
-  <data name="LanguageSectionTitle.Text" xml:space="preserve"><value>Language</value></data>
-  <data name="LanguageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>App language</value></data>
-  <data name="LanguageEnglish" xml:space="preserve"><value>English (United States)</value></data>
-  <data name="LanguageSpanish" xml:space="preserve"><value>Spanish (Spain)</value></data>
-  <data name="LanguageRestartNotice.Title" xml:space="preserve"><value>Restart required</value></data>
-  <data name="LanguageRestartNotice.Message" xml:space="preserve"><value>Restart TokenUsage to apply the selected language.</value></data>
-  <data name="LanguageRestartButton.Content" xml:space="preserve"><value>Restart now</value></data>
-  <data name="LanguageRestartButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Restart TokenUsage now</value></data>
-  <data name="LanguageRestartError.Title" xml:space="preserve"><value>Restart failed</value></data>
-  <data name="LanguageRestartError.Message" xml:space="preserve"><value>Your language stayed unchanged. Close and reopen TokenUsage, then try again.</value></data>
   <data name="SampleUsdFormat" xml:space="preserve"><value>${0:N2}</value></data>
   <data name="SampleUsdCompactFormat" xml:space="preserve"><value>${0:N2}</value></data>
   <data name="LocalUsageUsdCompactFormat" xml:space="preserve"><value>${0:N0}</value></data>
@@ -546,6 +539,7 @@
   <data name="AppearanceVisualizationDonut" xml:space="preserve"><value>Donut</value></data>
   <data name="AppearanceVisualizationHeatmap" xml:space="preserve"><value>Map</value></data>
   <data name="AppearanceTrayPopoverHeading.Text" xml:space="preserve"><value>Tray hover popover</value></data>
+  <data name="AppearanceTrayPopoverEnabledToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show the tray hover popover</value></data>
   <data name="AppearanceTrayPrimaryLabel.Text" xml:space="preserve"><value>Top value</value></data>
   <data name="AppearanceTrayPrimarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Top value in the tray hover popover</value></data>
   <data name="AppearanceTraySecondaryLabel.Text" xml:space="preserve"><value>Bottom value</value></data>
@@ -571,6 +565,8 @@
   <data name="UsageReportButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Open usage report</value></data>
   <data name="UsageReportWindowTitle" xml:space="preserve"><value>TokenUsage usage report</value></data>
   <data name="UsageReportTitle.Text" xml:space="preserve"><value>Usage report</value></data>
+  <data name="UsageReport1DayButton.Content" xml:space="preserve"><value>Last day</value></data>
+  <data name="UsageReport3DaysButton.Content" xml:space="preserve"><value>3 days</value></data>
   <data name="UsageReport7DaysButton.Content" xml:space="preserve"><value>7 days</value></data>
   <data name="UsageReport30DaysButton.Content" xml:space="preserve"><value>30 days</value></data>
   <data name="UsageReport90DaysButton.Content" xml:space="preserve"><value>90 days</value></data>
@@ -583,7 +579,7 @@
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next reset cycle</value></data>
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the next observed reset cycle</value></data>
   <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>No Codex reset cycle has been observed yet.</value></data>
-  <data name="UsageReportResetCycleDailyBoundaryNote" xml:space="preserve"><value>Usage is stored by day, so activity on the reset date cannot be split by hour.</value></data>
+  <data name="UsageReportResetCycleExactBoundaryNote" xml:space="preserve"><value>Events are assigned to this cycle from their recorded timestamps. The shared report shows this exact local range.</value></data>
   <data name="UsageReportResetCycleCurrentFormat" xml:space="preserve"><value>{0} · current</value></data>
   <data name="UsageReportResetCyclePreviousFormat" xml:space="preserve"><value>{0} · from {1}</value></data>
   <data name="UsageReportResetCycleNow" xml:space="preserve"><value>now</value></data>
@@ -596,16 +592,38 @@
   <data name="UsageReportResetCycleHoursFormat" xml:space="preserve"><value>{0:0.#} hours</value></data>
   <data name="UsageReportResetCountOneFormat" xml:space="preserve"><value>{0:N0} reset</value></data>
   <data name="UsageReportResetCountManyFormat" xml:space="preserve"><value>{0:N0} resets</value></data>
-  <data name="UsageReportResetCountHelpText" xml:space="preserve"><value>Observed official-limit transitions to 100% remaining in this period. Scheduled and early resets are included; repeated refreshes at 100% count once.</value></data>
+  <data name="UsageReportResetCountHelpText" xml:space="preserve"><value>Recorded official reset boundaries in this period. A scheduled Codex reset is counted when its next-reset timestamp advances, even if use resumed before the next refresh. Early resets are included; repeated refreshes count once.</value></data>
   <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh usage report</value></data>
   <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Refresh real data</value></data>
   <data name="UsageReportEmptyTitle.Text" xml:space="preserve"><value>No usage in this period yet</value></data>
-  <data name="UsageReportEmptyBody.Text" xml:space="preserve"><value>Refresh to read Codex, Grok Build, Antigravity, and OpenCode from their local sources.</value></data>
+  <data name="UsageReportEmptyBody.Text" xml:space="preserve"><value>Refresh to read Codex, Grok Build, Antigravity, OpenCode, and ZCode from their local sources.</value></data>
   <data name="UsageReportEmptyRefreshButton.Content" xml:space="preserve"><value>Refresh data</value></data>
   <data name="UsageReportCostButton.Content" xml:space="preserve"><value>Cost</value></data>
   <data name="UsageReportTokensButton.Content" xml:space="preserve"><value>Tokens</value></data>
   <data name="UsageReportGlobalButton.Content" xml:space="preserve"><value>Global</value></data>
   <data name="UsageReportProviderButton.Content" xml:space="preserve"><value>Provider</value></data>
+  <data name="UsageReportCompareButton.Content" xml:space="preserve"><value>Compare</value></data>
+  <data name="UsageReportCompareProvidersButton.Content" xml:space="preserve"><value>Providers</value></data>
+  <data name="UsageReportComparePeriodsButton.Content" xml:space="preserve"><value>Periods</value></data>
+  <data name="UsageReportCompareCyclesButton.Content" xml:space="preserve"><value>Cycles</value></data>
+  <data name="UsageReportCompareLeftProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left provider</value></data>
+  <data name="UsageReportCompareRightProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right provider</value></data>
+  <data name="UsageReportCompareLeftCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left Codex cycle</value></data>
+  <data name="UsageReportCompareRightCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right Codex cycle</value></data>
+  <data name="UsageReportCompareScope" xml:space="preserve"><value>Compare</value></data>
+  <data name="UsageReportCompareMetricColumn.Text" xml:space="preserve"><value>Metric</value></data>
+  <data name="UsageReportCompareLeftColumn.Text" xml:space="preserve"><value>Left</value></data>
+  <data name="UsageReportCompareRightColumn.Text" xml:space="preserve"><value>Right</value></data>
+  <data name="UsageReportCompareDeltaColumn.Text" xml:space="preserve"><value>Delta</value></data>
+  <data name="UsageReportCompareTokensMetric" xml:space="preserve"><value>Processed tokens</value></data>
+  <data name="UsageReportCompareCostMetric" xml:space="preserve"><value>Observed cost</value></data>
+  <data name="UsageReportCompareReportedCostMetric" xml:space="preserve"><value>Provider-reported cost</value></data>
+  <data name="UsageReportCompareEstimatedCostMetric" xml:space="preserve"><value>Catalog estimate</value></data>
+  <data name="UsageReportCompareUnpricedMetric" xml:space="preserve"><value>Unpriced tokens</value></data>
+  <data name="UsageReportCompareEventsMetric" xml:space="preserve"><value>Events</value></data>
+  <data name="UsageReportCompareDayFormat" xml:space="preserve"><value>Day {0}</value></data>
+  <data name="UsageReportCompareCurrentRangeFormat" xml:space="preserve"><value>Current · {0} to {1}</value></data>
+  <data name="UsageReportComparePreviousRangeFormat" xml:space="preserve"><value>Previous · {0} to {1}</value></data>
   <data name="UsageReportAbsoluteButton.Content" xml:space="preserve"><value>Absolute</value></data>
   <data name="UsageReportShareButton.Content" xml:space="preserve"><value>Share</value></data>
   <data name="UsageReportSourceButton.Content" xml:space="preserve"><value>Sources</value></data>
@@ -676,6 +694,17 @@
   <data name="CompactProviderMuxCoverageHint" xml:space="preserve"><value>Mux: aggregate tokens and cost come from session-usage.json. Transcripts are not read.</value></data>
   <data name="CompactProviderGooseCoverageHint" xml:space="preserve"><value>Goose: aggregate tokens come from a numeric read-only sessions.db query. Known models can show estimated API value.</value></data>
   <data name="CompactProviderHermesCoverageHint" xml:space="preserve"><value>Hermes: aggregate session tokens and actual cost come from numeric state.db columns. Messages are not queried.</value></data>
+  <data name="CompactProviderZcodeCoverageHint" xml:space="preserve"><value>ZCode: per-request counters come from the local usage database. Cost is estimated from Z.ai API rates and is not the plan charge.</value></data>
+  <data name="ZcodeGlobalLimitTitlePrefix" xml:space="preserve"><value>ZCode · </value></data>
+  <data name="DataCollectionBackgroundLabel.Text" xml:space="preserve"><value>Update usage in the background</value></data>
+  <data name="DataCollectionBackgroundLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update usage in the background</value></data>
+  <data name="DataCollectionBackgroundTooltip.Content" xml:space="preserve"><value>When on, provider Stop hooks refresh TokenUsage data after each task, even when the app is closed. When off, data refreshes only inside the app.</value></data>
+  <data name="DataCollectionRefreshLabel.Text" xml:space="preserve"><value>Refresh while the app is open</value></data>
+  <data name="DataCollectionRefreshLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh interval while the app is open</value></data>
+  <data name="DataCollectionRefreshManual" xml:space="preserve"><value>Manual only</value></data>
+  <data name="DataCollectionRefresh15Minutes" xml:space="preserve"><value>Every 15 minutes</value></data>
+  <data name="DataCollectionRefresh30Minutes" xml:space="preserve"><value>Every 30 minutes</value></data>
+  <data name="DataCollectionRefresh60Minutes" xml:space="preserve"><value>Every hour</value></data>
   <data name="CompactCostUnavailable" xml:space="preserve"><value>Cost unavailable</value></data>
   <data name="UsageReportQualitySummaryFormat" xml:space="preserve"><value>{0} reported · {1} estimated · {2} unpriced</value></data>
   <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHED INPUT  {0}    •    UNCACHED INPUT  {1}    •    OUTPUT  {2}</value></data>

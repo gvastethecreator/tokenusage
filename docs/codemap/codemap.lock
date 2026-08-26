@@ -1,7 +1,7 @@
 {
-  "current_commit": "1deee15311d4e8d2da202bdf57a5c0286dcde560",
+  "current_commit": "31d63ff68740750f298cdb60fae990de6bf9bd2a",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-13T19:06:48Z",
+  "generated_at": "2026-08-26T17:19:01Z",
   "scanned_scope": [
     "."
   ],
@@ -31,8 +31,8 @@
     {
       "id": ".",
       "path": ".",
-      "file_count": 11,
-      "fingerprint": "a2b3b502af496a0d55376c392c48c27380c37c02c4e2064ba9d93a5e9f5bd290"
+      "file_count": 12,
+      "fingerprint": "ed91e1d2f6a2a3fe40b09ec5e9e45e3d0589ed8932690a7ba35bc066efe86d88"
     },
     {
       "id": ".agents",
@@ -43,8 +43,8 @@
     {
       "id": ".github",
       "path": ".github",
-      "file_count": 8,
-      "fingerprint": "53edd90e332598fa45721f536258e9beab5b8a33612157ee3947d2321d1ded46"
+      "file_count": 9,
+      "fingerprint": "38b0b7e8bab3dfaea986826ddd803b32a53f4b5eb48a0d06f0db5ce79c97cf56"
     },
     {
       "id": ".vscode",
@@ -55,26 +55,26 @@
     {
       "id": "docs",
       "path": "docs",
-      "file_count": 112,
-      "fingerprint": "0b04da71e9b1ece93297280d9701749e87457c2d903929567ab9a870834f03b5"
+      "file_count": 123,
+      "fingerprint": "35c7b96f714193b19fd38502d8fb8cfa181168eaee1e8cd9ba1e05cc6a931657"
     },
     {
       "id": "scripts",
       "path": "scripts",
-      "file_count": 4,
-      "fingerprint": "f2860381939434601c8f25a2798efca563937caf3e716b370e650907620e27f0"
+      "file_count": 7,
+      "fingerprint": "734e31a1fe5e2fc80ed945222226a113c5bb9d9d0226cf589e629bc15e4e43a0"
     },
     {
       "id": "src",
       "path": "src",
-      "file_count": 322,
-      "fingerprint": "edc82707d9388fb0caef54bc97e987ae19dad64403397e24ea4eb35ebfa7fe31"
+      "file_count": 336,
+      "fingerprint": "bbdc826ae8402bf330d9ac30828eed8874f35cecf7fbf50b03e991ee7038b330"
     },
     {
       "id": "tests",
       "path": "tests",
-      "file_count": 153,
-      "fingerprint": "ddf53f1d372af3773687a29842d07eaf11660d40bd52bed57966ca16ae787993"
+      "file_count": 155,
+      "fingerprint": "22298e2e63fe63ccd15a5f2febe44d8864338e2e34e5b858868e2ef374464446"
     }
   ]
 }

@@ -161,6 +161,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("new CodexUsageEventSource", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("new GrokUsageEventSource", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("new OpenCodeUsageEventSource", providerCatalog, StringComparison.Ordinal);
+        Assert.Contains("new ZcodeUsageEventSource", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("new CodexRefreshCoordinator", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("CreateVercelBinding", providerCatalog, StringComparison.Ordinal);
         Assert.Contains("ProviderModuleStage.OptIn", providerCatalog, StringComparison.Ordinal);
@@ -530,8 +531,11 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(162, matches.Count);
-        Assert.Equal(147, distinctIds.Length);
+        Assert.Equal(171, matches.Count);
+        Assert.Equal(156, distinctIds.Length);
+        Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AppearanceTrayPopoverEnabledToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPrimarySelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTraySecondarySelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayProviderCountSelector", distinctIds, StringComparer.Ordinal);
@@ -549,6 +553,8 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportNextResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutGitHubLink", distinctIds, StringComparer.Ordinal);
         Assert.Contains("TraySummary", distinctIds, StringComparer.Ordinal);
@@ -707,6 +713,11 @@ public sealed class ArchitectureRulesTests
             "ModelBreakdownRows",
             "SourceBreakdownRows",
             "DayBreakdownRows",
+            "UsageReportCompareButton",
+            "UsageReportCompareAxisTabs",
+            "ReportCompareSummary",
+            "ReportCompareChart",
+            "ReportCompareRows",
         })
         {
             Assert.Contains(requiredName, reportXaml, StringComparison.Ordinal);
@@ -872,6 +883,10 @@ public sealed class ArchitectureRulesTests
             "GroupName=\"UsageReportProviderTabs\"",
             reportXaml,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "x:Name=\"ReportProviderTabsTransitionRoot\" Margin=\"2,0\"",
+            reportXaml,
+            StringComparison.Ordinal);
 
         string reportCode = ReadCsharpSources(
             Path.Combine(appRoot, "Views", "Reports"),
@@ -879,6 +894,15 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("ProviderTabCarouselLayout.ReportMaximumPageSize", reportCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTabsTransition", reportCode, StringComparison.Ordinal);
         Assert.Contains("tab.Width = _providerTabItemWidth", reportCode, StringComparison.Ordinal);
+
+        string trendChartCode = File.ReadAllText(Path.Combine(
+            appRoot,
+            "Controls",
+            "UsageTrendChart.xaml.cs"));
+        Assert.Contains("CreateSinglePointMarker", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("path.Points.Count != 1", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("if (data.Days.Count == 1)", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("MiddleDayLabel.Text = data.Days[0].Label", trendChartCode, StringComparison.Ordinal);
     }
 
     [Fact]

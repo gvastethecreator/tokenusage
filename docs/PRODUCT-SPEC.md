@@ -40,7 +40,7 @@ Desde el icono de bandeja, el usuario abre un panel y ve en menos de dos segundo
 4. La app no guarda copias de credenciales que pertenecen a otra herramienta.
 5. Un dato estimado, local, parcial o vencido lleva una etiqueta visible.
 6. Un fallo conserva el último valor válido y muestra su edad.
-7. Un valor ausente aparece como `Sin datos`; no se inventa cero.
+7. Un valor ausente aparece como `No data`; no se inventa cero.
 8. Un proveedor se publica solo tras cerrar pruebas técnicas, seguridad y uso permitido.
 9. Cuota, uso observado y gasto son capacidades independientes; una tarjeta puede tener una, dos o tres.
 10. Los lectores locales no abren archivos de autenticación ni indexan prompts, respuestas, herramientas o comandos.
@@ -57,7 +57,7 @@ El icono resume el peor estado de las métricas elegidas:
 | Cerca del límite | Marca ámbar |
 | Agotado o error que requiere acción | Marca roja |
 | Refrescando | Indicador breve y accesible |
-| Sin datos | Icono neutro |
+| No data | Icono neutro |
 
 Al posar el puntero sobre el icono aparece una tira flotante con los proveedores elegidos. La tira solo muestra proveedores detectados en este equipo. Cuando no hay ninguno, muestra un texto corto que lo dice en lugar de bloques vacíos.
 
@@ -124,6 +124,7 @@ Se muestra cuando al menos un proveedor ofrece tokens o gasto con cobertura cono
 - anillo por agente, total y leyenda;
 - desglose por agente y modelo;
 - coste informado separado de coste estimado;
+- comparar dos proveedores, el periodo actual con el anterior, o dos ciclos Codex;
 - modelos sin precio y porcentaje cubierto;
 - detalle del origen y de estimaciones;
 - estado vacío cuando el periodo no tiene datos.
@@ -205,7 +206,7 @@ Cada proveedor está en uno de estos estados:
 | Refrescando con caché | Datos anteriores + progreso | Esperar o cancelar lote |
 | Sin credencial | Explicación y ruta para abrir la herramienta | Iniciar sesión en la herramienta original |
 | Tipo de cuenta no apto | Explicación | Ver detalle |
-| Sin datos | Filas con `Sin datos` | Actualizar o abrir ayuda |
+| Sin datos | Filas con `No data` | Actualizar o abrir ayuda |
 | Parcial | Datos + aviso de cobertura | Ver fuente |
 | Vencido | Último valor + edad | Actualizar |
 | Throttle | Último valor + próximo intento | Esperar |
@@ -257,7 +258,7 @@ El sondeo de presencia no lee archivos de uso y no necesita base local, así que
 
 - la lista de proveedores del panel y la tira de bandeja solo incluyen proveedores con raíz encontrada;
 - una herramienta sin raíz queda fuera de la lista aunque la base conserve historial suyo; el historial sigue contando en los totales de uso y gasto;
-- una herramienta con raíz y sin historial aparece con `Sin datos`, no como ausente;
+- una herramienta con raíz y sin historial aparece con `No data`, no como ausente;
 - cuando el sondeo no encuentra ninguna herramienta, el panel lo dice con su propio mensaje y no como fallo de un proveedor.
 
 ## Codex MVP
@@ -283,6 +284,7 @@ Requisitos:
 - ignorar variaciones menores de redondeo y observaciones antiguas o repetidas;
 - no fabricar reinicios anteriores a la primera observación;
 - permitir que el informe Codex use el ciclo actual o un ciclo observado anterior como rango;
+- comparar dos ciclos observados en el informe;
 - indicar que el uso durable está agregado por día y que el día del reinicio no se puede dividir por hora.
 
 ## Claude inicial

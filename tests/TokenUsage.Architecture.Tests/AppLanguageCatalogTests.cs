@@ -6,12 +6,10 @@ namespace TokenUsage.Architecture.Tests;
 public sealed class AppLanguageCatalogTests
 {
     [Fact]
-    public void SupportedLanguageTagsExposeOnlyEnglishAndSpanish()
+    public void SupportedLanguageTagsExposeOnlyEnglish()
     {
         Assert.Equal(
-            [AppLanguageCatalog.EnglishUnitedStates, AppLanguageCatalog.SpanishSpain],
-            AppLanguageCatalog.SupportedLanguageTags);
-        Assert.IsType<System.Collections.ObjectModel.ReadOnlyCollection<string>>(
+            [AppLanguageCatalog.EnglishUnitedStates],
             AppLanguageCatalog.SupportedLanguageTags);
     }
 
@@ -20,11 +18,9 @@ public sealed class AppLanguageCatalogTests
     [InlineData("en", "en-US")]
     [InlineData("EN", "en-US")]
     [InlineData("en-GB", "en-US")]
-    [InlineData("es-ES", "es-ES")]
-    [InlineData("es", "es-ES")]
-    [InlineData("ES", "es-ES")]
-    [InlineData("es-MX", "es-ES")]
-    public void ResolveLanguageTagMapsSupportedLanguageFamilies(
+    [InlineData("es-ES", "en-US")]
+    [InlineData("fr-FR", "en-US")]
+    public void ResolveLanguageTagAlwaysUsesEnglish(
         string input,
         string expected)
     {
@@ -37,7 +33,6 @@ public sealed class AppLanguageCatalogTests
     [InlineData("   ")]
     [InlineData("en_US")]
     [InlineData("es_ES")]
-    [InlineData("fr-FR")]
     [InlineData("!!!")]
     [InlineData("-es")]
     [InlineData("es-")]
@@ -51,7 +46,7 @@ public sealed class AppLanguageCatalogTests
 
     [Theory]
     [InlineData("en-GB", "en-US", ".")]
-    [InlineData("es-MX", "es-ES", ",")]
+    [InlineData("es-MX", "en-US", ".")]
     [InlineData("fr-FR", "en-US", ".")]
     public void GetCultureReturnsSafeSupportedCulture(
         string input,
@@ -66,11 +61,11 @@ public sealed class AppLanguageCatalogTests
     }
 
     [Theory]
-    [InlineData("es-ES", new[] { "en-US" }, "es-ES")]
-    [InlineData(null, new[] { "es-MX", "en-US" }, "es-ES")]
+    [InlineData("es-ES", new[] { "en-US" }, "en-US")]
+    [InlineData(null, new[] { "es-MX", "en-US" }, "en-US")]
     [InlineData(null, new[] { "fr-FR", "es-ES" }, "en-US")]
     [InlineData(null, new string[0], "en-US")]
-    public void ResolveStartupLanguageTagPrefersTheSavedOverrideThenMapsTheSystemLanguage(
+    public void ResolveStartupLanguageTagAlwaysUsesEnglish(
         string? primaryLanguageOverride,
         IReadOnlyList<string> preferredLanguages,
         string expected)

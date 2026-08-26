@@ -121,6 +121,54 @@ public sealed class LocalUsageRefresh
             RetainsLastReliableSnapshot: false))
         .ToArray();
 
+    /// <summary>
+    /// Exact token total one agent recorded since an arbitrary UTC instant. Quota windows
+    /// reset mid-day, so the daily rollups cannot answer "spent this cycle"; this reads the
+    /// stored events instead. A missing store means zero recorded usage, not an error.
+    /// </summary>
+    public async Task<long> SumTokensSinceAsync(
+        AgentId agentId,
+        DateTimeOffset fromInclusiveUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        if (!File.Exists(_databasePath))
+        {
+            return 0;
+        }
+
+        UsageRepository repository;
+        try
+        {
+            repository = await UsageRepository.OpenReadOnlyAsync(
+                _databasePath,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException)
+        {
+            return 0;
+        }
+        catch (UsageSchemaTooOldException)
+        {
+            repository = await UsageRepository.OpenAsync(
+                _databasePath,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        DateTimeOffset toExclusiveUtc = _clock.GetUtcNow();
+        if (toExclusiveUtc <= fromInclusiveUtc)
+        {
+            return 0;
+        }
+
+        IReadOnlyList<UsageEvent> events = await repository.QueryUsageEventsAsync(
+            fromInclusiveUtc,
+            toExclusiveUtc,
+            agentId,
+            cancellationToken).ConfigureAwait(false);
+        return events.Sum(usageEvent => usageEvent.Tokens.Total);
+    }
+
     public async Task<LocalUsageRefreshResult?> ReadCachedAsync(
         CancellationToken cancellationToken = default)
     {

@@ -65,6 +65,55 @@ public sealed class GooseUsageEventSourceTests
     }
 
     [Fact]
+    public async Task DottedModelIdsKeepTheirVersionAndZeroCostUsesTheCatalog()
+    {
+        using var folder = new TemporaryFolder();
+        string databasePath = Path.Combine(folder.Path, "sessions.db");
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+        };
+        using (var connection = new SqliteConnection(builder.ToString()))
+        {
+            connection.Open();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE sessions (
+                    id TEXT PRIMARY KEY,
+                    created_at TEXT,
+                    model_config_json TEXT,
+                    provider_name TEXT,
+                    accumulated_input_tokens INTEGER,
+                    accumulated_output_tokens INTEGER,
+                    accumulated_total_tokens INTEGER,
+                    accumulated_cost REAL
+                );
+                INSERT INTO sessions VALUES (
+                    'session-gemini',
+                    '2026-08-12T10:00:00.0000000+00:00',
+                    '{"model_name":"gemini-3.6-flash"}',
+                    'google',
+                    1000000,
+                    100000,
+                    1100000,
+                    0
+                );
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        UsageEvent usageEvent = Assert.Single(
+            (await new GooseUsageEventSource("UTC", databasePathOverride: databasePath)
+                .ReadAsync()).Events);
+
+        Assert.Equal("gemini-3.6-flash", usageEvent.ModelId.Value);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
+    }
+
+    [Fact]
     public async Task MissingDatabaseReturnsRootUnavailable()
     {
         using var folder = new TemporaryFolder();

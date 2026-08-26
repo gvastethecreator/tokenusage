@@ -168,27 +168,19 @@ public sealed class CodexUsageEventSourceTests
             Context("gpt-5.6-sol"),
             Usage(
                 "2026-07-27T22:01:00Z",
-                input: 100,
-                cachedInput: 20,
-                output: 10,
-                reasoningOutput: 2,
-                totalInput: 280,
-                totalCachedInput: 40,
-                totalOutput: 20,
-                totalReasoningOutput: 4));
+                input: 280,
+                cachedInput: 40,
+                output: 20,
+                reasoningOutput: 4));
         corpus.WriteSession(
             "newer-local-day",
             Context("gpt-5.6-sol"),
             Usage(
                 "2026-07-28T12:01:00Z",
-                input: 200,
-                cachedInput: 40,
-                output: 20,
-                reasoningOutput: 4,
-                totalInput: 450,
-                totalCachedInput: 90,
-                totalOutput: 50,
-                totalReasoningOutput: 10));
+                input: 450,
+                cachedInput: 90,
+                output: 50,
+                reasoningOutput: 10));
         var usage = new CodexTokenUsageSnapshot(
             new CodexUsageSummary(null, null, null, null, null),
             [new CodexUsageDailyBucket(new DateOnly(2026, 7, 27), 100)]);
@@ -328,6 +320,73 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
+    public async Task FirstTurnOfAResumedSessionUsesLastUsageNotCarriedCumulative()
+    {
+        using var corpus = new CodexCorpus();
+        corpus.WriteSession(
+            "session-resume",
+            Context("gpt-5.6-sol"),
+            Usage(
+                "2026-07-27T12:01:00Z",
+                input: 40,
+                cachedInput: 10,
+                output: 10,
+                reasoningOutput: 2,
+                totalInput: 10_040,
+                totalCachedInput: 2_010,
+                totalOutput: 1_010,
+                totalReasoningOutput: 202));
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(new TokenBreakdown(30, 8, 2, 10, 0), usageEvent.Tokens);
+    }
+
+    [Fact]
+    public async Task StaleRegressedCumulativeSnapshotDoesNotRebillTheSession()
+    {
+        using var corpus = new CodexCorpus();
+        corpus.WriteSession(
+            "session-stale",
+            Context("gpt-5.6-sol"),
+            Usage(
+                "2026-07-27T12:01:00Z",
+                input: 90,
+                cachedInput: 20,
+                output: 10,
+                reasoningOutput: 2,
+                totalInput: 90,
+                totalCachedInput: 20,
+                totalOutput: 10,
+                totalReasoningOutput: 2),
+            Usage(
+                "2026-07-27T12:01:01Z",
+                input: 80,
+                cachedInput: 18,
+                output: 9,
+                reasoningOutput: 1,
+                totalInput: 80,
+                totalCachedInput: 18,
+                totalOutput: 9,
+                totalReasoningOutput: 1),
+            Usage(
+                "2026-07-27T12:01:02Z",
+                input: 50,
+                cachedInput: 10,
+                output: 5,
+                reasoningOutput: 1,
+                totalInput: 140,
+                totalCachedInput: 30,
+                totalOutput: 15,
+                totalReasoningOutput: 3));
+
+        IReadOnlyList<UsageEvent> events = (await corpus.CreateSource().ReadAsync()).Events;
+        long total = events.Sum(usageEvent => usageEvent.Tokens.Total);
+
+        Assert.Equal(155, total);
+    }
+
+    [Fact]
     public async Task UnknownModelsKeepTokensWithoutInventingCost()
     {
         using var corpus = new CodexCorpus();
@@ -438,6 +497,18 @@ public sealed class CodexUsageEventSourceTests
 
         Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
         Assert.Equal(1.362255m, cost.EstimatedCostUsd);
+    }
+
+    [Fact]
+    public void Gpt56SolUsesTheOfficialPromotionalRate()
+    {
+        CostObservation cost = CodexPricingCatalog.Resolve(
+            "gpt-5.6-sol",
+            new TokenBreakdown(1_000_000, 100_000, 0, 0, 0));
+
+        Assert.Equal(11m, cost.EstimatedCostUsd);
+        Assert.Equal("gpt-5.6-sol", cost.ExactPriceMatch);
+        Assert.Equal(CodexPricingCatalog.Version, cost.CatalogVersion);
     }
 
     [Fact]

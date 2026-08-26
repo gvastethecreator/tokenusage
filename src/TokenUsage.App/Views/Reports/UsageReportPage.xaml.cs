@@ -173,6 +173,20 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
+    private void OnCompareAxisClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string value }
+            && Enum.TryParse(value, ignoreCase: true, out UsageReportCompareAxis axis)
+            && ShouldStartReportDataTransition(
+                ReportDataTransitionIntent.Scope,
+                axis != ViewModel.CompareAxis))
+        {
+            PlayReportDataTransition(
+                () => ViewModel.SetCompareAxis(axis),
+                ReportDataTransitionIntent.Scope);
+        }
+    }
+
     private void OnValueModeClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string value }

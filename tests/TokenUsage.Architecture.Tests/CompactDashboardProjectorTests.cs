@@ -66,9 +66,38 @@ public sealed class CompactDashboardProjectorTests
         Assert.Equal("—", grok.CostText);
         Assert.False(cursor.HasData);
         Assert.Equal("codex", projection.SelectedProviderId);
-        Assert.Same(projection.SelectedProviderLimits, projection.GlobalCodexLimits);
-        Assert.NotEmpty(projection.GlobalCodexLimits);
-        Assert.Equal(1, providerLimitReads);
+        Assert.Same(projection.SelectedProviderLimits, projection.GlobalProviderLimits);
+        Assert.NotEmpty(projection.GlobalProviderLimits);
+        // Codex and ZCode each read once through the per-provider cache.
+        Assert.Equal(2, providerLimitReads);
+    }
+
+    [Fact]
+    public void ZcodeQuotaWindowsJoinTheGlobalLimitsStripWithAProviderPrefix()
+    {
+        var today = new DateOnly(2026, 8, 26);
+
+        CompactDashboardProjection projection = CompactDashboardProjector.Create(
+            today,
+            [],
+            ["zcode"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: null,
+            getString: key => key == "ZcodeGlobalLimitTitlePrefix" ? "ZCode · " : key,
+            getProviderLimits: id => id == "zcode"
+                ?
+                [
+                    new QuotaWindow("5-hour credits (estimated)", 75, "75%", "rolling", "ZCode 5h", false, LayoutMetricId: "quota.primary"),
+                    new QuotaWindow("Weekly credits (estimated)", 40, "40%", "weekly", "ZCode weekly", false, LayoutMetricId: "quota.secondary"),
+                ]
+                : []);
+
+        Assert.Collection(
+            projection.GlobalProviderLimits,
+            fiveHour => Assert.Equal("ZCode · 5-hour credits (estimated)", fiveHour.Title),
+            weekly => Assert.Equal("ZCode · Weekly credits (estimated)", weekly.Title));
     }
 
     private static LocalUsageCard EmptyLocalUsage() => new(
