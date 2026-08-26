@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using TokenUsage.App.Localization;
 using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Surfaces;
 
@@ -76,35 +75,4 @@ public sealed partial class GeneralOptionsView : UserControl
     private async void OnShareCaptureFolderResetClicked(object sender, RoutedEventArgs e) =>
         ShareCaptureFolderPath.Text = await ShareCaptureService.ResetDestinationAsync();
 
-    private void OnRestartForLanguageClicked(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel is null)
-        {
-            return;
-        }
-
-        try
-        {
-            AppLanguageRuntime.RestartWithLanguage(
-                ViewModel.PendingLanguageTag,
-                GetLanguageRestartArguments());
-        }
-        catch (Exception exception) when (exception is ArgumentException
-            or InvalidOperationException
-            or UnauthorizedAccessException
-            or System.Runtime.InteropServices.COMException)
-        {
-        }
-
-        ViewModel.ReportLanguageRestartFailure();
-    }
-
-    private static string GetLanguageRestartArguments()
-    {
-#if DEBUG || UI_TEST_FIXTURES
-        return AppLanguageRestartArguments.Create(Environment.GetCommandLineArgs()[1..]);
-#else
-        return string.Empty;
-#endif
-    }
 }

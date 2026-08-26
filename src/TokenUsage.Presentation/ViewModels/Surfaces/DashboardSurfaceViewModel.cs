@@ -162,8 +162,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public partial IReadOnlyList<DashboardActivitySummary> GlobalActivity { get; private set; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasGlobalCodexLimits))]
-    public partial IReadOnlyList<QuotaWindow> GlobalCodexLimits { get; private set; } = [];
+    [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
+    public partial IReadOnlyList<QuotaWindow> GlobalProviderLimits { get; private set; } = [];
 
     [ObservableProperty]
     public partial UsageHeatmapModel SelectedProviderHeatmap { get; private set; } = UsageHeatmapModel.Empty;
@@ -260,7 +260,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     public bool SelectedProviderHasLimits => SelectedProviderLimits.Count > 0;
 
-    public bool HasGlobalCodexLimits => GlobalCodexLimits.Count > 0;
+    public bool HasGlobalProviderLimits => GlobalProviderLimits.Count > 0;
 
     public bool SelectedProviderHasCoverageHint => SelectedProvider is not null;
 
@@ -286,6 +286,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                 "mux" => _getString("CompactProviderMuxCoverageHint"),
                 "goose" => _getString("CompactProviderGooseCoverageHint"),
                 "hermes" => _getString("CompactProviderHermesCoverageHint"),
+                "zcode" => _getString("CompactProviderZcodeCoverageHint"),
                 _ => string.Empty,
             };
             string[] statuses = !SelectedProviderHasData
@@ -503,7 +504,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         await RunRefreshAsync(scenario: null, forceRefresh: false).ConfigureAwait(true);
-        if (!_disposed && !HasGlobalCodexLimits && !HasRequestedForcedRefresh)
+        if (!_disposed && !HasGlobalProviderLimits && !HasRequestedForcedRefresh)
         {
             // One live pass per process when the cache-first snapshot has no official
             // Codex quota windows. The first panel open must not start a second pass.
@@ -725,8 +726,10 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             providers.AddRange(CodexDashboardProjector.Create(
                 _lastCodexSnapshot,
                 _liveSession.Clock,
-                _getString).Providers);
+                _getString,
+                _liveSession.CodexWindowUsedTokens).Providers);
         }
+
 
         IReadOnlyList<SpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
             ? _rawLocalUsage.SpendBreakdown.AgentSlices
@@ -982,7 +985,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         GlobalTokensText = projection.GlobalTokensText;
         GlobalHeatmap = projection.GlobalHeatmap;
         GlobalActivity = projection.GlobalActivity;
-        GlobalCodexLimits = projection.GlobalCodexLimits;
+        GlobalProviderLimits = projection.GlobalProviderLimits;
 
         DashboardProviderOption? nextSelection = ProviderOptions.FirstOrDefault(option =>
             string.Equals(option.ProviderId, projection.SelectedProviderId, StringComparison.Ordinal))

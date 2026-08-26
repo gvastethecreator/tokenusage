@@ -25,13 +25,24 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _loadCancellation;
     private UsageReport _report = UsageReportQuery.Build([]);
     private UsageReport _globalReport = UsageReportQuery.Build([]);
+    private UsageReport _compareRightReport = UsageReportQuery.Build([]);
     private (DateOnly Start, DateOnly End)? _globalReportRange;
     private int _windowDays = 30;
     private UsageReportMetric _metric = UsageReportMetric.Cost;
     private UsageReportBreakdown _breakdown = UsageReportBreakdown.Model;
     private UsageReportScope _scope = UsageReportScope.Global;
+    private UsageReportCompareAxis _compareAxis = UsageReportCompareAxis.Providers;
     private UsageReportValueMode _valueMode = UsageReportValueMode.Absolute;
     private UsageReportProviderOption? _selectedProvider;
+    private UsageReportProviderOption? _compareLeftProvider;
+    private UsageReportProviderOption? _compareRightProvider;
+    private UsageReportResetCycleOption? _compareLeftCycle;
+    private UsageReportResetCycleOption? _compareRightCycle;
+    private DateOnly _compareLeftStart;
+    private DateOnly _compareLeftEnd;
+    private DateOnly _compareRightStart;
+    private DateOnly _compareRightEnd;
+    private IReadOnlyList<UsageReportCompareRow> _compareRows = [];
     private bool _isLoading;
     private bool _hasData;
     private bool _hasError;
@@ -90,6 +101,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public UsageReportValueMode ValueMode => _valueMode;
 
+    public bool IsOneDay => !IsResetCycleWindow && WindowDays == 1;
+
+    public bool IsThreeDays => !IsResetCycleWindow && WindowDays == 3;
+
     public bool IsSevenDays => !IsResetCycleWindow && WindowDays == 7;
 
     public bool IsThirtyDays => !IsResetCycleWindow && WindowDays == 30;
@@ -109,6 +124,26 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public bool IsGlobalScope => Scope == UsageReportScope.Global;
 
     public bool IsProviderScope => Scope == UsageReportScope.Provider;
+
+    public bool IsCompareScope => Scope == UsageReportScope.Compare;
+
+    public bool IsStandardReportVisible => !IsCompareScope;
+
+    public UsageReportCompareAxis CompareAxis => _compareAxis;
+
+    public bool IsCompareProvidersAxis => CompareAxis == UsageReportCompareAxis.Providers;
+
+    public bool IsComparePeriodsAxis => CompareAxis == UsageReportCompareAxis.Periods;
+
+    public bool IsCompareCyclesAxis => CompareAxis == UsageReportCompareAxis.Cycles;
+
+    public bool IsCompareProviderPickersVisible =>
+        IsCompareScope && IsCompareProvidersAxis && HasProviderOptions;
+
+    public bool IsCompareCyclePickersVisible =>
+        IsCompareScope && IsCompareCyclesAxis && ResetCycleOptions.Count > 0;
+
+    public bool IsPeriodPickerVisible => !IsCompareCyclesAxis;
 
     public bool IsAbsoluteValueMode => ValueMode == UsageReportValueMode.Absolute;
 
@@ -211,6 +246,28 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _sourceRows, value);
     }
 
+    public IReadOnlyList<UsageReportCompareRow> CompareRows
+    {
+        get => _compareRows;
+        private set => SetProperty(ref _compareRows, value);
+    }
+
+    public string CompareLeftLabel { get; private set; } = string.Empty;
+
+    public string CompareRightLabel { get; private set; } = string.Empty;
+
+    public string CompareLeftCostText { get; private set; } = string.Empty;
+
+    public string CompareLeftTokensText { get; private set; } = string.Empty;
+
+    public string CompareRightCostText { get; private set; } = string.Empty;
+
+    public string CompareRightTokensText { get; private set; } = string.Empty;
+
+    public string CompareDeltaCostText { get; private set; } = string.Empty;
+
+    public string CompareDeltaTokensText { get; private set; } = string.Empty;
+
     public bool HasProviderOptions => ProviderOptions.Count > 0;
 
     public bool IsProviderPickerVisible => IsProviderScope && HasProviderOptions;
@@ -241,6 +298,70 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 {
                     _ = LoadAsync();
                 }
+            }
+        }
+    }
+
+    public UsageReportProviderOption? CompareLeftProvider
+    {
+        get => _compareLeftProvider;
+        set
+        {
+            if (SetProperty(ref _compareLeftProvider, value)
+                && value is not null
+                && IsCompareScope
+                && IsCompareProvidersAxis
+                && !IsLoading)
+            {
+                _ = LoadAsync();
+            }
+        }
+    }
+
+    public UsageReportProviderOption? CompareRightProvider
+    {
+        get => _compareRightProvider;
+        set
+        {
+            if (SetProperty(ref _compareRightProvider, value)
+                && value is not null
+                && IsCompareScope
+                && IsCompareProvidersAxis
+                && !IsLoading)
+            {
+                _ = LoadAsync();
+            }
+        }
+    }
+
+    public UsageReportResetCycleOption? CompareLeftCycle
+    {
+        get => _compareLeftCycle;
+        set
+        {
+            if (SetProperty(ref _compareLeftCycle, value)
+                && value is not null
+                && IsCompareScope
+                && IsCompareCyclesAxis
+                && !IsLoading)
+            {
+                _ = LoadAsync();
+            }
+        }
+    }
+
+    public UsageReportResetCycleOption? CompareRightCycle
+    {
+        get => _compareRightCycle;
+        set
+        {
+            if (SetProperty(ref _compareRightCycle, value)
+                && value is not null
+                && IsCompareScope
+                && IsCompareCyclesAxis
+                && !IsLoading)
+            {
+                _ = LoadAsync();
             }
         }
     }
@@ -279,7 +400,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public string ResetCycleHelpText => SelectedResetCycle is null
         ? GetString("UsageReportResetCycleUnavailable")
-        : $"{SelectedResetCycle.AutomationName}{Environment.NewLine}{GetString("UsageReportResetCycleDailyBoundaryNote")}";
+        : $"{SelectedResetCycle.AutomationName}{Environment.NewLine}{GetString("UsageReportResetCycleExactBoundaryNote")}";
 
     public bool HasResetCountSummary => IsProviderScope
         && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal);
@@ -332,13 +453,26 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _trend, value);
     }
 
-    public string PeriodText => IsResetCycleWindow && SelectedResetCycle is not null
-        ? SelectedResetCycle.RangeText
-        : string.Format(
-            CultureInfo.CurrentCulture,
-            GetString("UsageReportPeriodFormat"),
-            StartDate.ToString("d MMM", CultureInfo.CurrentCulture),
-            EndDate.ToString("d MMM", CultureInfo.CurrentCulture));
+    public string PeriodText
+    {
+        get
+        {
+            if (IsCompareScope && IsCompareCyclesAxis
+                && CompareLeftCycle is not null
+                && CompareRightCycle is not null)
+            {
+                return $"{CompareLeftCycle.RangeText} · {CompareRightCycle.RangeText}";
+            }
+
+            return IsResetCycleWindow && SelectedResetCycle is not null
+                ? SelectedResetCycle.RangeText
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    GetString("UsageReportPeriodFormat"),
+                    StartDate.ToString("d MMM", CultureInfo.CurrentCulture),
+                    EndDate.ToString("d MMM", CultureInfo.CurrentCulture));
+        }
+    }
 
     public string HeadlineLabel => GetString(
         IsCostMetric ? "UsageReportTotalCostLabel" : "UsageReportProcessedTokensLabel");
@@ -363,7 +497,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public string ScopeTitle => IsGlobalScope
         ? GetString("UsageReportGlobalScope")
-        : SelectedProviderName;
+        : IsCompareScope
+            ? GetString("UsageReportCompareScope")
+            : SelectedProviderName;
 
     public string SummaryTokensText => FormatTokens(_report.Totals.Tokens.Total);
 
@@ -439,30 +575,61 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             {
                 var query = new UsageReportQuery(_databasePath);
 
+                async Task<UsageReport> ReadRangeAsync(DateOnly start, DateOnly end)
+                {
+                    return await query.ReadAsync(
+                        start,
+                        end,
+                        cancellationToken: cancellation.Token);
+                }
+
+                async Task<UsageReport> ReadResetCycleAsync(
+                    UsageReportResetCycleOption cycle)
+                {
+                    return await query.ReadExactAsync(
+                        cycle.FromUtc,
+                        cycle.ToUtc,
+                        new AgentId("codex"),
+                        cancellation.Token);
+                }
+
                 // Switching provider keeps the period, and the all-provider read only feeds the
                 // picker and the all-provider scope. Reading it again per provider switch doubled
                 // the wait for a result the range already produced.
                 if (refreshSource || _globalReportRange != (startDate, endDate))
                 {
-                    _globalReport = await query.ReadAsync(
-                        startDate,
-                        endDate,
-                        cancellationToken: cancellation.Token);
+                    _globalReport = await ReadRangeAsync(startDate, endDate);
                     _globalReportRange = (startDate, endDate);
                     RebuildProviderOptions();
                 }
 
-                _report = IsProviderScope && SelectedProvider is not null
-                    ? UsageReportQuery.FilterByAgent(
-                        _globalReport,
-                        new AgentId(SelectedProvider.ProviderId))
-                    : _globalReport;
+                if (IsCompareScope)
+                {
+                    await ApplyCompareReportsAsync(
+                        ReadRangeAsync,
+                        ReadResetCycleAsync,
+                        startDate,
+                        endDate)
+                        .ConfigureAwait(true);
+                }
+                else
+                {
+                    _report = IsResetCycleWindow && SelectedResetCycle is not null
+                        ? await ReadResetCycleAsync(SelectedResetCycle).ConfigureAwait(true)
+                        : IsProviderScope && SelectedProvider is not null
+                        ? UsageReportQuery.FilterByAgent(
+                            _globalReport,
+                            new AgentId(SelectedProvider.ProviderId))
+                        : _globalReport;
+                    _compareRightReport = UsageReportQuery.Build([]);
+                }
             }
             else
             {
                 _globalReport = UsageReportQuery.Build([]);
                 _globalReportRange = null;
                 _report = _globalReport;
+                _compareRightReport = _globalReport;
                 RebuildProviderOptions();
             }
             if (!ReferenceEquals(_loadCancellation, cancellation))
@@ -497,7 +664,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public void SetWindowDays(int days)
     {
-        if (days is not (7 or 30 or 90)
+        if (days is not (1 or 3 or 7 or 30 or 90)
             || (days == _windowDays && !IsResetCycleWindow))
         {
             return;
@@ -506,6 +673,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _windowDays = days;
         _usesResetCycle = false;
         OnPropertyChanged(nameof(WindowDays));
+        OnPropertyChanged(nameof(IsOneDay));
+        OnPropertyChanged(nameof(IsThreeDays));
         NotifyRangeChanged();
         _ = LoadAsync();
     }
@@ -584,7 +753,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         }
 
         _scope = scope;
-        if (scope == UsageReportScope.Global)
+        if (scope != UsageReportScope.Provider)
         {
             _usesResetCycle = false;
         }
@@ -598,10 +767,40 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(SelectedProviderName));
             OnPropertyChanged(nameof(HasProviderLimits));
         }
-        if (scope == UsageReportScope.Provider)
+        if (scope != UsageReportScope.Global)
         {
             _valueMode = UsageReportValueMode.Absolute;
         }
+        if (scope == UsageReportScope.Compare)
+        {
+            EnsureCompareSelections();
+            if (IsCompareCyclesAxis)
+            {
+                RebuildResetCycleOptions();
+            }
+        }
+        NotifyScopeChanged();
+        _ = LoadAsync();
+    }
+
+    public void SetCompareAxis(UsageReportCompareAxis axis)
+    {
+        if (!Enum.IsDefined(axis) || !IsCompareScope || _compareAxis == axis)
+        {
+            return;
+        }
+
+        _compareAxis = axis;
+        if (axis == UsageReportCompareAxis.Cycles)
+        {
+            RebuildResetCycleOptions();
+            EnsureCompareCycleSelections();
+        }
+        else
+        {
+            _usesResetCycle = false;
+        }
+
         NotifyScopeChanged();
         _ = LoadAsync();
     }
@@ -609,7 +808,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public void SetValueMode(UsageReportValueMode valueMode)
     {
         if (!Enum.IsDefined(valueMode)
-            || IsProviderScope
+            || !IsGlobalScope
             || _valueMode == valueMode)
         {
             return;
@@ -650,6 +849,15 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Scope));
         OnPropertyChanged(nameof(IsGlobalScope));
         OnPropertyChanged(nameof(IsProviderScope));
+        OnPropertyChanged(nameof(IsCompareScope));
+        OnPropertyChanged(nameof(IsStandardReportVisible));
+        OnPropertyChanged(nameof(CompareAxis));
+        OnPropertyChanged(nameof(IsCompareProvidersAxis));
+        OnPropertyChanged(nameof(IsComparePeriodsAxis));
+        OnPropertyChanged(nameof(IsCompareCyclesAxis));
+        OnPropertyChanged(nameof(IsCompareProviderPickersVisible));
+        OnPropertyChanged(nameof(IsCompareCyclePickersVisible));
+        OnPropertyChanged(nameof(IsPeriodPickerVisible));
         OnPropertyChanged(nameof(IsProviderPickerVisible));
         OnPropertyChanged(nameof(HasProviderOptions));
         OnPropertyChanged(nameof(IsValueModeVisible));
@@ -662,6 +870,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsAbsoluteValueMode));
         OnPropertyChanged(nameof(IsShareValueMode));
         OnPropertyChanged(nameof(WindowDays));
+        OnPropertyChanged(nameof(IsOneDay));
+        OnPropertyChanged(nameof(IsThreeDays));
         OnPropertyChanged(nameof(IsSevenDays));
         OnPropertyChanged(nameof(IsThirtyDays));
         OnPropertyChanged(nameof(IsNinetyDays));
@@ -715,12 +925,14 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(SelectedProvider));
             OnPropertyChanged(nameof(SelectedProviderName));
         }
+        ReconcileCompareProviders(state.Options);
         ProviderLimits = _selectedProvider is null
             ? []
             : _getProviderLimits(_selectedProvider.ProviderId);
         RebuildResetCycleOptions();
         OnPropertyChanged(nameof(HasProviderLimits));
         OnPropertyChanged(nameof(ScopeTitle));
+        OnPropertyChanged(nameof(IsCompareProviderPickersVisible));
     }
 
     private async Task LoadResetCyclesAsync(CancellationToken cancellationToken)
@@ -752,16 +964,22 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildResetCycleOptions()
     {
-        if (!string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal))
+        if (!NeedsCodexResetCycles)
         {
             ResetCycleOptions = [];
             _selectedResetCycle = null;
             OnPropertyChanged(nameof(SelectedResetCycle));
+            OnPropertyChanged(nameof(IsCompareCyclePickersVisible));
             NotifyRangeChanged();
             return;
         }
 
-        var windowNames = ProviderLimits
+        IReadOnlyList<QuotaWindow> cycleLimits =
+            string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+                ? ProviderLimits
+                : _getProviderLimits("codex");
+
+        var windowNames = cycleLimits
             .Where(window => !string.IsNullOrWhiteSpace(window.LayoutMetricId))
             .GroupBy(window => window.LayoutMetricId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First().Title, StringComparer.Ordinal);
@@ -774,7 +992,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             windowNames.TryAdd(window.MetricId, ResetWindowName(window));
         }
 
-        var windowOrder = ProviderLimits
+        var windowOrder = cycleLimits
             .Select((window, index) => (window.LayoutMetricId, index))
             .Where(item => !string.IsNullOrWhiteSpace(item.LayoutMetricId))
             .GroupBy(item => item.LayoutMetricId, StringComparer.Ordinal)
@@ -813,6 +1031,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         }
 
         OnPropertyChanged(nameof(SelectedResetCycle));
+        if (IsCompareScope && IsCompareCyclesAxis)
+        {
+            EnsureCompareCycleSelections();
+        }
+
+        OnPropertyChanged(nameof(IsCompareCyclePickersVisible));
         NotifyRangeChanged();
     }
 
@@ -906,6 +1130,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(CanSelectPreviousResetCycle));
         OnPropertyChanged(nameof(CanSelectNextResetCycle));
+        OnPropertyChanged(nameof(IsOneDay));
+        OnPropertyChanged(nameof(IsThreeDays));
         OnPropertyChanged(nameof(IsSevenDays));
         OnPropertyChanged(nameof(IsThirtyDays));
         OnPropertyChanged(nameof(IsNinetyDays));
@@ -966,7 +1192,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildProjection()
     {
-        HasData = _report.Totals.EventCount > 0;
+        HasData = IsCompareScope
+            ? _report.Totals.EventCount > 0 || _compareRightReport.Totals.EventCount > 0
+            : _report.Totals.EventCount > 0;
         OnPropertyChanged(nameof(IsEmpty));
 
         Providers = CreateProviderRows();
@@ -975,11 +1203,33 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         SourceRows = CreateSourceRows();
         DayRows = CreateDayRows();
         QualityRows = CreateQualityRows();
-        Trend = CreateTrend();
+        if (IsCompareScope)
+        {
+            AssignCompareLabels();
+            CompareRows = CreateCompareRows();
+            Trend = CreateCompareTrend();
+        }
+        else
+        {
+            CompareLeftLabel = string.Empty;
+            CompareRightLabel = string.Empty;
+            CompareLeftCostText = string.Empty;
+            CompareLeftTokensText = string.Empty;
+            CompareRightCostText = string.Empty;
+            CompareRightTokensText = string.Empty;
+            CompareDeltaCostText = string.Empty;
+            CompareDeltaTokensText = string.Empty;
+            CompareRows = [];
+            Trend = CreateTrend();
+        }
 
         HasCoverageHint = _report.Totals.Coverage != CoverageKind.Complete
             || _report.Totals.UnpricedTokens > 0
-            || _report.Totals.UnavailableCostEventCount > 0;
+            || _report.Totals.UnavailableCostEventCount > 0
+            || (IsCompareScope
+                && (_compareRightReport.Totals.Coverage != CoverageKind.Complete
+                    || _compareRightReport.Totals.UnpricedTokens > 0
+                    || _compareRightReport.Totals.UnavailableCostEventCount > 0));
         CoverageHintText = HasCoverageHint
             ? string.Format(
                 CultureInfo.CurrentCulture,
@@ -1005,6 +1255,416 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CachedInputText));
         OnPropertyChanged(nameof(UncachedInputText));
         OnPropertyChanged(nameof(OutputTokensText));
+        OnPropertyChanged(nameof(CompareLeftLabel));
+        OnPropertyChanged(nameof(CompareRightLabel));
+        OnPropertyChanged(nameof(CompareLeftCostText));
+        OnPropertyChanged(nameof(CompareLeftTokensText));
+        OnPropertyChanged(nameof(CompareRightCostText));
+        OnPropertyChanged(nameof(CompareRightTokensText));
+        OnPropertyChanged(nameof(CompareDeltaCostText));
+        OnPropertyChanged(nameof(CompareDeltaTokensText));
+        OnPropertyChanged(nameof(PeriodText));
+    }
+
+    private bool NeedsCodexResetCycles =>
+        string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+        || (IsCompareScope && IsCompareCyclesAxis);
+
+    private async Task ApplyCompareReportsAsync(
+        Func<DateOnly, DateOnly, Task<UsageReport>> readRangeAsync,
+        Func<UsageReportResetCycleOption, Task<UsageReport>> readResetCycleAsync,
+        DateOnly startDate,
+        DateOnly endDate)
+    {
+        EnsureCompareSelections();
+        switch (CompareAxis)
+        {
+            case UsageReportCompareAxis.Providers:
+                _report = CompareLeftProvider is null
+                    ? UsageReportQuery.Build([])
+                    : UsageReportQuery.FilterByAgent(
+                        _globalReport,
+                        new AgentId(CompareLeftProvider.ProviderId));
+                _compareRightReport = CompareRightProvider is null
+                    ? UsageReportQuery.Build([])
+                    : UsageReportQuery.FilterByAgent(
+                        _globalReport,
+                        new AgentId(CompareRightProvider.ProviderId));
+                _compareLeftStart = startDate;
+                _compareLeftEnd = endDate;
+                _compareRightStart = startDate;
+                _compareRightEnd = endDate;
+                break;
+            case UsageReportCompareAxis.Periods:
+                int days = InclusiveDayCount(startDate, endDate);
+                DateOnly previousEnd = startDate.AddDays(-1);
+                DateOnly previousStart = previousEnd.AddDays(-(days - 1));
+                _report = _globalReport;
+                _compareRightReport = await readRangeAsync(previousStart, previousEnd)
+                    .ConfigureAwait(true);
+                _compareLeftStart = startDate;
+                _compareLeftEnd = endDate;
+                _compareRightStart = previousStart;
+                _compareRightEnd = previousEnd;
+                break;
+            case UsageReportCompareAxis.Cycles:
+                UsageReportResetCycleOption? leftCycle = CompareLeftCycle;
+                UsageReportResetCycleOption? rightCycle = CompareRightCycle;
+                UsageReport leftRaw = leftCycle is null
+                    ? UsageReportQuery.Build([])
+                    : await readResetCycleAsync(leftCycle)
+                        .ConfigureAwait(true);
+                UsageReport rightRaw = rightCycle is null
+                    ? UsageReportQuery.Build([])
+                    : await readResetCycleAsync(rightCycle)
+                        .ConfigureAwait(true);
+                AgentId codex = new("codex");
+                _report = leftCycle is null
+                    ? leftRaw
+                    : UsageReportQuery.FilterByAgent(leftRaw, codex);
+                _compareRightReport = rightCycle is null
+                    ? rightRaw
+                    : UsageReportQuery.FilterByAgent(rightRaw, codex);
+                _compareLeftStart = leftCycle?.FromDate ?? startDate;
+                _compareLeftEnd = leftCycle?.ToDate ?? endDate;
+                _compareRightStart = rightCycle?.FromDate ?? startDate;
+                _compareRightEnd = rightCycle?.ToDate ?? endDate;
+                break;
+            default:
+                _report = _globalReport;
+                _compareRightReport = UsageReportQuery.Build([]);
+                break;
+        }
+    }
+
+    private void EnsureCompareSelections()
+    {
+        ReconcileCompareProviders(ProviderOptions);
+        if (IsCompareCyclesAxis)
+        {
+            EnsureCompareCycleSelections();
+        }
+    }
+
+    private void ReconcileCompareProviders(IReadOnlyList<UsageReportProviderOption> options)
+    {
+        string? leftId = _compareLeftProvider?.ProviderId;
+        string? rightId = _compareRightProvider?.ProviderId;
+        UsageReportProviderOption? left = FindProvider(options, leftId)
+            ?? (options.Count == 0 ? null : options[0]);
+        UsageReportProviderOption? right = FindProvider(options, rightId)
+            ?? FindOtherProvider(options, left?.ProviderId)
+            ?? left;
+        _compareLeftProvider = left;
+        _compareRightProvider = right;
+        OnPropertyChanged(nameof(CompareLeftProvider));
+        OnPropertyChanged(nameof(CompareRightProvider));
+        OnPropertyChanged(nameof(IsCompareProviderPickersVisible));
+    }
+
+    private static UsageReportProviderOption? FindProvider(
+        IReadOnlyList<UsageReportProviderOption> options,
+        string? providerId)
+    {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (string.Equals(options[index].ProviderId, providerId, StringComparison.Ordinal))
+            {
+                return options[index];
+            }
+        }
+
+        return null;
+    }
+
+    private static UsageReportProviderOption? FindOtherProvider(
+        IReadOnlyList<UsageReportProviderOption> options,
+        string? excludeProviderId)
+    {
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(
+                options[index].ProviderId,
+                excludeProviderId,
+                StringComparison.Ordinal))
+            {
+                return options[index];
+            }
+        }
+
+        return null;
+    }
+
+    private void EnsureCompareCycleSelections()
+    {
+        if (ResetCycleOptions.Count == 0)
+        {
+            _compareLeftCycle = null;
+            _compareRightCycle = null;
+            OnPropertyChanged(nameof(CompareLeftCycle));
+            OnPropertyChanged(nameof(CompareRightCycle));
+            return;
+        }
+
+        string? leftId = _compareLeftCycle?.Id;
+        string? rightId = _compareRightCycle?.Id;
+        UsageReportResetCycleOption left = FindCycle(ResetCycleOptions, leftId)
+            ?? FindCurrentCycle(ResetCycleOptions)
+            ?? ResetCycleOptions[0];
+        UsageReportResetCycleOption right = FindCycle(ResetCycleOptions, rightId)
+            ?? FindOtherCycle(ResetCycleOptions, left.Id)
+            ?? left;
+        _compareLeftCycle = left;
+        _compareRightCycle = right;
+        OnPropertyChanged(nameof(CompareLeftCycle));
+        OnPropertyChanged(nameof(CompareRightCycle));
+    }
+
+    private static UsageReportResetCycleOption? FindCycle(
+        IReadOnlyList<UsageReportResetCycleOption> options,
+        string? cycleId)
+    {
+        if (string.IsNullOrWhiteSpace(cycleId))
+        {
+            return null;
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (string.Equals(options[index].Id, cycleId, StringComparison.Ordinal))
+            {
+                return options[index];
+            }
+        }
+
+        return null;
+    }
+
+    private static UsageReportResetCycleOption? FindCurrentCycle(
+        IReadOnlyList<UsageReportResetCycleOption> options)
+    {
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (options[index].IsCurrent)
+            {
+                return options[index];
+            }
+        }
+
+        return null;
+    }
+
+    private static UsageReportResetCycleOption? FindOtherCycle(
+        IReadOnlyList<UsageReportResetCycleOption> options,
+        string excludeId)
+    {
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(options[index].Id, excludeId, StringComparison.Ordinal))
+            {
+                return options[index];
+            }
+        }
+
+        return null;
+    }
+
+    private void AssignCompareLabels()
+    {
+        CompareLeftLabel = CompareAxis switch
+        {
+            UsageReportCompareAxis.Providers => CompareLeftProvider?.Name ?? string.Empty,
+            UsageReportCompareAxis.Periods => FormatCompareRange(
+                "UsageReportCompareCurrentRangeFormat",
+                _compareLeftStart,
+                _compareLeftEnd),
+            UsageReportCompareAxis.Cycles => CompareLeftCycle?.DisplayName ?? string.Empty,
+            _ => string.Empty,
+        };
+        CompareRightLabel = CompareAxis switch
+        {
+            UsageReportCompareAxis.Providers => CompareRightProvider?.Name ?? string.Empty,
+            UsageReportCompareAxis.Periods => FormatCompareRange(
+                "UsageReportComparePreviousRangeFormat",
+                _compareRightStart,
+                _compareRightEnd),
+            UsageReportCompareAxis.Cycles => CompareRightCycle?.DisplayName ?? string.Empty,
+            _ => string.Empty,
+        };
+
+        UsageReportMetricDelta delta = UsageReportQuery.Subtract(
+            _report.Totals,
+            _compareRightReport.Totals);
+        CompareLeftCostText = FormatUsd(_report.Totals.TotalCostUsd);
+        CompareLeftTokensText = FormatTokens(_report.Totals.Tokens.Total);
+        CompareRightCostText = FormatUsd(_compareRightReport.Totals.TotalCostUsd);
+        CompareRightTokensText = FormatTokens(_compareRightReport.Totals.Tokens.Total);
+        CompareDeltaCostText = FormatSignedUsd(delta.TotalCostUsd);
+        CompareDeltaTokensText = FormatSignedTokens(delta.Tokens);
+    }
+
+    private string FormatCompareRange(string resourceKey, DateOnly start, DateOnly end) =>
+        string.Format(
+            CultureInfo.CurrentCulture,
+            GetString(resourceKey),
+            start.ToString("d MMM", CultureInfo.CurrentCulture),
+            end.ToString("d MMM", CultureInfo.CurrentCulture));
+
+    private UsageReportCompareRow[] CreateCompareRows()
+    {
+        UsageReportMetricDelta delta = UsageReportQuery.Subtract(
+            _report.Totals,
+            _compareRightReport.Totals);
+        return
+        [
+            new(
+                GetString("UsageReportCompareTokensMetric"),
+                FormatTokens(_report.Totals.Tokens.Total),
+                FormatTokens(_compareRightReport.Totals.Tokens.Total),
+                FormatSignedTokens(delta.Tokens)),
+            new(
+                GetString("UsageReportCompareCostMetric"),
+                FormatUsd(_report.Totals.TotalCostUsd),
+                FormatUsd(_compareRightReport.Totals.TotalCostUsd),
+                FormatSignedUsd(delta.TotalCostUsd)),
+            new(
+                GetString("UsageReportCompareReportedCostMetric"),
+                FormatUsd(_report.Totals.ReportedCostUsd ?? 0m),
+                FormatUsd(_compareRightReport.Totals.ReportedCostUsd ?? 0m),
+                FormatSignedUsd(delta.ReportedCostUsd)),
+            new(
+                GetString("UsageReportCompareEstimatedCostMetric"),
+                FormatUsd(_report.Totals.EstimatedCostUsd ?? 0m),
+                FormatUsd(_compareRightReport.Totals.EstimatedCostUsd ?? 0m),
+                FormatSignedUsd(delta.EstimatedCostUsd)),
+            new(
+                GetString("UsageReportCompareUnpricedMetric"),
+                FormatTokens(_report.Totals.UnpricedTokens),
+                FormatTokens(_compareRightReport.Totals.UnpricedTokens),
+                FormatSignedTokens(delta.UnpricedTokens)),
+            new(
+                GetString("UsageReportCompareEventsMetric"),
+                UsageValueFormatter.Count(_report.Totals.EventCount),
+                UsageValueFormatter.Count(_compareRightReport.Totals.EventCount),
+                FormatSignedCount(delta.EventCount)),
+        ];
+    }
+
+    private UsageReportTrendDataset CreateCompareTrend()
+    {
+        bool alignByIndex = CompareAxis != UsageReportCompareAxis.Providers;
+        int leftCount = InclusiveDayCount(_compareLeftStart, _compareLeftEnd);
+        int rightCount = InclusiveDayCount(_compareRightStart, _compareRightEnd);
+        int dayCount = alignByIndex ? Math.Max(leftCount, rightCount) : leftCount;
+        UsageReportTrendDay[] days = Enumerable.Range(0, dayCount)
+            .Select(offset =>
+            {
+                DateOnly date = _compareLeftStart.AddDays(offset);
+                string label = alignByIndex
+                    ? string.Format(
+                        CultureInfo.CurrentCulture,
+                        GetString("UsageReportCompareDayFormat"),
+                        offset + 1)
+                    : date.ToString("d MMM", CultureInfo.CurrentCulture);
+                return new UsageReportTrendDay(date, label);
+            })
+            .ToArray();
+        double[] leftValues = DailyCompareValues(_report, _compareLeftStart, dayCount);
+        double[] rightValues = DailyCompareValues(
+            _compareRightReport,
+            alignByIndex ? _compareRightStart : _compareLeftStart,
+            dayCount);
+        return new UsageReportTrendDataset(
+            Metric,
+            days,
+            [
+                new UsageReportTrendSeries(
+                    "compare-left",
+                    CompareLeftLabel,
+                    CompareSeriesColor(isRight: false),
+                    leftValues),
+                new UsageReportTrendSeries(
+                    "compare-right",
+                    CompareRightLabel,
+                    CompareSeriesColor(isRight: true),
+                    rightValues),
+            ]);
+    }
+
+    private double[] DailyCompareValues(UsageReport report, DateOnly start, int dayCount)
+    {
+        var metricsByDate = report.Days.ToDictionary(day => day.Date, day => day.Metrics);
+        return Enumerable.Range(0, dayCount)
+            .Select(offset =>
+            {
+                DateOnly date = start.AddDays(offset);
+                if (!metricsByDate.TryGetValue(date, out UsageReportMetrics? metrics))
+                {
+                    return 0d;
+                }
+
+                return IsCostMetric
+                    ? (double)metrics.TotalCostUsd
+                    : metrics.Tokens.Total;
+            })
+            .ToArray();
+    }
+
+    private string CompareSeriesColor(bool isRight)
+    {
+        if (CompareAxis == UsageReportCompareAxis.Providers)
+        {
+            string? providerId = isRight
+                ? CompareRightProvider?.ProviderId
+                : CompareLeftProvider?.ProviderId;
+            if (!string.IsNullOrWhiteSpace(providerId))
+            {
+                return ProviderColorPalette.GetEffectiveHex(providerId, null);
+            }
+        }
+
+        return isRight ? "#F97316" : "#3B82F6";
+    }
+
+    private static int InclusiveDayCount(DateOnly start, DateOnly end) =>
+        Math.Max(1, end.DayNumber - start.DayNumber + 1);
+
+    private string FormatSignedUsd(decimal amount)
+    {
+        if (amount == 0)
+        {
+            return FormatUsd(0);
+        }
+
+        string magnitude = FormatUsd(Math.Abs(amount));
+        return amount > 0 ? "+" + magnitude : "\u2212" + magnitude;
+    }
+
+    private static string FormatSignedTokens(long amount)
+    {
+        if (amount == 0)
+        {
+            return FormatTokens(0);
+        }
+
+        string magnitude = FormatTokens(Math.Abs(amount));
+        return amount > 0 ? "+" + magnitude : "\u2212" + magnitude;
+    }
+
+    private static string FormatSignedCount(int amount)
+    {
+        if (amount == 0)
+        {
+            return UsageValueFormatter.Count(0);
+        }
+
+        string magnitude = UsageValueFormatter.Count(Math.Abs(amount));
+        return amount > 0 ? "+" + magnitude : "\u2212" + magnitude;
     }
 
     private UsageReportProviderRow[] CreateProviderRows()

@@ -124,7 +124,8 @@ public sealed record QuotaWindow(
     bool IsHighlighted = false,
     string HighlightLabel = "",
     DateTimeOffset? ResetAtUtc = null,
-    double? QuotaRemainingPercent = null)
+    double? QuotaRemainingPercent = null,
+    string UsedText = "")
 {
     public bool IsWithinLimit => !IsNearLimit;
 
@@ -417,6 +418,7 @@ public sealed record ProviderStatusRow(
 
     public bool CanConfigure { get; init; }
 
+
     public bool HasSavedCredential { get; init; }
 
     public bool RequiresSecondaryField { get; init; }
@@ -434,6 +436,7 @@ public sealed record ProviderStatusRow(
     public bool HasSecondaryField => SecondaryFieldLabel.Length > 0;
 
     public string ConfigureAutomationId => $"{AutomationId}.Configure";
+
 
     public string ConfigureAutomationName { get; init; } = string.Empty;
 

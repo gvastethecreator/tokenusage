@@ -18,7 +18,7 @@ public sealed class GooseUsageEventSource :
     ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "goose-sessions/1";
+    public const string ParserVersion = "goose-sessions/3";
     private const long DefaultMaximumDatabaseBytes = 1024L * 1024 * 1024;
     private readonly string _databasePath;
     private readonly string _groupingTimeZoneId;
@@ -226,18 +226,19 @@ public sealed class GooseUsageEventSource :
         }
 
         bool hasCost = TryNonNegativeDecimal(reader, 7, out decimal costUsd);
-        CostObservation cost = hasCost
-            ? CostObservation.ProviderReported(decimal.Round(
-                costUsd,
-                6,
-                MidpointRounding.AwayFromZero))
-            : KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
-        string provider = reader.IsDBNull(3) ? string.Empty : NormalizeId(reader.GetString(3));
+        CostObservation cost = KnownModelPricingCatalog.ResolveReportedOrCatalog(
+            hasCost ? costUsd : null,
+            model,
+            timestamp,
+            tokens);
+        string provider = reader.IsDBNull(3)
+            ? string.Empty
+            : reader.GetString(3);
         usageEvent = new UsageEvent(
             new UsageEventKey(Hash($"goose\0{sessionId}")),
             AgentId,
-            string.IsNullOrWhiteSpace(provider) ? null : new ModelProviderId(provider),
-            new ModelId(NormalizeId(model)),
+            ModelIdentity.TryProviderId(provider),
+            ModelIdentity.ToModelId(model),
             timestamp,
             _groupingTimeZoneId,
             tokens,
@@ -387,28 +388,6 @@ public sealed class GooseUsageEventSource :
         command.CommandText = text;
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         command.ExecuteNonQuery();
-    }
-
-    private static string NormalizeId(string value)
-    {
-        var output = new StringBuilder(value.Length);
-        bool separator = false;
-        foreach (char character in value.Trim().ToLowerInvariant())
-        {
-            if (char.IsAsciiLetterOrDigit(character))
-            {
-                output.Append(character);
-                separator = false;
-            }
-            else if (!separator && output.Length > 0)
-            {
-                output.Append('-');
-                separator = true;
-            }
-        }
-
-        string normalized = output.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(normalized) ? "unknown" : normalized;
     }
 
     private static string Hash(string value) => Convert.ToHexString(

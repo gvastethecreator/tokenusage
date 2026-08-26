@@ -144,7 +144,7 @@ Test-Ui "Provider details expose source and observation data" {
     Open-SampleScenario 0
     $details = & winapp ui get-property "SampleProvider.Codex.Details" -a $AppPid -p HelpText --json 2>$null |
         ConvertFrom-Json
-    if ($details.properties.HelpText -notmatch "Datos de muestra|Sample data") {
+    if ($details.properties.HelpText -notmatch "Sample data") {
         throw "Provider details did not expose focus-accessible help text."
     }
 
@@ -156,7 +156,7 @@ Test-Ui "Provider details expose source and observation data" {
     Start-Sleep -Milliseconds 250
     Wait-Id "SampleProvider.Codex.Details.Source"
     Wait-Id "SampleProvider.Codex.Details.Observed"
-    & winapp ui wait-for "SampleProvider.Codex.Details.Source" -a $AppPid --value "Datos de muestra" --contains -t 1000 2>$null | Out-Null
+    & winapp ui wait-for "SampleProvider.Codex.Details.Source" -a $AppPid --value "Sample data" --contains -t 1000 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
         & winapp ui wait-for "SampleProvider.Codex.Details.Source" -a $AppPid --value "Sample data" --contains -t 1000 2>$null | Out-Null
     }

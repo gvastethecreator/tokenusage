@@ -35,61 +35,6 @@
                     <TextBlock x:Uid="GeneralSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
                 </StackPanel>
             </Grid>
-            <Grid
-                AutomationProperties.AutomationId="LanguageSection"
-                ColumnSpacing="12"
-                RowSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="220" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock
-                    x:Uid="LanguageSectionTitle"
-                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                    VerticalAlignment="Center" />
-                <ComboBox
-                    x:Name="LanguageSelector"
-                    x:Uid="LanguageSelector"
-                    Grid.Column="1"
-                    AutomationProperties.AutomationId="LanguageSelector"
-                    DisplayMemberPath="DisplayName"
-                    HorizontalAlignment="Stretch"
-                    ItemsSource="{x:Bind ViewModel.LanguageOptions}"
-                    SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
-                <InfoBar
-                    x:Name="LanguageRestartNotice"
-                    x:Uid="LanguageRestartNotice"
-                    Grid.Row="1"
-                    Grid.ColumnSpan="2"
-                    AutomationProperties.AutomationId="LanguageRestartNotice"
-                    AutomationProperties.LiveSetting="Polite"
-                    IsClosable="False"
-                    IsOpen="{x:Bind ViewModel.IsLanguageRestartRequired, Mode=OneWay}"
-                    Severity="Informational">
-                    <InfoBar.ActionButton>
-                        <Button
-                            x:Uid="LanguageRestartButton"
-                            AutomationProperties.AutomationId="LanguageRestartButton"
-                            Click="OnRestartForLanguageClicked" />
-                    </InfoBar.ActionButton>
-                </InfoBar>
-                <InfoBar
-                    x:Name="LanguageRestartError"
-                    x:Uid="LanguageRestartError"
-                    Grid.Row="2"
-                    Grid.ColumnSpan="2"
-                    AutomationProperties.AutomationId="LanguageRestartError"
-                    AutomationProperties.LiveSetting="Assertive"
-                    IsClosable="False"
-                    IsOpen="{x:Bind ViewModel.IsLanguageRestartErrorVisible, Mode=OneWay}"
-                    Severity="Error" />
-            </Grid>
-            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
             <Grid ColumnSpacing="12" MinHeight="32">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -108,6 +53,53 @@
                     IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
                     OffContent=""
                     OnContent=""
+                    VerticalAlignment="Center" />
+            </Grid>
+            <Grid ColumnSpacing="12" MinHeight="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock
+                        x:Uid="DataCollectionBackgroundLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                </StackPanel>
+                <ToggleSwitch
+                    x:Name="DataCollectionBackgroundToggle"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="DataCollectionBackgroundToggle"
+                    HorizontalAlignment="Right"
+                    IsOn="{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}"
+                    OffContent=""
+                    OnContent=""
+                    VerticalAlignment="Center">
+                    <ToolTipService.ToolTip>
+                        <ToolTip
+                            x:Uid="DataCollectionBackgroundTooltip"
+                            ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
+                            MaxWidth="300" />
+                    </ToolTipService.ToolTip>
+                </ToggleSwitch>
+            </Grid>
+            <Grid ColumnSpacing="12" MinHeight="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Uid="DataCollectionRefreshLabel"
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    VerticalAlignment="Center" />
+                <ComboBox
+                    x:Name="DataCollectionOpenRefreshSelector"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="DataCollectionOpenRefreshSelector"
+                    DisplayMemberPath="Label"
+                    HorizontalAlignment="Right"
+                    ItemsSource="{x:Bind ViewModel.DataCollectionRefreshOptions, Mode=OneWay}"
+                    MinWidth="200"
+                    SelectedItem="{x:Bind ViewModel.SelectedDataCollectionRefresh, Mode=TwoWay}"
                     VerticalAlignment="Center" />
             </Grid>
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />

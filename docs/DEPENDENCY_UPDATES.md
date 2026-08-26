@@ -1,46 +1,42 @@
-# Actualización de dependencias
+# Dependency maintenance
 
-Fecha: 2026-08-13
+Last reviewed: 2026-08-14
 
-## Estado
+## Current state
 
-`tokenusage` es un proyecto nativo .NET/WinUI; no usa Bun ni pnpm. Las
-dependencias activas quedan en la última versión estable.
+TokenUsage is a native .NET and WinUI project. It does not use Bun or pnpm.
+The active dependency graph is on the latest stable releases available from
+the configured NuGet sources.
 
-| Paquete o acción | Versión | Motivo |
+| Package or action | Version | Notes |
 | --- | --- | --- |
-| Microsoft.Windows.SDK.BuildTools.WinApp | 0.6.0 | único paquete NuGet estable desactualizado |
-| actions/checkout | v7.0.1 | runtime Node 24 |
-| actions/setup-dotnet | v6.0.0 | runtime Node 24 |
-| microsoft/setup-msbuild | v3 | runtime Node 24 |
-| actions/upload-artifact | v7.0.1 | runtime Node 24 |
+| Microsoft.WindowsAppSDK | 2.4.0 | Latest stable Windows App SDK |
+| Microsoft.Windows.SDK.BuildTools.WinApp | 0.6.0 | Kept private to the app project |
+| Microsoft.NET.Test.Sdk | 18.9.0 | Current stable test host |
+| actions/checkout | v7.0.1 | Node 24 action runtime |
+| actions/setup-dotnet | v6.0.0 | Node 24 action runtime |
+| microsoft/setup-msbuild | v3 | Current stable MSBuild setup action |
+| actions/upload-artifact | v7.0.1 | Node 24 action runtime |
 
-Se revisaron también Windows App SDK 2.3.1, CommunityToolkit.Mvvm 8.4.2,
-Microsoft.Data.Sqlite 10.0.11, SQLitePCLRaw 3.0.5, Windows SDK Build Tools
-10.0.28000.2526, Microsoft.NET.Test.Sdk 18.8.1, xunit 2.9.3 y
-xunit.runner.visualstudio 3.1.5. Esas piezas ya estaban en la última estable.
+The review also covered CommunityToolkit.Mvvm 8.4.2, Microsoft.Data.Sqlite
+10.0.11, SQLitePCLRaw 3.0.5, Windows SDK Build Tools 10.0.28000.2526,
+xUnit 2.9.3, and xunit.runner.visualstudio 4.0.0. No preview packages were
+selected.
 
-No se tomaron previews (Windows App SDK 2.3.2-experimental, EF 11, xUnit 4).
-Tampoco se migró a `xunit.v3`: v2.9.3 es la última de ese paquete, y v3 exige
-pasar `TestContext.Current.CancellationToken` en cientos de tests bajo
-`TreatWarningsAsErrors`.
+The app's WinApp helper remains `PrivateAssets="all"` so a development launch
+tool does not flow into the product dependency graph.
 
-WinApp 0.6.0 pide `PrivateAssets="all"` en la app de cabecera para que la
-herramienta de `dotnet run` no fluya como dependencia de producto.
+Official package versions were checked against the NuGet V3 catalog. The
+dependency check and vulnerability audit were then rerun with an isolated
+package cache because the machine-wide CommunityToolkit.Mvvm cache was
+incomplete.
 
-Fuentes oficiales: [WinApp 0.6.0](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools.WinApp/0.6.0),
-[checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1),
-[setup-dotnet v6.0.0](https://github.com/actions/setup-dotnet/releases/tag/v6.0.0),
-[setup-msbuild v3](https://github.com/microsoft/setup-msbuild/releases/tag/v3) y
-[upload-artifact v7.0.1](https://github.com/actions/upload-artifact/releases/tag/v7.0.1).
-
-## Comandos
+## Commands
 
 ```powershell
-dotnet restore src\TokenUsage.App\TokenUsage.App.csproj
 .\scripts\deps-check.ps1
 .\scripts\audit.ps1
 ```
 
-Los proyectos de `.scratch`, `.reference` y `.snapshots` son probes históricos;
-se mantienen fuera del grafo operativo y no se actualizan automáticamente.
+Projects under `.scratch`, `.reference`, and `.snapshots` are historical probes.
+They stay outside the active graph and are not updated automatically.

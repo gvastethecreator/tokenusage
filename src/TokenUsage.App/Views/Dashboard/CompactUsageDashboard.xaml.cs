@@ -186,6 +186,24 @@ public sealed partial class CompactUsageDashboard : UserControl
             this,
             new UsageReportRequestedEventArgs(ViewModel.CreateReportRequest(e.Cell.Date)));
 
+    private void OnQuotaTilesSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is not ItemsRepeater repeater
+            || repeater.Layout is not UniformGridLayout layout)
+        {
+            return;
+        }
+
+        const double columnSpacing = 14d;
+        double perItem = Math.Floor((e.NewSize.Width - columnSpacing) / 2d);
+        if (perItem < 120d || Math.Abs(layout.MinItemWidth - perItem) < 0.5)
+        {
+            return;
+        }
+
+        layout.MinItemWidth = perItem;
+    }
+
     private void OnOptionsClick(object sender, RoutedEventArgs e) =>
         OptionsRequested?.Invoke(this, EventArgs.Empty);
 }

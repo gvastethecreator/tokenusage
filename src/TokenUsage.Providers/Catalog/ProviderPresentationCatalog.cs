@@ -18,6 +18,7 @@ public static class ProviderPresentationCatalog
         "mux",
         "goose",
         "hermes",
+        "zcode",
     ];
 
     private static readonly Dictionary<string, int> CuratedRanks = CuratedOrder
@@ -68,6 +69,7 @@ public static class ProviderPresentationCatalog
             ["vercel-ai-gateway"] = "vercel-ai-gateway.svg",
             ["xai"] = "xai.svg",
             ["zai"] = "zai.svg",
+            ["zcode"] = "zcode.svg",
             ["zed"] = "zed.svg",
         };
 
@@ -81,6 +83,7 @@ public static class ProviderPresentationCatalog
             ["grok"] = "LocalUsageAgentGrok",
             ["grok-bot"] = "LocalUsageAgentGrokBot",
             ["opencode"] = "LocalUsageAgentOpenCode",
+            ["zcode"] = "LocalUsageAgentZcode",
         };
 
     public static int CuratedRank(string? providerId) =>

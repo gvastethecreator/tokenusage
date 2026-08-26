@@ -2,6 +2,7 @@ using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Providers.Grok;
+using TokenUsage.Providers.Zcode;
 
 namespace TokenUsage.Providers.Pricing;
 
@@ -93,6 +94,11 @@ public static class KnownModelPricingCatalog
             || normalized.StartsWith("composer-", StringComparison.Ordinal))
         {
             return GrokPricingCatalog.Resolve(normalized, tokens);
+        }
+
+        if (normalized.Contains("glm", StringComparison.Ordinal))
+        {
+            return ZcodePricingCatalog.Resolve(normalized, tokens);
         }
 
         return CostObservation.Unavailable();

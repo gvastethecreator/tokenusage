@@ -167,7 +167,10 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         _ = DispatcherQueue.TryEnqueue(() =>
         {
-            if (_disposed || _isFlyoutVisible || _traySummaryWindow?.IsVisible is true)
+            if (_disposed
+                || !RootPage.ViewModel.Appearance.TrayPopover.IsEnabled
+                || _isFlyoutVisible
+                || _traySummaryWindow?.IsVisible is true)
             {
                 return;
             }
@@ -450,6 +453,12 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void UpdateVisibleTraySummary()
     {
+        if (!RootPage.ViewModel.Appearance.TrayPopover.IsEnabled)
+        {
+            HideTraySummary(force: true);
+            return;
+        }
+
         if (_traySummaryWindow?.IsVisible is not true
             || _trayIcon is null
             || !_trayIcon.TryGetIconBounds(out PlatformRect iconBounds))

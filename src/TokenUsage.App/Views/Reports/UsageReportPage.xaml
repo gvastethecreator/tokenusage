@@ -270,9 +270,13 @@
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <RadioButton x:Uid="UsageReportGlobalButton" AutomationProperties.AutomationId="UsageReportGlobalButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Global" Click="OnScopeClick" />
                             <RadioButton x:Uid="UsageReportProviderButton" AutomationProperties.AutomationId="UsageReportProviderButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasProviderOptions, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Provider" Click="OnScopeClick" />
+                            <RadioButton x:Uid="UsageReportCompareButton" AutomationProperties.AutomationId="UsageReportCompareButton" GroupName="UsageReportScopeTabs" IsChecked="{x:Bind ViewModel.IsCompareScope, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Compare" Click="OnScopeClick" />
                         </StackPanel>
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.IsPeriodPickerVisible, Mode=OneWay}">
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <RadioButton x:Uid="UsageReport1DayButton" AutomationProperties.AutomationId="UsageReport1DayButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsOneDay, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="1" Click="OnPeriodClick" />
+                            <RadioButton x:Uid="UsageReport3DaysButton" AutomationProperties.AutomationId="UsageReport3DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsThreeDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="3" Click="OnPeriodClick" />
                             <RadioButton x:Uid="UsageReport7DaysButton" AutomationProperties.AutomationId="UsageReport7DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsSevenDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="7" Click="OnPeriodClick" />
                             <RadioButton x:Uid="UsageReport30DaysButton" AutomationProperties.AutomationId="UsageReport30DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsThirtyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="30" Click="OnPeriodClick" />
                             <RadioButton x:Uid="UsageReport90DaysButton" AutomationProperties.AutomationId="UsageReport90DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsNinetyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="90" Click="OnPeriodClick" />
@@ -334,6 +338,7 @@
                                 <FontIcon FontSize="12" Glyph="&#xE76C;" />
                             </Button>
                         </Grid>
+                        </StackPanel>
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <RadioButton x:Uid="UsageReportCostButton" AutomationProperties.AutomationId="UsageReportCostButton" GroupName="UsageReportMetricTabs" IsChecked="{x:Bind ViewModel.IsCostMetric, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Cost" Click="OnMetricClick" />
@@ -408,7 +413,7 @@
                         <Grid.Clip>
                             <RectangleGeometry x:Name="ReportProviderTabsClip" />
                         </Grid.Clip>
-                        <Grid x:Name="ReportProviderTabsTransitionRoot" Margin="2">
+                        <Grid x:Name="ReportProviderTabsTransitionRoot" Margin="2,0">
                             <Grid.RenderTransform>
                                 <CompositeTransform x:Name="ReportProviderTabsTransitionTransform" />
                             </Grid.RenderTransform>
@@ -461,6 +466,100 @@
                     </Button>
                 </Grid>
 
+                <StackPanel
+                    x:Name="ReportCompareToolbar"
+                    Spacing="8"
+                    Visibility="{x:Bind ViewModel.IsCompareScope, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton
+                            x:Uid="UsageReportCompareProvidersButton"
+                            AutomationProperties.AutomationId="UsageReportCompareProvidersButton"
+                            GroupName="UsageReportCompareAxisTabs"
+                            IsChecked="{x:Bind ViewModel.IsCompareProvidersAxis, Mode=OneWay}"
+                            Style="{StaticResource ReportToolbarToggleButtonStyle}"
+                            Tag="Providers"
+                            Click="OnCompareAxisClick" />
+                        <RadioButton
+                            x:Uid="UsageReportComparePeriodsButton"
+                            AutomationProperties.AutomationId="UsageReportComparePeriodsButton"
+                            GroupName="UsageReportCompareAxisTabs"
+                            IsChecked="{x:Bind ViewModel.IsComparePeriodsAxis, Mode=OneWay}"
+                            Style="{StaticResource ReportToolbarToggleButtonStyle}"
+                            Tag="Periods"
+                            Click="OnCompareAxisClick" />
+                        <RadioButton
+                            x:Uid="UsageReportCompareCyclesButton"
+                            AutomationProperties.AutomationId="UsageReportCompareCyclesButton"
+                            GroupName="UsageReportCompareAxisTabs"
+                            IsChecked="{x:Bind ViewModel.IsCompareCyclesAxis, Mode=OneWay}"
+                            Style="{StaticResource ReportToolbarToggleButtonStyle}"
+                            Tag="Cycles"
+                            Click="OnCompareAxisClick" />
+                    </StackPanel>
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Visibility="{x:Bind ViewModel.IsCompareProviderPickersVisible, Mode=OneWay}">
+                        <ComboBox
+                            x:Uid="UsageReportCompareLeftProviderSelector"
+                            AutomationProperties.AutomationId="UsageReportCompareLeftProviderSelector"
+                            ItemsSource="{x:Bind ViewModel.ProviderOptions, Mode=OneWay}"
+                            MinWidth="180"
+                            SelectedItem="{x:Bind ViewModel.CompareLeftProvider, Mode=TwoWay}"
+                            Style="{StaticResource ReportToolbarComboBoxStyle}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageReportProviderOption">
+                                    <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <ComboBox
+                            x:Uid="UsageReportCompareRightProviderSelector"
+                            AutomationProperties.AutomationId="UsageReportCompareRightProviderSelector"
+                            ItemsSource="{x:Bind ViewModel.ProviderOptions, Mode=OneWay}"
+                            MinWidth="180"
+                            SelectedItem="{x:Bind ViewModel.CompareRightProvider, Mode=TwoWay}"
+                            Style="{StaticResource ReportToolbarComboBoxStyle}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageReportProviderOption">
+                                    <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Visibility="{x:Bind ViewModel.IsCompareCyclePickersVisible, Mode=OneWay}">
+                        <ComboBox
+                            x:Uid="UsageReportCompareLeftCycleSelector"
+                            AutomationProperties.AutomationId="UsageReportCompareLeftCycleSelector"
+                            ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
+                            MinWidth="220"
+                            SelectedItem="{x:Bind ViewModel.CompareLeftCycle, Mode=TwoWay}"
+                            Style="{StaticResource ReportToolbarComboBoxStyle}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageReportResetCycleOption">
+                                    <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <ComboBox
+                            x:Uid="UsageReportCompareRightCycleSelector"
+                            AutomationProperties.AutomationId="UsageReportCompareRightCycleSelector"
+                            ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
+                            MinWidth="220"
+                            SelectedItem="{x:Bind ViewModel.CompareRightCycle, Mode=TwoWay}"
+                            Style="{StaticResource ReportToolbarComboBoxStyle}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageReportResetCycleOption">
+                                    <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+
                 <Border Padding="16,12" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}" CornerRadius="6" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
                     <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" TextWrapping="Wrap" />
                 </Border>
@@ -473,6 +572,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="ReportDataContent" Spacing="12" Visibility="{x:Bind ViewModel.HasData, Mode=OneWay}">
+                    <StackPanel x:Name="ReportStandardContent" Spacing="12" Visibility="{x:Bind ViewModel.IsStandardReportVisible, Mode=OneWay}">
                     <Border Style="{StaticResource ReportCardStyle}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -762,6 +862,84 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+                    </StackPanel>
+                    <StackPanel
+                        x:Name="ReportCompareContent"
+                        Spacing="12"
+                        Visibility="{x:Bind ViewModel.IsCompareScope, Mode=OneWay}">
+                        <Border Style="{StaticResource ReportCardStyle}">
+                            <Grid x:Name="ReportCompareSummary">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Padding="16,12" Spacing="3">
+                                    <TextBlock Style="{StaticResource ReportSectionLabelStyle}" Text="{x:Bind ViewModel.CompareLeftLabel, Mode=OneWay}" />
+                                    <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.CompareLeftCostText, Mode=OneWay}" />
+                                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.CompareLeftTokensText, Mode=OneWay}" />
+                                </StackPanel>
+                                <Border Grid.Column="1" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Style="{StaticResource ReportSectionLabelStyle}" Text="{x:Bind ViewModel.CompareRightLabel, Mode=OneWay}" />
+                                        <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.CompareRightCostText, Mode=OneWay}" />
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.CompareRightTokensText, Mode=OneWay}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock x:Uid="UsageReportCompareDeltaColumn" Style="{StaticResource ReportSectionLabelStyle}" />
+                                        <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.CompareDeltaCostText, Mode=OneWay}" />
+                                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.CompareDeltaTokensText, Mode=OneWay}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
+                            <StackPanel Spacing="7">
+                                <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" />
+                                <controls:UsageTrendChart
+                                    x:Name="ReportCompareChart"
+                                    AutomationProperties.AutomationId="UsageReportCompareTrendChart"
+                                    Data="{x:Bind ViewModel.Trend, Mode=OneWay}"
+                                    PlotHeight="250" />
+                            </StackPanel>
+                        </Border>
+                        <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
+                            <StackPanel Spacing="7">
+                                <Grid Padding="0,7" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Uid="UsageReportCompareMetricColumn" Style="{StaticResource CaptionTextBlockStyle}" />
+                                    <TextBlock x:Uid="UsageReportCompareLeftColumn" Grid.Column="1" Style="{StaticResource CaptionTextBlockStyle}" TextAlignment="Right" />
+                                    <TextBlock x:Uid="UsageReportCompareRightColumn" Grid.Column="2" Style="{StaticResource CaptionTextBlockStyle}" TextAlignment="Right" />
+                                    <TextBlock x:Uid="UsageReportCompareDeltaColumn" Grid.Column="3" Style="{StaticResource CaptionTextBlockStyle}" TextAlignment="Right" />
+                                </Grid>
+                                <ItemsRepeater x:Name="ReportCompareRows" ItemsSource="{x:Bind ViewModel.CompareRows, Mode=OneWay}">
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="reports:UsageReportCompareRow">
+                                            <Grid Padding="0,9" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="170" />
+                                                    <ColumnDefinition Width="170" />
+                                                    <ColumnDefinition Width="140" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind Metric}" />
+                                                <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind LeftText}" TextAlignment="Right" />
+                                                <TextBlock Grid.Column="2" FontFamily="Consolas" Text="{x:Bind RightText}" TextAlignment="Right" />
+                                                <TextBlock Grid.Column="3" FontFamily="Consolas" Text="{x:Bind DeltaText}" TextAlignment="Right" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </StackPanel>
                 </StackPanel>
             </Grid>

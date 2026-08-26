@@ -14,7 +14,8 @@ public static class CodexDashboardProjector
     public static DashboardSnapshot Create(
         ProviderSnapshot snapshot,
         TimeProvider clock,
-        Func<string, string> getString)
+        Func<string, string> getString,
+        IReadOnlyDictionary<string, long>? windowUsedTokens = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(clock);
@@ -59,6 +60,7 @@ public static class CodexDashboardProjector
                 durations.GetValueOrDefault(metric.Id.Value),
                 clock,
                 getString,
+                windowUsedTokens,
                 ref additionalWindow));
         }
         string plan = snapshot.PlanLabel ?? getString("CodexPlanUnknown");
@@ -106,6 +108,7 @@ public static class CodexDashboardProjector
         decimal durationMinutes,
         TimeProvider clock,
         Func<string, string> text,
+        IReadOnlyDictionary<string, long>? windowUsedTokens,
         ref int additionalWindow)
     {
         double remaining = decimal.ToDouble(metric.RemainingPercent);
@@ -126,18 +129,29 @@ public static class CodexDashboardProjector
             clock,
             text);
 
+        string usedTokens = windowUsedTokens is not null
+            && windowUsedTokens.TryGetValue(metric.Id.Value, out long usedTokenCount)
+                ? Format(
+                    text,
+                    "CodexQuotaUsedTokensFormat",
+                    UsageValueFormatter.CompactTokens(usedTokenCount))
+                : string.Empty;
+
         return new QuotaWindow(
             title,
             remaining,
             usage,
             reset,
-            $"Codex, {title}: {usage}. {reset}",
+            usedTokens.Length == 0
+                ? $"Codex, {title}: {usage}. {reset}"
+                : $"Codex, {title}: {usage}. {reset}. {usedTokens}",
             remaining <= 15d,
             paceText,
             isPaceBehind,
             $"CodexPace.{metric.Id.Value}",
             LayoutMetricId: metric.Id.Value,
-            ResetAtUtc: metric.ResetsAtUtc);
+            ResetAtUtc: metric.ResetsAtUtc,
+            UsedText: usedTokens);
     }
 
     private static IReadOnlyList<DashboardMetric> CreateUsageMetrics(

@@ -13,6 +13,8 @@ namespace TokenUsage.App.ViewModels;
 /// </summary>
 public sealed class LiveDashboardSession : IDisposable
 {
+    private static readonly AgentId CodexAgentId = new("codex");
+
     private readonly object _updateSync = new();
     private readonly AppSessionHost _host;
     private readonly LocalUsageCoordinator _localUsage;
@@ -42,6 +44,14 @@ public sealed class LiveDashboardSession : IDisposable
 
     public ProviderSnapshot? LastCodexSnapshot { get; private set; }
 
+    /// <summary>
+    /// Tokens the local store recorded inside each Codex quota window, keyed by the quota
+    /// metric ID. The quota API only reports percents, so the cycle's spent tokens come from
+    /// the exact local events summed over each window's start.
+    /// </summary>
+    public IReadOnlyDictionary<string, long> CodexWindowUsedTokens { get; private set; } =
+        new Dictionary<string, long>();
+
     public ProviderOutcome? LastCodexOutcome { get; private set; }
 
     public LocalUsageCard? RawLocalUsage { get; private set; }
@@ -49,6 +59,7 @@ public sealed class LiveDashboardSession : IDisposable
     public IReadOnlyList<DailyUsageRollup> LocalUsageRollups { get; private set; } = [];
 
     public bool HasLocalUsage { get; private set; }
+
 
     public SampleDataState DataState { get; private set; } = SampleDataState.Idle;
 
@@ -256,6 +267,7 @@ public sealed class LiveDashboardSession : IDisposable
                 if (codex is not null)
                 {
                     await ObserveResetHistoryAsync(codex).ConfigureAwait(true);
+                    await SumCodexWindowTokensAsync(codex).ConfigureAwait(true);
                     LastCodexSnapshot = codex;
                     PublishedObservedAtUtc = codex.SourceObservedAtUtc;
                     HasPublished = true;
@@ -280,6 +292,7 @@ public sealed class LiveDashboardSession : IDisposable
                 if (completed is not null)
                 {
                     await ObserveResetHistoryAsync(completed).ConfigureAwait(true);
+                    await SumCodexWindowTokensAsync(completed).ConfigureAwait(true);
                 }
                 PublishChanged(version);
                 break;
@@ -526,5 +539,51 @@ public sealed class LiveDashboardSession : IDisposable
         {
             // Reset history is supplementary; a storage failure must not hide live limits.
         }
+    }
+
+    private async Task SumCodexWindowTokensAsync(ProviderSnapshot codex)
+    {
+        Dictionary<string, decimal> durations = codex.Metrics
+            .OfType<ScalarMetricSnapshot>()
+            .Where(metric => metric.Id.Value.EndsWith(".window-minutes", StringComparison.Ordinal))
+            .ToDictionary(
+                metric => metric.Id.Value[..^".window-minutes".Length],
+                metric => metric.Value,
+                StringComparer.Ordinal);
+
+        DateTimeOffset nowUtc = Clock.GetUtcNow();
+        var sums = new Dictionary<string, long>();
+        foreach (ProgressMetricSnapshot metric in codex.Metrics.OfType<ProgressMetricSnapshot>())
+        {
+            if (metric.ResetsAtUtc is not DateTimeOffset resetsAtUtc
+                || !durations.TryGetValue(metric.Id.Value, out decimal durationMinutes)
+                || durationMinutes <= 0m)
+            {
+                continue;
+            }
+
+            DateTimeOffset windowStartUtc = resetsAtUtc
+                - TimeSpan.FromMinutes((double)durationMinutes);
+            if (windowStartUtc >= nowUtc)
+            {
+                continue;
+            }
+
+            try
+            {
+                sums[metric.Id.Value] = await _localUsage
+                    .SumTokensSinceAsync(CodexAgentId, windowStartUtc)
+                    .ConfigureAwait(true);
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or TimeoutException)
+            {
+                // Spent tokens are supplementary; a store read failure leaves the window
+                // without a used count instead of hiding live limits.
+            }
+        }
+
+        CodexWindowUsedTokens = sums;
     }
 }

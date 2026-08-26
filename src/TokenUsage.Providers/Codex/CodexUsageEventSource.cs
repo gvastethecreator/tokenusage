@@ -8,7 +8,7 @@ public sealed partial class CodexUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "codex-jsonl/3";
+    public const string ParserVersion = "codex-jsonl/5";
     private const int DefaultTailBytes = 64 * 1024;
     private const int RecentLocalWindowDays = 3;
     private const long MaximumInitialRecentScanBytes = 16L * 1024 * 1024 * 1024;

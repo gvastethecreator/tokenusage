@@ -102,7 +102,7 @@ public sealed class OpenCodeUsageEventSourceTests
     }
 
     [Fact]
-    public async Task ReadsCurrentSessionAggregatesAndKeepsZeroCost()
+    public async Task TreatsZeroReportedCostAsCatalogEstimateWhenTheModelIsPriced()
     {
         using var corpus = new OpenCodeCorpus();
         corpus.CreateCurrentDatabase((
@@ -117,8 +117,10 @@ public sealed class OpenCodeUsageEventSourceTests
         Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
         Assert.Equal("gpt-5", usageEvent.ModelId.Value);
         Assert.Equal(new TokenBreakdown(100, 20, 5, 30, 7), usageEvent.Tokens);
-        Assert.Equal(CostKind.ProviderReported, usageEvent.Cost.Kind);
-        Assert.Equal(0m, usageEvent.Cost.ReportedCostUsd);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Null(usageEvent.Cost.ReportedCostUsd);
+        Assert.NotNull(usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(64, usageEvent.EventKey.Value.Length);
         Assert.Equal(usageEvent.EventKey, Assert.Single((await corpus.CreateSource().ReadAsync()).Events).EventKey);
     }
@@ -136,7 +138,8 @@ public sealed class OpenCodeUsageEventSourceTests
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal("db-model", usageEvent.ModelId.Value);
         Assert.Equal(new TokenBreakdown(10, 2, 3, 4, 5), usageEvent.Tokens);
-        Assert.Equal(0m, usageEvent.Cost.ReportedCostUsd);
+        Assert.Equal(CostKind.Unavailable, usageEvent.Cost.Kind);
+        Assert.Null(usageEvent.Cost.ReportedCostUsd);
     }
 
     [Fact]
@@ -175,6 +178,54 @@ public sealed class OpenCodeUsageEventSourceTests
 
         Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
         Assert.Equal("gpt-5", usageEvent.ModelId.Value);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+    }
+
+    [Fact]
+    public async Task ReducesAntigravityRoutedModelIdsToTheCatalogId()
+    {
+        using var corpus = new OpenCodeCorpus();
+        string message = JsonSerializer.Serialize(new
+        {
+            id = "message-antigravity",
+            role = "assistant",
+            time = new { created = 1_784_694_000_000L },
+            providerID = "google",
+            modelID = "antigravity-gemini-3-pro-high",
+            cost = 0m,
+            tokens = new { input = 1_000_000, output = 100_000 },
+        });
+        corpus.WriteJsonSession("session-antigravity", message);
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("gemini-3-pro", usageEvent.ModelId.Value);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(3.2m, usageEvent.Cost.EstimatedCostUsd);
+    }
+
+    [Fact]
+    public async Task IllegalModelCharactersBecomeAReadableIdInsteadOfAHash()
+    {
+        using var corpus = new OpenCodeCorpus();
+        string message = JsonSerializer.Serialize(new
+        {
+            id = "message-underscore",
+            role = "assistant",
+            time = new { created = 1_784_694_000_000L },
+            providerID = "openai",
+            modelID = "gpt-5.1-codex_max",
+            cost = 0m,
+            tokens = new { input = 1_000_000, output = 100_000 },
+        });
+        corpus.WriteJsonSession("session-underscore", message);
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("gpt-5.1-codex-max", usageEvent.ModelId.Value);
+        Assert.False(usageEvent.ModelId.Value.StartsWith("unknown-", StringComparison.Ordinal));
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
     }
 
     [Fact]
@@ -342,7 +393,9 @@ public sealed class OpenCodeUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
         Assert.Equal(new TokenBreakdown(70, 9, 3, 12, 2), usageEvent.Tokens);
-        Assert.Equal(0m, usageEvent.Cost.ReportedCostUsd);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Null(usageEvent.Cost.ReportedCostUsd);
+        Assert.NotNull(usageEvent.Cost.EstimatedCostUsd);
     }
 
     [Fact]

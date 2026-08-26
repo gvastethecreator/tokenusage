@@ -82,24 +82,18 @@ public sealed class SessionModuleTests
     }
 
     [Fact]
-    public void GeneralOptionsSurfaceOwnsLanguageAndSampleState()
+    public void GeneralOptionsSurfaceOwnsSampleState()
     {
-        var surface = new GeneralOptionsViewModel(
-            key => key,
-            "en-US",
-            languageTag => languageTag == "es-ES");
+        var surface = new GeneralOptionsViewModel(key => key);
         int modeChanges = 0;
         int scenarioChanges = 0;
         surface.SampleModeChanged += (_, _) => modeChanges++;
         surface.SampleScenarioChanged += (_, _) => scenarioChanges++;
 
-        surface.SelectedLanguage = surface.LanguageOptions.Single(option =>
-            option.LanguageTag == "es-ES");
         surface.IsSampleModeEnabled = true;
         surface.SelectedSampleScenario = surface.SampleScenarios.Single(option =>
             option.Value == SampleScenario.Partial);
 
-        Assert.True(surface.IsLanguageRestartRequired);
         Assert.True(surface.IsSampleScenarioEnabled);
         Assert.Equal(SampleScenario.Partial, surface.SelectedSampleScenario.Value);
         Assert.Equal(1, modeChanges);
@@ -203,6 +197,7 @@ public sealed class SessionModuleTests
             "antigravity",
             "cursor",
             "copilot",
+            "zcode",
         ];
         Assert.Equal(
             primaryProviderIds,
@@ -321,10 +316,7 @@ public sealed class SessionModuleTests
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(
             new DateTimeOffset(2026, 7, 25, 12, 0, 0, TimeSpan.Zero));
-        var general = new GeneralOptionsViewModel(
-            key => key,
-            "en-US",
-            _ => false);
+        var general = new GeneralOptionsViewModel(key => key);
         var appearance = new AppearanceSurfaceViewModel(
             new AppearanceSession(new AppearanceSettingsStore(
                 Path.Combine(folder.Root, "appearance.json"),
@@ -393,7 +385,7 @@ public sealed class SessionModuleTests
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(
             new DateTimeOffset(2026, 7, 25, 12, 0, 0, TimeSpan.Zero));
-        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var general = new GeneralOptionsViewModel(key => key);
         var appearance = new AppearanceSurfaceViewModel(
             new AppearanceSession(new AppearanceSettingsStore(
                 Path.Combine(folder.Root, "appearance.json"),
@@ -477,7 +469,7 @@ public sealed class SessionModuleTests
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(
             new DateTimeOffset(2026, 7, 25, 12, 0, 0, TimeSpan.Zero));
-        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var general = new GeneralOptionsViewModel(key => key);
         var appearance = new AppearanceSurfaceViewModel(
             new AppearanceSession(new AppearanceSettingsStore(
                 Path.Combine(folder.Root, "appearance.json"),
@@ -529,7 +521,7 @@ public sealed class SessionModuleTests
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(
             new DateTimeOffset(2026, 8, 9, 18, 0, 0, TimeSpan.Zero));
-        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var general = new GeneralOptionsViewModel(key => key);
         var appearance = new AppearanceSurfaceViewModel(
             new AppearanceSession(new AppearanceSettingsStore(
                 Path.Combine(folder.Root, "appearance.json"),
@@ -567,12 +559,12 @@ public sealed class SessionModuleTests
         surface.SelectProvider("codex");
 
         Assert.Collection(
-            surface.GlobalCodexLimits,
+            surface.GlobalProviderLimits,
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
             spark => Assert.Equal("CodexWindowSpark", spark.Title));
-        Assert.Equal(surface.GlobalCodexLimits, surface.SelectedProviderLimits);
-        Assert.Same(surface.GlobalCodexLimits, surface.GetProviderLimits("codex"));
-        Assert.True(surface.HasGlobalCodexLimits);
+        Assert.Equal(surface.GlobalProviderLimits, surface.SelectedProviderLimits);
+        Assert.Same(surface.GlobalProviderLimits, surface.GetProviderLimits("codex"));
+        Assert.True(surface.HasGlobalProviderLimits);
         Assert.True(surface.SelectedProviderHasLimits);
     }
 
@@ -582,7 +574,7 @@ public sealed class SessionModuleTests
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(
             new DateTimeOffset(2026, 8, 9, 18, 0, 0, TimeSpan.Zero));
-        var general = new GeneralOptionsViewModel(key => key, "en-US", _ => false);
+        var general = new GeneralOptionsViewModel(key => key);
         var appearance = new AppearanceSurfaceViewModel(
             new AppearanceSession(new AppearanceSettingsStore(
                 Path.Combine(folder.Root, "appearance.json"),
@@ -625,7 +617,7 @@ public sealed class SessionModuleTests
         surface.SelectProvider("codex");
 
         Assert.Collection(
-            surface.GlobalCodexLimits,
+            surface.GlobalProviderLimits,
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
             spark => Assert.Equal("CodexWindowSpark", spark.Title));
         Assert.True(surface.SelectedProviderHasLimits);

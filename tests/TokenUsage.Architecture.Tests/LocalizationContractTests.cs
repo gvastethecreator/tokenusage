@@ -6,38 +6,19 @@ namespace TokenUsage.Architecture.Tests;
 public sealed partial class LocalizationContractTests
 {
     [Fact]
-    public void EnglishAndSpanishResourcesHaveExactNonBlankKeyParity()
+    public void EnglishResourcesAreCompleteAndDoNotContainTheLegacyProductName()
     {
         ResourceSet english = LoadResources("en-US");
-        ResourceSet spanish = LoadResources("es-ES");
 
-        Assert.Equal(english.Values.Keys.Order(), spanish.Values.Keys.Order());
         Assert.DoesNotContain(english.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
-        Assert.DoesNotContain(spanish.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
         Assert.DoesNotContain(english.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
-        Assert.DoesNotContain(spanish.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void EnglishAndSpanishFormatPlaceholdersMatch()
-    {
-        ResourceSet english = LoadResources("en-US");
-        ResourceSet spanish = LoadResources("es-ES");
-
-        foreach (string key in english.Values.Keys)
-        {
-            Assert.Equal(
-                PlaceholderIndexes(english.Values[key]),
-                PlaceholderIndexes(spanish.Values[key]));
-        }
-    }
-
-    [Fact]
-    public void EveryXamlUidHasResourcesInBothLanguages()
+    public void EveryXamlUidHasEnglishResources()
     {
         string appRoot = AppRoot();
         ResourceSet english = LoadResources("en-US");
-        ResourceSet spanish = LoadResources("es-ES");
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
 
         string[] uids = Directory
@@ -53,12 +34,11 @@ public sealed partial class LocalizationContractTests
         foreach (string uid in uids)
         {
             Assert.Contains(english.Values.Keys, key => key.StartsWith($"{uid}.", StringComparison.Ordinal));
-            Assert.Contains(spanish.Values.Keys, key => key.StartsWith($"{uid}.", StringComparison.Ordinal));
         }
     }
 
     [Fact]
-    public void LiteralResourceLookupsExistInBothLanguages()
+    public void LiteralResourceLookupsExistInEnglish()
     {
         string appRoot = AppRoot();
         string presentationRoot = Path.Combine(
@@ -66,7 +46,6 @@ public sealed partial class LocalizationContractTests
             "src",
             "TokenUsage.Presentation");
         ResourceSet english = LoadResources("en-US");
-        ResourceSet spanish = LoadResources("es-ES");
         HashSet<string> referencedKeys = [];
 
         foreach (string path in Directory.EnumerateFiles(appRoot, "*.cs", SearchOption.AllDirectories)
@@ -92,7 +71,6 @@ public sealed partial class LocalizationContractTests
         foreach (string key in referencedKeys)
         {
             Assert.True(english.Values.ContainsKey(key), $"Missing en-US resource: {key}");
-            Assert.True(spanish.Values.ContainsKey(key), $"Missing es-ES resource: {key}");
         }
     }
 
@@ -107,7 +85,7 @@ public sealed partial class LocalizationContractTests
             .OfType<string>()
             .ToArray();
 
-        Assert.Equal(["en-US", "es-ES"], languages);
+        Assert.Equal(["en-US"], languages);
     }
 
     private static ResourceSet LoadResources(string languageTag)

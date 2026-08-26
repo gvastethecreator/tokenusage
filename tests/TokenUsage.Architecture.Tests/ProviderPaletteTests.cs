@@ -11,6 +11,7 @@ public sealed class ProviderPaletteTests
         "Codex",
         "Grok",
         "OpenCode",
+        "Zcode",
     ];
 
     [Theory]
@@ -154,6 +155,7 @@ public sealed class ProviderPaletteTests
             ["Codex"] = "codex.svg",
             ["Grok"] = "grok.svg",
             ["OpenCode"] = "opencode.svg",
+            ["Zcode"] = "zcode.svg",
         };
 
         foreach ((string provider, string assetName) in assetNames)
@@ -276,6 +278,7 @@ public sealed class ProviderPaletteTests
             "roo-code.svg",
             "xai.svg",
             "zai.svg",
+            "zcode.svg",
             "zed.svg",
         ];
 

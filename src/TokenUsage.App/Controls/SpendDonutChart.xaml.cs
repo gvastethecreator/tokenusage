@@ -475,6 +475,7 @@ public sealed partial class SpendDonutChart : UserControl
         "codex" => CodexBrushProxy,
         "grok" => GrokBrushProxy,
         "opencode" => OpenCodeBrushProxy,
+        "zcode" => ZcodeBrushProxy,
         _ => FallbackBrushProxy,
     };
 

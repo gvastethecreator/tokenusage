@@ -27,6 +27,10 @@ código con licencia MIT. El aviso requerido está en `THIRD-PARTY-NOTICES.md`.
 `THIRD-PARTY-NOTICES.md`; no forma parte de esos nueve archivos derivados del
 upstream de OpenUsage.
 
+`zcode.svg` es un glifo original de TokenUsage (letra "Z" simple); no procede
+de un upstream de marcas ni representa el logo oficial de ZCode. Usa el
+relleno `#4E6BFF` de la paleta de visualización.
+
 No se modificaron los trazados. Los rellenos sólidos enlazan cada marca con el
 color base al que llega su gradiente en el donut. Son colores de visualización propios de
 TokenUsage; no se presentan como colores oficiales de los proveedores. La

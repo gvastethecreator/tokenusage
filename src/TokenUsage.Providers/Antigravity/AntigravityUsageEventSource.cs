@@ -18,7 +18,7 @@ public sealed class AntigravityUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "antigravity-gen-metadata/1";
+    public const string ParserVersion = "antigravity-gen-metadata/2";
     private const int LookbackDays = 35;
     private const int DefaultMaximumBlobBytes = 2 * 1024 * 1024;
     private readonly IReadOnlyList<string> _roots;
@@ -340,33 +340,23 @@ public sealed class AntigravityUsageEventSource :
             return "antigravity-unknown";
         }
 
-        string normalized = string.Join(
-            '-',
-            rawModel.Trim().ToLowerInvariant()
-                .Split(
-                    rawModel.Where(character => !char.IsLetterOrDigit(character))
-                        .Distinct()
-                        .ToArray(),
-                    StringSplitOptions.RemoveEmptyEntries));
-        if (normalized is "gemini-3-6-flash" or "gemini-3-6-flash-high")
-        {
-            return "gemini-3.6-flash";
-        }
-
-        if (normalized is "claude-sonnet-4-6" or "claude-sonnet-4-6-thinking")
-        {
-            return "claude-sonnet-4-6";
-        }
-
-        return "antigravity-unknown";
+        return ModelIdentity.ForStorage(rawModel);
     }
 
-    private static ModelProviderId? ResolveProvider(string model) => model switch
+    private static ModelProviderId? ResolveProvider(string model)
     {
-        "gemini-3.6-flash" => new ModelProviderId("google"),
-        "claude-sonnet-4-6" => new ModelProviderId("anthropic"),
-        _ => null,
-    };
+        if (model.Contains("claude", StringComparison.Ordinal))
+        {
+            return new ModelProviderId("anthropic");
+        }
+
+        if (model.Contains("gemini", StringComparison.Ordinal))
+        {
+            return new ModelProviderId("google");
+        }
+
+        return null;
+    }
 
     private static void ExecuteControl(
         SqliteConnection connection,

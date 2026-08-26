@@ -41,6 +41,8 @@ BundleArtifacts/
 # Publish output
 publish/
 *.pubxml
+!Properties/PublishProfiles/portable-x64.pubxml
+!Properties/PublishProfiles/portable-arm64.pubxml
 PublishScripts/
 
 # Code analysis and tooling

@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -130,6 +131,18 @@ public sealed partial class UsageReportPage
             return [];
         }
 
+        if (ViewModel.IsCompareScope)
+        {
+            return new FrameworkElement[]
+                {
+                    ReportCompareSummary,
+                    ReportCompareChart,
+                    ReportCompareRows,
+                }
+                .Where(target => target.Visibility == Visibility.Visible)
+                .ToArray();
+        }
+
         var targets = new List<FrameworkElement>
         {
             ReportSummaryTokensValue,
@@ -148,7 +161,7 @@ public sealed partial class UsageReportPage
             targets.Add(ReportCompositionBar);
             targets.Add(GlobalChartTransitionRoot);
         }
-        else
+        else if (ViewModel.IsProviderScope)
         {
             targets.Add(ProviderChartContentRoot);
         }
@@ -169,7 +182,11 @@ public sealed partial class UsageReportPage
             ? []
             : ViewModel.IsGlobalScope
                 ? [GlobalChartTransitionRoot]
-                : [ProviderChartContentRoot];
+                : ViewModel.IsProviderScope
+                    ? [ProviderChartContentRoot]
+                    : ViewModel.IsCompareScope
+                        ? [ReportCompareChart]
+                        : [];
 
     private FrameworkElement[] GetAllReportDataTargets() =>
         [
@@ -189,6 +206,9 @@ public sealed partial class UsageReportPage
             ModelBreakdownRows,
             SourceBreakdownRows,
             DayBreakdownRows,
+            ReportCompareSummary,
+            ReportCompareChart,
+            ReportCompareRows,
         ];
 
     private void PlayReportDataTransition(

@@ -8,7 +8,7 @@ Start with the [main README](../README.md) for the supported providers, requirem
 - [Provider matrix](PROVIDER-MATRIX.md): source policy, coverage, limits, and publication gates.
 - [Implementation plan](IMPLEMENTATION-PLAN.md): milestones, dependencies, risks, and release gates.
 
-These detailed contracts are maintained in Spanish during the pre-release phase. The user and contributor entry points remain in English. The application supports English and Spanish.
+These detailed contracts are maintained in Spanish during the pre-release phase. The user and contributor entry points remain in English. The application UI is English-only.
 
 ## Contributor references
 

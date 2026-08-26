@@ -8,7 +8,7 @@ namespace TokenUsage.Cli.Tests;
 public sealed class CursorCommandTests
 {
     [Fact]
-    public async Task InstallIsANoOpAndStatusReportsTheLocalProfile()
+    public async Task InstallRegistersTheRefreshHookAndStatusReportsBoth()
     {
         string home = Path.Combine(
             Path.GetTempPath(),
@@ -42,9 +42,13 @@ public sealed class CursorCommandTests
             Assert.Equal(0, installExitCode);
             Assert.Equal(0, statusExitCode);
             Assert.False(File.Exists(installer.ScriptPath));
-            Assert.Equal(
-                "Cursor local usage: no estimated context records found" + Environment.NewLine,
-                output.ToString());
+            Assert.Equal(CursorHookInstallationStatus.Installed, installer.GetRefreshStatus());
+            string status = output.ToString();
+            Assert.Contains("Cursor Stop hook: installed", status, StringComparison.Ordinal);
+            Assert.Contains(
+                "Cursor local usage: no estimated context records found",
+                status,
+                StringComparison.Ordinal);
         }
         finally
         {

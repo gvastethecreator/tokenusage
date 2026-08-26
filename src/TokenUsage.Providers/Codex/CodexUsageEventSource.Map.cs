@@ -5,6 +5,7 @@ using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Codex;
 
@@ -15,7 +16,9 @@ public sealed partial class CodexUsageEventSource
         ref string? currentModel,
         ref Candidate? latest,
         LocalScanState state,
-        bool markSchemaFailures)
+        bool markSchemaFailures,
+        bool captureResumeCarry,
+        ref TokenBreakdown? resumeCarry)
     {
         if (utf8.Length == 0 || utf8.Length > state.MaximumLineBytes)
         {
@@ -117,7 +120,17 @@ public sealed partial class CodexUsageEventSource
                 state.MarkPartial();
             }
 
-            TokenBreakdown total = cumulative ?? last!;
+            TokenBreakdown current = cumulative ?? last!;
+            if (captureResumeCarry && resumeCarry is null && cumulativeIsValid && lastIsValid)
+            {
+                resumeCarry = CanSubtract(cumulative!, last!)
+                    ? Difference(cumulative!, last!)
+                    : new TokenBreakdown(0, 0, 0, 0, 0);
+            }
+
+            TokenBreakdown total = resumeCarry is not null && CanSubtract(current, resumeCarry)
+                ? Difference(current, resumeCarry)
+                : current;
             TokenBreakdown sample = last ?? total;
 
             latest = new Candidate(
@@ -660,17 +673,7 @@ public sealed partial class CodexUsageEventSource
     private static string? NormalizeModel(string? model) =>
         string.IsNullOrWhiteSpace(model) ? null : model.Trim().ToLowerInvariant();
 
-    private static ModelId CreateModelId(string model)
-    {
-        try
-        {
-            return new ModelId(model);
-        }
-        catch (ArgumentException)
-        {
-            return new ModelId($"unknown-{Hash(model)[..16]}");
-        }
-    }
+    private static ModelId CreateModelId(string model) => ModelIdentity.ToModelId(model);
 
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))

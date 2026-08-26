@@ -95,6 +95,68 @@ public sealed class AutomationQueryTests
     }
 
     [Fact]
+    public async Task UsageReportQueryUsesExactBoundariesForResetCycles()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        DateTimeOffset resetAt = new(2026, 7, 25, 12, 0, 0, TimeSpan.Zero);
+        await repository.IngestAsync(
+        [
+            CreateUsageEvent(
+                "before-reset",
+                CostObservation.ProviderReported(0.10m),
+                occurredAtUtc: resetAt.AddMinutes(-1)),
+            CreateUsageEvent(
+                "at-reset",
+                CostObservation.ProviderReported(0.20m),
+                occurredAtUtc: resetAt),
+            CreateUsageEvent(
+                "after-reset",
+                CostObservation.ProviderReported(0.30m),
+                occurredAtUtc: resetAt.AddMinutes(1)),
+        ]);
+
+        UsageReport report = await new UsageReportQuery(folder.DatabasePath).ReadExactAsync(
+            resetAt,
+            resetAt.AddDays(1),
+            new AgentId("codex"));
+
+        Assert.Equal(2, report.Totals.EventCount);
+        Assert.Equal(300, report.Totals.Tokens.Total);
+        Assert.Equal(0.50m, report.Totals.ReportedCostUsd);
+    }
+
+    [Fact]
+    public void UsageReportQuerySubtractsComparableTotals()
+    {
+        var current = new UsageReportMetrics(
+            4,
+            new TokenBreakdown(200, 40, 0, 10, 0),
+            2m,
+            1m,
+            UnpricedTokens: 20,
+            UnavailableCostEventCount: 1,
+            CoverageKind.Partial);
+        var baseline = new UsageReportMetrics(
+            2,
+            new TokenBreakdown(100, 10, 0, 0, 0),
+            1m,
+            null,
+            UnpricedTokens: 5,
+            UnavailableCostEventCount: 0,
+            CoverageKind.Complete);
+
+        UsageReportMetricDelta delta = UsageReportQuery.Subtract(current, baseline);
+
+        Assert.Equal(2, delta.EventCount);
+        Assert.Equal(140, delta.Tokens);
+        Assert.Equal(2m, delta.TotalCostUsd);
+        Assert.Equal(1m, delta.ReportedCostUsd);
+        Assert.Equal(1m, delta.EstimatedCostUsd);
+        Assert.Equal(15, delta.UnpricedTokens);
+    }
+
+    [Fact]
     public void TinyUnpricedShareDoesNotReportFullPriceCoverage()
     {
         var metrics = new UsageReportMetrics(

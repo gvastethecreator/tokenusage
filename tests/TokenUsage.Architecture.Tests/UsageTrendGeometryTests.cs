@@ -51,4 +51,19 @@ public sealed class UsageTrendGeometryTests
             Assert.InRange(segment.Control2.Y, minimum, maximum);
         }
     }
+
+    [Fact]
+    public void SingleValuePathKeepsThePointInsideThePlotForAMarker()
+    {
+        UsageTrendPath path = UsageTrendGeometry.CreatePath(
+            [42],
+            width: 400,
+            height: 200,
+            maximum: 100);
+
+        UsageTrendPoint point = Assert.Single(path.Points);
+        Assert.Empty(path.Segments);
+        Assert.Equal(200, point.X);
+        Assert.InRange(point.Y, 8, 200);
+    }
 }

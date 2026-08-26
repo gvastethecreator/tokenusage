@@ -6,8 +6,8 @@ namespace TokenUsage.Cli.Tests;
 public sealed class ProviderDiagnosticsCliProcessTests
 {
     [Theory]
-    [InlineData("providers", "tokenusage.providers.v1", 10)]
-    [InlineData("doctor", "tokenusage.doctor.v1", 12)]
+    [InlineData("providers", "tokenusage.providers.v1", 11)]
+    [InlineData("doctor", "tokenusage.doctor.v1", 13)]
     public async Task RealCommandsDetectWithoutStartingCodexOrCreatingAppData(
         string command,
         string schemaVersion,

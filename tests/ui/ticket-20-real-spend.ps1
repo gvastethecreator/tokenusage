@@ -45,7 +45,7 @@ Add-Check 'Recent day and empty day stay distinct' {
     if (@($recentDays | Where-Object { $_ -match 'Inf\.|Rep\.' }).Count -ne 1) {
         throw 'Expected one recent day with spend'
     }
-    if (@($recentDays | Where-Object { $_ -match 'Sin datos|No data' }).Count -ne 1) {
+    if (@($recentDays | Where-Object { $_ -match 'No data' }).Count -ne 1) {
         throw 'Expected one recent day without data'
     }
 }
@@ -56,8 +56,8 @@ Add-Check 'Current month has tokens' {
     Require-Value 'UsageProductCard.Period.Month' 'tokens'
 }
 Add-Check 'Thirty-day cost types stay separate' {
-    Require-Value 'UsageProductCard.ReportedCost' 'Sin datos|No data' $true
-    Require-Value 'UsageProductCard.EstimatedCost' 'Sin datos|No data' $true
+    Require-Value 'UsageProductCard.ReportedCost' 'No data' $true
+    Require-Value 'UsageProductCard.EstimatedCost' 'No data' $true
 }
 Add-Check 'Cost per million appears' {
     Require-Value 'UsageProductCard.CostPerMillion' '1 M|1M'

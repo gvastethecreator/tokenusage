@@ -2,13 +2,13 @@ namespace TokenUsage.App.ViewModels;
 
 /// <summary>
 /// Sizes provider carousels. The compact flyout is 480 DIPs, so a page of four
-/// equal tabs plus the two nav buttons is the layout that fits. Reports are
-/// wider and keep six tabs on a page until a seventh needs the arrows.
+/// equal tabs plus the two nav buttons is the layout that fits. Reports use
+/// the same four-tab page so the fifth provider always exposes navigation.
 /// </summary>
 public static class ProviderTabCarouselLayout
 {
     public const int MaximumPageSize = 4;
-    public const int ReportMaximumPageSize = 6;
+    public const int ReportMaximumPageSize = MaximumPageSize;
     public const double MinimumItemWidth = 64;
     public const double Spacing = 2;
     public const double NavigationWidth = 64;

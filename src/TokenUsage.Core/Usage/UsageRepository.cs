@@ -373,6 +373,68 @@ public sealed class UsageRepository
             cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<UsageEvent>> QueryUsageEventsAsync(
+        DateTimeOffset fromInclusiveUtc,
+        DateTimeOffset toExclusiveUtc,
+        AgentId? agentId = null,
+        CancellationToken cancellationToken = default)
+    {
+        UtcTimestamp.Require(fromInclusiveUtc, nameof(fromInclusiveUtc));
+        UtcTimestamp.Require(toExclusiveUtc, nameof(toExclusiveUtc));
+        if (toExclusiveUtc <= fromInclusiveUtc)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(toExclusiveUtc),
+                "The exclusive end of an event range must follow its start.");
+        }
+
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = agentId is null
+            ? """
+              SELECT event_key, agent_id, model_provider_id, model_id, occurred_at_utc,
+                     grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
+                     cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
+                     estimated_cost_micros, catalog_version, exact_price_match, parser_version,
+                     coverage_kind
+              FROM usage_event
+              WHERE occurred_at_utc >= $from AND occurred_at_utc < $to
+              ORDER BY occurred_at_utc, agent_id, model_id, event_key;
+              """
+            : """
+              SELECT event_key, agent_id, model_provider_id, model_id, occurred_at_utc,
+                     grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
+                     cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
+                     estimated_cost_micros, catalog_version, exact_price_match, parser_version,
+                     coverage_kind
+              FROM usage_event
+              WHERE agent_id = $agentId
+                AND occurred_at_utc >= $from AND occurred_at_utc < $to
+              ORDER BY occurred_at_utc, agent_id, model_id, event_key;
+              """;
+        command.Parameters.AddWithValue(
+            "$from",
+            fromInclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue(
+            "$to",
+            toExclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        if (agentId is not null)
+        {
+            command.Parameters.AddWithValue("$agentId", agentId.Value);
+        }
+
+        var events = new List<UsageEvent>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            events.Add(ReadUsageEvent(reader));
+        }
+
+        return events;
+    }
+
     public async Task<bool> HasUsageForAgentAsync(
         AgentId agentId,
         CancellationToken cancellationToken = default)
@@ -1513,6 +1575,45 @@ public sealed class UsageRepository
             reader.GetInt32(13),
             reader.GetInt32(14),
             (CoverageKind)reader.GetInt32(15));
+
+    private static UsageEvent ReadUsageEvent(SqliteDataReader reader)
+    {
+        CostKind costKind = (CostKind)reader.GetInt32(11);
+        CostObservation cost = costKind switch
+        {
+            CostKind.ProviderReported when !reader.IsDBNull(12) =>
+                CostObservation.ProviderReported(FromMicros(reader.GetInt64(12))),
+            CostKind.CatalogEstimated when !reader.IsDBNull(13)
+                && !reader.IsDBNull(14)
+                && !reader.IsDBNull(15) => CostObservation.CatalogEstimated(
+                    FromMicros(reader.GetInt64(13)),
+                    reader.GetString(14),
+                    reader.GetString(15)),
+            CostKind.Unavailable => CostObservation.Unavailable(),
+            _ => throw new InvalidDataException("A usage event contains an invalid cost record."),
+        };
+
+        return new UsageEvent(
+            new UsageEventKey(reader.GetString(0)),
+            new AgentId(reader.GetString(1)),
+            reader.IsDBNull(2) ? null : new ModelProviderId(reader.GetString(2)),
+            new ModelId(reader.GetString(3)),
+            DateTimeOffset.ParseExact(
+                reader.GetString(4),
+                "O",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind),
+            reader.GetString(5),
+            new TokenBreakdown(
+                reader.GetInt64(6),
+                reader.GetInt64(7),
+                reader.GetInt64(8),
+                reader.GetInt64(9),
+                reader.GetInt64(10)),
+            cost,
+            reader.GetString(16),
+            (CoverageKind)reader.GetInt32(17));
+    }
 
     private static object ToDatabaseValue(decimal? amountUsd) =>
         amountUsd is null ? DBNull.Value : ToMicros(amountUsd.Value);

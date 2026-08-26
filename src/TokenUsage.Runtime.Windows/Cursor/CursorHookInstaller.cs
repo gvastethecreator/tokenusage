@@ -32,6 +32,9 @@ public sealed class CursorHookInstaller
 
     public string ScriptPath => _scriptPath;
 
+    /// <summary>True when a Cursor profile exists for this user.</summary>
+    public bool IsProviderDetected => Directory.Exists(_cursorHome);
+
     public CursorHookInstallationStatus GetStatus()
     {
         bool hasScript = File.Exists(_scriptPath);
@@ -75,9 +78,27 @@ public sealed class CursorHookInstaller
     {
         JsonObject document = ReadDocumentForUpdate();
         JsonNode? registration = FindRegistration(document);
+        bool changed = registration is not null;
         if (registration?.Parent is JsonArray stop)
         {
             stop.Remove(registration);
+        }
+
+        while (FindRefreshRegistration(document) is { } refreshRegistration)
+        {
+            if (refreshRegistration.Parent is JsonArray refreshStop)
+            {
+                refreshStop.Remove(refreshRegistration);
+                changed = true;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (changed)
+        {
             WriteAtomically(
                 _hooksPath,
                 document.ToJsonString(new JsonSerializerOptions { WriteIndented = true })
@@ -88,6 +109,58 @@ public sealed class CursorHookInstaller
         {
             File.Delete(_scriptPath);
         }
+    }
+
+    /// <summary>
+    /// Registers the refresh trigger in Cursor's stop hooks. The trigger
+    /// detaches immediately and never reads the event payload.
+    /// </summary>
+    public void InstallRefreshHook()
+    {
+        JsonObject document = ReadDocumentForUpdate();
+        JsonObject hooks = GetOrCreateObject(document, "hooks");
+        JsonArray stop = GetOrCreateArray(hooks, "stop");
+        if (FindRefreshRegistration(document) is null)
+        {
+            stop.Add(new JsonObject
+            {
+                ["command"] = HookTriggerCommand.DetachedRefresh,
+                ["timeout"] = 30,
+            });
+        }
+
+        WriteAtomically(
+            _hooksPath,
+            document.ToJsonString(new JsonSerializerOptions { WriteIndented = true })
+            + Environment.NewLine);
+    }
+
+    public CursorHookInstallationStatus GetRefreshStatus()
+    {
+        if (!TryReadDocument(out JsonObject? document) || document is null)
+        {
+            return CursorHookInstallationStatus.NotInstalled;
+        }
+
+        return FindRefreshRegistration(document) is not null
+            ? CursorHookInstallationStatus.Installed
+            : CursorHookInstallationStatus.NotInstalled;
+    }
+
+    private static JsonNode? FindRefreshRegistration(JsonObject document)
+    {
+        if (document["hooks"] is not JsonObject hooks
+            || hooks["stop"] is not JsonArray stop)
+        {
+            return null;
+        }
+
+        return stop.FirstOrDefault(node =>
+            node is JsonObject item
+            && item["command"] is JsonValue value
+            && value.TryGetValue(out string? configuredCommand)
+            && configuredCommand.Contains("tokenusage", StringComparison.OrdinalIgnoreCase)
+            && configuredCommand.Contains("'hook','stop'", StringComparison.Ordinal));
     }
 
     private JsonObject ReadDocumentForUpdate()

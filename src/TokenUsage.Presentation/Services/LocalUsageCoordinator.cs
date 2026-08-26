@@ -132,4 +132,16 @@ public sealed class LocalUsageCoordinator
     public Task<LocalUsageRefreshResult> RefreshDomainAsync(
         CancellationToken cancellationToken = default) =>
         Task.Run(() => _refresh.RefreshAsync(cancellationToken), cancellationToken);
+
+    /// <summary>
+    /// Exact tokens one agent spent since an arbitrary UTC instant, on a worker thread like
+    /// every other store read.
+    /// </summary>
+    public Task<long> SumTokensSinceAsync(
+        AgentId agentId,
+        DateTimeOffset fromInclusiveUtc,
+        CancellationToken cancellationToken = default) =>
+        Task.Run(
+            () => _refresh.SumTokensSinceAsync(agentId, fromInclusiveUtc, cancellationToken),
+            cancellationToken);
 }

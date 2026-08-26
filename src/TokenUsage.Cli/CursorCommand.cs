@@ -32,7 +32,7 @@ public static class CursorCommand
         {
             return arguments[0] switch
             {
-                "install-hook" => await WriteDirectReadNoticeAsync(standardOutput)
+                "install-hook" => await WriteDirectReadNoticeAsync(installer, standardOutput)
                     .ConfigureAwait(false),
                 "status" => await WriteStatusAsync(installer, source, standardOutput)
                     .ConfigureAwait(false),
@@ -52,10 +52,13 @@ public static class CursorCommand
         }
     }
 
-    private static async Task<int> WriteDirectReadNoticeAsync(TextWriter standardOutput)
+    private static async Task<int> WriteDirectReadNoticeAsync(
+        CursorHookInstaller installer,
+        TextWriter standardOutput)
     {
+        installer.InstallRefreshHook();
         await standardOutput.WriteLineAsync(
-            "Cursor no longer requires a hook. TokenUsage reads estimated Agent context totals directly from Cursor's local state.")
+            "Cursor Stop hook installed. TokenUsage reads Cursor data directly and now also refreshes it after each Cursor task.")
             .ConfigureAwait(false);
         return UsageCommand.SuccessExitCode;
     }
@@ -72,6 +75,14 @@ public static class CursorCommand
                 ? "Cursor local usage: Cursor profile not found"
                 : "Cursor local usage: no estimated context records found")
             .ConfigureAwait(false);
+
+        string? refreshHookStatus = installer.GetRefreshStatus() switch
+        {
+            CursorHookInstallationStatus.Installed =>
+                "Cursor Stop hook: installed",
+            _ => "Cursor Stop hook: not installed; run 'tokenusage cursor install-hook'",
+        };
+        await standardOutput.WriteLineAsync(refreshHookStatus).ConfigureAwait(false);
 
         string? legacyHookStatus = installer.GetStatus() switch
         {

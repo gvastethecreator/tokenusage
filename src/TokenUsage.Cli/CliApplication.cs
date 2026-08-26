@@ -3,7 +3,7 @@ namespace TokenUsage.Cli;
 public static class CliApplication
 {
     public const string UsageText =
-        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|cursor> [command options]";
+        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|cursor|zcode|grok|hook> [command options]";
 
     public static bool IsHelpRequest(IReadOnlyList<string> arguments) =>
         arguments.Count == 1

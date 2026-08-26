@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2eee6">
+  <meta name="description" content="TokenUsage is a local-first Windows app for AI coding-tool quota, token use, spend, and reset cycles.">
+  <title>TokenUsage — local AI usage, without the guesswork</title>
+  <link rel="icon" href="assets/app-icon-dark.webp">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="masthead">
+    <a class="brand" href="#top" aria-label="TokenUsage home">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="assets/app-icon-light.webp">
+        <img src="assets/app-icon-dark.webp" alt="" width="34" height="34" decoding="async">
+      </picture>
+      <span>TokenUsage</span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="#tour">Tour</a>
+      <a href="#providers">Providers</a>
+      <a href="#build">Build</a>
+      <a class="nav-strong" href="https://github.com/gvastethecreator/tokenusage">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow"><span aria-hidden="true">●</span> Local signal desk · Windows</p>
+        <h1>Every local signal.<br><em>One honest reading.</em></h1>
+        <p class="hero-lead">See quota windows, observed tokens, spend, coverage, and reset cycles for your AI coding tools—without creating another account.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/gvastethecreator/tokenusage">View the source</a>
+          <a class="button" href="https://github.com/gvastethecreator/tokenusage#build-and-run">Build for Windows</a>
+        </div>
+      </div>
+      <div class="signal-card" aria-label="TokenUsage product summary">
+        <div class="signal-head"><span>READOUT / 30 DAYS</span><strong>LOCAL</strong></div>
+        <p class="signal-value">$48.12 <small>USD</small></p>
+        <div class="signal-strip" aria-hidden="true">
+          <i class="codex"></i><i class="claude"></i><i class="grok"></i><i class="open"></i><i class="anti"></i>
+        </div>
+        <ul class="signal-list">
+          <li><span><b class="dot codex"></b>Codex</span><strong>25.6%</strong></li>
+          <li><span><b class="dot claude"></b>Claude</span><strong>46.6%</strong></li>
+          <li><span><b class="dot grok"></b>Grok Build</span><strong>14.8%</strong></li>
+          <li><span><b class="dot open"></b>OpenCode</span><strong>12.3%</strong></li>
+        </ul>
+        <p class="signal-note">Sample data · no account details</p>
+      </div>
+    </section>
+
+    <section class="measurements" aria-label="Project facts">
+      <article><strong>55</strong><span>providers cataloged</span></article>
+      <article><strong>10</strong><span>active local readers</span></article>
+      <article><strong>0</strong><span>TokenUsage accounts</span></article>
+      <article><strong>2</strong><span>Windows architectures</span></article>
+    </section>
+
+    <section class="section tour" id="tour">
+      <div class="section-heading">
+        <p class="eyebrow">01 / Product tour</p>
+        <h2>Quick enough for the tray.<br>Deep enough for a report.</h2>
+        <p>Real application captures from a packaged x64 build. Dashboard values come from the built-in sample mode.</p>
+      </div>
+      <div class="capture-grid">
+        <figure class="capture capture-tall">
+          <img src="assets/screenshots/dashboard-overview.webp" alt="Compact dashboard with provider spend and Codex quota windows" width="600" height="720" decoding="async">
+          <figcaption><b>A</b><span>Compact overview</span><small>Spend, quota, reset</small></figcaption>
+        </figure>
+        <figure class="capture capture-tall">
+          <img src="assets/screenshots/spend-distribution.webp" alt="Dashboard showing spend distribution by provider" width="600" height="720" decoding="async">
+          <figcaption><b>B</b><span>Distribution</span><small>Provider share at a glance</small></figcaption>
+        </figure>
+        <figure class="capture">
+          <img src="assets/screenshots/appearance-settings.webp" alt="Appearance and tray popover settings" width="600" height="450" decoding="async">
+          <figcaption><b>C</b><span>Appearance</span><small>Density, display, tray</small></figcaption>
+        </figure>
+        <figure class="capture">
+          <img src="assets/screenshots/provider-coverage.webp" alt="Provider availability and configuration status" width="600" height="350" decoding="async">
+          <figcaption><b>D</b><span>Provider coverage</span><small>Detected, prepared, unavailable</small></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section principles" id="providers">
+      <div class="section-heading">
+        <p class="eyebrow">02 / Data contract</p>
+        <h2>Missing data stays missing.</h2>
+        <p>TokenUsage keeps provider-reported values, estimates, stale snapshots, partial coverage, and unavailable values visibly separate.</p>
+      </div>
+      <div class="principle-grid">
+        <article>
+          <span class="index">A</span>
+          <h3>Bounded readers</h3>
+          <p>Only the smallest approved local or official source is read. Conversations, prompts, commands, and credentials stay out.</p>
+        </article>
+        <article>
+          <span class="index">B</span>
+          <h3>Independent signals</h3>
+          <p>Quota, local usage, spend, coverage, freshness, and reset times remain distinct instead of becoming one misleading score.</p>
+        </article>
+        <article>
+          <span class="index">C</span>
+          <h3>Local by default</h3>
+          <p>No TokenUsage account is required. Optional provider connections are explicit, documented, and stored with Windows protections.</p>
+        </article>
+      </div>
+      <div class="provider-line" aria-label="Active local providers">
+        <span>Active readers</span>
+        <ul>
+          <li>Codex</li><li>Claude Code</li><li>Cursor</li><li>Grok Build</li><li>OpenCode</li><li>Amp</li><li>Mux</li><li>Goose</li><li>Hermes</li><li>Antigravity</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section build" id="build">
+      <div>
+        <p class="eyebrow">03 / Build</p>
+        <h2>Native Windows.<br>No web shell.</h2>
+        <p>C#, WinUI 3, Windows App SDK, a full-trust MSIX package, and a stable command-line contract.</p>
+      </div>
+      <div class="terminal" aria-label="PowerShell build commands">
+        <div class="terminal-head"><span>POWERSHELL</span><span>X64 · RELEASE</span></div>
+        <pre><code><span>PS&gt;</span> .\BuildAndRun.ps1 `
+  src\TokenUsage.App\TokenUsage.App.csproj `
+  -SkipRun /p:Platform=x64
+
+<span>PS&gt;</span> .\scripts\check.ps1 `
+  -Platform x64 -Configuration Release</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <strong>TokenUsage</strong>
+      <p>Local AI coding-tool usage, without the guesswork.</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/gvastethecreator/tokenusage">Source</a>
+      <a href="https://github.com/gvastethecreator/tokenusage/issues">Issues</a>
+      <a href="https://github.com/sponsors/gvastethecreator">Sponsor</a>
+      <a href="https://ko-fi.com/gvaste">Ko-fi</a>
+    </div>
+    <p class="license">MIT · English UI · Local-first</p>
+  </footer>
+</body>
+</html>

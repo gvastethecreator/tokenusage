@@ -58,6 +58,31 @@ public sealed class QuotaResetHistoryStoreTests
     }
 
     [Fact]
+    public async Task ScheduledBoundaryStartsANewCycleWhenUsageResumesBeforeTheNextObservation()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset expectedReset = InitialObservation.AddHours(2);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation,
+            usedPercent: 92m,
+            expectedReset,
+            windowMinutes: 300m));
+
+        QuotaResetHistory history = await store.ObserveAsync(CreateSnapshot(
+            expectedReset.AddMinutes(3),
+            usedPercent: 4m,
+            resetAtUtc: expectedReset.AddHours(5),
+            windowMinutes: 300m));
+
+        QuotaResetRecord reset = Assert.Single(history.Resets);
+        Assert.Equal(QuotaResetDetectionKind.Scheduled, reset.DetectionKind);
+        Assert.Equal(expectedReset, reset.OccurredAtUtc);
+        Assert.Equal(4m, reset.CurrentUsedPercent);
+        Assert.Equal(expectedReset, Assert.Single(history.Windows).CurrentCycleStartedAtUtc);
+    }
+
+    [Fact]
     public async Task ReturnFromZeroToFullRemainingBeforeBoundaryLogsEarlyReset()
     {
         using var folder = new TemporaryFolder();

@@ -148,6 +148,7 @@ public sealed class QuotaResetHistoryStore
     private const int MaximumDocumentBytes = 2 * 1024 * 1024;
     private const int MaximumWindows = 128;
     private const int MaximumResetRecords = 1024;
+    private const decimal FullRemainingTolerancePercent = 0.01m;
     private static readonly TimeSpan ScheduleTolerance = TimeSpan.FromMinutes(1);
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -429,13 +430,6 @@ public sealed class QuotaResetHistoryStore
         DateTimeOffset observedAtUtc,
         DateTimeOffset? currentExpectedResetAtUtc)
     {
-        bool returnedToFullRemaining = previous.UsedPercent > 0m
-            && currentUsedPercent == 0m;
-        if (!returnedToFullRemaining)
-        {
-            return null;
-        }
-
         bool resetTimeAdvanced = previous.ExpectedResetAtUtc is not null
             && currentExpectedResetAtUtc is not null
             && currentExpectedResetAtUtc.Value
@@ -448,6 +442,13 @@ public sealed class QuotaResetHistoryStore
             return new ResetDetection(
                 previous.ExpectedResetAtUtc!.Value,
                 QuotaResetDetectionKind.Scheduled);
+        }
+
+        bool returnedToFullRemaining = previous.UsedPercent > FullRemainingTolerancePercent
+            && currentUsedPercent <= FullRemainingTolerancePercent;
+        if (!returnedToFullRemaining)
+        {
+            return null;
         }
 
         bool happenedBeforeSchedule = previous.ExpectedResetAtUtc is not null

@@ -44,4 +44,24 @@ public sealed class UsageReportRequestTests
         Assert.Equal(date, request.FocusDate);
         Assert.Equal(UsageReportBreakdown.Day, request.Breakdown);
     }
+
+    [Fact]
+    public void CompareRequestDoesNotRequireAProvider()
+    {
+        var request = new UsageReportRequest(UsageReportScope.Compare, windowDays: 7);
+
+        Assert.Equal(UsageReportScope.Compare, request.Scope);
+        Assert.Null(request.ProviderId);
+        Assert.Equal(7, request.WindowDays);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void ShortWindowsAreValidReportRanges(int windowDays)
+    {
+        var request = new UsageReportRequest(windowDays: windowDays);
+
+        Assert.Equal(windowDays, request.WindowDays);
+    }
 }

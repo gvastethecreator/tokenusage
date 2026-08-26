@@ -68,7 +68,8 @@ public sealed class ProviderDiagnosticsCommandTests
             + "grok: detected; data present; localUsage,spend\n"
             + "hermes: detected; data absent; localUsage,spend\n"
             + "mux: missing; data absent; localUsage,spend\n"
-            + "opencode: unavailable; data unreadable; localUsage,spend\n",
+            + "opencode: unavailable; data unreadable; localUsage,spend\n"
+            + "zcode: detected; data absent; localUsage,spend\n",
             providers.ToString().Replace("\r\n", "\n", StringComparison.Ordinal));
         Assert.Equal(
             "codex-cache: present\n"
@@ -82,6 +83,7 @@ public sealed class ProviderDiagnosticsCommandTests
             + "local-usage-hermes: absent\n"
             + "local-usage-mux: absent\n"
             + "local-usage-opencode: unreadable\n"
+            + "local-usage-zcode: absent\n"
             + "usage-db: present\n",
             doctor.ToString().Replace("\r\n", "\n", StringComparison.Ordinal));
     }
@@ -272,6 +274,9 @@ public sealed class ProviderDiagnosticsCommandTests
             new("mux", "Mux",
                 [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Missing, ProviderDataStatus.Absent),
+            new("zcode", "ZCode",
+                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
         ],
         [
             new("usage-db", DoctorCheckStatus.Present),
@@ -284,6 +289,7 @@ public sealed class ProviderDiagnosticsCommandTests
             new("local-usage-grok", DoctorCheckStatus.Present),
             new("local-usage-hermes", DoctorCheckStatus.Absent),
             new("local-usage-mux", DoctorCheckStatus.Absent),
+            new("local-usage-zcode", DoctorCheckStatus.Absent),
             new("codex-cli", DoctorCheckStatus.Detected),
             new("codex-cache", DoctorCheckStatus.Present),
         ]);

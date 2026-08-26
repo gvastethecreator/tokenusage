@@ -357,7 +357,12 @@ public sealed partial class CodexUsageEventSource
             TokenBreakdown delta;
             if (cumulativeIsValid)
             {
-                delta = Difference(current!, checkpoint.Previous);
+                if (IsStaleRegression(current!, last, checkpoint.Previous, lastIsValid))
+                {
+                    return;
+                }
+
+                delta = ComputeTurnDelta(current!, last, checkpoint.Previous, lastIsValid);
                 checkpoint.Previous = current;
             }
             else
@@ -490,12 +495,68 @@ public sealed partial class CodexUsageEventSource
                && value >= 0;
     }
 
+    private static TokenBreakdown ComputeTurnDelta(
+        TokenBreakdown current,
+        TokenBreakdown? last,
+        TokenBreakdown? previous,
+        bool lastIsValid)
+    {
+        if (previous is null)
+        {
+            // A resumed session carries prior totals. last_token_usage is the
+            // current turn; the cumulative snapshot is not a new charge.
+            return lastIsValid ? last! : current;
+        }
+
+        if (TotalInput(current) < TotalInput(previous)
+            || TotalOutput(current) < TotalOutput(previous))
+        {
+            // A real session reset starts a new cumulative. last_token_usage
+            // is that turn. Stale replicas never reach this branch.
+            return lastIsValid ? last! : new TokenBreakdown(0, 0, 0, 0, 0);
+        }
+
+        return Difference(current, previous);
+    }
+
+    private static bool IsStaleRegression(
+        TokenBreakdown current,
+        TokenBreakdown? last,
+        TokenBreakdown? previous,
+        bool lastIsValid)
+    {
+        if (previous is null)
+        {
+            return false;
+        }
+
+        if (TotalInput(current) >= TotalInput(previous)
+            && TotalOutput(current) >= TotalOutput(previous))
+        {
+            return false;
+        }
+
+        long previousSum = SumOf(previous);
+        long currentSum = SumOf(current);
+        long lastSum = lastIsValid ? SumOf(last!) : 0;
+        return previousSum > 0
+            && (currentSum * 100 >= previousSum * 98
+                || currentSum + lastSum * 2 >= previousSum);
+    }
+
+    private static long SumOf(TokenBreakdown value) =>
+        checked(TotalInput(value) + TotalOutput(value));
+
     private DateTime StartOfDayUtc(DateOnly date)
     {
         TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId);
         DateTime local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
         return TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
     }
+
+    private static bool CanSubtract(TokenBreakdown current, TokenBreakdown previous) =>
+        TotalInput(current) >= TotalInput(previous)
+        && TotalOutput(current) >= TotalOutput(previous);
 
     private static TokenBreakdown Difference(
         TokenBreakdown current,
@@ -602,6 +663,8 @@ public sealed partial class CodexUsageEventSource
 
             bool complete = true;
             string? currentModel = file.Model;
+            bool captureResumeCarry = startPosition == 0;
+            TokenBreakdown? resumeCarry = null;
             while (offset < bytesRead)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -619,7 +682,9 @@ public sealed partial class CodexUsageEventSource
                     ref currentModel,
                     ref candidate,
                     state,
-                    markSchemaFailures: hasNewline);
+                    markSchemaFailures: hasNewline,
+                    captureResumeCarry,
+                    ref resumeCarry);
                 if (hasNewline)
                 {
                     complete &= lineIsValid;

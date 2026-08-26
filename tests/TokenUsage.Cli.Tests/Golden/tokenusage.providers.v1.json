@@ -102,6 +102,16 @@
       ],
       "detection": "unavailable",
       "data": "unreadable"
+    },
+    {
+      "id": "zcode",
+      "name": "ZCode",
+      "capabilities": [
+        "localUsage",
+        "spend"
+      ],
+      "detection": "detected",
+      "data": "absent"
     }
   ]
 }

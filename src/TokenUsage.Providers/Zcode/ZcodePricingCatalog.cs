@@ -1,0 +1,62 @@
+using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Pricing;
+
+namespace TokenUsage.Providers.Zcode;
+
+/// <summary>
+/// Local ZCode cost estimates using the official Z.ai API rates for the GLM
+/// models the agent runs on. ZCode itself bills through plan credits, so
+/// these estimates show pay-as-you-go value, not the plan charge.
+/// </summary>
+public static class ZcodePricingCatalog
+{
+    public const string Version = "zai-api-2026-08-26";
+    private const decimal TokensPerMillion = 1_000_000m;
+
+    private static readonly Dictionary<string, Rates> RatesByModel =
+        new(StringComparer.Ordinal)
+        {
+            ["glm-5.3"] = new(1.4m, 0.26m, 4.4m),
+            ["glm-5.2"] = new(1.4m, 0.26m, 4.4m),
+            ["glm-5.1"] = new(1.4m, 0.26m, 4.4m),
+            ["glm-5"] = new(1m, 0.2m, 3.2m),
+            ["glm-5-turbo"] = new(1.2m, 0.24m, 4m),
+            ["glm-5v-turbo"] = new(1.2m, 0.24m, 4m),
+            ["glm-4.7"] = new(0.6m, 0.11m, 2.2m),
+            ["glm-4.7-flash"] = new(0m, 0m, 0m),
+            ["glm-4.7-flashx"] = new(0.07m, 0.01m, 0.4m),
+            ["glm-4.6"] = new(0.6m, 0.11m, 2.2m),
+            ["glm-4.5"] = new(0.6m, 0.11m, 2.2m),
+            ["glm-4.5-x"] = new(2.2m, 0.45m, 8.9m),
+            ["glm-4.5-air"] = new(0.2m, 0.03m, 1.1m),
+            ["glm-4.5-airx"] = new(1.1m, 0.22m, 4.5m),
+            ["glm-4.5-flash"] = new(0m, 0m, 0m),
+        };
+
+    public static CostObservation Resolve(string model, TokenBreakdown tokens)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        ArgumentNullException.ThrowIfNull(tokens);
+
+        string normalized = KnownModelPricingCatalog.Canonicalize(model);
+        if (!RatesByModel.TryGetValue(normalized, out Rates? rates))
+        {
+            return CostObservation.Unavailable();
+        }
+
+        decimal amount =
+            (((tokens.Input + tokens.CacheWrite) * rates.Input)
+             + (tokens.CacheRead * rates.CacheRead)
+             + ((tokens.Output + tokens.Reasoning) * rates.Output))
+            / TokensPerMillion;
+        return CostObservation.CatalogEstimated(
+            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            Version,
+            normalized);
+    }
+
+    private sealed record Rates(
+        decimal Input,
+        decimal CacheRead,
+        decimal Output);
+}
