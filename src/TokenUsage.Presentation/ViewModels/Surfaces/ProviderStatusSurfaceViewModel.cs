@@ -4,6 +4,7 @@ using System.Globalization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels.Surfaces;
@@ -21,6 +22,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         "antigravity",
         "cursor",
         "copilot",
+        "zcode",
     ];
 
     private readonly Func<string, string> _getString;

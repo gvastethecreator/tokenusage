@@ -47,6 +47,10 @@
       "status": "unreadable"
     },
     {
+      "id": "local-usage-zcode",
+      "status": "absent"
+    },
+    {
       "id": "usage-db",
       "status": "present"
     }

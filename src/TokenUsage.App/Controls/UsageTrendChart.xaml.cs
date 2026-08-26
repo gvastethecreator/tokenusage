@@ -17,6 +17,7 @@ namespace TokenUsage.App.Controls;
 public sealed partial class UsageTrendChart : UserControl
 {
     private const double TopPadding = 8;
+    private const double SinglePointMarkerDiameter = 8;
     private readonly ResourceLoader _resources = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private Line? _crosshair;
@@ -184,6 +185,13 @@ public sealed partial class UsageTrendChart : UserControl
         {
             PlotCanvas.Children.Add(visual.Line);
         }
+        foreach (SeriesVisual visual in visuals)
+        {
+            if (visual.PointMarker is not null)
+            {
+                PlotCanvas.Children.Add(visual.PointMarker);
+            }
+        }
 
         _crosshair = new Line
         {
@@ -240,7 +248,44 @@ public sealed partial class UsageTrendChart : UserControl
                 Fill = fill,
                 IsHitTestVisible = false,
             },
-            line);
+            line,
+            CreateSinglePointMarker(path, stroke, width, height));
+    }
+
+    private Ellipse? CreateSinglePointMarker(
+        UsageTrendPath path,
+        Brush fill,
+        double width,
+        double height)
+    {
+        if (path.Points.Count != 1)
+        {
+            return null;
+        }
+
+        UsageTrendPoint point = path.Points[0];
+        var marker = new Ellipse
+        {
+            Width = SinglePointMarkerDiameter,
+            Height = SinglePointMarkerDiameter,
+            Fill = fill,
+            Stroke = SurfaceBrushProxy.Background,
+            StrokeThickness = 2,
+            IsHitTestVisible = false,
+        };
+        Canvas.SetLeft(
+            marker,
+            Math.Clamp(
+                point.X - (SinglePointMarkerDiameter / 2),
+                0,
+                Math.Max(0, width - SinglePointMarkerDiameter)));
+        Canvas.SetTop(
+            marker,
+            Math.Clamp(
+                point.Y - (SinglePointMarkerDiameter / 2),
+                0,
+                Math.Max(0, height - SinglePointMarkerDiameter)));
+        return marker;
     }
 
     private static LinearGradientBrush CreateAreaFill(Color color)
@@ -503,11 +548,25 @@ public sealed partial class UsageTrendChart : UserControl
 
     private void UpdateDateLabels(UsageReportTrendDataset data)
     {
-        FirstDayLabel.Text = data.Days.Count == 0 ? string.Empty : data.Days[0].Label;
-        MiddleDayLabel.Text = data.Days.Count == 0
-            ? string.Empty
-            : data.Days[data.Days.Count / 2].Label;
-        LastDayLabel.Text = data.Days.Count == 0 ? string.Empty : data.Days[^1].Label;
+        if (data.Days.Count == 0)
+        {
+            FirstDayLabel.Text = string.Empty;
+            MiddleDayLabel.Text = string.Empty;
+            LastDayLabel.Text = string.Empty;
+            return;
+        }
+
+        if (data.Days.Count == 1)
+        {
+            FirstDayLabel.Text = string.Empty;
+            MiddleDayLabel.Text = data.Days[0].Label;
+            LastDayLabel.Text = string.Empty;
+            return;
+        }
+
+        FirstDayLabel.Text = data.Days[0].Label;
+        MiddleDayLabel.Text = data.Days[data.Days.Count / 2].Label;
+        LastDayLabel.Text = data.Days[^1].Label;
     }
 
     private static string FormatValue(double value, UsageReportMetric metric) =>
@@ -529,5 +588,5 @@ public sealed partial class UsageTrendChart : UserControl
             : value;
     }
 
-    private sealed record SeriesVisual(XamlPath Area, XamlPath Line);
+    private sealed record SeriesVisual(XamlPath Area, XamlPath Line, Ellipse? PointMarker);
 }

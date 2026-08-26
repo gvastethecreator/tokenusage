@@ -12,7 +12,7 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] entries = WindowsProviderCatalog.Entries.ToArray();
 
         Assert.Equal(
-            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode"],
+            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"],
             entries.Select(entry => entry.Id.Value));
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.Equal(
@@ -36,7 +36,7 @@ public sealed class WindowsProviderCatalogTests
             WindowsProviderCatalog.PreparedEntries,
             entry => entry.Id.Value == "openrouter");
         Assert.Equal(
-            ["cline", "cline-cli", "kilo-code", "kimi-cli", "kimi-code", "perplexity", "zai", "zcode", "zed"],
+            ["cline", "cline-cli", "kilo-code", "kimi-cli", "kimi-code", "perplexity", "zai", "zed"],
             WindowsProviderCatalog.PolicyBlockedEntries.Select(entry => entry.Id.Value));
         Assert.Equal(56, WindowsProviderCatalog.AllEntries.Count);
         Assert.Equal(
@@ -53,7 +53,7 @@ public sealed class WindowsProviderCatalogTests
             .ToArray();
 
         Assert.Equal(
-            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode"],
+            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"],
             localUsageIds);
         Assert.All(localUsageIds, id => Assert.True(
             ProviderModuleCatalog.IsActiveLocalUsageProvider(id)));
@@ -150,7 +150,7 @@ public sealed class WindowsProviderCatalogTests
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
-            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode"],
+            ["amp", "antigravity", "claude", "codex", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"],
             composition.LocalUsageSources.Select(source => source.AgentId.Value));
         Assert.Equal(
             SourceKind.OfficialLocalApi,

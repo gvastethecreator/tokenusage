@@ -1,31 +1,25 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/icon-light.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/icon-dark.png">
-    <img src="docs/assets/icon-dark.png" alt="TokenUsage" width="128" height="128">
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/document.svg?title=TokenUsage&subtitle=Quota%2C+tokens%2C+cost%2C+and+reset+cycles+for+AI+coding+tools&logo=windows&theme=green&align=center&mode=dark" />
+    <img alt="TokenUsage — quota, tokens, cost, and reset cycles for AI coding tools" src="https://shieldcn.dev/header/document.svg?title=TokenUsage&subtitle=Quota%2C+tokens%2C+cost%2C+and+reset+cycles+for+AI+coding+tools&logo=windows&theme=green&align=center&mode=light" />
   </picture>
 </p>
 
-<h1 align="center">TokenUsage</h1>
-
-<p align="center"><strong>Quota, tokens, cost, and reset cycles for your AI coding tools. In one local-first Windows app.</strong></p>
+<p align="center">
+  <a href="https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml"><img alt="CI status" src="https://shieldcn.dev/github/ci/gvastethecreator/tokenusage.svg?workflow=ci&branch=main&variant=secondary&size=xs" /></a>
+  <a href="https://gvastethecreator.github.io/tokenusage/"><img alt="Project site" src="https://shieldcn.dev/badge/site-pages-087f86.svg?logo=githubpages&variant=branded&size=xs" /></a>
+  <img alt="Windows x64 and ARM64" src="https://shieldcn.dev/badge/platform-Windows+x64+%7C+ARM64-0078d4.svg?logo=windows&variant=branded&size=xs" />
+  <a href="https://github.com/gvastethecreator/tokenusage/stargazers"><img alt="GitHub stars" src="https://shieldcn.dev/github/stars/gvastethecreator/tokenusage.svg?variant=secondary&size=xs" /></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://shieldcn.dev/github/license/gvastethecreator/tokenusage.svg?variant=secondary&size=xs" /></a>
+</p>
 
 <p align="center">
-  <a href="#what-you-get">Features</a> ·
+  <a href="https://gvastethecreator.github.io/tokenusage/">Project site</a> ·
+  <a href="#product-tour">Product tour</a> ·
   <a href="#provider-support">Providers</a> ·
   <a href="#build-and-run">Build</a> ·
-  <a href="#command-line">CLI</a> ·
-  <a href="#contributing">Contributing</a>
+  <a href="#command-line">CLI</a>
 </p>
-
-<p align="center">
-  <a href="https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-f5f5f5.svg"></a>
-  <img alt="Windows x64 and ARM64" src="https://img.shields.io/badge/Windows-x64%20%7C%20ARM64-2f2f2f.svg">
-  <img alt="Pre-release" src="https://img.shields.io/badge/status-pre--release-f59e0b.svg">
-</p>
-
----
 
 TokenUsage turns the usage data already available on your computer into one clear view. Open the tray panel for a quick check. Open the report for trends, provider comparisons, costs, tokens, and reset cycles. Use the CLI for scripts and diagnostics.
 
@@ -41,17 +35,27 @@ No TokenUsage account is required. Provider data stays local unless you enable a
 - **Honest data states** — reported, estimated, partial, stale, unavailable, and unpriced values remain distinct.
 - **Reset history** — inspect observed Codex reset cycles, including early resets detected before the expected date.
 - **Stable CLI output** — read usage, reports, limits, provider status, and diagnostics as human text or versioned JSON.
-- **Local-first and bilingual** — use English or Spanish without indexing conversations or commands.
+- **Local-first and English-only** — keep the interface predictable without indexing conversations or commands.
+
+## Product tour
+
+| Compact overview | Spend distribution |
+| --- | --- |
+| <img src="docs/assets/screenshots/dashboard-overview.webp" alt="TokenUsage compact sample dashboard with provider spend and Codex quota windows" /> | <img src="docs/assets/screenshots/spend-distribution.webp" alt="TokenUsage sample dashboard with a provider spend donut" /> |
+| **Appearance settings** | **Provider coverage** |
+| <img src="docs/assets/screenshots/appearance-settings.webp" alt="TokenUsage appearance and tray popover settings" /> | <img src="docs/assets/screenshots/provider-coverage.webp" alt="TokenUsage provider availability and configuration states" /> |
+
+The dashboard screenshots use the app's deterministic sample mode. They do not contain account data, local paths, or real usage totals.
 
 ## Provider support
 
-TokenUsage maintains a 55-provider catalog. A catalog entry is not the same as a working integration.
+TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a working integration.
 
 | State | Count | Meaning |
 |---|---:|---|
 | Active | 10 | A bounded reader produces real local usage data. |
 | Opt-in, held | 1 | The adapter is retained, but the provider is currently disabled. |
-| Prepared | 35 | Identity, capabilities, and status exist. No reader runs. |
+| Prepared | 36 | Identity, capabilities, and status exist. No reader runs. |
 | Policy blocked | 9 | The known source is unsafe, private, unstable, or not permitted. |
 
 ### Active readers
@@ -62,6 +66,7 @@ TokenUsage maintains a 55-provider catalog. A catalog entry is not the same as a
 | Claude Code | Yes | Reported or estimated | Not available through an approved interface |
 | Cursor | Yes, partial | Estimated when the model matches | Not available through the current contract |
 | Grok Build | Yes | Reported or estimated | Not available through an approved interface |
+| Grok Bot | No | Not available through an approved interface | Not available through an approved interface |
 | OpenCode | Yes | Reported | No common quota source |
 | Antigravity | Yes, experimental | Estimated | Blocked by policy |
 | Amp | Yes, partial | Credits stay separate from USD | No stable public source |
@@ -218,3 +223,10 @@ These projects do not endorse TokenUsage. Provider names and marks belong to the
 ## License
 
 TokenUsage is available under the [MIT License](LICENSE). Third-party material and terms appear in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+<h4 align="right">Support continued development</h4>
+<p align="right">
+  <a href="https://github.com/sponsors/gvastethecreator/"><img src="https://shieldcn.dev/badge/%E2%9D%A4-sponsor%20this%20project-red.svg?animate=pulse" alt="Sponsor this project" /></a>
+  <a href="https://ko-fi.com/gvaste"><img src="https://shieldcn.dev/badge/Ko--fi-support%20development-ff5e5b.svg?logo=kofi&variant=branded" alt="Support development on Ko-fi" /></a>
+  <a href="https://x.com/gvastebb"><img src="https://shieldcn.dev/x/mention/gvastebb.svg?variant=branded" alt="Follow on X" /></a>
+</p>

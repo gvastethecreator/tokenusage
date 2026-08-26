@@ -1,6 +1,6 @@
 # Matriz de proveedores
 
-Fecha de corte: 2026-08-12
+Fecha de corte: 2026-08-26
 
 Estado temporal: Vercel AI Gateway queda fuera del catálogo activo desde el Ticket 117. Su implementación se conserva para reactivarla en una entrega posterior.
 
@@ -55,7 +55,7 @@ copia sesiones OAuth, cookies ni endpoints privados.
 | Goose | No hay cuota común | Sí, tokens acumulados por sesión | consulta numérica de solo lectura a `sessions.db` | Local activo parcial | Activo; costo API estimado cuando hay precio |
 | Hermes | No hay cuota común | Sí, tokens y costo acumulados por sesión | `state.db` en `.hermes` o en un perfil; una carpeta `.hermes` vacía o de otro tool no cuenta como instalación | Local activo parcial | Activo; costo informado o API estimado |
 | GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
-| ZCode | Bloqueada sin contrato público | Bloqueados sin exportación segura | Hooks sin tokens; UI sin API | Bloqueado | Revalidado en 3.7.6; Ticket 49 `needs-info` |
+| ZCode | Bloqueada sin contrato público | Sí, contadores por petición; costo API estimado | SQLite local `model_usage` con proyección allowlist | Local activo parcial | Reabierto en 3.8.1; Ticket 49 |
 | Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
 | Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
 | Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
@@ -282,6 +282,12 @@ OpenUsage muestra el porcentaje semanal restante con la sesión de `grok login`:
 
 Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.112`, sesiones y el log unificado sin abrir la credencial. La comprobación en Grok `1.0.0` mantiene el mismo formato: `msg`, `pid`, `ts` en UTC y `ctx` con `prompt_tokens`, `cached_prompt_tokens`, `completion_tokens` y `reasoning_tokens`.
 
+Actualización al terminar tarea: al abrir la app el hook `Stop` se registra
+automáticamente cuando Grok está instalado (`~/.grok/hooks/tokenusage.json`).
+También se gestiona con `tokenusage grok install-hook|status|uninstall-hook`.
+El hook descarta el payload del evento y solo refresca los datos propios de
+TokenUsage; la desinstalación conserva el resto de los hooks del usuario.
+
 Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
 
 ### Grok Bot
@@ -339,41 +345,71 @@ Fuente upstream de comparación: [provider Z.ai](https://github.com/robinebers/o
 
 ## ZCode
 
+### Fuente
+
+ZCode `3.8.1` guarda un registro de uso por petición en
+`%USERPROFILE%\.zcode\cli\db\db.sqlite`, tabla `model_usage`. Las columnas
+entran tokens de entrada, salida, razonamiento, caché de lectura y caché de
+escritura, modelo y marca de tiempo UTC. El total propio es
+`entrada + salida`; la entrada incluye el caché leído y el razonamiento vive
+dentro de la salida.
+
+El lector abre la base en modo solo lectura con `PRAGMA query_only=ON` y
+selecciona solo ocho columnas de conteo de `model_usage`. Nunca abre
+`v2\credentials.json`, las tablas `part`, `message`, `input_history` y
+`session`, ni `cli\rollout\*.jsonl`. No guarda ids de sesión ni rutas: las
+claves de evento son hashes SHA-256 del id de fila. Una columna faltante
+degrada a `UnsupportedSchema` en vez de inventar números.
+
 ### Fuente evaluada
 
-ZCode es una app de escritorio con ZCode Agent integrado. La instalación local
-observada es `3.7.6`. Su UI muestra `App Usage` desde registros de sesión
-locales y `Coding Plan` para la cuota y el uso remotos de Z.ai o BigModel. La
-documentación no publica la ruta o el esquema de esos registros, una
-exportación de métricas ni una API de lectura para terceros.
+La evaluación de `3.7.6` no encontró fuente local segura: los hooks no traían
+tokens y las rutas publicadas eran soporte o contenido. La build actual añadió
+la base de uso local, lo que reabre el proveedor bajo el precedente de la
+proyección allowlist de Cursor `state.vscdb`.
 
-ZCode ahora documenta un protocolo JSON de hooks. El evento `Stop` no entrega
-tokens, costo ni límites. Solo ofrece estado del cierre y el último mensaje. El
-transcript temporal contiene conversación y queda fuera de la política de
-TokenUsage.
+Los términos vigentes desde 2026-06-15 restringen el acceso a datos, contenido
+o cuentas ajenas a través del servicio. El lector corre en el disco del
+usuario, sin red y sin datos de cuenta. El riesgo registrado es que Z.ai no
+publica el esquema; la verificación de columnas y la versión de parser
+mantienen el lector fail-closed ante cambios.
 
-Un colector opt-in sí puede contar sesiones, prompts enviados, turnos y
-herramientas mediante esos hooks. Debe descartar todo el contenido y mostrarse
-como actividad, no como tokens, costo o cuota.
+### Métricas
 
-La UI menciona límites de cinco horas, semanales y MCP mensuales. Z.ai cambió
-el Coding Plan el 2026-07-30 a créditos combinados de cinco horas y semanales.
-TokenUsage no tratará el rótulo MCP mensual anterior como un contrato general.
+- Tokens por petición, modelo y día; ventana de reconciliación de 35 días.
+- Costo estimado con tarifas públicas de la API Z.ai para modelos GLM
+  (catálogo fechado). Los créditos del plan no se convierten en costo de
+  factura. Modelos sin tarifa quedan `Unpriced`.
 
-La única ruta Windows publicada para datos propios es
-`%USERPROFILE%\.zcode\logs`, destinada a soporte. La política confirma que las
-conversaciones pueden incluir entradas, contenido generado, archivos, código y
-comandos. Los términos prohíben extracción automática o no autorizada de datos.
+### Límites
+
+La cuota del Coding Plan queda cerrada: los endpoints de monitoreo del plugin
+oficial son privados y requieren la credencial de otra herramienta, y ningún
+hook de ZCode expone plan ni restante real (ver
+[payloads de hook](research/2026-08-26-hook-payload-quota-research.md)).
+
+Una cuota estimada por créditos del plan se entregó brevemente (fórmula
+pública, multiplicadores y tiers publicados por Z.ai) y fue retirada por
+decisión del mantenedor: no muestra el lado real y puede inducir a error. El
+gate de créditos documenta el mecanismo por si un contrato futuro lo revive.
 
 ### Salida
 
-Bloqueado. La build pública no lee `.zcode`, logs, sesiones, configuración,
-prompts o credenciales, ni llama endpoints privados. Tampoco añade una tarjeta
-vacía que sugiera compatibilidad. El provider se reabre con una API pública de
-solo lectura autorizada o una exportación local documentada, mínima y libre de
-contenido de sesión.
+Local activo parcial: tarjeta con tokens observados y costo estimado
+etiquetado. Si Z.ai publica una API de uso oficial, el lector local migra a
+ella.
 
-Gate actualizado: [fuente ZCode 3.7.6](research/2026-08-11-z-code-usage-source.md).
+Actualización al terminar tarea: al abrir la app se registran
+automáticamente los hooks `Stop` de los proveedores locales detectados
+(ZCode, Grok y Cursor). También se pueden gestionar con `tokenusage zcode
+install-hook|status|uninstall-hook`. El hook descarta el payload del evento y
+solo refresca los datos propios de TokenUsage; la desinstalación conserva el
+resto de la configuración del usuario.
+
+Gate de reapertura: [base de uso local ZCode](research/2026-08-26-zcode-local-usage-source.md).
+Gate de cuota estimada: [créditos del plan ZCode](research/2026-08-26-zcode-plan-credit-quota.md).
+Gate de hooks como fuente de cuota: [payloads de hook](research/2026-08-26-hook-payload-quota-research.md): ningún hook de ZCode, Cursor o Grok expone plan ni restante real.
+Gate anterior: [fuente ZCode 3.7.6](research/2026-08-11-z-code-usage-source.md).
 Gate original: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
 
 ## Kilo Code
@@ -516,7 +552,10 @@ Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gat
 
 Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo lectura y proyecta únicamente el modelo, los timestamps y el total de contexto estimado que Cursor guarda en cada `composerData:`. El tope de tamaño admite el estado actual del editor (decenas de GB) porque la consulta no carga el archivo entero. La consulta no devuelve el valor completo, prompts, respuestas, rutas, correo, comandos, transcript, credenciales ni IDs sin hash.
 
-La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial y estimada. Si el modelo coincide con un catálogo oficial, ese contexto lleva valor API estimado. Auto y modelos desconocidos siguen sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens.
+La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial y estimada. Si el modelo coincide con un catálogo oficial, ese contexto lleva valor API estimado. Auto y modelos desconocidos siguen sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens. Ese hook legado quedó retirado; hoy la app registra automáticamente al abrirse
+un hook `stop` que actúa solo como disparador de refresco (también con
+`tokenusage cursor install-hook`): descarta el payload y actualiza los datos
+propios de TokenUsage al terminar cada tarea.
 
 Cuando existen contadores por turno en `bubbleId:`, tienen prioridad sobre la estimación de la conversación. En la comprobación de agosto de 2026 el editor escribía `tokenCount` a cero en entrada y salida, y una instalación con cientos de miles de burbujas no puede escanearlas todas en un refresco. TokenUsage mira primero un puñado de turnos recientes: si siguen en cero, usa la estimación por conversación; si algún contador es real, lee los turnos con valor positivo. El tope de filas ordena de lo más nuevo a lo más viejo, para que un recorte deje fuera los turnos antiguos y no los de hoy.
 

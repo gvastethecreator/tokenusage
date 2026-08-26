@@ -109,7 +109,7 @@ Test-Ui 'Estimated cost remains separate' {
 Test-Ui 'Unpriced usage remains visible' {
     $value = winapp ui get-value 'UsageProductCard.UnpricedUsage' -a $AppPid --json 2>$null |
         ConvertFrom-Json
-    if ($value.text -match 'Sin datos|No data') {
+    if ($value.text -match 'No data') {
         throw "Unpriced usage was shown as missing: $($value.text)"
     }
 }

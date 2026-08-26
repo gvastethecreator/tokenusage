@@ -17,7 +17,7 @@ public sealed class MuxUsageEventSource :
     ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "mux-session-usage/1";
+    public const string ParserVersion = "mux-session-usage/3";
     private readonly string _sessionsDirectory;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
@@ -219,20 +219,17 @@ public sealed class MuxUsageEventSource :
             || output.HasCost || reasoning.HasCost;
         decimal costUsd = input.CostUsd + cached.CostUsd + cacheCreate.CostUsd
             + output.CostUsd + reasoning.CostUsd;
-        CostObservation cost = hasReportedCost
+        CostObservation cost = hasReportedCost && costUsd > 0m
             ? CostObservation.ProviderReported(decimal.Round(
                 costUsd,
                 6,
                 MidpointRounding.AwayFromZero))
             : KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
-        string normalizedModel = NormalizeId(model);
         usageEvent = new UsageEvent(
             new UsageEventKey(Hash($"mux\0{sessionId}\0{modelKey}")),
             AgentId,
-            string.IsNullOrWhiteSpace(provider)
-                ? null
-                : new ModelProviderId(NormalizeId(provider)),
-            new ModelId(normalizedModel),
+            ModelIdentity.TryProviderId(provider),
+            ModelIdentity.ToModelId(model),
             timestamp,
             _groupingTimeZoneId,
             tokens,
@@ -303,28 +300,6 @@ public sealed class MuxUsageEventSource :
         model = (separator < 0 ? key : key[(separator + 1)..]).Trim();
         return model.Length is > 0 and <= 200
             && (provider is null || provider.Length <= 100);
-    }
-
-    private static string NormalizeId(string value)
-    {
-        var builder = new StringBuilder(value.Length);
-        bool previousWasSeparator = false;
-        foreach (char character in value.Trim().ToLowerInvariant())
-        {
-            if (char.IsAsciiLetterOrDigit(character))
-            {
-                builder.Append(character);
-                previousWasSeparator = false;
-            }
-            else if (!previousWasSeparator && builder.Length > 0)
-            {
-                builder.Append('-');
-                previousWasSeparator = true;
-            }
-        }
-
-        string normalized = builder.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(normalized) ? "unknown" : normalized;
     }
 
     private static string Hash(string value) => Convert.ToHexString(

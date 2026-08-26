@@ -13,6 +13,7 @@ public static class AntigravityPricingCatalog
         new Dictionary<string, Rates>(StringComparer.Ordinal)
         {
             ["gemini-3.6-flash"] = new("gemini-3.6-flash", 1.5m, 0.15m, 7.5m),
+            ["gemini-3.7-flash"] = new("gemini-3.7-flash", 0.75m, 0.075m, 3.75m),
             ["claude-sonnet-4-6"] = new("claude-sonnet-4-6", 3m, 0.3m, 15m),
         };
 

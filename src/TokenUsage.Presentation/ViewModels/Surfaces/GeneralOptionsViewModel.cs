@@ -1,28 +1,30 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Surfaces;
+
+public sealed record DataCollectionRefreshOption(int Minutes, string Label);
 
 public sealed partial class GeneralOptionsViewModel : ObservableObject
 {
     private bool _isInitializing = true;
-    private readonly Func<string, bool> _requiresLanguageRestart;
+    private readonly DataCollectionSettingsStore? _dataCollectionSettings;
 
     public GeneralOptionsViewModel(
         Func<string, string> getString,
-        string activeLanguageTag,
-        Func<string, bool> requiresLanguageRestart)
+        DataCollectionSettingsStore? dataCollectionSettings = null)
     {
         ArgumentNullException.ThrowIfNull(getString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(activeLanguageTag);
-        _requiresLanguageRestart = requiresLanguageRestart
-            ?? throw new ArgumentNullException(nameof(requiresLanguageRestart));
-        LanguageOptions =
+        _dataCollectionSettings = dataCollectionSettings;
+        DataCollectionRefreshOptions =
         [
-            new(AppLanguageCatalog.EnglishUnitedStates, getString("LanguageEnglish")),
-            new(AppLanguageCatalog.SpanishSpain, getString("LanguageSpanish")),
+            new(0, getString("DataCollectionRefreshManual")),
+            new(15, getString("DataCollectionRefresh15Minutes")),
+            new(30, getString("DataCollectionRefresh30Minutes")),
+            new(60, getString("DataCollectionRefresh60Minutes")),
         ];
+        SelectedDataCollectionRefresh = DataCollectionRefreshOptions[0];
         SampleScenarios =
         [
             new(SampleScenario.Normal, getString("SampleScenarioNormal")),
@@ -31,21 +33,100 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
             new(SampleScenario.Stale, getString("SampleScenarioStale")),
             new(SampleScenario.Error, getString("SampleScenarioError")),
         ];
-        SelectedLanguage = LanguageOptions.Single(option => string.Equals(
-            option.LanguageTag,
-            activeLanguageTag,
-            StringComparison.OrdinalIgnoreCase));
         SelectedSampleScenario = SampleScenarios[0];
         _isInitializing = false;
+        if (_dataCollectionSettings is not null)
+        {
+            _ = InitializeDataCollectionAsync();
+        }
     }
 
     public event EventHandler? SampleModeChanged;
 
     public event EventHandler? SampleScenarioChanged;
 
-    public IReadOnlyList<AppLanguageOption> LanguageOptions { get; }
+    public event EventHandler? BackgroundCollectionChanged;
+
+    public event EventHandler? DataCollectionRefreshChanged;
 
     public IReadOnlyList<SampleScenarioOption> SampleScenarios { get; }
+
+    public IReadOnlyList<DataCollectionRefreshOption> DataCollectionRefreshOptions { get; }
+
+    [ObservableProperty]
+    public partial bool IsBackgroundCollectionEnabled { get; set; } = true;
+
+    [ObservableProperty]
+    public partial DataCollectionRefreshOption SelectedDataCollectionRefresh { get; set; }
+
+    private async Task InitializeDataCollectionAsync()
+    {
+        try
+        {
+            DataCollectionSettings settings = await _dataCollectionSettings!.LoadAsync()
+                .ConfigureAwait(true);
+            _isInitializing = true;
+            IsBackgroundCollectionEnabled = settings.BackgroundCollection;
+            DataCollectionRefreshOption? match = DataCollectionRefreshOptions.FirstOrDefault(
+                option => option.Minutes == settings.OpenRefreshMinutes);
+            if (match is not null)
+            {
+                SelectedDataCollectionRefresh = match;
+            }
+
+            _isInitializing = false;
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or TimeoutException)
+        {
+            // A settings file that cannot be read keeps the defaults.
+        }
+    }
+
+    partial void OnIsBackgroundCollectionEnabledChanged(bool value)
+    {
+        if (_isInitializing)
+        {
+            return;
+        }
+
+        BackgroundCollectionChanged?.Invoke(this, EventArgs.Empty);
+        if (_dataCollectionSettings is not null)
+        {
+            _ = SaveDataCollectionAsync();
+        }
+    }
+
+    partial void OnSelectedDataCollectionRefreshChanged(DataCollectionRefreshOption value)
+    {
+        if (_isInitializing || value is null)
+        {
+            return;
+        }
+
+        DataCollectionRefreshChanged?.Invoke(this, EventArgs.Empty);
+        if (_dataCollectionSettings is not null)
+        {
+            _ = SaveDataCollectionAsync();
+        }
+    }
+
+    private async Task SaveDataCollectionAsync()
+    {
+        try
+        {
+            await _dataCollectionSettings!.SaveAsync(new DataCollectionSettings(
+                IsBackgroundCollectionEnabled,
+                SelectedDataCollectionRefresh?.Minutes ?? 0)).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or TimeoutException)
+        {
+            // A failed save keeps the last stored preference.
+        }
+    }
 
     [ObservableProperty]
     public partial bool CloseWhenInactive { get; set; } = true;
@@ -57,31 +138,7 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
     [ObservableProperty]
     public partial SampleScenarioOption SelectedSampleScenario { get; set; }
 
-    [ObservableProperty]
-    public partial AppLanguageOption SelectedLanguage { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsLanguageRestartRequired { get; private set; }
-
-    [ObservableProperty]
-    public partial bool IsLanguageRestartErrorVisible { get; private set; }
-
     public bool IsSampleScenarioEnabled => IsSampleModeEnabled;
-
-    public string PendingLanguageTag => SelectedLanguage.LanguageTag;
-
-    public void ReportLanguageRestartFailure() => IsLanguageRestartErrorVisible = true;
-
-    partial void OnSelectedLanguageChanged(AppLanguageOption value)
-    {
-        if (value is null)
-        {
-            return;
-        }
-
-        IsLanguageRestartRequired = _requiresLanguageRestart(value.LanguageTag);
-        IsLanguageRestartErrorVisible = false;
-    }
 
     partial void OnIsSampleModeEnabledChanged(bool value)
     {

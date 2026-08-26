@@ -43,3 +43,9 @@ public sealed record UsageReportSourceRow(
     string EstimatedCostText,
     string TokensText,
     string CoverageText);
+
+public sealed record UsageReportCompareRow(
+    string Metric,
+    string LeftText,
+    string RightText,
+    string DeltaText);

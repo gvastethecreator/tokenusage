@@ -4,6 +4,14 @@ public enum UsageReportScope
 {
     Global,
     Provider,
+    Compare,
+}
+
+public enum UsageReportCompareAxis
+{
+    Providers,
+    Periods,
+    Cycles,
 }
 
 public sealed record UsageReportRequest
@@ -23,7 +31,7 @@ public sealed record UsageReportRequest
             throw new ArgumentOutOfRangeException(nameof(scope));
         }
 
-        if (windowDays is not (7 or 30 or 90))
+        if (windowDays is not (1 or 3 or 7 or 30 or 90))
         {
             throw new ArgumentOutOfRangeException(nameof(windowDays));
         }

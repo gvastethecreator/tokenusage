@@ -6,6 +6,7 @@ using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Claude;
 
@@ -13,7 +14,7 @@ public sealed class ClaudeUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "claude-jsonl/2";
+    public const string ParserVersion = "claude-jsonl/4";
     private readonly string _homeDirectory;
     private readonly string? _configDirectoryOverride;
     private readonly string _groupingTimeZoneId;
@@ -338,7 +339,7 @@ public sealed class ClaudeUsageEventSource :
         var events = new List<UsageEvent>();
         foreach (Candidate candidate in candidates)
         {
-            string normalizedModel = candidate.Model.ToLowerInvariant();
+            string normalizedModel = ModelIdentity.ForStorage(candidate.Model);
             CostObservation cost = ClaudePricingCatalog.Resolve(
                 normalizedModel,
                 candidate.OccurredAtUtc,
@@ -357,7 +358,7 @@ public sealed class ClaudeUsageEventSource :
                 CreateEventKey(candidate),
                 new AgentId("claude"),
                 new ModelProviderId("anthropic"),
-                CreateModelId(normalizedModel),
+                ModelIdentity.ToModelId(normalizedModel),
                 candidate.OccurredAtUtc,
                 _groupingTimeZoneId,
                 candidate.Tokens,
@@ -387,19 +388,60 @@ public sealed class ClaudeUsageEventSource :
                 continue;
             }
 
-            Candidate replacement = candidate.IsSidechain != current.IsSidechain
-                ? candidate.IsSidechain ? current : candidate
-                : candidate;
-            byMessageId[candidate.MessageId] = replacement with
-            {
-                OccurredAtUtc = current.OccurredAtUtc,
-            };
+            Candidate replacement = MergeStreaming(current, candidate);
+            byMessageId[candidate.MessageId] = replacement;
         }
 
         return byMessageId.Values.Concat(withoutMessageId)
             .OrderBy(candidate => candidate.OccurredAtUtc)
             .ThenBy(candidate => candidate.SourceOrdinal, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static Candidate MergeStreaming(Candidate current, Candidate candidate)
+    {
+        if (candidate.IsSidechain != current.IsSidechain)
+        {
+            Candidate preferred = candidate.IsSidechain ? current : candidate;
+            return preferred with
+            {
+                OccurredAtUtc = current.OccurredAtUtc <= candidate.OccurredAtUtc
+                    ? current.OccurredAtUtc
+                    : candidate.OccurredAtUtc,
+            };
+        }
+
+        return current with
+        {
+            OccurredAtUtc = current.OccurredAtUtc <= candidate.OccurredAtUtc
+                ? current.OccurredAtUtc
+                : candidate.OccurredAtUtc,
+            Tokens = new TokenBreakdown(
+                Math.Max(current.Tokens.Input, candidate.Tokens.Input),
+                Math.Max(current.Tokens.Output, candidate.Tokens.Output),
+                Math.Max(current.Tokens.Reasoning, candidate.Tokens.Reasoning),
+                Math.Max(current.Tokens.CacheRead, candidate.Tokens.CacheRead),
+                Math.Max(current.Tokens.CacheWrite, candidate.Tokens.CacheWrite)),
+            CacheWrite5Minutes = Math.Max(current.CacheWrite5Minutes, candidate.CacheWrite5Minutes),
+            CacheWrite1Hour = Math.Max(current.CacheWrite1Hour, candidate.CacheWrite1Hour),
+            ReportedCostUsd = MaxCost(current.ReportedCostUsd, candidate.ReportedCostUsd),
+            IsFast = current.IsFast || candidate.IsFast,
+        };
+    }
+
+    private static decimal? MaxCost(decimal? left, decimal? right)
+    {
+        if (left is null)
+        {
+            return right;
+        }
+
+        if (right is null)
+        {
+            return left;
+        }
+
+        return left.Value >= right.Value ? left : right;
     }
 
     private static bool TryParse(
@@ -425,6 +467,7 @@ public sealed class ClaudeUsageEventSource :
                 || message.ValueKind != JsonValueKind.Object
                 || !TryGetString(message, "model", out string? model)
                 || string.IsNullOrWhiteSpace(model)
+                || string.Equals(model, "<synthetic>", StringComparison.OrdinalIgnoreCase)
                 || !message.TryGetProperty("usage", out JsonElement usage)
                 || usage.ValueKind != JsonValueKind.Object
                 || !TryGetNonNegativeInt64(usage, "input_tokens", out long input)
@@ -656,18 +699,6 @@ public sealed class ClaudeUsageEventSource :
             ? $"claude\0{candidate.MessageId}"
             : $"claude\0{candidate.SourceOrdinal}";
         return new UsageEventKey(Hash(identity));
-    }
-
-    private static ModelId CreateModelId(string model)
-    {
-        try
-        {
-            return new ModelId(model.ToLowerInvariant());
-        }
-        catch (ArgumentException)
-        {
-            return new ModelId($"unknown-{Hash(model)[..16]}");
-        }
     }
 
     private static string CreateSourceOrdinal(string path, int lineNumber) =>

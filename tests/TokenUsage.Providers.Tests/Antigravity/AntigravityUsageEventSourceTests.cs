@@ -58,6 +58,38 @@ public sealed class AntigravityUsageEventSourceTests
     }
 
     [Fact]
+    public async Task NamedModelsOutsideTheOriginalAllowListKeepTheirIdAndPrice()
+    {
+        using var corpus = new AntigravityCorpus();
+        corpus.Insert(
+            index: 1,
+            timestamp: new DateTimeOffset(2026, 8, 3, 12, 0, 0, TimeSpan.Zero),
+            model: "Gemini 3 Pro",
+            input: 1_000_000,
+            output: 100_000,
+            cacheRead: 0);
+        corpus.Insert(
+            index: 2,
+            timestamp: new DateTimeOffset(2026, 8, 3, 13, 0, 0, TimeSpan.Zero),
+            model: "Gemini 3 Flash",
+            input: 1_000_000,
+            output: 100_000,
+            cacheRead: 0);
+
+        IReadOnlyList<UsageEvent> events = (await corpus.CreateSource().ReadAsync()).Events;
+
+        UsageEvent pro = Assert.Single(events, item => item.ModelId.Value == "gemini-3-pro");
+        UsageEvent flash = Assert.Single(events, item => item.ModelId.Value == "gemini-3-flash");
+        Assert.Equal("google", pro.ModelProviderId?.Value);
+        Assert.Equal(CostKind.CatalogEstimated, pro.Cost.Kind);
+        Assert.Equal(3.2m, pro.Cost.EstimatedCostUsd);
+        Assert.Equal(0.8m, flash.Cost.EstimatedCostUsd);
+        Assert.DoesNotContain(
+            events,
+            item => item.ModelId.Value.Contains("unknown", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task MalformedMetadataKeepsValidEventsAndMarksPartial()
     {
         using var corpus = new AntigravityCorpus();

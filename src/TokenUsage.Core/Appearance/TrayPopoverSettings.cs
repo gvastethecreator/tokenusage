@@ -16,7 +16,8 @@ public enum TrayPopoverMetric
 
 /// <summary>
 /// What the tray hover popover shows. The popover has room for two values per provider,
-/// so the user picks which value sits on each line.
+/// so the user picks which value sits on each line. A disabled popover keeps every
+/// choice so turning it back on restores them.
 /// </summary>
 public sealed record TrayPopoverSettings
 {
@@ -24,7 +25,8 @@ public sealed record TrayPopoverSettings
     public const int MaxProviderCount = DashboardLayout.MaxHighlightedProviders;
 
     /// <summary>
-    /// Default popover: session quota over period quota, four providers, no provider name.
+    /// Default popover: enabled, session quota over period quota, four providers,
+    /// no provider name.
     /// </summary>
     public static TrayPopoverSettings Default { get; } = new(
         TrayPopoverMetric.SessionQuota,
@@ -36,7 +38,8 @@ public sealed record TrayPopoverSettings
         TrayPopoverMetric primaryMetric,
         TrayPopoverMetric secondaryMetric,
         int providerCount,
-        bool showProviderName)
+        bool showProviderName,
+        bool isEnabled = true)
     {
         if (!Enum.IsDefined(primaryMetric))
         {
@@ -65,6 +68,7 @@ public sealed record TrayPopoverSettings
             : secondaryMetric;
         ProviderCount = providerCount;
         ShowProviderName = showProviderName;
+        IsEnabled = isEnabled;
     }
 
     public TrayPopoverMetric PrimaryMetric { get; }
@@ -74,6 +78,8 @@ public sealed record TrayPopoverSettings
     public int ProviderCount { get; }
 
     public bool ShowProviderName { get; }
+
+    public bool IsEnabled { get; }
 
     public bool HasSecondaryMetric => SecondaryMetric != TrayPopoverMetric.None;
 }

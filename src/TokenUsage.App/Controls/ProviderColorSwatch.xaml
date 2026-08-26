@@ -12,6 +12,7 @@
             <Border x:Name="CodexBrushProxy" Background="{ThemeResource ProviderCodexBrush}" />
             <Border x:Name="GrokBrushProxy" Background="{ThemeResource ProviderGrokBrush}" />
             <Border x:Name="OpenCodeBrushProxy" Background="{ThemeResource ProviderOpenCodeBrush}" />
+            <Border x:Name="ZcodeBrushProxy" Background="{ThemeResource ProviderZcodeBrush}" />
             <Border x:Name="FallbackBrushProxy" Background="{ThemeResource ProviderFallbackBrush}" />
         </Grid>
         <Border x:Name="Swatch" />

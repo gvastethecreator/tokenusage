@@ -35,7 +35,7 @@ public sealed class AppearanceSettingsStoreTests
     }
 
     [Fact]
-    public async Task SaveAndLoadRoundTripUsesVersionThreeContract()
+    public async Task SaveAndLoadRoundTripUsesVersionFourContract()
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -50,7 +50,8 @@ public sealed class AppearanceSettingsStoreTests
                 TrayPopoverMetric.SpendLast30Days,
                 TrayPopoverMetric.TokensLast30Days,
                 providerCount: 2,
-                showProviderName: true));
+                showProviderName: true,
+                isEnabled: false));
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
         var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
@@ -58,7 +59,7 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(expected, loaded.Settings);
         Assert.False(loaded.RequiresMigration);
         using JsonDocument json = JsonDocument.Parse(await File.ReadAllBytesAsync(store.DocumentPath));
-        Assert.Equal(3, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(4, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
         Assert.Equal(
             "heatmap",
@@ -68,7 +69,44 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal("tokenslast30days", popover.GetProperty("secondaryMetric").GetString());
         Assert.Equal(2, popover.GetProperty("providerCount").GetInt32());
         Assert.True(popover.GetProperty("showProviderName").GetBoolean());
+        Assert.False(popover.GetProperty("isEnabled").GetBoolean());
         Assert.Empty(Directory.GetFiles(directory.Path, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task VersionThreeDocumentMigratesWithAnEnabledTrayPopover()
+    {
+        using var directory = new TempDirectory();
+        var store = CreateStore(directory);
+        await File.WriteAllTextAsync(
+            store.DocumentPath,
+            """
+            {
+              "schemaVersion": 3,
+              "theme": "dark",
+              "density": "compact",
+              "increaseTransparency": false,
+              "usageDisplay": "used",
+              "resetTimeDisplay": "exact",
+              "dashboardVisualization": "heatmap",
+              "trayPopover": {
+                "primaryMetric": "spendlast30days",
+                "secondaryMetric": "none",
+                "providerCount": 3,
+                "showProviderName": true
+              }
+            }
+            """,
+            new UTF8Encoding(false));
+
+        var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
+
+        Assert.True(loaded.RequiresMigration);
+        Assert.True(loaded.Settings.TrayPopover.IsEnabled);
+        Assert.Equal(TrayPopoverMetric.SpendLast30Days, loaded.Settings.TrayPopover.PrimaryMetric);
+        Assert.Equal(TrayPopoverMetric.None, loaded.Settings.TrayPopover.SecondaryMetric);
+        Assert.Equal(3, loaded.Settings.TrayPopover.ProviderCount);
+        Assert.True(loaded.Settings.TrayPopover.ShowProviderName);
     }
 
     [Fact]

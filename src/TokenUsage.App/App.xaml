@@ -115,6 +115,8 @@
             <Color x:Key="ProviderGrokColor">#FF7C5CFC</Color>
             <Color x:Key="ProviderOpenCodeColorDark">#FF9F2F62</Color>
             <Color x:Key="ProviderOpenCodeColor">#FFE5488C</Color>
+            <Color x:Key="ProviderZcodeColorDark">#FF2743B8</Color>
+            <Color x:Key="ProviderZcodeColor">#FF4E6BFF</Color>
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
@@ -151,6 +153,10 @@
                     <LinearGradientBrush x:Key="ProviderOpenCodeBrush" MappingMode="RelativeToBoundingBox" StartPoint="0,0" EndPoint="1,1">
                         <GradientStop Color="{StaticResource ProviderOpenCodeColorDark}" Offset="0" />
                         <GradientStop Color="{StaticResource ProviderOpenCodeColor}" Offset="1" />
+                    </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="ProviderZcodeBrush" MappingMode="RelativeToBoundingBox" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="{StaticResource ProviderZcodeColorDark}" Offset="0" />
+                        <GradientStop Color="{StaticResource ProviderZcodeColor}" Offset="1" />
                     </LinearGradientBrush>
                     <SolidColorBrush x:Key="ProviderDonutShadowBrush" Color="#24000000" />
                     <x:Double x:Key="ProviderDonutShadowOpacity">1</x:Double>
@@ -193,6 +199,10 @@
                         <GradientStop Color="{StaticResource ProviderOpenCodeColorDark}" Offset="0" />
                         <GradientStop Color="{StaticResource ProviderOpenCodeColor}" Offset="1" />
                     </LinearGradientBrush>
+                    <LinearGradientBrush x:Key="ProviderZcodeBrush" MappingMode="RelativeToBoundingBox" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="{StaticResource ProviderZcodeColorDark}" Offset="0" />
+                        <GradientStop Color="{StaticResource ProviderZcodeColor}" Offset="1" />
+                    </LinearGradientBrush>
                     <SolidColorBrush x:Key="ProviderDonutShadowBrush" Color="#30000000" />
                     <x:Double x:Key="ProviderDonutShadowOpacity">1</x:Double>
                     <Visibility x:Key="ProviderBrandMarkVisibility">Visible</Visibility>
@@ -219,6 +229,7 @@
                     <StaticResource x:Key="ProviderCodexBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ProviderGrokBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ProviderOpenCodeBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="ProviderZcodeBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ProviderDonutShadowBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <x:Double x:Key="ProviderDonutShadowOpacity">0</x:Double>
                     <Visibility x:Key="ProviderBrandMarkVisibility">Collapsed</Visibility>

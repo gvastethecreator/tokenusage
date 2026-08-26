@@ -108,6 +108,52 @@ public sealed class CodexDashboardProjectorTests
     }
 
     [Fact]
+    public void WindowUsedTokensSurfaceAsCompactCycleText()
+    {
+        CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        try
+        {
+            QuotaWindow withTokens = Assert.Single(CreateCard(
+                used: 25m,
+                reset: Now.AddHours(3),
+                durationMinutes: 300m,
+                windowUsedTokens: new Dictionary<string, long>
+                {
+                    ["quota.primary"] = 1_234_567L,
+                }).Windows);
+            QuotaWindow withoutTokens = Assert.Single(CreateCard(
+                used: 25m,
+                reset: Now.AddHours(3),
+                durationMinutes: 300m).Windows);
+
+            Assert.Equal("1.2M tokens used", withTokens.UsedText);
+            Assert.Contains("1.2M tokens used", withTokens.AutomationName, StringComparison.Ordinal);
+            Assert.Equal(string.Empty, withoutTokens.UsedText);
+            Assert.DoesNotContain("tokens used", withoutTokens.AutomationName, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Fact]
+    public void UnknownWindowTokensAreOmittedRatherThanInvented()
+    {
+        QuotaWindow unknownMetric = Assert.Single(CreateCard(
+            used: 25m,
+            reset: Now.AddHours(3),
+            durationMinutes: 300m,
+            windowUsedTokens: new Dictionary<string, long>
+            {
+                ["quota.someone-else"] = 9_999L,
+            }).Windows);
+
+        Assert.Equal(string.Empty, unknownMetric.UsedText);
+    }
+
+    [Fact]
     public void OnTrackAndExhaustedPaceMapToDistinctPresentationStates()
     {
         QuotaWindow onTrack = Assert.Single(CreateCard(
@@ -252,7 +298,8 @@ public sealed class CodexDashboardProjectorTests
     private static ProviderCard CreateCard(
         decimal used,
         DateTimeOffset? reset,
-        decimal? durationMinutes)
+        decimal? durationMinutes,
+        IReadOnlyDictionary<string, long>? windowUsedTokens = null)
     {
         var provenance = new DataProvenance(
             SourceKind.OfficialLocalApi,
@@ -289,7 +336,8 @@ public sealed class CodexDashboardProjectorTests
         return Assert.Single(CodexDashboardProjector.Create(
             snapshot,
             new FixedTimeProvider(Now),
-            GetString).Providers);
+            GetString,
+            windowUsedTokens).Providers);
     }
 
     private static string GetString(string key) => key switch
@@ -325,6 +373,7 @@ public sealed class CodexDashboardProjectorTests
         "CodexUsageMissing" => "No data",
         "CodexTokenCountFormat" => "{0:N0} tokens",
         "CodexTokenCountSingular" => "{0:N0} token",
+        "CodexQuotaUsedTokensFormat" => "{0} tokens used",
         "CodexPaceAheadFormat" => "{0}% projected · below pace",
         "CodexPaceOnTrackFormat" => "{0}% projected · on pace",
         "CodexPaceBehindFormat" => "{0}% projected · above pace",

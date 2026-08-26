@@ -6,6 +6,7 @@ using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.LocalScan;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.OpenCode;
 
@@ -13,7 +14,7 @@ public sealed class OpenCodeUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "opencode-local/1";
+    public const string ParserVersion = "opencode-local/3";
     private const int LookbackDays = 35;
     private readonly string _dataRoot;
     private readonly string _groupingTimeZoneId;
@@ -583,11 +584,20 @@ public sealed class OpenCodeUsageEventSource :
 
     private UsageEvent CreateEvent(Candidate candidate)
     {
-        CostObservation cost = candidate.Cost is decimal reported ? CostObservation.ProviderReported(decimal.Round(reported, 6)) : CostObservation.Unavailable();
+        CostObservation cost = KnownModelPricingCatalog.ResolveReportedOrCatalog(
+            candidate.Cost,
+            candidate.Model,
+            candidate.Timestamp,
+            candidate.Tokens);
         (ModelProviderId? providerId, ModelId modelId) = CreateModelIdentity(candidate.Provider, candidate.Model);
         return new UsageEvent(new UsageEventKey(Hash($"opencode\0{candidate.SessionId}\0{candidate.MessageId}")), AgentId, providerId,
             modelId, candidate.Timestamp, _groupingTimeZoneId, candidate.Tokens, cost, ParserVersion,
-            candidate.Cost is null ? CoverageKind.Unpriced : CoverageKind.Complete);
+            cost.Kind switch
+            {
+                CostKind.ProviderReported => CoverageKind.Complete,
+                CostKind.CatalogEstimated => CoverageKind.Partial,
+                _ => CoverageKind.Unpriced,
+            });
     }
 
     private static (ModelProviderId? Provider, ModelId Model) CreateModelIdentity(string? provider, string model)
@@ -607,11 +617,8 @@ public sealed class OpenCodeUsageEventSource :
                 modelValue = modelValue[(separator + 1)..];
             }
         }
-        ModelProviderId? providerId = null;
-        try { if (!string.IsNullOrWhiteSpace(provider)) providerId = new ModelProviderId(provider.Trim().ToLowerInvariant()); }
-        catch (ArgumentException) { providerId = null; }
-        try { return (providerId, new ModelId(modelValue.ToLowerInvariant())); }
-        catch (ArgumentException) { return (providerId, new ModelId("unknown-" + Hash(model)[..16])); }
+
+        return (ModelIdentity.TryProviderId(provider), ModelIdentity.ToModelId(modelValue));
     }
 
     private static bool TryTimestamp(object value, out DateTimeOffset timestamp)

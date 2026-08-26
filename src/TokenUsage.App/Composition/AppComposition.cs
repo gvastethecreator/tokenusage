@@ -10,6 +10,7 @@ using TokenUsage.Providers.VercelAiGateway;
 using TokenUsage.Runtime.Windows.Credentials;
 using TokenUsage.Runtime.Windows.Providers;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
+using TokenUsage.Runtime.Windows;
 
 namespace TokenUsage.App.Composition;
 
@@ -73,6 +74,13 @@ public static class AppComposition
             resolvedClock,
             vercelHttpClient: null,
             providerOptions);
+        var dataCollectionSettings = new DataCollectionSettingsStore(
+            Path.Combine(localFolderPath, DataCollectionSettingsStore.DefaultFileName),
+            resolvedClock);
+        DataCollectionSettings collectionSettings = Task.Run(
+            () => dataCollectionSettings.LoadAsync()).GetAwaiter().GetResult();
+        RefreshHookAutoSetup.EnsureInstalled(
+            backgroundCollection: collectionSettings.BackgroundCollection);
         var sessionHost = new AppSessionHost(
             providers.RefreshHost,
             new AlertHost(
@@ -94,7 +102,8 @@ public static class AppComposition
             new DashboardLayoutStore(dashboardLayoutPath, resolvedClock),
             new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock),
             quotaResetHistory,
-            new WindowsManualProviderCredentialStore());
+            new WindowsManualProviderCredentialStore(),
+            dataCollectionSettings);
     }
 
     public static string GetUsageDatabasePath(string localFolderPath)

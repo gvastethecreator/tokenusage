@@ -34,23 +34,23 @@ public sealed class ProviderTabCarouselLayoutTests
     }
 
     [Fact]
-    public void ReportWindowKeepsSixTabsUntilASeventhNeedsNavigation()
+    public void ReportWindowStartsTheCarouselAtTheFifthProvider()
     {
-        Assert.Equal(6, ProviderTabCarouselLayout.ReportMaximumPageSize);
+        Assert.Equal(4, ProviderTabCarouselLayout.ReportMaximumPageSize);
         Assert.Equal(
-            6,
+            4,
             ProviderTabCarouselLayout.PageSize(
-                6,
+                4,
                 1200,
                 ProviderTabCarouselLayout.ReportMaximumPageSize));
         Assert.Equal(
-            6,
+            4,
             ProviderTabCarouselLayout.PageSize(
-                7,
+                5,
                 1200,
                 ProviderTabCarouselLayout.ReportMaximumPageSize));
         Assert.Equal(
-            6,
+            4,
             ProviderTabCarouselLayout.PageSize(
                 10,
                 800,

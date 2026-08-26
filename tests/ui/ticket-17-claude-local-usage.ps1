@@ -26,7 +26,7 @@ foreach ($check in $checks) {
             throw "Unexpected value: $($value.text)"
         }
         if (-not $check.Value -and $check.Id -ne 'UsageProductCard' -and
-            $value.text -match 'Sin datos|No data') {
+            $value.text -match 'No data') {
             throw "Missing metric: $($value.text)"
         }
         $results += @{ name = $check.Name; status = 'PASS' }

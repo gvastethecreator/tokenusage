@@ -166,6 +166,54 @@ public sealed class ClaudeUsageEventSourceTests
     }
 
     [Fact]
+    public async Task KeepsTheHighestStreamingCountersWhenALaterReplicaIsSmaller()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteLines(
+            UsageLine(
+                "message-stream",
+                "request-1",
+                80,
+                12,
+                timestamp: "2026-07-22T11:00:00.000Z"),
+            UsageLine(
+                "message-stream",
+                "request-1",
+                10,
+                2,
+                timestamp: "2026-07-22T12:00:00.000Z"));
+
+        UsageEvent usageEvent = Assert.Single(
+            (await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal(80, usageEvent.Tokens.Input);
+        Assert.Equal(12, usageEvent.Tokens.Output);
+        Assert.Equal(
+            new DateTimeOffset(2026, 7, 22, 11, 0, 0, TimeSpan.Zero),
+            usageEvent.OccurredAtUtc);
+    }
+
+    [Fact]
+    public async Task SkipsSyntheticPlaceholderTurns()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteLines(
+            UsageLine(
+                "message-synthetic",
+                "request-synthetic",
+                99,
+                9,
+                model: "<synthetic>"),
+            UsageLine("message-real", "request-real", 20, 4));
+
+        UsageEvent usageEvent = Assert.Single(
+            (await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("claude-sonnet-4-6", usageEvent.ModelId.Value);
+        Assert.Equal(20, usageEvent.Tokens.Input);
+    }
+
+    [Fact]
     public async Task IncludesAdvisorIterationsAsSeparateModelSpend()
     {
         using var corpus = new ClaudeCorpus();
@@ -219,6 +267,26 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(700_000, priced.Tokens.CacheWrite);
         Assert.Equal(CostKind.Unavailable, unknown.Cost.Kind);
         Assert.Equal(CoverageKind.Unpriced, unknown.Coverage);
+    }
+
+    [Fact]
+    public async Task ZeroReportedCostUsesTheCatalogWhenTheModelIsKnown()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteLines(
+            UsageLine(
+                "message-zero",
+                "request-zero",
+                1_000_000,
+                100_000,
+                costUsd: 0m));
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("claude-sonnet-4-6", usageEvent.ModelId.Value);
+        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Equal(4.5m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Null(usageEvent.Cost.ReportedCostUsd);
     }
 
     [Fact]

@@ -23,11 +23,29 @@ public sealed class AppearanceSettingsTests
     {
         TrayPopoverSettings popover = TrayPopoverSettings.Default;
 
+        Assert.True(popover.IsEnabled);
         Assert.Equal(TrayPopoverMetric.SessionQuota, popover.PrimaryMetric);
         Assert.Equal(TrayPopoverMetric.PeriodQuota, popover.SecondaryMetric);
         Assert.True(popover.HasSecondaryMetric);
         Assert.Equal(TrayPopoverSettings.MaxProviderCount, popover.ProviderCount);
         Assert.False(popover.ShowProviderName);
+    }
+
+    [Fact]
+    public void DisabledTrayPopoverKeepsEveryChoiceForLaterReenabling()
+    {
+        var popover = new TrayPopoverSettings(
+            TrayPopoverMetric.SpendLast30Days,
+            TrayPopoverMetric.TokensLast30Days,
+            providerCount: 2,
+            showProviderName: true,
+            isEnabled: false);
+
+        Assert.False(popover.IsEnabled);
+        Assert.Equal(TrayPopoverMetric.SpendLast30Days, popover.PrimaryMetric);
+        Assert.Equal(TrayPopoverMetric.TokensLast30Days, popover.SecondaryMetric);
+        Assert.Equal(2, popover.ProviderCount);
+        Assert.True(popover.ShowProviderName);
     }
 
     [Fact]

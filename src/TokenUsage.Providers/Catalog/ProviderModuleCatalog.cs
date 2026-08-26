@@ -183,7 +183,7 @@ public static class ProviderModuleCatalog
             Module("quickdesk", "QuickDesk", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
             Module("vercel-ai-gateway", "Vercel AI Gateway", [ProviderCapability.Limits, ProviderCapability.Spend], ProviderModuleStage.OptIn, ProviderReference.CodeBurn, credential: ManualCredentialKind.ApiKeyAndOptionalKeyId),
             Module("warp", "Warp", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
-            Module("zcode", "ZCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, ProviderReference.CodeBurn),
+            Module("zcode", "ZCode", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, ProviderReference.CodeBurn),
             Module("zerostack", "ZeroStack", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.CodeBurn),
         ]);
 

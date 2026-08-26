@@ -47,7 +47,7 @@ public static class ClaudePricingCatalog
         ArgumentOutOfRangeException.ThrowIfNegative(cacheWrite5Minutes);
         ArgumentOutOfRangeException.ThrowIfNegative(cacheWrite1Hour);
 
-        if (reportedCostUsd is decimal reported)
+        if (reportedCostUsd is decimal reported && reported > 0m)
         {
             return CostObservation.ProviderReported(RoundUsd(reported));
         }

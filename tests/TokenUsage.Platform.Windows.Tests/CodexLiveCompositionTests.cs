@@ -381,6 +381,7 @@ public sealed class CodexLiveCompositionTests
         "CodexUsageMissing" => "No data",
         "CodexTokenCountFormat" => "{0:N0} tokens",
         "CodexTokenCountSingular" => "{0:N0} token",
+        "CodexQuotaUsedTokensFormat" => "{0} tokens used",
         "CodexPaceAheadFormat" => "{0}% projected · below pace",
         "CodexPaceOnTrackFormat" => "{0}% projected · on pace",
         "CodexPaceBehindFormat" => "{0}% projected · above pace",
