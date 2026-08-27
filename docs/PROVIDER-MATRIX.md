@@ -1,666 +1,779 @@
-# Matriz de proveedores
+# Provider matrix
 
-Fecha de corte: 2026-08-26
+Cutoff date: 2026-08-26
 
-Estado temporal: Vercel AI Gateway queda fuera del catálogo activo desde el Ticket 117. Su implementación se conserva para reactivarla en una entrega posterior.
+Temporary status: Vercel AI Gateway is out of the active catalog as of Ticket 117. Its implementation is kept so it can be reactivated in a later delivery.
 
-Upstreams de paridad:
+Parity upstreams:
 `janekbaraniewski/openusage@ddc05f24b159bfd1a24bbf641dcfb841410a77ab`,
-`steipete/CodexBar@26ebaf9d5b0949e3b57fafcde0ed54aa3b27b3d2` y
+`steipete/CodexBar@26ebaf9d5b0949e3b57fafcde0ed54aa3b27b3d2`, and
 `getagentseal/codeburn@d78bdb21f86025702376778fb27035cd3938956b`.
 
-Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
+Cost references: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` and `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
-## Estados
+## States
 
-- `MVP`: ruta técnica y de producto elegida.
-- `Local`: se puede publicar una vista basada solo en datos locales.
-- `Gate`: falta prueba, contrato público o revisión de uso permitido.
-- `Manual`: requiere una clave que el usuario entrega a la app.
-- `Experimental`: fuente frágil; sin promesa de soporte.
-- `Bloqueado`: la fuente conocida no se puede usar en una build pública.
+- `MVP`: chosen technical and product path.
+- `Local`: a view based only on local data can be published.
+- `Gate`: a test, public contract, or permitted-use review is missing.
+- `Manual`: requires a key that the user gives to the app.
+- `Experimental`: fragile source; no support promise.
+- `Blocked`: the known source cannot be used in a public build.
 
-## Base de módulos OpenUsage, CodexBar y CodeBurn
+## OpenUsage, CodexBar, and CodeBurn module baseline
 
-El catálogo representa 56 identidades de la unión inspeccionada sin confundir
-un módulo visible con una fuente de datos activa:
+The catalog represents 56 identities from the inspected union. A visible module is not the same as an active data source:
 
 - `Active`: Amp, Antigravity, Claude, Codex, Cursor, Goose, Grok Build, Hermes,
-  Mux y OpenCode. Cada uno crea un lector local real y acotado.
-- `OptIn`: Vercel AI Gateway. Conserva su cliente público y exige una clave que
-  el usuario entrega a TokenUsage.
-- `Prepared`: 35 módulos con identidad, capacidades, marca cuando existe y
-  estado visible. No abren archivos, credenciales ni conexiones.
+  Mux, and OpenCode. Each one creates a real, bounded local reader.
+- `OptIn`: Vercel AI Gateway. It keeps its public client and requires a key that
+  the user gives to TokenUsage.
+- `Prepared`: 35 modules with identity, capabilities, brand when it exists, and
+  visible status. They do not open files, credentials, or connections.
 - `PolicyBlocked`: Cline, Cline CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
-  Z.ai, ZCode y Zed. Mantienen el contrato investigado, pero no activan readers.
+  Z.ai, ZCode, and Zed. They keep the researched contract, but they do not
+  activate readers.
 
-La [investigación de implementación](research/2026-08-12-provider-parity-implementation.md)
-explica qué toma TokenUsage de cada upstream, cómo calcula costos y por qué no
-copia sesiones OAuth, cookies ni endpoints privados.
+The [implementation research](research/2026-08-12-provider-parity-implementation.md)
+explains what TokenUsage takes from each upstream, how it calculates cost, and
+why it does not copy OAuth sessions, cookies, or private endpoints.
 
-## Resumen
+## Summary
 
-| Proveedor | Cuota en vivo | Tokens y gasto local | Fuente elegida | Estado | Entrega |
+| Provider | Live quota | Local tokens and cost | Chosen source | Status | Delivery |
 |---|---|---|---|---|---|
-| Codex | Sí, interfaz oficial local | Sí, API oficial y logs | `codex app-server` | MVP | M4; detalle M6 |
-| Claude | Bloqueada sin interfaz pública | Sí, logs y costo informado o estimado | sesiones Claude Code | Local activo + Gate de cuota | Activo; cuota pendiente |
-| OpenCode | No hay cuota común | Sí, coste informado y tokens | `opencode.db` y `storage` | Local | M6A |
-| Grok Build | Bloqueada sin interfaz pública | Sí, coste informado o estimado | `sessions` y `unified.jsonl` | Local + Gate | M6A; cuota pendiente |
-| Grok Bot | Bloqueada sin interfaz de datos aprobada | No | La app de escritorio coordina un computador en la nube; el perfil local contiene estado y credenciales | Preparado | Compatibilidad de catálogo; no se leen sesiones ni credenciales |
-| OpenRouter | Sí, API con clave | Depende de API | clave manual propia | Manual | M9 |
-| Z.ai | Bloqueada fuera del plugin oficial | Solo por logs admitidos | plugin oficial limitado a Claude Code | Bloqueado | M9; reabrir con contrato o permiso |
-| Cursor | No en Individual. Teams/Enterprise: Admin API manual futura | Sí, contadores reales por turno; fallback de contexto para datos antiguos | SQLite local con proyección allowlist; Admin API futura | Local activo parcial | Activo; costo API estimado cuando el modelo coincide |
-| Amp | No hay cuota pública estable | Sí, tokens del ledger | `ledger.jsonl`; no se abren threads | Local activo parcial | Activo; créditos no se muestran como USD |
-| Mux | No hay cuota común | Sí, tokens y costo agregado por modelo | `session-usage.json`; no se abren transcripts | Local activo | Activo |
-| Goose | No hay cuota común | Sí, tokens acumulados por sesión | consulta numérica de solo lectura a `sessions.db` | Local activo parcial | Activo; costo API estimado cuando hay precio |
-| Hermes | No hay cuota común | Sí, tokens y costo acumulados por sesión | `state.db` en `.hermes` o en un perfil; una carpeta `.hermes` vacía o de otro tool no cuenta como instalación | Local activo parcial | Activo; costo informado o API estimado |
-| GitHub Copilot | No con el contrato actual | Sí, personal pagado y organización | Billing API con token manual | Manual parcial | M9; smoke pendiente |
-| ZCode | Bloqueada sin contrato público | Sí, contadores por petición; costo API estimado | SQLite local `model_usage` con proyección allowlist | Local activo parcial | Reabierto en 3.8.1; Ticket 49 |
-| Kilo Code | Sin contrato público de cuota | Agregados CLI candidatos, sin contrato de máquina | Sin fuente apta; candidato: `kilo stats` | Gate | M9; Ticket 56 cerrado, Ticket 57 `needs-info` |
-| Kimi Code | Bloqueada sin contrato de máquina | Bloqueados por contenido de sesión | Solo detección de versión | Bloqueado | M9; Ticket 50 cerrado, Ticket 51 `needs-info` |
-| Command Code | Bloqueada sin contrato de máquina | Bloqueados por sesiones y credenciales | Solo detección de versión | Bloqueado | M9; Ticket 52 cerrado, Ticket 53 `needs-info` |
-| Cline | API manual pendiente de contrato | Bloqueados por contenido de tareas | API Enterprise candidata | Bloqueado | M9; Ticket 54 cerrado, Ticket 55 `needs-info` |
-| Zed | Sin contrato público de cuota | Bloqueados por la mezcla de tokens y transcripción | Sin fuente apta | Bloqueado | M9; Ticket 58 cerrado, Ticket 59 `needs-info` |
-| Antigravity IDE/CLI | Bloqueada por política | Sí, tokens y coste estimado | `gen_metadata` local | Local experimental + cuota bloqueada | M6B |
-| Devin | No para self-serve | ACUs de organización | API v3 con service user manual | Experimental manual | M9; smoke pendiente |
+| Codex | Yes, official local interface | Yes, official API and logs | `codex app-server` | MVP | M4; detail in M6 |
+| Claude | Blocked without a public interface | Yes, logs and reported or estimated cost | Claude Code sessions | Active local + quota Gate | Active; quota pending |
+| OpenCode | No common quota | Yes, reported cost and tokens | `opencode.db` and `storage` | Local | M6A |
+| Grok Build | Blocked without a public interface | Yes, reported or estimated cost | `sessions` and `unified.jsonl` | Local + Gate | M6A; quota pending |
+| Grok Bot | Blocked without an approved data interface | No | The desktop app coordinates a computer in the cloud; the local profile contains state and credentials | Prepared | Catalog compatibility; sessions and credentials are not read |
+| OpenRouter | Yes, API with a key | Depends on the API | user's own manual key | Manual | M9 |
+| Z.ai | Blocked outside the official plugin | Only through admitted logs | official plugin limited to Claude Code | Blocked | M9; reopen with a contract or permission |
+| Cursor | Not on Individual. Teams/Enterprise: future manual Admin API | Yes, real counters per turn; context fallback for older data | local SQLite with an allowlist projection; future Admin API | Partial active local | Active; estimated API cost when the model matches |
+| Amp | No stable public quota | Yes, tokens from the ledger | `ledger.jsonl`; threads are not opened | Partial active local | Active; credits are not shown as USD |
+| Mux | No common quota | Yes, tokens and aggregated cost by model | `session-usage.json`; transcripts are not opened | Active local | Active |
+| Goose | No common quota | Yes, tokens accumulated per session | read-only numeric query of `sessions.db` | Partial active local | Active; estimated API cost when a price exists |
+| Hermes | No common quota | Yes, tokens and cost accumulated per session | `state.db` in `.hermes` or in a profile; an empty `.hermes` folder or one from another tool does not count as an install | Partial active local | Active; reported or estimated API cost |
+| GitHub Copilot | No under the current contract | Yes, paid personal and organization | Billing API with a manual token | Partial Manual | M9; smoke pending |
+| ZCode | Blocked without a public contract | Yes, counters per request; estimated API cost | local SQLite `model_usage` with an allowlist projection | Partial active local | Reopened in 3.8.1; Ticket 49 |
+| Kilo Code | No public quota contract | Candidate CLI aggregates, without a machine contract | No suitable source; candidate: `kilo stats` | Gate | M9; Ticket 56 closed, Ticket 57 `needs-info` |
+| Kimi Code | Blocked without a machine contract | Blocked because of session content | Version detection only | Blocked | M9; Ticket 50 closed, Ticket 51 `needs-info` |
+| Command Code | Blocked without a machine contract | Blocked because of sessions and credentials | Version detection only | Blocked | M9; Ticket 52 closed, Ticket 53 `needs-info` |
+| Cline | Manual API pending a contract | Blocked because of task content | Candidate Enterprise API | Blocked | M9; Ticket 54 closed, Ticket 55 `needs-info` |
+| Zed | No public quota contract | Blocked because tokens and transcription are mixed | No suitable source | Blocked | M9; Ticket 58 closed, Ticket 59 `needs-info` |
+| Antigravity IDE/CLI | Blocked by policy | Yes, tokens and estimated cost | local `gen_metadata` | Experimental local + blocked quota | M6B |
+| Devin | No for self-serve | Organization ACUs | v3 API with a manual service user | Experimental Manual | M9; smoke pending |
 
-## Siguiente ola de investigación
+## Next research wave
 
-Estos nombres aparecen en las referencias locales, pero aún no son proveedores
-activos. Cada uno empieza con un gate separado. No se añade un scanner hasta
-probar una fuente apta para Windows.
+These names appear in the local references, but they are not active providers
+yet. Each one starts with a separate gate. A scanner is not added until a
+source suitable for Windows is proven.
 
-| Candidato | Motivo | Límite inicial | Ticket |
+| Candidate | Reason | Initial limit | Ticket |
 |---|---|---|---|
-| Gemini CLI | Aparece en CodeBurn y AgentsView | No leer chats ni credenciales; separar uso local de cuota Google | 61 |
-| Kiro | Aparece en CodeBurn y AgentsView | Separar CLI, IDE y cuenta; no leer contenido de sesiones | 62 |
-| Roo Code | Aparece en CodeBurn y AgentsView | No reutilizar tareas de VS Code; evitar doble conteo con el proveedor del modelo | 63 |
-| Kimi CLI | CodeBurn lo separa de Kimi Code; AgentsView mezcla ambas rutas | Fijar identidad antes de heredar almacenamiento o claims de Kimi Code | 65 |
-| Cursor Agent | CodeBurn lo separa del editor Cursor | Mantenerlo separado de Cursor Admin API e Individual | 66 |
-| Forge | Aparece en CodeBurn y AgentsView | Validar soporte Windows y evitar bases con contenido | 67 |
-| OpenClaw | Aparece en CodeBurn y AgentsView | Fijar identidad y fuente agregada; no leer conversaciones | 69 |
-| Pi | Aparece en CodeBurn y AgentsView | Distinguir Pi de OMP y fijar deduplicación | 70 |
-| Qwen | Aparece en CodeBurn y AgentsView | Separar Qwen Code del proveedor de modelos Qwen | 71 |
-| Warp | Aparece en CodeBurn y AgentsView | No leer historial de terminal ni comandos | 72 |
-| Vercel AI Gateway | CodeBurn expone un reporte agregado por API | Separar gasto del gateway y uso de agentes; clave manual con permiso mínimo | 73 |
-| Mistral Vibe | Aparece en CodeBurn y AgentsView | No leer mensajes, herramientas ni comandos; exigir fuente agregada | 75 |
-| DeepSeek TUI / CodeWhale | Comparten rutas heredadas entre AgentsView y CodeBurn | Resolver identidad y migración antes de crear IDs o leer sesiones | 77 |
-| Windsurf | AgentsView declara rutas Windows | Exigir fuente agregada; no leer chat ni estado global del IDE | 78 |
-| Trae | AgentsView declara varias rutas Windows | Separar variantes del editor y excluir chats, tareas y credenciales | 79 |
-| Aider | AgentsView lo trata como raíz opt-in | Fijar consentimiento y aceptar solo métricas mínimas documentadas | 80 |
-| OpenHands CLI | AgentsView registra sesiones locales | Separar CLI, servicio y proveedor de modelo; no leer contenido | 81 |
-| Codebuff | CodeBurn registra gasto desde sesiones | Buscar un agregado oficial que no exponga mensajes ni herramientas | 83 |
-| Piebald | AgentsView declara almacenamiento Windows propio | Confirmar producto, soporte y fuente antes de crear un provider ID | 84 |
-| Crush | CodeBurn lo registra como agente distinto | Fijar producto, publisher y una fuente agregada apta para Windows | 86 |
-| Droid | CodeBurn lo registra como identidad propia | Resolver el nombre ambiguo y separar agente, cuenta y proveedor de modelo | 87 |
-| IBM Bob | CodeBurn incluye un adapter dedicado | Confirmar producto vigente, soporte Windows y exportación mínima | 88 |
-| LingTai TUI | CodeBurn incluye sesiones propias | Fijar identidad y soporte Windows antes de evaluar métricas | 89 |
-| Open Design | CodeBurn incluye un adapter dedicado | Confirmar que es un agente medible y no un formato auxiliar | 91 |
-| Quick Desktop | CodeBurn usa la identidad `quickdesk` | Fijar nombre canónico, publisher y fuente Windows | 92 |
-| Zerostack | CodeBurn incluye un adapter dedicado | Confirmar producto, versión y contrato de métricas | 93 |
-| Zencoder | AgentsView declara sesiones propias | Separar el producto de otros usos del nombre y exigir fuente apta | 94 |
-| Qoder | AgentsView declara rutas de proyecto | No leer transcripciones; buscar un agregado oficial | 95 |
-| Cortex Code | AgentsView declara sesiones locales | Separar uso del agente y facturación Snowflake | 96 |
-| gptme | AgentsView declara logs locales | Confirmar soporte Windows y una salida sin contenido | 97 |
-| iFlow | AgentsView declara sesiones propias | Fijar publisher, producto y contrato antes de crear ID | 98 |
-| IcodeMate | AgentsView registra una identidad propia | Resolver identidad, soporte Windows y fuente mínima | 99 |
-| MiMoCode | AgentsView declara almacenamiento local | Evitar bases con contenido y separar modelos MiMo | 100 |
-| Posit Assistant | AgentsView lo separa de Positron | Fijar soporte Windows y una fuente sin conversación | 101 |
-| Positron Assistant | AgentsView declara rutas por plataforma | Confirmar soporte Windows antes de evaluar datos | 102 |
-| QClaw | AgentsView lo separa de OpenClaw | Resolver relación, migración y deduplicación | 103 |
-| QwenPaw | AgentsView lo separa de Qwen Code | Resolver identidad y relación con el proveedor Qwen | 104 |
-| Reasonix | AgentsView declara una ruta Windows | Exigir métricas agregadas; excluir sesiones y sidecars con contenido | 105 |
-| Shelley | AgentsView declara una base propia | Confirmar soporte Windows y tablas libres de contenido | 106 |
-| WorkBuddy | AgentsView declara sesiones por proyecto | Fijar producto, soporte Windows y fuente apta | 107 |
-| OpenClaude | AgentsView lo separa de Claude Code | Resolver si es fork, alias o provider antes de heredar contratos | 108 |
-| Claude Cowork | AgentsView lo separa de Claude Code | Mantenerlo dentro de la familia Claude hasta fijar cuenta y fuente | 109 |
+| Gemini CLI | Appears in CodeBurn and AgentsView | Do not read chats or credentials; separate local usage from Google quota | 61 |
+| Kiro | Appears in CodeBurn and AgentsView | Separate CLI, IDE, and account; do not read session content | 62 |
+| Roo Code | Appears in CodeBurn and AgentsView | Do not reuse VS Code tasks; avoid double counting with the model provider | 63 |
+| Kimi CLI | CodeBurn separates it from Kimi Code; AgentsView mixes both paths | Settle identity before inheriting Kimi Code storage or claims | 65 |
+| Cursor Agent | CodeBurn separates it from the Cursor editor | Keep it separate from Cursor Admin API and Individual | 66 |
+| Forge | Appears in CodeBurn and AgentsView | Validate Windows support and avoid databases that contain content | 67 |
+| OpenClaw | Appears in CodeBurn and AgentsView | Settle identity and an aggregated source; do not read conversations | 69 |
+| Pi | Appears in CodeBurn and AgentsView | Distinguish Pi from OMP and settle deduplication | 70 |
+| Qwen | Appears in CodeBurn and AgentsView | Separate Qwen Code from the Qwen model provider | 71 |
+| Warp | Appears in CodeBurn and AgentsView | Do not read terminal history or commands | 72 |
+| Vercel AI Gateway | CodeBurn exposes an aggregated API report | Separate gateway cost from agent usage; manual key with minimum permission | 73 |
+| Mistral Vibe | Appears in CodeBurn and AgentsView | Do not read messages, tools, or commands; require an aggregated source | 75 |
+| DeepSeek TUI / CodeWhale | They share inherited paths between AgentsView and CodeBurn | Resolve identity and migration before creating IDs or reading sessions | 77 |
+| Windsurf | AgentsView declares Windows paths | Require an aggregated source; do not read chat or the IDE global state | 78 |
+| Trae | AgentsView declares several Windows paths | Separate editor variants and exclude chats, tasks, and credentials | 79 |
+| Aider | AgentsView treats it as an opt-in root | Settle consent and accept only documented minimum metrics | 80 |
+| OpenHands CLI | AgentsView records local sessions | Separate CLI, service, and model provider; do not read content | 81 |
+| Codebuff | CodeBurn records cost from sessions | Look for an official aggregate that does not expose messages or tools | 83 |
+| Piebald | AgentsView declares its own Windows storage | Confirm product, support, and source before creating a provider ID | 84 |
+| Crush | CodeBurn records it as a distinct agent | Settle product, publisher, and an aggregated source suitable for Windows | 86 |
+| Droid | CodeBurn records it as its own identity | Resolve the ambiguous name and separate agent, account, and model provider | 87 |
+| IBM Bob | CodeBurn includes a dedicated adapter | Confirm the current product, Windows support, and a minimum export | 88 |
+| LingTai TUI | CodeBurn includes its own sessions | Settle identity and Windows support before evaluating metrics | 89 |
+| Open Design | CodeBurn includes a dedicated adapter | Confirm that it is a measurable agent and not an auxiliary format | 91 |
+| Quick Desktop | CodeBurn uses the `quickdesk` identity | Settle canonical name, publisher, and Windows source | 92 |
+| Zerostack | CodeBurn includes a dedicated adapter | Confirm product, version, and metrics contract | 93 |
+| Zencoder | AgentsView declares its own sessions | Separate the product from other uses of the name and require a suitable source | 94 |
+| Qoder | AgentsView declares project paths | Do not read transcripts; look for an official aggregate | 95 |
+| Cortex Code | AgentsView declares local sessions | Separate agent usage from Snowflake billing | 96 |
+| gptme | AgentsView declares local logs | Confirm Windows support and an output without content | 97 |
+| iFlow | AgentsView declares its own sessions | Settle publisher, product, and contract before creating an ID | 98 |
+| IcodeMate | AgentsView records its own identity | Resolve identity, Windows support, and a minimum source | 99 |
+| MiMoCode | AgentsView declares local storage | Avoid databases that contain content and separate MiMo models | 100 |
+| Posit Assistant | AgentsView separates it from Positron | Settle Windows support and a source without conversation | 101 |
+| Positron Assistant | AgentsView declares paths by platform | Confirm Windows support before evaluating data | 102 |
+| QClaw | AgentsView separates it from OpenClaw | Resolve relationship, migration, and deduplication | 103 |
+| QwenPaw | AgentsView separates it from Qwen Code | Resolve identity and the relationship with the Qwen provider | 104 |
+| Reasonix | AgentsView declares a Windows path | Require aggregated metrics; exclude sessions and sidecars that contain content | 105 |
+| Shelley | AgentsView declares its own database | Confirm Windows support and tables free of content | 106 |
+| WorkBuddy | AgentsView declares sessions per project | Settle product, Windows support, and a suitable source | 107 |
+| OpenClaude | AgentsView separates it from Claude Code | Resolve whether it is a fork, alias, or provider before inheriting contracts | 108 |
+| Claude Cowork | AgentsView separates it from Claude Code | Keep it in the Claude family until account and source are settled | 109 |
 
-La entrega indica orden, no fecha. Ningún estado `Gate` entra en estable hasta cerrar todos sus controles.
+Delivery shows order, not a date. No `Gate` status enters stable until all of
+its controls are closed.
 
-ZooCode permanece dentro del gate de Roo Code hasta fijar su identidad y la
-migración del producto. VS Code Copilot y Visual Studio Copilot permanecen bajo la familia GitHub
-Copilot. Kiro IDE queda bajo Kiro; Antigravity IDE y CLI conservan fuentes
-distintas dentro de la misma familia. OMP se resuelve en el gate de Pi.
-`ChatGPT` y `Claude.ai` aparecen en AgentsView como importaciones de historiales,
-no como agentes locales con una cuota medible, y quedan fuera del inventario de
-providers hasta que exista otro contrato.
+ZooCode stays inside the Roo Code gate until its identity and the product
+migration are settled. VS Code Copilot and Visual Studio Copilot stay under the
+GitHub Copilot family. Kiro IDE stays under Kiro. Antigravity IDE and CLI keep
+distinct sources inside the same family. OMP is resolved in the Pi gate.
+`ChatGPT` and `Claude.ai` appear in AgentsView as history imports, not as local
+agents with a measurable quota, and they stay out of the provider inventory
+until another contract exists.
 
-El término de entrada `Zcode` se resuelve como `ZCode`, el producto de
-escritorio de ZCode Agent. Kilo Code, Kimi Code y Command Code se conservan
-como términos de entrada. Zed representa solo su agente nativo: las sesiones de
-agentes externos siguen perteneciendo a su proveedor original. Sus tickets de
-investigación deben fijar el producto canónico antes de añadir IDs, iconos,
-rutas o claims al código.
+The entry term `Zcode` resolves as `ZCode`, the desktop product of ZCode Agent.
+Kilo Code, Kimi Code, and Command Code are kept as entry terms. Zed represents
+only its native agent: sessions of external agents still belong to their
+original provider. Their research tickets must settle the canonical product
+before IDs, icons, paths, or claims are added to the code.
 
-La revisión de referencias que motivó esta ampliación está en
-[inventario de cobertura](research/2026-07-22-provider-reference-inventory.md).
+The reference review that motivated this expansion is in the
+[coverage inventory](research/2026-07-22-provider-reference-inventory.md).
 
-## Gate de publicación
+## Publication gate
 
-Toda integración comienza con un Issue de proveedor. La PR debe seguir la
-[guía de pruebas para contribuciones](CONTRIBUTOR-TESTING.md), incluso cuando
-el proveedor no esté disponible para los mantenedores.
+Every integration starts with a provider Issue. The PR must follow the
+[contributor testing guide](CONTRIBUTOR-TESTING.md), even when the provider is
+not available to maintainers.
 
-Cada proveedor necesita:
+Each provider needs:
 
-- [ ] fuente y precedencia documentadas;
-- [ ] prueba Windows con rutas por defecto y variable de entorno;
-- [ ] contrato de respuesta fijado con fixtures sanitizados;
-- [ ] parser con límites de tamaño, timeout y cancelación;
-- [ ] cuenta ausente, vencida, no apta, throttle y cambio de esquema cubiertos;
-- [ ] varias cuentas y cambio de cuenta definidos;
-- [ ] rotación de credencial sin carrera o sin escritura;
-- [ ] logs y caché sin secretos;
-- [ ] revisión de términos, política y marca;
-- [ ] prueba dentro del MSIX firmado;
-- [ ] prueba de regresión contra una versión real soportada;
-- [ ] texto de UI que explica fuente, cobertura y límites.
-- [ ] coste informado y estimado separados, con modelos sin precio visibles;
-- [ ] diferencial de totales contra una referencia sobre el mismo fixture;
-- [ ] prueba de que el lector no abre auth, prompt, respuesta, tarea o comando.
+- [ ] documented source and precedence
+- [ ] Windows test with default paths and environment variable
+- [ ] response contract settled with sanitized fixtures
+- [ ] parser with size limits, timeout, and cancellation
+- [ ] absent, expired, unsuitable, throttle, and schema-change accounts covered
+- [ ] multiple accounts and account change defined
+- [ ] credential rotation without a race, or without writing
+- [ ] logs and cache without secrets
+- [ ] terms, policy, and brand review
+- [ ] test inside the signed MSIX
+- [ ] regression test against a real supported version
+- [ ] UI text that explains source, coverage, and limits
+- [ ] reported and estimated cost kept separate, with unpriced models visible
+- [ ] total differential against a reference on the same fixture
+- [ ] proof that the reader does not open auth, prompt, response, task, or command
 
 ## Codex
 
-### Fuente
+### Source
 
-- estado de cuenta: `account/read` con `refreshToken: false`, seleccionando solo
-  tipo, plan y requisito de auth;
-- cuota: `account/rateLimits/read`;
-- tokens y buckets diarios: `account/usage/read`;
-- detalle local opcional: `CODEX_HOME/sessions` y `archived_sessions`.
+- account status: `account/read` with `refreshToken: false`, selecting only
+  type, plan, and auth requirement
+- quota: `account/rateLimits/read`
+- tokens and daily buckets: `account/usage/read`
+- optional local detail: `CODEX_HOME/sessions` and `archived_sessions`
 
-El [`app-server` oficial](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) gestiona el login y la renovación. La app no lee `auth.json` en el MVP.
+The official [`app-server`](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) manages login and renewal. The app does not read `auth.json` in the MVP.
 
-La lectura de estado no conserva ni muestra `email`, `codexHome`, token,
-respuesta cruda o identificador de cuenta. Una sesión ChatGPT habilita cuota;
-API key, Bedrock, modo local o auth futura quedan como cuenta no apta hasta que
-un contrato de cuota diga lo contrario.
+Status reads do not keep or show `email`, `codexHome`, token, raw response, or
+account identifier. A ChatGPT session enables quota. API key, Bedrock, local
+mode, or future auth remain an unsuitable account until a quota contract says
+otherwise.
 
-### Métricas
+### Metrics
 
-- ventana primaria;
-- ventana secundaria;
-- límites adicionales por modelo;
-- próximo reinicio;
-- plan;
-- créditos y control de gasto cuando existan;
-- tokens diarios y tendencia;
-- gasto estimado por modelo en una fase posterior.
+- primary window
+- secondary window
+- additional per-model limits
+- next reset
+- plan
+- credits and spending controls when they exist
+- daily tokens and trend
+- estimated cost by model in a later phase
 
-### Límites
+### Limits
 
-- requiere un binario Codex compatible;
-- API key sin cuenta ChatGPT puede carecer de cuota de suscripción;
-- el método puede entregar límites adicionales nuevos;
-- varias cuentas requieren un `CODEX_HOME` y proceso por instancia;
-- consumir un crédito de reset queda fuera del MVP por ser una acción irreversible.
+- requires a compatible Codex binary
+- an API key without a ChatGPT account can lack subscription quota
+- the method can deliver new additional limits
+- multiple accounts require one `CODEX_HOME` and process per instance
+- consuming a reset credit stays outside the MVP because it is an irreversible action
 
-### Salida
+### Result
 
-MVP aprobado después de pruebas de proceso, contrato, paquete y cuenta no apta. La prueba local de investigación completó ambos métodos de lectura.
+MVP approved after process, contract, package, and unsuitable-account tests.
+The local research test completed both read methods.
 
-Fuente upstream de comparación: [provider Codex](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/codex.md).
+Upstream comparison source: [Codex provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/codex.md).
 
 ## Claude
 
-### Fuente local
+### Local source
 
-- `%USERPROFILE%\.claude\projects`;
-- ruta equivalente bajo `CLAUDE_CONFIG_DIR`;
-- logs de `pi` solo en una fase posterior;
-- sesiones no persistidas quedan fuera de cobertura.
+- `%USERPROFILE%\.claude\projects`
+- equivalent path under `CLAUDE_CONFIG_DIR`
+- `pi` logs only in a later phase
+- non-persisted sessions stay out of coverage
 
-Se extraen tokens, modelo, fecha y costo registrado cuando existe. Los prompts y respuestas se omiten.
+The reader extracts tokens, model, and date. It extracts recorded cost when
+that value exists. Prompts and responses are omitted.
 
-### Cuota
+### Quota
 
-Claude Code guarda credenciales de Windows en `%USERPROFILE%\.claude\.credentials.json`, según su [documentación de autenticación](https://code.claude.com/docs/en/authentication). No documenta un comando de cuota de solo lectura. La implementación upstream llama un endpoint no público y puede rotar tokens.
+Claude Code stores Windows credentials in `%USERPROFILE%\.claude\.credentials.json`,
+according to its [authentication documentation](https://code.claude.com/docs/en/authentication).
+It does not document a read-only quota command. The upstream implementation
+calls a non-public endpoint and can rotate tokens.
 
-La [guía legal de Claude Code](https://code.claude.com/docs/en/legal-and-compliance) limita el uso de OAuth de suscripciones por terceros. La cuota queda bloqueada hasta contar con interfaz pública o permiso. La app no escribe esa credencial.
+The [Claude Code legal guide](https://code.claude.com/docs/en/legal-and-compliance)
+limits third-party use of subscription OAuth. Quota stays blocked until a
+public interface or permission exists. The app does not write that credential.
 
-### Métricas locales
+### Local metrics
 
-- hoy, ayer y 30 días;
-- tokens y tendencia;
-- costo medido si el log lo trae;
-- costo estimado con cobertura de precios;
-- modelos omitidos y motivo.
+- today, yesterday, and 30 days
+- tokens and trend
+- measured cost if the log includes it
+- estimated cost with price coverage
+- omitted models and the reason
 
-### Salida
+### Result
 
-Vista local después del scanner y pruebas de cobertura. Cuota en vivo detrás de gate legal y técnico.
+Local view after the scanner and coverage tests. Live quota behind a legal and
+technical gate.
 
-Fuente upstream de comparación: [provider Claude](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/claude.md).
+Upstream comparison source: [Claude provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/claude.md).
 
 ## OpenCode
 
-### Fuente
+### Source
 
-OpenCode documenta `%USERPROFILE%\.local\share\opencode` en Windows y `~/.local/share/opencode` dentro de WSL. El lector admite `opencode.db` y el almacenamiento JSON `storage`. Omite `auth.json`.
+OpenCode documents `%USERPROFILE%\.local\share\opencode` on Windows and
+`~/.local/share/opencode` inside WSL. The reader accepts `opencode.db` and the
+JSON `storage`. It omits `auth.json`.
 
-El comando oficial [`opencode stats`](https://opencode.ai/docs/cli/) entrega estadísticas humanas de tokens y coste. Como no ofrece JSON en la versión observada, se usa como oráculo diferencial y no como formato del adaptador.
+The official [`opencode stats`](https://opencode.ai/docs/cli/) command delivers
+human-readable token and cost statistics. Because it does not offer JSON in the
+observed version, it is used as a differential oracle and not as the adapter
+format.
 
-### Métricas
+### Metrics
 
-- uso observado en este equipo;
-- tokens por periodo, agente y modelo;
-- coste informado por OpenCode cuando exista;
-- coste estimado solo para filas sin coste informado;
-- tendencia;
-- modelos y fuentes con cobertura.
+- usage observed on this computer
+- tokens by period, agent, and model
+- cost reported by OpenCode when it exists
+- estimated cost only for rows without reported cost
+- trend
+- models and sources with coverage
 
-### Límites
+### Limits
 
-El dato local puede omitir otros equipos, sesiones eliminadas e instalaciones WSL. La UI lo llama `Uso local observado`. No afirma cuota restante porque OpenCode puede usar muchos proveedores y planes.
+Local data can omit other computers, deleted sessions, and WSL installs. The UI
+calls this `Observed local usage`. It does not claim remaining quota because
+OpenCode can use many providers and plans.
 
-La base se abre en modo de solo lectura con consultas mínimas. No se copia: en la prueba local ocupa cerca de 2,5 GB. La primera beta cubre OpenCode nativo en Windows; cada distro WSL requiere detección y consentimiento aparte.
+The database is opened read-only with minimal queries. It is not copied: in the
+local test it occupies about 2.5 GB. The first beta covers native OpenCode on
+Windows. Each WSL distro needs separate detection and consent.
 
-### Salida
+### Result
 
-Beta local después de fixtures para SQLite, JSON legado, WAL, modelo sin precio y deduplicación entre formatos. La instalación examinada tiene OpenCode `1.18.4`, `opencode.db`, `storage` y `opencode stats`.
+Local beta after fixtures for SQLite, legacy JSON, WAL, unpriced model, and
+deduplication across formats. The examined install has OpenCode `1.18.4`,
+`opencode.db`, `storage`, and `opencode stats`.
 
-Fuente upstream de comparación: [provider OpenCode](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/opencode.md).
+Upstream comparison source: [OpenCode provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/opencode.md).
 
 ## Grok
 
-### Fuente local
+### Local source
 
-- `GROK_HOME/logs/unified.jsonl` como fuente principal;
-- `GROK_HOME/sessions` con `summary.json` y `updates.jsonl` como compatibilidad;
-- `params.update.usage`, desglose por modelo y `costUsdTicks` cuando existan;
-- estimación por catálogo solo cuando la fuente no informa coste.
+- `GROK_HOME/logs/unified.jsonl` as the primary source
+- `GROK_HOME/sessions` with `summary.json` and `updates.jsonl` as compatibility
+- `params.update.usage`, per-model breakdown, and `costUsdTicks` when they exist
+- catalog estimate only when the source does not report cost
 
-El log unificado tiene prioridad cuando su inferencia más antigua llega al inicio de la ventana de 35 días, igual que en OpenUsage. Si Grok rotó el log y solo quedan turnos recientes, TokenUsage usa los snapshots de sesión: mezclar ambas fuentes contaría la misma inferencia dos veces. Los snapshots conservan `costUsdTicks` informado; un `0` no se trata como un turno gratis.
+The unified log has priority when its oldest inference reaches the start of the
+35-day window, the same as in OpenUsage. If Grok rotated the log and only
+recent turns remain, TokenUsage uses the session snapshots. Mixing both sources
+would count the same inference twice. The snapshots keep reported
+`costUsdTicks`. A `0` is not treated as a free turn.
 
-El modelo de un turno no viaja en la línea de `shell.turn.inference_done`: la app lo toma del último anuncio de modelo del mismo `pid`. Cuando el log ya no conserva ese anuncio, el turno se registra bajo el modelo `unknown`, con tokens contados y coste no disponible. Antes se descartaba, y en la prueba con Grok `1.0.0` eso escondía 61 de 1034 turnos mientras la lectura se declaraba completa.
+A turn's model does not travel on the `shell.turn.inference_done` line. The app
+takes it from the last model announcement for the same `pid`. When the log no
+longer keeps that announcement, the turn is recorded under the `unknown` model,
+with tokens counted and cost unavailable. It was discarded before. In the Grok
+`1.0.0` test that hid 61 of 1034 turns while the read was declared complete.
 
-### Cuota
+### Quota
 
-OpenUsage muestra el porcentaje semanal restante con la sesión de `grok login`: lee `auth.json`, llama `GET https://cli-chat-proxy.grok.com/v1/billing` y escribe tokens rotados. xAI documenta ese saldo para personas en Settings → Usage y en el comando TUI `/usage`. No hay subcomando `grok usage` ni JSON de cuota para otra app. `GET /v1/api-key` publica metadatos de la clave, no el pool semanal. El saldo prepaid de Management API es crédito de equipo API con management key, otro producto. Su [política de uso aceptable](https://x.ai/legal/acceptable-use-policy) restringe el acceso automatizado. La build pública no lee `auth.json` ni llama el endpoint privado. Gate: [cuota restante y Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
+OpenUsage shows remaining weekly percentage with the `grok login` session: it
+reads `auth.json`, calls `GET https://cli-chat-proxy.grok.com/v1/billing`, and
+writes rotated tokens. xAI documents that balance for people in Settings →
+Usage and in the TUI command `/usage`. There is no `grok usage` subcommand and
+no quota JSON for another app. `GET /v1/api-key` publishes key metadata, not
+the weekly pool. The Management API prepaid balance is team API credit with a
+management key, another product. Its [acceptable use policy](https://x.ai/legal/acceptable-use-policy)
+restricts automated access. The public build does not read `auth.json` or call
+the private endpoint. Gate: [remaining quota and Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
 
-### Salida
+### Result
 
-Tokens y gasto local en beta tras fixtures de versiones y diferencial. Cuota y saldo solo después de una interfaz oficial apta o permiso escrito. La prueba Windows detectó Grok Build `0.2.112`, sesiones y el log unificado sin abrir la credencial. La comprobación en Grok `1.0.0` mantiene el mismo formato: `msg`, `pid`, `ts` en UTC y `ctx` con `prompt_tokens`, `cached_prompt_tokens`, `completion_tokens` y `reasoning_tokens`.
+Local tokens and cost in beta after version fixtures and a differential. Quota
+and balance only after a suitable official interface or written permission. The
+Windows test detected Grok Build `0.2.112`, sessions, and the unified log
+without opening the credential. The check on Grok `1.0.0` keeps the same
+format: `msg`, `pid`, `ts` in UTC, and `ctx` with `prompt_tokens`,
+`cached_prompt_tokens`, `completion_tokens`, and `reasoning_tokens`.
 
-Actualización al terminar tarea: al abrir la app el hook `Stop` se registra
-automáticamente cuando Grok está instalado (`~/.grok/hooks/tokenusage.json`).
-También se gestiona con `tokenusage grok install-hook|status|uninstall-hook`.
-El hook descarta el payload del evento y solo refresca los datos propios de
-TokenUsage; la desinstalación conserva el resto de los hooks del usuario.
+Update on task completion: when the app opens, the `Stop` hook is registered
+automatically if Grok is installed (`~/.grok/hooks/tokenusage.json`). It is
+also managed with `tokenusage grok install-hook|status|uninstall-hook`. The
+hook discards the event payload and only refreshes TokenUsage's own data.
+Uninstall keeps the rest of the user's hooks.
 
-Fuente upstream de comparación: [provider Grok](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
+Upstream comparison source: [Grok provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
 
 ### Grok Bot
 
-Grok Bot queda como proveedor preparado. La documentación oficial describe un agente en un computador persistente en la nube. El usuario entra con una cuenta Cursor. La app de escritorio no publica lector de uso, exportación ni API de cuota para terceros.
+Grok Bot remains a prepared provider. Official documentation describes an agent
+on a persistent computer in the cloud. The user signs in with a Cursor account.
+The desktop app does not publish a usage reader, export, or third-party quota
+API.
 
-OpenUsage muestra un mosaico «Grok Bot» dentro de Cursor: RPC privado `DashboardService/GetSandUsageStatus` con el token del editor. Eso no es un lector del escritorio Grok Bot y no activa el módulo `grok-bot` de TokenUsage.
+OpenUsage shows a "Grok Bot" tile inside Cursor: private RPC
+`DashboardService/GetSandUsageStatus` with the editor token. That is not a
+reader of the Grok Bot desktop app and does not activate TokenUsage's
+`grok-bot` module.
 
-TokenUsage detectó el paquete de Windows durante la investigación, pero no abre el perfil Electron, el almacenamiento local, la sesión ni las credenciales. Tampoco atribuye logs de Grok Build al Bot, ni trata créditos de API xAI como cuota del Bot. Se puede activar un lector solo con una interfaz pública de datos o un permiso escrito de xAI o Cursor.
+TokenUsage detected the Windows package during research, but it does not open
+the Electron profile, local storage, session, or credentials. It also does not
+attribute Grok Build logs to the Bot, or treat xAI API credits as Bot quota. A
+reader can be enabled only with a public data interface or written permission
+from xAI or Cursor.
 
-Referencias: [Grok Bot](https://docs.x.ai/grok-bot/overview), [inicio](https://docs.x.ai/grok-bot/get-started), [uso y límites de Grok](https://docs.x.ai/grok/faq). Gate: [cuota restante y Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
+References: [Grok Bot](https://docs.x.ai/grok-bot/overview), [get started](https://docs.x.ai/grok-bot/get-started), [Grok usage and limits](https://docs.x.ai/grok/faq). Gate: [remaining quota and Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
 
 ## OpenRouter
 
-### Fuente
+### Source
 
-Clave que el usuario agrega a esta app y que se guarda en Credential Locker. No se importa una clave de otra app sin confirmación.
+A key that the user adds to this app and that is stored in Credential Locker.
+A key from another app is not imported without confirmation.
 
-El contrato oficial vigente separa capacidades. `/api/v1/key` informa uso y
-límite de la clave activa. `/api/v1/credits` informa créditos de cuenta y exige
-una management key. Un `403` en créditos no invalida el resultado de uso de la
-clave.
+The current official contract separates capabilities. `/api/v1/key` reports
+usage and the limit of the active key. `/api/v1/credits` reports account
+credits and requires a management key. A `403` on credits does not invalidate
+the key-usage result.
 
-### Métricas
+### Metrics
 
-- créditos y saldo;
-- uso que entregue la API pública;
-- hora y estado de la respuesta.
+- credits and balance
+- usage that the public API delivers
+- time and status of the response
 
-### Salida
+### Result
 
-Contrato oficial fijado en
-[el gate OpenRouter](research/2026-07-23-openrouter-source-gate.md). El cliente
-offline es el primer corte. La lista de proveedores ya puede guardar la clave
-en Credential Locker. Runtime, lectura en vivo y smoke autorizado siguen
-pendientes. Se marca como configuración manual.
+Official contract settled in the
+[OpenRouter gate](research/2026-07-23-openrouter-source-gate.md). The offline
+client is the first cut. The provider list can already store the key in
+Credential Locker. Runtime, live reads, and authorized smoke remain pending. It
+is marked as a manual configuration.
 
-Fuente upstream de comparación: [provider OpenRouter](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/openrouter.md).
+Upstream comparison source: [OpenRouter provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/openrouter.md).
 
 ## Z.ai
 
-### Fuente evaluada
+### Evaluated source
 
-Z.ai publica `glm-plan-usage`, un plugin de cuota para el plan Personal que se ejecuta dentro de Claude Code. Su repositorio oficial consulta `api.z.ai` para cuentas internacionales y `open.bigmodel.cn` para China. Los endpoints de monitor no aparecen en el OpenAPI general.
+Z.ai publishes `glm-plan-usage`, a quota plugin for the Personal plan that runs
+inside Claude Code. Its official repository queries `api.z.ai` for
+international accounts and `open.bigmodel.cn` for China. The monitor endpoints
+do not appear in the general OpenAPI.
 
-La política limita el GLM Coding Plan a herramientas soportadas. Las fuentes no conceden a una app Windows aparte un scope de solo lectura ni permiso para reutilizar esos endpoints.
+Policy limits the GLM Coding Plan to supported tools. The sources do not grant
+a separate Windows app a read-only scope or permission to reuse those
+endpoints.
 
-### Salida
+### Result
 
-Bloqueado. La build pública no pide una key Z.ai, no invoca el plugin y no copia el cliente upstream. El gasto local de modelos Z.ai puede aparecer mediante logs de agents admitidos, con cobertura y procedencia.
+Blocked. The public build does not ask for a Z.ai key, does not invoke the
+plugin, and does not copy the upstream client. Local cost for Z.ai models can
+appear through logs of admitted agents, with coverage and provenance.
 
-Gate completo: [investigación Z.ai](research/2026-07-21-zai-gate.md).
+Full gate: [Z.ai research](research/2026-07-21-zai-gate.md).
 
-Fuente upstream de comparación: [provider Z.ai](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/zai.md).
+Upstream comparison source: [Z.ai provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/zai.md).
 
 ## ZCode
 
-### Fuente
+### Source
 
-ZCode `3.8.1` guarda un registro de uso por petición en
-`%USERPROFILE%\.zcode\cli\db\db.sqlite`, tabla `model_usage`. Las columnas
-entran tokens de entrada, salida, razonamiento, caché de lectura y caché de
-escritura, modelo y marca de tiempo UTC. El total propio es
-`entrada + salida`; la entrada incluye el caché leído y el razonamiento vive
-dentro de la salida.
+ZCode `3.8.1` stores a per-request usage record in
+`%USERPROFILE%\.zcode\cli\db\db.sqlite`, table `model_usage`. The columns
+include input, output, reasoning, read-cache, and write-cache tokens, model,
+and a UTC timestamp. Its own total is `entrada + salida`. Input includes the
+read cache, and reasoning lives inside output.
 
-El lector abre la base en modo solo lectura con `PRAGMA query_only=ON` y
-selecciona solo ocho columnas de conteo de `model_usage`. Nunca abre
-`v2\credentials.json`, las tablas `part`, `message`, `input_history` y
-`session`, ni `cli\rollout\*.jsonl`. No guarda ids de sesión ni rutas: las
-claves de evento son hashes SHA-256 del id de fila. Una columna faltante
-degrada a `UnsupportedSchema` en vez de inventar números.
+The reader opens the database read-only with `PRAGMA query_only=ON` and
+selects only eight count columns from `model_usage`. It never opens
+`v2\credentials.json`, the `part`, `message`, `input_history`, and `session`
+tables, or `cli\rollout\*.jsonl`. It does not store session ids or paths:
+event keys are SHA-256 hashes of the row id. A missing column degrades to
+`UnsupportedSchema` instead of inventing numbers.
 
-### Fuente evaluada
+### Evaluated source
 
-La evaluación de `3.7.6` no encontró fuente local segura: los hooks no traían
-tokens y las rutas publicadas eran soporte o contenido. La build actual añadió
-la base de uso local, lo que reabre el proveedor bajo el precedente de la
-proyección allowlist de Cursor `state.vscdb`.
+The `3.7.6` evaluation found no safe local source: hooks did not carry tokens,
+and the published paths were support or content. The current build added the
+local usage database, which reopens the provider under the Cursor `state.vscdb`
+allowlist-projection precedent.
 
-Los términos vigentes desde 2026-06-15 restringen el acceso a datos, contenido
-o cuentas ajenas a través del servicio. El lector corre en el disco del
-usuario, sin red y sin datos de cuenta. El riesgo registrado es que Z.ai no
-publica el esquema; la verificación de columnas y la versión de parser
-mantienen el lector fail-closed ante cambios.
+Terms in force since 2026-06-15 restrict access to other people's data,
+content, or accounts through the service. The reader runs on the user's disk,
+with no network and no account data. The recorded risk is that Z.ai does not
+publish the schema. Column verification and the parser version keep the reader
+fail-closed when the schema changes.
 
-### Métricas
+### Metrics
 
-- Tokens por petición, modelo y día; ventana de reconciliación de 35 días.
-- Costo estimado con tarifas públicas de la API Z.ai para modelos GLM
-  (catálogo fechado). Los créditos del plan no se convierten en costo de
-  factura. Modelos sin tarifa quedan `Unpriced`.
+- Tokens per request, model, and day; 35-day reconciliation window.
+- Estimated cost with public Z.ai API rates for GLM models (dated catalog).
+  Plan credits are not converted into invoice cost. Models without a rate stay
+  `Unpriced`.
 
-### Límites
+### Limits
 
-La cuota del Coding Plan queda cerrada: los endpoints de monitoreo del plugin
-oficial son privados y requieren la credencial de otra herramienta, y ningún
-hook de ZCode expone plan ni restante real (ver
-[payloads de hook](research/2026-08-26-hook-payload-quota-research.md)).
+Coding Plan quota stays closed: the official plugin's monitoring endpoints are
+private and require another tool's credential, and no ZCode hook exposes plan
+or real remaining (see
+[hook payloads](research/2026-08-26-hook-payload-quota-research.md)).
 
-Una cuota estimada por créditos del plan se entregó brevemente (fórmula
-pública, multiplicadores y tiers publicados por Z.ai) y fue retirada por
-decisión del mantenedor: no muestra el lado real y puede inducir a error. El
-gate de créditos documenta el mecanismo por si un contrato futuro lo revive.
+A quota estimated from plan credits was delivered briefly (public formula,
+multipliers, and tiers published by Z.ai) and was withdrawn by maintainer
+decision: it does not show the real remaining side and can mislead. The
+credits gate documents the mechanism in case a future contract revives it.
 
-### Salida
+### Result
 
-Local activo parcial: tarjeta con tokens observados y costo estimado
-etiquetado. Si Z.ai publica una API de uso oficial, el lector local migra a
-ella.
+Partial active local: a card with observed tokens and labeled estimated cost.
+If Z.ai publishes an official usage API, the local reader migrates to it.
 
-Actualización al terminar tarea: al abrir la app se registran
-automáticamente los hooks `Stop` de los proveedores locales detectados
-(ZCode, Grok y Cursor). También se pueden gestionar con `tokenusage zcode
-install-hook|status|uninstall-hook`. El hook descarta el payload del evento y
-solo refresca los datos propios de TokenUsage; la desinstalación conserva el
-resto de la configuración del usuario.
+Update on task completion: when the app opens, `Stop` hooks are registered
+automatically for detected local providers (ZCode, Grok, and Cursor). They can
+also be managed with `tokenusage zcode install-hook|status|uninstall-hook`.
+The hook discards the event payload and only refreshes TokenUsage's own data.
+Uninstall keeps the rest of the user's configuration.
 
-Gate de reapertura: [base de uso local ZCode](research/2026-08-26-zcode-local-usage-source.md).
-Gate de cuota estimada: [créditos del plan ZCode](research/2026-08-26-zcode-plan-credit-quota.md).
-Gate de hooks como fuente de cuota: [payloads de hook](research/2026-08-26-hook-payload-quota-research.md): ningún hook de ZCode, Cursor o Grok expone plan ni restante real.
-Gate anterior: [fuente ZCode 3.7.6](research/2026-08-11-z-code-usage-source.md).
-Gate original: [investigación de fuente ZCode](research/2026-07-22-zcode-source-gate.md).
+Reopening gate: [ZCode local usage database](research/2026-08-26-zcode-local-usage-source.md).
+Estimated-quota gate: [ZCode plan credits](research/2026-08-26-zcode-plan-credit-quota.md).
+Hooks-as-quota-source gate: [hook payloads](research/2026-08-26-hook-payload-quota-research.md). No ZCode, Cursor, or Grok hook exposes plan or real remaining.
+Previous gate: [ZCode 3.7.6 source](research/2026-08-11-z-code-usage-source.md).
+Original gate: [ZCode source research](research/2026-07-22-zcode-source-gate.md).
 
 ## Kilo Code
 
-### Fuente evaluada
+### Evaluated source
 
-Kilo Code publica el CLI `kilo`, disponible también en Windows, y documenta
-`kilo stats` para mostrar estadísticas de tokens y coste. La referencia del
-comando solo expone filtros por días, herramientas, modelos y proyecto; no
-publica una salida JSON ni un contrato versionado para automatizar la tabla.
+Kilo Code publishes the `kilo` CLI, also available on Windows, and documents
+`kilo stats` to show token and cost statistics. The command reference only
+exposes filters by days, tools, models, and project. It does not publish JSON
+output or a versioned contract to automate the table.
 
-La extensión mantiene un `kilo.db` local con sesiones e historial. Esa base no
-es una fuente apta: TokenUsage no puede abrirla ni inferir sus tablas para
-obtener métricas. Una prueba aislada de `kilo 7.4.15` devolvió una tabla vacía
-de estadísticas sin login, pero no prueba que el comando sea de solo lectura,
-estable o seguro contra cambios de formato.
+The extension keeps a local `kilo.db` with sessions and history. That database
+is not a suitable source: TokenUsage cannot open it or infer its tables to
+obtain metrics. An isolated test of `kilo 7.4.15` returned an empty statistics
+table without login, but it does not prove that the command is read-only,
+stable, or safe against format changes.
 
-### Salida
+### Result
 
-Gate abierto. No se crea lector de base, parser de sesiones ni tarjeta pública
-en esta fase. La ruta candidata queda limitada a un comando oficial que emita
-un contrato estructurado, de solo lectura y con métricas agregadas. Hasta
-entonces la app solo puede detectar `kilo --version` en un diagnóstico futuro.
+Open gate. This phase does not create a database reader, session parser, or
+public card. The candidate path stays limited to an official command that emits
+a structured, read-only contract with aggregated metrics. Until then the app
+can only detect `kilo --version` in a future diagnostic.
 
-Gate completo: [investigación de fuente Kilo Code](research/2026-07-22-kilo-code-source-gate.md).
+Full gate: [Kilo Code source research](research/2026-07-22-kilo-code-source-gate.md).
 
 ## Kimi Code
 
-### Fuente evaluada
+### Evaluated source
 
-Kimi Code ofrece el CLI `kimi`, una extensión de VS Code, `/usage` dentro de
-la TUI y una Console para cuota y Extra Usage. No publica una salida de
-máquina, exportación de métricas ni API de solo lectura para cuota, tokens o
-gasto de Kimi Code.
+Kimi Code offers the `kimi` CLI, a VS Code extension, `/usage` inside the TUI,
+and a Console for quota and Extra Usage. It does not publish a machine output,
+metrics export, or read-only API for Kimi Code quota, tokens, or cost.
 
-En Windows almacena configuración, OAuth, sesiones, logs e historial bajo
-`%USERPROFILE%\.kimi-code` o `KIMI_CODE_HOME`. Sus sesiones incluyen
-`lastPrompt`, comunicación completa y trazas de requests. La suscripción se
-limita al uso interactivo y prohíbe automatización no interactiva.
+On Windows it stores configuration, OAuth, sessions, logs, and history under
+`%USERPROFILE%\.kimi-code` or `KIMI_CODE_HOME`. Its sessions include
+`lastPrompt`, full communication, and request traces. The subscription is
+limited to interactive use and prohibits non-interactive automation.
 
-Kimi Platform publica balance y uso con cuentas y facturación separadas. No se
-mezcla con el provider Kimi Code.
+Kimi Platform publishes balance and usage with separate accounts and billing.
+It is not mixed with the Kimi Code provider.
 
-### Salida
+### Result
 
-Bloqueado. La build pública puede detectar `kimi --version` en una fase de
-diagnóstico, pero no lee datos, inicia la TUI, usa `kimi web`, toma tokens o
-llama la Console. El provider se reabre con una fuente mínima, documentada y
-autorizada para terceros.
+Blocked. The public build can detect `kimi --version` in a diagnostic phase,
+but it does not read data, start the TUI, use `kimi web`, take tokens, or call
+the Console. The provider reopens with a minimum, documented source that is
+authorized for third parties.
 
-Gate completo: [investigación de fuente Kimi Code](research/2026-07-22-kimi-code-source-gate.md).
+Full gate: [Kimi Code source research](research/2026-07-22-kimi-code-source-gate.md).
 
 ## Command Code
 
-### Fuente evaluada
+### Evaluated source
 
-Command Code ofrece el CLI `cmd`; en Windows nativo se usa `cmdc` porque `cmd`
-pertenece al sistema. Windows nativo sigue en alpha y la documentación
-recomienda WSL. `/usage` muestra créditos, plan y límites dentro de una sesión
-interactiva; Studio muestra tokens, coste e historial por solicitud tras iniciar
-sesión.
+Command Code offers the `cmd` CLI. On native Windows, `cmdc` is used because
+`cmd` belongs to the system. Native Windows is still in alpha, and the
+documentation recommends WSL. `/usage` shows credits, plan, and limits inside
+an interactive session. Studio shows tokens, cost, and per-request history
+after sign-in.
 
-No publica un subcomando de cuota ni una exportación de métricas. `--output-format
-json` solo aplica a la respuesta de `cmd -p`; no convierte `/usage` en un
-contrato de lectura. La Provider API publica inferencia y listado de modelos,
-no una API de saldo, cuota o historial de gasto. Usa la misma API key que la
-CLI, por lo que no es una credencial de monitor de solo lectura.
+It does not publish a quota subcommand or a metrics export. `--output-format
+json` applies only to the `cmd -p` response. It does not turn `/usage` into a
+read contract. The Provider API publishes inference and model listing, not a
+balance, quota, or cost-history API. It uses the same API key as the CLI, so it
+is not a read-only monitor credential.
 
-La documentación fija conversaciones bajo `~/.commandcode/projects/`, tokens
-en `~/.commandcode/auth.json` y preferencias en `.commandcode/taste/`. Esas
-rutas pueden contener prompts, respuestas, credenciales, reglas o contexto y
-no son una fuente apta.
+Documentation places conversations under `~/.commandcode/projects/`, tokens in
+`~/.commandcode/auth.json`, and preferences in `.commandcode/taste/`. Those
+paths can contain prompts, responses, credentials, rules, or context and are
+not a suitable source.
 
-### Salida
+### Result
 
-Bloqueado. La build pública puede detectar `cmdc --version` en una fase de
-diagnóstico, pero no lee datos, inicia sesión, llama `/usage`, automatiza Studio
-ni reutiliza una API key. El provider se reabre con una API o exportación de
-solo lectura, documentada para terceros, sin sesiones ni credenciales y
-autorizada para consultas automáticas.
+Blocked. The public build can detect `cmdc --version` in a diagnostic phase,
+but it does not read data, sign in, call `/usage`, automate Studio, or reuse an
+API key. The provider reopens with a read-only API or export, documented for
+third parties, without sessions or credentials, and authorized for automatic
+queries.
 
-Gate completo: [investigación de fuente Command Code](research/2026-07-22-command-code-source-gate.md).
+Full gate: [Command Code source research](research/2026-07-22-command-code-source-gate.md).
 
 ## Cline
 
-### Fuente evaluada
+### Evaluated source
 
-Cline publica una API Enterprise con endpoints GET para perfil, balance, uso,
-métricas y uso de organización. Una API key creada por la persona propietaria
-sería una posible fuente manual. La app no toma tokens de sesión ni busca keys
-en otra aplicación.
+Cline publishes an Enterprise API with GET endpoints for profile, balance,
+usage, metrics, and organization usage. An API key created by the owning
+person would be a possible manual source. The app does not take session tokens
+or search for keys in another application.
 
-La documentación actual no publica schemas, unidades, filtros, paginación,
-errores ni un permiso de solo lectura para balance y uso. La key sirve también
-para la API de inferencia y la API Enterprise enumera operaciones mutables. El
-OpenAPI anunciado devolvió HTTP 404 en el gate. Por tanto no existe aún un
-contrato seguro para implementar el cliente.
+Current documentation does not publish schemas, units, filters, pagination,
+errors, or a read-only permission for balance and usage. The key also serves
+the inference API, and the Enterprise API lists mutable operations. The
+announced OpenAPI returned HTTP 404 at the gate. Therefore a safe contract to
+implement the client does not exist yet.
 
-Las tareas locales de Cline contienen conversaciones completas, cambios,
-archivos, comandos, entradas y salidas de herramientas. El coste local es una
-estimación que puede diferir de la factura de BYOK. No se leen tareas,
-historial, sesiones, logs, `providers.json`, tokens ni exports.
+Local Cline tasks contain full conversations, changes, files, commands, and
+tool inputs and outputs. Local cost is an estimate that can differ from the
+BYOK invoice. Tasks, history, sessions, logs, `providers.json`, tokens, and
+exports are not read.
 
-### Salida
+### Result
 
-Sin adapter por ahora. La futura ruta manual requiere esquema o fixture
-saneado, permiso explícito para la key, smoke Windows con GET y revocación, y
-estados de error antes de activar la build pública. ClinePass y BYOK conservan
-sus fuentes y reglas de facturación independientes.
+No adapter for now. The future manual path requires a schema or sanitized
+fixture, explicit permission for the key, Windows smoke with GET and
+revocation, and error states before the public build is enabled. ClinePass and
+BYOK keep their independent sources and billing rules.
 
-Gate completo: [investigación de fuente Cline](research/2026-07-22-cline-source-gate.md).
+Full gate: [Cline source research](research/2026-07-22-cline-source-gate.md).
 
 ## Zed
 
-### Fuente evaluada
+### Evaluated source
 
-Zed muestra el uso de tokens del hilo activo en su Agent Panel. Esa superficie
-cubre el agente nativo; los agentes externos y los hilos de terminal conservan
-su propia autenticación y pueden no exponer las mismas métricas.
+Zed shows token usage of the active thread in its Agent Panel. That surface
+covers the native agent. External agents and terminal threads keep their own
+authentication and can expose different metrics.
 
-El código oficial persiste cada hilo con mensajes, resultados de herramientas,
-modelo y contadores de tokens en el mismo blob comprimido de `threads.db`.
-Descomprimir o consultar ese almacén para extraer contadores daría acceso a
-prompts, respuestas y datos de herramientas, fuera del límite de privacidad de
-TokenUsage. La documentación no publica un CLI, API o exportación de métricas
-agregadas para terceros.
+Official code persists each thread with messages, tool results, model, and
+token counters in the same compressed blob in `threads.db`. Decompressing or
+querying that store to extract counters would give access to prompts,
+responses, and tool data, outside TokenUsage's privacy limit. Documentation
+does not publish a CLI, API, or aggregated metrics export for third parties.
 
-### Salida
+### Result
 
-Bloqueado. La build pública no abre la base de hilos, no automatiza el panel ni
-usa los hilos de agentes externos como datos Zed. Un provider futuro requiere
-una API o exportación oficial, mínima, agregada y apta para consultas de
-terceros.
+Blocked. The public build does not open the thread database, automate the
+panel, or use external-agent threads as Zed data. A future provider requires an
+official, minimal, aggregated API or export that is suitable for third-party
+queries.
 
-Gate completo: [investigación de fuente Zed](research/2026-07-22-zed-source-gate.md).
+Full gate: [Zed source research](research/2026-07-22-zed-source-gate.md).
 
 ## Cursor
 
-### Fuente elegida
+### Chosen source
 
-Para cuentas individuales, TokenUsage abre `state.vscdb` en modo SQLite de solo lectura y proyecta únicamente el modelo, los timestamps y el total de contexto estimado que Cursor guarda en cada `composerData:`. El tope de tamaño admite el estado actual del editor (decenas de GB) porque la consulta no carga el archivo entero. La consulta no devuelve el valor completo, prompts, respuestas, rutas, correo, comandos, transcript, credenciales ni IDs sin hash.
+For Individual accounts, TokenUsage opens `state.vscdb` in read-only SQLite
+mode and projects only the model, timestamps, and estimated context total that
+Cursor stores in each `composerData:`. The size cap accepts the editor's
+current state (tens of GB) because the query does not load the whole file. The
+query does not return the full value, prompts, responses, paths, email,
+commands, transcript, credentials, or unhashed IDs.
 
-La fuente está ligada al esquema local observado en Cursor `3.15.6`. Cursor nombra esos contadores `estimatedTokens`: representan el contexto actual de la conversación, no tokens facturados acumulados. Por eso la app marca la lectura como local, parcial y estimada. Si el modelo coincide con un catálogo oficial, ese contexto lleva valor API estimado. Auto y modelos desconocidos siguen sin precio. El hook anterior queda fuera de la ruta activa porque el contrato oficial de `stop` no entrega contadores de tokens. Ese hook legado quedó retirado; hoy la app registra automáticamente al abrirse
-un hook `stop` que actúa solo como disparador de refresco (también con
-`tokenusage cursor install-hook`): descarta el payload y actualiza los datos
-propios de TokenUsage al terminar cada tarea.
+The source is tied to the local schema observed in Cursor `3.15.6`. Cursor
+names those counters `estimatedTokens`: they represent the conversation's
+current context, not accumulated billed tokens. That is why the app marks the
+read as local, partial, and estimated. If the model matches an official
+catalog, that context carries estimated API value. Auto and unknown models stay
+unpriced. The previous hook is out of the active path because the official
+`stop` contract does not deliver token counters. That legacy hook was
+withdrawn. Today the app automatically registers a `stop` hook at launch that
+acts only as a refresh trigger (also with `tokenusage cursor install-hook`): it
+discards the payload and updates TokenUsage's own data when each task ends.
 
-Cuando existen contadores por turno en `bubbleId:`, tienen prioridad sobre la estimación de la conversación. En la comprobación de agosto de 2026 el editor escribía `tokenCount` a cero en entrada y salida, y una instalación con cientos de miles de burbujas no puede escanearlas todas en un refresco. TokenUsage mira primero un puñado de turnos recientes: si siguen en cero, usa la estimación por conversación; si algún contador es real, lee los turnos con valor positivo. El tope de filas ordena de lo más nuevo a lo más viejo, para que un recorte deje fuera los turnos antiguos y no los de hoy.
+When per-turn counters exist in `bubbleId:`, they take priority over the
+conversation estimate. In the August 2026 check, the editor wrote `tokenCount`
+as zero for input and output, and an install with hundreds of thousands of
+bubbles cannot scan them all in one refresh. TokenUsage looks first at a
+handful of recent turns: if they are still zero, it uses the conversation
+estimate; if any counter is real, it reads turns with a positive value. The row
+cap orders from newest to oldest, so a cutoff drops old turns and not today's.
 
-La Admin API pública de Cursor sigue siendo la fuente facturable para Teams y Enterprise. Requiere una clave administrativa separada y no reutiliza el login del editor. El contrato `POST /organizations/pooled-usage` publica `remainingCents` para el pool de la organización Enterprise. Queda fuera de esta integración individual hasta añadir una conexión manual y un smoke autorizado.
+Cursor's public Admin API remains the billable source for Teams and Enterprise.
+It requires a separate administrative key and does not reuse the editor login.
+The `POST /organizations/pooled-usage` contract publishes `remainingCents` for
+the Enterprise organization pool. It stays out of this Individual integration
+until a manual connection and authorized smoke are added.
 
-Los endpoints de gasto y eventos no sustituyen ese contrato de pool. La tarjeta de equipo muestra uso y gasto, con procedencia y ciclo. No afirma cuota restante sin `remainingCents`. Una cuenta Individual no tiene contrato público de saldo.
+Cost and event endpoints do not replace that pool contract. The team card shows
+usage and cost, with provenance and cycle. It does not claim remaining quota
+without `remainingCents`. An Individual account has no public remaining-balance
+contract.
 
-OpenUsage obtiene el porcentaje restante del plan, Extra Usage y el mosaico Grok Bot reutilizando el login del editor: RPC en `api2.cursor.sh`, REST privados, Stripe y CSV de dashboard. TokenUsage no llama esas rutas ni lee el token del editor. El `remainingCents` de organización no es el pool semanal de Grok Bot.
+OpenUsage gets the remaining plan percentage, Extra Usage, and the Grok Bot
+tile by reusing the editor login: RPC on `api2.cursor.sh`, private REST,
+Stripe, and dashboard CSV. TokenUsage does not call those routes or read the
+editor token. Organization `remainingCents` is not Grok Bot's weekly pool.
 
-### Cobertura y política
+### Coverage and policy
 
-- Individual: estimación del contexto actual de conversaciones Agent retenidas localmente; sin Tab, agentes cloud, cuota ni costo.
-- Teams: la lectura local conserva la misma cobertura parcial; gasto y facturación requieren una futura conexión Admin API.
-- Business: nombre legado que puede aparecer en eventos; usa la semántica de Teams.
-- Enterprise: mismo contrato por conexión configurada; varias conexiones no se mezclan por correo.
+- Individual: estimate of the current context of Agent conversations retained locally; no Tab, cloud agents, quota, or cost.
+- Teams: the local read keeps the same partial coverage; cost and billing require a future Admin API connection.
+- Business: legacy name that can appear in events; uses Teams semantics.
+- Enterprise: the same contract per configured connection; multiple connections are not mixed by email.
 
-Dentro de `state.vscdb` solo se permite `cursorDiskKV` con claves `composerData:` y `bubbleId:`, y una proyección JSON fija de metadatos escalares: modelo, marca de tiempo y contadores. Quedan prohibidos el resto de sus tablas y valores, bases de búsqueda, AI Code Tracking, Credential Manager ajeno, refresh de token, cookies creadas desde JWT, RPC de `api2.cursor.sh`, rutas privadas de dashboard, Stripe y export CSV privado.
+Inside `state.vscdb` only `cursorDiskKV` with `composerData:` and `bubbleId:`
+keys is allowed, plus a fixed JSON projection of scalar metadata: model,
+timestamp, and counters. All other tables and values, search databases, AI Code
+Tracking, another app's Credential Manager, token refresh, cookies created from
+JWT, `api2.cursor.sh` RPC, private dashboard routes, Stripe, and private CSV
+export stay forbidden.
 
-Gate local resuelto como `integrated-local-estimate`. Las pruebas confirman identidad estable, reemplazo de snapshots y lectura de los campos allowlist. La Admin API conserva su gate manual aparte.
+The local gate is resolved as `integrated-local-estimate`. Tests confirm stable
+identity, snapshot replacement, and reads of the allowlist fields. The Admin
+API keeps its separate manual gate.
 
-Investigación: [fuente local Cursor 3.15.6](research/2026-08-11-cursor-local-usage-source.md), [fuente Cursor en Windows](research/2026-07-21-cursor-windows-source.md) y [cuota restante y Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
+Research: [Cursor 3.15.6 local source](research/2026-08-11-cursor-local-usage-source.md), [Cursor source on Windows](research/2026-07-21-cursor-windows-source.md), and [remaining quota and Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
 
-Fuente upstream de comparación: [provider Cursor](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
+Upstream comparison source: [Cursor provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
 ## GitHub Copilot
 
-### Fuente elegida
+### Chosen source
 
-La Billing REST API pública ofrece reportes dedicados de AI credits para una cuenta personal pagada y para una organización. TokenUsage usa la versión `2026-03-10`, un fine-grained token entregado por el usuario y Windows Credential Locker.
+The public Billing REST API offers dedicated AI credits reports for a paid
+personal account and for an organization. TokenUsage uses version `2026-03-10`,
+a fine-grained token supplied by the user, and Windows Credential Locker.
 
-La cuenta personal requiere `Plan: read`. La organización requiere `Administration: read` y un administrador. Cada conexión declara su scope. El cliente resuelve el login con `GET /user` y no pide el nombre de usuario. El resultado muestra créditos usados, descuento cubierto y cargo neto. La vista de organización se etiqueta como total de la entidad y, si GitHub lo publica, el `plan_type` Business o Enterprise.
+The personal account requires `Plan: read`. The organization requires
+`Administration: read` and an administrator. Each connection declares its
+scope. The client resolves the login with `GET /user` and does not ask for the
+username. The result shows used credits, covered discount, and net charge. The
+organization view is labeled as the entity total and, if GitHub publishes it,
+the Business or Enterprise `plan_type`.
 
-### Cobertura y política
+### Coverage and policy
 
-- Personal pagado: uso y cargo de Pro, Pro+ o Max bajo billing por AI credits.
-- Free y Student: `Unsupported` hasta validar una respuesta pública útil.
-- Plan anual legado: fuera del primer subset.
-- Business o Enterprise: total de organización para administradores; un miembro común recibe `InsufficientPermission`.
+- Paid personal: usage and charge for Pro, Pro+, or Max under AI credits billing.
+- Free and Student: `Unsupported` until a useful public response is validated.
+- Legacy annual plan: outside the first subset.
+- Business or Enterprise: organization total for administrators; an ordinary member receives `InsufficientPermission`.
 
-La API no devuelve la asignación efectiva o el saldo. La app no calcula cuota restante desde tablas de plan porque la parte flex cambia y los pools de organización dependen de licencias y presupuestos.
+The API does not return the effective allocation or the balance. The app does
+not calculate remaining quota from plan tables because the flex portion changes
+and organization pools depend on licenses and budgets.
 
-Quedan prohibidos `/copilot_internal/user`, identidad de editor simulada, archivos de extensiones, `hosts.yml`, Credential Manager ajeno, cookies y `gh auth`. El provider ignora una sesión existente de editor o GitHub CLI.
+`/copilot_internal/user`, simulated editor identity, extension files,
+`hosts.yml`, another app's Credential Manager, cookies, and `gh auth` stay
+forbidden. The provider ignores an existing editor or GitHub CLI session.
 
-Gate resuelto como `implement-subset`. La build pública sigue apagada hasta un smoke autorizado y borrado de la credencial.
+The gate is resolved as `implement-subset`. The public build stays off until
+an authorized smoke and credential deletion.
 
-Investigación: [fuente GitHub Copilot](research/2026-07-21-copilot-source-gate.md).
+Research: [GitHub Copilot source](research/2026-07-21-copilot-source-gate.md).
 
-Fuente upstream de comparación: [provider Copilot](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/copilot.md).
+Upstream comparison source: [Copilot provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/copilot.md).
 
 ## Antigravity
 
-### Cuota
+### Quota
 
-Antigravity documenta [`/usage`](https://antigravity.google/docs/cli/commands/usage) y [`/credits`](https://antigravity.google/docs/cli-credits) dentro de su TUI, sin una salida de máquina. Su [FAQ](https://antigravity.google/docs/faq) prohíbe usar el login de Antigravity desde software de terceros. La app no lee Windows Credential Manager, no automatiza el TUI y no llama Cloud Code, el language server o un RPC privado.
+Antigravity documents [`/usage`](https://antigravity.google/docs/cli/commands/usage) and [`/credits`](https://antigravity.google/docs/cli-credits) inside its TUI, without machine output. Its [FAQ](https://antigravity.google/docs/faq) prohibits using the Antigravity login from third-party software. The app does not read Windows Credential Manager, does not automate the TUI, and does not call Cloud Code, the language server, or a private RPC.
 
-### Fuente local permitida
+### Permitted local source
 
-- conversaciones `.db` con `gen_metadata` y tokens por generación;
-- apertura SQLite de solo lectura;
-- una statusline futura solo si el usuario la instala de forma explícita y entrega datos mínimos.
+- `.db` conversations with `gen_metadata` and tokens per generation
+- read-only SQLite open
+- a future statusline only if the user installs it explicitly and supplies minimum data
 
-Se excluyen `.pb` cifrados, descifrado, daemon auxiliar, token, CSRF y transcript. El lector pasivo admite las raíces `antigravity`, `antigravity-cli` y `antigravity-ide`, limita archivos, filas y BLOBs, y conserva como parcial cualquier fila que no cumpla el esquema observado.
+Encrypted `.pb` files, decryption, helper daemon, token, CSRF, and transcript
+are excluded. The passive reader accepts the `antigravity`, `antigravity-cli`,
+and `antigravity-ide` roots, limits files, rows, and BLOBs, and keeps as
+partial any row that does not match the observed schema.
 
-### Salida
+### Result
 
-Integración local experimental activa: entrega tokens y coste API estimado para aliases exactos conocidos, y conserva modelos desconocidos sin precio. Cuota y créditos quedan `Bloqueado` mientras rija el contrato actual.
+Active experimental local integration: it delivers tokens and estimated API
+cost for known exact aliases, and keeps unknown models unpriced. Quota and
+credits stay `Blocked` while the current contract applies.
 
-Fuente upstream de comparación: [provider Antigravity](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/antigravity.md).
+Upstream comparison source: [Antigravity provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/antigravity.md).
 
 ## Devin
 
-### Fuente elegida
+### Chosen source
 
-La API v3 pública devuelve consumo diario de una organización. TokenUsage admite un service user con scope de organización, permiso `ManageBilling`, ID manual y key en Credential Locker. El cliente fija `api.devin.ai` y llama solo `GET /v3/organizations/{org_id}/consumption/daily`.
+The public v3 API returns daily consumption of an organization. TokenUsage
+accepts a service user with organization scope, `ManageBilling` permission,
+manual ID, and key in Credential Locker. The client pins `api.devin.ai` and
+calls only `GET /v3/organizations/{org_id}/consumption/daily`.
 
-La tarjeta muestra ACUs y desglose por producto durante un período explícito. No afirma cuota restante o dólares.
+The card shows ACUs and a per-product breakdown during an explicit period. It
+does not claim remaining quota or dollars.
 
-### Cobertura y política
+### Coverage and policy
 
-- Organización: subset experimental con ACUs diarios y total.
-- Self-serve: `Unsupported`; cuota y saldo siguen solo en el dashboard.
-- Enterprise: agregado y ACU limits fuera del primer subset por el scope amplio de la key.
-- Dedicated deployment: host personalizado fuera del primer subset.
+- Organization: experimental subset with daily ACUs and total.
+- Self-serve: `Unsupported`; quota and balance remain only in the dashboard.
+- Enterprise: aggregate and ACU limits outside the first subset because of the key's broad scope.
+- Dedicated deployment: custom host outside the first subset.
 
-Quedan prohibidos el archivo CLI, SQLite de la app, RPC de `server.codeium.com`, identidad simulada, host tomado de configuración y Session Insights. Este último devuelve ACUs, pero también material de sesión que el motor no necesita.
+The CLI file, app SQLite, `server.codeium.com` RPC, simulated identity, host
+taken from configuration, and Session Insights stay forbidden. Session Insights
+returns ACUs, but also session material that the engine does not need.
 
-Gate resuelto como `implement-experimental-subset`. El permiso `ManageBilling` debe quedar acotado a una sola organización y pasar un smoke autorizado antes de activar la build pública.
+The gate is resolved as `implement-experimental-subset`. The `ManageBilling`
+permission must be scoped to a single organization and pass an authorized smoke
+before the public build is enabled.
 
-Investigación: [fuente Devin](research/2026-07-21-devin-source-gate.md).
+Research: [Devin source](research/2026-07-21-devin-source-gate.md).
 
-Fuente upstream de comparación: [provider Devin](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
+Upstream comparison source: [Devin provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
 
-## Orden de implementación
+## Implementation order
 
-1. Codex completo.
-2. Motor propio de uso, gasto, precios y cobertura.
-3. Claude local.
-4. Grok Build y OpenCode local.
-5. Spike pasivo Antigravity CLI con una `.db` real.
-6. OpenRouter con clave manual.
-7. Reabrir Z.ai solo con contrato público o permiso escrito.
-8. Cursor Teams y Enterprise, y Copilot billing, con claves manuales y smoke autorizado; la estimación local de Cursor ya está integrada.
-9. Cuota Claude o Grok tras permiso o interfaz pública.
-10. Devin experimental para ACUs de organización mediante API v3.
-11. Kilo Code tras cerrar el contrato de `kilo stats`; Zed solo tras una fuente
-    agregada aprobada.
+1. Complete Codex.
+2. Own engine for usage, cost, prices, and coverage.
+3. Local Claude.
+4. Local Grok Build and OpenCode.
+5. Passive Antigravity CLI spike with a real `.db`.
+6. OpenRouter with a manual key.
+7. Reopen Z.ai only with a public contract or written permission.
+8. Cursor Teams and Enterprise, and Copilot billing, with manual keys and authorized smoke; Cursor's local estimate is already integrated.
+9. Claude or Grok quota after permission or a public interface.
+10. Experimental Devin for organization ACUs through the v3 API.
+11. Kilo Code after the `kilo stats` contract is closed; Zed only after an
+    approved aggregated source.
 
-Este orden mantiene el objetivo de cuota restante con Codex y permite sumar valor local sin ampliar el manejo de credenciales ajenas.
+This order keeps remaining quota with Codex as the goal and lets local value
+grow without expanding handling of other apps' credentials.
