@@ -1,154 +1,153 @@
-# Paridad con OpenUsage y base ampliada
+# OpenUsage provider parity and expanded catalog
 
-Fecha de corte: 2026-08-11
+Cutoff date: 2026-08-11
 
-## Dos proyectos homónimos
+## Two projects with the same name
 
-TokenUsage fija como referencia histórica y de producto a
-[`robinebers/openusage`](https://github.com/robinebers/openusage). Esta revisión
-usa su etiqueta
+TokenUsage pins historical and product reference to
+[`robinebers/openusage`](https://github.com/robinebers/openusage). This review
+uses tag
 [`v0.7.8`](https://github.com/robinebers/openusage/releases/tag/v0.7.8),
-en el commit
+at commit
 [`487cc8f19a9a28676f6924aafa48dee79ad7a7f6`](https://github.com/robinebers/openusage/tree/487cc8f19a9a28676f6924aafa48dee79ad7a7f6).
-Ese commit era `HEAD` durante la revisión y registra diez tarjetas.
+That commit was `HEAD` during the review and records ten cards.
 
-Existe un proyecto diferente llamado OpenUsage.sh:
+A different project is also named OpenUsage.sh:
 [`janekbaraniewski/openusage`](https://github.com/janekbaraniewski/openusage).
-Su rama `main` estaba en
+Its `main` branch was at
 [`ddc05f24b159bfd1a24bbf641dcfb841410a77ab`](https://github.com/janekbaraniewski/openusage/commit/ddc05f24b159bfd1a24bbf641dcfb841410a77ab).
-La última release era
+The latest release was
 [`v0.24.2`](https://github.com/janekbaraniewski/openusage/releases/tag/v0.24.2),
-en el commit `89d33d30c48b9a36b343a0ee4105c0b956385763`.
+at commit `89d33d30c48b9a36b343a0ee4105c0b956385763`.
 
-El primer proyecto define el cierre inmediato de paridad. El segundo sirve como
-inventario ampliado para preparar módulos futuros. Sus IDs y fuentes no se deben
-mezclar.
+The first project defines the immediate parity close. The second is an
+expanded inventory for future modules. Do not mix their IDs and sources.
 
-## Cierre inmediato de la paridad de diez
+## Immediate close of the ten-provider parity
 
-La [lista pública](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/README.md#supported-providers)
-y el [catálogo ejecutable](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Providers/ProviderCatalog.swift)
-coinciden en diez providers.
+The [public list](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/README.md#supported-providers)
+and the [executable catalog](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Providers/ProviderCatalog.swift)
+agree on ten providers.
 
-| ID | Capacidades de OpenUsage | Estado seguro en TokenUsage |
+| ID | OpenUsage capabilities | Safe state in TokenUsage |
 |---|---|---|
-| `antigravity` | Cuotas Gemini y no-Gemini de cinco horas y semanales. | **Active, local.** Mantener tokens y gasto local. La cuota remota sigue bloqueada. |
-| `claude` | Sesión, semanal, modelos, extra usage y gasto local. | **Implementable ahora, local.** El lector ya existe. No reutilizar OAuth. |
-| `codex` | Sesión, semanal, Spark, reset credits, extra usage y gasto local. | **Active.** Mantener `codex app-server` y los lectores locales. |
-| `copilot` | AI credits, extra usage, organización, chat y completions. | **Deferred.** Añadir módulo e icono. Implementar después Billing REST API con token manual. |
-| `cursor` | Uso total, Auto, API, extra usage, créditos y gasto. | **Active, local parcial.** Mantener la proyección allowlist. |
-| `devin` | Cuotas diaria y semanal, más saldo de extra usage. | **Deferred.** Añadir módulo e icono. La futura ruta usa API v3 con service user manual. |
-| `grok` | Pool semanal, pay-as-you-go y gasto local. | **Active, local.** La cuota remota sigue bloqueada. |
-| `opencode` | Topes Go y gasto local de Go y Zen. | **Active, local.** No presentar los topes observados como saldo oficial. |
-| `openrouter` | Créditos, balance, gasto por período y límite de key. | **Manual, implementable ahora.** El cliente ya existe. Faltan Credential Locker, composición, UI y smoke. |
-| `zai` | Ventanas de tokens y búsquedas web. | **Blocked.** Añadir identidad y estado. No pedir key ni crear un cliente de endpoints internos. |
+| `antigravity` | Five-hour and weekly Gemini and non-Gemini quotas. | **Active, local.** Keep local tokens and spend. Remote quota stays blocked. |
+| `claude` | Session, weekly, models, extra usage, and local spend. | **Implementable now, local.** The reader already exists. Do not reuse OAuth. |
+| `codex` | Session, weekly, Spark, reset credits, extra usage, and local spend. | **Active.** Keep `codex app-server` and the local readers. |
+| `copilot` | AI credits, extra usage, organization, chat, and completions. | **Deferred.** Add the module and icon. Implement later with the Billing REST API and a manual token. |
+| `cursor` | Total usage, Auto, API, extra usage, credits, and spend. | **Active, partial local.** Keep the allowlist projection. |
+| `devin` | Daily and weekly quotas, plus extra-usage balance. | **Deferred.** Add the module and icon. The future path uses API v3 with a manual service user. |
+| `grok` | Weekly pool, pay-as-you-go, and local spend. | **Active, local.** Remote quota stays blocked. |
+| `opencode` | Go caps and local spend for Go and Zen. | **Active, local.** Do not present observed caps as an official balance. |
+| `openrouter` | Credits, balance, period spend, and key limit. | **Manual, implementable now.** The client already exists. Credential Locker, composition, UI, and smoke are still missing. |
+| `zai` | Token windows and web searches. | **Blocked.** Add identity and status. Do not ask for a key or create a client for internal endpoints. |
 
-Cinco superficies siguen sin cierre: `claude`, `copilot`, `devin`, `openrouter`
-y `zai`. Claude ya tiene una entrada deferred, un lector y un icono local.
-OpenRouter ya tiene un cliente HTTP. El trabajo nuevo de identidad se concentra
-en Copilot, Devin, OpenRouter y Z.ai.
+Five surfaces still lack a close: `claude`, `copilot`, `devin`, `openrouter`,
+and `zai`. Claude already has a deferred entry, a reader, and a local icon.
+OpenRouter already has an HTTP client. New identity work concentrates on
+Copilot, Devin, OpenRouter, and Z.ai.
 
-Los recursos de referencia son:
+Reference resources:
 
 - [`copilot.svg`](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Resources/ProviderIcons/copilot.svg)
 - [`devin.svg`](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Resources/ProviderIcons/devin.svg)
 - [`openrouter.svg`](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Resources/ProviderIcons/openrouter.svg)
 - [`zai.svg`](https://github.com/robinebers/openusage/blob/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Resources/ProviderIcons/zai.svg)
 
-El repositorio contiene las fuentes de cada provider bajo
+The repository contains each provider source under
 [`Sources/OpenUsage/Providers`](https://github.com/robinebers/openusage/tree/487cc8f19a9a28676f6924aafa48dee79ad7a7f6/Sources/OpenUsage/Providers).
-Su código confirma una frontera importante: varias cuotas usan credenciales
-existentes y endpoints privados. TokenUsage no debe copiar esas rutas.
+That code confirms an important boundary: several quotas use existing
+credentials and private endpoints. TokenUsage must not copy those paths.
 
-## Base ampliada opcional de 35
+## Optional expanded base of 35
 
-El [registro ejecutable de OpenUsage.sh](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/registry.go#L45-L82)
-contiene 35 providers. `docs/providers.md` enumera 17 y está desactualizado. El
-registro y los módulos tienen prioridad sobre esa página.
+The [OpenUsage.sh executable registry](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/registry.go#L45-L82)
+contains 35 providers. `docs/providers.md` lists 17 and is outdated. The
+registry and the modules take priority over that page.
 
-La base ampliada puede registrar las 35 identidades sin activar lectores
-inseguros, pero no forma parte del cierre inmediato de diez. Si se adopta en una
-fase posterior, el catálogo debe separar cuatro estados:
+The expanded base can register the 35 identities without enabling unsafe
+readers, but it is not part of the immediate close of ten. If a later phase
+adopts it, the catalog must separate four states:
 
-- `active`: existe una fuente real aprobada.
-- `manual`: existe una fuente pública que requiere una credencial entregada por el usuario.
-- `deferred`: la identidad y las capacidades existen, pero no hay un lector aprobado.
-- `blocked`: la única ruta observada usa cookies, credenciales ajenas o un contrato privado.
+- `active`: an approved real source exists.
+- `manual`: a public source exists that needs a credential the user supplies.
+- `deferred`: identity and capabilities exist, but no approved reader exists.
+- `blocked`: the only observed path uses cookies, another product's credentials, or a private contract.
 
-Las fuentes locales de agentes pueden contener prompts, respuestas, comandos y
-rutas. Su presencia en OpenUsage.sh no autoriza su lectura en TokenUsage.
+Local agent sources can contain prompts, responses, commands, and paths. Their
+presence in OpenUsage.sh does not authorize a TokenUsage read.
 
-La conciliación de identidades debe obedecer estas reglas:
+Identity reconciliation must follow these rules:
 
-- El ID actual `claude` puede declarar `claude_code` como alias de referencia. No debe crear dos tarjetas.
-- El ID actual `grok` significa Grok Build. No equivale a `xai`.
-- Antigravity no equivale a `gemini_cli` ni a `gemini_api`.
-- `moonshot` es la API de Moonshot. No equivale a `kimi_cli`.
-- `alibaba_cloud` no equivale a `qwen_cli`.
-- Devin pertenece al cierre de diez, aunque OpenUsage.sh no lo registre.
+- The current ID `claude` can declare `claude_code` as a reference alias. It must not create two cards.
+- The current ID `grok` means Grok Build. It is not `xai`.
+- Antigravity is not `gemini_cli` or `gemini_api`.
+- `moonshot` is the Moonshot API. It is not `kimi_cli`.
+- `alibaba_cloud` is not `qwen_cli`.
+- Devin belongs to the close of ten, even though OpenUsage.sh does not register it.
 
-## Providers de API o cuenta
+## API or account providers
 
-| ID y nombre | Capacidades de OpenUsage | Fuente upstream | Estado seguro en TokenUsage |
+| ID and name | OpenUsage capabilities | Upstream source | Safe state in TokenUsage |
 |---|---|---|---|
-| `openai` · OpenAI | Límites obtenidos de headers. | [`internal/providers/openai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/openai) | **Deferred.** Un monitor independiente no recibe esos headers sin hacer una solicitud. |
-| `anthropic` · Anthropic | Límites obtenidos de headers. | [`internal/providers/anthropic`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/anthropic) | **Deferred.** No reutilizar claves ni OAuth de Claude Code. |
-| `azure_openai` · Azure OpenAI | Límites por recurso y deployment, obtenidos de headers. | [`internal/providers/azure_openai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/azure_openai) | **Deferred.** Necesita configuración manual y un gate de scopes y coste. |
-| `alibaba_cloud` · Alibaba Cloud Model Studios | Cuota, créditos, gasto, tokens, rate limits y modelos. | [`internal/providers/alibaba_cloud`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/alibaba_cloud) | **Deferred.** Añadir catálogo. Validar contrato público antes del cliente. |
-| `openrouter` · OpenRouter | Créditos, balance, gasto, actividad, generaciones y modelos. | [`internal/providers/openrouter`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/openrouter) | **Manual, implementable ahora.** El cliente de TokenUsage ya existe. Faltan Credential Locker, composición, UI y smoke autorizado. |
-| `perplexity` · Perplexity | Billing, analytics y tier de la consola. | [`internal/providers/perplexity`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/perplexity) | **Blocked.** Upstream usa una cookie de navegador. TokenUsage no debe copiarla. |
-| `groq` · Groq | Rate limits y límites diarios. | [`internal/providers/groq`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/groq) | **Deferred.** No equivale a Grok Build. Requiere un gate propio. |
-| `mistral` · Mistral AI | Headers, suscripción y uso. | [`internal/providers/mistral`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/mistral) | **Deferred.** Mantener separado de Mistral Vibe. |
-| `moonshot` · Moonshot | Balance y datos de cuenta. | [`internal/providers/moonshot`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/moonshot) | **Deferred.** No equivale a Kimi CLI. |
-| `deepseek` · DeepSeek | Headers y balance. | [`internal/providers/deepseek`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/deepseek) | **Deferred.** Añadir shell. Validar la API de billing antes del cliente. |
-| `xai` · xAI (Grok) | Headers y datos de API key. | [`internal/providers/xai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/xai) | **Deferred.** No equivale a Grok Build local. |
-| `zai` · Z.AI | Modelos, cuotas, créditos y uso por modelo o herramienta. | [`internal/providers/zai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/zai) | **Blocked.** El gate actual de TokenUsage no autoriza los endpoints internos de cuota. |
-| `gemini_api` · Google Gemini API | Headers, límites por modelo y estado de autenticación. | [`internal/providers/gemini_api`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/gemini_api) | **Deferred.** No equivale a Gemini CLI ni a Antigravity. |
+| `openai` · OpenAI | Limits taken from headers. | [`internal/providers/openai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/openai) | **Deferred.** An independent monitor does not receive those headers without making a request. |
+| `anthropic` · Anthropic | Limits taken from headers. | [`internal/providers/anthropic`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/anthropic) | **Deferred.** Do not reuse Claude Code keys or OAuth. |
+| `azure_openai` · Azure OpenAI | Limits per resource and deployment, taken from headers. | [`internal/providers/azure_openai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/azure_openai) | **Deferred.** Needs manual settings and a scope and cost gate. |
+| `alibaba_cloud` · Alibaba Cloud Model Studios | Quota, credits, spend, tokens, rate limits, and models. | [`internal/providers/alibaba_cloud`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/alibaba_cloud) | **Deferred.** Add the catalog. Confirm the public contract before the client. |
+| `openrouter` · OpenRouter | Credits, balance, spend, activity, generations, and models. | [`internal/providers/openrouter`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/openrouter) | **Manual, implementable now.** The TokenUsage client already exists. Credential Locker, composition, UI, and authorized smoke are still missing. |
+| `perplexity` · Perplexity | Billing, analytics, and console tier. | [`internal/providers/perplexity`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/perplexity) | **Blocked.** Upstream uses a browser cookie. TokenUsage must not copy it. |
+| `groq` · Groq | Rate limits and daily limits. | [`internal/providers/groq`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/groq) | **Deferred.** It is not Grok Build. It needs its own gate. |
+| `mistral` · Mistral AI | Headers, subscription, and usage. | [`internal/providers/mistral`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/mistral) | **Deferred.** Keep it separate from Mistral Vibe. |
+| `moonshot` · Moonshot | Balance and account data. | [`internal/providers/moonshot`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/moonshot) | **Deferred.** It is not Kimi CLI. |
+| `deepseek` · DeepSeek | Headers and balance. | [`internal/providers/deepseek`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/deepseek) | **Deferred.** Add the shell. Confirm the billing API before the client. |
+| `xai` · xAI (Grok) | Headers and API-key data. | [`internal/providers/xai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/xai) | **Deferred.** It is not local Grok Build. |
+| `zai` · Z.AI | Models, quotas, credits, and usage by model or tool. | [`internal/providers/zai`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/zai) | **Blocked.** The current TokenUsage gate does not authorize the internal quota endpoints. |
+| `gemini_api` · Google Gemini API | Headers, per-model limits, and authentication status. | [`internal/providers/gemini_api`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/gemini_api) | **Deferred.** It is not Gemini CLI or Antigravity. |
 
-## Herramientas locales o híbridas
+## Local or hybrid tools
 
-| ID y nombre | Capacidades de OpenUsage | Fuente upstream | Estado seguro en TokenUsage |
+| ID and name | OpenUsage capabilities | Upstream source | Safe state in TokenUsage |
 |---|---|---|---|
-| `opencode` · OpenCode | Telemetría local, gasto y modelos. También puede consultar la consola Zen. | [`internal/providers/opencode`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/opencode) | **Active, local.** Mantener el lector SQLite actual. Bloquear cookies y credenciales de consola. |
-| `gemini_cli` · Gemini CLI | Sesiones locales, tokens, coste y cuota OAuth. | [`internal/providers/gemini_cli`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/gemini_cli) | **Deferred.** Preparar módulo. El lector local necesita un gate de contenido y formato. Bloquear OAuth ajeno. |
-| `ollama` · Ollama | API local, SQLite, logs, tokens, modelos y nube opcional. | [`internal/providers/ollama`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/ollama) | **Implementable ahora, local.** Prioridad alta porque la API local no necesita credenciales. La nube queda deferred. |
-| `copilot` · GitHub Copilot | Cuenta, cuota y telemetría local por sesión. | [`internal/providers/copilot`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/copilot) | **Deferred.** Preparar módulo. Implementar después la Billing REST API con token manual. Bloquear token del editor y endpoint privado. |
-| `cursor` · Cursor IDE | SQLite, CSV, telemetría local y uso remoto. | [`internal/providers/cursor`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/cursor) | **Active, local parcial.** Mantener la proyección allowlist actual. Bloquear token, RPC, Stripe y CSV privado. |
-| `claude_code` · Claude Code CLI | JSONL, stats, tokens, gasto y cuota remota. | [`internal/providers/claude_code`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/claude_code) | **Implementable ahora, local.** El lector ya existe. Mantener la cuota remota bloqueada. |
-| `codex` · OpenAI Codex CLI | JSONL, tokens, gasto, límites y créditos. | [`internal/providers/codex`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/codex) | **Active.** Conservar `codex app-server` y los lectores locales. No copiar `auth.json` ni endpoints privados. |
+| `opencode` · OpenCode | Local telemetry, spend, and models. It can also query the Zen console. | [`internal/providers/opencode`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/opencode) | **Active, local.** Keep the current SQLite reader. Block console cookies and credentials. |
+| `gemini_cli` · Gemini CLI | Local sessions, tokens, cost, and OAuth quota. | [`internal/providers/gemini_cli`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/gemini_cli) | **Deferred.** Prepare the module. The local reader needs a content and format gate. Block another product's OAuth. |
+| `ollama` · Ollama | Local API, SQLite, logs, tokens, models, and optional cloud. | [`internal/providers/ollama`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/ollama) | **Implementable now, local.** High priority because the local API needs no credentials. Cloud stays deferred. |
+| `copilot` · GitHub Copilot | Account, quota, and local per-session telemetry. | [`internal/providers/copilot`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/copilot) | **Deferred.** Prepare the module. Implement later with the Billing REST API and a manual token. Block the editor token and the private endpoint. |
+| `cursor` · Cursor IDE | SQLite, CSV, local telemetry, and remote usage. | [`internal/providers/cursor`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/cursor) | **Active, partial local.** Keep the current allowlist projection. Block token, RPC, Stripe, and private CSV. |
+| `claude_code` · Claude Code CLI | JSONL, stats, tokens, spend, and remote quota. | [`internal/providers/claude_code`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/claude_code) | **Implementable now, local.** The reader already exists. Keep remote quota blocked. |
+| `codex` · OpenAI Codex CLI | JSONL, tokens, spend, limits, and credits. | [`internal/providers/codex`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/codex) | **Active.** Keep `codex app-server` and the local readers. Do not copy `auth.json` or private endpoints. |
 
-## Agentes con almacenamiento local
+## Agents with local storage
 
-| ID y nombre | Fuente y datos que OpenUsage lee | Estado seguro en TokenUsage |
+| ID and name | Source and data OpenUsage reads | Safe state in TokenUsage |
 |---|---|---|
-| `amp` · Amp | [Threads JSON y `ledger.jsonl`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/amp). Tokens y coste en créditos. | **Deferred.** El ledger es candidato. Los threads requieren un gate de contenido. |
-| `goose` · Goose | [`sessions.db`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/goose). Tokens, coste y sesiones. | **Deferred.** No abrir la base hasta fijar una proyección sin conversación. |
-| `hermes` · Hermes Agent | [`state.db`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/hermes). Tokens, coste y modelos. | **Deferred.** Requiere un gate de esquema y privacidad. |
-| `mux` · Mux | [`session-usage.json`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/mux). Uso agregado por sesión. | **Deferred.** Buen candidato si el archivo contiene solo métricas. |
-| `droid` · Droid | [Settings de sesión y JSONL auxiliar](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/droid). Tokens y coste. | **Deferred.** Excluir transcript y comandos antes del reader. |
-| `crush` · Crush | [`crush.db` por proyecto](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/crush). Tokens y coste. | **Deferred.** Falta un icono dedicado y un gate de tablas. |
-| `roocode` · Roo Code | [Global storage de VS Code y forks compatibles](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/roocode). Tokens y coste. | **Deferred.** No leer tareas ni mensajes. También hay riesgo de doble conteo. |
-| `kilo_code` · Kilo Code | [Formato local compatible con Roo Code](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/kilocode). Tokens y coste. | **Deferred.** Mantener ID separado. El gate actual no autoriza la base. |
-| `kiro_cli` · Kiro CLI | [`data.sqlite3`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/kiro). Sesiones y tokens cuando existen. | **Deferred, experimental.** Upstream marca baja confianza y tokens ausentes en algunos datos. |
-| `zed` · Zed | [`threads.db`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/zed). Tokens por thread. | **Deferred.** La base mezcla métricas y conversación. El gate actual bloquea su lectura. |
-| `codebuff` · Codebuff | [`chat-messages.json`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/codebuff). Tokens, coste y modelos. | **Deferred.** No leer mensajes. Falta un icono dedicado. |
-| `kimi_cli` · Kimi CLI | [`wire.jsonl`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/kimi_cli). Tokens y coste. | **Deferred.** No equivale a Moonshot API. El gate actual bloquea sesiones. |
-| `openclaw` · OpenClaw | [JSONL por agente y aliases](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/openclaw). Tokens y coste. | **Deferred.** Requiere deduplicación y una proyección sin contenido. |
-| `pi` · Pi | [Sesiones JSONL de Pi y OMP](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/pi). Tokens, coste y modelos. | **Deferred.** Separar agente y proveedor de modelo antes de contar. |
-| `qwen_cli` · Qwen CLI | [Chats JSONL por proyecto](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/qwen_cli). Tokens y coste. | **Deferred.** No leer chats. Mantener separado de Alibaba Cloud. |
+| `amp` · Amp | [Thread JSON and `ledger.jsonl`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/amp). Tokens and cost in credits. | **Deferred.** The ledger is a candidate. Threads need a content gate. |
+| `goose` · Goose | [`sessions.db`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/goose). Tokens, cost, and sessions. | **Deferred.** Do not open the database until a projection without conversation is fixed. |
+| `hermes` · Hermes Agent | [`state.db`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/hermes). Tokens, cost, and models. | **Deferred.** Needs a schema and privacy gate. |
+| `mux` · Mux | [`session-usage.json`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/mux). Aggregated usage per session. | **Deferred.** A good candidate if the file contains metrics only. |
+| `droid` · Droid | [Session settings and auxiliary JSONL](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/droid). Tokens and cost. | **Deferred.** Exclude transcript and commands before the reader. |
+| `crush` · Crush | [`crush.db` per project](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/crush). Tokens and cost. | **Deferred.** A dedicated icon and a table gate are missing. |
+| `roocode` · Roo Code | [VS Code global storage and compatible forks](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/roocode). Tokens and cost. | **Deferred.** Do not read tasks or messages. Double-count risk also exists. |
+| `kilo_code` · Kilo Code | [Local format compatible with Roo Code](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/kilocode). Tokens and cost. | **Deferred.** Keep a separate ID. The current gate does not authorize the database. |
+| `kiro_cli` · Kiro CLI | [`data.sqlite3`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/kiro). Sessions and tokens when they exist. | **Deferred, experimental.** Upstream marks low confidence and missing tokens in some data. |
+| `zed` · Zed | [`threads.db`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/zed). Tokens per thread. | **Deferred.** The database mixes metrics and conversation. The current gate blocks that read. |
+| `codebuff` · Codebuff | [`chat-messages.json`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/codebuff). Tokens, cost, and models. | **Deferred.** Do not read messages. A dedicated icon is missing. |
+| `kimi_cli` · Kimi CLI | [`wire.jsonl`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/kimi_cli). Tokens and cost. | **Deferred.** It is not the Moonshot API. The current gate blocks sessions. |
+| `openclaw` · OpenClaw | [JSONL per agent and aliases](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/openclaw). Tokens and cost. | **Deferred.** Needs deduplication and a projection without content. |
+| `pi` · Pi | [Pi and OMP JSONL sessions](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/pi). Tokens, cost, and models. | **Deferred.** Separate agent and model provider before counting. |
+| `qwen_cli` · Qwen CLI | [JSONL chats per project](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/providers/qwen_cli). Tokens and cost. | **Deferred.** Do not read chats. Keep it separate from Alibaba Cloud. |
 
-## Iconos de la base ampliada
+## Icons in the expanded base
 
-El manifiesto oficial es
+The official manifest is
 [`internal/tmux/assets/icons.json`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/internal/tmux/assets/icons.json#L1-L40).
-Declara 32 iconos para 35 providers. Los archivos viven en
+It declares 32 icons for 35 providers. The files live in
 [`website/public/icons`](https://github.com/janekbaraniewski/openusage/tree/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons).
 
-| Provider | Recurso upstream |
+| Provider | Upstream resource |
 |---|---|
 | `openai` | [`openai.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/openai.svg) |
 | `anthropic` | [`anthropic.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/anthropic.svg) |
-| `azure_openai` | Sin recurso dedicado. Usa fallback. |
+| `azure_openai` | No dedicated resource. Uses fallback. |
 | `alibaba_cloud` | [`alibabacloud.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/alibabacloud.svg) |
 | `openrouter` | [`openrouter.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/openrouter.svg) |
 | `perplexity` | [`perplexity.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/perplexity.svg) |
@@ -171,49 +170,49 @@ Declara 32 iconos para 35 providers. Los archivos viven en
 | `hermes` | [`hermes.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/hermes.svg) |
 | `mux` | [`mux.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/mux.svg) |
 | `droid` | [`droid.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/droid.svg) |
-| `crush` | Sin recurso dedicado. Usa fallback. |
+| `crush` | No dedicated resource. Uses fallback. |
 | `roocode` | [`roocode.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/roocode.svg) |
 | `kilo_code` | [`kilocode.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/kilocode.svg) |
 | `kiro_cli` | [`kiro.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/kiro.svg) |
 | `zed` | [`zed.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/zed.svg) |
-| `codebuff` | Sin recurso dedicado. Usa fallback. |
+| `codebuff` | No dedicated resource. Uses fallback. |
 | `kimi_cli` | [`kimi.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/kimi.svg) |
 | `openclaw` | [`openclaw.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/openclaw.svg) |
 | `pi` | [`pi.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/pi.svg) |
 | `qwen_cli` | [`qwen.svg`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/website/public/icons/qwen.svg) |
 
-Los SVG de ambos proyectos sirven para confirmar identidad y geometría.
-TokenUsage debe guardar procedencia y licencia propias antes de distribuirlos.
-Los tres fallbacks necesitan un glyph local explícito para evitar iconos rotos.
+SVG files from both projects confirm identity and geometry. TokenUsage must
+store its own provenance and license before it distributes them. The three
+fallbacks need an explicit local glyph so icons do not break.
 
-## Base recomendada
+## Recommended base
 
-La primera implementación debe añadir catálogo, no 35 lectores.
+The first implementation must add catalog entries, not 35 readers.
 
-1. Cerrar las cinco superficies pendientes de la paridad de diez.
-2. Añadir Copilot, Devin, OpenRouter y Z.ai al sistema de iconos.
-3. Conservar Claude como una sola identidad con alias `claude_code`.
-4. Registrar después los IDs ampliados, sus grupos, capacidades y estados.
-5. Añadir los 32 iconos ampliados con un fallback para los tres restantes.
-6. Activar solo las fuentes reales aprobadas.
-7. Mantener el resto como `deferred` o `blocked`, sin factories de red o disco.
-8. Añadir búsqueda y filtros para evitar 35 tabs en la vista compacta.
+1. Close the five remaining surfaces of the ten-provider parity.
+2. Add Copilot, Devin, OpenRouter, and Z.ai to the icon system.
+3. Keep Claude as one identity with alias `claude_code`.
+4. Then register the expanded IDs, groups, capabilities, and states.
+5. Add the 32 expanded icons, with a fallback for the remaining three.
+6. Enable only approved real sources.
+7. Keep the rest as `deferred` or `blocked`, with no network or disk factories.
+8. Add search and filters so the compact view does not use 35 tabs.
 
-La vista simulada debe usar el catálogo completo. El demo upstream solo crea
-siete providers:
+The simulated view must use the full catalog. The upstream demo creates only
+seven providers:
 [`cmd/demo/provider.go`](https://github.com/janekbaraniewski/openusage/blob/ddc05f24b159bfd1a24bbf641dcfb841410a77ab/cmd/demo/provider.go).
-Por tanto, TokenUsage necesita fixtures propios para los 35.
+TokenUsage therefore needs its own fixtures for the 35.
 
-Los datos simulados deben cumplir estas reglas:
+Simulated data must follow these rules:
 
-- Mostrar `Datos simulados` en el encabezado y en cada tarjeta.
-- No escribir en el almacén durable ni sumar en informes reales.
-- No aparecer en capturas o exports sin la marca de simulación.
-- Incluir estados con datos, sin datos, error, deferred y blocked.
-- Ocultar acciones de conexión para providers bloqueados.
+- Show `Simulated data` in the header and on each card.
+- Do not write to durable storage or add into real reports.
+- Do not appear in captures or exports without the simulation mark.
+- Include states with data, with no data, error, deferred, and blocked.
+- Hide connection actions for blocked providers.
 
-## Verificación realizada
+## Verification performed
 
-Se leyó el registro, cada módulo de provider, el manifiesto de iconos y el demo
-del commit fijado. No se ejecutaron endpoints. No se leyeron cookies,
-credenciales o datos de sesión.
+The registry, each provider module, the icon manifest, and the demo were read
+at the pinned commit. No endpoints were run. No cookies, credentials, or
+session data were read.

@@ -1,167 +1,168 @@
-# Especificación de producto
+# Product specification
 
-Estado: base aprobada para implementación
+Status: approved baseline for implementation
 
-Nombre formal aprobado: TokenUsage
-Nombre técnico: TokenUsage
-Plataforma: Windows 10 1903 o posterior, x64 y ARM64
+Formal name: TokenUsage
+Technical name: TokenUsage
+Platform: Windows 10 version 1903 or later, x64 and ARM64
 
-El corte técnico de nombre se completó el 2026-08-04. El producto, los proyectos,
-los namespaces, los ensamblados, el ejecutable y la CLI usan `TokenUsage`.
-La Identity y el AUMID del paquete permanecen estables para conservar la ruta de
-actualización. El ADR-0002 registra esta decisión.
+The technical name cutover finished on 2026-08-04. The product, projects, namespaces, assemblies, executable, and CLI use `TokenUsage`. Package Identity and AUMID stay stable so upgrades keep working. ADR-0002 records this decision.
 
-## Objetivo
+## Goal
 
-Dar a una persona una vista rápida y fiable de la cuota restante, el próximo reinicio, los tokens y el gasto reciente de sus herramientas de IA. La app usa sesiones ya abiertas y datos locales cuando existe un contrato seguro. No requiere una cuenta propia.
+Give one person a fast, reliable view of remaining quota, the next reset, tokens, and recent cost for their AI tools. The app uses already-open sessions and local data when a safe contract exists. It does not require a TokenUsage account.
 
-## Usuarios
+## Users
 
-- Persona que usa Codex, Claude Code u otras herramientas de IA a diario.
-- Equipo de soporte que necesita saber qué cliente se quedó sin cuota y cuándo se restablece.
-- Automatización local que consume un contrato JSON de solo lectura.
+- A person who uses Codex, Claude Code, or other AI tools every day.
+- A support team that needs to know which client ran out of quota and when it resets.
+- Local automation that consumes a read-only JSON contract.
 
-## Resultado principal
+## Primary result
 
-Desde el icono de bandeja, el usuario abre un panel y ve en menos de dos segundos:
+From the tray icon, the user opens a panel and sees in less than two seconds:
 
-- qué proveedores tienen datos;
-- cuánto se usó o queda;
-- cuándo se reinicia cada ventana;
-- si el ritmo actual agotará la cuota antes del reinicio;
-- cuánto uso y gasto local se observó cuando la cuota no está disponible;
-- cuándo se tomó el dato y qué fuente lo produjo.
+- which providers have data
+- how much was used or remains
+- when each window resets
+- whether the current pace will exhaust quota before reset
+- how much local usage and cost was observed when quota is unavailable
+- when the value was taken and which source produced it
 
-## Reglas de producto
+## Product rules
 
-1. La app no crea una cuenta ni ofrece un login de proveedor.
-2. La detección local no hace red.
-3. Cada llamada remota requiere una sesión existente o una clave que el usuario agregó de forma explícita.
-4. La app no guarda copias de credenciales que pertenecen a otra herramienta.
-5. Un dato estimado, local, parcial o vencido lleva una etiqueta visible.
-6. Un fallo conserva el último valor válido y muestra su edad.
-7. Un valor ausente aparece como `No data`; no se inventa cero.
-8. Un proveedor se publica solo tras cerrar pruebas técnicas, seguridad y uso permitido.
-9. Cuota, uso observado y gasto son capacidades independientes; una tarjeta puede tener una, dos o tres.
-10. Los lectores locales no abren archivos de autenticación ni indexan prompts, respuestas, herramientas o comandos.
+1. The app does not create an account or offer a provider login.
+2. Local detection does not use the network.
+3. Each remote call requires an existing session or a key the user added explicitly.
+4. The app does not store copies of credentials that belong to another tool.
+5. An estimated, local, partial, or stale value carries a visible label.
+6. A failure keeps the last valid value and shows its age.
+7. A missing value appears as `No data`. The app does not invent zero.
+8. A provider is published only after technical tests, security review, and permitted-use review close.
+9. Quota, observed usage, and cost are independent capabilities. A card can have one, two, or three of them.
+10. Local readers do not open authentication files or index prompts, responses, tools, or commands.
 
-## Superficies
+## Surfaces
 
-### Bandeja
+### Tray
 
-El icono resume el peor estado de las métricas elegidas:
+The icon summarizes the worst state of the chosen metrics:
 
-| Estado | Tratamiento |
+| State | Treatment |
 |---|---|
-| Normal | Icono base |
-| Cerca del límite | Marca ámbar |
-| Agotado o error que requiere acción | Marca roja |
-| Refrescando | Indicador breve y accesible |
-| No data | Icono neutro |
+| Normal | Base icon |
+| Near the limit | Amber mark |
+| Exhausted or an error that needs action | Red mark |
+| Refreshing | Brief, accessible indicator |
+| No data | Neutral icon |
 
-Al posar el puntero sobre el icono aparece una tira flotante con los proveedores elegidos. La tira solo muestra proveedores detectados en este equipo. Cuando no hay ninguno, muestra un texto corto que lo dice en lugar de bloques vacíos.
+Hovering the pointer over the icon shows a floating strip of the chosen providers. The strip shows only providers detected on this computer. When none are present, it shows a short message instead of empty blocks.
 
-Cada bloque tiene sitio para dos valores. El usuario elige en Apariencia qué valor ocupa cada línea, cuántos proveedores caben, y si aparece el nombre del proveedor:
+Each block has room for two values. In Appearance, the user chooses which value occupies each line, how many providers fit, and whether the provider name appears:
 
-| Ajuste | Opciones | Valor inicial |
+| Setting | Options | Initial value |
 |---|---|---|
-| Valor principal | límite de sesión, límite del periodo, gasto de 30 días, tokens de 30 días | límite de sesión |
-| Valor secundario | ninguno o cualquier valor distinto del principal | límite del periodo |
-| Proveedores | de uno a cuatro | cuatro |
-| Nombre del proveedor | mostrar u ocultar | ocultar |
+| Primary value | session limit, period limit, 30-day cost, 30-day tokens | session limit |
+| Secondary value | none, or any value other than the primary | period limit |
+| Providers | one to four | four |
+| Provider name | show or hide | hide |
 
-El valor secundario no puede repetir el principal. El ancho y el alto de la tira siguen a lo elegido. Los estados usan verde, amarillo, naranja y rojo. Un dato que la fuente no ofrece se muestra como `—`; nunca se inventa. La tira usa el tema activo, se coloca junto al icono en su monitor, respeta el DPI y se oculta cuando el puntero abandona el icono. El tooltip nativo de Windows queda suprimido para que no se superponga.
+The secondary value cannot repeat the primary. Strip width and height follow the chosen content. States use green, yellow, orange, and red. A value the source does not offer appears as `—`. The app never invents it. The strip uses the active theme, sits next to the icon on its monitor, respects DPI, and hides when the pointer leaves the icon. The native Windows tooltip is suppressed so it does not overlap the strip.
 
-El clic principal cierra la tira y abre o cierra el panel compacto. El menú de contexto ofrece actualizar, ajustes y salir. Debe funcionar con mouse y teclado.
+The primary click closes the strip and opens or closes the compact panel. The context menu offers **Update**, **Options**, and **Exit**. Mouse and keyboard must both work.
 
-### Panel principal
+### Main panel
 
-Ventana sin marco, no redimensionable, alineada con el icono de bandeja y limitada al área visible del monitor. Ancho base: 320 DIPs. El alto sigue el contenido, con un mínimo de 200 DIPs y un máximo de 720 DIPs o 85 % del área de trabajo, el menor. El escalado a píxeles físicos usa el DPI del monitor.
+A frameless, non-resizable window aligned with the tray icon and clipped to the visible monitor area. Base width: 320 DIPs. Height follows content, with a minimum of 200 DIPs and a maximum of 720 DIPs or 85% of the work area, whichever is smaller. Scaling to physical pixels uses the monitor DPI.
 
-Orden:
+Outer margin is 14 DIPs. Section gap is 14 DIPs at normal density. Cards use a 12 DIP radius and no dominant border. Bars are 5 DIPs high. Text communicates state in addition to color. Provider headers sit outside the card. One grouped card per provider. No nested cards. No visible title bar or in-dashboard application header. Typography uses `Segoe UI` and Fluent resources. Icons use Segoe Fluent Icons or first-party assets.
 
-1. tarjeta `Gasto total` cuando haya una fuente apta;
-2. tarjetas de proveedor;
-3. pie fijo con identidad, antigüedad o actualización y acceso a opciones.
+The screenshot at `docs/design/selected-flyout-option-1.png` guides hierarchy and density. It is not a literal specification when it contradicts upstream code or a native Windows convention. Implementation does not keep three mock defects: a provider header that overflows the outer container, empty vertical space that the window should collapse, and non-Fluent share, refresh, and options controls.
 
-La ventana se oculta al perder foco. Ajustes y personalización se abren dentro del mismo panel. `Esc` vuelve una pantalla; otro `Esc` cierra.
+The layout follows this order:
 
-El blanco visual elegido, sus fuentes y las correcciones obligatorias están en [Blanco visual del flyout](design/2026-07-21-selected-flyout.md).
+1. the **Total spend** card when a suitable source exists
+2. provider cards
+3. a fixed footer with identity, age or refresh, and access to options
 
-### Tarjeta de proveedor
+The window hides when it loses focus. **Options** and customization open inside the same panel. `Esc` goes back one screen. A second `Esc` closes the panel.
 
-Cada tarjeta muestra:
+The visual target comes from `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`. Light, dark, high contrast, keyboard access, focus, and 200% text are part of the visual gate.
 
-- icono, nombre propio, plan y estado;
-- métricas siempre visibles;
-- bloque plegable para métricas secundarias;
-- origen y hora del dato en tooltip o detalle;
-- aviso corto de credencial, red, throttle, dato vencido o cobertura parcial;
-- acción para actualizar solo ese proveedor.
+### Provider card
 
-La cabecera de detalle indica las capacidades disponibles:
+Each card shows:
 
-- `Cuota`: límite, restante y reinicio informados por una fuente apta;
-- `Uso local`: actividad observada solo en este equipo;
-- `Gasto`: coste informado o estimado, con su etiqueta.
+- icon, own name, plan, and status
+- always-visible metrics
+- a collapsible block for secondary metrics
+- source and time of the value in a tooltip or detail
+- a short notice for credential, network, throttle, stale data, or partial coverage
+- an action to refresh only that provider
 
-Tipos de fila:
+The detail header lists the available capabilities:
 
-- barra limitada con usado/restante y reinicio;
-- valor simple para saldo, gasto o tokens;
-- insignia para plan o estado;
-- tendencia de 30 días;
-- texto de diagnóstico corto.
+- `Quota`: limit, remaining, and reset reported by a suitable source
+- `Local usage`: activity observed only on this computer
+- `Cost`: reported or estimated cost, with its label
 
-Un clic sobre `Usado` o `Restante` cambia el modo en toda la app. Un clic sobre el tiempo alterna cuenta regresiva y fecha exacta.
+Row types:
 
-### Uso y gasto
+- a bounded bar with used/remaining and reset
+- a simple value for balance, cost, or tokens
+- a badge for plan or status
+- a 30-day trend
+- short diagnostic text
 
-Se muestra cuando al menos un proveedor ofrece tokens o gasto con cobertura conocida.
+A click on **Used** or **Remaining** changes the mode across the app. A click on the time toggles countdown and exact date.
 
-- periodos rápidos: hoy, ayer, 7 días, 30 días y mes actual;
-- métricas: costo, costo por millón de tokens y tokens;
-- anillo por agente, total y leyenda;
-- desglose por agente y modelo;
-- coste informado separado de coste estimado;
-- comparar dos proveedores, el periodo actual con el anterior, o dos ciclos Codex;
-- modelos sin precio y porcentaje cubierto;
-- detalle del origen y de estimaciones;
-- estado vacío cuando el periodo no tiene datos.
+### Usage and cost
 
-El gasto estimado a tarifas API no se presenta como factura de una suscripción.
+This section appears when at least one provider offers tokens or cost with known coverage.
 
-La primera versión no agrupa por proyecto, sesión, tarea o comando. Esas vistas exigirían guardar más metadatos y quedan fuera del motor pequeño.
+- quick ranges: today, yesterday, 7 days, 30 days, and current month
+- metrics: cost, cost per million tokens, and tokens
+- a ring by agent, a total, and a legend
+- breakdown by agent and model
+- provider-reported cost kept separate from estimated cost
+- compare two providers, the current range with the previous range, or two Codex cycles
+- unpriced models and covered percentage
+- source and estimate detail
+- an empty state when the range has no data
 
-### Personalización
+Estimated cost at API rates is not presented as a subscription invoice.
 
-- activar o desactivar proveedores;
-- ordenar proveedores;
-- ordenar métricas;
-- mover métricas entre siempre visible y bajo demanda;
-- ocultar una métrica;
-- elegir hasta cuatro proveedores para la tira de bandeja;
-- deshacer cambios durante la sesión;
-- restablecer un proveedor o todo, con confirmación para todo.
+The first version does not group by project, session, task, or command. Those views would require storing more metadata and stay outside the small engine.
 
-### Ajustes
+### Customization
 
-| Grupo | Opciones MVP |
+- turn providers on or off
+- order providers
+- order metrics
+- move metrics between always visible and on demand
+- hide a metric
+- choose up to four providers for the tray strip
+- undo changes during the session
+- reset one provider or everything, with confirmation for a full reset
+
+### Options
+
+| Group | MVP options |
 |---|---|
-| General | iniciar con Windows, atajo global, refresco manual |
-| Apariencia | sistema/claro/oscuro, densidad, transparencia, usado/restante, hora relativa/exacta, contenido de la tira de bandeja |
-| Proveedores | detección, activación, estado y fuente |
-| Avisos | umbrales, ritmo, datos vencidos y fallo de credencial |
-| Red | proxy del sistema y prueba de conexión |
-| Privacidad | API local, acceso por Origin, telemetría, exportar o borrar datos |
-| Diagnóstico | versión, logs, caché, copiar informe sin secretos |
-| Actualización | canal, versión y buscar actualización |
+| General | start with Windows, global shortcut, manual refresh |
+| Appearance | system/light/dark, density, transparency, used/remaining, relative/exact time, tray strip content |
+| Providers | detection, activation, status, and source |
+| Alerts | thresholds, pace, stale data, and credential failure |
+| Network | system proxy and connection test |
+| Privacy | local API, Origin access, telemetry, export or delete data |
+| Diagnostics | version, logs, cache, copy a report with no secrets |
+| Update | channel, version, and check for update |
 
-La telemetría queda apagada al instalar. El usuario debe confirmar cualquier futura opción de métricas.
+Telemetry stays off at install. The user must confirm any future metrics option.
 
 ### CLI
 
-Ejecutable propio `tokenusage.exe`:
+A dedicated executable, `tokenusage.exe`:
 
 ```text
 tokenusage limits
@@ -175,200 +176,200 @@ tokenusage providers
 tokenusage doctor
 ```
 
-`report` entrega totales, desglose de tokens, agentes, modelos, días de mayor gasto, serie diaria y cobertura de precios. Mantiene separados los costos informados por el proveedor y los estimados por catálogo. No agrega proyectos, sesiones, tareas, prompts ni herramientas.
+`report` returns totals, token breakdown, agents, models, highest-cost days, a daily series, and price coverage. It keeps provider-reported costs separate from catalog estimates. It does not aggregate projects, sessions, tasks, prompts, or tools.
 
-La CLI comparte proveedores, caché y modelos con la app. Puede leer datos sin que el panel esté abierto. Códigos de salida:
+The CLI shares providers, cache, and models with the app. It can read data without the panel open. Exit codes:
 
-- `0`: respuesta válida, incluso con datos vencidos marcados;
-- `2`: uso o argumentos inválidos;
-- `4`: no se obtuvo ningún dato útil.
+- `0`: a valid response, including stale data that is marked
+- `2`: invalid usage or arguments
+- `4`: no useful data was obtained
 
-### API local
+### Local API
 
-Apagada al instalar. Al activarla expone:
+Off at install. When enabled, it exposes:
 
-- `GET /v1/limits`;
-- `GET /v1/limits/{providerId}`;
-- `GET /v1/usage?days=30`;
-- `GET /v1/usage/{providerId}?days=30`;
-- `GET /v1/health`.
+- `GET /v1/limits`
+- `GET /v1/limits/{providerId}`
+- `GET /v1/usage?days=30`
+- `GET /v1/usage/{providerId}?days=30`
+- `GET /v1/health`
 
-Requiere `Authorization: Bearer <token>`. El token se crea al activar la función, se guarda en Credential Locker y puede rotarse. No se expone en pantalla salvo una acción con confirmación.
+It requires `Authorization: Bearer <token>`. The token is created when the feature is enabled, stored in Credential Locker, and can be rotated. It is not shown on screen except through a confirmed action.
 
-## Modelo de estado visible
+## Visible state model
 
-Cada proveedor está en uno de estos estados:
+Each provider is in one of these states:
 
-| Estado | UI | Acción |
+| State | UI | Action |
 |---|---|---|
-| Detectando | Skeleton breve | Esperar |
-| Disponible | Datos y hora | Ninguna |
-| Refrescando con caché | Datos anteriores + progreso | Esperar o cancelar lote |
-| Sin credencial | Explicación y ruta para abrir la herramienta | Iniciar sesión en la herramienta original |
-| Tipo de cuenta no apto | Explicación | Ver detalle |
-| Sin datos | Filas con `No data` | Actualizar o abrir ayuda |
-| Parcial | Datos + aviso de cobertura | Ver fuente |
-| Vencido | Último valor + edad | Actualizar |
-| Throttle | Último valor + próximo intento | Esperar |
-| Sin red | Último valor + estado de red | Reintentar |
-| Error de formato | Último valor + informe | Copiar diagnóstico |
-| Bloqueado por política | Tarjeta informativa sin acceso | Consultar estado del proveedor |
+| Detecting | Brief skeleton | Wait |
+| Available | Data and time | None |
+| Refreshing with cache | Previous data plus progress | Wait or cancel the batch |
+| No credential | Explanation and a path to open the tool | Sign in with the original tool |
+| Unsuitable account type | Explanation | See detail |
+| No data | Rows with `No data` | Refresh or open help |
+| Partial | Data plus a coverage notice | See source |
+| Stale | Last value plus age | Refresh |
+| Throttle | Last value plus next attempt | Wait |
+| No network | Last value plus network status | Retry |
+| Format error | Last value plus a report | Copy diagnostics |
+| Policy blocked | Informational card with no access | See provider status |
 
-## Ritmo de uso
+## Usage pace
 
-Para una métrica limitada:
+For a bounded metric:
 
-- `fracciónUsada = usado / límite`;
-- `fracciónTiempo = tiempoTranscurrido / duraciónVentana`;
-- la evaluación comienza tras una muestra mínima y un tiempo mínimo;
-- azul: uso con margen;
-- ámbar: uso cerca del ritmo de agotamiento;
-- rojo: proyección de agotamiento antes del reinicio.
+- `usedFraction = used / limit`
+- `timeFraction = elapsedTime / windowDuration`
+- evaluation starts after a minimum sample and a minimum elapsed time
+- blue: usage with margin
+- amber: usage near the exhaustion pace
+- red: projected exhaustion before reset
 
-El cálculo, los umbrales y el reloj se prueban con una fuente de tiempo inyectable. La UI evita una predicción cuando faltan duración, inicio o límite.
+The calculation, thresholds, and clock are tested with an injectable time source. The UI avoids a prediction when duration, start, or limit is missing.
 
-## Refresco y caché
+## Refresh and cache
 
-- detección local en paralelo al primer inicio;
-- último snapshot válido cargado antes de la primera llamada de red;
-- refresco remoto al iniciar cada sesión de la app;
-- cadencia base de cinco minutos;
-- actualización manual que ignora TTL;
-- timeout y cancelación por proveedor;
-- backoff con jitter para throttle y fallos transitorios;
-- un proveedor lento no bloquea la publicación de los demás;
-- escritura atómica del snapshot tras validarlo;
-- datos con más de diez minutos marcados como vencidos por defecto.
+- local detection in parallel at first start
+- last valid snapshot loaded before the first network call
+- remote refresh at the start of each app session
+- base cadence of five minutes
+- a manual refresh that ignores TTL
+- timeout and cancellation per provider
+- backoff with jitter for throttle and transient failures
+- a slow provider does not block publication of the others
+- atomic snapshot write after validation
+- data older than ten minutes marked stale by default
 
-El intervalo podrá cambiar tras medir carga y contratos. Nunca se acorta por debajo de la política del proveedor.
+The interval can change after load and contracts are measured. It is never shortened below the provider policy.
 
-## Detección inicial
+## Initial detection
 
-La primera ejecución revisa en local, sin leer el contenido secreto:
+The first run inspects locally, without reading secret content:
 
-- ejecutables conocidos en `PATH` y rutas de instalación;
-- carpetas de datos conocidas;
-- variables de entorno que cambian la ruta;
-- presencia de archivos o bases de credenciales;
-- claves manuales propias ya guardadas.
+- known executables on `PATH` and install paths
+- known data folders
+- environment variables that change the path
+- presence of credential files or databases
+- the user's own already-stored manual keys
 
-Activa solo los proveedores con una ruta apta. Si ninguno aparece, muestra Codex y Claude como opciones guiadas, sin afirmar que están conectados.
+It activates only providers with a suitable path. If none appear, it shows Codex and Claude as guided options without claiming they are connected.
 
-El sondeo de presencia no lee archivos de uso y no necesita base local, así que responde antes del primer escaneo. Reglas que se derivan de eso:
+Presence probing does not read usage files and does not need a local database, so it returns before the first scan. These rules follow from that:
 
-- la lista de proveedores del panel y la tira de bandeja solo incluyen proveedores con raíz encontrada;
-- una herramienta sin raíz queda fuera de la lista aunque la base conserve historial suyo; el historial sigue contando en los totales de uso y gasto;
-- una herramienta con raíz y sin historial aparece con `No data`, no como ausente;
-- cuando el sondeo no encuentra ninguna herramienta, el panel lo dice con su propio mensaje y no como fallo de un proveedor.
+- the panel and tray strip list only providers whose root was found
+- a tool without a root stays out of the list even if the store still has its history. That history still counts in usage and cost totals
+- a tool with a root and no history appears with `No data`, not as absent
+- when probing finds no tool, the panel uses its own message and does not treat it as a provider failure
 
 ## Codex MVP
 
-Requisitos:
+Requirements:
 
-- localizar `codex` de forma segura;
-- iniciar `codex app-server --stdio` sin ventana de consola;
-- completar el handshake;
-- leer límites y uso con métodos estables;
-- no invocar login, logout, consumo de reset ni una solicitud de modelo;
-- no leer ni copiar el token;
-- parar el proceso hijo al salir;
-- tolerar actualización del CLI y campos nuevos;
-- explicar API-key-only o cuenta sin límites ChatGPT;
-- usar logs locales solo para detalle que el método oficial no entregue.
+- locate `codex` safely
+- start `codex app-server --stdio` with no console window
+- complete the handshake
+- read limits and usage with stable methods
+- do not invoke login, logout, reset consumption, or a model request
+- do not read or copy the token
+- stop the child process on exit
+- tolerate CLI updates and new fields
+- explain API-key-only or an account without ChatGPT limits
+- use local logs only for detail that the official method does not provide
 
-### Historial de reinicios Codex
+### Codex reset history
 
-- guardar cada observación numérica de las ventanas oficiales sin credenciales ni contenido;
-- registrar un reinicio programado cuando la ventana informada avance tras su vencimiento;
-- registrar un reinicio anticipado cuando el uso oficial caiga de forma material antes de la fecha informada, incluso si OpenAI no cambia esa fecha;
-- ignorar variaciones menores de redondeo y observaciones antiguas o repetidas;
-- no fabricar reinicios anteriores a la primera observación;
-- permitir que el informe Codex use el ciclo actual o un ciclo observado anterior como rango;
-- comparar dos ciclos observados en el informe;
-- indicar que el uso durable está agregado por día y que el día del reinicio no se puede dividir por hora.
+- store each numeric observation of the official windows without credentials or content
+- record a scheduled reset when the reported window advances after it expires
+- record an early reset when official usage drops materially before the reported date, even if OpenAI does not change that date
+- ignore minor rounding variation and old or repeated observations
+- do not fabricate resets before the first observation
+- let the Codex report use the current cycle or an earlier observed cycle as a range
+- compare two observed cycles in the report
+- state that durable usage is aggregated by day and that the reset day cannot be split by hour
 
-## Claude inicial
+## Initial Claude
 
-Alcance permitido en la primera versión:
+Allowed scope in the first version:
 
-- detectar `CLAUDE_CONFIG_DIR` y el directorio por defecto;
-- leer logs de sesiones para tokens y tendencia;
-- calcular gasto estimado con catálogo versionado;
-- marcar sesiones no persistidas como fuera de cobertura;
-- no leer ni usar el OAuth de suscripción para una llamada remota distribuida.
+- detect `CLAUDE_CONFIG_DIR` and the default directory
+- read session logs for tokens and trend
+- calculate estimated cost with a versioned catalog
+- mark unsaved sessions as out of coverage
+- do not read or use subscription OAuth for a distributed remote call
 
-La cuota en vivo se activa después del gate definido en la matriz de proveedores.
+Live quota is enabled after the gate defined in the provider matrix.
 
-## Accesibilidad
+## Accessibility
 
-- navegación completa por teclado;
-- orden de foco estable;
-- nombres y estados para lector de pantalla;
-- alto contraste sin depender de color;
-- mínimo de 44 DIPs en acciones principales;
-- texto a 200% sin corte de valores críticos;
-- animación reducida según el sistema;
-- tooltip accesible por foco, no solo por hover.
+- complete keyboard navigation
+- stable focus order
+- names and states for a screen reader
+- high contrast that does not depend on color alone
+- a 44 DIP minimum on primary actions
+- text at 200% without clipping critical values
+- reduced motion according to the system
+- a tooltip reachable by focus, not hover only
 
-## Rendimiento
+## Performance
 
-- panel visible desde caché en menos de 500 ms en hardware de referencia;
-- refresco no bloquea el hilo UI;
-- uso inactivo menor a 150 MB como meta inicial;
-- CPU inactiva cercana a cero;
-- sin polling de archivos continuo; usar lote o watcher con debounce;
-- inicio del proceso Codex bajo demanda y reutilización mientras la app corre.
+- panel visible from cache in less than 500 ms on reference hardware
+- refresh does not block the UI thread
+- idle usage under 150 MB as an initial target
+- idle CPU near zero
+- no continuous file polling. Use a batch or a watcher with debounce
+- start the Codex process on demand and reuse it while the app runs
 
-Las cifras se convierten en gates tras medir el primer vertical slice.
+These figures become gates after the first vertical slice is measured.
 
-## Privacidad y datos
+## Privacy and data
 
-Persistidos:
+Persisted:
 
-- configuración y orden;
-- snapshots sin credenciales;
-- observaciones numéricas y fronteras de reinicio de cuota;
-- índices de scanner y agregados diarios;
-- eventos normalizados sin contenido durante el periodo de retención;
-- versión y tasas del catálogo usadas para cada estimación;
-- token propio de API local en Credential Locker;
-- logs rotados sin valores de cuota por defecto.
+- settings and order
+- snapshots without credentials
+- numeric observations and quota reset boundaries
+- scanner indexes and daily aggregates
+- normalized events without content during the retention period
+- catalog version and rates used for each estimate
+- the local API token in Credential Locker
+- rotated logs without quota values by default
 
-No persistidos:
+Not persisted:
 
-- tokens de Codex, Claude u otra herramienta;
-- contenido de prompts o respuestas;
-- nombres de herramientas, comandos, tareas o archivos;
-- nombre de proyecto y ruta de trabajo en la primera versión;
-- correo de cuenta salvo que una función futura lo requiera y el usuario la acepte;
-- rutas de proyecto en informes normales.
+- tokens from Codex, Claude, or another tool
+- prompt or response content
+- tool, command, task, or file names
+- project name and working path in the first version
+- account email unless a future feature requires it and the user accepts it
+- project paths in ordinary reports
 
-## Fuera del MVP
+## Out of MVP
 
-- login propio;
-- sincronización cloud entre equipos;
-- consumo de créditos de reinicio Codex;
-- soporte de endpoints privados sin gate;
-- panel web;
-- widget siempre visible en el escritorio;
-- instalación sin paquete;
-- importación automática de secretos de navegadores.
-- índice de transcripciones, tareas, herramientas o comandos.
-- cuota Grok o Antigravity mediante endpoints, tokens o TUI privados.
+- own login
+- cloud sync across computers
+- consumption of Codex reset credits
+- support for private endpoints without a gate
+- a web panel
+- an always-visible desktop widget
+- unpackaged installation
+- automatic import of secrets from browsers
+- an index of transcripts, tasks, tools, or commands
+- Grok or Antigravity quota through private endpoints, tokens, or TUI
 
-## Criterio de éxito del MVP
+## MVP success criteria
 
-- instalación y desinstalación MSIX limpias;
-- icono de bandeja fiable tras reinicio de Explorer;
-- flyout correcto en varias pantallas y DPI;
-- Codex muestra cuota, reinicio y uso con sesión existente;
-- cero login o copia de token;
-- caché y estados de fallo comprobados;
-- tema claro, oscuro y alto contraste;
-- teclado y lector de pantalla cubren el flujo principal;
-- suite de unidad, contrato, integración y UI verde;
-- paquete x64 firmado en beta y prueba ARM64 antes de estable;
-- licencia MIT y avisos de tercero incluidos;
-- nombre e identidad final aprobados.
+- clean MSIX install and uninstall
+- a reliable tray icon after Explorer restart
+- a correct flyout across multiple displays and DPI
+- Codex shows quota, reset, and usage with an existing session
+- zero login or token copy
+- cache and failure states verified
+- light, dark, and high contrast themes
+- keyboard and screen reader cover the main flow
+- unit, contract, integration, and UI suites green
+- a signed x64 package in beta and an ARM64 test before stable
+- MIT license and third-party notices included
+- final name and identity approved
 
-La beta de gasto agrega Claude, Grok Build y OpenCode con fixtures, totales diferenciales y cobertura visible. Antigravity CLI requiere primero una base local real, fixtures sanitizados y un parser que no use su login.
+The cost beta adds Claude, Grok Build, and OpenCode with fixtures, differential totals, and visible coverage. Antigravity CLI first needs a real local database, sanitized fixtures, and a parser that does not use its login.

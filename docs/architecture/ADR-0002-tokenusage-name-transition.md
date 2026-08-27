@@ -1,31 +1,24 @@
-# ADR-0002: transición del nombre TokenUsage
+# ADR-0002: TokenUsage name transition
 
-Estado: implementado el 2026-08-04
+Status: implemented on 2026-08-04
 
-Fecha: 2026-07-22
+Date: 2026-07-22
 
-## Decisión
+## Decision
 
-El producto formal y técnico se llama `TokenUsage`. La UI, los proyectos, los
-namespaces, los ensamblados, los ejecutables, las rutas y las pruebas usan este
-nombre. La Identity y el AUMID del paquete permanecen estables para conservar
-la ruta de actualización.
+The formal and technical product name is `TokenUsage`. The UI, projects, namespaces, assemblies, executables, paths, and tests use this name. Package Identity and AUMID stay stable so the upgrade path is preserved.
 
-## Motivo
+## Reason
 
-Un cambio de nombre a mitad de los verticales abiertos mezclaría dos identidades
-en el paquete y en la evidencia. También haría más difícil comprobar upgrades,
-datos locales, alias de CLI y desinstalación.
+A name change in the middle of open verticals would mix two identities in the package and in evidence. It would also make upgrades, local data, CLI aliases, and uninstall harder to verify.
 
-## Corte técnico
+## Technical cutover
 
-El corte del 2026-08-04 cambió estos elementos como una sola unidad:
+The 2026-08-04 cutover changed these items as one unit:
 
-- solución, proyectos, carpetas, namespaces y ensamblados;
-- ejecutables de la app y la CLI;
-- alias `tokenusage.exe` y contratos JSON `tokenusage.*.v1`;
-- rutas del tracker local, scripts, pruebas y documentación.
+- solution, projects, folders, namespaces, and assemblies
+- app and CLI executables
+- the `tokenusage.exe` alias and JSON contracts `tokenusage.*.v1`
+- local tracker paths, scripts, tests, and documentation
 
-El corte mantiene la Identity, el AUMID y el Publisher actuales. La instalación,
-la actualización empaquetada, el dominio, el logo y el canal beta requieren sus
-pruebas o decisiones propias. El Ticket 02 conserva esos puntos pendientes.
+The cutover keeps the current Identity, AUMID, and Publisher. Installation, packaged update, domain, logo, and the beta channel still need their own tests or decisions. Ticket 02 keeps those items open.

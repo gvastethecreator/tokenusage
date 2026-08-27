@@ -1,116 +1,116 @@
 # Devin source gate
 
-Fecha de corte: 2026-07-21
+Cutoff date: 2026-07-21
 
-Decisión: `implement-experimental-subset`
+Decision: `implement-experimental-subset`
 
-## Respuesta
+## Answer
 
-Devin publica una API v3 para consumo. TokenUsage puede mostrar ACUs diarios y totales de una organización mediante un service user creado para esa organización. La app pide el ID de organización y una key `cog_` de forma manual, y guarda la key en Windows Credential Locker.
+Devin publishes a v3 API for consumption. TokenUsage can show daily and total ACUs for an organization through a service user created for that organization. The app asks for the organization ID and a `cog_` key by hand, and stores the key in Windows Credential Locker.
 
-El primer subset usa solo `GET /v3/organizations/{org_id}/consumption/daily` en `https://api.devin.ai`. No muestra cuota diaria, semanal, saldo de on-demand o dólares. Esos datos de self-serve solo aparecen en el dashboard; el adaptador upstream los obtiene de un RPC privado.
+The first subset uses only `GET /v3/organizations/{org_id}/consumption/daily` on `https://api.devin.ai`. It does not show daily quota, weekly quota, on-demand balance, or dollars. Those self-serve data appear only in the dashboard; the upstream adapter obtains them from a private RPC.
 
-## Fuentes primarias
+## Primary sources
 
-Consultadas el 2026-07-21:
+Consulted on 2026-07-21:
 
-| Fuente | Hecho que respalda |
+| Source | Supporting fact |
 |---|---|
-| [API Overview](https://docs.devin.ai/api-reference/overview) | La API v3 separa scopes de organización y Enterprise y usa service users. |
-| [Authentication](https://docs.devin.ai/api-reference/authentication) | Las integraciones usan keys `cog_`, Bearer, RBAC y auditoría. Los PAT personales siguen en beta cerrada. |
-| [Organization daily consumption](https://docs.devin.ai/api-reference/v3/consumption/organizations-consumption-daily) | El endpoint público devuelve `total_acus` y desglose diario y por producto; requiere `ManageBilling` en la organización. |
-| [Permissions and RBAC](https://docs.devin.ai/api-reference/v3/overview) | Los service users de organización quedan limitados a una organización; los de Enterprise heredan acceso entre organizaciones. |
-| [Usage](https://docs.devin.ai/admin/billing/usage) | Self-serve muestra uso, cuota restante y saldo en Settings; Enterprise usa ACUs. |
-| [Session Insights endpoint](https://docs.devin.ai/api-reference/v3/sessions/organizations-sessions-insights) | El endpoint read-only incluye ACUs por sesión, pero también prompts sugeridos, análisis y otros datos que TokenUsage no necesita. |
-| [API release notes](https://docs.devin.ai/api-reference/release-notes) | Consumo de organización llegó a v3 y los límites de ACU se exponen en endpoints Enterprise con `ManageBilling`. |
+| [API Overview](https://docs.devin.ai/api-reference/overview) | The v3 API separates organization and Enterprise scopes and uses service users. |
+| [Authentication](https://docs.devin.ai/api-reference/authentication) | Integrations use `cog_` keys, Bearer, RBAC, and audit. Personal PATs remain in closed beta. |
+| [Organization daily consumption](https://docs.devin.ai/api-reference/v3/consumption/organizations-consumption-daily) | The public endpoint returns `total_acus` and a daily and per-product breakdown; it requires `ManageBilling` on the organization. |
+| [Permissions and RBAC](https://docs.devin.ai/api-reference/v3/overview) | Organization service users are limited to one organization; Enterprise service users inherit access across organizations. |
+| [Usage](https://docs.devin.ai/admin/billing/usage) | Self-serve shows usage, remaining quota, and balance in Settings; Enterprise uses ACUs. |
+| [Session Insights endpoint](https://docs.devin.ai/api-reference/v3/sessions/organizations-sessions-insights) | The read-only endpoint includes ACUs per session, but also suggested prompts, analysis, and other data TokenUsage does not need. |
+| [API release notes](https://docs.devin.ai/api-reference/release-notes) | Organization consumption reached v3, and ACU limits are exposed on Enterprise endpoints with `ManageBilling`. |
 
-## Contrato elegido
+## Chosen contract
 
-| Campo | Valor |
+| Field | Value |
 |---|---|
 | Host | `https://api.devin.ai` |
-| Método | `GET` |
-| Ruta | `/v3/organizations/{org_id}/consumption/daily` |
-| Auth | `Authorization: Bearer` con service user key de organización |
-| Permiso | `ManageBilling` en scope de organización |
-| Query | `time_after` y `time_before` como timestamps Unix |
-| Respuesta | `total_acus`, `consumption_by_date[].date`, `acus` y `acus_by_product` |
-| Día contable | medianoche PST, `08:00:00 UTC`, según la referencia |
+| Method | `GET` |
+| Path | `/v3/organizations/{org_id}/consumption/daily` |
+| Auth | `Authorization: Bearer` with an organization service user key |
+| Permission | `ManageBilling` at organization scope |
+| Query | `time_after` and `time_before` as Unix timestamps |
+| Response | `total_acus`, `consumption_by_date[].date`, `acus`, and `acus_by_product` |
+| Accounting day | midnight PST, `08:00:00 UTC`, per the reference |
 
-La tarjeta dirá `Consumo de organización` y mostrará ACUs en un período explícito, primero `Últimos 30 días`. El API no entrega precio por ACU o gasto en dólares; cada contrato Enterprise puede tener condiciones propias.
+The card will say `Organization consumption` and show ACUs in an explicit period, first `Last 30 days`. The API does not return a price per ACU or spend in dollars; each Enterprise contract can have its own terms.
 
-El permiso se llama `ManageBilling`. Aunque el endpoint es `GET`, el mismo nombre de permiso cubre más billing que una lectura específica. Para reducir riesgo:
+The permission is named `ManageBilling`. Although the endpoint is `GET`, the same permission name covers more billing than a specific read. To reduce risk:
 
-- la key debe pertenecer a un service user con scope de una sola organización;
-- la configuración solo admite un ID y el endpoint de organización; una key Enterprise queda fuera del contrato;
-- el host queda fijo;
-- el feature flag nace apagado;
-- el smoke debe confirmar el rol mínimo antes de activar una build pública.
+- the key must belong to a service user with scope of a single organization;
+- configuration admits only one ID and the organization endpoint; an Enterprise key stays outside the contract;
+- the host is pinned;
+- the feature flag starts off;
+- smoke must confirm the minimum role before a public build is turned on.
 
-Si Devin no permite crear ese rol acotado en una cuenta real, el provider sigue bloqueado.
+If Devin does not allow creating that bounded role on a real account, the provider stays blocked.
 
-## Fuentes rechazadas
+## Rejected sources
 
 ### OpenUsage
 
-El adaptador upstream:
+The upstream adapter:
 
-- lee `windsurf_api_key` y `api_server_url` de `~/.local/share/devin/credentials.toml`;
-- lee `apiKey` del estado SQLite de la app;
-- llama `GetUserStatus` en `exa.seat_management_pb.SeatManagementService`;
-- envía la key dentro de metadata y simula cliente Devin `1.108.2`;
-- convierte porcentajes restantes en usados y micros en dólares;
-- puede presentar una cuota diaria oculta como semanal.
+- reads `windsurf_api_key` and `api_server_url` from `~/.local/share/devin/credentials.toml`;
+- reads `apiKey` from the app's SQLite state;
+- calls `GetUserStatus` on `exa.seat_management_pb.SeatManagementService`;
+- sends the key inside metadata and simulates Devin client `1.108.2`;
+- converts remaining percentages into used and micros into dollars;
+- can present a hidden daily quota as weekly.
 
-No se copiará ese diseño. Además, aceptar cualquier host HTTPS desde una configuración ajena permitiría enviar la key a un servidor elegido por quien modifique el archivo. TokenUsage no lee ese archivo ni acepta el override.
+That design will not be copied. Also, accepting any HTTPS host from someone else's configuration would let the key be sent to a server chosen by whoever edits the file. TokenUsage does not read that file and does not accept the override.
 
 ### Session Insights
 
-`GET /v3/organizations/{org_id}/sessions/insights` tiene permiso read-only y devuelve `acus_consumed`, pero su respuesta también incluye análisis, prompts sugeridos, identificadores, títulos y URLs. El producto no necesita ese material y no lo solicitará para sumar ACUs.
+`GET /v3/organizations/{org_id}/sessions/insights` has a read-only permission and returns `acus_consumed`, but its response also includes analysis, suggested prompts, identifiers, titles, and URLs. The product does not need that material and will not request it to sum ACUs.
 
-### Enterprise y self-serve
+### Enterprise and self-serve
 
-- Los endpoints Enterprise de consumo y ACU limits requieren un service user Enterprise con `ManageBilling`. Quedan fuera del primer subset por alcance y capacidad de gestión.
-- Self-serve muestra cuota restante y saldo en el dashboard. La API pública no documenta una lectura equivalente para una app local. Los PAT personales siguen en beta cerrada.
-- Dedicated deployments usan un dominio propio. El primer subset no acepta hosts personalizados.
+- Enterprise consumption and ACU-limit endpoints require an Enterprise service user with `ManageBilling`. They stay out of the first subset because of scope and management capacity.
+- Self-serve shows remaining quota and balance in the dashboard. The public API does not document an equivalent read for a local app. Personal PATs remain in closed beta.
+- Dedicated deployments use their own domain. The first subset does not accept custom hosts.
 
-## Sonda Windows
+## Windows probe
 
-La sonda se limitó a comandos, rutas, procesos y registro. No abrió archivos ni hizo red:
+The probe was limited to commands, paths, processes, and the registry. It did not open files or use the network:
 
-| Prueba en este equipo | Resultado |
+| Test on this machine | Result |
 |---|---|
-| comando `devin` | ausente |
-| cinco rutas candidatas de CLI, credencial y app | 0 existentes |
-| proceso Devin | 0 |
-| entradas Devin o Cognition en uninstall registry | 0 |
+| `devin` command | absent |
+| five candidate paths for CLI, credential, and app | 0 exist |
+| Devin process | 0 |
+| Devin or Cognition uninstall registry entries | 0 |
 
-La implementación no depende de una instalación local. La ausencia de CLI o app debe mostrar `No configurado` hasta que el usuario agregue una conexión de organización.
+The implementation does not depend on a local install. Absence of CLI or app must show `Not configured` until the user adds an organization connection.
 
-## Seguridad y errores
+## Security and errors
 
-- La key vive en Credential Locker y no entra en logs, caché, diagnóstico o CLI.
-- El ID de organización se valida con el formato documentado `org-...` y se codifica como un segmento.
-- Los timestamps se normalizan al período pedido y sus límites se cubren con fixtures locales.
-- El parser solo conserva fecha y ACUs; descarta campos nuevos.
-- `401` pasa a `AuthRequired`; `403` a `InsufficientPermission`; `404` a `UnsupportedScope`; `429` conserva último valor válido como vencido.
-- Quitar la conexión borra key y caché.
+- The key lives in Credential Locker and does not enter logs, cache, diagnostics, or CLI.
+- The organization ID is validated against the documented `org-...` format and encoded as a segment.
+- Timestamps are normalized to the requested period, and their limits are covered with local fixtures.
+- The parser keeps only date and ACUs; it discards new fields.
+- `401` maps to `AuthRequired`; `403` to `InsufficientPermission`; `404` to `UnsupportedScope`; `429` keeps the last valid value as stale.
+- Removing the connection deletes the key and cache.
 
-## Review de Grok Build
+## Grok Build review
 
-Grok Build hizo forense local sin web y terminó con `EndTurn`. El recibo está en `.scratch/agent-cli-delegation/grok-build/runs/2026-07-22T00-46-45-418Z-plan-bdbb16b5/result.json`: siete turnos y USD 0.2188196 reportados.
+Grok Build did local forensics without the web and ended with `EndTurn`. The receipt is in `.scratch/agent-cli-delegation/grok-build/runs/2026-07-22T00-46-45-418Z-plan-bdbb16b5/result.json`: seven turns and USD 0.2188196 reported.
 
-Grok clasificó el RPC, la cadena de credenciales y el override de host como inseguros, y propuso `block`. El parent review encontró la API v3 de consumo de organización. Ese contrato cambia el resultado a un subset experimental y elimina la instalación local de la arquitectura.
+Grok classified the RPC, credential chain, and host override as unsafe, and proposed `block`. The parent review found the v3 organization consumption API. That contract changes the result to an experimental subset and removes the local install from the architecture.
 
-## Evidencia pendiente
+## Pending evidence
 
-No hubo cuenta, organización, service user, key ni llamada autenticada. No se probaron rol, límites de fecha, `200`, revocación o rate limits reales. El provider queda apagado hasta un smoke HITL con una key temporal de organización y borrado posterior.
+There was no account, organization, service user, key, or authenticated call. Role, date limits, `200`, revocation, and real rate limits were not tested. The provider stays off until an HITL smoke with a temporary organization key and later deletion.
 
-## Decisión de producto
+## Product decision
 
-- Implementar ACUs de organización durante un período explícito mediante API v3.
-- Admitir solo service user de organización y `api.devin.ai` en la primera versión.
-- Mantener cuota self-serve, saldo, dólares, Enterprise agregado y hosts dedicados como `Unsupported`.
-- Rechazar CLI, app DB, credenciales prestadas, RPC privado, identidad simulada y Session Insights.
-- No afirmar cuota restante o gasto monetario.
-- Reabrir otros scopes cuando exista un permiso de billing de solo lectura y una cuenta autorizada los pruebe.
+- Implement organization ACUs over an explicit period through the v3 API.
+- Admit only an organization service user and `api.devin.ai` in the first version.
+- Keep self-serve quota, balance, dollars, aggregated Enterprise, and dedicated hosts as `Unsupported`.
+- Reject CLI, app DB, borrowed credentials, private RPC, simulated identity, and Session Insights.
+- Do not claim remaining quota or monetary spend.
+- Reopen other scopes when a read-only billing permission exists and an authorized account tests it.

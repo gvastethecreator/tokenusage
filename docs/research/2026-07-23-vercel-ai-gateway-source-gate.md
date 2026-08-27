@@ -1,142 +1,143 @@
-# Vercel AI Gateway: gate de fuente para Windows
+# Vercel AI Gateway source gate for Windows
 
-Fecha: 2026-07-23
-Estado: aprobado con límites
+Date: 2026-07-23
+Status: approved with limits
 Ticket: 73
 
-La página primaria de API Key Budgets se volvió a comprobar el 2026-07-23. Su
-frontmatter indicaba `last_updated: 2026-06-20`; el endpoint, los campos, los
-períodos y la respuesta sin presupuesto seguían iguales.
+The primary API Key Budgets page was checked again on 2026-07-23. Its
+frontmatter showed `last_updated: 2026-06-20`. The endpoint, fields, periods,
+and no-budget response were unchanged.
 
-## Decisión
+## Decision
 
-TokenUsage puede integrar Vercel AI Gateway como proveedor manual y experimental.
-La fuente aprobada cubre gasto y tokens que pasaron por AI Gateway. También puede
-mostrar la cuota restante de una clave con presupuesto cuando el usuario entrega
-el ID público de esa clave.
+TokenUsage can integrate Vercel AI Gateway as a manual, experimental provider.
+The approved source covers cost and tokens that passed through AI Gateway. It
+can also show remaining quota for a key that has a budget, when the user
+supplies the public ID of that key.
 
-La integración no representa todo el uso de un agente ni la factura directa de
-un proveedor de modelos. Tampoco debe prometer acceso de solo lectura: Vercel no
-documenta una clave exclusiva para reportes.
+The integration does not represent all agent usage or the direct invoice of a
+model provider. It must not promise read-only access. Vercel does not document
+a report-only key.
 
-## Contrato aprobado
+## Approved contract
 
-### Gasto agregado
+### Aggregated spend
 
-- Endpoint fijo: `GET https://ai-gateway.vercel.sh/v1/report`.
-- Autenticación: `Authorization: Bearer <AI_GATEWAY_API_KEY>`.
-- Parámetros requeridos: `start_date` y `end_date`, fechas UTC inclusivas.
-- Planes: Pro y Enterprise. Hobby y Pro Trial quedan fuera.
-- Estado: beta.
-- Precio del endpoint: USD 5 por cada 1.000 consultas.
-- Alcance: toda la cuenta asociada a la clave.
-- Retraso: las solicitudes pueden tardar unos minutos en aparecer.
+- Fixed endpoint: `GET https://ai-gateway.vercel.sh/v1/report`.
+- Authentication: `Authorization: Bearer <AI_GATEWAY_API_KEY>`.
+- Required parameters: `start_date` and `end_date`, inclusive UTC dates.
+- Plans: Pro and Enterprise. Hobby and Pro Trial are out of scope.
+- Status: beta.
+- Endpoint price: USD 5 per 1,000 queries.
+- Scope: the whole account tied to the key.
+- Delay: requests can take a few minutes to appear.
 
-El endpoint devuelve `results`. Cada fila incluye una sola dimensión, elegida
-con `group_by`, más las métricas agregadas. No existe paginación documentada.
-Vercel tampoco fija en esta página un rango máximo, un máximo de filas o una
-tasa límite. TokenUsage debe limitar cada consulta a 31 días, usar agregación
-diaria y aplicar caché local para controlar costo y tamaño.
+The endpoint returns `results`. Each row includes one dimension, chosen with
+`group_by`, plus the aggregated metrics. No pagination is documented. Vercel
+also does not fix a maximum range, a maximum row count, or a rate limit on this
+page. TokenUsage must limit each query to 31 days, use daily aggregation, and
+use a local cache to control cost and size.
 
-Una consulta no puede devolver día y modelo como dimensiones a la vez. El MVP
-hará una consulta con `group_by=day&date_part=day`. Un desglose por modelo
-requiere otra consulta cobrada y queda fuera del primer corte.
+One query cannot return day and model as dimensions at the same time. The MVP
+will run one query with `group_by=day&date_part=day`. A model breakdown needs
+another billed query. It stays out of the first cut.
 
-Métricas que podemos mostrar:
+Metrics that TokenUsage can show:
 
-- `total_cost`: importe cobrado por Vercel AI Gateway, en USD; vale cero para
-  BYOK;
-- `market_cost`: valor de mercado estimado por el gateway para tráfico BYOK y
-  no BYOK; no equivale a una factura externa;
-- `gateway_cost` y `surcharge_cost`: partes del costo del gateway;
-- tokens de entrada, salida, caché, creación de caché y razonamiento;
-- cantidad de solicitudes.
+- `total_cost`: amount charged by Vercel AI Gateway, in USD. It is zero for
+  BYOK.
+- `market_cost`: market value estimated by the gateway for BYOK and non-BYOK
+  traffic. It is not an external invoice.
+- `gateway_cost` and `surcharge_cost`: parts of the gateway cost.
+- input, output, cache, cache-creation, and reasoning tokens.
+- request count.
 
-### Cuota de una clave
+### Key quota
 
-Vercel permite un presupuesto opcional por clave. El mínimo documentado es USD
-1 y los períodos son diario, semanal, mensual o sin reinicio. El límite es
-blando: la solicitud que lo cruza termina y puede dejar un gasto algo mayor.
+Vercel allows an optional budget per key. The documented minimum is USD 1.
+Periods are daily, weekly, monthly, or no reset. The limit is soft. The
+request that crosses it still finishes. Spend can go a little over the limit.
 
-TokenUsage puede consultar:
+TokenUsage can query:
 
 `GET https://ai-gateway.vercel.sh/v1/quotas?quotaEntityId=api_key_id_<key-id>`
 
-La llamada usa la misma clave manual. Una clave con presupuesto devuelve límite,
-gasto actual, período y estado. Una clave sin presupuesto devuelve `404` con
-`Quota not found`. El restante se calcula como `max(0, limitAmount-currentSpend)`.
-El ID de clave no se puede deducir de forma documentada desde el secreto, por lo
-que el usuario debe copiar también ese ID desde Vercel.
+The call uses the same manual key. A key with a budget returns limit, current
+spend, period, and status. A key without a budget returns `404` with
+`Quota not found`. Remaining is `max(0, limitAmount-currentSpend)`. The key ID
+cannot be derived from the secret through a documented method, so the user
+must also copy that ID from Vercel.
 
-## Seguridad y permisos
+## Security and permissions
 
-Una clave de AI Gateway sirve para inferencia y para reportes. Vercel no publica
-un scope de solo lectura. La API de reportes también declara alcance de cuenta.
-Esto impide presentar la conexión como una credencial de bajo privilegio.
+An AI Gateway key works for inference and for reports. Vercel does not publish
+a read-only scope. The reporting API also declares account scope. This blocks
+presenting the connection as a low-privilege credential.
 
-La integración debe cumplir estas reglas:
+The integration must follow these rules:
 
-1. pedir una clave nueva creada para TokenUsage;
-2. recomendar vencimiento y presupuesto de USD 1;
-3. aceptar la clave solo por una acción manual del usuario;
-4. guardarla en Windows Credential Locker;
-5. no leer variables de entorno, archivos o claves de otros agentes;
-6. fijar ambos hosts y rechazar redirecciones a otro origen;
-7. borrar credencial y caché de cuenta al desconectar;
-8. mostrar antes de guardar que la clave puede ejecutar modelos y que el reporte
-   cubre toda la cuenta;
-9. mantener el proveedor como experimental hasta un smoke autorizado.
+1. Require a new key created for TokenUsage.
+2. Recommend expiration and a USD 1 budget.
+3. Accept the key only through a manual user action.
+4. Store it in Windows Credential Locker.
+5. Do not read environment variables, files, or keys from other agents.
+6. Pin both hosts and reject redirects to another origin.
+7. Delete the credential and the account cache on disconnect.
+8. Before save, show that the key can run models and that the report covers
+   the whole account.
+9. Keep the provider experimental until an authorized smoke test.
 
-Vercel permite crear claves con `projectId`, fecha de vencimiento y presupuesto.
-El documento del reporte sigue indicando alcance de cuenta, por lo que
-TokenUsage no afirmará que `projectId` reduzca los datos del reporte.
+Vercel allows keys with `projectId`, an expiration date, and a budget. The
+report document still states account scope, so TokenUsage must not claim that
+`projectId` reduces report data.
 
-## Estados y errores
+## States and errors
 
-El cliente debe tipar al menos estos estados. Solo el `401` quedó observado en
-este gate. Los demás son manejo defensivo hasta un smoke autorizado:
+The client must type at least these states. Only `401` was observed in this
+gate. The others are defensive handling until an authorized smoke test:
 
-- `401`: clave ausente, inválida o revocada;
-- `403`: posible plan o permiso no admitido, sin contrato de error confirmado;
-- `404` en cuotas: el contrato confirma `Quota not found` para una clave sin
-  presupuesto; un ID incorrecto puede ser indistinguible hasta el smoke;
-- `429`: respuesta HTTP defensiva; Vercel no publica una tasa límite en la
-  página del reporte;
-- error de red o tiempo agotado;
-- JSON inválido o contrato desconocido;
-- reporte vacío válido;
-- datos guardados con aviso de retraso.
+- `401`: missing, invalid, or revoked key.
+- `403`: possible unsupported plan or permission, with no confirmed error
+  contract.
+- `404` on quotas: the contract confirms `Quota not found` for a key without a
+  budget. A wrong ID can be indistinguishable until smoke.
+- `429`: defensive HTTP handling. Vercel does not publish a rate limit on the
+  report page.
+- network error or timeout.
+- invalid JSON or unknown contract.
+- valid empty report.
+- stored data with a delay warning.
 
-Una llamada sin `Authorization` devuelve `401` y
-`authentication_error`. Esta comprobación se hizo sin credenciales el
-2026-07-23 contra ambos endpoints.
+A call without `Authorization` returns `401` and
+`authentication_error`. This check ran without credentials on
+2026-07-23 against both endpoints.
 
-Los nombres y el sentido de las métricas, los campos de cuota, el presupuesto
-mínimo, los períodos y el límite blando provienen de la documentación primaria
-citada. Los fixtures deben fijar su forma para el cliente. El smoke real debe
-confirmar esa forma antes de quitar la marca experimental.
+Metric names and meaning, quota fields, the minimum budget, periods, and the
+soft limit come from the cited primary documentation. Fixtures must pin that
+shape for the client. Real smoke must confirm that shape before the
+experimental mark is removed.
 
-## Separación de claims
+## Claim separation
 
-| Dato | Claim permitido |
+| Data | Allowed claim |
 | --- | --- |
-| `total_cost` | Gasto cobrado por Vercel AI Gateway en el período |
-| `market_cost` | Valor de mercado informado por el gateway |
-| tokens del reporte | Tokens procesados por AI Gateway |
-| cuota de clave | Presupuesto restante de esa clave de AI Gateway |
-| actividad del agente | No se deduce del reporte |
-| factura BYOK externa | No se deduce del reporte |
-| cuota de Cursor, Codex u otro agente | No se deduce del reporte |
+| `total_cost` | Spend charged by Vercel AI Gateway in the period |
+| `market_cost` | Market value reported by the gateway |
+| report tokens | Tokens processed by AI Gateway |
+| key quota | Remaining budget of that AI Gateway key |
+| agent activity | Not inferred from the report |
+| external BYOK invoice | Not inferred from the report |
+| Cursor, Codex, or other agent quota | Not inferred from the report |
 
-## Comparación local
+## Local comparison
 
-CodeBurn implementa `GET /v1/report` con una clave manual, pero combina
-`group_by=model` con `date_part=day`. Según el contrato actual, `date_part` solo
-se aplica cuando `group_by=day`; por eso TokenUsage no copiará esa consulta.
-Además, CodeBurn lee variables de entorno. TokenUsage pedirá una clave propia y
-usará Credential Locker.
+CodeBurn implements `GET /v1/report` with a manual key, but it combines
+`group_by=model` with `date_part=day`. Under the current contract, `date_part`
+applies only when `group_by=day`. TokenUsage must not copy that query.
+CodeBurn also reads environment variables. TokenUsage will ask for its own key
+and use Credential Locker.
 
-## Fuentes primarias
+## Primary sources
 
 - [Custom Reporting](https://vercel.com/docs/ai-gateway/observability-and-spend/custom-reporting)
 - [API Keys](https://vercel.com/docs/ai-gateway/authentication-and-byok/api-keys)
@@ -146,13 +147,14 @@ usará Credential Locker.
 - [Coding agents](https://vercel.com/docs/ai-gateway/coding-agents)
 - [Custom Reporting changelog](https://vercel.com/changelog/custom-reporting-ai-gateway)
 
-## Gate de implementación
+## Implementation gate
 
-Ticket 74 puede empezar con cliente, mapeo, fixtures y UI experimental. El smoke
-real sigue bloqueado hasta que el usuario autorice una clave de prueba con
-presupuesto. Ninguna prueba automática debe buscar o usar credenciales locales.
+Ticket 74 can start with the client, mapping, fixtures, and experimental UI.
+Real smoke stays blocked until the user authorizes a test key with a budget.
+No automatic test must search for or use local credentials.
 
-La revisión adversaria de Grok aceptó el gate con revisión humana. Su objeción
-principal fue separar hechos documentados, respuestas observadas y manejo
-defensivo. El padre incorporó esa separación. La objeción sobre campos de costo
-y cuota no bloquea el contrato: esos campos sí constan en las fuentes primarias.
+The adversarial Grok review accepted the gate with human review. Its main
+objection was to separate documented facts, observed responses, and defensive
+handling. The parent incorporated that separation. The objection about cost
+and quota fields does not block the contract. Those fields appear in the
+primary sources.

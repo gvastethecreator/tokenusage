@@ -1,131 +1,133 @@
-# Gate de fuente Kimi Code
+# Kimi Code source gate
 
-Fecha de corte: 2026-07-22
+Cutoff date: 2026-07-22
 
-Decisión: `block`
+Decision: `block`
 
-## Pregunta
+## Question
 
-¿Puede TokenUsage integrar Kimi Code en Windows para mostrar cuota, tokens o
-gasto sin reutilizar login, credenciales, contenido de sesión o automatización
-de la interfaz?
+Can TokenUsage integrate Kimi Code on Windows to show quota, tokens, or
+spend without reusing login, credentials, session content, or interface
+automation?
 
-## Respuesta
+## Answer
 
-Todavía no. Kimi Code ofrece el CLI `kimi` y una extensión de VS Code. El
-comando interactivo `/usage` muestra tokens, contexto y cuota, y la consola
-web muestra cuota y Extra Usage. Las fuentes revisadas no definen una salida de
-máquina, exportación de métricas ni API de solo lectura para esos datos.
+Not yet. Kimi Code offers the `kimi` CLI and a VS Code extension. The
+interactive `/usage` command shows tokens, context, and quota, and the web
+console shows quota and Extra Usage. The reviewed sources do not define a
+machine output, metric export, or read-only API for those data.
 
-Los archivos locales contienen credenciales, historial y comunicación completa
-del agente. La suscripción se limita al uso interactivo y sus términos prohíben
-automatización que simule uso humano sin autorización escrita. TokenUsage no
-puede invocar la TUI, usar `kimi web`, copiar su token ni leer `.kimi-code`.
+Local files contain credentials, history, and the agent's full
+communication. The subscription is limited to interactive use, and its
+terms forbid automation that simulates human use without written
+authorization. TokenUsage cannot invoke the TUI, use `kimi web`, copy its
+token, or read `.kimi-code`.
 
-## Identidad y soporte
+## Identity and support
 
-- ID propuesto para un futuro descriptor: `kimi-code`.
-- Nombre visible: `Kimi Code`.
-- Publisher y responsable del servicio: `Moonshot AI PTE. LTD.`.
-- Cliente principal: Kimi Code CLI, ejecutable `kimi`, distribuido como binario
-  y paquete `@moonshot-ai/kimi-code`.
-- Versión observada: `0.29.0`, publicada el 2026-07-22.
-- Windows: el instalador oficial soporta PowerShell; requiere Git for Windows
-  para su entorno Git Bash. La CLI TypeScript es el cliente actual; la variante
-  Python queda como heredada.
-- Editor: existe una extensión de VS Code, aunque nuevas instalaciones se
-  limitan a usuarios de la CLI Python heredada.
+- Proposed ID for a future descriptor: `kimi-code`.
+- Visible name: `Kimi Code`.
+- Publisher and service owner: `Moonshot AI PTE. LTD.`.
+- Main client: Kimi Code CLI, executable `kimi`, distributed as a binary
+  and package `@moonshot-ai/kimi-code`.
+- Observed version: `0.29.0`, published on 2026-07-22.
+- Windows: the official installer supports PowerShell; it requires Git for
+  Windows for its Git Bash environment. The TypeScript CLI is the current
+  client; the Python variant remains legacy.
+- Editor: a VS Code extension exists, although new installs are limited to
+  users of the legacy Python CLI.
 
-## Fuentes primarias
+## Primary sources
 
-Consultadas el 2026-07-22:
+Consulted on 2026-07-22:
 
-| Fuente | Hecho que respalda |
+| Source | Supporting fact |
 |---|---|
-| [Overview de Kimi Code](https://www.kimi.com/code/docs/en/) | Define Kimi Code, sus productos CLI/VS Code y la separación de Kimi Platform. |
-| [Kimi Code CLI en GitHub](https://github.com/MoonshotAI/kimi-code) | Repositorio oficial, distribución, soporte PowerShell y release `0.29.0`. |
-| [Changelog del CLI](https://www.kimi.com/code/docs/en/kimi-code-cli/release-notes/changelog.html) | Publica `0.29.0` el 2026-07-22. |
-| [Data locations](https://www.kimi.com/code/docs/en/kimi-code-cli/configuration/data-locations.html) | Fija la raíz Windows y el contenido de credenciales, sesiones, logs e historial. |
-| [Sessions and context](https://www.kimi.com/code/docs/en/kimi-code-cli/guides/sessions.html) | Describe `wire.jsonl`, `state.json`, exportaciones y su contenido sensible. |
-| [`kimi` command](https://www.kimi.com/code/docs/en/kimi-code-cli/reference/kimi-command.html) | Documenta CLI, exportaciones y `kimi web` local con bearer token. |
-| [Slash commands](https://www.kimi.com/code/docs/en/kimi-code-cli/reference/slash-commands.html) | Define `/usage` como comando de la TUI; no como subcomando con JSON. |
-| [Membership Benefits](https://www.kimi.com/code/docs/en/kimi-code/membership.html) | Explica cuota semanal, ventana de 5 horas, Extra Usage, saldo y consola. |
-| [Community Guidelines](https://www.kimi.com/code/docs/en/kimi-code/community-guidelines.html) | Limita la suscripción al uso interactivo y prohíbe automatización no interactiva. |
-| [Términos](https://www.kimi.com/user/agreement/modelUse?version=v2) | Identifica Moonshot AI PTE. LTD. y prohíbe automatización que simule uso humano sin autorización escrita. |
-| [Kimi API: balance and usage](https://www.kimi.com/help/kimi-api/api-balance-and-usage) | Documenta balance y costes de Kimi Platform, producto separado de Kimi Code. |
+| [Kimi Code overview](https://www.kimi.com/code/docs/en/) | Defines Kimi Code, its CLI/VS Code products, and the separation from Kimi Platform. |
+| [Kimi Code CLI on GitHub](https://github.com/MoonshotAI/kimi-code) | Official repository, distribution, PowerShell support, and release `0.29.0`. |
+| [CLI changelog](https://www.kimi.com/code/docs/en/kimi-code-cli/release-notes/changelog.html) | Publishes `0.29.0` on 2026-07-22. |
+| [Data locations](https://www.kimi.com/code/docs/en/kimi-code-cli/configuration/data-locations.html) | Pins the Windows root and the contents of credentials, sessions, logs, and history. |
+| [Sessions and context](https://www.kimi.com/code/docs/en/kimi-code-cli/guides/sessions.html) | Describes `wire.jsonl`, `state.json`, exports, and their sensitive content. |
+| [`kimi` command](https://www.kimi.com/code/docs/en/kimi-code-cli/reference/kimi-command.html) | Documents CLI, exports, and local `kimi web` with a bearer token. |
+| [Slash commands](https://www.kimi.com/code/docs/en/kimi-code-cli/reference/slash-commands.html) | Defines `/usage` as a TUI command, not as a JSON subcommand. |
+| [Membership Benefits](https://www.kimi.com/code/docs/en/kimi-code/membership.html) | Explains weekly quota, 5-hour window, Extra Usage, balance, and console. |
+| [Community Guidelines](https://www.kimi.com/code/docs/en/kimi-code/community-guidelines.html) | Limits the subscription to interactive use and forbids non-interactive automation. |
+| [Terms](https://www.kimi.com/user/agreement/modelUse?version=v2) | Identifies Moonshot AI PTE. LTD. and forbids automation that simulates human use without written authorization. |
+| [Kimi API: balance and usage](https://www.kimi.com/help/kimi-api/api-balance-and-usage) | Documents Kimi Platform balance and costs, a product separate from Kimi Code. |
 
-## Prueba Windows aislada
+## Isolated Windows test
 
-La máquina no tenía `kimi` ni `%USERPROFILE%\.kimi-code`. Se instaló
-`@moonshot-ai/kimi-code@0.29.0` dentro de
-`.snapshots/kimi-code-t50-smoke` con `npm --prefix ... install --ignore-scripts
---no-save`; no se usó el instalador global, OAuth, API key ni datos locales.
+The machine had neither `kimi` nor `%USERPROFILE%\.kimi-code`.
+`@moonshot-ai/kimi-code@0.29.0` was installed inside
+`.snapshots/kimi-code-t50-smoke` with `npm --prefix ... install --ignore-scripts
+--no-save`; the global installer, OAuth, API key, and local data were not
+used.
 
-`kimi --version` devolvió `0.29.0`. `kimi --help` confirmó los subcomandos
+`kimi --version` returned `0.29.0`. `kimi --help` confirmed the
 `export`, `provider`, `acp`, `web`, `server`, `login`, `doctor`, `vis`,
-`migrate` y `upgrade`; no publica un subcomando de uso/cuota. La prueba no creó
-`%USERPROFILE%\.kimi-code`.
+`migrate`, and `upgrade` subcommands; it does not publish a usage/quota
+subcommand. The test did not create `%USERPROFILE%\.kimi-code`.
 
-## Clasificación de fuentes
+## Source classification
 
-| Dato | Fuente observada | Estado para TokenUsage | Decisión |
+| Data | Observed source | TokenUsage status | Decision |
 |---|---|---|---|
-| Cuota restante | `/usage` de TUI y Kimi Code Console | Sin contrato de máquina ni permiso para automatizar | Bloqueada |
-| Tokens y contexto | `/usage` de TUI | Sin salida estructurada ni exportación de métricas | Bloqueados |
-| Gasto Extra Usage | Console y saldo visible | Sin API o exportación Kimi Code para terceros | Bloqueado |
-| Datos locales | `sessions`, `wire.jsonl`, `state.json`, logs e historial | Incluyen prompts, respuestas, rutas, comandos y trazas | Bloqueados |
-| API key Kimi Code | Endpoint de inferencia | Sin scope de solo lectura; TokenUsage no es un cliente de monitor autorizado | No se admite |
-| Kimi Platform | Balance Query API oficial | Producto, cuentas, keys, endpoint y facturación separados | Fuera de este provider |
+| Remaining quota | TUI `/usage` and Kimi Code Console | No machine contract or permission to automate | Blocked |
+| Tokens and context | TUI `/usage` | No structured output or metric export | Blocked |
+| Extra Usage spend | Console and visible balance | No Kimi Code API or export for third parties | Blocked |
+| Local data | `sessions`, `wire.jsonl`, `state.json`, logs, and history | Include prompts, responses, paths, commands, and traces | Blocked |
+| Kimi Code API key | Inference endpoint | No read-only scope; TokenUsage is not an authorized monitor client | Not allowed |
+| Kimi Platform | Official Balance Query API | Separate product, accounts, keys, endpoint, and billing | Out of this provider |
 
-Kimi Platform puede ser objeto de una investigación manual separada. No se debe
-mezclar su balance o gasto con cuota, tokens o Extra Usage de Kimi Code.
+Kimi Platform can be the subject of a separate manual investigation. Its
+balance or spend must not be mixed with Kimi Code quota, tokens, or Extra
+Usage.
 
-## Límite de privacidad y seguridad
+## Privacy and security limit
 
-TokenUsage puede detectar la presencia y versión de `kimi` con `kimi --version`.
-No debe abrir, copiar ni usar:
+TokenUsage can detect the presence and version of `kimi` with
+`kimi --version`. It must not open, copy, or use:
 
-- `%USERPROFILE%\.kimi-code`, `KIMI_CODE_HOME` ni un escaneo de sus
-  subdirectorios;
+- `%USERPROFILE%\.kimi-code`, `KIMI_CODE_HOME`, or a scan of their
+  subdirectories;
 - `config.toml`, `credentials`, `sessions`, `session_index.jsonl`,
-  `user-history`, logs, exports, tareas, planes, MCP, skills o `AGENTS.md`;
-- `state.json`, que incluye `lastPrompt`, ni `agents/*/wire.jsonl`, que guarda
-  la comunicación completa y trazas de solicitudes;
-- OAuth, API keys, bearer tokens de `kimi web`, cookies, Console, claves de
-  Kimi Platform o estado de login;
-- `kimi web`, ACP, `/usage`, la TUI o una automatización de consola;
-- endpoints privados, tráfico observado, formatos deducidos o identidad de
-  cliente modificada.
+  `user-history`, logs, exports, tasks, plans, MCP, skills, or `AGENTS.md`;
+- `state.json`, which includes `lastPrompt`, or `agents/*/wire.jsonl`,
+  which stores the full communication and request traces;
+- OAuth, API keys, `kimi web` bearer tokens, cookies, Console, Kimi
+  Platform keys, or login state;
+- `kimi web`, ACP, `/usage`, the TUI, or console automation;
+- private endpoints, observed traffic, inferred formats, or a modified
+  client identity.
 
-`kimi export` y `/export-md` también quedan fuera: la documentación advierte
-que pueden contener código, prompts, comandos, rutas y logs.
+`kimi export` and `/export-md` also stay out: the documentation warns that
+they can contain code, prompts, commands, paths, and logs.
 
-## Decisión de producto
+## Product decision
 
-- No crear lector local, cliente remoto ni tarjeta de provider Kimi Code en
-  esta fase.
-- No pedir ni guardar credenciales Kimi Code o Kimi Platform para este
+- Do not create a local reader, remote client, or Kimi Code provider card
+  in this phase.
+- Do not ask for or store Kimi Code or Kimi Platform credentials for this
   provider.
-- No automatizar `/usage`, el CLI, la web local o la Console.
-- La detección de versión puede quedar como diagnóstico futuro sin promesa de
-  cuota, tokens o gasto.
-- Un formulario genérico de valores que el usuario escriba de forma explícita
-  requeriría un ticket propio; no forma un adapter Kimi Code ni está en Ticket
-  51.
-- Mantener Ticket 51 en `needs-info`.
-- Reabrir solo con una API o exportación de solo lectura, documentada para
-  terceros, que entregue métricas mínimas sin sesiones ni credenciales y que
-  autorice consultas automáticas.
+- Do not automate `/usage`, the CLI, the local web, or the Console.
+- Version detection can remain a future diagnostic without a quota, token,
+  or spend promise.
+- A generic form of values the user types explicitly would need its own
+  ticket; it does not form a Kimi Code adapter and is not in Ticket 51.
+- Keep Ticket 51 in `needs-info`.
+- Reopen only with a read-only API or export, documented for third parties,
+  that delivers minimum metrics without sessions or credentials and that
+  authorizes automatic queries.
 
-## Revisión independiente
+## Independent review
 
-Grok Build revisó esta decisión con `Read` y `Grep` solamente y emitió
-`accept`. No usó web, shell ni escritura. La revisión local confirmó que el
-gate, la matriz y el plan coinciden. Esta revisión no sustituye las fuentes de
-la tabla anterior.
+Grok Build reviewed this decision with `Read` and `Grep` only and issued
+`accept`. It did not use web, shell, or write. The local review confirmed
+that the gate, matrix, and plan match. This review does not replace the
+sources in the table above.
 
-## Incertidumbre restante
+## Remaining uncertainty
 
-Kimi puede publicar una salida estructurada de `/usage`, una API de cuota o una
-exportación de métricas. Antes de anunciar soporte, hay que repetir el gate y
-probar la versión de Windows vigente con una cuenta de prueba autorizada.
+Kimi can publish a structured `/usage` output, a quota API, or a metric
+export. Before announcing support, repeat the gate and test the current
+Windows version with an authorized test account.

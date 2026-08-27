@@ -1,134 +1,134 @@
-# Gate de fuente Command Code
+# Command Code source gate
 
-Fecha de corte: 2026-07-22
+Cutoff date: 2026-07-22
 
-Decisión: `block`
+Decision: `block`
 
-## Pregunta
+## Question
 
-¿Puede TokenUsage integrar Command Code en Windows para mostrar cuota, tokens o
-gasto sin reutilizar login, credenciales, contenido de sesión o automatización
-de la interfaz?
+Can TokenUsage integrate Command Code on Windows to show quota, tokens, or
+spend without reusing login, credentials, session content, or interface
+automation?
 
-## Respuesta
+## Answer
 
-Todavía no. Command Code muestra los límites de crédito y la cuota en `/usage`
-dentro de la sesión interactiva. Su Studio muestra uso, tokens, coste e
-historial por solicitud tras autenticarse. Las fuentes revisadas no definen una
-API de lectura para cuota, saldo, gasto o historial de Command Code, ni una
-exportación de métricas apta para terceros.
+Not yet. Command Code shows credit limits and quota in `/usage` inside the
+interactive session. Its Studio shows usage, tokens, cost, and per-request
+history after authentication. The reviewed sources do not define a read API
+for Command Code quota, balance, spend, or history, or a metric export
+suitable for third parties.
 
-El JSON de `--output-format` corresponde a la respuesta de `cmd -p`; no cubre
-`/usage`. La Provider API ofrece inferencia y listado de modelos con la misma
-API key de la CLI. No publica un endpoint de saldo, cuota o historial, y no
-convierte esa key en una credencial de monitor de solo lectura.
+The `--output-format` JSON belongs to the `cmd -p` response; it does not
+cover `/usage`. The Provider API offers inference and model listing with the
+same CLI API key. It does not publish a balance, quota, or history endpoint,
+and it does not turn that key into a read-only monitor credential.
 
-Los archivos locales mezclan conversaciones, credenciales y preferencias. La
-build pública no puede invocar `/usage`, automatizar Studio, usar una API key ni
-leer `.commandcode` o `~/.commandcode`.
+Local files mix conversations, credentials, and preferences. The public
+build cannot invoke `/usage`, automate Studio, use an API key, or read
+`.commandcode` or `~/.commandcode`.
 
-## Identidad y soporte
+## Identity and support
 
-- ID propuesto para un futuro descriptor: `command-code`.
-- Nombre visible: `Command Code`.
-- Publisher y responsable del servicio: `Langbase, Inc. d/b/a Command Code`.
-- Cliente principal: CLI `command-code`, distribuido por npm como
-  `command-code`; en Windows nativo se invoca `cmdc` porque `cmd` es un comando
-  reservado del sistema.
-- Versión observada: `1.0.1`.
-- Windows: soporte nativo alpha en PowerShell, Windows Terminal y Git Bash;
-  WSL es la vía recomendada por el editor.
-- Editor: la documentación presenta integración de IDE, sin contrato de uso o
-  gasto independiente de Studio y de la CLI.
+- Proposed ID for a future descriptor: `command-code`.
+- Visible name: `Command Code`.
+- Publisher and service owner: `Langbase, Inc. d/b/a Command Code`.
+- Main client: CLI `command-code`, distributed by npm as
+  `command-code`; on native Windows it is invoked as `cmdc` because `cmd`
+  is a reserved system command.
+- Observed version: `1.0.1`.
+- Windows: native alpha support in PowerShell, Windows Terminal, and Git
+  Bash; WSL is the path the publisher recommends.
+- Editor: the documentation presents IDE integration, without a usage or
+  spend contract independent of Studio and the CLI.
 
-## Fuentes primarias
+## Primary sources
 
-Consultadas el 2026-07-22:
+Consulted on 2026-07-22:
 
-| Fuente | Hecho que respalda |
+| Source | Supporting fact |
 |---|---|
-| [Documentación principal](https://commandcode.ai/docs) | Identifica Command Code y su CLI oficial. |
-| [CLI Reference](https://commandcode.ai/docs/reference/cli) | Fija `cmd`, sesiones, `--output-format` para `-p`, subcomandos y comandos interactivos. |
-| [Windows Guide](https://commandcode.ai/docs/troubleshooting/windows) | Fija `cmdc` para Windows nativo, que sigue en alpha, y recomienda WSL. |
-| [Usage Limits](https://commandcode.ai/docs/resources/usage-limits) | Define `/usage`, balance y límites de 5 horas y semanales dentro del CLI. |
-| [Pricing & Limits](https://commandcode.ai/docs/resources/pricing-limits) | Sitúa el historial de solicitudes y los costes en Studio. |
-| [Studio](https://commandcode.ai/docs/studio) | Confirma los datos por solicitud y que API keys se obtienen tras login. |
-| [Provider API](https://commandcode.ai/docs/provider) | Enumera solo inferencia y modelos; la misma key autentica CLI y API. |
-| [Security & Privacy](https://commandcode.ai/docs/resources/security) | Documenta `auth.json`, conversaciones locales y `.commandcode/taste/`. |
-| [Privacy Policy](https://commandcode.ai/privacy) | Identifica Langbase, Inc. y clasifica prompts, salidas, metadatos y Taste. |
-| [Terms of Service](https://commandcode.ai/terms) | Confirma el servicio, su cuenta y las obligaciones de credenciales. |
-| [Repositorio oficial](https://github.com/CommandCodeAI/command-code) | Confirma el proyecto público, npm y el flujo de CLI. |
+| [Main documentation](https://commandcode.ai/docs) | Identifies Command Code and its official CLI. |
+| [CLI Reference](https://commandcode.ai/docs/reference/cli) | Pins `cmd`, sessions, `--output-format` for `-p`, subcommands, and interactive commands. |
+| [Windows Guide](https://commandcode.ai/docs/troubleshooting/windows) | Pins `cmdc` for native Windows, which is still alpha, and recommends WSL. |
+| [Usage Limits](https://commandcode.ai/docs/resources/usage-limits) | Defines `/usage`, balance, and 5-hour and weekly limits inside the CLI. |
+| [Pricing & Limits](https://commandcode.ai/docs/resources/pricing-limits) | Places request history and costs in Studio. |
+| [Studio](https://commandcode.ai/docs/studio) | Confirms per-request data and that API keys are obtained after login. |
+| [Provider API](https://commandcode.ai/docs/provider) | Lists only inference and models; the same key authenticates CLI and API. |
+| [Security & Privacy](https://commandcode.ai/docs/resources/security) | Documents `auth.json`, local conversations, and `.commandcode/taste/`. |
+| [Privacy Policy](https://commandcode.ai/privacy) | Identifies Langbase, Inc. and classifies prompts, outputs, metadata, and Taste. |
+| [Terms of Service](https://commandcode.ai/terms) | Confirms the service, its account, and credential obligations. |
+| [Official repository](https://github.com/CommandCodeAI/command-code) | Confirms the public project, npm, and the CLI flow. |
 
-## Prueba Windows aislada
+## Isolated Windows test
 
-La máquina no tenía `cmdc` global. Se instaló `command-code@latest` sin scripts
-de ciclo de vida dentro de `.snapshots/command-code-t52-smoke`. El paquete
-resuelto fue `1.0.1`.
+The machine had no global `cmdc`. `command-code@latest` was installed
+without lifecycle scripts inside `.snapshots/command-code-t52-smoke`. The
+resolved package was `1.0.1`.
 
-La prueba usó un perfil temporal bajo ese mismo snapshot, sin login, API key ni
-datos del usuario. `cmdc --version --no-auto-update` devolvió `1.0.1`. `cmdc
---help --no-auto-update` confirmó `cmdc`, `/usage`, `/session-file`, sesiones
-`.jsonl` y `--output-format json` solo para `-p`; no mostró un subcomando de
-cuota, uso, saldo, facturación o exportación de métricas. Incluso la ayuda creó
-un perfil `.commandcode` dentro del perfil temporal, por lo que futuras pruebas
-deben mantener el aislamiento.
+The test used a temporary profile under that same snapshot, without login,
+API key, or user data. `cmdc --version --no-auto-update` returned `1.0.1`.
+`cmdc --help --no-auto-update` confirmed `cmdc`, `/usage`, `/session-file`,
+`.jsonl` sessions, and `--output-format json` only for `-p`; it did not show
+a subcommand for quota, usage, balance, billing, or metric export. Even help
+created a `.commandcode` profile inside the temporary profile, so future
+tests must keep the isolation.
 
-## Clasificación de fuentes
+## Source classification
 
-| Dato | Fuente observada | Estado para TokenUsage | Decisión |
+| Data | Observed source | TokenUsage status | Decision |
 |---|---|---|---|
-| Cuota restante | `/usage` interactivo | Sin contrato de máquina | Bloqueada |
-| Créditos y límites | `/usage` | Solo sesión interactiva; sin JSON de métricas | Bloqueados |
-| Tokens y gasto | Studio Usage | Interfaz autenticada; sin API o exportación pública | Bloqueados |
-| Provider API | Respuestas de inferencia por petición | No expone estado ni historial de la cuenta; requiere key de uso | Fuera de este provider |
-| Datos locales | `projects`, sesiones `.jsonl`, `auth.json` y Taste | Mezclan prompts, respuestas, credenciales y reglas | Bloqueados |
+| Remaining quota | Interactive `/usage` | No machine contract | Blocked |
+| Credits and limits | `/usage` | Interactive session only; no metrics JSON | Blocked |
+| Tokens and spend | Studio Usage | Authenticated interface; no public API or export | Blocked |
+| Provider API | Per-request inference responses | Does not expose account state or history; requires a usage key | Out of this provider |
+| Local data | `projects`, `.jsonl` sessions, `auth.json`, and Taste | Mix prompts, responses, credentials, and rules | Blocked |
 
-Una integración futura del Provider API, si se autoriza, sería un producto
-distinto de Command Code: mediría solo solicitudes que TokenUsage instrumente,
-no el consumo existente del agente ni sus límites de suscripción.
+A future Provider API integration, if authorized, would be a different
+product from Command Code: it would measure only requests that TokenUsage
+instruments, not the agent's existing consumption or its subscription
+limits.
 
-## Límite de privacidad y seguridad
+## Privacy and security limit
 
-TokenUsage puede detectar la presencia y versión de `cmdc` con `cmdc --version`
-en un diagnóstico futuro. No debe abrir, copiar ni usar:
+TokenUsage can detect the presence and version of `cmdc` with
+`cmdc --version` in a future diagnostic. It must not open, copy, or use:
 
-- `~/.commandcode/projects/`, sesiones `.jsonl`, checkpoints, exports,
-  conversaciones, prompts, respuestas, adjuntos, archivos, código o comandos;
-- `~/.commandcode/auth.json`, `COMMAND_CODE_API_KEY`, cookies, OAuth, perfiles
-  de Studio, tokens de MCP ni estado de login;
-- `.commandcode/taste/`, `AGENTS.md`, skills, mods, MCP, memoria, planes o
-  reglas de proyecto;
-- `/usage`, `/session-file`, `/export`, la TUI, Studio, tráfico observado o
-  endpoints privados;
-- Provider API, porque la key no tiene un scope de monitor de solo lectura y
-  sus datos no cubren el uso existente de Command Code.
+- `~/.commandcode/projects/`, `.jsonl` sessions, checkpoints, exports,
+  conversations, prompts, responses, attachments, files, code, or commands;
+- `~/.commandcode/auth.json`, `COMMAND_CODE_API_KEY`, cookies, OAuth,
+  Studio profiles, MCP tokens, or login state;
+- `.commandcode/taste/`, `AGENTS.md`, skills, mods, MCP, memory, plans, or
+  project rules;
+- `/usage`, `/session-file`, `/export`, the TUI, Studio, observed traffic,
+  or private endpoints;
+- Provider API, because the key has no read-only monitor scope and its data
+  does not cover existing Command Code usage.
 
-## Decisión de producto
+## Product decision
 
-- No crear lector local, cliente remoto ni tarjeta de provider Command Code en
-  esta fase.
-- No pedir ni guardar credenciales Command Code o Provider API para este
+- Do not create a local reader, remote client, or Command Code provider
+  card in this phase.
+- Do not ask for or store Command Code or Provider API credentials for this
   provider.
-- No automatizar `/usage`, el CLI, Studio o la Provider API.
-- La detección de versión puede quedar como diagnóstico futuro sin promesa de
-  cuota, tokens o gasto; debe respetar el estado alpha de Windows nativo.
-- Un formulario genérico de valores escritos por el usuario requeriría un
-  ticket propio; no forma un adapter Command Code ni está en Ticket 53.
-- Mantener Ticket 53 en `needs-info`.
-- Reabrir solo con una API o exportación de solo lectura, documentada para
-  terceros, que entregue métricas mínimas sin sesiones ni credenciales y que
-  autorice consultas automáticas.
+- Do not automate `/usage`, the CLI, Studio, or the Provider API.
+- Version detection can remain a future diagnostic without a quota, token,
+  or spend promise; it must respect the alpha state of native Windows.
+- A generic form of values the user types explicitly would need its own
+  ticket; it does not form a Command Code adapter and is not in Ticket 53.
+- Keep Ticket 53 in `needs-info`.
+- Reopen only with a read-only API or export, documented for third parties,
+  that delivers minimum metrics without sessions or credentials and that
+  authorizes automatic queries.
 
-## Revisión independiente
+## Independent review
 
-Grok Build revisó esta decisión con `Read` y `Grep` solamente y emitió
-`accept`. No usó web, shell ni escritura. La revisión local confirmó que el
-gate, la matriz y el plan coinciden. Esta revisión no sustituye las fuentes de
-la tabla anterior.
+Grok Build reviewed this decision with `Read` and `Grep` only and issued
+`accept`. It did not use web, shell, or write. The local review confirmed
+that the gate, matrix, and plan match. This review does not replace the
+sources in the table above.
 
-## Incertidumbre restante
+## Remaining uncertainty
 
-Command Code puede publicar una API de cuenta, un export de métricas o un
-subcomando estructurado de `/usage`. Antes de anunciar soporte, hay que repetir
-el gate y probar la versión de Windows vigente con una cuenta de prueba
-autorizada.
+Command Code can publish an account API, a metric export, or a structured
+`/usage` subcommand. Before announcing support, repeat the gate and test
+the current Windows version with an authorized test account.

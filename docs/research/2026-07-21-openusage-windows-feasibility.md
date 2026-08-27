@@ -1,173 +1,173 @@
-# Viabilidad de una implementación Windows de OpenUsage
+# Feasibility of a Windows OpenUsage implementation
 
-Fecha: 2026-07-21
+Date: 2026-07-21
 
-Estado: investigación cerrada para iniciar el diseño
+Status: research closed; design can start
 
-Upstream fijado: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
+Pinned upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
 
-## Pregunta
+## Question
 
-¿Podemos crear una app Windows nativa con la interfaz y funciones centrales de OpenUsage que muestre el uso restante desde las sesiones ya abiertas en el equipo, sin una cuenta propia ni un nuevo login?
+Can we create a native Windows app with OpenUsage's interface and core functions that shows remaining usage from sessions already open on the machine, without its own account or a new login?
 
-## Respuesta
+## Answer
 
-Sí para el producto y para Codex. La UI, el ciclo de refresco, la caché, el uso local, la CLI y una API local tienen equivalentes sólidos en Windows.
+Yes for the product and for Codex. The UI, refresh cycle, cache, local usage, CLI, and a local API have solid Windows equivalents.
 
-La ruta Codex quedó probada con la interfaz oficial `codex app-server`. Claude permite calcular uso desde logs locales, pero su cuota en vivo carece de una interfaz pública de solo lectura. Grok Build y OpenCode tienen rutas locales aptas para tokens y gasto. Antigravity requiere un parser pasivo y mantiene su cuota bloqueada por política. El detalle está en la [investigación de agentes y gasto](2026-07-21-agent-costs-and-quotas.md).
+The Codex path was proven with the official `codex app-server` interface. Claude can compute usage from local logs, but its live quota lacks a public read-only interface. Grok Build and OpenCode have local paths suitable for tokens and spend. Antigravity needs a passive parser and keeps its quota blocked by policy. Detail is in the [agent and spend research](2026-07-21-agent-costs-and-quotas.md).
 
-La bandeja Windows no admite una tira persistente de texto y barras junto al icono. El diseño usará un icono de estado, un tooltip corto y un flyout nativo al hacer clic.
+The Windows tray does not support a persistent strip of text and bars next to the icon. The design will use a status icon, a short tooltip, and a native flyout on click.
 
-## Fuente estudiada
+## Source studied
 
-Se clonó OpenUsage en `.reference/openusage` y se fijó el análisis al SHA indicado. En esa revisión hay 237 archivos Swift y 138 archivos de prueba. El repo raíz ignora este clon.
+OpenUsage was cloned into `.reference/openusage` and the analysis is pinned to the stated SHA. That revision has 237 Swift files and 138 test files. The root repo ignores this clone.
 
-La [licencia MIT](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/LICENSE) permite copiar y cambiar el código si se conserva el aviso. La [política de marca](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/TRADEMARK.md) reserva el nombre, el logo y la identidad visual. El producto necesita nombre, icono y texto legal propios.
+The [MIT license](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/LICENSE) allows copying and changing the code if the notice is kept. The [trademark policy](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/TRADEMARK.md) reserves the name, logo, and visual identity. The product needs its own name, icon, and legal text.
 
-## Qué hace OpenUsage
+## What OpenUsage does
 
-El [README fijado](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/README.md) y sus documentos describen:
+The [pinned README](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/README.md) and its documents describe:
 
-- panel por proveedor con porcentajes usados o restantes y cuenta regresiva;
-- ritmo previsto frente al tiempo del periodo;
-- gasto y tokens de hoy, ayer y 30 días;
-- gráfico de tendencia y detalle por modelo;
-- detección local de proveedores, orden, visibilidad y hasta dos métricas destacadas;
-- caché persistente de cinco minutos y refresco paralelo;
-- último resultado válido durante fallos, con aviso de datos vencidos;
-- atajo global, inicio con el sistema, proxy, tema, densidad, avisos y actualizaciones;
-- CLI de una ejecución y servidor HTTP local.
+- a per-provider panel with used or remaining percentages and a countdown;
+- forecasted pace against the period's time;
+- spend and tokens for today, yesterday, and 30 days;
+- a trend chart and per-model detail;
+- local provider detection, order, visibility, and up to two featured metrics;
+- a persistent five-minute cache and parallel refresh;
+- last valid result during failures, with a stale-data notice;
+- global shortcut, start with the system, proxy, theme, density, notices, and updates;
+- one-shot CLI and local HTTP server.
 
-El detalle está en [dashboard](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/dashboard.md), [refresco](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/refreshing.md), [ajustes](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/settings.md), [CLI](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/cli.md) y [API local](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/local-http-api.md).
+Detail is in [dashboard](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/dashboard.md), [refresh](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/refreshing.md), [settings](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/settings.md), [CLI](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/cli.md), and [local API](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/local-http-api.md).
 
-## Patrón de arquitectura upstream
+## Upstream architecture pattern
 
-El [documento de arquitectura](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/architecture.md) usa una raíz de composición, un runtime por proveedor y un modelo común consumido por la app, CLI y HTTP.
+The [architecture document](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/architecture.md) uses a composition root, a runtime per provider, and a common model consumed by the app, CLI, and HTTP.
 
-Cada proveedor sigue esta secuencia:
+Each provider follows this sequence:
 
-1. Detectar si existe una credencial local sin hacer red.
-2. Leer una fuente de autenticación o una clave que pertenece a la app.
-3. Consultar límites o uso con un cliente propio del proveedor.
-4. Mapear la respuesta a un snapshot común.
-5. Guardar solo el snapshot y el estado de refresco.
+1. Detect whether a local credential exists without using the network.
+2. Read an authentication source or a key that belongs to the app.
+3. Query limits or usage with a client of its own for that provider.
+4. Map the response to a common snapshot.
+5. Store only the snapshot and refresh state.
 
-Los modelos fijados en [ProviderSnapshot](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/Sources/OpenUsage/Models/ProviderSnapshot.swift) y [MetricLine](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/Sources/OpenUsage/Models/MetricLine.swift) cubren progreso, valores, insignias, gráficos y texto. Este patrón sirve para Windows y evita que la UI conozca archivos, tokens o JSON de proveedores.
+The models pinned in [ProviderSnapshot](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/Sources/OpenUsage/Models/ProviderSnapshot.swift) and [MetricLine](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/Sources/OpenUsage/Models/MetricLine.swift) cover progress, values, badges, charts, and text. This pattern works for Windows and keeps the UI from knowing provider files, tokens, or JSON.
 
-## Paridad en Windows
+## Windows parity
 
-| Capacidad | Ruta Windows | Decisión |
+| Capability | Windows path | Decision |
 |---|---|---|
-| Flyout | WinUI `Window` + `AppWindow`, HWND y posición junto al área de trabajo | Una ventana sin marco, de tamaño fijo, que se oculta al perder foco |
-| Bandeja | Win32 `Shell_NotifyIconW` | Interop interno; icono, tooltip, clic y menú accesible |
-| Texto junto al icono | La API de bandeja no ofrece esa superficie | Estado por icono; resumen en tooltip y flyout |
-| Instancia única | Windows App SDK AppLifecycle | Redirigir activaciones a la instancia principal |
-| Avisos | `AppNotificationManager` | Alertas de cuota, ritmo, credencial y datos vencidos |
-| Arranque | `StartupTask` con identidad de paquete | Ajuste explícito del usuario |
-| Secretos propios | Windows Credential Locker | Solo claves que el usuario entrega a esta app |
-| Distribución | MSIX de confianza plena | `x64` primero, `ARM64` antes de estable |
-| Actualización | Store o App Installer firmado | Canal estable y beta separados |
+| Flyout | WinUI `Window` + `AppWindow`, HWND, and position next to the work area | A frameless, fixed-size window that hides when it loses focus |
+| Tray | Win32 `Shell_NotifyIconW` | Internal interop; icon, tooltip, click, and accessible menu |
+| Text next to the icon | The tray API does not offer that surface | State by icon; summary in tooltip and flyout |
+| Single instance | Windows App SDK AppLifecycle | Redirect activations to the main instance |
+| Notices | `AppNotificationManager` | Alerts for quota, pace, credential, and stale data |
+| Startup | `StartupTask` with package identity | Explicit user setting |
+| Own secrets | Windows Credential Locker | Only keys the user supplies to this app |
+| Distribution | Full-trust MSIX | `x64` first, `ARM64` before stable |
+| Update | Store or signed App Installer | Separate stable and beta channels |
 
-Fuentes de Microsoft: [empaquetado](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/packaging/), [contenedor y confianza de MSIX](https://learn.microsoft.com/en-us/windows/msix/msix-containerization-overview), [ventanas con AppWindow](https://learn.microsoft.com/en-us/windows/apps/develop/ui/manage-app-windows), [obtención de HWND](https://learn.microsoft.com/en-us/windows/apps/develop/ui/retrieve-hwnd), [Shell_NotifyIconW](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyiconw), [notificaciones](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/), [instancia única](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/applifecycle/applifecycle-instancing) y [Credential Locker](https://learn.microsoft.com/en-us/windows/apps/develop/security/credential-locker).
+Microsoft sources: [packaging](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/packaging/), [MSIX container and trust](https://learn.microsoft.com/en-us/windows/msix/msix-containerization-overview), [windows with AppWindow](https://learn.microsoft.com/en-us/windows/apps/develop/ui/manage-app-windows), [getting HWND](https://learn.microsoft.com/en-us/windows/apps/develop/ui/retrieve-hwnd), [Shell_NotifyIconW](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyiconw), [notifications](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/), [single instance](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/applifecycle/applifecycle-instancing), and [Credential Locker](https://learn.microsoft.com/en-us/windows/apps/develop/security/credential-locker).
 
-## Ruta Codex comprobada
+## Proven Codex path
 
-El [`codex app-server`](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) es la interfaz que Codex usa para clientes como su extensión de VS Code. Su transporte estable por defecto es JSONL sobre `stdio`.
+[`codex app-server`](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) is the interface Codex uses for clients such as its VS Code extension. Its default stable transport is JSONL over `stdio`.
 
-El protocolo requiere:
+The protocol requires:
 
-1. iniciar `codex app-server --stdio`;
-2. enviar `initialize` con nombre, título y versión del cliente;
-3. enviar la notificación `initialized`;
-4. pedir `account/rateLimits/read` para cuota y reinicios;
-5. pedir `account/usage/read` para resumen y buckets diarios.
+1. start `codex app-server --stdio`;
+2. send `initialize` with the client's name, title, and version;
+3. send the `initialized` notification;
+4. request `account/rateLimits/read` for quota and resets;
+5. request `account/usage/read` for summary and daily buckets.
 
-Codex conserva el login, el refresh token y la llamada remota. La app procesa campos tipados y tolera campos nuevos. La documentación marca esos dos métodos como parte estable de la superficie de cuenta.
+Codex keeps the login, refresh token, and remote call. The app processes typed fields and tolerates new fields. The documentation marks those two methods as part of the stable account surface.
 
-### Prueba local
+### Local test
 
-Se ejecutó un smoke test de solo esquema contra el `codex` instalado y la sesión existente. La prueba no imprimió tokens, correo ni cifras de uso.
+A schema-only smoke test ran against the installed `codex` and the existing session. The test did not print tokens, email, or usage figures.
 
-Resultados:
+Results:
 
-- `initialize`: correcto;
-- `account/rateLimits/read`: correcto;
-- grupos vistos: `rateLimits`, `rateLimitsByLimitId`, `rateLimitResetCredits`;
-- `account/usage/read`: correcto;
-- grupos vistos: `summary`, `dailyUsageBuckets`.
+- `initialize`: correct;
+- `account/rateLimits/read`: correct;
+- groups seen: `rateLimits`, `rateLimitsByLimitId`, `rateLimitResetCredits`;
+- `account/usage/read`: correct;
+- groups seen: `summary`, `dailyUsageBuckets`.
 
-La implementación debe mantener un proceso supervisado, poner timeout a cada solicitud, validar el ID de respuesta y reiniciar el proceso tras cierre, cambio de binario o error de protocolo. El cliente debe declarar un `clientInfo.name` propio. Para despliegues empresariales, la documentación de Codex pide contactar a OpenAI para registrar el cliente en sus logs de cumplimiento.
+The implementation must keep a supervised process, put a timeout on each request, validate the response ID, and restart the process after close, binary change, or protocol error. The client must declare its own `clientInfo.name`. For enterprise deployments, Codex documentation asks to contact OpenAI to register the client in their compliance logs.
 
-### Fuente local para gasto Codex
+### Local source for Codex spend
 
-OpenUsage también lee `sessions` y `archived_sessions` bajo `CODEX_HOME` para medir tokens y estimar gasto. Su [documento Codex](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/codex.md) explica zonas horarias, deduplicación de subagentes y precios.
+OpenUsage also reads `sessions` and `archived_sessions` under `CODEX_HOME` to measure tokens and estimate spend. Its [Codex document](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/codex.md) explains time zones, subagent deduplication, and prices.
 
-El método oficial `account/usage/read` reduce el trabajo inicial. Los logs siguen siendo útiles para detalle por modelo y para comparar resultados. El MVP debe usar el método oficial para totales y añadir el scanner local cuando una prueba diferencial pruebe su valor.
+The official `account/usage/read` method reduces the initial work. The logs remain useful for per-model detail and for comparing results. The MVP should use the official method for totals and add the local scanner when a differential test proves its value.
 
-## Ruta Claude y límite de lanzamiento
+## Claude path and launch limit
 
-La [documentación de autenticación de Claude Code](https://code.claude.com/docs/en/authentication) indica que Windows guarda credenciales en `%USERPROFILE%\.claude\.credentials.json`, o bajo `CLAUDE_CONFIG_DIR`. También define el orden de fuentes de autenticación.
+The [Claude Code authentication documentation](https://code.claude.com/docs/en/authentication) states that Windows stores credentials in `%USERPROFILE%\.claude\.credentials.json`, or under `CLAUDE_CONFIG_DIR`. It also defines the order of authentication sources.
 
-OpenUsage lee esa credencial, consulta un endpoint de cuota y rota tokens cuando hace falta. Además calcula gasto desde `projects`; su [documento Claude](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/claude.md) describe ambas fuentes.
+OpenUsage reads that credential, queries a quota endpoint, and rotates tokens when needed. It also computes spend from `projects`; its [Claude document](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/claude.md) describes both sources.
 
-Claude Code no documenta un comando de cuota de solo lectura. Escribir una credencial rotada desde dos procesos puede invalidar la sesión. El changelog público también registra correcciones de carreras entre procesos.
+Claude Code does not document a read-only quota command. Writing a rotated credential from two processes can invalidate the session. The public changelog also records race fixes between processes.
 
-La [guía legal de Claude Code](https://code.claude.com/docs/en/legal-and-compliance) reserva el OAuth de suscripciones para aplicaciones nativas de Anthropic y dirige a terceros hacia claves de API o proveedores cloud. Consultar cuota tiene menos alcance que enviar una solicitud de modelo, pero sigue usando una credencial de suscripción fuera del cliente oficial. Antes de distribuir esa función se requiere uno de estos contratos:
+The [Claude Code legal guide](https://code.claude.com/docs/en/legal-and-compliance) reserves subscription OAuth for native Anthropic applications and directs third parties to API keys or cloud providers. Querying quota has less scope than sending a model request, but it still uses a subscription credential outside the official client. Before distributing that function, one of these contracts is required:
 
-- interfaz pública de cuota de solo lectura;
-- comando oficial de Claude Code que entregue la cuota;
-- permiso escrito de Anthropic para este caso.
+- a public read-only quota interface;
+- an official Claude Code command that returns quota;
+- written permission from Anthropic for this case.
 
-Mientras tanto, la app puede detectar logs Claude y mostrar uso local medido o costo estimado con una etiqueta clara. Esa vista no puede afirmar cuánto queda del plan.
+Meanwhile, the app can detect Claude logs and show measured local usage or estimated cost with a clear label. That view cannot claim how much of the plan remains.
 
-## API local y privacidad
+## Local API and privacy
 
-OpenUsage escucha en `127.0.0.1:6736` y publica CORS `*`. Su [nota de privacidad](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/local-http-api.md#cors-and-privacy) avisa que cualquier página abierta puede leer los snapshots mientras la app corre.
+OpenUsage listens on `127.0.0.1:6736` and publishes CORS `*`. Its [privacy note](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/local-http-api.md#cors-and-privacy) warns that any open page can read the snapshots while the app runs.
 
-La versión Windows tendrá la API apagada al instalar. Al activarla:
+The Windows version will ship with the API off. When it is turned on:
 
-- solo escuchará en `127.0.0.1`;
-- exigirá un token aleatorio guardado en Credential Locker;
-- rechazará peticiones con `Origin` salvo una lista explícita;
-- tendrá límite de concurrencia, timeout y cuerpo máximo;
-- excluirá rutas, tokens, correo y datos de cuenta no requeridos;
-- registrará accesos sin incluir valores de cuota.
+- it will listen only on `127.0.0.1`;
+- it will require a random token stored in Credential Locker;
+- it will reject requests with `Origin` except an explicit list;
+- it will have a concurrency limit, timeout, and maximum body;
+- it will exclude paths, tokens, email, and account data that are not required;
+- it will record access without including quota values.
 
-Un modo de compatibilidad con OpenUsage puede agregarse como opción con aviso de privacidad.
+An OpenUsage compatibility mode can be added as an option with a privacy notice.
 
-## Proveedores
+## Providers
 
-El upstream anuncia Antigravity, Claude, Codex, Copilot, Cursor, Devin, Grok, OpenCode, OpenRouter y Z.ai. La investigación de sus adaptadores muestra cinco clases:
+Upstream announces Antigravity, Claude, Codex, Copilot, Cursor, Devin, Grok, OpenCode, OpenRouter, and Z.ai. Research of their adapters shows five classes:
 
-- interfaz oficial local: Codex;
-- logs o bases locales: Claude, Codex, Grok, OpenCode y, con cobertura experimental, Antigravity;
-- endpoint privado con credencial reutilizada: Claude, Cursor, Copilot, Antigravity, Devin y Grok;
-- clave manual aprobada: OpenRouter, Cursor Admin API, GitHub billing API y Devin v3 para consumo de una organización;
-- clave manual bloqueada: Z.ai, según su [gate de cuota](2026-07-21-zai-gate.md).
+- official local interface: Codex;
+- local logs or databases: Claude, Codex, Grok, OpenCode, and, with experimental coverage, Antigravity;
+- private endpoint with a reused credential: Claude, Cursor, Copilot, Antigravity, Devin, and Grok;
+- approved manual key: OpenRouter, Cursor Admin API, GitHub billing API, and Devin v3 for one organization's consumption;
+- blocked manual key: Z.ai, per its [quota gate](2026-07-21-zai-gate.md).
 
-Cada proveedor privado necesita una prueba técnica, revisión de política y fixtures sanitizados. La [matriz de proveedores](../PROVIDER-MATRIX.md) fija el orden.
+Each private provider needs a technical test, policy review, and sanitized fixtures. The [provider matrix](../PROVIDER-MATRIX.md) pins the order.
 
-## Riesgos
+## Risks
 
-| Riesgo | Efecto | Control |
+| Risk | Effect | Control |
 |---|---|---|
-| Endpoint privado cambia | Tarjeta sin datos | Adaptador aislado, contrato versionado, último valor válido y flag remoto |
-| Dos procesos rotan un token | Cierre de sesión | Preferir interfaz oficial; no escribir credenciales ajenas en el MVP |
-| Fuente local cambia de esquema | Gasto incompleto | Parser tolerante, fixtures por versión y aviso de cobertura |
-| MSIX cambia rutas o permisos | Detección fallida | Pruebas dentro del paquete firmado, sin depender del directorio de trabajo |
-| Explorer reinicia | Icono ausente | Volver a registrar el icono tras `TaskbarCreated` |
-| Varias pantallas o escalas | Flyout fuera de pantalla | Posicionar por monitor, DPI y área de trabajo |
-| Loopback accesible desde web | Fuga de cuota | API apagada, token, política de Origin y mínimo de datos |
-| Marca upstream | Confusión o reclamo | Nombre, logo, paquete y avisos propios |
-| Política del proveedor | Función no distribuible | Gate de lanzamiento por proveedor |
+| Private endpoint changes | Card without data | Isolated adapter, versioned contract, last valid value, and remote flag |
+| Two processes rotate a token | Session close | Prefer the official interface; do not write someone else's credentials in the MVP |
+| Local source changes schema | Incomplete spend | Tolerant parser, fixtures per version, and coverage notice |
+| MSIX changes paths or permissions | Failed detection | Tests inside the signed package, without depending on the working directory |
+| Explorer restarts | Missing icon | Re-register the icon after `TaskbarCreated` |
+| Several screens or scales | Flyout off screen | Position by monitor, DPI, and work area |
+| Loopback reachable from the web | Quota leak | API off, token, Origin policy, and minimum data |
+| Upstream brand | Confusion or claim | Own name, logo, package, and notices |
+| Provider policy | Function not distributable | Launch gate per provider |
 
-## Incertidumbre
+## Uncertainty
 
-- El protocolo Codex es estable hoy, pero el cliente debe comprobar la versión y tolerar campos extra.
-- El aspecto exacto del flyout debe validarse en Windows 10 y 11, con tema oscuro, alto contraste y escalas 100–200%.
-- No se leyó el contenido de ninguna credencial durante la investigación.
-- Los proveedores privados quedan fuera de toda promesa de versión hasta cerrar su prueba y su revisión de uso permitido.
+- The Codex protocol is stable today, but the client must check the version and tolerate extra fields.
+- The exact look of the flyout must be validated on Windows 10 and 11, with dark theme, high contrast, and 100–200% scales.
+- No credential content was read during the research.
+- Private providers stay outside any version promise until their test and allowed-use review are closed.
 
-## Decisión
+## Decision
 
-Iniciar un MVP Windows con shell WinUI, bandeja Win32, caché común y una integración Codex por `app-server`. Construir un motor local pequeño de tokens y gasto para Claude, Grok Build y OpenCode. Evaluar Antigravity solo mediante una base local pasiva. Mantener la cuota Claude, Grok, Antigravity y los demás endpoints privados detrás de gates de proveedor. Empaquetar como MSIX, mantener telemetría y API local apagadas al instalar, y usar nombre e identidad propios.
+Start a Windows MVP with a WinUI shell, Win32 tray, common cache, and a Codex integration through `app-server`. Build a small local token and spend engine for Claude, Grok Build, and OpenCode. Evaluate Antigravity only through a passive local database. Keep Claude, Grok, Antigravity quota and the other private endpoints behind provider gates. Package as MSIX, keep telemetry and the local API off at install, and use our own name and identity.

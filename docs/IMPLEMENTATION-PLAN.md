@@ -1,141 +1,140 @@
-# Plan de implementación
+# Implementation plan
 
-Estado: listo para ejecutar
+Status: ready to run
 
-Fecha base: 2026-07-21
+Base date: 2026-07-21
 
-Producto formal: TokenUsage
-Identidad técnica: TokenUsage
-Upstream de referencia: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
-Referencias de gasto: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` y `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
+Formal product: TokenUsage
+Technical identity: TokenUsage
+Reference upstream: `robinebers/openusage@9d2bf09f10e21f769494a525a9d65c84d7aeb1df`
+Spend references: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` and `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
 
-## Meta
+## Goal
 
-Entregar una app Windows nativa que abra desde la bandeja, muestre cuota, tokens y gasto desde sesiones existentes, conserve datos fiables durante fallos y pueda crecer hacia el conjunto de proveedores de OpenUsage.
+The work delivers a native Windows app that opens from the tray. The app shows quota, tokens, and spend from existing sessions. It keeps reliable data during failures. It can grow toward the OpenUsage provider set.
 
-La identidad pública y técnica usa `TokenUsage` desde el corte de nombre del
-2026-08-04. El ADR-0002 registra el alcance y los riesgos pendientes de paquete.
+The public and technical identity uses `TokenUsage` from the name cutover of 2026-08-04. ADR-0002 records the scope and the pending package risks.
 
-## Alcance por entrega
+## Scope by delivery
 
-### MVP técnico
+### Technical MVP
 
-- repo y solución WinUI;
-- bandeja, flyout, instancia única y arranque;
-- dominio, caché, refresco y estados;
-- Codex por `app-server`;
-- panel Codex con usado/restante, reinicio, ritmo y uso diario;
-- ajustes mínimos y diagnóstico;
-- pruebas y paquete MSIX x64 beta.
+- repo and WinUI solution
+- tray, flyout, single instance, and startup
+- domain, cache, refresh, and states
+- Codex through `app-server`
+- Codex panel with Used/Remaining, reset, pace, and daily usage
+- minimum Options and diagnostics
+- tests and x64 MSIX beta package
 
-### Beta de producto
+### Product beta
 
-- UI completa de dashboard y personalización;
-- tema, alto contraste, teclado y lector de pantalla;
-- notificaciones;
-- CLI;
-- API local segura opcional;
-- motor propio de uso y gasto local;
-- uso local Claude, Grok Build y OpenCode;
-- x64 y ARM64;
-- instalación, actualización y desinstalación probadas.
+- complete dashboard UI and customization
+- theme, high contrast, keyboard, and screen reader
+- notifications
+- CLI
+- optional secure local API
+- first-party local usage and spend engine
+- local Claude, Grok Build, and OpenCode usage
+- x64 and ARM64
+- installation, update, and uninstall tested
 
-### Paridad ampliada
+### Extended parity
 
-- gasto total, cobertura y detalle por modelo;
-- OpenRouter con clave manual; Z.ai solo tras reabrir su gate;
-- Cursor Teams y Enterprise con Admin API manual; Individual bloqueado;
-- Copilot billing personal pagado y organización con token manual; sin cuota restante;
-- Claude en vivo solo tras el gate del proveedor;
-- Antigravity local pasivo y Devin ACUs de organización como canales experimentales.
-- Kilo Code y Zed solo tras reabrir sus gates; fuera de la beta de paridad actual.
+- Total spend, coverage, and detail by model
+- OpenRouter with a manual key. Z.ai only after its gate reopens
+- Cursor Teams and Enterprise with a manual Admin API. Individual blocked
+- Copilot paid personal billing and organization with a manual token. No remaining quota
+- live Claude only after the provider gate
+- passive local Antigravity and organization Devin ACUs as experimental channels
+- Kilo Code and Zed only after their gates reopen. Outside the current parity beta
 
-## Reglas de ejecución
+## Execution rules
 
-1. Leer `README.md`, la investigación, la especificación, ADR y matriz antes de código.
-2. Conservar cambios ajenos y comprobar `git status --short --branch` antes de editar.
-3. Crear trabajo pequeño, con prueba y commit propio cuando esté verde.
-4. Usar el stack y los scripts de la plantilla `winui-mvvm`.
-5. Compilar por `x64` o `ARM64`; no usar `AnyCPU`.
-6. Conservar `Package.appxmanifest`.
-7. Lanzar la app con el script de build de la plantilla; no abrir el `.exe` empaquetado de forma directa.
-8. Agregar paquetes sin versión manual y comprobar restore de inmediato.
-9. No leer, imprimir ni copiar secretos en pruebas o logs.
-10. Un proveedor con gate falla cerrado y conserva el resto de la app.
-11. Cada cambio de comportamiento actualiza docs, fixtures y texto de diagnóstico.
-12. Las suites largas se ejecutan en el cierre de un hito.
+1. Read `README.md`, the research, the specification, the ADR, and the matrix before code.
+2. Keep unrelated changes. Inspect `git status --short --branch` before you edit.
+3. Create small work with a test. When the work is green, make its own commit.
+4. Use the stack and the scripts of the `winui-mvvm` template.
+5. Build for `x64` or `ARM64`. Do not use `AnyCPU`.
+6. Keep `Package.appxmanifest`.
+7. Start the app with the template build script. Do not open the packaged `.exe` directly.
+8. Add packages without a manual version. Make sure that restore succeeds at once.
+9. Do not read, print, or copy secrets in tests or logs.
+10. A gated provider fails closed and keeps the rest of the app.
+11. Update docs, fixtures, and diagnostic text for each behavior change.
+12. Run long suites at the close of a milestone.
 
-## Mapa de dependencias
+## Dependency map
 
 ```mermaid
 flowchart LR
-    M0["M0 Base y marca"] --> M1["M1 Solución"]
-    M1 --> M2["M2 Bandeja y flyout"]
-    M1 --> M3["M3 Dominio y caché"]
+    M0["M0 Base and brand"] --> M1["M1 Solution"]
+    M1 --> M2["M2 Tray and flyout"]
+    M1 --> M3["M3 Domain and cache"]
     M2 --> M4["M4 Codex vertical"]
     M3 --> M4
     M4 --> M5["M5 Dashboard"]
-    M3 --> M6["M6 Motor local y Claude"]
-    M6 --> M6A["M6A Grok y OpenCode"]
-    M6 --> M6B["M6B Antigravity pasivo"]
-    M5 --> M7["M7 Ajustes y avisos"]
-    M4 --> M8["M8 CLI y API"]
-    M6A --> M9["M9 Más proveedores"]
-    M7 --> M10["M10 Paquete y beta"]
+    M3 --> M6["M6 Local engine and Claude"]
+    M6 --> M6A["M6A Grok and OpenCode"]
+    M6 --> M6B["M6B Passive Antigravity"]
+    M5 --> M7["M7 Options and notices"]
+    M4 --> M8["M8 CLI and API"]
+    M6A --> M9["M9 More providers"]
+    M7 --> M10["M10 Package and beta"]
     M8 --> M10
     M6A --> M10
-    M6B --> M11["M11 Paridad ampliada"]
-    M9 --> M11["M11 Paridad ampliada"]
+    M6B --> M11["M11 Extended parity"]
+    M9 --> M11["M11 Extended parity"]
     M10 --> M11
 ```
 
-## M0 — Decisiones previas y base legal
+## M0 — Prior decisions and legal base
 
-Esfuerzo: 1–2 días. No bloquea prototipos con el nombre interno.
+Effort: 1–2 days. It does not block prototypes that use the internal name.
 
-### Tareas
+### Tasks
 
-- `M0.1` Conservar `TokenUsage` como nombre formal aprobado; elegir dominio y logo finales antes de firma externa.
-- `M0.2` Definir Publisher ID, empresa y contacto de soporte.
-- `M0.3` Elegir distribución beta: App Installer privado o Store flight.
-- `M0.4` Crear `THIRD-PARTY-NOTICES.md` con MIT de OpenUsage y toda dependencia copiada.
-- `M0.5` Registrar el SHA upstream y una tabla de funciones en `docs/UPSTREAM-BASELINE.md`.
-- `M0.6` Definir un proceso de revisión de política por proveedor.
-- `M0.7` Contactar a OpenAI antes de un uso empresarial del cliente Codex, según la nota de `clientInfo` de app-server.
-- `M0.8` Consultar a Anthropic por una interfaz o permiso de cuota de solo lectura.
-- `M0.9` Consultar a xAI por una salida de cuota de solo lectura apta para otra app.
-- `M0.10` Registrar la prohibición de login Antigravity de terceros y revisar su FAQ antes de cada beta.
+- `M0.1` Keep `TokenUsage` as the approved formal name. Choose the final domain and logo before external signing.
+- `M0.2` Define Publisher ID, company, and support contact.
+- `M0.3` Choose beta distribution: private App Installer or Store flight.
+- `M0.4` Create `THIRD-PARTY-NOTICES.md` with the OpenUsage MIT license and every copied dependency.
+- `M0.5` Record the upstream SHA and a function table in `docs/UPSTREAM-BASELINE.md`.
+- `M0.6` Define a policy review process per provider.
+- `M0.7` Contact OpenAI before enterprise use of the Codex client, per the `clientInfo` note of app-server.
+- `M0.8` Ask Anthropic for a read-only quota interface or permission.
+- `M0.9` Ask xAI for a read-only quota output that is suitable for another app.
+- `M0.10` Record the ban on third-party Antigravity login. Review its FAQ before each beta.
 
-### Pruebas
+### Tests
 
-- revisión de nombres y paquetes contra marcas existentes;
-- auditoría de archivos copiados y avisos;
-- revisión de que no aparece nombre o logo OpenUsage como producto.
+- review of names and packages against existing trademarks
+- audit of copied files and notices
+- review that no OpenUsage name or logo appears as the product
 
-### Salida
+### Output
 
-- identidad lista para empaquetado;
-- documentos de terceros y proveedor trazables;
-- gates externos con dueño y estado.
+- identity ready for packaging
+- third-party and provider documents that are traceable
+- external gates with an owner and a status
 
-## M1 — Scaffold WinUI y disciplina de repo
+## M1 — WinUI scaffold and repo discipline
 
-Esfuerzo: 2–3 días.
+Effort: 2–3 days.
 
-### Tareas
+### Tasks
 
-- `M1.1` Comprobar .NET, plantilla `winui-mvvm`, Windows App SDK y Developer Mode. Si falta algo, ejecutar el flujo de preparación WinUI antes de seguir.
-- `M1.2` Crear la app desde la raíz con `dotnet new winui-mvvm -n TokenUsage.App -o src/TokenUsage.App`; no crear la carpeta a mano.
-- `M1.3` Crear la solución y proyectos de `Core`, `Providers`, `Platform.Windows` y `Cli`.
-- `M1.4` Crear los cinco proyectos de test definidos en el ADR.
-- `M1.5` Agregar referencias con la dirección del ADR.
-- `M1.6` Crear `Directory.Build.props`, análisis nullable, warnings y estilo común sin romper el XAML generado.
-- `M1.7` Mantener `Package.appxmanifest`; declarar solo capacidades necesarias.
-- `M1.8` Agregar `scripts/check.ps1` que ejecute restore, tests cortos y build x64.
-- `M1.9` Configurar CI Windows con caché NuGet y artifacts de test.
-- `M1.10` Añadir una prueba de arquitectura que prohíba referencias de `Core` a UI o Windows.
+- `M1.1` Make sure that .NET, the `winui-mvvm` template, Windows App SDK, and Developer Mode are present. If something is missing, run the WinUI preparation flow before you continue.
+- `M1.2` Create the app from the root with `dotnet new winui-mvvm -n TokenUsage.App -o src/TokenUsage.App`. Do not create the folder by hand.
+- `M1.3` Create the solution and the `Core`, `Providers`, `Platform.Windows`, and `Cli` projects.
+- `M1.4` Create the five test projects defined in the ADR.
+- `M1.5` Add references with the direction from the ADR.
+- `M1.6` Create `Directory.Build.props`, nullable analysis, warnings, and shared style. Do not break the generated XAML.
+- `M1.7` Keep `Package.appxmanifest`. Declare only required capabilities.
+- `M1.8` Add `scripts/check.ps1` that runs restore, short tests, and an x64 build.
+- `M1.9` Configure Windows CI with NuGet cache and test artifacts.
+- `M1.10` Add an architecture test that forbids `Core` references to UI or Windows.
 
-### Verificación
+### Verification
 
 ```powershell
 dotnet restore
@@ -144,731 +143,685 @@ dotnet build TokenUsage.slnx -p:Platform=x64
 powershell -ExecutionPolicy Bypass -File .\BuildAndRun.ps1 src\TokenUsage.App\TokenUsage.App.csproj -SkipRun /p:Platform=x64
 ```
 
-El lanzamiento usa modo asíncrono durante trabajo con herramientas. Se confirma inicio y cierre manual del shell generado.
+Launch uses asynchronous mode during work with tools. A person starts and closes the generated shell by hand.
 
-### Salida
+### Output
 
-- solución compila en x64;
-- app generada abre mediante el script;
-- CI básica verde;
-- manifiesto y referencias correctos;
-- primer commit de scaffold.
+- solution builds on x64
+- generated app opens through the script
+- basic CI is green
+- manifest and references are correct
+- first scaffold commit
 
-## M2 — Bandeja, flyout e instancia única
+## M2 — Tray, flyout, and single instance
 
-Esfuerzo: 5–8 días.
+Effort: 5–8 days.
 
-Blanco aprobado: [paridad OpenUsage para Windows](design/2026-07-21-selected-flyout.md). El shell usa 320 DIPs, alto por contenido, cabeceras fuera de las tarjetas y controles Fluent.
+Approved target: OpenUsage parity for Windows. The shell uses 320 DIPs, height by content, headers outside the cards, and Fluent controls.
 
-### Tareas
+### Tasks
 
-- `M2.1` Implementar `TrayIconHost` con `Shell_NotifyIconW` y versión 4.
-- `M2.2` Manejar clic, teclado, menú de contexto y `TaskbarCreated`.
-- `M2.3` Crear recursos de icono neutro, ámbar, rojo y alto contraste.
-- `M2.4` Obtener HWND de la ventana WinUI y encapsular el interop.
-- `M2.5` Configurar `AppWindow` sin marco, no redimensionable y ocultable.
-- `M2.6` Posicionar con `Shell_NotifyIconGetRect`, monitor, DPI y área de trabajo.
-- `M2.7` Definir fallback cuando el icono está en overflow o no hay rectángulo.
-- `M2.8` Ocultar al perder foco y proteger diálogos modales.
-- `M2.9` Implementar instancia única y redirección de activaciones.
-- `M2.10` Añadir menú Actualizar, Ajustes y Salir.
-- `M2.11` Añadir shell mock con estados cargando, datos, vacío y error.
-- `M2.12` Registrar una lista manual de pruebas por posición de taskbar, monitor y DPI.
+- `M2.1` Implement `TrayIconHost` with `Shell_NotifyIconW` and version 4.
+- `M2.2` Handle click, keyboard, context menu, and `TaskbarCreated`.
+- `M2.3` Create icon resources for neutral, amber, red, and high contrast.
+- `M2.4` Get the HWND of the WinUI window and wrap the interop.
+- `M2.5` Configure `AppWindow` with no frame, not resizable, and able to hide.
+- `M2.6` Position with `Shell_NotifyIconGetRect`, monitor, DPI, and work area.
+- `M2.7` If the icon is in overflow or there is no rectangle, define a fallback.
+- `M2.8` Hide on lost focus. Protect modal dialogs.
+- `M2.9` Implement single instance and activation redirection.
+- `M2.10` Add a menu with Update, Options, and Exit.
+- `M2.11` Add a mock shell with loading, data, empty, and error states.
+- `M2.12` Record a manual test list by taskbar position, monitor, and DPI.
 
-### Pruebas enfocadas
+### Focused tests
 
-- unidad para cálculo de posición con rectángulos sintéticos;
-- unidad para resumen de tooltip y estado peor;
-- integración de mensajes de bandeja con host fake;
-- UI automation: clic abre, segundo clic cierra, `Esc` cierra, teclado abre menú;
-- manual: reiniciar Explorer y comprobar que el icono vuelve;
-- manual: taskbar izquierda, derecha, arriba y abajo cuando el sistema lo permita;
-- manual: dos monitores con escalas distintas.
+- unit tests for position calculation with synthetic rectangles
+- unit tests for tooltip summary and worst state
+- integration of tray messages with a fake host
+- UI automation: click opens, second click closes, `Esc` closes, keyboard opens the menu
+- manual: restart Explorer and make sure that the icon returns
+- manual: each taskbar position that the system allows
+- manual: two monitors with different scales
 
-### Salida
+### Output
 
-- una sola instancia;
-- bandeja fiable y accesible;
-- panel siempre dentro del monitor;
-- cero ventana de consola;
-- evidencia de screenshots clara, oscura y alto contraste.
+- one instance only
+- reliable and accessible tray
+- panel always inside the monitor
+- zero console window
+- screenshot evidence for light, dark, and high contrast
 
-## M3 — Dominio, caché y refresco
+## M3 — Domain, cache, and refresh
 
-Esfuerzo: 5–7 días.
+Effort: 5–7 days.
 
-### Tareas
+### Tasks
 
-- `M3.1` Crear IDs, métricas, snapshots, procedencia y outcomes.
-- `M3.2` Crear `IProviderRuntime`, `IClock`, `IFileSystem`, `IProcessRunner`, `ISecretStore` y red.
-- `M3.3` Implementar `RefreshCoordinator` con resultado por proveedor.
-- `M3.4` Añadir TTL, force refresh, timeout y cancelación.
-- `M3.5` Añadir backoff con jitter y respeto de `Retry-After`.
-- `M3.6` Crear `SnapshotStore` JSON con mutex y reemplazo atómico.
-- `M3.7` Crear `SettingsStore` y migración v1.
-- `M3.8` Calcular frescura, último valor válido y estado vencido.
-- `M3.9` Implementar motor de ritmo con reloj inyectable.
-- `M3.10` Publicar eventos incrementales a ViewModels.
-- `M3.11` Crear un proveedor fake determinista para UI y pruebas.
+- `M3.1` Create IDs, metrics, snapshots, provenance, and outcomes.
+- `M3.2` Create `IProviderRuntime`, `IClock`, `IFileSystem`, `IProcessRunner`, `ISecretStore`, and network.
+- `M3.3` Implement `RefreshCoordinator` with a result per provider.
+- `M3.4` Add TTL, force refresh, timeout, and cancellation.
+- `M3.5` Add backoff with jitter and respect for `Retry-After`.
+- `M3.6` Create JSON `SnapshotStore` with a mutex and atomic replacement.
+- `M3.7` Create `SettingsStore` and v1 migration.
+- `M3.8` Calculate freshness, last valid value, and stale state.
+- `M3.9` Implement the pace engine with an injectable clock.
+- `M3.10` Publish incremental events to ViewModels.
+- `M3.11` Create a deterministic fake provider for UI and tests.
 
-### Pruebas enfocadas
+### Focused tests
 
-- todas las variantes de métrica y outcome;
-- caché válida, vencida, dañada, migrada y escritura interrumpida;
-- dos procesos compiten por el mismo documento;
-- proveedor lento, crash, timeout y cancelación;
-- lote parcial publica proveedores rápidos;
-- ritmo normal, cerca, agotamiento, ventana nueva y reloj que cambia;
-- último valor válido permanece durante fallos;
-- `No data` nunca se convierte en cero.
+- all metric and outcome variants
+- valid, stale, damaged, migrated, and interrupted-write cache
+- two processes compete for the same document
+- slow provider, crash, timeout, and cancellation
+- a partial batch publishes fast providers
+- normal pace, near, exhaustion, new window, and a clock that changes
+- last valid value remains during failures
+- `No data` never becomes zero
 
-### Salida
+### Output
 
-- `Core` sin referencias Windows;
-- caché visible antes de red;
-- refresco paralelo y cancelable;
-- tests deterministas sin esperas reales;
-- contrato de snapshot documentado.
+- `Core` with no Windows references
+- cache visible before the network
+- parallel and cancelable refresh
+- deterministic tests with no real waits
+- documented snapshot contract
 
-## M4 — Vertical Codex de extremo a extremo
+## M4 — End-to-end Codex vertical
 
-Esfuerzo: 6–9 días.
+Effort: 6–9 days.
 
-### Tareas
+### Tasks
 
-- `M4.1` Implementar resolución segura del binario Codex y override explícito.
-- `M4.2` Crear `CodexAppServerProcess` con Job Object, stdio y cierre seguro.
-- `M4.3` Crear cliente JSONL con handshake, IDs, timeouts y límite de línea.
-- `M4.3a` Leer `account/read` con `refreshToken: false`, descartar correo y
-  clasificar sesión ausente, ChatGPT y auth sin cuota.
-- `M4.4` Implementar `account/rateLimits/read`.
-- `M4.5` Implementar `account/usage/read`.
-- `M4.6` Mapear límites primario, secundario y adicionales sin asumir nombres fijos.
-- `M4.7` Mapear buckets diarios y resumen.
-- `M4.8` Distinguir falta de login, auth no apta, CLI ausente, throttle y protocolo incompatible.
-- `M4.9` Añadir `clientInfo` propio y una versión de integración visible en diagnóstico.
-- `M4.10` Crear servidor fake que reordene respuestas, envíe eventos y cierre en mitad de línea.
-- `M4.11` Añadir smoke real opt-in que solo imprime éxito y nombres de campos.
-- `M4.12` Mostrar la primera tarjeta Codex en el shell.
-- `M4.13` Añadir acción para abrir la herramienta original cuando falta login; la app no inicia el login.
+- `M4.1` Implement safe resolution of the Codex binary and an explicit override.
+- `M4.2` Create `CodexAppServerProcess` with Job Object, stdio, and safe close.
+- `M4.3` Create a JSONL client with handshake, IDs, timeouts, and a line limit.
+- `M4.3a` Read `account/read` with `refreshToken: false`. Discard email. Classify absent session, ChatGPT, and auth without quota.
+- `M4.4` Implement `account/rateLimits/read`.
+- `M4.5` Implement `account/usage/read`.
+- `M4.6` Map primary, secondary, and additional limits without assuming fixed names.
+- `M4.7` Map daily buckets and summary.
+- `M4.8` Distinguish missing login, unsuitable auth, absent CLI, throttle, and incompatible protocol.
+- `M4.9` Add a first-party `clientInfo`. Add an integration version that is visible in diagnostics.
+- `M4.10` Create a fake server that reorders responses, sends events, and closes in the middle of a line.
+- `M4.11` Add an opt-in real smoke that prints only success and field names.
+- `M4.12` Show the first Codex card in the shell.
+- `M4.13` Add an action for a missing login. The action opens the original tool. The app does not start login.
 
 ### Fixtures
 
-- respuesta con una ventana;
-- dos ventanas;
-- varios `limitId`;
-- límite sin reset;
-- porcentaje 0, 100 y decimal;
-- créditos ausentes, vacíos y con detalle;
-- buckets sin días, con zona horaria y con campos nuevos;
-- error JSON-RPC, línea inválida y salida temprana.
+- response with one window
+- two windows
+- several `limitId`
+- limit without reset
+- percent 0, 100, and decimal
+- credits absent, empty, and with detail
+- buckets without days, with time zone, and with new fields
+- JSON-RPC error, invalid line, and early exit
 
-Los fixtures se crean a mano o se sanitizan con una revisión que pruebe que no contienen token, correo, account ID ni cifras reales de un usuario.
+Create fixtures by hand, or sanitize them with a review. Make sure that the fixtures do not contain a token, email, account ID, or real figures from a user.
 
-### Verificación
+### Verification
 
-- tests de contrato contra fake;
-- proceso no queda huérfano tras cierre forzado;
-- actualización manual correlaciona la respuesta correcta;
-- smoke local con sesión existente y salida limitada al esquema;
-- prueba empaquetada confirma que el proceso hijo se inicia;
-- captura de tarjeta con datos sintéticos y prueba real sin publicar cifras.
+- contract tests against the fake
+- process is not orphaned after a forced close
+- manual refresh correlates the correct response
+- local smoke with an existing session and output limited to the schema
+- packaged test that the child process starts
+- card capture with synthetic data and a real test without publishing figures
 
-### Salida
+### Output
 
-- cuota y uso Codex desde login existente;
-- ningún acceso directo a `auth.json`;
-- ningún flujo de login o acción irreversible;
-- recuperación de crash y timeout;
-- claim permitido: `Codex compatible en Windows con CLI instalada y sesión ChatGPT existente`.
+- Codex quota and usage from an existing login
+- no direct access to `auth.json`
+- no login flow or irreversible action
+- crash and timeout recovery
+- permitted claim: `Codex compatible on Windows with CLI installed and an existing ChatGPT session`
 
-## M5 — Dashboard y paridad visual
+## M5 — Dashboard and visual parity
 
-Esfuerzo: 8–12 días.
+Effort: 8–12 days.
 
-### Tareas
+### Tasks
 
-- `M5.1` Extraer tokens de tamaño, espacio, radio, color y tipografía desde la captura y docs upstream, con identidad propia.
-- `M5.2` Crear header, tarjetas, barras, valores, badges, warnings y tooltips.
-- `M5.3` Añadir usado/restante global y tiempo relativo/exacto.
-- `M5.4` Añadir bloque bajo demanda y persistencia de expansión.
-- `M5.5` Crear tendencia de 30 días accesible.
-- `M5.6` Crear `Uso y gasto` con datos fake y estados vacío/parcial/sin precio.
-- `M5.7` Implementar personalización, drag accesible, teclado y reset.
-- `M5.8` Añadir hasta dos métricas de resumen por proveedor para tooltip y estado de bandeja.
-- `M5.9` Implementar undo por sesión.
-- `M5.10` Mantener recursos de interfaz en inglés.
-- `M5.11` Ajustar alto dinámico sin saltos al cambiar de pantalla.
-- `M5.12` Crear baseline visual a 100% y 200% en claro, oscuro y alto contraste.
+- `M5.1` Extract tokens for size, space, radius, color, and typography from the capture and upstream docs, with its own identity.
+- `M5.2` Create header, cards, bars, values, badges, warnings, and tooltips.
+- `M5.3` Add global Used/Remaining and relative/exact time.
+- `M5.4` Add an on-demand block and expansion persistence.
+- `M5.5` Create an accessible 30-day trend.
+- `M5.6` Create `Usage and cost` with fake data and empty, partial, and unpriced states.
+- `M5.7` Implement customization, accessible drag, keyboard, and reset.
+- `M5.8` Add up to two summary metrics per provider for tooltip and tray state.
+- `M5.9` Implement undo for the session.
+- `M5.10` Keep interface resources in English.
+- `M5.11` When the screen changes, adjust dynamic height without jumps.
+- `M5.12` Create a visual baseline at 100% and 200% in light, dark, and high contrast.
 
-### Estados que deben tener captura
+### States that must have a capture
 
-- primer inicio;
-- Codex con una y dos ventanas;
-- refresco con caché;
-- sin login;
-- sin datos;
-- dato parcial;
-- dato vencido;
-- throttle;
-- error de contrato;
-- gasto total vacío y poblado;
-- gasto informado, estimado y con modelos sin precio;
-- personalización y confirmación de reset.
+- first start
+- Codex with one and two windows
+- refresh with cache
+- no login
+- `No data`
+- partial data
+- stale data
+- throttle
+- contract error
+- Total spend empty and populated
+- spend reported, estimated, and with unpriced models
+- customization and reset confirmation
 
-### Pruebas
+### Tests
 
-- ViewModels con orden, hide, reset y undo;
-- snapshot tests de strings y formatos con culturas distintas;
-- UI automation por teclado;
-- Accessibility Insights: nombres, roles, contraste y orden;
-- diff visual con tolerancia documentada;
-- texto al 200% y ventana angosta sin corte de cuota o reinicio.
+- ViewModels with order, hide, reset, and undo
+- snapshot tests of strings and formats with different cultures
+- UI automation by keyboard
+- Accessibility Insights: names, roles, contrast, and order
+- visual diff with documented tolerance
+- 200% text and a narrow window without a cut of quota or reset
 
-### Salida
+### Output
 
-- jerarquía y funciones centrales del panel upstream reconocibles;
-- Fluent y convenciones Windows respetadas;
-- nombre y logo propios;
-- estados reales cubiertos;
-- baseline visual aprobada.
+- hierarchy and central functions of the upstream panel are recognizable
+- Fluent and Windows conventions are respected
+- own name and logo
+- real states covered
+- visual baseline approved
 
-## M6 — Motor local de uso, precios y Claude
+## M6 — Local usage engine, prices, and Claude
 
-Esfuerzo: 10–15 días.
+Effort: 10–15 days.
 
-### Contratos y persistencia
+### Contracts and persistence
 
-- `M6.1` Crear `UsageEvent`, `TokenBreakdown`, `CostObservation`, `Coverage` y `DailyUsageRollup`.
-- `M6.2` Separar `AgentId`, proveedor de modelo y modelo.
-- `M6.3` Crear `usage.v1.db` con eventos normalizados, rollups, cursores, precios y migraciones.
-- `M6.4` Retener eventos 400 días, conservar rollups y ofrecer borrado desde ajustes.
-- `M6.5` Implementar deduplicación idempotente por `EventKey` y transacciones cortas.
-- `M6.6` Crear scanner incremental streaming con límites de archivos, bytes y tiempo.
-- `M6.7` Definir buckets según zona horaria local y recomputación tras cambio de zona.
+- `M6.1` Create `UsageEvent`, `TokenBreakdown`, `CostObservation`, `Coverage`, and `DailyUsageRollup`.
+- `M6.2` Separate `AgentId`, model provider, and model.
+- `M6.3` Create `usage.v1.db` with normalized events, rollups, cursors, prices, and migrations.
+- `M6.4` Retain events for 400 days. Keep rollups. Offer deletion from Options.
+- `M6.5` Implement idempotent deduplication by `EventKey` and short transactions.
+- `M6.6` Create an incremental streaming scanner with limits for files, bytes, and time.
+- `M6.7` Define buckets by local time zone. After a zone change, recompute.
 
-### Precio y cobertura
+### Price and coverage
 
-- `M6.8` Dar prioridad al coste informado por el agente.
-- `M6.9` Crear catálogo embebido y versionado desde LiteLLM, más overrides exactos revisados.
-- `M6.10` Prohibir coincidencias por subcadena y marcar modelos sin precio.
-- `M6.11` Calcular cobertura por tokens y coste en cada agregado.
-- `M6.12` Separar coste informado, coste estimado y fila sin coste en UI y JSON.
+- `M6.8` Give priority to cost reported by the agent.
+- `M6.9` Create an embedded versioned catalog from LiteLLM, plus reviewed exact overrides.
+- `M6.10` Forbid substring matches and mark models without a price.
+- `M6.11` Calculate coverage by tokens and cost in each aggregate.
+- `M6.12` Separate reported cost, estimated cost, and a row without cost in UI and JSON.
 
-### Claude local
+### Local Claude
 
-- `M6.13` Resolver `%USERPROFILE%\.claude` y `CLAUDE_CONFIG_DIR`.
-- `M6.14` Detectar `projects` sin leer `.credentials.json`.
-- `M6.15` Parsear solo modelo, fecha, tokens, coste y claves de deduplicación.
-- `M6.16` Agregar hoy, ayer, 7 días, 30 días y mes actual.
-- `M6.17` Explicar que `--no-session-persistence`, sesiones borradas y otros equipos no aparecen.
-- `M6.18` Etiquetar la tarjeta `Uso local` mientras la cuota esté bloqueada.
+- `M6.13` Resolve `%USERPROFILE%\.claude` and `CLAUDE_CONFIG_DIR`.
+- `M6.14` Detect `projects`. Do not read `.credentials.json`.
+- `M6.15` Parse only model, date, tokens, cost, and deduplication keys.
+- `M6.16` Aggregate today, yesterday, 7 days, 30 days, and the current month.
+- `M6.17` Explain that `--no-session-persistence`, deleted sessions, and other computers do not appear.
+- `M6.18` If quota is blocked, label the card `Local usage`.
 
-Estado 2026-07-22: Ticket 17 entrega rutas Windows, lectura privada,
-deduplicación, coste y persistencia. Ticket 20 cierra Hoy, Ayer, 7 días, 30
-días, Mes actual, coste por millón, cobertura y desglose agente/modelo. El cursor
-incremental sigue pendiente.
+Status 2026-07-22: Ticket 17 delivered Windows paths, private read, deduplication, cost, and persistence. Ticket 20 closed Today, Yesterday, 7 days, 30 days, Current month, cost per million, coverage, and agent/model breakdown. The incremental cursor remains pending.
 
-### Pruebas
+### Tests
 
-- migración, rollback lógico y acceso simultáneo UI/CLI a `usage.v1.db`;
-- coste informado gana a catálogo y no se suma dos veces;
-- modelo sin precio queda visible y reduce cobertura;
-- prompt o respuesta con campos parecidos no altera el conteo;
-- deduplicación y subagente;
-- DST, cambio de año y zona horaria;
-- archivo agregado mientras el scanner corre;
-- presupuesto de 10.000 archivos sin bloquear UI;
-- diferencial con OpenUsage, CodeBurn o AgentsView sobre el mismo corpus permitido.
+- migration, logical rollback, and simultaneous UI/CLI access to `usage.v1.db`
+- reported cost wins over the catalog and is not added twice
+- a model without a price stays visible and reduces coverage
+- a prompt or response with similar fields does not change the count
+- deduplication and subagent
+- DST, year change, and time zone
+- a file is added while the scanner runs
+- a budget of 10,000 files without a UI block
+- differential with OpenUsage, CodeBurn, or AgentsView on the same permitted corpus
 
-### Salida
+### Output
 
-- motor propio pequeño, sin índice de transcripciones;
-- métricas locales Claude con procedencia y cobertura;
-- cero uso remoto del OAuth Claude;
-- catálogo y scanner reutilizables;
-- rendimiento medido y registrado.
+- small first-party engine, with no transcript index
+- local Claude metrics with provenance and coverage
+- zero remote use of Claude OAuth
+- reusable catalog and scanner
+- measured and recorded performance
 
-## M6A — Grok Build y OpenCode local
+## M6A — Grok Build and local OpenCode
 
-Esfuerzo: 7–11 días.
+Effort: 7–11 days.
 
 ### Grok Build
 
-Estado 2026-07-22: Ticket 18 entrega el scanner Windows de sesiones, coste
-informado en ticks, fallback unificado, reemplazo de snapshots y composición
-real junto a Claude. Cursor incremental y tarjeta separada por proveedor siguen
-pendientes.
+Status 2026-07-22: Ticket 18 delivered the Windows session scanner, reported cost in ticks, unified fallback, snapshot replacement, and real composition next to Claude. The incremental cursor and a separate card per provider remain pending.
 
-- `M6A.1` Resolver `GROK_HOME` y la raíz `%USERPROFILE%\.grok` sin abrir `auth.json`.
-- `M6A.2` Descubrir sesiones por `summary.json`; observar `signals.json` y `updates.jsonl`.
-- `M6A.3` Preferir `params.update.usage`, modelo, tokens y `costUsdTicks` cuando existan.
-- `M6A.4` Añadir `unified.jsonl` como fallback con cursor por byte y límites de línea.
-- `M6A.5` Evitar doble conteo entre sesión y fallback.
-- `M6A.6` Estimar solo cuando falta coste informado y marcar el algoritmo y catálogo.
-- `M6A.7` Mantener cuota y saldo en `PolicyBlocked`; no leer auth ni llamar billing privado.
+- `M6A.1` Resolve `GROK_HOME` and the `%USERPROFILE%\.grok` root. Do not open `auth.json`.
+- `M6A.2` Discover sessions by `summary.json`. Observe `signals.json` and `updates.jsonl`.
+- `M6A.3` If `params.update.usage`, model, tokens, and `costUsdTicks` exist, prefer them.
+- `M6A.4` Add `unified.jsonl` as fallback with a byte cursor and line limits.
+- `M6A.5` Avoid double counting between session and fallback.
+- `M6A.6` If reported cost is missing, estimate. Mark the algorithm and catalog.
+- `M6A.7` Keep quota and balance in `PolicyBlocked`. Do not read auth or call private billing.
 
 ### OpenCode
 
-Estado 2026-07-22: Ticket 19 entrega el scanner Windows nativo para el esquema
-SQLite actual, la base anterior y el almacenamiento JSON legado. La composición
-real, el smoke diferencial y la prueba UI están cerrados. WSL sigue fuera de
-este corte y requiere consentimiento.
+Status 2026-07-22: Ticket 19 delivered the native Windows scanner for the current SQLite schema, the previous database, and legacy JSON storage. Real composition, differential smoke, and the UI test are closed. WSL remains outside this cut and requires consent.
 
-- `M6A.8` Resolver `%USERPROFILE%\.local\share\opencode` y override documentado.
-- `M6A.9` Detectar `opencode.db` y `storage` sin abrir `auth.json`.
-- `M6A.10` Abrir SQLite ajena en modo de solo lectura con `busy_timeout` corto y sin copia completa.
-- `M6A.11` Leer solo identidad de evento, fecha, modelo, tokens y coste desde mensaje o `step-finish`.
-- `M6A.12` Unir SQLite y JSON legado con deduplicación estable.
-- `M6A.13` Comparar totales con `opencode stats` en un smoke opt-in; no parsear su salida para producción.
-- `M6A.14` Diseñar detección WSL como tarea posterior con consentimiento y roots por distro.
+- `M6A.8` Resolve `%USERPROFILE%\.local\share\opencode` and the documented override.
+- `M6A.9` Detect `opencode.db` and `storage`. Do not open `auth.json`.
+- `M6A.10` Open foreign SQLite in read-only mode with a short `busy_timeout` and without a full copy.
+- `M6A.11` Read only event identity, date, model, tokens, and cost from the message or `step-finish`.
+- `M6A.12` Join SQLite and legacy JSON with stable deduplication.
+- `M6A.13` Compare totals with `opencode stats` in an opt-in smoke. Do not parse its output for production.
+- `M6A.14` Design WSL detection as a later task with consent and roots per distro.
 
-### Pruebas
+### Tests
 
-- fixtures Grok antes y después de `params.update.usage`, compacción, truncado y modelo múltiple;
-- fixtures OpenCode SQLite, WAL, JSON legado, coste cero válido y sesión en ambos formatos;
-- base OpenCode bloqueada o con esquema nuevo conserva el último agregado;
-- scanner no lee `auth.json`, texto, comandos ni partes sin contadores;
-- diferencial de totales y cobertura sobre fixtures compartidos;
-- smoke Windows opt-in sin imprimir cifras ni contenido.
+- Grok fixtures before and after `params.update.usage`, compaction, truncation, and multiple models
+- OpenCode fixtures for SQLite, WAL, legacy JSON, valid zero cost, and a session in both formats
+- a locked OpenCode database or a new schema keeps the last aggregate
+- the scanner does not read `auth.json`, text, commands, or parts without counters
+- differential of totals and coverage on shared fixtures
+- opt-in Windows smoke without printing figures or content
 
-### Salida
+### Output
 
-- tarjetas Grok Build y OpenCode con tokens, gasto, tendencia y cobertura;
-- cuota Grok visible como bloqueada, sin acceso privado;
-- OpenCode nativo en Windows cubierto; WSL declarado fuera de esta salida;
-- scanner medido sobre una base OpenCode grande sin copiarla.
+- Grok Build and OpenCode cards with tokens, spend, trend, and coverage
+- Grok quota visible as blocked, with no private access
+- native OpenCode on Windows is covered. WSL is declared outside this output
+- scanner measured on a large OpenCode database without a copy of it
 
-## M6B — Spike pasivo de Antigravity CLI
+## M6B — Passive Antigravity CLI spike
 
-Esfuerzo: 4–7 días después de obtener una `.db` real.
+Effort: 4–7 days after a real `.db` is obtained.
 
-### Tareas
+### Tasks
 
-- `M6B.1` Detectar `%USERPROFILE%\.gemini\antigravity-cli` y variantes documentadas sin abrir Credential Manager.
-- `M6B.2` Copiar a fixtures solo filas `gen_metadata` sanitizadas de una conversación `.db` autorizada.
-- `M6B.3` Validar esquema y extraer modelo, fecha y tokens por generación.
-- `M6B.4` Estimar coste con catálogo y marcar placeholders o modelos sin precio.
-- `M6B.5` Fallar cerrado ante `.pb`, cifrado, daemon, token, CSRF o necesidad de RPC.
-- `M6B.6` Mantener `/usage` y `/credits` fuera del adaptador.
-- `M6B.7` Evaluar una statusline mínima solo con instalación explícita y sin correo, cwd o texto.
+- `M6B.1` Detect `%USERPROFILE%\.gemini\antigravity-cli` and documented variants. Do not open Credential Manager.
+- `M6B.2` Copy to fixtures only sanitized `gen_metadata` rows from an authorized conversation `.db`.
+- `M6B.3` Make sure that the schema is valid. Extract model, date, and tokens per generation.
+- `M6B.4` Estimate cost with the catalog and mark placeholders or unpriced models.
+- `M6B.5` Fail closed on `.pb`, encryption, daemon, token, CSRF, or a need for RPC.
+- `M6B.6` Keep `/usage` and `/credits` outside the adapter.
+- `M6B.7` Evaluate a minimum statusline only with explicit installation and without email, cwd, or text.
 
-### Pruebas
+### Tests
 
-- fixture SQLite con filas válidas, corruptas, duplicadas y esquema distinto;
-- cero llamadas de red, procesos o Credential Manager;
-- fuente cifrada produce `PolicyBlocked` o `NotConfigured`, nunca un cero;
-- diferencial de tokens contra el contador visible del CLI realizado a mano;
-- smoke dentro del MSIX con una cuenta de prueba autorizada.
+- SQLite fixture with valid, corrupt, duplicate, and different-schema rows
+- zero network, process, or Credential Manager calls
+- an encrypted source produces `PolicyBlocked` or `NotConfigured`, never a zero
+- token differential against the visible CLI counter, done by hand
+- smoke inside the MSIX with an authorized test account
 
-### Salida
+### Output
 
-- parser experimental de tokens y coste local, o registro de bloqueo con evidencia;
-- ningún claim de cuota o créditos;
-- feature flag apagado hasta cerrar fixtures, política y smoke.
+- experimental parser for local tokens and cost, or a block record with evidence
+- no claim of quota or credits
+- feature flag off until fixtures, policy, and smoke close
 
-## M7 — Ajustes, avisos y privacidad
+## M7 — Options, notices, and privacy
 
-Esfuerzo: 5–8 días.
+Effort: 5–8 days.
 
-### Tareas
+### Tasks
 
-- `M7.1` Crear navegación interna Dashboard, Personalizar y Ajustes.
-- `M7.2` Tema, densidad, transparencia, formato y modo usado/restante.
-- `M7.3` StartupTask con estado real y errores visibles.
-- `M7.4` Atajo global configurable y conflicto explicado.
-- `M7.5` App Notifications para umbral, proyección, vencido y credencial.
-- `M7.6` Deduplicar avisos por ventana y cambio de estado.
-- `M7.7` Añadir proxy del sistema y override probado.
-- `M7.8` Crear logs rotados y diagnóstico sanitizado.
-- `M7.9` Crear pantalla de datos guardados y acción borrar.
-- `M7.10` Mantener telemetría apagada; cualquier cambio futuro requiere consentimiento y ADR.
-- `M7.11` Añadir privacidad de screen capture si Windows ofrece una ruta fiable; si no, documentar el límite.
-- `M7.12` Cerrar i18n inicial para `en-US` y `es-ES`: selector persistente,
-  paridad de recursos, formatos por cultura, fallback y prueba de texto largo.
+- `M7.1` Create internal navigation for Dashboard, Customization, and Options.
+- `M7.2` Appearance: theme, density, transparency, format, and Used/Remaining mode.
+- `M7.3` StartupTask with real status and visible errors.
+- `M7.4` Configurable global shortcut and an explained conflict.
+- `M7.5` App Notifications for threshold, projection, stale, and credential.
+- `M7.6` Deduplicate notices by window and state change.
+- `M7.7` Add the system proxy and a tested override.
+- `M7.8` Create rotated logs and sanitized diagnostics.
+- `M7.9` Create a saved-data screen and a delete action.
+- `M7.10` Keep telemetry off. Any future change requires consent and an ADR.
+- `M7.11` If Windows offers a reliable path, add screen-capture privacy. If it does not, document the limit.
+- `M7.12` Close initial i18n for `en-US` and `es-ES`: persistent selector, resource parity, formats by culture, fallback, and a long-text test.
 
-Estado 2026-07-22: Ticket 47 completó inicialmente `M7.12` con selector persistente,
-fallback canónico, formatos por cultura y evidencia en
-`docs/evidence/ticket-47-i18n.md`. Superado el 2026-08-14: la interfaz pública
-es solo en inglés; se retiraron el selector y los recursos `es-ES`.
+Status 2026-07-22: Ticket 47 initially completed `M7.12` with a persistent selector, canonical fallback, and formats by culture. Superseded on 2026-08-14: the public interface is English-only. The selector and `es-ES` resources were removed.
 
-### Pruebas
+### Tests
 
-- migración de ajustes;
-- inicio activado, denegado y administrado por Windows;
-- atajo libre y ocupado;
-- aviso no repetido durante cada refresco;
-- proxy correcto y credencial de proxy redacted;
-- export de diagnóstico revisado por detector de secretos;
-- borrado elimina caché, índice y claves propias sin tocar datos de proveedor.
+- settings migration
+- startup enabled, denied, and managed by Windows
+- free shortcut and occupied shortcut
+- notice not repeated during each refresh
+- correct proxy and redacted proxy credential
+- diagnostic export reviewed by a secret detector
+- delete removes cache, index, and own keys without touching provider data
 
-### Salida
+### Output
 
-- ajustes sobreviven actualización;
-- avisos útiles y no repetidos;
-- usuario controla arranque y datos;
-- diagnóstico apto para soporte.
+- settings survive an update
+- useful notices that are not repeated
+- the user controls startup and data
+- diagnostics suitable for support
 
-## M8 — CLI y API local
+## M8 — CLI and local API
 
-Esfuerzo: 5–7 días.
+Effort: 5–7 days.
 
 ### CLI
 
-- `M8.1` Implementar comandos `limits`, `usage`, `providers` y `doctor`.
-- `M8.2` Compartir caché y mutex con la app.
-- `M8.3` Definir JSON `tokenusage.limits.v1` y `tokenusage.usage.v1` con golden files.
-- `M8.4` Añadir `--force`, provider ID y salida humana.
-- `M8.5` Definir códigos 0, 2 y 4.
-- `M8.6` Declarar alias de ejecución en MSIX.
+- `M8.1` Implement the `limits`, `usage`, `providers`, and `doctor` commands.
+- `M8.2` Share cache and mutex with the app.
+- `M8.3` Define JSON `tokenusage.limits.v1` and `tokenusage.usage.v1` with golden files.
+- `M8.4` Add `--force`, provider ID, and human output.
+- `M8.5` Define codes 0, 2, and 4.
+- `M8.6` Declare the execution alias in MSIX.
 
 ### API
 
-- `M8.7` Implementar host loopback apagado al instalar.
-- `M8.8` Crear, mostrar con confirmación y rotar bearer token propio.
-- `M8.9` Rechazar `Origin` por defecto y agregar allowlist exacta.
-- `M8.10` Implementar `/v1/health`, `/v1/limits`, `/v1/usage` y filtros por provider/días.
-- `M8.11` Añadir límites de método, concurrencia, tamaño y timeout.
-- `M8.12` Añadir estado de puerto ocupado y selector de puerto.
-- `M8.13` Diseñar modo de compatibilidad OpenUsage como opción separada; no activarlo en beta inicial.
+- `M8.7` Implement a loopback host that is off at install.
+- `M8.8` Create a first-party bearer token. Show it with confirmation. Rotate it.
+- `M8.9` Reject `Origin` by default and add an exact allowlist.
+- `M8.10` Implement `/v1/health`, `/v1/limits`, `/v1/usage`, and filters by provider/days.
+- `M8.11` Add limits for method, concurrency, size, and timeout.
+- `M8.12` Add a busy-port status and a port selector.
+- `M8.13` Design OpenUsage compatibility mode as a separate option. Do not turn it on in the initial beta.
 
-### Pruebas
+### Tests
 
-- golden JSON y compatibilidad de campos opcionales;
-- CLI con app cerrada, abierta y refresco simultáneo;
-- token ausente, erróneo, correcto y rotado;
-- petición con Origin, método no apto y path inválido;
-- 16 solicitudes y rechazo controlado de exceso;
-- bind solo en loopback comprobado;
-- navegador no puede leer por defecto;
-- API nunca incluye token, correo, ruta o log.
+- golden JSON and compatibility of optional fields
+- CLI with the app closed, open, and a simultaneous refresh
+- token absent, wrong, correct, and rotated
+- request with Origin, unsuitable method, and invalid path
+- 16 requests and controlled rejection of excess
+- bind only on loopback
+- a browser cannot read by default
+- the API never includes a token, email, path, or log
 
-### Salida
+### Output
 
-- automatización local estable;
-- API con activación consciente y autenticada;
-- contrato versionado con ejemplos.
+- stable local automation
+- API with conscious, authenticated activation
+- versioned contract with examples
 
-## M9 — Proveedores siguientes
+## M9 — Next providers
 
-Esfuerzo: 3–10 días por proveedor más el tiempo del gate externo.
+Effort: 3–10 days per provider plus the time of the external gate.
 
-Orden y alcance:
+Order and scope:
 
-1. OpenRouter manual.
-2. Reevaluar Z.ai solo si existe un contrato público o permiso escrito para una app aparte.
-3. Cursor Teams y Enterprise mediante Admin API; mantener Individual sin proveedor remoto.
-4. GitHub Copilot billing para cuenta personal pagada y organización; excluir cuota privada.
-5. Claude cuota en vivo tras aprobación.
-6. Grok cuota en vivo tras interfaz pública o permiso.
-7. Devin ACUs de organización por API v3 en canal experimental.
-8. ZCode, bloqueado por Ticket 48 hasta publicar una fuente apta y política que
-   permita su uso.
-9. Kimi Code, bloqueado por Ticket 50 hasta publicar una API o exportación de
-   solo lectura, documentada para terceros, sin sesiones ni credenciales y
-   autorizada para consultas automáticas.
-10. Command Code, bloqueado por Ticket 52 hasta publicar una API o exportación
-    de solo lectura, documentada para terceros, sin sesiones ni credenciales y
-    autorizada para consultas automáticas.
-11. Cline, solo mediante API pública de lectura y una API key propia aportada
-    de forma explícita, después de fijar schema y permiso; quedan excluidos
-    datos locales de tareas.
-12. Kilo Code, en gate por Ticket 56: `kilo stats` es una fuente candidata,
-    sin salida estructurada ni contrato de solo lectura. Se excluyen `kilo.db`
-    y sesiones locales.
-13. Zed, bloqueado por Ticket 58: los hilos locales mezclan transcripción y
-    contadores; solo se reabre con una fuente agregada oficial para terceros.
-14. Gemini CLI, gate de fuente en Ticket 61.
-15. Kiro, gate separado para CLI, IDE y cuenta en Ticket 62.
-16. Roo Code y su sucesor candidato ZooCode, gate de identidad, privacidad y
-    deduplicación en Ticket 63.
-17. Goose, gate Windows y de fuente agregada en Ticket 64.
-18. Kimi CLI, identidad separada de Kimi Code en Ticket 65.
-19. Cursor Agent, identidad separada de Cursor Admin API en Ticket 66.
-20. Forge, gate Windows y de almacenamiento en Ticket 67.
-21. Hermes Agent, gate de identidad y atribución en Ticket 68.
-22. OpenClaw, gate de fuente agregada en Ticket 69.
-23. Pi, gate de identidad y deduplicación con OMP en Ticket 70.
-24. Qwen Code, gate separado del proveedor de modelos Qwen en Ticket 71.
-25. Warp, gate que excluye historial y comandos de terminal en Ticket 72.
-26. Vercel AI Gateway, gate de reporte agregado, permisos de clave y gasto del
-    gateway en Ticket 73. La integración queda en Ticket 74.
-27. Mistral Vibe, gate de fuente agregada que excluye contenido de sesión en
-    Ticket 75. La integración queda en Ticket 76.
-28. DeepSeek TUI / CodeWhale, gate de identidad y migración en Ticket 77.
-29. Windsurf, gate Windows y de fuente agregada en Ticket 78.
-30. Trae, gate de variantes Windows y privacidad en Ticket 79.
-31. Aider, gate de consentimiento y roots opt-in en Ticket 80.
-32. OpenHands CLI, gate de identidad y fuente en Ticket 81.
-33. Amp, gate de baja prioridad para threads locales en Ticket 82.
-34. Codebuff, gate de contabilidad agregada en Ticket 83.
-35. Piebald, gate Windows y de almacenamiento en Ticket 84.
-36. Crush, gate de identidad y fuente Windows en Ticket 86.
-37. Droid, gate de identidad canónica en Ticket 87.
-38. IBM Bob, gate de producto vigente y exportación mínima en Ticket 88.
-39. LingTai TUI, gate de identidad y soporte Windows en Ticket 89.
-40. Mux, gate de fuente agregada en Ticket 90.
-41. Open Design, gate que decide si es agente o formato auxiliar en Ticket 91.
-42. Quick Desktop, gate del identificador `quickdesk` en Ticket 92.
-43. Zerostack, gate de producto y contrato de métricas en Ticket 93.
-44. Zencoder, gate de identidad y fuente apta en Ticket 94.
-45. Qoder, gate que excluye transcripciones de proyecto en Ticket 95.
-46. Cortex Code, gate separado de la facturación Snowflake en Ticket 96.
-47. gptme, gate Windows y de salida agregada en Ticket 97.
-48. iFlow, gate de identidad y fuente en Ticket 98.
-49. IcodeMate, gate de producto vigente en Ticket 99.
-50. MiMoCode, gate separado de los modelos MiMo en Ticket 100.
-51. Posit Assistant, gate separado de Positron en Ticket 101.
-52. Positron Assistant, gate Windows en Ticket 102.
-53. QClaw, gate de relación y deduplicación con OpenClaw en Ticket 103.
-54. QwenPaw, gate separado de Qwen Code en Ticket 104.
-55. Reasonix, gate Windows que excluye sesiones en Ticket 105.
-56. Shelley, gate de base y soporte Windows en Ticket 106.
-57. WorkBuddy, gate de identidad y fuente agregada en Ticket 107.
-58. OpenClaude, gate de relación con Claude Code en Ticket 108.
-59. Claude Cowork, gate dentro de la familia Claude en Ticket 109.
+1. Manual OpenRouter.
+2. If a public contract or written permission exists for a separate app, reevaluate Z.ai.
+3. Cursor Teams and Enterprise through Admin API. Keep Individual without a remote provider.
+4. GitHub Copilot billing for a paid personal account and an organization. Exclude private quota.
+5. Claude live quota after approval.
+6. Grok live quota after a public interface or permission.
+7. Devin organization ACUs through API v3 on an experimental channel.
+8. ZCode, blocked by Ticket 48 until a suitable source and a policy that permits its use are published.
+9. Kimi Code, blocked by Ticket 50 until a read-only API or export is published. It must be documented for third parties, without sessions or credentials, and authorized for automatic queries.
+10. Command Code, blocked by Ticket 52 until a read-only API or export is published. It must be documented for third parties, without sessions or credentials, and authorized for automatic queries.
+11. After schema and permission are fixed, Cline uses only a public read API and an API key supplied by the user explicitly. Local task data remains excluded.
+12. Kilo Code, gated by Ticket 56: `kilo stats` is a candidate source, with no structured output and no read-only contract. `kilo.db` and local sessions are excluded.
+13. Zed, blocked by Ticket 58: local threads mix transcript and counters. The gate reopens only with an official aggregated source for third parties.
+14. Gemini CLI, source gate in Ticket 61.
+15. Kiro, separate gate for CLI, IDE, and account in Ticket 62.
+16. Roo Code and its candidate successor ZooCode, identity, privacy, and deduplication gate in Ticket 63.
+17. Goose, Windows and aggregated-source gate in Ticket 64.
+18. Kimi CLI, identity separate from Kimi Code in Ticket 65.
+19. Cursor Agent, identity separate from Cursor Admin API in Ticket 66.
+20. Forge, Windows and storage gate in Ticket 67.
+21. Hermes Agent, identity and attribution gate in Ticket 68.
+22. OpenClaw, aggregated-source gate in Ticket 69.
+23. Pi, identity and deduplication gate with OMP in Ticket 70.
+24. Qwen Code, gate separate from the Qwen model provider in Ticket 71.
+25. Warp, gate that excludes terminal history and commands in Ticket 72.
+26. Vercel AI Gateway, gate of aggregated reporting, key permissions, and gateway spend in Ticket 73. Integration remains in Ticket 74.
+27. Mistral Vibe, aggregated-source gate that excludes session content in Ticket 75. Integration remains in Ticket 76.
+28. DeepSeek TUI / CodeWhale, identity and migration gate in Ticket 77.
+29. Windsurf, Windows and aggregated-source gate in Ticket 78.
+30. Trae, Windows variants and privacy gate in Ticket 79.
+31. Aider, consent and opt-in roots gate in Ticket 80.
+32. OpenHands CLI, identity and source gate in Ticket 81.
+33. Amp, low-priority gate for local threads in Ticket 82.
+34. Codebuff, aggregated accounting gate in Ticket 83.
+35. Piebald, Windows and storage gate in Ticket 84.
+36. Crush, identity and Windows source gate in Ticket 86.
+37. Droid, canonical identity gate in Ticket 87.
+38. IBM Bob, current-product and minimum-export gate in Ticket 88.
+39. LingTai TUI, identity and Windows support gate in Ticket 89.
+40. Mux, aggregated-source gate in Ticket 90.
+41. Open Design, gate that decides whether it is an agent or an auxiliary format in Ticket 91.
+42. Quick Desktop, gate of the `quickdesk` identifier in Ticket 92.
+43. Zerostack, product and metrics-contract gate in Ticket 93.
+44. Zencoder, identity and suitable-source gate in Ticket 94.
+45. Qoder, gate that excludes project transcripts in Ticket 95.
+46. Cortex Code, gate separate from Snowflake billing in Ticket 96.
+47. gptme, Windows and aggregated-output gate in Ticket 97.
+48. iFlow, identity and source gate in Ticket 98.
+49. IcodeMate, current-product gate in Ticket 99.
+50. MiMoCode, gate separate from MiMo models in Ticket 100.
+51. Posit Assistant, gate separate from Positron in Ticket 101.
+52. Positron Assistant, Windows gate in Ticket 102.
+53. QClaw, relationship and deduplication gate with OpenClaw in Ticket 103.
+54. QwenPaw, gate separate from Qwen Code in Ticket 104.
+55. Reasonix, Windows gate that excludes sessions in Ticket 105.
+56. Shelley, database and Windows support gate in Ticket 106.
+57. WorkBuddy, identity and aggregated-source gate in Ticket 107.
+58. OpenClaude, relationship gate with Claude Code in Ticket 108.
+59. Claude Cowork, gate inside the Claude family in Ticket 109.
 
-GitHub Copilot ya tiene el gate cerrado en Ticket 32, implementación en Ticket
-33 y smoke autorizado en Ticket 45. No se crea un provider duplicado.
+The GitHub Copilot gate is closed in Ticket 32. Implementation is in Ticket 33. Authorized smoke is in Ticket 45. A duplicate provider is not created.
 
-ZCode, Kimi Code, Command Code y Zed cerraron su investigación con estado
-bloqueado en los Tickets 48, 50, 52 y 58. Cline cerró Ticket 54; el provider
-sigue bloqueado: la API Enterprise candidata carece de schema publicado y
-permiso de monitor probado. Kilo Code cerró Ticket 56 con un gate abierto:
-`kilo stats` no tiene salida estructurada ni garantía de solo lectura. Los
-Tickets 55, 57 y 59 quedan en `needs-info`. Cada proveedor debe confirmar el
-nombre canónico, editor o CLI objetivo, rutas Windows, contrato de cuota, uso y
-gasto, licencia y política antes de escribir un adapter.
+ZCode, Kimi Code, Command Code, and Zed closed their research with blocked status in Tickets 48, 50, 52, and 58. Cline closed Ticket 54. The provider remains blocked: the candidate Enterprise API lacks a published schema and a proven monitor permission.
 
-Gate Cline: [investigación de fuente Cline](research/2026-07-22-cline-source-gate.md).
+Kilo Code closed Ticket 56 with an open gate: `kilo stats` has no structured output and no read-only guarantee. Tickets 55, 57, and 59 remain in `needs-info`. Before an adapter is written, each provider must record the canonical name, target editor or CLI, and Windows paths. It must also record the quota contract, usage contract, spend contract, license, and policy.
 
-Gates nuevos: [Kilo Code](research/2026-07-22-kilo-code-source-gate.md),
-[Zed](research/2026-07-22-zed-source-gate.md) e [inventario de cobertura]
-(research/2026-07-22-provider-reference-inventory.md).
+Cline gate: [Cline source research](research/2026-07-22-cline-source-gate.md).
 
-El inventario local abrió los Tickets 61–66. Gemini CLI, Kiro, Roo Code y
-Goose forman la siguiente ola. Kimi CLI y Cursor Agent conservan identidades
-propias hasta que sus gates prueben su relación con Kimi Code o Cursor.
+New gates: [Kilo Code](research/2026-07-22-kilo-code-source-gate.md), [Zed](research/2026-07-22-zed-source-gate.md), and [coverage inventory](research/2026-07-22-provider-reference-inventory.md).
 
-Una segunda comparación abrió los Tickets 67–72 para Forge, Hermes Agent,
-OpenClaw, Pi, Qwen y Warp. Los seis aparecen en CodeBurn y AgentsView. Su
-presencia repetida solo define el orden de investigación.
+The local inventory opened Tickets 61–66. Gemini CLI, Kiro, Roo Code, and Goose form the next wave. Kimi CLI and Cursor Agent keep their own identities until their gates establish their relationship with Kimi Code or Cursor.
 
-La revisión completa de los registros abrió los Tickets 73–76. Vercel AI
-Gateway tiene un candidato de reporte agregado con clave manual en CodeBurn;
-Mistral Vibe aparece en CodeBurn y AgentsView, pero sus adapters leen sesiones.
-Ambos requieren fuentes primarias y un gate antes de crear un descriptor.
+A second comparison opened Tickets 67–72 for Forge, Hermes Agent, OpenClaw, Pi, Qwen, and Warp. All six appear in CodeBurn and AgentsView. Their repeated presence only defines the research order.
 
-La última pasada de los índices fijados abrió el Ticket 85 para resolver
-familias y prioridad, y los Tickets 86–109 para candidatos restantes. Las
-variantes de Copilot, Kiro y Antigravity siguen bajo sus familias. ChatGPT y
-Claude.ai quedan fuera: las referencias los tratan como importaciones de
-historial, sin identidad de agente local ni contrato de cuota.
+The complete review of the records opened Tickets 73–76. Vercel AI Gateway has a candidate aggregated report with a manual key in CodeBurn. Mistral Vibe appears in CodeBurn and AgentsView, but its adapters read sessions. Both require primary sources and a gate before a descriptor is created.
 
-La segunda revisión abrió los Tickets 77–84. Prioriza rutas Windows y una
-decisión de identidad para DeepSeek TUI / CodeWhale. Estos tickets solo
-autorizan investigación; no autorizan lectores de chats, threads o bases de IDE.
+The last pass of the fixed indexes opened Ticket 85 to resolve families and priority, and Tickets 86–109 for remaining candidates. Copilot, Kiro, and Antigravity variants stay under their families. ChatGPT and Claude.ai stay out. The references treat them as history imports. They have no local agent identity and no quota contract.
 
-Cada proveedor se divide en commits:
+The second review opened Tickets 77–84. It prioritizes Windows paths and an identity decision for DeepSeek TUI / CodeWhale. These tickets authorize research only. They do not authorize readers of chats, threads, or IDE databases.
 
-- descriptor y detección local;
-- parser o cliente con fixtures;
-- mapper y tests;
-- UI y textos de estado;
-- integración empaquetada;
-- docs y gate de lanzamiento.
+Each provider is split into commits:
 
-Un proveedor privado se puede desarrollar detrás de un feature flag. No se activa en builds públicas mientras falte una casilla del gate.
+- descriptor and local detection
+- parser or client with fixtures
+- mapper and tests
+- UI and status texts
+- packaged integration
+- docs and release gate
 
-Cursor no usa una fuente privada. Su adaptador solo admite una clave Admin API creada por el usuario, varias conexiones nombradas y los endpoints públicos bajo `api.cursor.com`. Debe mostrar uso y gasto sin inferir cuota restante. La activación pública requiere un smoke autorizado; la DB, sesión, dashboard y export privado quedan fuera del binario.
+A private provider can be developed behind a feature flag. It is not turned on in public builds while any gate checkbox is missing.
 
-Copilot usa solo los reportes públicos de AI credits bajo `api.github.com`, con token fine-grained manual y scope declarado. La app no lee la sesión de editor o `gh`, no llama `/copilot_internal/user` y no convierte gasto en cuota restante. Personal y organización usan conexiones y textos distintos. La activación pública requiere un smoke autorizado.
+Cursor does not use a private source. Its adapter only accepts an Admin API key created by the user, several named connections, and the public endpoints under `api.cursor.com`. It must show usage and spend. It must not infer remaining quota. Public activation requires an authorized smoke. The DB, session, dashboard, and private export stay outside the binary.
 
-Devin usa solo el consumo diario v3 de una organización en `api.devin.ai`. La key pertenece a un service user de esa organización y vive en Credential Locker. La app no lee CLI o DB, no llama RPC privados y no solicita Session Insights. Muestra ACUs, no saldo o dólares, y requiere un smoke autorizado.
+Copilot uses only the public AI credits reports under `api.github.com`, with a manual fine-grained token and a declared scope. The app does not read the editor session or `gh`. It does not call `/copilot_internal/user`. It does not convert spend into remaining quota.
 
-### Salida por proveedor
+Personal and organization use different connections and texts. Public activation requires an authorized smoke.
 
-- matriz actualizada;
-- contrato y fixtures;
-- threat review;
-- Windows x64 y ARM64 probados;
-- claim exacto de cobertura;
-- rollback por flag remoto o build si la fuente cambia.
+Devin uses only v3 daily consumption of an organization on `api.devin.ai`. The key belongs to a service user of that organization and lives in Credential Locker. The app does not read CLI or DB. It does not call private RPC. It does not request Session Insights. It shows ACUs, not balance or dollars, and requires an authorized smoke.
 
-## M10 — Empaquetado, actualización y beta
+### Output per provider
 
-Esfuerzo: 5–8 días.
+- updated matrix
+- contract and fixtures
+- threat review
+- Windows x64 and ARM64 tested
+- exact coverage claim
+- If the source changes, rollback by remote flag or build
 
-### Tareas
+## M10 — Packaging, update, and beta
 
-- `M10.1` Cerrar identidad, iconos, splash y recursos del paquete.
-- `M10.2` Crear perfiles Release x64 y ARM64.
-- `M10.3` Configurar firma de CI con secreto externo al repo.
-- `M10.4` Construir MSIX y bundle.
-- `M10.5` Probar instalación limpia, upgrade, downgrade rechazado y desinstalación.
-- `M10.6` Probar StartupTask, alias CLI, notificaciones y acceso a archivos dentro del paquete.
-- `M10.7` Ejecutar Windows App Certification Kit.
-- `M10.8` Generar SBOM, hashes y avisos.
-- `M10.9` Crear canal beta y proceso de rollback.
-- `M10.10` Escribir release notes con límites de proveedor.
-- `M10.11` Crear checklist de soporte y recolección de diagnóstico.
+Effort: 5–8 days.
 
-### Matriz mínima
+### Tasks
 
-- Windows 10 soportado, x64;
-- Windows 11 actual, x64;
-- Windows 11 ARM64;
-- usuario estándar;
-- tema claro, oscuro y alto contraste;
-- una y dos pantallas;
-- DPI 100, 150 y 200%;
-- Codex ausente, sin login y con login;
-- Grok Build y OpenCode ausentes, con datos y con esquema no reconocido;
-- gasto con coste informado, estimado y sin precio;
-- red directa, sin red y proxy;
-- actualización desde la beta anterior.
+- `M10.1` Close identity, icons, splash, and package resources.
+- `M10.2` Create Release x64 and ARM64 profiles.
+- `M10.3` Configure CI signing with a secret outside the repo.
+- `M10.4` Build MSIX and bundle.
+- `M10.5` Run a test of clean install, upgrade, rejected downgrade, and uninstall.
+- `M10.6` Run a test of StartupTask, CLI alias, notifications, and file access inside the package.
+- `M10.7` Run Windows App Certification Kit.
+- `M10.8` Generate SBOM, hashes, and notices.
+- `M10.9` Create a beta channel and a rollback process.
+- `M10.10` Write release notes with provider limits.
+- `M10.11` Create a support checklist and diagnostic collection.
 
-### Salida
+### Minimum matrix
 
-- MSIX firmado e instalable;
-- WACK sin fallos;
-- beta reversible;
-- documentación de privacidad, licencia, soporte y desinstalación.
+- supported Windows 10, x64
+- current Windows 11, x64
+- Windows 11 ARM64
+- standard user
+- light, dark, and high contrast theme
+- one and two screens
+- DPI 100, 150, and 200%
+- Codex absent, without login, and with login
+- Grok Build and OpenCode absent, with data, and with an unrecognized schema
+- spend with reported cost, estimated cost, and no price
+- direct network, no network, and proxy
+- update from the previous beta
 
-Publicar el artifact requiere autorización explícita. Crear el paquete local no autoriza subirlo a Store, GitHub Releases o un servidor.
+### Output
 
-## M11 — Paridad ampliada y estable
+- signed, installable MSIX
+- WACK with no failures
+- reversible beta
+- documentation of privacy, license, support, and uninstall
 
-Esfuerzo: continuo. La amplitud de proveedores puede llevar 4–6 meses para una persona por los gates y pruebas reales.
+Publishing the artifact requires explicit authorization. Creating the local package does not authorize upload to Store, GitHub Releases, or a server.
 
-### Tareas
+## M11 — Extended and stable parity
 
-- cerrar proveedores de M9 uno a uno;
-- añadir detalle por modelo y gasto total real;
-- comparar funciones con el SHA upstream y actualizar baseline;
-- medir consumo durante siete días;
-- resolver accesibilidad y fallos de beta;
-- validar migración desde las dos betas previas;
-- congelar schemas públicos v1;
-- completar revisión de seguridad;
-- publicar estable solo con proveedores aprobados.
+Effort: continuous. Provider breadth can take 4–6 months for one person because of gates and real tests.
 
-### Salida estable
+### Tasks
 
-- cero crash bloqueante conocido en el flujo principal;
-- tasa de refresco válido medida y documentada;
-- sin secreto en logs, crash dumps o API;
-- accesibilidad principal aprobada;
-- x64 y ARM64 verdes;
-- instalación, upgrade y rollback probados;
-- cada claim de proveedor ligado a evidencia.
+- close M9 providers one by one
+- add detail by model and real Total spend
+- compare functions with the upstream SHA and update the baseline
+- measure consumption during seven days
+- resolve accessibility and beta failures
+- make sure that migration from the two previous betas succeeds
+- freeze public v1 schemas
+- complete the security review
+- publish stable only with approved providers
 
-## Estrategia de pruebas
+### Stable output
 
-### Por commit
+- zero known blocking crash in the main flow
+- valid-refresh rate measured and documented
+- no secret in logs, crash dumps, or API
+- main accessibility approved
+- x64 and ARM64 green
+- install, upgrade, and rollback tested
+- each provider claim tied to evidence
 
-- test que falla antes o prueba estática que muestra el hueco;
-- tests del proyecto afectado;
-- build x64 del proyecto afectado;
-- inspección de `git diff` y secretos.
+## Test strategy
 
-### Por hito
+### Per commit
 
-- tests de unidad y contrato;
-- build completa x64;
-- launch por `BuildAndRun.ps1`;
-- UI smoke del camino afectado;
-- actualización de docs y screenshots;
-- commit lógico con mensaje descriptivo.
+- a test that fails first, or a static test that shows the gap
+- tests of the affected project
+- x64 build of the affected project
+- inspection of `git diff` and secrets
 
-### Antes de beta
+### Per milestone
 
-- toda la matriz x64;
-- build y smoke ARM64;
-- UI automation;
-- Accessibility Insights;
-- WACK;
-- instalación, upgrade y desinstalación;
-- scanner de secretos y SBOM;
-- prueba de siete días de caché, refresco y consumo.
+- unit and contract tests
+- full x64 build
+- launch through `BuildAndRun.ps1`
+- UI smoke of the affected path
+- update of docs and screenshots
+- logical commit with a descriptive message
 
-## Presupuesto de rendimiento
+### Before beta
 
-Medir desde M4 y fijar gates con hardware de referencia:
+- the full x64 matrix
+- ARM64 build and smoke
+- UI automation
+- Accessibility Insights
+- WACK
+- install, upgrade, and uninstall
+- secret scanner and SBOM
+- seven-day test of cache, refresh, and consumption
 
-| Métrica | Meta inicial |
+## Performance budget
+
+Measure from M4 and set gates with reference hardware:
+
+| Metric | Initial target |
 |---|---|
-| Mostrar caché al abrir | < 500 ms |
-| Interacción de panel | 60 Hz sin trabajo de red en UI |
-| Memoria inactiva | < 150 MB |
-| CPU inactiva | cercana a 0% |
-| Refresco Codex | timeout propio; UI nunca espera |
-| Scanner 10.000 archivos | cancelable, sin freeze |
-| OpenCode DB de 2,5 GB | consulta incremental sin copia y sin freeze |
-| Caché y ajustes | escritura atómica < 100 ms típica |
+| Show cache on open | < 500 ms |
+| Panel interaction | 60 Hz with no network work on the UI |
+| Idle memory | < 150 MB |
+| Idle CPU | near 0% |
+| Codex refresh | own timeout. The UI never waits |
+| Scanner of 10,000 files | cancelable, no freeze |
+| OpenCode DB of 2.5 GB | incremental query with no copy and no freeze |
+| Cache and settings | atomic write < 100 ms typical |
 
-Si una meta falla, registrar la medición antes de ajustar el número.
+If a target fails, record the measurement before you adjust the number.
 
-## Registro de riesgos
+## Risk register
 
-| ID | Riesgo | Prob. | Impacto | Control | Hito |
+| ID | Risk | Prob. | Impact | Control | Milestone |
 |---|---|---:|---:|---|---|
-| R1 | Endpoint privado cambia | Alta | Alta | Gate, fixtures, flag y último valor válido | M9 |
-| R2 | Rotación de token cierra la sesión | Media | Alta | Interfaz oficial y no escribir credenciales ajenas | M4/M9 |
-| R3 | Política impide una integración | Media | Alta | Revisión antes de activar y alternativa local | M0/M9 |
-| R4 | Tray desaparece tras Explorer | Media | Media | `TaskbarCreated` y test manual | M2 |
-| R5 | Flyout fuera de pantalla | Media | Media | cálculo por monitor/DPI y tests | M2 |
-| R6 | MSIX cambia rutas o procesos | Media | Alta | smoke dentro del paquete | M4/M10 |
-| R7 | CORS expone cuota al navegador | Alta si se copia upstream | Alta | API apagada, token y Origin deny | M8 |
-| R8 | Log local cuenta doble | Media | Media | deduplicación y diferencial | M6 |
-| R9 | Precio incompleto parece factura | Media | Alta | procedencia, cobertura y texto | M5/M6 |
-| R10 | CLI y app dañan la caché | Baja | Media | mutex, reemplazo atómico y test multiproceso | M3/M8 |
-| R11 | Nombre o logo infringe marca | Baja | Alta | identidad propia y revisión | M0 |
-| R12 | Actualización rompe ajustes | Media | Alta | migraciones y upgrade matrix | M7/M10 |
-| R13 | Esquema local de agente cambia | Alta | Media | parser versionado, fixtures y estado parcial | M6/M6A/M6B |
-| R14 | Base OpenCode grande o bloqueada | Alta | Media | modo read-only, consulta mínima, timeout y sin copia | M6A |
-| R15 | Gasto estimado difiere del cobro | Alta | Alta | coste informado primero, catálogo fijado y cobertura visible | M5/M6 |
-| R16 | Lector pasivo cruza un límite de política | Media | Alta | lista de fuentes prohibidas, revisión y feature flag | M0/M6A/M6B |
-| R17 | OpenCode WSL queda fuera del scanner Windows | Alta | Media | estado de cobertura y fase WSL con consentimiento | M6A/M11 |
+| R1 | Private endpoint changes | High | High | Gate, fixtures, flag, and last valid value | M9 |
+| R2 | Token rotation closes the session | Medium | High | Official interface and do not write foreign credentials | M4/M9 |
+| R3 | Policy blocks an integration | Medium | High | Review before activation and a local alternative | M0/M9 |
+| R4 | Tray disappears after Explorer | Medium | Medium | `TaskbarCreated` and a manual test | M2 |
+| R5 | Flyout off screen | Medium | Medium | calculation by monitor/DPI and tests | M2 |
+| R6 | MSIX changes paths or processes | Medium | High | smoke inside the package | M4/M10 |
+| R7 | CORS exposes quota to the browser | High for an upstream copy | High | API off, token, and Origin deny | M8 |
+| R8 | Local log double-counts | Medium | Medium | deduplication and differential | M6 |
+| R9 | Incomplete price looks like an invoice | Medium | High | provenance, coverage, and text | M5/M6 |
+| R10 | CLI and app damage the cache | Low | Medium | mutex, atomic replacement, and multiprocess test | M3/M8 |
+| R11 | Name or logo infringes a trademark | Low | High | own identity and review | M0 |
+| R12 | Update breaks settings | Medium | High | migrations and upgrade matrix | M7/M10 |
+| R13 | Local agent schema changes | High | Medium | versioned parser, fixtures, and partial state | M6/M6A/M6B |
+| R14 | Large or locked OpenCode database | High | Medium | read-only mode, minimum query, timeout, and no copy | M6A |
+| R15 | Estimated spend differs from the charge | High | High | reported cost first, fixed catalog, and visible coverage | M5/M6 |
+| R16 | Passive reader crosses a policy limit | Medium | High | list of forbidden sources, review, and feature flag | M0/M6A/M6B |
+| R17 | OpenCode WSL stays outside the Windows scanner | High | Medium | coverage state and a WSL phase with consent | M6A/M11 |
 
-## Estimación
+## Estimate
 
-Para una persona con experiencia en C# y Windows:
+For one person with C# and Windows experience:
 
-- MVP técnico Codex: 30–45 días de ingeniería;
-- beta de producto con UI, CLI, API y Claude local: 20–30 días adicionales;
-- motor de gasto, Grok Build y OpenCode local: 17–26 días dentro de la beta;
-- spike Antigravity pasivo: 4–7 días después de obtener una base real;
-- cada proveedor sencillo: 3–6 días tras tener contrato y fixtures;
-- cada proveedor privado o multicuenta: 7–15 días más el tiempo externo;
-- paridad amplia de proveedores: 4–6 meses como orden de magnitud.
+- Codex technical MVP: 30–45 engineering days
+- product beta with UI, CLI, API, and local Claude: 20–30 additional days
+- spend engine, Grok Build, and local OpenCode: 17–26 days inside the beta
+- passive Antigravity spike: 4–7 days after a real database is obtained
+- each simple provider: 3–6 days after contract and fixtures exist
+- each private or multi-account provider: 7–15 days plus external time
+- broad provider parity: 4–6 months as an order of magnitude
 
-La estimación excluye espera por permisos, firma, Store y cuentas de prueba. Se revisa al cerrar M4 con datos reales.
+The estimate excludes wait for permissions, signing, Store, and test accounts. When M4 closes with real data, review the estimate.
 
-## Criterio de completitud
+## Completeness criterion
 
-Un hito se marca completo cuando:
+A milestone is complete after all of these are true:
 
-- sus tareas y criterios de salida están cerrados;
-- tests relevantes y build pasan;
-- la ruta real se probó cuando existe;
-- estados de error y accesibilidad están cubiertos;
-- docs y matriz coinciden con el código;
-- el diff se revisó;
-- los cambios se dividieron en commits lógicos.
+- its tasks and output criteria are closed
+- relevant tests and the build pass
+- a real path that exists was tested
+- error states and accessibility are covered
+- docs and matrix match the code
+- the diff was reviewed
+- the changes were split into logical commits
 
-Una función con test faltante, gate externo o smoke pendiente se marca `Implementada, no verificada por completo`.
+A function with a missing test, an external gate, or pending smoke is marked `Implemented, not fully proven`.
 
-## Primera tanda recomendada
+## First recommended batch
 
-La siguiente sesión debe ejecutar solo M1:
+The next session must run only M1:
 
-1. verificar prerrequisitos WinUI;
-2. crear la app desde la plantilla;
-3. crear solución, proyectos y referencias;
-4. compilar y lanzar x64;
-5. agregar tests de arquitectura;
-6. documentar comandos y evidencia;
-7. revisar y commitear el scaffold.
+1. Make sure that WinUI prerequisites are present.
+2. Create the app from the template.
+3. Create the solution, projects, and references.
+4. Build and start x64.
+5. Add architecture tests.
+6. Document commands and evidence.
+7. Review the scaffold. Then commit it.
 
-M2 comienza después de una build limpia del template. No se añade un proveedor antes de que bandeja, flyout y dominio tengan contratos probables.
+M2 starts after a clean build of the template. A provider is not added before tray, flyout, and domain have testable contracts.
