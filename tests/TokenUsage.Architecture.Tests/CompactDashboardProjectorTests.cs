@@ -100,6 +100,117 @@ public sealed class CompactDashboardProjectorTests
             weekly => Assert.Equal("ZCode · Weekly credits (estimated)", weekly.Title));
     }
 
+    [Fact]
+    public void GlobalCostBreakdownSplitsReportedAndEstimatedDollars()
+    {
+        var today = new DateOnly(2026, 8, 13);
+        DailyUsageRollup[] rollups =
+        [
+            Rollup("grok", today, reported: 2m, tokens: 100),
+            Rollup("codex", today, estimated: 8m, tokens: 1_000),
+        ];
+
+        CompactDashboardProjection projection = CompactDashboardProjector.Create(
+            today,
+            rollups,
+            ["grok", "codex"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: null,
+            getString: key => key switch
+            {
+                "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
+                "LocalUsageUsdFormat" => "${0:N2} USD",
+                _ => key,
+            },
+            getProviderLimits: _ => []);
+
+        Assert.NotNull(projection.GlobalCostBreakdownText);
+        string reported = $"{2m:N2} USD reported";
+        string estimated = $"{8m:N2} USD estimated";
+        Assert.StartsWith(
+            "$" + reported,
+            projection.GlobalCostBreakdownText,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "$" + estimated,
+            projection.GlobalCostBreakdownText,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AllReportedOrAllEstimatedWindowsStillShowBothBreakdownParts()
+    {
+        var today = new DateOnly(2026, 8, 13);
+
+        CompactDashboardProjection allReported = CompactDashboardProjector.Create(
+            today,
+            [Rollup("grok", today, reported: 3m, tokens: 100)],
+            ["grok"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: null,
+            getString: key => key switch
+            {
+                "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
+                "LocalUsageUsdFormat" => "${0:N2} USD",
+                _ => key,
+            },
+            getProviderLimits: _ => []);
+        CompactDashboardProjection allEstimated = CompactDashboardProjector.Create(
+            today,
+            [Rollup("codex", today, estimated: 4m, tokens: 100)],
+            ["codex"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: null,
+            getString: key => key switch
+            {
+                "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
+                "LocalUsageUsdFormat" => "${0:N2} USD",
+                _ => key,
+            },
+            getProviderLimits: _ => []);
+
+        Assert.NotNull(allReported.GlobalCostBreakdownText);
+        Assert.Contains(
+            $"{0m:N2} USD estimated",
+            allReported.GlobalCostBreakdownText,
+            StringComparison.Ordinal);
+        Assert.NotNull(allEstimated.GlobalCostBreakdownText);
+        Assert.Contains(
+            $"{0m:N2} USD reported",
+            allEstimated.GlobalCostBreakdownText,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CostlessWindowsHideTheGlobalCostBreakdown()
+    {
+        var today = new DateOnly(2026, 8, 13);
+
+        CompactDashboardProjection projection = CompactDashboardProjector.Create(
+            today,
+            [Rollup("grok", today, tokens: 50, unpriced: 50, coverage: CoverageKind.Unpriced)],
+            ["grok"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: null,
+            getString: key => key switch
+            {
+                "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
+                "LocalUsageUsdFormat" => "${0:N2} USD",
+                _ => key,
+            },
+            getProviderLimits: _ => []);
+
+        Assert.Null(projection.GlobalCostBreakdownText);
+    }
+
     private static LocalUsageCard EmptyLocalUsage() => new(
         "",
         "",

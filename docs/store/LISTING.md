@@ -1,6 +1,6 @@
 # TokenUsage Store listing source
 
-Review this copy against the exact submitted build. Partner Center fields and character limits can change, so use this file as the editorial source rather than assuming every heading maps one-to-one to a current form field.
+Review this copy against the exact submitted build. Partner Center fields and character limits can change. Use this file as the editorial source. Do not assume that every heading maps to a current form field.
 
 ## English (United States)
 
@@ -14,11 +14,11 @@ See quota, tokens, cost, activity, and reset cycles for your AI coding tools in 
 
 ### Full description
 
-TokenUsage brings usage information from supported AI developer tools into one clear Windows experience.
+TokenUsage shows usage from supported AI developer tools in one Windows experience.
 
 Open the tray panel for a fast status check. Open the detailed report to compare providers, time ranges, tokens, costs, quota observations, and reset cycles. Use the packaged command-line utility for scripts and diagnostics.
 
-TokenUsage is designed around honest data states. Provider-reported cost is kept separate from locally estimated cost. Partial, stale, unavailable, unsupported, and unpriced values remain visible instead of being silently converted into misleading totals.
+TokenUsage keeps honest data states. Provider-reported cost stays separate from locally estimated cost. Partial, stale, unavailable, unsupported, and unpriced values remain visible. The app does not convert them into misleading totals.
 
 The application is local-first. It reads bounded, documented sources on your computer and does not require a TokenUsage account. Network-enabled provider connections remain opt-in and are used only when a user explicitly configures a documented integration.
 
@@ -30,7 +30,7 @@ Provider coverage depends on the installed product, account type, product versio
 - Detailed provider, token, cost, activity, and reset-cycle reports
 - Clear distinction between reported, estimated, partial, stale, unavailable, and unpriced data
 - Local-first storage with no TokenUsage account required
-- English and Spanish interface
+- English-only interface
 - Packaged `tokenusage` command-line utility with human-readable and versioned JSON output
 - Export-friendly report surfaces
 - Diagnostics that explain missing or unsupported provider data
@@ -42,7 +42,7 @@ Initial Microsoft Store release of TokenUsage.
 - Native Windows tray application
 - Detailed usage reports
 - Packaged command-line alias
-- English and Spanish interface
+- English-only interface
 - Local-first provider readers and explicit evidence states
 
 Update this section before each later submission.
@@ -64,7 +64,7 @@ developer tools
 cost tracker
 ```
 
-Do not use provider trademarks merely to attract unrelated searches. Keep every provider keyword tied to real, documented support in the submitted version.
+Do not use provider trademarks to attract unrelated searches. Keep every provider keyword tied to real, documented support in the submitted version.
 
 ## Español
 
@@ -94,7 +94,7 @@ La cobertura depende de la herramienta instalada, tipo de cuenta, versión del p
 - Reportes detallados de proveedores, tokens, costos, actividad y ciclos de reinicio
 - Distinción clara entre datos reportados, estimados, parciales, desactualizados, no disponibles y sin precio
 - Almacenamiento local sin necesidad de una cuenta de TokenUsage
-- Interfaz en inglés y español
+- Interfaz solo en inglés
 - Utilidad `tokenusage` para terminal con texto legible y JSON versionado
 - Reportes preparados para exportación y captura
 - Diagnósticos que explican datos faltantes o proveedores no compatibles
@@ -106,14 +106,14 @@ Primera publicación de TokenUsage en Microsoft Store.
 - Aplicación nativa para la bandeja de Windows
 - Reportes detallados de uso
 - Alias de línea de comandos incluido en el paquete
-- Interfaz en inglés y español
+- Interfaz solo en inglés
 - Lectores locales y estados de evidencia explícitos
 
 Actualizar esta sección antes de cada submission posterior.
 
 ## Screenshot plan
 
-Create screenshots from the exact release build at a consistent Windows scale and theme. Use synthetic, non-personal fixture data clearly representative of the UI, or scrub real data completely.
+Create screenshots from the exact release build at a consistent Windows scale and theme. Use synthetic, non-personal fixture data that represents the UI, or scrub real data completely.
 
 Recommended set:
 
@@ -122,7 +122,7 @@ Recommended set:
 3. **Quota/reset view** — quota observations and reset-cycle explanation.
 4. **Provider status** — active, partial, prepared, and blocked states without implying all providers are integrated.
 5. **CLI** — `tokenusage doctor` or report JSON in a clean terminal, with user paths and machine names removed.
-6. **Settings/language** — English/Spanish selection and local-first controls.
+6. **Options/Appearance** — theme selection and local-first controls.
 
 Screenshot review checklist:
 
@@ -132,7 +132,7 @@ Screenshot review checklist:
 - [ ] Estimated and reported values are labeled correctly.
 - [ ] Images are sharp at Partner Center's requested dimensions.
 - [ ] UI chrome is consistent across the set.
-- [ ] At least four screenshots are prepared even though only one may be required.
+- [ ] At least four screenshots are prepared even though Partner Center can require only one.
 - [ ] English and Spanish listings use screenshots that remain understandable for that language.
 
 ## Visual asset inventory

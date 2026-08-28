@@ -196,6 +196,105 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
+    public async Task SessionFallbackEstimateSkipsTheLongContextSurcharge()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession(
+            "session-cumulative",
+            Snapshot("2026-07-22T11:00:00Z", 300_000, 1_000, costUsdTicks: 0));
+
+        UsageEvent sessionEvent = Assert.Single(
+            (await corpus.CreateSource().ReadAsync()).Events);
+
+        // Cumulative session counters never cross a per-request threshold, so
+        // the fallback estimate stays at the base build rate (300k x $1/M).
+        Assert.Equal(CostKind.CatalogEstimated, sessionEvent.Cost.Kind);
+        Assert.Equal(0.302m, sessionEvent.Cost.EstimatedCostUsd);
+    }
+
+    [Fact]
+    public async Task UnchangedSessionFilesReplayCachedEventsWithoutRereading()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession("session-a", Snapshot("2026-07-22T11:00:00Z", 100, 10));
+        corpus.WriteSession("session-b", Snapshot("2026-07-22T12:00:00Z", 200, 20));
+        GrokUsageEventSource source = corpus.CreateSource(withCheckpoint: true);
+
+        IReadOnlyList<UsageEvent> first = (await source.ReadAsync()).Events;
+        Assert.Equal(2, first.Count);
+
+        // Rewrite session-a with different numbers, the same byte length, and the
+        // original last-write time: a checkpoint hit must keep the cached events
+        // even though the bytes on disk changed.
+        string sessionAUpdates = Path.Combine(
+            corpus.Root, "sessions", "cwd", "session-a", "updates.jsonl");
+        DateTime originalWrite = File.GetLastWriteTimeUtc(sessionAUpdates);
+        string different = Snapshot("2026-07-22T11:00:00Z", 999, 99);
+        // Two trailing spaces replace the CRLF WriteAllLines added, so the file
+        // keeps the exact byte length the checkpoint recorded.
+        File.WriteAllText(sessionAUpdates, different.PadRight(different.Length + 2));
+        File.SetLastWriteTimeUtc(sessionAUpdates, originalWrite);
+
+        IReadOnlyList<UsageEvent> second = (await source.ReadAsync()).Events;
+
+        Assert.Equal(first.OrderBy(item => item.EventKey.Value), second.OrderBy(item => item.EventKey.Value));
+        UsageEvent replayed = Assert.Single(second, item => item.Tokens.Input == 100);
+        Assert.Equal(10, replayed.Tokens.Output);
+    }
+
+    [Fact]
+    public async Task ChangedSessionFileRefreshesItsEventOnTheNextRead()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession("session-a", Snapshot("2026-07-22T11:00:00Z", 100, 10));
+        GrokUsageEventSource source = corpus.CreateSource(withCheckpoint: true);
+        Assert.Single((await source.ReadAsync()).Events);
+
+        string sessionAUpdates = Path.Combine(
+            corpus.Root, "sessions", "cwd", "session-a", "updates.jsonl");
+        File.WriteAllText(sessionAUpdates, Snapshot("2026-07-22T13:00:00Z", 500, 50));
+        File.SetLastWriteTimeUtc(sessionAUpdates, DateTime.UtcNow);
+
+        UsageEvent updated = Assert.Single((await source.ReadAsync()).Events);
+        Assert.Equal(500, updated.Tokens.Input);
+    }
+
+    [Fact]
+    public async Task ShrunkSessionFileRereadsInsteadOfReplayingStaleCache()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession(
+            "session-a",
+            Snapshot("2026-07-22T11:00:00Z", 100_000, 1_000).PadRight(2_000));
+        GrokUsageEventSource source = corpus.CreateSource(withCheckpoint: true);
+        UsageEvent first = Assert.Single((await source.ReadAsync()).Events);
+        Assert.Equal(100_000, first.Tokens.Input);
+
+        string sessionAUpdates = Path.Combine(
+            corpus.Root, "sessions", "cwd", "session-a", "updates.jsonl");
+        File.WriteAllText(sessionAUpdates, Snapshot("2026-07-22T11:00:00Z", 42, 4));
+        File.SetLastWriteTimeUtc(sessionAUpdates, DateTime.UtcNow);
+
+        UsageEvent second = Assert.Single((await source.ReadAsync()).Events);
+        Assert.Equal(42, second.Tokens.Input);
+    }
+
+    [Fact]
+    public async Task DeletedSessionFileDropsItsEventsOnTheNextRead()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession("session-a", Snapshot("2026-07-22T11:00:00Z", 100, 10));
+        corpus.WriteSession("session-b", Snapshot("2026-07-22T12:00:00Z", 200, 20));
+        GrokUsageEventSource source = corpus.CreateSource(withCheckpoint: true);
+        Assert.Equal(2, (await source.ReadAsync()).Events.Count);
+
+        Directory.Delete(Path.Combine(corpus.Root, "sessions", "cwd", "session-a"), true);
+
+        UsageEvent remaining = Assert.Single((await source.ReadAsync()).Events);
+        Assert.Equal(200, remaining.Tokens.Input);
+    }
+
+    [Fact]
     public async Task SessionKeysIncludeTheRelativeWorkingDirectory()
     {
         using var corpus = new GrokCorpus();
@@ -509,12 +608,16 @@ public sealed class GrokUsageEventSourceTests
         public GrokUsageEventSource CreateSource(
             int maximumFiles = 100,
             int maximumLineCharacters = 8 * 1024 * 1024,
-            TimeProvider? clock = null) => new(
+            TimeProvider? clock = null,
+            bool withCheckpoint = false) => new(
             "UTC",
             homeDirectory: _path,
             grokHomeOverride: _path,
             maximumFiles: maximumFiles,
             maximumLineCharacters: maximumLineCharacters,
+            checkpointPath: withCheckpoint
+                ? Path.Combine(_path, "checkpoints", "grok-usage.v1.json")
+                : null,
             clock: clock ?? FixtureClock);
 
         public static TimeProvider FixtureClock { get; } = new FixedTimeProvider(

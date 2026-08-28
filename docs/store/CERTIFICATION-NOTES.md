@@ -21,7 +21,7 @@ No TokenUsage account or test credentials are required.
 3. The tray application opens even when none of the supported provider tools is installed.
 4. In an environment without provider data, the application intentionally displays unavailable, empty, partial, or unsupported states. This is expected behavior and does not indicate an incomplete application.
 5. Open the detailed report to review the provider matrix, range controls, status explanations, and local report surfaces.
-6. Open **Settings** to switch between English and Spanish.
+6. Open **Options**, then **Appearance**, and change the **Theme**.
 7. Open PowerShell after installation and run:
 
    ```powershell
@@ -30,7 +30,7 @@ No TokenUsage account or test credentials are required.
    tokenusage usage --days 7 --format human
    ```
 
-8. The execution alias is registered by the package. A newly opened terminal may be required after installation.
+8. The execution alias is registered by the package. A newly opened terminal can be required after installation.
 
 ### Data behavior
 

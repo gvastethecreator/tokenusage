@@ -423,7 +423,8 @@ public sealed partial class CodexUsageEventSource
                 modelGroup.Key,
                 useCumulativeTokens
                     ? value.Candidate.TotalTokens
-                    : value.Candidate.SampleTokens))
+                    : value.Candidate.SampleTokens,
+                value.Candidate.Timestamp))
             .ToArray();
         if (costs.Any(cost => cost.Kind != CostKind.CatalogEstimated))
         {

@@ -187,6 +187,12 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     [ObservableProperty]
     public partial string GlobalTokensText { get; private set; } = "0";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasGlobalCostBreakdown))]
+    public partial string? GlobalCostBreakdownText { get; private set; }
+
+    public bool HasGlobalCostBreakdown => !string.IsNullOrWhiteSpace(GlobalCostBreakdownText);
+
     public bool IsLoading => ResultSurface == FlyoutSurfaceState.Loading;
 
     public AppSessionHost Host => _liveSession.Host;
@@ -983,6 +989,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         GlobalDonutCenterText = projection.GlobalDonutCenterText;
         GlobalFooterText = projection.GlobalFooterText;
         GlobalTokensText = projection.GlobalTokensText;
+        GlobalCostBreakdownText = projection.GlobalCostBreakdownText;
         GlobalHeatmap = projection.GlobalHeatmap;
         GlobalActivity = projection.GlobalActivity;
         GlobalProviderLimits = projection.GlobalProviderLimits;
