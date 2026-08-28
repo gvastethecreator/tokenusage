@@ -1,102 +1,104 @@
-# Gate de fuente Zed
+# Zed source gate
 
-Fecha de corte: 2026-07-22
+Cutoff date: 2026-07-22
 
-Decisión: `block`
+Decision: `block`
 
-## Pregunta
+## Question
 
-¿Puede TokenUsage integrar Zed en Windows para mostrar cuota, tokens o gasto
-sin reutilizar login, credenciales, contenido de hilo o automatización de la
-interfaz?
+Can TokenUsage integrate Zed on Windows to show quota, tokens, or spend
+without reusing login, credentials, thread content, or interface
+automation?
 
-## Respuesta
+## Answer
 
-Todavía no. Zed muestra tokens para el hilo activo del agente nativo dentro del
-Agent Panel. Los agentes externos y los hilos de terminal conservan su propia
-autenticación, y la documentación advierte que la disponibilidad de tokens y
-restauración varía según la integración.
+Not yet. Zed shows tokens for the active native-agent thread inside the
+Agent Panel. External agents and terminal threads keep their own
+authentication, and the documentation warns that token availability and
+restoration vary by integration.
 
-El código oficial persiste en el mismo `DbThread` los mensajes, resultados de
-herramientas, modelo, uso acumulado y uso por solicitud. Luego comprime el
-objeto y lo guarda en `threads.db`. Un lector local tendría que descomprimir
-datos que incluyen prompts, respuestas y herramientas para alcanzar los
-contadores. Esa ruta cruza el límite de privacidad de TokenUsage.
+The official code persists messages, tool results, model, accumulated
+usage, and per-request usage in the same `DbThread`. It then compresses the
+object and stores it in `threads.db`. A local reader would have to
+decompress data that includes prompts, responses, and tools to reach the
+counters. That path crosses TokenUsage's privacy limit.
 
-No se encontró una API, CLI o exportación pública de métricas agregadas que una
-app de terceros pueda consultar.
+No public aggregated-metrics API, CLI, or export that a third-party app can
+query was found.
 
-## Identidad y soporte
+## Identity and support
 
-- ID propuesto para un futuro descriptor: `zed`.
-- Nombre visible: `Zed`.
-- Alcance evaluado: Zed Agent nativo.
-- Fuera de este descriptor: agentes externos ACP y Terminal Threads; su uso
-  sigue perteneciendo al agente o proveedor que ejecutan.
-- El CLI `zed` no está instalado en esta máquina; no se instaló ni se inició el
-  editor durante el gate.
+- Proposed ID for a future descriptor: `zed`.
+- Visible name: `Zed`.
+- Evaluated scope: native Zed Agent.
+- Outside this descriptor: external ACP agents and Terminal Threads; their
+  usage still belongs to the agent or provider they run.
+- The `zed` CLI is not installed on this machine; the editor was not
+  installed or started during the gate.
 
-## Fuentes primarias
+## Primary sources
 
-Consultadas el 2026-07-22:
+Consulted on 2026-07-22:
 
-| Fuente | Hecho que respalda |
+| Source | Supporting fact |
 |---|---|
-| [Agents](https://zed.dev/docs/ai/agents) | Distingue Zed Agent, agentes externos y Terminal Threads. |
-| [Agent Panel](https://zed.dev/docs/ai/agent-panel) | Muestra tokens del hilo activo y advierte diferencias para agentes externos. |
-| [API access](https://zed.dev/docs/ai/use-api-access) | Separa las credenciales de modelos de Zed Agent de los agentes externos y de terminal. |
-| [Código de base de hilos](https://github.com/zed-industries/zed/blob/aba12fc8a0fe44a0742acc0d096e843d07385962/crates/agent/src/db.rs) | SHA consultado durante el gate; define `DbThread`, sus mensajes y contadores; comprime el blob y crea `threads.db`. |
+| [Agents](https://zed.dev/docs/ai/agents) | Distinguishes Zed Agent, external agents, and Terminal Threads. |
+| [Agent Panel](https://zed.dev/docs/ai/agent-panel) | Shows tokens of the active thread and warns about differences for external agents. |
+| [API access](https://zed.dev/docs/ai/use-api-access) | Separates Zed Agent model credentials from external and terminal agents. |
+| [Thread database code](https://github.com/zed-industries/zed/blob/aba12fc8a0fe44a0742acc0d096e843d07385962/crates/agent/src/db.rs) | SHA consulted during the gate; defines `DbThread`, its messages, and counters; compresses the blob and creates `threads.db`. |
 
-## Prueba Windows mínima
+## Minimum Windows test
 
-`Get-Command zed` no encontró el CLI en la máquina. La prueba no instala Zed,
-no crea hilos, no abre el panel y no examina directorios de datos del usuario.
-La decisión se apoya en las fuentes primarias y en el límite de datos del
-producto.
+`Get-Command zed` did not find the CLI on the machine. The test does not
+install Zed, create threads, open the panel, or examine user data
+directories. The decision rests on the primary sources and the product's
+data limit.
 
-## Clasificación de fuentes
+## Source classification
 
-| Dato | Fuente observada | Estado para TokenUsage | Decisión |
+| Data | Observed source | TokenUsage status | Decision |
 |---|---|---|---|
-| Cuota restante | Agent Panel y proveedor del modelo | Sin API de cuota Zed para terceros | Bloqueada |
-| Tokens del Zed Agent | Indicador del hilo y `threads.db` | El almacén incluye transcripción y herramientas | Bloqueados |
-| Coste | Cuenta del proveedor de modelo o Zed-hosted models | Pertenece al proveedor configurado; no hay exportación Zed agregada | Bloqueado |
-| Agentes externos y terminal | ACP o CLI propio | Deben atribuirse al proveedor que los ejecuta | Fuera de este provider |
-| API keys | Keychain o variables por proveedor | No son credenciales de monitor y no se reutilizan | No se admite |
+| Remaining quota | Agent Panel and the model provider | No Zed quota API for third parties | Blocked |
+| Zed Agent tokens | Thread indicator and `threads.db` | The store includes transcript and tools | Blocked |
+| Cost | Model-provider account or Zed-hosted models | Belongs to the configured provider; no aggregated Zed export | Blocked |
+| External agents and terminal | ACP or their own CLI | Must be attributed to the provider that runs them | Out of this provider |
+| API keys | Keychain or variables per provider | They are not monitor credentials and are not reused | Not allowed |
 
-## Límite de privacidad y seguridad
+## Privacy and security limit
 
-TokenUsage no debe:
+TokenUsage must not:
 
-- abrir, copiar, consultar o descomprimir `threads.db`, sus WAL/SHM ni una base
-  de hilos futura;
-- leer mensajes, resúmenes, títulos, rutas, resultados de herramientas,
-  sandbox grants, configuración, settings, keychain o variables de proveedor;
-- automatizar Agent Panel, Threads Sidebar, Terminal Threads, agentes ACP,
-  feedback, dashboard o exportación Markdown;
-- tomar keys de Anthropic, OpenAI, Google, xAI, OpenCode u otro proveedor que
-  Zed use para un hilo;
-- sumar uso de un agente externo como uso nativo de Zed.
+- open, copy, query, or decompress `threads.db`, its WAL/SHM, or a future
+  thread database;
+- read messages, summaries, titles, paths, tool results, sandbox grants,
+  configuration, settings, keychain, or provider variables;
+- automate Agent Panel, Threads Sidebar, Terminal Threads, ACP agents,
+  feedback, dashboard, or Markdown export;
+- take Anthropic, OpenAI, Google, xAI, OpenCode, or other provider keys
+  that Zed uses for a thread;
+- add an external agent's usage as native Zed usage.
 
-## Decisión de producto
+## Product decision
 
-- No crear código, descriptor, scanner local, cliente remoto ni tarjeta Zed en
-  esta fase.
-- Mantener Ticket 59 en `needs-info`.
-- Reabrir solo cuando Zed publique una API o exportación de solo lectura,
-  agregada, mínima y autorizada para terceros, con unidades y cobertura claras.
-- Una futura integración debe separar el agente nativo de los agentes externos
-  y conservar el coste bajo el proveedor de modelo cuando corresponda.
+- Do not create code, a descriptor, a local scanner, a remote client, or a
+  Zed card in this phase.
+- Keep Ticket 59 in `needs-info`.
+- Reopen only when Zed publishes a read-only, aggregated, minimum, and
+  third-party-authorized API or export, with clear units and coverage.
+- A future integration must separate the native agent from external agents
+  and keep cost under the model provider when that applies.
 
-## Revisión independiente
+## Independent review
 
-Grok Build revisó matriz, plan, tickets y gates con `Read` y `Grep` solamente.
-Confirmó la separación entre Zed Agent, agentes externos y Terminal Threads, y
-no encontró una ruta aprobada que lea hilos o credenciales. La revisión no
-certifica fuentes externas ni comportamiento del editor en vivo.
+Grok Build reviewed matrix, plan, tickets, and gates with `Read` and `Grep`
+only. It confirmed the separation among Zed Agent, external agents, and
+Terminal Threads, and did not find an approved path that reads threads or
+credentials. The review does not certify external sources or live editor
+behavior.
 
-## Incertidumbre restante
+## Remaining uncertainty
 
-Zed puede publicar métricas de cuenta, exportación agregada o cambios de
-persistencia. Antes de anunciar soporte hay que repetir el gate con la versión
-de Windows vigente y un fixture aprobado que no contenga contenido de hilo.
+Zed can publish account metrics, an aggregated export, or persistence
+changes. Before announcing support, repeat the gate with the current
+Windows version and an approved fixture that does not contain thread
+content.

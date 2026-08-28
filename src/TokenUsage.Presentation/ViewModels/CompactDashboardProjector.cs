@@ -19,6 +19,7 @@ public sealed record CompactDashboardProjection(
     string GlobalDonutCenterText,
     string GlobalFooterText,
     string GlobalTokensText,
+    string? GlobalCostBreakdownText,
     string? SelectedProviderId,
     UsageHeatmapModel SelectedProviderHeatmap,
     UsageReportTrendDataset SelectedProviderTrend,
@@ -97,6 +98,20 @@ public static class CompactDashboardProjector
         string globalCostText = summaries.Length == 0 && activeSample is not null
             ? activeSample.TotalSpendAmount
             : UsageValueFormatter.Usd(totalCost, getString);
+        // The headline blends provider-reported dollars with catalog estimates;
+        // the split keeps subscription costs readable apart from API-list value.
+        string? globalCostBreakdownText = null;
+        if (windowed.Length > 0 && totalCost > 0m && activeSample is null)
+        {
+            decimal reportedTotal = windowed.Sum(rollup => rollup.ReportedCostUsd ?? 0m);
+            decimal estimatedTotal = windowed.Sum(rollup => rollup.EstimatedCostUsd ?? 0m);
+            globalCostBreakdownText = string.Format(
+                CultureInfo.CurrentCulture,
+                getString("CompactGlobalCostBreakdownFormat"),
+                UsageValueFormatter.Usd(reportedTotal, getString),
+                UsageValueFormatter.Usd(estimatedTotal, getString));
+        }
+
         string globalTokensText = totalTokens == 0
             ? localUsage.TotalTokensMetric.Value
             : UsageValueFormatter.CompactTokens(totalTokens);
@@ -128,6 +143,7 @@ public static class CompactDashboardProjector
                 globalCostText,
                 summaries.Length),
             globalTokensText,
+            globalCostBreakdownText,
             nextSelectedId,
             selected.Heatmap,
             selected.Trend,

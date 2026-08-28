@@ -106,7 +106,7 @@ public sealed class OpenCodeUsageEventSourceTests
     {
         using var corpus = new OpenCodeCorpus();
         corpus.CreateCurrentDatabase((
-            "session-a", 1_784_694_600_000L, "OpenAI/GPT-5", 0m, 100L, 20L, 5L, 30L, 7L));
+            "session-a", RecentMs + 600_000, "OpenAI/GPT-5", 0m, 100L, 20L, 5L, 30L, 7L));
 
         OpenCodeUsageEventSource source = corpus.CreateSource();
         UsageSourceReadResult result = await source.ReadAsync();
@@ -129,7 +129,7 @@ public sealed class OpenCodeUsageEventSourceTests
     public async Task LegacyDatabaseMessagesWinOverLegacyJson()
     {
         using var corpus = new OpenCodeCorpus();
-        corpus.CreateLegacyDatabase(("message-a", "session-a", 1_784_694_000_000L, Message("message-a", "db-model", 10, 2, 3, 4, 5, 0m)));
+        corpus.CreateLegacyDatabase(("message-a", "session-a", RecentMs, Message("message-a", "db-model", 10, 2, 3, 4, 5, 0m)));
         corpus.WriteJsonSession("session-a", Message("json-a", "json-model", 800, 80, 0, 0, 0, 8m));
 
         UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
@@ -166,7 +166,7 @@ public sealed class OpenCodeUsageEventSourceTests
         {
             id = "message-provider",
             role = "assistant",
-            time = new { created = 1_784_694_000_000L },
+            time = new { created = RecentMs },
             providerID = "openai",
             modelID = "openai/gpt-5",
             cost = 0m,
@@ -189,7 +189,7 @@ public sealed class OpenCodeUsageEventSourceTests
         {
             id = "message-antigravity",
             role = "assistant",
-            time = new { created = 1_784_694_000_000L },
+            time = new { created = RecentMs },
             providerID = "google",
             modelID = "antigravity-gemini-3-pro-high",
             cost = 0m,
@@ -201,7 +201,7 @@ public sealed class OpenCodeUsageEventSourceTests
 
         Assert.Equal("gemini-3-pro", usageEvent.ModelId.Value);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal(3.2m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(5.8m, usageEvent.Cost.EstimatedCostUsd);
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public sealed class OpenCodeUsageEventSourceTests
         {
             id = "message-underscore",
             role = "assistant",
-            time = new { created = 1_784_694_000_000L },
+            time = new { created = RecentMs },
             providerID = "openai",
             modelID = "gpt-5.1-codex_max",
             cost = 0m,
@@ -264,12 +264,12 @@ public sealed class OpenCodeUsageEventSourceTests
             (
                 "valid-message",
                 "shared-session",
-                1_784_694_000_000L,
+                RecentMs,
                 Message("valid-message", "db-model", 5, 1, 0, 0, 0, 0.25m)),
             (
                 "json-message",
                 "shared-session",
-                1_784_694_000_000L,
+                RecentMs,
                 "{\"role\":\"assistant\",\"tokens\":{\"input\":1}}"));
         invalidRow.WriteJsonSession(
             "shared-session",
@@ -302,7 +302,7 @@ public sealed class OpenCodeUsageEventSourceTests
         {
             id = "message-step",
             role = "assistant",
-            time = new { created = 1_784_694_000_000L },
+            time = new { created = RecentMs },
             modelID = "openai/gpt-5",
             text = "private fixture text",
         });
@@ -339,7 +339,7 @@ public sealed class OpenCodeUsageEventSourceTests
             {
                 id = "message-latest",
                 role = "assistant",
-                time = new { created = 1_784_694_000_000L },
+                time = new { created = RecentMs },
                 modelID = "openai/gpt-5",
             }));
         corpus.WriteStepFinish(
@@ -371,12 +371,12 @@ public sealed class OpenCodeUsageEventSourceTests
         corpus.CreateLegacyDatabase((
             "message-db-step",
             "session-db-step",
-            1_784_694_000_000L,
+            RecentMs,
             message));
         corpus.CreateLegacyPart(
             "part-db-step",
             "message-db-step",
-            1_784_694_000_100L,
+            RecentMs + 100,
             JsonSerializer.Serialize(new
             {
                 type = "step-finish",
@@ -410,7 +410,8 @@ public sealed class OpenCodeUsageEventSourceTests
             command.CommandText =
                 "PRAGMA journal_mode=WAL;"
                 + "CREATE TABLE session (id TEXT PRIMARY KEY, time_updated INTEGER, model TEXT, cost REAL, tokens_input INTEGER, tokens_output INTEGER, tokens_reasoning INTEGER, tokens_cache_read INTEGER, tokens_cache_write INTEGER);"
-                + "INSERT INTO session VALUES ('wal-session',1784694600000,'openai/gpt-5',0,10,2,0,3,0);";
+                + "INSERT INTO session VALUES ('wal-session',$time,'openai/gpt-5',0,10,2,0,3,0);";
+            command.Parameters.AddWithValue("$time", RecentMs + 600_000);
             command.ExecuteNonQuery();
         }
 
@@ -425,8 +426,8 @@ public sealed class OpenCodeUsageEventSourceTests
     {
         using var corpus = new OpenCodeCorpus();
         corpus.CreateCurrentDatabase(
-            ("session-a", 1_784_694_600_000L, "model-a", 0m, 1L, 1L, 0L, 0L, 0L),
-            ("session-b", 1_784_694_600_001L, "model-b", 0m, 1L, 1L, 0L, 0L, 0L));
+            ("session-a", RecentMs + 600_000, "model-a", 0m, 1L, 1L, 0L, 0L, 0L),
+            ("session-b", RecentMs + 600_001, "model-b", 0m, 1L, 1L, 0L, 0L, 0L));
 
         UsageSourceReadResult result = await corpus.CreateSource(maximumRows: 1).ReadAsync();
 
@@ -456,12 +457,16 @@ public sealed class OpenCodeUsageEventSourceTests
         Assert.Equal(UsageSourceIssueKind.Empty, result.Issue);
     }
 
+    // Fixture timestamps stay relative to the current clock so the reader's
+    // 30-day lookback window can never age a fixed epoch out of the corpus.
+    private static long RecentMs { get; } = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+
     private static string Message(string id, string model, long input, long output, long reasoning, long cacheRead, long cacheWrite, decimal? cost) =>
         JsonSerializer.Serialize(new Dictionary<string, object?>
         {
             ["id"] = id,
             ["role"] = "assistant",
-            ["time"] = new { created = 1_784_694_000_000L },
+            ["time"] = new { created = RecentMs },
             ["modelID"] = model,
             ["cost"] = cost,
             ["tokens"] = new { input, output, reasoning, cache = new { read = cacheRead, write = cacheWrite } },

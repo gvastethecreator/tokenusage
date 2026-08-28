@@ -36,8 +36,8 @@ The reader implements the rules below. A future review must reject the reader if
 1. Read the database in read-only mode with `PRAGMA query_only=ON`.
 2. Select only the eight counter columns listed above from `model_usage`. Never use `SELECT *`.
 3. Never open these surfaces: `v2\credentials.json`, the `part`, `message`, `input_history`, and `session` tables, and `cli\rollout\*.jsonl`. They hold credentials, transcripts, prompts, or workspace paths.
-4. Store no raw session ids and no workspace paths. Event keys are SHA-256 hashes of the row id.
-5. Verify the required columns before reading. A changed schema degrades to `UnsupportedSchema`. The parser never invents numbers.
+4. Store no raw session IDs and no workspace paths. Event keys are SHA-256 hashes of the row id.
+5. Make sure that the required columns exist before you read. A changed schema degrades to `UnsupportedSchema`. The parser never invents numbers.
 6. Stamp events with a parser version. A parser change reconciles and replaces stored rows.
 7. Make no network call. Detection only checks that the root or the database file exists.
 

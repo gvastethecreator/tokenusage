@@ -40,7 +40,7 @@ The inspection read only roots, SQLite schemas, model IDs, timestamps, and numer
 2. Grok returns early when `unified.jsonl` is partial, even when it produced no events and session snapshots are valid.
 3. OpenCode can let an unreadable database prevent its legacy JSON fallback.
 4. The spend ring intentionally excludes a provider when its combined reported and estimated cost is zero. Token-only data still appears in details but not as an arc.
-5. Before this change, no production Antigravity source existed, so it could not create a rollup or ring arc.
+5. Before this change, no production Antigravity source existed, so it did not create a rollup or ring arc.
 
 ## Decision
 
@@ -57,4 +57,4 @@ The inspection read only roots, SQLite schemas, model IDs, timestamps, and numer
 - Antigravity does not publish the `gen_metadata` protobuf schema. The reader must mark undecodable rows as partial and retain the last reliable snapshot.
 - API-rate estimates do not equal subscription charges. The UI must keep the estimate label.
 - Local formats can change. Parser versions and focused fixtures must make those changes visible.
-- This checkout exposes .NET SDK 9 while the solution targets .NET 10. The changed production sources and focused tests compile through the installed .NET 10 PowerShell runtime, and the real scanner-to-ring path ran successfully, but a current packaged x64 build remains unverified until SDK 10 is available.
+- This checkout exposes .NET SDK 9. The solution targets .NET 10. The changed production sources and focused tests compile through the installed .NET 10 PowerShell runtime. The real scanner-to-ring path ran successfully. A current packaged x64 build remains unverified until SDK 10 is available.

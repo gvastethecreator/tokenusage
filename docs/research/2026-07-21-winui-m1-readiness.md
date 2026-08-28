@@ -1,53 +1,53 @@
-# Preparación de M1 en este equipo
+# M1 readiness on this machine
 
-Fecha: 2026-07-21
+Date: 2026-07-21
 
-Estado: lista para ejecutar después de aprobar el tracker y los tickets
+Status: ready to run after the tracker and tickets are approved
 
-## Pregunta
+## Question
 
-¿Este equipo puede crear, compilar y lanzar el primer scaffold WinUI 3 empaquetado sin instalar o cambiar herramientas antes de M1?
+Can this machine create, compile, and launch the first packaged WinUI 3 scaffold without installing or changing tools before M1?
 
-## Respuesta
+## Answer
 
-Sí. Están presentes .NET 10, las plantillas WinUI, `winapp`, Developer Mode y Visual Studio con MSBuild. M1 puede comenzar con `winui-mvvm`, una build `x64` y lanzamiento con identidad de paquete.
+Yes. .NET 10, the WinUI templates, `winapp`, Developer Mode, and Visual Studio with MSBuild are present. M1 can start with `winui-mvvm`, an `x64` build, and launch with package identity.
 
-## Fuentes
+## Sources
 
-- [Inicio de WinUI 3 por CLI](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/create-your-first-winui3-app)
-- [Rutas de inicio de WinUI](https://learn.microsoft.com/en-us/windows/apps/get-started/winui-get-started-overview)
-- [Windows App SDK y sus canales](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
-- [Versiones de Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/get-started/versioning-overview)
-- [Uso de `winapp` con .NET](https://learn.microsoft.com/en-us/windows/apps/dev-tools/winapp-cli/guides/dotnet)
+- [Get started with WinUI 3 from the CLI](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/create-your-first-winui3-app)
+- [WinUI start paths](https://learn.microsoft.com/en-us/windows/apps/get-started/winui-get-started-overview)
+- [Windows App SDK and its channels](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
+- [Windows App SDK versions](https://learn.microsoft.com/en-us/windows/apps/get-started/versioning-overview)
+- [Using `winapp` with .NET](https://learn.microsoft.com/en-us/windows/apps/dev-tools/winapp-cli/guides/dotnet)
 
-## Evidencia local
+## Local evidence
 
-| Comprobación | Resultado observado |
+| Check | Observed result |
 |---|---|
 | `.NET SDK` | `10.0.301` |
-| plantilla | `winui-mvvm` disponible |
+| template | `winui-mvvm` available |
 | `winapp` | `0.4.0` |
-| Developer Mode | habilitado |
-| Visual Studio | Community 18 con MSBuild detectado |
-| arquitectura inicial | `x64` |
+| Developer Mode | enabled |
+| Visual Studio | Community 18 with MSBuild detected |
+| initial architecture | `x64` |
 
-No se instaló ni actualizó ninguna herramienta durante la comprobación.
+No tool was installed or updated during the check.
 
-## Decisiones para M1
+## M1 decisions
 
-- Crear la app con `dotnet new winui-mvvm -n TokenUsage.App`.
-- Conservar `Package.appxmanifest` y la identidad de paquete.
-- Usar el canal estable de Windows App SDK que resuelva la plantilla; no fijar Preview o Experimental.
-- Construir y lanzar con `BuildAndRun.ps1` o la ruta de paquete de `winapp`; nunca abrir el ejecutable empaquetado de forma directa.
-- Compilar por arquitectura concreta. La primera prueba es `x64`; `ARM64` se valida antes de estable.
-- Agregar paquetes sin versión manual y comprobar restore al añadir cada dependencia.
+- Create the app with `dotnet new winui-mvvm -n TokenUsage.App`.
+- Keep `Package.appxmanifest` and the package identity.
+- Use the stable Windows App SDK channel that the template resolves; do not pin Preview or Experimental.
+- Build and launch with `BuildAndRun.ps1` or the `winapp` package path; never open the packaged executable directly.
+- Compile for a concrete architecture. The first test is `x64`; `ARM64` is validated before stable.
+- Add packages without a manual version and check restore when each dependency is added.
 
-## Incertidumbre
+## Uncertainty
 
-- La presencia de las herramientas no prueba que un scaffold nuevo compile; ese es el primer criterio de aceptación de M1.
-- La firma y el Publisher ID de producción siguen siendo decisiones humanas. Una identidad de desarrollo basta para el smoke local.
-- La plantilla puede resolver una versión estable más nueva que la citada hoy. El `.csproj` creado quedará como baseline reproducible del repo.
+- The presence of the tools does not prove that a new scaffold compiles; that is the first M1 acceptance criterion.
+- Production signing and Publisher ID remain human decisions. A development identity is enough for local smoke.
+- The template can resolve a newer stable version than the one cited today. The created `.csproj` will be the repo's reproducible baseline.
 
-## Cambio en el plan
+## Plan change
 
-M1 ya no necesita una tarea de instalación. Empieza con scaffold, build y launch. Si cualquiera de esos pasos falla, se registra el error exacto y se detiene antes de agregar arquitectura o proveedores.
+M1 no longer needs an install task. It starts with scaffold, build, and launch. If any of those steps fails, record the exact error and stop before adding architecture or providers.

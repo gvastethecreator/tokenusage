@@ -1,164 +1,164 @@
-# Cuotas y gasto local de Grok, Antigravity y OpenCode
+# Local quotas and spend for Grok, Antigravity, and OpenCode
 
-Fecha: 2026-07-21
+Date: 2026-07-21
 
-Estado: decisión lista para incorporar al plan
+Status: decision ready to add to the plan
 
-## Pregunta
+## Question
 
-¿Podemos sumar Grok Build, Antigravity CLI y OpenCode, mostrar gasto cuando no haya una cuota restante apta y hacerlo sin pedir otro login ni usar credenciales ajenas?
+Can we add Grok Build, Antigravity CLI, and OpenCode, show spend when there is no suitable remaining quota, and do it without asking for another login or using someone else's credentials?
 
-## Respuesta
+## Answer
 
-Sí para un motor local de tokens y gasto. Grok Build y OpenCode tienen rutas locales útiles en Windows. Antigravity CLI puede entrar por lectura pasiva de bases locales, pero necesita un spike con datos reales antes de prometer cobertura.
+Yes for a local token and spend engine. Grok Build and OpenCode have useful local Windows paths. Antigravity CLI can enter through passive reads of local databases, but it needs a spike with real data before promising coverage.
 
-La cuota en vivo tiene otro límite. Grok ofrece `/usage` en su producto, pero no documenta una salida de cuota apta para otra app. Antigravity ofrece `/usage` y `/credits` dentro de su TUI, y su FAQ prohíbe usar el login de Antigravity desde herramientas de terceros. TokenUsage no automatizará esas rutas privadas.
+Live quota has a different limit. Grok offers `/usage` in its product, but it does not document a quota output that another app can use. Antigravity offers `/usage` and `/credits` inside its TUI, and its FAQ forbids using the Antigravity login from third-party tools. TokenUsage will not automate those private paths.
 
-## Referencias locales fijadas
+## Pinned local references
 
-Los clones están bajo `.reference/` y el repo raíz los ignora:
+The clones live under `.reference/` and the root repo ignores them:
 
-| Proyecto | SHA | Uso en esta investigación |
+| Project | SHA | Use in this research |
 |---|---|---|
-| [OpenUsage](https://github.com/robinebers/openusage) | `9d2bf09f10e21f769494a525a9d65c84d7aeb1df` | paridad de cuota, tarjeta y proveedores |
-| [CodeBurn](https://github.com/getagentseal/codeburn) | `6e3c57a9ff95a624f1d9affa7384d32a67f359b7` | lectores de sesiones y agregación local |
-| [AgentsView](https://github.com/kenn-io/agentsview) | `1ee2de88e2dae54326d8b47aeb2de2f58b5944f9` | contratos de cobertura, deduplicación y precios |
+| [OpenUsage](https://github.com/robinebers/openusage) | `9d2bf09f10e21f769494a525a9d65c84d7aeb1df` | quota, card, and provider parity |
+| [CodeBurn](https://github.com/getagentseal/codeburn) | `6e3c57a9ff95a624f1d9affa7384d32a67f359b7` | session readers and local aggregation |
+| [AgentsView](https://github.com/kenn-io/agentsview) | `1ee2de88e2dae54326d8b47aeb2de2f58b5944f9` | coverage, deduplication, and pricing contracts |
 
-CodeBurn y AgentsView usan licencia MIT. Sirven como comparación y corpus de diseño. TokenUsage tendrá contratos y código propios, con un alcance menor: tokens, coste, modelo, fecha y cobertura. No indexará transcripciones, comandos, herramientas, tareas ni resultados.
+CodeBurn and AgentsView use the MIT license. They serve as comparison and a design corpus. TokenUsage will have its own contracts and code, with a smaller scope: tokens, cost, model, date, and coverage. It will not index transcripts, commands, tools, tasks, or results.
 
-## Modelo común elegido
+## Chosen common model
 
-Cada agente expone tres capacidades independientes:
+Each agent exposes three independent capabilities:
 
-1. `Quota`: porcentaje usado o restante, límite y reinicio cuando existe una interfaz apta.
-2. `ObservedUsage`: tokens observados en este equipo, agrupados por día, agente y modelo.
-3. `Spend`: coste informado por la fuente o estimado con un catálogo versionado.
+1. `Quota`: used or remaining percentage, limit, and reset when a suitable interface exists.
+2. `ObservedUsage`: tokens observed on this machine, grouped by day, agent, and model.
+3. `Spend`: cost reported by the source or estimated with a versioned catalog.
 
-Una tarjeta puede mostrar cualquier subconjunto. La UI siempre declara fuente, edad y cobertura. `Gasto estimado` representa el valor a tarifas conocidas; no afirma el cargo de una suscripción.
+A card can show any subset. The UI always states source, age, and coverage. `Estimated spend` is the value at known rates; it does not claim a subscription charge.
 
-El motor propio normaliza solo:
+The local engine normalizes only:
 
-- agente y proveedor de modelo cuando se conocen;
-- modelo;
-- fecha y zona horaria;
-- tokens de entrada, salida, razonamiento, lectura de caché y escritura de caché;
-- coste USD informado o estimado;
-- clave de evento para deduplicar;
-- procedencia, versión de parser y cobertura.
+- agent and model provider when they are known;
+- model;
+- date and time zone;
+- input, output, reasoning, cache-read, and cache-write tokens;
+- reported or estimated USD cost;
+- event key for deduplication;
+- provenance, parser version, and coverage.
 
-La primera entrega agrega por día, agente y modelo. Proyecto y sesión quedan fuera para no guardar nombres ni crear un índice de conversaciones.
+The first delivery aggregates by day, agent, and model. Project and session stay out so the app does not store names or create a conversation index.
 
 ## Grok Build
 
-### Fuentes oficiales
+### Official sources
 
-[Grok Build](https://docs.x.ai/build/overview) soporta Windows, login por navegador, API key, modo headless y Agent Client Protocol. Su [referencia de CLI](https://docs.x.ai/build/cli/reference) documenta `grok agent stdio`. El [changelog](https://x.ai/build/changelog) registra `/usage`, porcentajes de uso, créditos prepagos y coste/tokens en salida headless.
+[Grok Build](https://docs.x.ai/build/overview) supports Windows, browser login, API key, headless mode, and Agent Client Protocol. Its [CLI reference](https://docs.x.ai/build/cli/reference) documents `grok agent stdio`. The [changelog](https://x.ai/build/changelog) records `/usage`, usage percentages, prepaid credits, and cost/tokens in headless output.
 
-La [FAQ de Grok](https://docs.x.ai/grok/faq) describe un pool semanal compartido y una vista de uso con porcentaje, reinicio y créditos. No ofrece un contrato JSON de cuota para otra app. La [política de uso aceptable de xAI](https://x.ai/legal/acceptable-use-policy) restringe el acceso automatizado. Por eso, el endpoint privado de billing que usa OpenUsage no se activa en una build pública.
+The [Grok FAQ](https://docs.x.ai/grok/faq) describes a shared weekly pool and a usage view with percentage, reset, and credits. It does not offer a JSON quota contract for another app. The [xAI acceptable use policy](https://x.ai/legal/acceptable-use-policy) restricts automated access. For that reason, the private billing endpoint that OpenUsage uses does not turn on in a public build.
 
-### Ruta local
+### Local path
 
-Las referencias muestran dos generaciones de datos locales:
+The references show two generations of local data:
 
-- `GROK_HOME/sessions/.../summary.json`, `signals.json` y `updates.jsonl`;
+- `GROK_HOME/sessions/.../summary.json`, `signals.json`, and `updates.jsonl`;
 - `GROK_HOME/logs/unified.jsonl`.
 
-La fuente de sesión tiene prioridad. Algunas versiones incluyen `params.update.usage`, desglose por modelo, tokens y `costUsdTicks`. Si el coste informado no existe, se estima desde tokens y se etiqueta. El log unificado queda como fallback y nunca se suma sobre una sesión ya contada.
+The session source has priority. Some versions include `params.update.usage`, a per-model breakdown, tokens, and `costUsdTicks`. If reported cost is missing, the engine estimates from tokens and labels the result. The unified log is a fallback and is never added on top of a session already counted.
 
-### Prueba Windows
+### Windows test
 
-- binario: `C:\Users\cristian\.grok\bin\grok.exe`;
-- versión observada: `0.2.106`;
-- sesiones y `unified.jsonl`: presentes;
-- últimas 2.000 líneas examinadas solo por esquema: 1.992 JSON válidos;
-- no se leyó ni imprimió el contenido de `auth.json`, prompts, modelos, costes o tokens.
+- binary: `C:\Users\cristian\.grok\bin\grok.exe`;
+- observed version: `0.2.106`;
+- sessions and `unified.jsonl`: present;
+- last 2,000 lines examined for schema only: 1,992 valid JSON records;
+- the test did not read or print the contents of `auth.json`, prompts, models, costs, or tokens.
 
-### Decisión
+### Decision
 
-- tokens y gasto local: beta;
-- cuota y saldo en vivo: `PolicyBlocked` hasta tener salida oficial apta o permiso escrito;
-- nunca iniciar login ni leer `auth.json` para el scanner local.
+- local tokens and spend: beta;
+- live quota and balance: `PolicyBlocked` until there is a suitable official output or written permission;
+- never start login or read `auth.json` for the local scanner.
 
 ## OpenCode
 
-### Fuentes oficiales
+### Official sources
 
-La [CLI de OpenCode](https://opencode.ai/docs/cli/) ofrece `opencode stats` para tokens y costes, filtros por días, modelos y proyecto, además de export de sesiones. La [guía de solución de problemas](https://opencode.ai/docs/troubleshooting/) documenta `%USERPROFILE%\.local\share\opencode` en Windows. La [guía de Windows y WSL](https://opencode.ai/docs/windows-wsl/) fija `~/.local/share/opencode` dentro de cada distro WSL.
+The [OpenCode CLI](https://opencode.ai/docs/cli/) offers `opencode stats` for tokens and costs, filters by days, models, and project, plus session export. The [troubleshooting guide](https://opencode.ai/docs/troubleshooting/) documents `%USERPROFILE%\.local\share\opencode` on Windows. The [Windows and WSL guide](https://opencode.ai/docs/windows-wsl/) pins `~/.local/share/opencode` inside each WSL distro.
 
-`opencode stats` no ofrece JSON en la versión examinada. Se usará como oráculo diferencial, no como texto para parsear.
+`opencode stats` does not offer JSON in the examined version. It will be used as a differential oracle, not as text to parse.
 
-### Ruta local
+### Local path
 
-OpenCode ha usado dos formatos que pueden coexistir:
+OpenCode has used two formats that can coexist:
 
-- `opencode.db`, con sesión, mensaje y parte;
-- `storage/session`, `storage/message` y `storage/part` en JSON.
+- `opencode.db`, with session, message, and part;
+- `storage/session`, `storage/message`, and `storage/part` as JSON.
 
-Los mensajes o partes `step-finish` incluyen modelo, `cost` y `tokens` con entrada, salida, razonamiento y caché. El coste informado tiene prioridad. El catálogo solo cubre filas sin coste.
+`step-finish` messages or parts include model, `cost`, and `tokens` with input, output, reasoning, and cache. Reported cost has priority. The catalog covers only rows without cost.
 
-El lector abre SQLite en modo de solo lectura, consulta columnas mínimas y usa `busy_timeout` corto. No copia una base grande. Procesa el WAL sin crear o cambiar archivos. Un bloqueo conserva el último agregado y marca cobertura parcial.
+The reader opens SQLite in read-only mode, queries the minimum columns, and uses a short `busy_timeout`. It does not copy a large database. It processes the WAL without creating or changing files. A lock keeps the last aggregate and marks partial coverage.
 
-### Prueba Windows
+### Windows test
 
-- binario detectado: `C:\Users\cristian\.bun\bin\opencode.exe`;
-- versión observada: `1.18.4`;
-- `opencode stats --help`: correcto y con flags de días, modelos y proyecto;
-- `opencode.db` y `storage`: presentes;
-- tamaño observado de la base: cerca de 2,5 GB, motivo para evitar copia completa y escaneo de transcripciones;
-- no se abrió `auth.json` ni se ejecutó un informe con cifras del usuario.
+- detected binary: `C:\Users\cristian\.bun\bin\opencode.exe`;
+- observed version: `1.18.4`;
+- `opencode stats --help`: correct, with flags for days, models, and project;
+- `opencode.db` and `storage`: present;
+- observed database size: about 2.5 GB, a reason to avoid a full copy and a transcript scan;
+- the test did not open `auth.json` or run a report with the user's figures.
 
-OpenCode también puede correr dentro de WSL. La detección WSL requiere consentimiento porque una app Windows debe enumerar distros y abrir archivos mediante `\\wsl$`. La primera beta cubre la instalación Windows nativa; WSL queda como tarea separada.
+OpenCode can also run inside WSL. WSL detection needs consent because a Windows app must enumerate distros and open files through `\\wsl$`. The first beta covers the native Windows install; WSL is a separate task.
 
-### Decisión
+### Decision
 
-- tokens y gasto local: beta, junto con Grok Build;
-- `opencode stats`: prueba diferencial de totales en fixtures y smoke opt-in;
-- cuota común: no aplica, porque OpenCode puede usar varios proveedores y planes;
-- `auth.json`: fuera del lector.
+- local tokens and spend: beta, together with Grok Build;
+- `opencode stats`: differential total check in fixtures and opt-in smoke;
+- common quota: does not apply, because OpenCode can use several providers and plans;
+- `auth.json`: out of the reader.
 
 ## Antigravity CLI
 
-### Fuentes oficiales
+### Official sources
 
-La [instalación de Antigravity CLI](https://antigravity.google/docs/cli-install) admite Windows y guarda el login silencioso en Windows Credential Manager. `/usage` muestra cuota dentro del TUI según su [documentación](https://antigravity.google/docs/cli/commands/usage); `/credits` tiene una [vista propia](https://antigravity.google/docs/cli-credits). La [statusline](https://antigravity.google/docs/cli-statusline) expone uso del contexto activo, pero no la cuota global de suscripción.
+[Antigravity CLI install](https://antigravity.google/docs/cli-install) supports Windows and stores silent login in Windows Credential Manager. `/usage` shows quota inside the TUI per its [documentation](https://antigravity.google/docs/cli/commands/usage); `/credits` has its own [view](https://antigravity.google/docs/cli-credits). The [statusline](https://antigravity.google/docs/cli-statusline) exposes usage of the active context, but not the global subscription quota.
 
-La [FAQ de Antigravity](https://antigravity.google/docs/faq) indica que usar software de terceros para acceder a Antigravity con el login de Antigravity viola sus términos y puede suspender la cuenta. Ese límite descarta leer Credential Manager, llamar Cloud Code, consultar un language server privado o automatizar `/usage`.
+The [Antigravity FAQ](https://antigravity.google/docs/faq) states that using third-party software to access Antigravity with the Antigravity login violates its terms and can suspend the account. That limit rules out reading Credential Manager, calling Cloud Code, querying a private language server, or automating `/usage`.
 
-### Ruta local permitida
+### Allowed local path
 
-Las referencias detectan conversaciones `.db` con una tabla `gen_metadata`. Sus filas contienen modelo y contadores de tokens. Un lector pasivo puede extraer esos campos sin usar el login. Se aceptan solo formatos locales claros y sin descifrado:
+The references detect `.db` conversations with a `gen_metadata` table. Its rows contain model and token counters. A passive reader can extract those fields without using the login. Only clear local formats without decryption are accepted:
 
-- `.db` SQLite en modo de solo lectura;
-- eventos de statusline que el usuario configure de forma explícita en el futuro;
-- ningún `.pb` cifrado, daemon auxiliar, token, CSRF o RPC local privado.
+- SQLite `.db` in read-only mode;
+- statusline events that the user configures explicitly in the future;
+- no encrypted `.pb`, helper daemon, token, CSRF, or private local RPC.
 
-La instalación examinada tiene `agy.exe` `1.1.5`, pero aún no existe `%USERPROFILE%\.gemini\antigravity-cli`. No hay corpus local para verificar el parser.
+The examined install has `agy.exe` `1.1.5`, but `%USERPROFILE%\.gemini\antigravity-cli` does not exist yet. There is no local corpus to verify the parser.
 
-### Decisión
+### Decision
 
-- cuota y créditos: bloqueados por política;
-- tokens y coste local: experimental hasta probar una `.db` real y sanitizar fixtures;
-- una build pública debe fallar cerrada si solo encuentra datos cifrados o una fuente privada.
+- quota and credits: blocked by policy;
+- local tokens and cost: experimental until a real `.db` is tested and fixtures are sanitized;
+- a public build must fail closed if it finds only encrypted data or a private source.
 
-## Catálogo de precios
+## Price catalog
 
-Orden de precedencia:
+Precedence order:
 
-1. coste informado por el agente;
-2. precio fijado por proveedor y modelo cuando el contrato es claro;
-3. snapshot embebido y fechado del [catálogo de LiteLLM](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json);
-4. sin coste cuando el modelo no tiene una coincidencia exacta.
+1. cost reported by the agent;
+2. price fixed by provider and model when the contract is clear;
+3. dated embedded snapshot of the [LiteLLM catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json);
+4. no cost when the model has no exact match.
 
-El motor no hace coincidencias por subcadena. Cada estimación guarda versión del catálogo y tasa aplicada. Las actualizaciones de catálogo se revisan en build; no se descarga una tabla sin firma durante el uso normal.
+The engine does not match by substring. Each estimate stores catalog version and applied rate. Catalog updates are reviewed at build time; the app does not download an unsigned table during normal use.
 
-## Incertidumbre
+## Uncertainty
 
-- Los formatos locales no son API estable y requieren fixtures por versión.
-- La cuota Grok podría ganar una salida oficial; se debe revisar antes de cada beta.
-- Antigravity aún carece de un fixture Windows real en este equipo.
-- OpenCode nativo y OpenCode en WSL usan raíces distintas.
-- Un coste informado puede representar tarifa API, precio de router o cero promocional; la UI conserva la procedencia.
+- Local formats are not a stable API and need fixtures per version.
+- Grok quota might gain an official output; review it before each beta.
+- Antigravity still lacks a real Windows fixture on this machine.
+- Native OpenCode and OpenCode in WSL use different roots.
+- A reported cost can represent an API rate, a router price, or a promotional zero; the UI keeps provenance.
 
-## Decisión final
+## Final decision
 
-Construir un motor local propio y pequeño. La beta incluirá Claude, Grok Build y OpenCode sobre el mismo contrato. Antigravity CLI entra después como parser pasivo experimental. Codex conserva su fuente oficial para cuota y uso. Cada proveedor puede entregar cuota, uso o gasto de forma independiente, y la tarjeta se adapta al conjunto disponible.
+Build a small local engine of our own. The beta will include Claude, Grok Build, and OpenCode on the same contract. Antigravity CLI comes later as an experimental passive parser. Codex keeps its official source for quota and usage. Each provider can deliver quota, usage, or spend independently, and the card adapts to the available set.

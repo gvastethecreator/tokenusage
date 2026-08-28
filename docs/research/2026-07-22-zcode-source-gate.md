@@ -1,120 +1,119 @@
-# Gate de fuente ZCode
+# ZCode source gate
 
-Fecha de corte: 2026-07-22
+Cutoff date: 2026-07-22
 
-Decisión: `block`
+Decision: `block`
 
-## Pregunta
+## Question
 
-¿Puede TokenUsage integrar ZCode en Windows para mostrar cuota restante, uso
-local o gasto sin reutilizar login, credenciales o contenido de sesión?
+Can TokenUsage integrate ZCode on Windows to show remaining quota, local
+usage, or spend without reusing login, credentials, or session content?
 
-## Respuesta
+## Answer
 
-Todavía no. ZCode muestra ambos grupos de datos dentro de su app: `App Usage`
-para registros locales de sesión y `Coding Plan` para cuota y uso remotos de
-Z.ai o BigModel. Las fuentes oficiales revisadas no publican una API de lectura
-para terceros, una exportación de métricas ni la ruta y el esquema de los
-registros locales. La política confirma que las conversaciones registran
-entradas y contenido generado, y los términos prohíben extraer datos o acceder
-de forma automatizada sin autorización.
+Not yet. ZCode shows both data groups inside its app: `App Usage` for local
+session records and `Coding Plan` for remote Z.ai or BigModel quota and
+usage. The reviewed official sources do not publish a third-party read API,
+a metric export, or the path and schema of the local records. The policy
+confirms that conversations record inputs and generated content, and the
+terms forbid extracting data or accessing in an automated way without
+authorization.
 
-TokenUsage no añadirá un adaptador ZCode mientras falte una fuente pública
-apta. El gate se puede reabrir con una API de solo lectura autorizada o con una
-exportación local documentada y segura.
+TokenUsage will not add a ZCode adapter while a suitable public source is
+missing. The gate can be reopened with an authorized read-only API or with
+a documented, safe local export.
 
-## Identidad y soporte
+## Identity and support
 
-- ID propuesto para un futuro descriptor: `zcode`.
-- Nombre visible: `ZCode`.
-- Producto: app de escritorio con ZCode Agent integrado; la documentación
-  describe un espacio de trabajo de escritorio, tareas, terminal y revisión.
-- Publisher y responsable del servicio: `JINGSHENG HENGXING TECHNOLOGY
+- Proposed ID for a future descriptor: `zcode`.
+- Visible name: `ZCode`.
+- Product: desktop app with an integrated ZCode Agent; the documentation
+  describes a desktop workspace, tasks, terminal, and review.
+- Publisher and service owner: `JINGSHENG HENGXING TECHNOLOGY
   PTE.LTD`.
-- Versión observada: `3.4.2`, publicada el 2026-07-22.
-- Windows x64: instalación documentada. La página también publica un enlace de
-  descarga Windows ARM64, aunque su guía y su frase de soporte solo detallan
-  x64. ARM64 requiere smoke real antes de anunciarlo como soporte del
-  proveedor.
-- Las fuentes revisadas no describen un ejecutable ni un contrato CLI de
-  ZCode. `/goal`, `/compact` y los comandos personalizados viven dentro de
-  ZCode Agent.
+- Observed version: `3.4.2`, published on 2026-07-22.
+- Windows x64: documented install. The page also publishes a Windows ARM64
+  download link, although its guide and support sentence detail only x64.
+  ARM64 needs a real smoke before it is announced as provider support.
+- The reviewed sources do not describe a ZCode executable or CLI contract.
+  `/goal`, `/compact`, and custom commands live inside ZCode Agent.
 
-## Fuentes primarias
+## Primary sources
 
-Consultadas el 2026-07-22:
+Consulted on 2026-07-22:
 
-| Fuente | Hecho que respalda |
+| Source | Supporting fact |
 |---|---|
-| [Términos de ZCode](https://zcode.z.ai/en/terms) | Define el producto y el proveedor legal; exige login y prohíbe bots, scraping, extracción de datos e ingeniería inversa. |
-| [Política de privacidad](https://zcode.z.ai/en/privacy) | Identifica al controller; registra conversaciones, entradas, archivos, código, comandos y contenido generado. |
-| [Instalación](https://zcode.z.ai/en/docs/install) | Describe la app de escritorio, Windows x64 y enlaces Windows x64/ARM64. |
-| [Changelog](https://zcode.z.ai/en/changelog) | Publica ZCode `3.4.2` el 2026-07-22. |
-| [ZCode Agent](https://zcode.z.ai/en/docs/agent-framework) | Describe el agente propio dentro del espacio de trabajo de escritorio. |
-| [Comandos](https://zcode.z.ai/en/docs/commands) | Fija `/goal`, `/compact` y comandos Markdown como funciones del agente. |
-| [Usage Stats](https://zcode.z.ai/en/docs/usage-stats) | Separa `App Usage` local de `Coding Plan` remoto y enumera sus métricas. |
-| [Connect Models & Plans](https://zcode.z.ai/en/docs/configuration) | Documenta endpoints de inferencia para API key; no un contrato de cuota, uso acumulado o facturación para terceros. |
-| [Feedback & Support](https://zcode.z.ai/en/docs/feedback) | Documenta `%USERPROFILE%\.zcode\logs` en Windows para soporte. |
+| [ZCode terms](https://zcode.z.ai/en/terms) | Defines the product and the legal provider; requires login and forbids bots, scraping, data extraction, and reverse engineering. |
+| [Privacy policy](https://zcode.z.ai/en/privacy) | Identifies the controller; records conversations, inputs, files, code, commands, and generated content. |
+| [Install](https://zcode.z.ai/en/docs/install) | Describes the desktop app, Windows x64, and Windows x64/ARM64 links. |
+| [Changelog](https://zcode.z.ai/en/changelog) | Publishes ZCode `3.4.2` on 2026-07-22. |
+| [ZCode Agent](https://zcode.z.ai/en/docs/agent-framework) | Describes the own agent inside the desktop workspace. |
+| [Commands](https://zcode.z.ai/en/docs/commands) | Pins `/goal`, `/compact`, and Markdown commands as agent functions. |
+| [Usage Stats](https://zcode.z.ai/en/docs/usage-stats) | Separates local `App Usage` from remote `Coding Plan` and lists their metrics. |
+| [Connect Models & Plans](https://zcode.z.ai/en/docs/configuration) | Documents inference endpoints for an API key; not a third-party contract for quota, accumulated usage, or billing. |
+| [Feedback & Support](https://zcode.z.ai/en/docs/feedback) | Documents `%USERPROFILE%\.zcode\logs` on Windows for support. |
 
-## Clasificación de fuentes
+## Source classification
 
-| Dato | Fuente observada | Estado para TokenUsage | Decisión |
+| Data | Observed source | TokenUsage status | Decision |
 |---|---|---|---|
-| Cuota restante | `Coding Plan` en la UI de ZCode | No hay API pública, exportación ni permiso de terceros | Bloqueada |
-| Uso histórico | `App Usage` lee registros locales | Ruta y esquema no publicados; los registros pueden contener contenido de sesión | Bloqueado |
-| Tokens por modelo | `App Usage` y `Coding Plan` | Sin contrato de máquina ni fuente mínima documentada | Bloqueados |
-| Gasto o facturación | Suscripción y plan dentro del servicio | Sin API o exportación de gasto para terceros | Bloqueado |
-| API key manual | ZCode permite una key para invocar modelos | No representa un permiso de lectura de cuota o gasto | No se admite |
+| Remaining quota | `Coding Plan` in the ZCode UI | No public API, export, or third-party permission | Blocked |
+| Historical usage | `App Usage` reads local records | Path and schema unpublished; the records can contain session content | Blocked |
+| Tokens by model | `App Usage` and `Coding Plan` | No machine contract or documented minimum source | Blocked |
+| Spend or billing | Subscription and plan inside the service | No third-party spend API or export | Blocked |
+| Manual API key | ZCode allows a key to invoke models | It does not represent permission to read quota or spend | Not allowed |
 
-Los endpoints OpenAI y Anthropic descritos para Z.ai o BigModel sirven para
-invocar modelos. TokenUsage no los llamará para medir consumo, inferir saldo ni
-probar rutas no documentadas.
+The OpenAI and Anthropic endpoints described for Z.ai or BigModel serve to
+invoke models. TokenUsage will not call them to measure consumption, infer
+balance, or probe undocumented paths.
 
-## Límite de privacidad y seguridad
+## Privacy and security limit
 
-TokenUsage no debe abrir, indexar ni usar:
+TokenUsage must not open, index, or use:
 
-- `%USERPROFILE%\.zcode\logs` ni un escaneo amplio de `.zcode`;
-- `AGENTS.md`, comandos, skills, subagentes, configuración de MCP o archivos
-  `.zcode` de un workspace;
-- conversaciones, prompts, respuestas, adjuntos, archivos, código, comandos de
-  shell, resultados de herramientas, tareas o historial de sesión;
-- cookies, tokens, estado de login, credenciales de ZCode, Z.ai o BigModel, ni
-  API keys de otro producto;
-- endpoints privados, tráfico observado, automatización de la interfaz o
-  mecanismos deducidos de binarios y logs.
+- `%USERPROFILE%\.zcode\logs` or a broad scan of `.zcode`;
+- `AGENTS.md`, commands, skills, subagents, MCP configuration, or a
+  workspace's `.zcode` files;
+- conversations, prompts, responses, attachments, files, code, shell
+  commands, tool results, tasks, or session history;
+- cookies, tokens, login state, ZCode, Z.ai, or BigModel credentials, or
+  API keys from another product;
+- private endpoints, observed traffic, interface automation, or mechanisms
+  inferred from binaries and logs.
 
-La ruta de logs es la única ruta Windows de datos de ZCode que la documentación
-revisada publica. Su finalidad es soporte y puede incluir material de tarea; no
-es una fuente de métricas apta.
+The logs path is the only Windows ZCode data path that the reviewed
+documentation publishes. Its purpose is support and it can include task
+material; it is not a suitable metrics source.
 
-## Decisión de producto
+## Product decision
 
-- No crear código, descriptor, lector local ni cliente remoto para ZCode en
-  esta fase.
-- No pedir ni guardar una API key, cookie, token o credencial ZCode/Z.ai para
-  este proveedor.
-- No anunciar cuota, uso, gasto o soporte ARM64 de ZCode en la UI pública.
-- Mantener el Ticket 49 en `needs-info`.
-- Reabrir cuando ZCode publique una de estas opciones:
-  1. API pública de lectura con endpoint, versión, autenticación de mínimo
-     privilegio, alcance de cuenta/región y permiso expreso para terceros.
-  2. Exportación o archivo local con ruta, esquema, licencia y garantía de que
-     contiene solo marca de tiempo, modelo, tokens y coste, sin contenido de
-     sesión ni credenciales.
+- Do not create code, a descriptor, a local reader, or a remote client for
+  ZCode in this phase.
+- Do not ask for or store an API key, cookie, token, or ZCode/Z.ai
+  credential for this provider.
+- Do not announce ZCode quota, usage, spend, or ARM64 support in the public
+  UI.
+- Keep Ticket 49 in `needs-info`.
+- Reopen when ZCode publishes one of these options:
+  1. A public read API with endpoint, version, least-privilege
+     authentication, account/region scope, and express third-party
+     permission.
+  2. A local export or file with path, schema, license, and a guarantee
+     that it contains only timestamp, model, tokens, and cost, without
+     session content or credentials.
 
-## Revisión independiente
+## Independent review
 
-Grok Build revisó este gate en modo de solo lectura. Tuvo acceso únicamente a
-esta nota, la matriz, el plan y el README; no usó web, shell ni permisos de
-edición. Su veredicto fue `accept`: la matriz conserva los mismos límites y no
-convierte el comportamiento de la UI en un contrato para terceros. El parent
-verificó después el diff local. Esta revisión no sustituye las fuentes
-primarias de la tabla anterior.
+Grok Build reviewed this gate in read-only mode. It had access only to this
+note, the matrix, the plan, and the README; it did not use web, shell, or
+edit permissions. Its verdict was `accept`: the matrix keeps the same
+limits and does not turn UI behavior into a third-party contract. The
+parent later verified the local diff. This review does not replace the
+primary sources in the table above.
 
-## Incertidumbre restante
+## Remaining uncertainty
 
-La descarga ARM64 visible requiere prueba de instalación y lectura segura antes
-de cualquier claim. ZCode puede publicar una exportación, una API o cambios de
-política después de este corte; el gate debe revisarse antes de una beta que
-prometa soporte.
+The visible ARM64 download needs an install test and a safe read before any
+claim. ZCode can publish an export, an API, or policy changes after this
+cutoff; the gate must be reviewed before a beta that promises support.
