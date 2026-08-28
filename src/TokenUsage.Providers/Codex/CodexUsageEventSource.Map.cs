@@ -294,8 +294,20 @@ public sealed partial class CodexUsageEventSource
                         .ToArray());
 
         var tokensByDate = new SortedDictionary<DateOnly, long>();
+        // The account history reaches back far beyond the reconciliation window.
+        // Those old aggregates carry no model split, double-count tokens the
+        // session files already cover, and never leave the store once written,
+        // so only the reconciliation window is emitted.
+        DateOnly officialCutoff = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(_clock.GetUtcNow(), groupingTimeZone).DateTime)
+            .AddDays(-UsagePeriodPolicy.ReconciliationDays);
         foreach (CodexUsageDailyBucket bucket in usage.DailyUsageBuckets)
         {
+            if (bucket.StartDate < officialCutoff)
+            {
+                continue;
+            }
+
             tokensByDate[bucket.StartDate] = checked(
                 tokensByDate.GetValueOrDefault(bucket.StartDate) + bucket.Tokens);
         }
