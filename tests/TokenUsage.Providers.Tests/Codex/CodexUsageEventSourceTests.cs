@@ -146,7 +146,8 @@ public sealed class CodexUsageEventSourceTests
             new CodexUsageSummary(null, null, null, null, null),
             [new CodexUsageDailyBucket(new DateOnly(2026, 7, 27), 1_000)]);
         CodexUsageEventSource source = corpus.CreateSource(
-            clientFactory: new StubFactory(new StubClient(usage)));
+            clientFactory: new StubFactory(new StubClient(usage)),
+            clock: new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
 
         UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
@@ -157,6 +158,30 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(1_000, usageEvent.Tokens.Total);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
+    }
+
+    [Fact]
+    public async Task OfficialHistoryBeyondTheReconciliationWindowIsNotEmitted()
+    {
+        using var corpus = new CodexCorpus();
+        var usage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [
+                new CodexUsageDailyBucket(new DateOnly(2025, 9, 17), 28_206_001),
+                new CodexUsageDailyBucket(new DateOnly(2026, 7, 27), 1_000),
+            ]);
+        CodexUsageEventSource source = corpus.CreateSource(
+            clientFactory: new StubFactory(new StubClient(usage)),
+            clock: new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
+
+        UsageSourceReadResult result = await source.ReadAsync();
+
+        UsageEvent usageEvent = Assert.Single(result.Events);
+        Assert.Equal("codex-account", usageEvent.ModelId.Value);
+        Assert.Equal(1_000, usageEvent.Tokens.Total);
+        Assert.Equal(
+            new DateOnly(2026, 7, 27),
+            DateOnly.FromDateTime(usageEvent.OccurredAtUtc.UtcDateTime));
     }
 
     [Fact]
@@ -185,7 +210,8 @@ public sealed class CodexUsageEventSourceTests
             new CodexUsageSummary(null, null, null, null, null),
             [new CodexUsageDailyBucket(new DateOnly(2026, 7, 27), 100)]);
         CodexUsageEventSource source = corpus.CreateSource(
-            clientFactory: new StubFactory(new StubClient(usage)));
+            clientFactory: new StubFactory(new StubClient(usage)),
+            clock: new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
 
         UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent[] events = result.Events
