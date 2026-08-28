@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-26T17:19:01Z",
-  "generated_from_commit": "31d63ff68740750f298cdb60fae990de6bf9bd2a",
+  "generated_at": "2026-08-28T14:37:03Z",
+  "generated_from_commit": "39ca7d5df83f3801d74f187f4f66a7707f92f582",
   "scope": [
     "."
   ],
@@ -157,9 +157,9 @@
       "tests": [
         "tests/TokenUsage.Cli.Tests/CliApplicationTests.cs",
         "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
-        "tests/TokenUsage.Cli.Tests/LimitsCommandTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalLimitsCliAccessTests.cs",
-        "tests/TokenUsage.Cli.Tests/LocalProviderDiagnosticsAccessTests.cs"
+        "tests/TokenUsage.Cli.Tests/GrokCommandTests.cs",
+        "tests/TokenUsage.Cli.Tests/HookCommandTests.cs",
+        "tests/TokenUsage.Cli.Tests/LimitsCommandTests.cs"
       ],
       "constraints": [
         "This baseline uses tracked source and explicit dependency references only."
@@ -297,14 +297,14 @@
       "type": "service",
       "boundary": "Src",
       "entrypoints": [
-        "src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj:<Project Sdk=\"Microsoft.NET.Sdk\">"
+        "src/TokenUsage.Runtime.Windows/HookTriggerCommand.cs:namespace TokenUsage.Runtime.Windows;"
       ],
       "tests": [
         "tests/TokenUsage.Cli.Tests/CursorCommandTests.cs",
+        "tests/TokenUsage.Cli.Tests/GrokCommandTests.cs",
+        "tests/TokenUsage.Cli.Tests/ZcodeCommandTests.cs",
         "tests/TokenUsage.Platform.Windows.Tests/Automation/WindowsProviderDiagnosticsQueryTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs",
-        "tests/TokenUsage.Platform.Windows.Tests/Credentials/WindowsManualProviderCredentialStoreTests.cs"
+        "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs"
       ],
       "constraints": [
         "This baseline uses tracked source and explicit dependency references only."
@@ -313,8 +313,8 @@
         "status": "verified",
         "locations": [
           {
-            "path": "src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj",
-            "symbol": "<Project Sdk=\"Microsoft.NET.Sdk\">"
+            "path": "src/TokenUsage.Runtime.Windows/HookTriggerCommand.cs",
+            "symbol": "namespace TokenUsage.Runtime.Windows;"
           }
         ]
       }
@@ -432,6 +432,10 @@
           },
           {
             "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "DataCollectionSettingsStore"
+          },
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
             "symbol": "AppSessionHost"
           },
           {
@@ -453,10 +457,6 @@
           {
             "path": "src/TokenUsage.App/Composition/AppComposition.cs",
             "symbol": "AppearanceSettingsStore"
-          },
-          {
-            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
-            "symbol": "SnapshotStore"
           }
         ]
       }
@@ -661,6 +661,14 @@
           {
             "path": "src/TokenUsage.App/Composition/AppComposition.cs",
             "symbol": "WindowsProviderCatalog"
+          },
+          {
+            "path": "src/TokenUsage.App/Composition/AppComposition.cs",
+            "symbol": "RefreshHookAutoSetup"
+          },
+          {
+            "path": "src/TokenUsage.App/ViewModels/FlyoutViewModel.cs",
+            "symbol": "RefreshHookAutoSetup"
           }
         ]
       }
@@ -789,6 +797,10 @@
             "symbol": "CursorHookInstaller"
           },
           {
+            "path": "src/TokenUsage.Cli/GrokCommand.cs",
+            "symbol": "GrokHookInstaller"
+          },
+          {
             "path": "src/TokenUsage.Cli/LocalLimitsCliAccess.cs",
             "symbol": "WindowsProviderCatalog"
           },
@@ -799,6 +811,10 @@
           {
             "path": "src/TokenUsage.Cli/LocalUsageCliAccess.cs",
             "symbol": "WindowsProviderCatalog"
+          },
+          {
+            "path": "src/TokenUsage.Cli/ZcodeCommand.cs",
+            "symbol": "ZcodeHookInstaller"
           }
         ]
       }

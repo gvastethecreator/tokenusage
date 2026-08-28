@@ -1,7 +1,7 @@
 {
-  "current_commit": "31d63ff68740750f298cdb60fae990de6bf9bd2a",
+  "current_commit": "39ca7d5df83f3801d74f187f4f66a7707f92f582",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-26T17:19:01Z",
+  "generated_at": "2026-08-28T14:37:30Z",
   "scanned_scope": [
     "."
   ],
@@ -43,8 +43,8 @@
     {
       "id": ".github",
       "path": ".github",
-      "file_count": 9,
-      "fingerprint": "38b0b7e8bab3dfaea986826ddd803b32a53f4b5eb48a0d06f0db5ce79c97cf56"
+      "file_count": 11,
+      "fingerprint": "b4176d33fa92d1b0e6263d64479f5ea07622b2c357c79717b4e9524a14e2fcda"
     },
     {
       "id": ".vscode",
@@ -53,10 +53,16 @@
       "fingerprint": "25f048f5cad67c0af33f4a18b7c3fdca9396bfe8e0794c1ade5a1cbc2da55794"
     },
     {
+      "id": ".zcode",
+      "path": ".zcode",
+      "file_count": 1,
+      "fingerprint": "340e7a28d77e731fa408fb3114cb58ccd795ba5c318e95af8ef67a80c503c5ca"
+    },
+    {
       "id": "docs",
       "path": "docs",
-      "file_count": 123,
-      "fingerprint": "35c7b96f714193b19fd38502d8fb8cfa181168eaee1e8cd9ba1e05cc6a931657"
+      "file_count": 61,
+      "fingerprint": "0cdcf98be0e5ddce7f79b1a250e76e0c0d212b63fec4f2b1d2626b514990aa88"
     },
     {
       "id": "scripts",
@@ -67,14 +73,14 @@
     {
       "id": "src",
       "path": "src",
-      "file_count": 336,
-      "fingerprint": "bbdc826ae8402bf330d9ac30828eed8874f35cecf7fbf50b03e991ee7038b330"
+      "file_count": 347,
+      "fingerprint": "b06190bb2e65a8751c819c02fee0a2f889b97efbb223c502ffc3c5ac940d9bd9"
     },
     {
       "id": "tests",
       "path": "tests",
-      "file_count": 155,
-      "fingerprint": "22298e2e63fe63ccd15a5f2febe44d8864338e2e34e5b858868e2ef374464446"
+      "file_count": 161,
+      "fingerprint": "32db073a8697c0b49eafb8716ac4831697a9b27ac007f2582e5008e7ab0a22ec"
     }
   ]
 }

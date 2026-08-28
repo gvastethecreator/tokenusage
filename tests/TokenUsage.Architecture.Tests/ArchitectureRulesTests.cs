@@ -531,8 +531,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(171, matches.Count);
-        Assert.Equal(156, distinctIds.Length);
+        Assert.Equal(172, matches.Count);
+        Assert.Equal(157, distinctIds.Length);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPopoverEnabledToggle", distinctIds, StringComparer.Ordinal);
@@ -541,6 +541,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("AppearanceTrayProviderCountSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayProviderNameToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("TraySummaryEmptyState", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CompactGlobalCostBreakdown", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderVisualizationButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderShareButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);

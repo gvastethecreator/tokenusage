@@ -14,7 +14,7 @@ public sealed class GrokUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "grok-local/6";
+    public const string ParserVersion = "grok-local/7";
 
     /// <summary>
     /// Stands in for the model of a turn the log does not name. It matches no catalog rate, so the
@@ -29,6 +29,7 @@ public sealed class GrokUsageEventSource :
     private readonly string _grokHome;
     private readonly LocalScanBudget _budget;
     private readonly TimeProvider _clock;
+    private readonly GrokUsageCheckpointStore? _checkpointStore;
 
     public GrokUsageEventSource(
         string groupingTimeZoneId,
@@ -37,6 +38,7 @@ public sealed class GrokUsageEventSource :
         int maximumFiles = 10_000,
         long maximumFileBytes = 64 * 1024 * 1024,
         int maximumLineCharacters = 8 * 1024 * 1024,
+        string? checkpointPath = null,
         TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
@@ -49,6 +51,13 @@ public sealed class GrokUsageEventSource :
         _groupingTimeZoneId = groupingTimeZoneId;
         _budget = new LocalScanBudget(maximumFiles, maximumFileBytes, maximumLineCharacters);
         _clock = clock ?? TimeProvider.System;
+        _checkpointStore = checkpointPath is null
+            ? null
+            : new GrokUsageCheckpointStore(
+                checkpointPath,
+                _clock,
+                ParserVersion,
+                groupingTimeZoneId);
     }
 
     public SourceKind SourceKind => SourceKind.LocalLog;
@@ -95,7 +104,17 @@ public sealed class GrokUsageEventSource :
             }
         }
 
-        List<UsageEvent> sessionEvents = ReadSessionEvents(sinceUtc, state, cancellationToken);
+        List<UsageEvent> sessionEvents = _checkpointStore is null
+            ? ReadSessionEvents(sinceUtc, state, checkpoints: null, cancellationToken)
+            : _checkpointStore.UpdateAsync(
+                    checkpoints => ReadSessionEvents(
+                        sinceUtc,
+                        state,
+                        checkpoints,
+                        cancellationToken),
+                    cancellationToken)
+                .GetAwaiter()
+                .GetResult();
         if (sessionEvents.Count > 0)
         {
             return CreateResult(sessionEvents, state);
@@ -107,9 +126,12 @@ public sealed class GrokUsageEventSource :
     private List<UsageEvent> ReadSessionEvents(
         DateTimeOffset sinceUtc,
         LocalScanState state,
+        GrokUsageCheckpointState? checkpoints,
         CancellationToken cancellationToken)
     {
         var sessionEvents = new List<UsageEvent>();
+        var seenPathHashes = new HashSet<string>(StringComparer.Ordinal);
+        bool interrupted = false;
         string sessionsRoot = Path.Combine(_grokHome, "sessions");
         if (!Directory.Exists(sessionsRoot))
         {
@@ -126,11 +148,13 @@ public sealed class GrokUsageEventSource :
             if (++state.FilesRead > _budget.MaximumFiles)
             {
                 state.IsPartial = true;
+                interrupted = true;
                 break;
             }
 
             string sessionDirectory = Path.GetDirectoryName(summaryPath)!;
             string updatesPath = Path.Combine(sessionDirectory, "updates.jsonl");
+            long length;
             DateTime lastWriteUtc;
             try
             {
@@ -139,7 +163,9 @@ public sealed class GrokUsageEventSource :
                     continue;
                 }
 
-                lastWriteUtc = File.GetLastWriteTimeUtc(updatesPath);
+                var updatesInfo = new FileInfo(updatesPath);
+                length = updatesInfo.Length;
+                lastWriteUtc = updatesInfo.LastWriteTimeUtc;
             }
             catch (Exception exception) when (IsDataFailure(exception))
             {
@@ -152,23 +178,55 @@ public sealed class GrokUsageEventSource :
                 continue;
             }
 
+            // An unchanged file (same length and last-write time) replays its
+            // cached events instead of re-reading the tail.
+            string pathHash = GrokUsageCheckpointStore.HashPath(updatesPath);
+            seenPathHashes.Add(pathHash);
+            if (checkpoints is not null
+                && checkpoints.Files.TryGetValue(pathHash, out GrokCachedFile? cached)
+                && cached.Length == length
+                && cached.LastWriteUtc == new DateTimeOffset(lastWriteUtc, TimeSpan.Zero))
+            {
+                sessionEvents.AddRange(cached.Events);
+                continue;
+            }
+
             if (++state.FilesRead > _budget.MaximumFiles)
             {
                 state.IsPartial = true;
+                interrupted = true;
                 break;
             }
 
             SummaryInfo summary = ReadSummary(summaryPath, state, cancellationToken);
-            Snapshot? snapshot = ReadLatestSnapshot(updatesPath, summary, state, cancellationToken);
-            if (snapshot is not null)
+            SnapshotRead snapshotRead = ReadLatestSnapshot(
+                updatesPath, summary, state, cancellationToken);
+            if (snapshotRead.Snapshot is { } snapshot)
             {
                 string sessionKey = Path.GetRelativePath(sessionsRoot, sessionDirectory)
                     .Replace(Path.DirectorySeparatorChar, '/')
                     .Replace(Path.AltDirectorySeparatorChar, '/');
-                sessionEvents.AddRange(CreateSessionEvents(
-                    sessionKey,
-                    snapshot));
+                List<UsageEvent> events = CreateSessionEvents(sessionKey, snapshot).ToList();
+                // Only a complete, healthy parse advances the checkpoint; a
+                // partial read re-parses on the next refresh.
+                if (checkpoints is not null
+                    && snapshotRead.ReadComplete
+                    && !snapshot.HasInvalidModelCounters
+                    && !snapshot.HasIncompleteUsage)
+                {
+                    checkpoints.Files[pathHash] = new GrokCachedFile(
+                        length,
+                        new DateTimeOffset(lastWriteUtc, TimeSpan.Zero),
+                        events);
+                }
+
+                sessionEvents.AddRange(events);
             }
+        }
+
+        if (checkpoints is not null && !interrupted)
+        {
+            checkpoints.PruneExcept(seenPathHashes);
         }
 
         return sessionEvents;
@@ -218,7 +276,7 @@ public sealed class GrokUsageEventSource :
         }
     }
 
-    private Snapshot? ReadLatestSnapshot(
+    private SnapshotRead ReadLatestSnapshot(
         string path,
         SummaryInfo summary,
         LocalScanState state,
@@ -278,8 +336,10 @@ public sealed class GrokUsageEventSource :
         state.IsPartial |= !complete;
         state.IsPartial |= latest?.HasInvalidModelCounters == true;
         state.IsPartial |= latest?.HasIncompleteUsage == true;
-        return latest;
+        return new SnapshotRead(latest, complete);
     }
+
+    private sealed record SnapshotRead(Snapshot? Snapshot, bool ReadComplete);
 
     private UnifiedRead ReadUnified(
         string path,
@@ -432,11 +492,15 @@ public sealed class GrokUsageEventSource :
         decimal? reportedUsd = counters.CostUsdTicks is long ticks
             ? decimal.Round(ToUsd(ticks), 6, MidpointRounding.AwayFromZero)
             : null;
+        // Session snapshots carry cumulative whole-session counters, not the
+        // per-request prompt sizes the long-context surcharge is defined on, so
+        // the fallback estimate does not apply that surcharge.
         return KnownModelPricingCatalog.ResolveReportedOrCatalog(
             reportedUsd,
             model,
             timestamp,
-            counters.Tokens);
+            counters.Tokens,
+            perRequestTokenCounters: false);
     }
 
     private UsageEvent CreateEvent(
