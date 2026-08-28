@@ -169,6 +169,14 @@ public static class WindowsProviderCatalog
                 localUsageAgentId: "grok",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-grok",
+                compose: context => new ProviderBinding(
+                    LocalUsageSource: new GrokUsageEventSource(
+                        context.TimeZoneId,
+                        checkpointPath: Path.Combine(
+                            context.DataDirectory,
+                            "scanner",
+                            "grok-usage.v1.json"),
+                        clock: context.Clock)),
                 localUsageFactory: timeZoneId => new GrokUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("opencode"),

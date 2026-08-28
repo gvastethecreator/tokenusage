@@ -339,9 +339,22 @@ public sealed class LocalUsageRefresh
                         ? UsageSourceReadStatus.Partial
                     : UsageSourceReadStatus.Complete;
 
+        // Sources that rotated parser versions stop emitting their old rows; the
+        // supersession prune retires those fossils beyond the reconciliation window.
+        var activeParserVersionsByAgent = _sources
+            .OfType<IWindowedSnapshotUsageEventSource>()
+            .GroupBy(source => source.AgentId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyCollection<string>)group
+                    .Select(source => source.EventParserVersion)
+                    .Distinct()
+                    .ToArray());
         await repository.ApplyRetentionIfDueAsync(
                 _clock.GetUtcNow().ToUniversalTime(),
                 RetentionMinInterval,
+                activeParserVersionsByAgent: activeParserVersionsByAgent,
+                parserSupersessionDays: UsagePeriodPolicy.ReconciliationDays,
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 

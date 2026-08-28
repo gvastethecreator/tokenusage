@@ -10,12 +10,24 @@ namespace TokenUsage.Providers.Zcode;
 /// </summary>
 public static class ZcodePricingCatalog
 {
-    public const string Version = "zai-api-2026-08-26";
+    public const string Version = "zai-api-2026-08-28";
     private const decimal TokensPerMillion = 1_000_000m;
+
+    // The Z.ai promo runs through 2026-09-09; from 2026-09-10 the list rate
+    // applies. A resolve without a timestamp prices at the rate valid now.
+    private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
+        new(StringComparer.Ordinal)
+        {
+            ["glm-5.3-flash"] = new(
+                new DateTimeOffset(2026, 9, 10, 0, 0, 0, TimeSpan.Zero),
+                new(0.15m, 0.03m, 0.5m)),
+        };
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
         {
+            // Z.ai promo rate through 2026-09-09; the list rate is 0.15/0.03/0.50.
+            ["glm-5.3-flash"] = new(0.075m, 0.015m, 0.25m),
             ["glm-5.3"] = new(1.4m, 0.26m, 4.4m),
             ["glm-5.2"] = new(1.4m, 0.26m, 4.4m),
             ["glm-5.1"] = new(1.4m, 0.26m, 4.4m),
@@ -33,7 +45,10 @@ public static class ZcodePricingCatalog
             ["glm-4.5-flash"] = new(0m, 0m, 0m),
         };
 
-    public static CostObservation Resolve(string model, TokenBreakdown tokens)
+    public static CostObservation Resolve(
+        string model,
+        TokenBreakdown tokens,
+        DateTimeOffset? occurredAtUtc = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(tokens);
@@ -42,6 +57,12 @@ public static class ZcodePricingCatalog
         if (!RatesByModel.TryGetValue(normalized, out Rates? rates))
         {
             return CostObservation.Unavailable();
+        }
+
+        if (ListRatesFromUtc.TryGetValue(normalized, out DatedRates? dated)
+            && (occurredAtUtc ?? DateTimeOffset.UtcNow) >= dated.ListEffectiveFromUtc)
+        {
+            rates = dated.ListRates;
         }
 
         decimal amount =
@@ -59,4 +80,8 @@ public static class ZcodePricingCatalog
         decimal Input,
         decimal CacheRead,
         decimal Output);
+
+    private sealed record DatedRates(
+        DateTimeOffset ListEffectiveFromUtc,
+        Rates ListRates);
 }

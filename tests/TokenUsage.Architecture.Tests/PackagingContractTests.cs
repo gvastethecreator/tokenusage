@@ -53,8 +53,8 @@ public sealed class PackagingContractTests
             .Single(element => (string?)element.Attribute("Category") == "windows.appExecutionAlias");
         XElement alias = extension.Descendants(Uap5 + "ExecutionAlias").Single();
 
-        Assert.Equal("D6C94EDD-3747-465C-9A81-05DF5A4108C5", (string?)identity.Attribute("Name"));
-        Assert.Equal("CN=AppPublisher", (string?)identity.Attribute("Publisher"));
+        Assert.Equal("GVASTETHECREATOR.TokenUsage", (string?)identity.Attribute("Name"));
+        Assert.Equal("CN=DB97CC4C-CCCD-41DF-8D43-C67641CBBC92", (string?)identity.Attribute("Publisher"));
         Assert.Equal("0.0.1.0", (string?)identity.Attribute("Version"));
         Assert.Equal("TokenUsage.App.exe", (string?)application.Attribute("Executable"));
         Assert.Equal("Windows.FullTrustApplication", (string?)application.Attribute("EntryPoint"));

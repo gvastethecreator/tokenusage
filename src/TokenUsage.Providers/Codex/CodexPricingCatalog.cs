@@ -5,9 +5,19 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-08-25";
+    public const string Version = "openai-api-2026-08-28";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 272_000;
+
+    // Promotional rates switch to the list rate on the day after the published
+    // cutoff. A resolve without a timestamp prices at the rate valid now.
+    private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
+        new(StringComparer.Ordinal)
+        {
+            ["gpt-5.6-sol"] = new(
+                new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero),
+                new("gpt-5.6-sol", 5m, 0.5m, 30m, 6.25m, true)),
+        };
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
@@ -34,7 +44,10 @@ public static class CodexPricingCatalog
             ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
         };
 
-    public static CostObservation Resolve(string model, TokenBreakdown tokens)
+    public static CostObservation Resolve(
+        string model,
+        TokenBreakdown tokens,
+        DateTimeOffset? occurredAtUtc = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(tokens);
@@ -43,6 +56,12 @@ public static class CodexPricingCatalog
         if (!TryResolveRates(normalized, out Rates rates))
         {
             return CostObservation.Unavailable();
+        }
+
+        if (ListRatesFromUtc.TryGetValue(rates.PriceMatch, out DatedRates? dated)
+            && (occurredAtUtc ?? DateTimeOffset.UtcNow) >= dated.ListEffectiveFromUtc)
+        {
+            rates = dated.ListRates;
         }
 
         decimal inputMultiplier = 1m;
@@ -114,4 +133,8 @@ public static class CodexPricingCatalog
         decimal Output,
         decimal CacheWrite,
         bool HasLongContext);
+
+    private sealed record DatedRates(
+        DateTimeOffset ListEffectiveFromUtc,
+        Rates ListRates);
 }
