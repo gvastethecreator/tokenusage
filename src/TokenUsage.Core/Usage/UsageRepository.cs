@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 
@@ -571,6 +572,8 @@ public sealed class UsageRepository
         TimeSpan minInterval,
         int retentionDays = 400,
         int batchSize = 500,
+        IReadOnlyDictionary<AgentId, IReadOnlyCollection<string>>? activeParserVersionsByAgent = null,
+        int parserSupersessionDays = 0,
         CancellationToken cancellationToken = default)
     {
         EnsureWritable();
@@ -594,9 +597,111 @@ public sealed class UsageRepository
                 batchSize,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (activeParserVersionsByAgent is { Count: > 0 } && parserSupersessionDays > 0)
+        {
+            deleted = checked(deleted + await ApplyParserSupersessionAsync(
+                    nowUtc,
+                    activeParserVersionsByAgent,
+                    parserSupersessionDays,
+                    batchSize,
+                    cancellationToken)
+                .ConfigureAwait(false));
+        }
+
         await WriteRetentionCursorAsync(connection, nowUtc, cancellationToken)
             .ConfigureAwait(false);
         return deleted;
+    }
+
+    /// <summary>
+    /// Retires stored events older than the reconciliation window that a source no
+    /// longer emits under its current parser version. Those rows are fossils of a
+    /// superseded reader — for example a synthetic account aggregate an old parser
+    /// produced — and reconcile never covers their dates again.
+    /// </summary>
+    private async Task<int> ApplyParserSupersessionAsync(
+        DateTimeOffset nowUtc,
+        IReadOnlyDictionary<AgentId, IReadOnlyCollection<string>> activeParserVersionsByAgent,
+        int supersessionDays,
+        int batchSize,
+        CancellationToken cancellationToken)
+    {
+        string cutoff = nowUtc.AddDays(-supersessionDays)
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string retiredAt = nowUtc.ToString("O", CultureInfo.InvariantCulture);
+        var cutoffDate = DateOnly.Parse(cutoff, CultureInfo.InvariantCulture);
+        int totalDeleted = 0;
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach ((AgentId agentId, IReadOnlyCollection<string> versions) in
+                 activeParserVersionsByAgent)
+        {
+            if (versions.Count == 0)
+            {
+                continue;
+            }
+
+            string versionsJson = JsonSerializer.Serialize(versions.ToArray());
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await using SqliteTransaction transaction =
+                    (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken)
+                        .ConfigureAwait(false);
+                await using SqliteCommand command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText =
+                    """
+                    INSERT OR IGNORE INTO usage_event_tombstone(event_key, retired_at_utc)
+                    SELECT event_key, $retiredAt
+                    FROM usage_event
+                    WHERE civil_date < $cutoff
+                      AND agent_id = $agentId
+                      AND parser_version NOT IN (SELECT value FROM json_each($versions))
+                    ORDER BY civil_date, event_key
+                    LIMIT $batchSize;
+                    """;
+                command.Parameters.AddWithValue("$cutoff", cutoff);
+                command.Parameters.AddWithValue("$retiredAt", retiredAt);
+                command.Parameters.AddWithValue("$agentId", agentId.Value);
+                command.Parameters.AddWithValue("$versions", versionsJson);
+                command.Parameters.AddWithValue("$batchSize", batchSize);
+                await command.ExecuteNonQueryAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                command.CommandText =
+                    """
+                    DELETE FROM usage_event
+                    WHERE event_key IN (
+                        SELECT event_key
+                        FROM usage_event
+                        WHERE civil_date < $cutoff
+                          AND agent_id = $agentId
+                          AND parser_version NOT IN (SELECT value FROM json_each($versions))
+                        ORDER BY civil_date, event_key
+                        LIMIT $batchSize
+                    );
+                    """;
+                int deleted = await command.ExecuteNonQueryAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                await RebuildAgentRollupsInRangeAsync(
+                        connection,
+                        transaction,
+                        agentId,
+                        DateOnly.MinValue,
+                        cutoffDate,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                totalDeleted = checked(totalDeleted + deleted);
+                if (deleted < batchSize)
+                {
+                    break;
+                }
+            }
+        }
+
+        return totalDeleted;
     }
 
     public async Task DeleteAllUsageDataAsync(

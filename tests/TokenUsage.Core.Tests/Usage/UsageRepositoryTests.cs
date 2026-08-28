@@ -727,6 +727,52 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task ParserSupersessionRetiresOnlyOldEventsFromSupersededParsers()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent(
+                "fossil-account-aggregate",
+                new DateTimeOffset(2025, 9, 17, 12, 0, 0, TimeSpan.Zero),
+                agentId: "codex",
+                parserVersion: "codex-official/2"),
+            CreateEvent(
+                "kept-current-parser-history",
+                new DateTimeOffset(2025, 9, 18, 12, 0, 0, TimeSpan.Zero),
+                agentId: "codex",
+                parserVersion: "codex-local/7"),
+            CreateEvent(
+                "kept-recent-event",
+                new DateTimeOffset(2026, 8, 27, 12, 0, 0, TimeSpan.Zero),
+                agentId: "codex",
+                parserVersion: "codex-official/2"),
+        ]);
+        var activeParsers = new Dictionary<AgentId, IReadOnlyCollection<string>>
+        {
+            [new AgentId("codex")] = ["codex-official/3", "codex-local/7"],
+        };
+        var now = new DateTimeOffset(2026, 8, 28, 12, 0, 0, TimeSpan.Zero);
+
+        int deleted = await repository.ApplyRetentionIfDueAsync(
+            now,
+            TimeSpan.Zero,
+            activeParserVersionsByAgent: activeParsers,
+            parserSupersessionDays: 35);
+
+        Assert.Equal(1, deleted);
+        IReadOnlyList<DailyUsageRollup> rollups = await repository
+            .QueryDailyRollupsByAgentAsync(
+                new DateOnly(2025, 1, 1),
+                new DateOnly(2026, 12, 31),
+                new AgentId("codex"));
+        Assert.DoesNotContain(rollups, rollup => rollup.Date == new DateOnly(2025, 9, 17));
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2025, 9, 18));
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2026, 8, 27));
+    }
+
+    [Fact]
     public async Task LargeIngestBatchSkipsTombstonedKeysAndKeepsOneRollup()
     {
         using var folder = new TemporaryFolder();

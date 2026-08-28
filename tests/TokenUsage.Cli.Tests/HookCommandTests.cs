@@ -52,6 +52,30 @@ public sealed class HookCommandTests
     }
 
     [Fact]
+    public async Task StopWithoutRedirectedInputRunsRefreshAndStaysSilent()
+    {
+        bool refreshed = false;
+        var output = new StringWriter(CultureInfo.InvariantCulture);
+        var error = new StringWriter(CultureInfo.InvariantCulture);
+
+        int exitCode = await HookCommand.RunAsync(
+            ["stop"],
+            output,
+            error,
+            runRefresh: () =>
+            {
+                refreshed = true;
+                return Task.FromResult(0);
+            },
+            standardInput: null);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(refreshed);
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
     public async Task StopSwallowsRefreshFailuresWithoutLeakingPaths()
     {
         var output = new StringWriter(CultureInfo.InvariantCulture);

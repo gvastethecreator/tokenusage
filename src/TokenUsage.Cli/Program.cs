@@ -16,6 +16,9 @@ if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal
 }
 
 // ZCode hook management and the Stop-hook trigger follow the same unpackaged-safe rule.
+// A hook host that pipes a payload gives redirected input; a detached launch on a hidden
+// console gives console input, which never reaches end-of-stream, so it must not be drained.
+TextReader? hookStandardInput = Console.IsInputRedirected ? Console.In : null;
 if (args.Length > 0 && string.Equals(args[0], "zcode", StringComparison.Ordinal))
 {
     return await ZcodeCommand.RunAsync(
@@ -23,7 +26,7 @@ if (args.Length > 0 && string.Equals(args[0], "zcode", StringComparison.Ordinal)
         Console.Out,
         Console.Error,
         runRefresh: RefreshLocalUsageForHook,
-        standardInput: Console.In);
+        standardInput: hookStandardInput);
 }
 
 // The generic refresh trigger every provider hook calls.
@@ -34,7 +37,7 @@ if (args.Length > 0 && string.Equals(args[0], "hook", StringComparison.Ordinal))
         Console.Out,
         Console.Error,
         runRefresh: RefreshLocalUsageForHook,
-        standardInput: Console.In);
+        standardInput: hookStandardInput);
 }
 
 // Grok hook management follows the same unpackaged-safe rule.

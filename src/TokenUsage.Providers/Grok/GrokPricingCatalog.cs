@@ -9,7 +9,7 @@ namespace TokenUsage.Providers.Grok;
 /// </summary>
 public static class GrokPricingCatalog
 {
-    public const string Version = "xai-api-2026-08-12";
+    public const string Version = "xai-api-2026-08-28";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 200_000;
 
@@ -28,7 +28,7 @@ public static class GrokPricingCatalog
             ["grok-4.1-fast"] = new("xai/grok-4-1-fast", 0.2m, 0.05m, 0.5m, false),
             ["grok-4.3"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
             ["grok-4.5"] = new("grok-4.5", 2m, 0.3m, 6m, true),
-            ["grok-4.5-fast"] = new("grok-4.5-fast", 4m, 1m, 12m, false),
+            ["grok-4.5-fast"] = new("grok-4.5-fast", 4m, 1m, 18m, false),
             ["grok-4.6"] = new("grok-4.6", 2m, 0.5m, 6m, true),
             ["grok-4.6-fast"] = new("grok-4.6-fast", 4m, 1m, 12m, false),
             ["grok-4.20-0309-reasoning"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
@@ -36,7 +36,10 @@ public static class GrokPricingCatalog
             ["grok-4.20-multi-agent-0309"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
         };
 
-    public static CostObservation Resolve(string model, TokenBreakdown tokens)
+    public static CostObservation Resolve(
+        string model,
+        TokenBreakdown tokens,
+        bool applyLongContextSurcharge = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(tokens);
@@ -48,7 +51,8 @@ public static class GrokPricingCatalog
         }
 
         decimal multiplier = 1m;
-        if (rates.HasLongContext
+        if (applyLongContextSurcharge
+            && rates.HasLongContext
             && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
                 >= LongContextThreshold)
         {
@@ -70,6 +74,14 @@ public static class GrokPricingCatalog
     {
         string normalized = KnownModelPricingCatalog.Canonicalize(model);
         if (normalized.StartsWith("grok-build-", StringComparison.Ordinal))
+        {
+            return "grok-build";
+        }
+
+        // xAI publishes no per-version rate for the CLI build variants (grok-4.5-build,
+        // grok-4.6-build, ...); grok-build is the only published build-agent rate.
+        if (normalized.StartsWith("grok-4.", StringComparison.Ordinal)
+            && normalized.EndsWith("-build", StringComparison.Ordinal))
         {
             return "grok-build";
         }

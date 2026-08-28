@@ -56,6 +56,7 @@
   <data name="CompactActivityTokens" xml:space="preserve"><value>tokens</value></data>
   <data name="CompactPeriod30Days" xml:space="preserve"><value>30 days</value></data>
   <data name="CompactGlobalFooterFormat" xml:space="preserve"><value>Global · {0} · {1} providers</value></data>
+  <data name="CompactGlobalCostBreakdownFormat" xml:space="preserve"><value>{0} reported · {1} estimated at API list</value></data>
   <data name="CompactWeekdayMonday.Text" xml:space="preserve"><value>M</value></data>
   <data name="CompactWeekdayTuesday.Text" xml:space="preserve"><value>T</value></data>
   <data name="CompactWeekdayWednesday.Text" xml:space="preserve"><value>W</value></data>
