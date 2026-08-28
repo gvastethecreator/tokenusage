@@ -438,14 +438,14 @@
             <StackPanel Spacing="5">
                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.GlobalActivity, Mode=OneWay}">
                     <ItemsRepeater.Layout>
-                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="140" Orientation="Horizontal" />
+                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="148" Orientation="Horizontal" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="dashboard:DashboardActivitySummary">
-                            <StackPanel Padding="4,2" HorizontalAlignment="Center" Spacing="1">
-                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Label}" />
-                                <TextBlock HorizontalAlignment="Center" FontFamily="Consolas" FontSize="15" Text="{x:Bind Value}" />
-                                <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Detail}" />
+                            <StackPanel Padding="6,4" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" Text="{x:Bind Label}" />
+                                <TextBlock HorizontalAlignment="Center" FontFamily="Consolas" FontSize="20" FontWeight="SemiBold" Text="{x:Bind Value}" />
+                                <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" Text="{x:Bind Detail}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
