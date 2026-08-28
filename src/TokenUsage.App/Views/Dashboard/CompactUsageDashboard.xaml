@@ -228,6 +228,14 @@
                         <FontIcon FontSize="12" Glyph="&#xE946;" IsTextScaleFactorEnabled="False" />
                     </Button>
                 </StackPanel>
+                <TextBlock
+                    AutomationProperties.AutomationId="CompactGlobalCostBreakdown"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    IsTextScaleFactorEnabled="True"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind ViewModel.GlobalCostBreakdownText, Mode=OneWay}"
+                    TextWrapping="Wrap"
+                    Visibility="{x:Bind ViewModel.HasGlobalCostBreakdown, Mode=OneWay}" />
             </StackPanel>
 
             <ItemsRepeater Height="5" ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">

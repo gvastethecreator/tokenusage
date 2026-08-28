@@ -82,7 +82,7 @@ public sealed class AntigravityUsageEventSourceTests
         UsageEvent flash = Assert.Single(events, item => item.ModelId.Value == "gemini-3-flash");
         Assert.Equal("google", pro.ModelProviderId?.Value);
         Assert.Equal(CostKind.CatalogEstimated, pro.Cost.Kind);
-        Assert.Equal(3.2m, pro.Cost.EstimatedCostUsd);
+        Assert.Equal(5.8m, pro.Cost.EstimatedCostUsd);
         Assert.Equal(0.8m, flash.Cost.EstimatedCostUsd);
         Assert.DoesNotContain(
             events,

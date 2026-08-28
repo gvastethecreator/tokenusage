@@ -47,7 +47,8 @@ public static class KnownModelPricingCatalog
         decimal? reportedUsd,
         string model,
         DateTimeOffset occurredAtUtc,
-        TokenBreakdown tokens)
+        TokenBreakdown tokens,
+        bool perRequestTokenCounters = true)
     {
         if (reportedUsd is decimal reported && reported > 0m)
         {
@@ -55,13 +56,14 @@ public static class KnownModelPricingCatalog
                 decimal.Round(reported, 6, MidpointRounding.AwayFromZero));
         }
 
-        return Resolve(model, occurredAtUtc, tokens);
+        return Resolve(model, occurredAtUtc, tokens, perRequestTokenCounters);
     }
 
     public static CostObservation Resolve(
         string model,
         DateTimeOffset occurredAtUtc,
-        TokenBreakdown tokens)
+        TokenBreakdown tokens,
+        bool perRequestTokenCounters = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(tokens);
@@ -82,23 +84,28 @@ public static class KnownModelPricingCatalog
         if (normalized.StartsWith("gpt-", StringComparison.Ordinal)
             || normalized.StartsWith('o'))
         {
-            return CodexPricingCatalog.Resolve(normalized, tokens);
+            return CodexPricingCatalog.Resolve(normalized, tokens, occurredAtUtc);
         }
 
         if (normalized.Contains("gemini", StringComparison.Ordinal))
         {
-            return GooglePricingCatalog.Resolve(normalized, tokens);
+            return GooglePricingCatalog.Resolve(normalized, tokens, occurredAtUtc);
         }
 
         if (normalized.Contains("grok", StringComparison.Ordinal)
             || normalized.StartsWith("composer-", StringComparison.Ordinal))
         {
-            return GrokPricingCatalog.Resolve(normalized, tokens);
+            return GrokPricingCatalog.Resolve(normalized, tokens, perRequestTokenCounters);
         }
 
         if (normalized.Contains("glm", StringComparison.Ordinal))
         {
-            return ZcodePricingCatalog.Resolve(normalized, tokens);
+            return ZcodePricingCatalog.Resolve(normalized, tokens, occurredAtUtc);
+        }
+
+        if (normalized.Contains("kimi", StringComparison.Ordinal))
+        {
+            return MoonshotPricingCatalog.Resolve(normalized, tokens);
         }
 
         return CostObservation.Unavailable();
@@ -119,6 +126,13 @@ public static class KnownModelPricingCatalog
         if (normalized.StartsWith("antigravity-", StringComparison.Ordinal))
         {
             normalized = normalized["antigravity-".Length..];
+        }
+
+        // Sources like Grok logs can store "xai-grok-4.5"; strip the vendor prefix
+        // so the id resolves like the same model from any other source.
+        if (normalized.StartsWith("xai-", StringComparison.Ordinal))
+        {
+            normalized = normalized["xai-".Length..];
         }
 
         int separator = normalized.LastIndexOf('/');
