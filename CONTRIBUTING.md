@@ -24,9 +24,9 @@ Report security issues through [GitHub private vulnerability reporting](https://
 - Use Windows 10 version 1809 or later on `x64` or `ARM64`.
 - Install the .NET 10 SDK.
 - Install Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0`.
-- Install Python 3 for project skills under `.agents/skills/`.
-- Read the [product specification](docs/PRODUCT-SPEC.md) and [provider matrix](docs/PROVIDER-MATRIX.md).
-- Read the architecture decision and provider research that cover your change.
+
+- Read the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, and publication gates.
+
 
 Do not add Playwright or another browser runner to the product, solution, package, or CI.
 

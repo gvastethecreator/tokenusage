@@ -186,10 +186,9 @@ The JSON contracts use versioned names such as `tokenusage.usage.v1`, `tokenusag
 
 - [Documentation index](docs/README.md)
 - [Provider matrix](docs/PROVIDER-MATRIX.md)
-- [Architecture decisions](docs/architecture)
 - [Contributor testing guide](docs/CONTRIBUTOR-TESTING.md)
+- [Release procedure](docs/RELEASING.md)
 - [Maintenance dependency notes](docs/DEPENDENCY_UPDATES.md)
-- [Quality audit](docs/QUALITY_AUDIT.md)
 
 ### Repository map
 

@@ -2,17 +2,15 @@
 
 Start with the [main README](../README.md) for supported providers, requirements, build commands, and CLI examples.
 
-## Product and provider contracts
+## Product
 
-- [Product specification](PRODUCT-SPEC.md): product behavior, privacy rules, accessibility, and performance targets.
-- [Provider matrix](PROVIDER-MATRIX.md): source policy, coverage, limits, and publication gates.
-- [Implementation plan](IMPLEMENTATION-PLAN.md): milestones, dependencies, risks, and release gates.
+- [Provider matrix](PROVIDER-MATRIX.md): sources, coverage, limits, and publication gates.
 
 ## Contributor references
 
-- [Contributor testing guide](CONTRIBUTOR-TESTING.md): required evidence for code, interface, and provider changes.
-- [Architecture decisions](architecture): platform and product decisions.
-- [Provider research](research): source investigations and policy gates.
-- [Code map](codemap/codemap.html): generated repository structure and data flows.
+- [Contributor testing guide](CONTRIBUTOR-TESTING.md): evidence required for code, interface, and provider changes.
+- [Release procedure](RELEASING.md): signed MSIX and portable ZIP publication.
+- [Dependency maintenance](DEPENDENCY_UPDATES.md): current package versions and audit commands.
+- [Microsoft Store submission](store/README.md): Partner Center identity, listing copy, and certification notes.
 
 Open an issue before you change a public contract or add a provider.
