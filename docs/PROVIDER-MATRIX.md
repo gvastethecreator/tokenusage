@@ -2,7 +2,7 @@
 
 Cutoff date: 2026-08-26
 
-Temporary status: Vercel AI Gateway is out of the active catalog as of Ticket 117. Its implementation is kept so it can be reactivated in a later delivery.
+Temporary status: Vercel AI Gateway is out of the active catalog. Its implementation is kept so it can be reactivated in a later delivery.
 
 Parity upstreams:
 `janekbaraniewski/openusage@ddc05f24b159bfd1a24bbf641dcfb841410a77ab`,
@@ -34,14 +34,12 @@ The catalog represents 56 identities from the inspected union. A visible module 
   Z.ai, ZCode, and Zed. They keep the researched contract, but they do not
   activate readers.
 
-The [implementation research](research/2026-08-12-provider-parity-implementation.md)
-explains what TokenUsage takes from each upstream, how it calculates cost, and
-why it does not copy OAuth sessions, cookies, or private endpoints.
+TokenUsage takes selected contracts from each upstream, calculates cost locally, and does not copy OAuth sessions, cookies, or private endpoints.
 
 ## Summary
 
 | Provider | Live quota | Local tokens and cost | Chosen source | Status | Delivery |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 | Codex | Yes, official local interface | Yes, official API and logs | `codex app-server` | MVP | M4; detail in M6 |
 | Claude | Blocked without a public interface | Yes, logs and reported or estimated cost | Claude Code sessions | Active local + quota Gate | Active; quota pending |
 | OpenCode | No common quota | Yes, reported cost and tokens | `opencode.db` and `storage` | Local | M6A |
@@ -55,65 +53,65 @@ why it does not copy OAuth sessions, cookies, or private endpoints.
 | Goose | No common quota | Yes, tokens accumulated per session | read-only numeric query of `sessions.db` | Partial active local | Active; estimated API cost when a price exists |
 | Hermes | No common quota | Yes, tokens and cost accumulated per session | `state.db` in `.hermes` or in a profile; an empty `.hermes` folder or one from another tool does not count as an install | Partial active local | Active; reported or estimated API cost |
 | GitHub Copilot | No under the current contract | Yes, paid personal and organization | Billing API with a manual token | Partial Manual | M9; smoke pending |
-| ZCode | Blocked without a public contract | Yes, counters per request; estimated API cost | local SQLite `model_usage` with an allowlist projection | Partial active local | Reopened in 3.8.1; Ticket 49 |
-| Kilo Code | No public quota contract | Candidate CLI aggregates, without a machine contract | No suitable source; candidate: `kilo stats` | Gate | M9; Ticket 56 closed, Ticket 57 `needs-info` |
-| Kimi Code | Blocked without a machine contract | Blocked because of session content | Version detection only | Blocked | M9; Ticket 50 closed, Ticket 51 `needs-info` |
-| Command Code | Blocked without a machine contract | Blocked because of sessions and credentials | Version detection only | Blocked | M9; Ticket 52 closed, Ticket 53 `needs-info` |
-| Cline | Manual API pending a contract | Blocked because of task content | Candidate Enterprise API | Blocked | M9; Ticket 54 closed, Ticket 55 `needs-info` |
-| Zed | No public quota contract | Blocked because tokens and transcription are mixed | No suitable source | Blocked | M9; Ticket 58 closed, Ticket 59 `needs-info` |
+| ZCode | Blocked without a public contract | Yes, counters per request; estimated API cost | local SQLite `model_usage` with an allowlist projection | Partial active local | Reopened in 3.8.1 |
+| Kilo Code | No public quota contract | Candidate CLI aggregates, without a machine contract | No suitable source; candidate: `kilo stats` | Gate | M9 |
+| Kimi Code | Blocked without a machine contract | Blocked because of session content | Version detection only | Blocked | M9 |
+| Command Code | Blocked without a machine contract | Blocked because of sessions and credentials | Version detection only | Blocked | M9 |
+| Cline | Manual API pending a contract | Blocked because of task content | Candidate Enterprise API | Blocked | M9 |
+| Zed | No public quota contract | Blocked because tokens and transcription are mixed | No suitable source | Blocked | M9 |
 | Antigravity IDE/CLI | Blocked by policy | Yes, tokens and estimated cost | local `gen_metadata` | Experimental local + blocked quota | M6B |
 | Devin | No for self-serve | Organization ACUs | v3 API with a manual service user | Experimental Manual | M9; smoke pending |
 
-## Next research wave
+## Prepared candidates
 
 These names appear in the local references, but they are not active providers
 yet. Each one starts with a separate gate. A scanner is not added until a
 source suitable for Windows is proven.
 
-| Candidate | Reason | Initial limit | Ticket |
-|---|---|---|---|
-| Gemini CLI | Appears in CodeBurn and AgentsView | Do not read chats or credentials; separate local usage from Google quota | 61 |
-| Kiro | Appears in CodeBurn and AgentsView | Separate CLI, IDE, and account; do not read session content | 62 |
-| Roo Code | Appears in CodeBurn and AgentsView | Do not reuse VS Code tasks; avoid double counting with the model provider | 63 |
-| Kimi CLI | CodeBurn separates it from Kimi Code; AgentsView mixes both paths | Settle identity before inheriting Kimi Code storage or claims | 65 |
-| Cursor Agent | CodeBurn separates it from the Cursor editor | Keep it separate from Cursor Admin API and Individual | 66 |
-| Forge | Appears in CodeBurn and AgentsView | Validate Windows support and avoid databases that contain content | 67 |
-| OpenClaw | Appears in CodeBurn and AgentsView | Settle identity and an aggregated source; do not read conversations | 69 |
-| Pi | Appears in CodeBurn and AgentsView | Distinguish Pi from OMP and settle deduplication | 70 |
-| Qwen | Appears in CodeBurn and AgentsView | Separate Qwen Code from the Qwen model provider | 71 |
-| Warp | Appears in CodeBurn and AgentsView | Do not read terminal history or commands | 72 |
-| Vercel AI Gateway | CodeBurn exposes an aggregated API report | Separate gateway cost from agent usage; manual key with minimum permission | 73 |
-| Mistral Vibe | Appears in CodeBurn and AgentsView | Do not read messages, tools, or commands; require an aggregated source | 75 |
-| DeepSeek TUI / CodeWhale | They share inherited paths between AgentsView and CodeBurn | Resolve identity and migration before creating IDs or reading sessions | 77 |
-| Windsurf | AgentsView declares Windows paths | Require an aggregated source; do not read chat or the IDE global state | 78 |
-| Trae | AgentsView declares several Windows paths | Separate editor variants and exclude chats, tasks, and credentials | 79 |
-| Aider | AgentsView treats it as an opt-in root | Settle consent and accept only documented minimum metrics | 80 |
-| OpenHands CLI | AgentsView records local sessions | Separate CLI, service, and model provider; do not read content | 81 |
-| Codebuff | CodeBurn records cost from sessions | Look for an official aggregate that does not expose messages or tools | 83 |
-| Piebald | AgentsView declares its own Windows storage | Confirm product, support, and source before creating a provider ID | 84 |
-| Crush | CodeBurn records it as a distinct agent | Settle product, publisher, and an aggregated source suitable for Windows | 86 |
-| Droid | CodeBurn records it as its own identity | Resolve the ambiguous name and separate agent, account, and model provider | 87 |
-| IBM Bob | CodeBurn includes a dedicated adapter | Confirm the current product, Windows support, and a minimum export | 88 |
-| LingTai TUI | CodeBurn includes its own sessions | Settle identity and Windows support before evaluating metrics | 89 |
-| Open Design | CodeBurn includes a dedicated adapter | Confirm that it is a measurable agent and not an auxiliary format | 91 |
-| Quick Desktop | CodeBurn uses the `quickdesk` identity | Settle canonical name, publisher, and Windows source | 92 |
-| Zerostack | CodeBurn includes a dedicated adapter | Confirm product, version, and metrics contract | 93 |
-| Zencoder | AgentsView declares its own sessions | Separate the product from other uses of the name and require a suitable source | 94 |
-| Qoder | AgentsView declares project paths | Do not read transcripts; look for an official aggregate | 95 |
-| Cortex Code | AgentsView declares local sessions | Separate agent usage from Snowflake billing | 96 |
-| gptme | AgentsView declares local logs | Confirm Windows support and an output without content | 97 |
-| iFlow | AgentsView declares its own sessions | Settle publisher, product, and contract before creating an ID | 98 |
-| IcodeMate | AgentsView records its own identity | Resolve identity, Windows support, and a minimum source | 99 |
-| MiMoCode | AgentsView declares local storage | Avoid databases that contain content and separate MiMo models | 100 |
-| Posit Assistant | AgentsView separates it from Positron | Settle Windows support and a source without conversation | 101 |
-| Positron Assistant | AgentsView declares paths by platform | Confirm Windows support before evaluating data | 102 |
-| QClaw | AgentsView separates it from OpenClaw | Resolve relationship, migration, and deduplication | 103 |
-| QwenPaw | AgentsView separates it from Qwen Code | Resolve identity and the relationship with the Qwen provider | 104 |
-| Reasonix | AgentsView declares a Windows path | Require aggregated metrics; exclude sessions and sidecars that contain content | 105 |
-| Shelley | AgentsView declares its own database | Confirm Windows support and tables free of content | 106 |
-| WorkBuddy | AgentsView declares sessions per project | Settle product, Windows support, and a suitable source | 107 |
-| OpenClaude | AgentsView separates it from Claude Code | Resolve whether it is a fork, alias, or provider before inheriting contracts | 108 |
-| Claude Cowork | AgentsView separates it from Claude Code | Keep it in the Claude family until account and source are settled | 109 |
+| Candidate | Reason | Initial limit |
+|---|---|---|
+| Gemini CLI | Appears in CodeBurn and AgentsView | Do not read chats or credentials; separate local usage from Google quota |
+| Kiro | Appears in CodeBurn and AgentsView | Separate CLI, IDE, and account; do not read session content |
+| Roo Code | Appears in CodeBurn and AgentsView | Do not reuse VS Code tasks; avoid double counting with the model provider |
+| Kimi CLI | CodeBurn separates it from Kimi Code; AgentsView mixes both paths | Settle identity before inheriting Kimi Code storage or claims |
+| Cursor Agent | CodeBurn separates it from the Cursor editor | Keep it separate from Cursor Admin API and Individual |
+| Forge | Appears in CodeBurn and AgentsView | Validate Windows support and avoid databases that contain content |
+| OpenClaw | Appears in CodeBurn and AgentsView | Settle identity and an aggregated source; do not read conversations |
+| Pi | Appears in CodeBurn and AgentsView | Distinguish Pi from OMP and settle deduplication |
+| Qwen | Appears in CodeBurn and AgentsView | Separate Qwen Code from the Qwen model provider |
+| Warp | Appears in CodeBurn and AgentsView | Do not read terminal history or commands |
+| Vercel AI Gateway | CodeBurn exposes an aggregated API report | Separate gateway cost from agent usage; manual key with minimum permission |
+| Mistral Vibe | Appears in CodeBurn and AgentsView | Do not read messages, tools, or commands; require an aggregated source |
+| DeepSeek TUI / CodeWhale | They share inherited paths between AgentsView and CodeBurn | Resolve identity and migration before creating IDs or reading sessions |
+| Windsurf | AgentsView declares Windows paths | Require an aggregated source; do not read chat or the IDE global state |
+| Trae | AgentsView declares several Windows paths | Separate editor variants and exclude chats, tasks, and credentials |
+| Aider | AgentsView treats it as an opt-in root | Settle consent and accept only documented minimum metrics |
+| OpenHands CLI | AgentsView records local sessions | Separate CLI, service, and model provider; do not read content |
+| Codebuff | CodeBurn records cost from sessions | Look for an official aggregate that does not expose messages or tools |
+| Piebald | AgentsView declares its own Windows storage | Confirm product, support, and source before creating a provider ID |
+| Crush | CodeBurn records it as a distinct agent | Settle product, publisher, and an aggregated source suitable for Windows |
+| Droid | CodeBurn records it as its own identity | Resolve the ambiguous name and separate agent, account, and model provider |
+| IBM Bob | CodeBurn includes a dedicated adapter | Confirm the current product, Windows support, and a minimum export |
+| LingTai TUI | CodeBurn includes its own sessions | Settle identity and Windows support before evaluating metrics |
+| Open Design | CodeBurn includes a dedicated adapter | Confirm that it is a measurable agent and not an auxiliary format |
+| Quick Desktop | CodeBurn uses the `quickdesk` identity | Settle canonical name, publisher, and Windows source |
+| Zerostack | CodeBurn includes a dedicated adapter | Confirm product, version, and metrics contract |
+| Zencoder | AgentsView declares its own sessions | Separate the product from other uses of the name and require a suitable source |
+| Qoder | AgentsView declares project paths | Do not read transcripts; look for an official aggregate |
+| Cortex Code | AgentsView declares local sessions | Separate agent usage from Snowflake billing |
+| gptme | AgentsView declares local logs | Confirm Windows support and an output without content |
+| iFlow | AgentsView declares its own sessions | Settle publisher, product, and contract before creating an ID |
+| IcodeMate | AgentsView records its own identity | Resolve identity, Windows support, and a minimum source |
+| MiMoCode | AgentsView declares local storage | Avoid databases that contain content and separate MiMo models |
+| Posit Assistant | AgentsView separates it from Positron | Settle Windows support and a source without conversation |
+| Positron Assistant | AgentsView declares paths by platform | Confirm Windows support before evaluating data |
+| QClaw | AgentsView separates it from OpenClaw | Resolve relationship, migration, and deduplication |
+| QwenPaw | AgentsView separates it from Qwen Code | Resolve identity and the relationship with the Qwen provider |
+| Reasonix | AgentsView declares a Windows path | Require aggregated metrics; exclude sessions and sidecars that contain content |
+| Shelley | AgentsView declares its own database | Confirm Windows support and tables free of content |
+| WorkBuddy | AgentsView declares sessions per project | Settle product, Windows support, and a suitable source |
+| OpenClaude | AgentsView separates it from Claude Code | Resolve whether it is a fork, alias, or provider before inheriting contracts |
+| Claude Cowork | AgentsView separates it from Claude Code | Keep it in the Claude family until account and source are settled |
 
 Delivery shows order, not a date. No `Gate` status enters stable until all of
 its controls are closed.
@@ -129,11 +127,9 @@ until another contract exists.
 The entry term `Zcode` resolves as `ZCode`, the desktop product of ZCode Agent.
 Kilo Code, Kimi Code, and Command Code are kept as entry terms. Zed represents
 only its native agent: sessions of external agents still belong to their
-original provider. Their research tickets must settle the canonical product
+original provider. Canonical product names must be settled
 before IDs, icons, paths, or claims are added to the code.
 
-The reference review that motivated this expansion is in the
-[coverage inventory](research/2026-07-22-provider-reference-inventory.md).
 
 ## Publication gate
 
@@ -311,7 +307,7 @@ no quota JSON for another app. `GET /v1/api-key` publishes key metadata, not
 the weekly pool. The Management API prepaid balance is team API credit with a
 management key, another product. Its [acceptable use policy](https://x.ai/legal/acceptable-use-policy)
 restricts automated access. The public build does not read `auth.json` or call
-the private endpoint. Gate: [remaining quota and Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
+the private endpoint.
 
 ### Result
 
@@ -348,7 +344,7 @@ attribute Grok Build logs to the Bot, or treat xAI API credits as Bot quota. A
 reader can be enabled only with a public data interface or written permission
 from xAI or Cursor.
 
-References: [Grok Bot](https://docs.x.ai/grok-bot/overview), [get started](https://docs.x.ai/grok-bot/get-started), [Grok usage and limits](https://docs.x.ai/grok/faq). Gate: [remaining quota and Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
+References: [Grok Bot](https://docs.x.ai/grok-bot/overview), [get started](https://docs.x.ai/grok-bot/get-started), [Grok usage and limits](https://docs.x.ai/grok/faq).
 
 ## OpenRouter
 
@@ -370,8 +366,7 @@ the key-usage result.
 
 ### Result
 
-Official contract settled in the
-[OpenRouter gate](research/2026-07-23-openrouter-source-gate.md). The offline
+Official contract settled. The offline
 client is the first cut. The provider list can already store the key in
 Credential Locker. Runtime, live reads, and authorized smoke remain pending. It
 is marked as a manual configuration.
@@ -396,8 +391,6 @@ endpoints.
 Blocked. The public build does not ask for a Z.ai key, does not invoke the
 plugin, and does not copy the upstream client. Local cost for Z.ai models can
 appear through logs of admitted agents, with coverage and provenance.
-
-Full gate: [Z.ai research](research/2026-07-21-zai-gate.md).
 
 Upstream comparison source: [Z.ai provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/zai.md).
 
@@ -443,7 +436,7 @@ fail-closed when the schema changes.
 Coding Plan quota stays closed: the official plugin's monitoring endpoints are
 private and require another tool's credential, and no ZCode hook exposes plan
 or real remaining (see
-[hook payloads](research/2026-08-26-hook-payload-quota-research.md)).
+).
 
 A quota estimated from plan credits was delivered briefly (public formula,
 multipliers, and tiers published by Z.ai) and was withdrawn by maintainer
@@ -461,11 +454,7 @@ also be managed with `tokenusage zcode install-hook|status|uninstall-hook`.
 The hook discards the event payload and only refreshes TokenUsage's own data.
 Uninstall keeps the rest of the user's configuration.
 
-Reopening gate: [ZCode local usage database](research/2026-08-26-zcode-local-usage-source.md).
-Estimated-quota gate: [ZCode plan credits](research/2026-08-26-zcode-plan-credit-quota.md).
-Hooks-as-quota-source gate: [hook payloads](research/2026-08-26-hook-payload-quota-research.md). No ZCode, Cursor, or Grok hook exposes plan or real remaining.
-Previous gate: [ZCode 3.7.6 source](research/2026-08-11-z-code-usage-source.md).
-Original gate: [ZCode source research](research/2026-07-22-zcode-source-gate.md).
+No ZCode, Cursor, or Grok hook exposes plan or real remaining.
 
 ## Kilo Code
 
@@ -489,8 +478,6 @@ public card. The candidate path stays limited to an official command that emits
 a structured, read-only contract with aggregated metrics. Until then the app
 can only detect `kilo --version` in a future diagnostic.
 
-Full gate: [Kilo Code source research](research/2026-07-22-kilo-code-source-gate.md).
-
 ## Kimi Code
 
 ### Evaluated source
@@ -513,8 +500,6 @@ Blocked. The public build can detect `kimi --version` in a diagnostic phase,
 but it does not read data, start the TUI, use `kimi web`, take tokens, or call
 the Console. The provider reopens with a minimum, documented source that is
 authorized for third parties.
-
-Full gate: [Kimi Code source research](research/2026-07-22-kimi-code-source-gate.md).
 
 ## Command Code
 
@@ -545,8 +530,6 @@ API key. The provider reopens with a read-only API or export, documented for
 third parties, without sessions or credentials, and authorized for automatic
 queries.
 
-Full gate: [Command Code source research](research/2026-07-22-command-code-source-gate.md).
-
 ## Cline
 
 ### Evaluated source
@@ -574,8 +557,6 @@ fixture, explicit permission for the key, Windows smoke with GET and
 revocation, and error states before the public build is enabled. ClinePass and
 BYOK keep their independent sources and billing rules.
 
-Full gate: [Cline source research](research/2026-07-22-cline-source-gate.md).
-
 ## Zed
 
 ### Evaluated source
@@ -596,8 +577,6 @@ Blocked. The public build does not open the thread database, automate the
 panel, or use external-agent threads as Zed data. A future provider requires an
 official, minimal, aggregated API or export that is suitable for third-party
 queries.
-
-Full gate: [Zed source research](research/2026-07-22-zed-source-gate.md).
 
 ## Cursor
 
@@ -663,7 +642,7 @@ The local gate is resolved as `integrated-local-estimate`. Tests confirm stable
 identity, snapshot replacement, and reads of the allowlist fields. The Admin
 API keeps its separate manual gate.
 
-Research: [Cursor 3.15.6 local source](research/2026-08-11-cursor-local-usage-source.md), [Cursor source on Windows](research/2026-07-21-cursor-windows-source.md), and [remaining quota and Grok Bot](research/2026-08-25-grok-cursor-remaining-and-grok-bot.md).
+
 
 Upstream comparison source: [Cursor provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
@@ -700,7 +679,7 @@ forbidden. The provider ignores an existing editor or GitHub CLI session.
 The gate is resolved as `implement-subset`. The public build stays off until
 an authorized smoke and credential deletion.
 
-Research: [GitHub Copilot source](research/2026-07-21-copilot-source-gate.md).
+
 
 Upstream comparison source: [Copilot provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/copilot.md).
 
@@ -756,24 +735,6 @@ The gate is resolved as `implement-experimental-subset`. The `ManageBilling`
 permission must be scoped to a single organization and pass an authorized smoke
 before the public build is enabled.
 
-Research: [Devin source](research/2026-07-21-devin-source-gate.md).
 
-Upstream comparison source: [Devin provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
 
-## Implementation order
-
-1. Complete Codex.
-2. Own engine for usage, cost, prices, and coverage.
-3. Local Claude.
-4. Local Grok Build and OpenCode.
-5. Passive Antigravity CLI spike with a real `.db`.
-6. OpenRouter with a manual key.
-7. Reopen Z.ai only with a public contract or written permission.
-8. Cursor Teams and Enterprise, and Copilot billing, with manual keys and authorized smoke; Cursor's local estimate is already integrated.
-9. Claude or Grok quota after permission or a public interface.
-10. Experimental Devin for organization ACUs through the v3 API.
-11. Kilo Code after the `kilo stats` contract is closed; Zed only after an
-    approved aggregated source.
-
-This order keeps remaining quota with Codex as the goal and lets local value
-grow without expanding handling of other apps' credentials.
+Upstream comparison source: [Devin provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
