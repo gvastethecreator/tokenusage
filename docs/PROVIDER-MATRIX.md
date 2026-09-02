@@ -1,6 +1,6 @@
 # Provider matrix
 
-Cutoff date: 2026-08-26
+Cutoff date: 2026-09-02
 
 Temporary status: Vercel AI Gateway is out of the active catalog. Its implementation is kept so it can be reactivated in a later delivery.
 
@@ -9,7 +9,7 @@ Parity upstreams:
 `steipete/CodexBar@26ebaf9d5b0949e3b57fafcde0ed54aa3b27b3d2`, and
 `getagentseal/codeburn@d78bdb21f86025702376778fb27035cd3938956b`.
 
-Cost references: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7` and `kenn-io/agentsview@1ee2de88e2dae54326d8b47aeb2de2f58b5944f9`
+Cost catalogs are checked against the official [OpenAI model pages](https://developers.openai.com/api/docs/models), [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), [Google Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), [xAI model pages](https://docs.x.ai/developers/models), [Cursor model pricing](https://cursor.com/docs/models-and-pricing), [Z.ai pricing](https://docs.z.ai/guides/overview/pricing), and [Kimi pricing](https://platform.kimi.ai/docs/pricing/chat).
 
 ## States
 
@@ -25,13 +25,13 @@ Cost references: `getagentseal/codeburn@6e3c57a9ff95a624f1d9affa7384d32a67f359b7
 The catalog represents 56 identities from the inspected union. A visible module is not the same as an active data source:
 
 - `Active`: Amp, Antigravity, Claude, Codex, Cursor, Goose, Grok Build, Hermes,
-  Mux, and OpenCode. Each one creates a real, bounded local reader.
+  Mux, OpenCode, and ZCode. Each one creates a real, bounded local reader.
 - `OptIn`: Vercel AI Gateway. It keeps its public client and requires a key that
   the user gives to TokenUsage.
-- `Prepared`: 35 modules with identity, capabilities, brand when it exists, and
+- `Prepared`: 36 modules with identity, capabilities, brand when it exists, and
   visible status. They do not open files, credentials, or connections.
 - `PolicyBlocked`: Cline, Cline CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
-  Z.ai, ZCode, and Zed. They keep the researched contract, but they do not
+  Z.ai, and Zed. They keep the researched contract, but they do not
   activate readers.
 
 TokenUsage takes selected contracts from each upstream, calculates cost locally, and does not copy OAuth sessions, cookies, or private endpoints.

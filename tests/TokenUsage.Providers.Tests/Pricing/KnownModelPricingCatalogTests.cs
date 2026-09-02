@@ -29,16 +29,16 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("gpt-5.6 sol", 11.0, "gpt-5.6-sol")]
     [InlineData("gpt-5.6-luna", 0.58, "gpt-5.6-luna")]
     [InlineData("gpt-5.6-terra", 5.8, "gpt-5.6-terra")]
-    [InlineData("grok-4.6", 5.2, "grok-4.6")]
-    [InlineData("gemini-3.6-flash", 2.25, "gemini-3.6-flash")]
+    [InlineData("grok-4.6", 2.6, "grok-4.6")]
+    [InlineData("gemini-3.6-flash", 1.125, "gemini-3.6-flash")]
     [InlineData("gemini-2.5-flash", 0.55, "gemini-2.5-flash")]
     [InlineData("gemini-3-pro-preview", 5.8, "gemini-3-pro")]
     [InlineData("antigravity-gemini-3-pro-high", 5.8, "gemini-3-pro")]
-    [InlineData("gemini-3-6-flash", 2.25, "gemini-3.6-flash")]
+    [InlineData("gemini-3-6-flash", 1.125, "gemini-3.6-flash")]
     [InlineData("gemini-3.7-flash", 1.125, "gemini-3.7-flash")]
     [InlineData("gemini-3.7-flash-control", 1.125, "gemini-3.7-flash")]
     [InlineData("claude-sonnet-4.6", 4.5, "claude-sonnet-4-6")]
-    [InlineData("grok-4-5", 5.2, "grok-4.5")]
+    [InlineData("grok-4-5", 2.6, "grok-4.5")]
     public void PricesCursorModelIdsFromOfficialProviderRates(
         string model,
         decimal expectedUsd,
@@ -55,12 +55,12 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
-    [InlineData("composer-2.5", "xai-api-2026-08-28")]
-    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-08-28")]
-    [InlineData("gpt-5.1-codex", "openai-api-2026-08-28")]
-    [InlineData("gemini-3.6-flash", "google-api-2026-08-28")]
-    [InlineData("glm-5.3-flash", "zai-api-2026-08-28")]
-    [InlineData("kimi-k3", "moonshot-api-2026-08-28")]
+    [InlineData("composer-2.5", "xai-api-2026-09-02")]
+    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-02")]
+    [InlineData("gpt-5.1-codex", "openai-api-2026-09-02")]
+    [InlineData("gemini-3.6-flash", "google-api-2026-09-02")]
+    [InlineData("glm-5.3-flash", "zai-api-2026-09-02")]
+    [InlineData("kimi-k3", "moonshot-api-2026-09-02")]
     public void UsesTheOfficialCatalogVersion(string model, string catalogVersion)
     {
         CostObservation cost = KnownModelPricingCatalog.Resolve(
@@ -137,7 +137,7 @@ public sealed class KnownModelPricingCatalogTests
             MillionInHundredKOut);
 
         Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
-        Assert.Equal(2.25m, cost.EstimatedCostUsd);
+        Assert.Equal(1.125m, cost.EstimatedCostUsd);
         Assert.Null(cost.ReportedCostUsd);
     }
 
@@ -174,6 +174,24 @@ public sealed class KnownModelPricingCatalogTests
 
         Assert.Equal(0.399998m, shortContext.EstimatedCostUsd);
         Assert.Equal(0.8m, longContext.EstimatedCostUsd);
+    }
+
+    [Fact]
+    public void CursorGrokUsesCursorCachedInputWithoutTheXaiLongContextSurcharge()
+    {
+        CostObservation cached = CursorPricingCatalog.Resolve(
+            "grok-4.5",
+            OccurredAtUtc,
+            new TokenBreakdown(0, 0, 0, 100_000, 0));
+        CostObservation longContext = CursorPricingCatalog.Resolve(
+            "grok-4.5",
+            OccurredAtUtc,
+            new TokenBreakdown(200_000, 0, 0, 0, 0));
+
+        Assert.Equal(0.05m, cached.EstimatedCostUsd);
+        Assert.Equal(0.4m, longContext.EstimatedCostUsd);
+        Assert.Equal(CursorPricingCatalog.Version, cached.CatalogVersion);
+        Assert.Equal(CursorPricingCatalog.Version, longContext.CatalogVersion);
     }
 
     [Fact]
@@ -282,7 +300,7 @@ public sealed class KnownModelPricingCatalogTests
             "gemini-3.6-flash",
             new TokenBreakdown(1_000_000, 0, 0, 0, 0));
 
-        Assert.Equal(1.5m, huge.EstimatedCostUsd);
+        Assert.Equal(0.75m, huge.EstimatedCostUsd);
     }
 
     [Fact]
@@ -311,7 +329,7 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Fact]
-    public void ClaudeOpusFourSevenFastPricesAtThePublishedFastRate()
+    public void ClaudeOpusFourSevenFastStaysUnpricedBecauseTheApiRejectsIt()
     {
         CostObservation cost = ClaudePricingCatalog.Resolve(
             "claude-opus-4-7-fast",
@@ -322,8 +340,8 @@ public sealed class KnownModelPricingCatalogTests
             reportedCostUsd: null,
             isFast: true);
 
-        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
-        Assert.Equal(30m, cost.EstimatedCostUsd);
+        Assert.Equal(CostKind.Unavailable, cost.Kind);
+        Assert.Null(cost.EstimatedCostUsd);
     }
 
     [Fact]
@@ -369,8 +387,8 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
-    [InlineData("2026-09-09T23:59:59Z", 0.1)]
-    [InlineData("2026-09-10T00:00:00Z", 0.2)]
+    [InlineData("2026-09-09T15:59:59Z", 0.1)]
+    [InlineData("2026-09-09T16:00:00Z", 0.2)]
     public void GlmFiveThreeFlashSwitchesToTheListRateAfterThePromoCutoff(
         string occurredAt,
         decimal expectedUsd)
@@ -400,6 +418,22 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
     }
 
+    [Theory]
+    [InlineData("2026-12-31T23:59:59Z", 1.125)]
+    [InlineData("2027-01-01T00:00:00Z", 2.25)]
+    public void GeminiThreeSixFlashUsesTheSamePromotionalCutoff(
+        string occurredAt,
+        decimal expectedUsd)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            "gemini-3.6-flash",
+            DateTimeOffset.Parse(occurredAt, CultureInfo.InvariantCulture),
+            MillionInHundredKOut);
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+    }
+
     [Fact]
     public void ClaudeMythosFiveUsesThePlatformDocsRate()
     {
@@ -408,8 +442,38 @@ public sealed class KnownModelPricingCatalogTests
             OccurredAtUtc,
             MillionInHundredKOut);
 
-        // 5 in / 25 out with the standard 100k output share of the fixture.
+        // 10 in / 50 out with the standard 100k output share of the fixture.
         Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
-        Assert.Equal(7.5m, cost.EstimatedCostUsd);
+        Assert.Equal(15m, cost.EstimatedCostUsd);
+    }
+
+    [Fact]
+    public void ClaudeFiveOneModelsUseThePublishedLowerCacheReadRate()
+    {
+        foreach (string model in (string[])["claude-fable-5-1", "claude-mythos-5-1"])
+        {
+            CostObservation cost = KnownModelPricingCatalog.Resolve(
+                model,
+                OccurredAtUtc,
+                new TokenBreakdown(0, 0, 0, 1_000_000, 0));
+
+            Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+            Assert.Equal(0.25m, cost.EstimatedCostUsd);
+        }
+    }
+
+    [Theory]
+    [InlineData("kimi-k2.6", 1.35)]
+    [InlineData("kimi-k2.7-code-highspeed", 2.7)]
+    public void PricesCurrentKimiCodingModels(string model, decimal expectedUsd)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            model,
+            OccurredAtUtc,
+            MillionInHundredKOut);
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+        Assert.Equal(MoonshotPricingCatalog.Version, cost.CatalogVersion);
     }
 }

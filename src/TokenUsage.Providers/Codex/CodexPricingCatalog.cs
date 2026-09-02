@@ -5,7 +5,7 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-08-28";
+    public const string Version = "openai-api-2026-09-02";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 272_000;
 

@@ -4,6 +4,7 @@ using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Antigravity;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Tests.Antigravity;
 
@@ -41,8 +42,8 @@ public sealed class AntigravityUsageEventSourceTests
                 Assert.Equal("gemini-3.6-flash", gemini.ModelId.Value);
                 Assert.Equal("google", gemini.ModelProviderId?.Value);
                 Assert.Equal(new TokenBreakdown(100, 20, 0, 30, 0), gemini.Tokens);
-                Assert.Equal(0.000305m, gemini.Cost.EstimatedCostUsd);
-                Assert.Equal(AntigravityPricingCatalog.Version, gemini.Cost.CatalogVersion);
+                Assert.Equal(0.000152m, gemini.Cost.EstimatedCostUsd);
+                Assert.Equal(GooglePricingCatalog.Version, gemini.Cost.CatalogVersion);
                 Assert.Equal(CoverageKind.Partial, gemini.Coverage);
             },
             claude =>
@@ -131,7 +132,7 @@ public sealed class AntigravityUsageEventSourceTests
 
         SpendSlice slice = Assert.Single(card.SpendBreakdown.AgentSlices);
         Assert.Equal("antigravity", slice.ProviderId);
-        Assert.Equal(0.000305d, slice.Amount, precision: 9);
+        Assert.Equal(0.000152d, slice.Amount, precision: 9);
         Assert.Contains(
             card.SpendBreakdown.Models,
             model => model.AgentId == "antigravity"

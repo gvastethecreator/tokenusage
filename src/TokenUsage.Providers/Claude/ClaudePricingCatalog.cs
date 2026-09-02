@@ -4,24 +4,21 @@ namespace TokenUsage.Providers.Claude;
 
 public static class ClaudePricingCatalog
 {
-    public const string Version = "anthropic-api-2026-08-28";
+    public const string Version = "anthropic-api-2026-09-02";
     private const decimal TokensPerMillion = 1_000_000m;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new Dictionary<string, Rates>(StringComparer.Ordinal)
         {
             ["claude-fable-5"] = new(10m, 50m, 12.5m, 20m, 1m),
+            ["claude-fable-5-1"] = new(10m, 50m, 12.5m, 20m, 0.25m),
             ["claude-haiku-4-5"] = new(1m, 5m, 1.25m, 2m, 0.1m),
             ["claude-haiku-4-5-20251001"] = new(1m, 5m, 1.25m, 2m, 0.1m),
-            // The platform pricing docs list Mythos 5 at 5/25; the marketing page
-            // says "starts at $10/$50". The platform docs win for API value.
-            ["claude-mythos-5"] = new(5m, 25m, 6.25m, 10m, 0.5m),
+            ["claude-mythos-5"] = new(10m, 50m, 12.5m, 20m, 1m),
+            ["claude-mythos-5-1"] = new(10m, 50m, 12.5m, 20m, 0.25m),
             ["claude-opus-4-5"] = new(5m, 25m, 6.25m, 10m, 0.5m),
             ["claude-opus-4-6"] = new(5m, 25m, 6.25m, 10m, 0.5m),
             ["claude-opus-4-7"] = new(5m, 25m, 6.25m, 10m, 0.5m),
-            // Fast mode for Opus 4.7 was published at 30 in / 150 out; the
-            // remaining legs follow the documented 6x uniform scaling.
-            ["claude-opus-4-7-fast"] = new(30m, 150m, 37.5m, 60m, 3m),
             ["claude-opus-4-8"] = new(5m, 25m, 6.25m, 10m, 0.5m),
             ["claude-opus-4-8-fast"] = new(10m, 50m, 12.5m, 20m, 1m),
             ["claude-opus-5"] = new(5m, 25m, 6.25m, 10m, 0.5m),

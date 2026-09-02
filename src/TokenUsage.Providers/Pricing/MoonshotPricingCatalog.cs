@@ -10,7 +10,7 @@ namespace TokenUsage.Providers.Pricing;
 /// </summary>
 public static class MoonshotPricingCatalog
 {
-    public const string Version = "moonshot-api-2026-08-28";
+    public const string Version = "moonshot-api-2026-09-02";
     private const decimal TokensPerMillion = 1_000_000m;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
@@ -18,6 +18,8 @@ public static class MoonshotPricingCatalog
         {
             ["kimi-k3"] = new(3m, 0.3m, 15m),
             ["kimi-k2.7-code"] = new(0.95m, 0.19m, 4m),
+            ["kimi-k2.7-code-highspeed"] = new(1.9m, 0.38m, 8m),
+            ["kimi-k2.6"] = new(0.95m, 0.16m, 4m),
         };
 
     public static CostObservation Resolve(string model, TokenBreakdown tokens)

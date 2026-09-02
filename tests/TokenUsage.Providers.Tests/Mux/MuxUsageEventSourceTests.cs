@@ -103,7 +103,7 @@ public sealed class MuxUsageEventSourceTests
         Assert.Equal("gemini-3.6-flash", usageEvent.ModelId.Value);
         Assert.Equal("google", usageEvent.ModelProviderId?.Value);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(1.125m, usageEvent.Cost.EstimatedCostUsd);
     }
 
     private sealed class TemporaryFolder : IDisposable
