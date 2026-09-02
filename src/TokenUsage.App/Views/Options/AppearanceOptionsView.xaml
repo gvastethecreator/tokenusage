@@ -39,27 +39,24 @@
                         <ContentPresenter Content="{TemplateBinding Content}" />
                     </ControlTemplate>
                 </ContentControl.Template>
-                <Grid
-                x:Name="AppearanceSettingsGrid"
-                ColumnSpacing="10"
-                RowSpacing="0"
-                VerticalAlignment="Top">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <StackPanel Spacing="12">
+                    <Grid
+                        x:Name="AppearanceSettingsGrid"
+                        ColumnSpacing="10"
+                        RowSpacing="0"
+                        VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
                     <StackPanel x:Name="AppearanceThemeGroup" Grid.ColumnSpan="2" Spacing="4">
                         <TextBlock x:Uid="AppearanceThemeLabel" Style="{StaticResource CaptionTextBlockStyle}" />
@@ -133,31 +130,52 @@
                             SelectedItem="{x:Bind ViewModel.SelectedDashboardVisualization, Mode=TwoWay}" />
                     </StackPanel>
 
-                    <Grid x:Name="AppearanceTrayPopoverGroup" Grid.Row="6" Grid.ColumnSpan="2" ColumnSpacing="12">
+                    </Grid>
+
+                    <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
+
+                    <Grid
+                        x:Name="AppearanceTraySettingsGrid"
+                        ColumnSpacing="10"
+                        RowSpacing="0"
+                        VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock
-                            x:Uid="AppearanceTrayPopoverHeading"
-                            Style="{StaticResource CaptionTextBlockStyle}"
-                            TextWrapping="WrapWholeWords"
-                            VerticalAlignment="Center" />
-                        <ToggleSwitch
-                            x:Name="AppearanceTrayPopoverEnabledToggle"
-                            x:Uid="AppearanceTrayPopoverEnabledToggle"
-                            Grid.Column="1"
-                            AutomationProperties.AutomationId="AppearanceTrayPopoverEnabledToggle"
-                            HorizontalAlignment="Right"
-                            IsOn="{x:Bind ViewModel.ShowTrayPopover, Mode=TwoWay}"
-                            OffContent=""
-                            OnContent=""
-                            VerticalAlignment="Center" />
-                    </Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid x:Name="AppearanceTrayPopoverGroup" Grid.ColumnSpan="2" ColumnSpacing="12" MinHeight="32">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                x:Uid="AppearanceTrayPopoverHeading"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                TextWrapping="WrapWholeWords"
+                                VerticalAlignment="Center" />
+                            <ToggleSwitch
+                                x:Name="AppearanceTrayPopoverEnabledToggle"
+                                x:Uid="AppearanceTrayPopoverEnabledToggle"
+                                Grid.Column="1"
+                                AutomationProperties.AutomationId="AppearanceTrayPopoverEnabledToggle"
+                                HorizontalAlignment="Right"
+                                IsOn="{x:Bind ViewModel.ShowTrayPopover, Mode=TwoWay}"
+                                OffContent=""
+                                OnContent=""
+                                VerticalAlignment="Center" />
+                        </Grid>
 
                     <StackPanel
                         x:Name="AppearanceTrayPrimaryGroup"
-                        Grid.Row="7"
+                        Grid.Row="1"
                         Spacing="4">
                         <TextBlock x:Uid="AppearanceTrayPrimaryLabel" Style="{StaticResource CaptionTextBlockStyle}" />
                         <ComboBox
@@ -173,7 +191,7 @@
 
                     <StackPanel
                         x:Name="AppearanceTraySecondaryGroup"
-                        Grid.Row="7"
+                        Grid.Row="1"
                         Grid.Column="1"
                         Spacing="4">
                         <TextBlock x:Uid="AppearanceTraySecondaryLabel" Style="{StaticResource CaptionTextBlockStyle}" />
@@ -190,7 +208,7 @@
 
                     <StackPanel
                         x:Name="AppearanceTrayCountGroup"
-                        Grid.Row="8"
+                        Grid.Row="2"
                         Spacing="4">
                         <TextBlock x:Uid="AppearanceTrayProviderCountLabel" Style="{StaticResource CaptionTextBlockStyle}" />
                         <ComboBox
@@ -206,8 +224,8 @@
 
                     <StackPanel
                         x:Name="AppearanceTrayNameGroup"
-                        Grid.Row="9"
-                        Grid.ColumnSpan="2"
+                        Grid.Row="2"
+                        Grid.Column="1"
                         Spacing="4">
                         <TextBlock x:Uid="AppearanceTrayProviderNameLabel" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="WrapWholeWords" />
                         <ToggleSwitch
@@ -220,8 +238,8 @@
                             OffContent=""
                             OnContent="" />
                     </StackPanel>
-
-                </Grid>
+                    </Grid>
+                </StackPanel>
             </ContentControl>
             <InfoBar
                 x:Name="AppearanceStatus"
@@ -235,6 +253,7 @@
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
             <options:PersonalizationOptionsView
                 x:Name="PersonalizationView"
+                HorizontalAlignment="Stretch"
                 ViewModel="{x:Bind PersonalizationViewModel, Mode=OneWay}" />
         </StackPanel>
     </Border>

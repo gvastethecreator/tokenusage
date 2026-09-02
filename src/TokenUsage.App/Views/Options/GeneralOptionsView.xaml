@@ -82,65 +82,61 @@
                     </ToolTipService.ToolTip>
                 </ToggleSwitch>
             </Grid>
-            <Grid ColumnSpacing="12" MinHeight="32">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <StackPanel Spacing="4">
                 <TextBlock
                     x:Uid="DataCollectionRefreshLabel"
-                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                    VerticalAlignment="Center" />
+                    Style="{StaticResource BodyStrongTextBlockStyle}" />
                 <ComboBox
                     x:Name="DataCollectionOpenRefreshSelector"
-                    Grid.Column="1"
                     AutomationProperties.AutomationId="DataCollectionOpenRefreshSelector"
                     DisplayMemberPath="Label"
-                    HorizontalAlignment="Right"
+                    HorizontalAlignment="Stretch"
                     ItemsSource="{x:Bind ViewModel.DataCollectionRefreshOptions, Mode=OneWay}"
-                    MinWidth="200"
-                    SelectedItem="{x:Bind ViewModel.SelectedDataCollectionRefresh, Mode=TwoWay}"
-                    VerticalAlignment="Center" />
-            </Grid>
+                    SelectedItem="{x:Bind ViewModel.SelectedDataCollectionRefresh, Mode=TwoWay}" />
+            </StackPanel>
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
-            <Grid ColumnSpacing="10" RowSpacing="3">
+            <Grid ColumnSpacing="8" RowSpacing="7">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBlock
                     x:Uid="ShareCaptureFolderTitle"
-                    Grid.ColumnSpan="3"
+                    Grid.ColumnSpan="2"
                     Style="{StaticResource BodyStrongTextBlockStyle}" />
                 <TextBlock
                     x:Name="ShareCaptureFolderPath"
                     x:Uid="ShareCaptureFolderPath"
                     Grid.Row="1"
+                    Grid.ColumnSpan="2"
                     AutomationProperties.AutomationId="ShareCaptureFolderPath"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}"
                     TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Center" />
-                <Button
-                    x:Uid="ShareCaptureFolderBrowseButton"
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    AutomationProperties.AutomationId="ShareCaptureFolderBrowseButton"
-                    Click="OnShareCaptureFolderBrowseClicked"
-                    Padding="10,5" />
-                <Button
-                    x:Uid="ShareCaptureFolderResetButton"
-                    Grid.Row="1"
-                    Grid.Column="2"
-                    AutomationProperties.AutomationId="ShareCaptureFolderResetButton"
-                    Click="OnShareCaptureFolderResetClicked"
-                    Padding="10,5"
-                    Style="{StaticResource SubtleButtonStyle}" />
+                <StackPanel
+                    Grid.Row="2"
+                    Grid.ColumnSpan="2"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        x:Uid="ShareCaptureFolderBrowseButton"
+                        AutomationProperties.AutomationId="ShareCaptureFolderBrowseButton"
+                        Click="OnShareCaptureFolderBrowseClicked"
+                        Padding="10,5" />
+                    <Button
+                        x:Uid="ShareCaptureFolderResetButton"
+                        AutomationProperties.AutomationId="ShareCaptureFolderResetButton"
+                        Click="OnShareCaptureFolderResetClicked"
+                        Padding="10,5"
+                        Style="{StaticResource SubtleButtonStyle}" />
+                </StackPanel>
             </Grid>
         </StackPanel>
     </Border>

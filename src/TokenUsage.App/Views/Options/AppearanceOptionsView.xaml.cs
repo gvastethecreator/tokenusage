@@ -77,6 +77,23 @@ public sealed partial class AppearanceOptionsView : UserControl
             row: wide ? 2 : 2,
             column: wide ? 1 : 0,
             columnSpan: wide ? 1 : 2);
+        Position(AppearanceTrayPopoverGroup, row: 0, column: 0, columnSpan: 2);
+        Position(AppearanceTrayPrimaryGroup, row: 1, column: 0, columnSpan: wide ? 1 : 2);
+        Position(
+            AppearanceTraySecondaryGroup,
+            row: wide ? 1 : 2,
+            column: wide ? 1 : 0,
+            columnSpan: wide ? 1 : 2);
+        Position(
+            AppearanceTrayCountGroup,
+            row: wide ? 2 : 3,
+            column: 0,
+            columnSpan: wide ? 1 : 2);
+        Position(
+            AppearanceTrayNameGroup,
+            row: wide ? 2 : 4,
+            column: wide ? 1 : 0,
+            columnSpan: wide ? 1 : 2);
     }
 
     private static void Position(
