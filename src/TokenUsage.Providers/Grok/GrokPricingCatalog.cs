@@ -9,7 +9,7 @@ namespace TokenUsage.Providers.Grok;
 /// </summary>
 public static class GrokPricingCatalog
 {
-    public const string Version = "xai-api-2026-08-28";
+    public const string Version = "xai-api-2026-09-02";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 200_000;
 

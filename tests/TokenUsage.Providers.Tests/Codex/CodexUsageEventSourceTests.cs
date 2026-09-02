@@ -185,6 +185,23 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
+    public async Task OfficialCurrentDayBucketUsesRefreshTimeInsteadOfAFutureNoon()
+    {
+        using var corpus = new CodexCorpus();
+        DateTimeOffset observedAt = new(2026, 7, 28, 4, 0, 0, TimeSpan.Zero);
+        var usage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null),
+            [new CodexUsageDailyBucket(new DateOnly(2026, 7, 28), 1_000)]);
+        CodexUsageEventSource source = corpus.CreateSource(
+            clientFactory: new StubFactory(new StubClient(usage)),
+            clock: new FixedTimeProvider(observedAt));
+
+        UsageEvent usageEvent = Assert.Single((await source.ReadAsync()).Events);
+
+        Assert.Equal(observedAt, usageEvent.OccurredAtUtc);
+    }
+
+    [Fact]
     public async Task OfficialHistoryBeyondTheReconciliationWindowIsNotEmitted()
     {
         using var corpus = new CodexCorpus();

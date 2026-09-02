@@ -89,7 +89,7 @@ public sealed class ZcodeUsageEventSourceTests
         Assert.Equal(Now.AddDays(-1), usageEvent.OccurredAtUtc);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
         Assert.Equal(0.000183m, usageEvent.Cost.EstimatedCostUsd);
-        Assert.Equal("zai-api-2026-08-28", usageEvent.Cost.CatalogVersion);
+        Assert.Equal("zai-api-2026-09-02", usageEvent.Cost.CatalogVersion);
         Assert.Equal("glm-5.3", usageEvent.Cost.ExactPriceMatch);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(ZcodeUsageEventSource.ParserVersion, usageEvent.ParserVersion);

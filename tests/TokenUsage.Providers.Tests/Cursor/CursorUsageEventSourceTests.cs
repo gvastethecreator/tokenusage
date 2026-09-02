@@ -92,7 +92,8 @@ public sealed class CursorUsageEventSourceTests
             DateTimeOffset.FromUnixTimeMilliseconds(1_786_488_925_618),
             usageEvent.OccurredAtUtc);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal(0.889936m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(0.444968m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(CursorPricingCatalog.Version, usageEvent.Cost.CatalogVersion);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(CursorUsageEventSource.ParserVersion, usageEvent.ParserVersion);
     }

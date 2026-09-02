@@ -405,12 +405,26 @@ public sealed partial class CodexUsageEventSource
         TimeZoneInfo groupingTimeZone,
         CostObservation cost)
     {
-        DateTime localNoon = DateTime.SpecifyKind(
-            date.ToDateTime(new TimeOnly(12, 0)),
-            DateTimeKind.Unspecified);
-        DateTimeOffset timestamp = new(
-            TimeZoneInfo.ConvertTimeToUtc(localNoon, groupingTimeZone),
-            TimeSpan.Zero);
+        DateTimeOffset observedAtUtc = _clock.GetUtcNow().ToUniversalTime();
+        DateOnly observedLocalDate = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(observedAtUtc, groupingTimeZone).DateTime);
+        DateTimeOffset timestamp;
+        if (date == observedLocalDate)
+        {
+            // Today's provider bucket is cumulative through this refresh. Stamping it at noon
+            // can put the event in the future and leave the active reset cycle empty.
+            timestamp = observedAtUtc;
+        }
+        else
+        {
+            DateTime localNoon = DateTime.SpecifyKind(
+                date.ToDateTime(new TimeOnly(12, 0)),
+                DateTimeKind.Unspecified);
+            timestamp = new DateTimeOffset(
+                TimeZoneInfo.ConvertTimeToUtc(localNoon, groupingTimeZone),
+                TimeSpan.Zero);
+        }
+
         return new UsageEvent(
             new UsageEventKey(Hash(
                 $"codex-account\0{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}\0{model}")),

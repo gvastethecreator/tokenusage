@@ -10,16 +10,16 @@ namespace TokenUsage.Providers.Zcode;
 /// </summary>
 public static class ZcodePricingCatalog
 {
-    public const string Version = "zai-api-2026-08-28";
+    public const string Version = "zai-api-2026-09-02";
     private const decimal TokensPerMillion = 1_000_000m;
 
-    // The Z.ai promo runs through 2026-09-09; from 2026-09-10 the list rate
-    // applies. A resolve without a timestamp prices at the rate valid now.
+    // The Z.ai promo ends at 24:00 on 2026-09-09 in Singapore (UTC+8).
+    // A resolve without a timestamp prices at the rate valid now.
     private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
         new(StringComparer.Ordinal)
         {
             ["glm-5.3-flash"] = new(
-                new DateTimeOffset(2026, 9, 10, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 9, 9, 16, 0, 0, TimeSpan.Zero),
                 new(0.15m, 0.03m, 0.5m)),
         };
 

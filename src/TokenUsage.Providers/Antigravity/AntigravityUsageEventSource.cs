@@ -287,11 +287,7 @@ public sealed class AntigravityUsageEventSource :
                 reasoning: 0,
                 tokenBlock.CacheRead,
                 cacheWrite: 0);
-            CostObservation cost = AntigravityPricingCatalog.Resolve(model, tokens);
-            if (cost.Kind == CostKind.Unavailable)
-            {
-                cost = KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
-            }
+            CostObservation cost = KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
             string identity = $"{rootName}\0{Path.GetFileName(path)}\0{reader.GetInt64(0)}";
             var usageEvent = new UsageEvent(
                 new UsageEventKey(Hash(identity)),
