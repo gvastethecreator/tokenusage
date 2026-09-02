@@ -51,6 +51,7 @@ public sealed partial class MainPage : Page, IDisposable
         _lastSurfaceState = ViewModel.SurfaceState;
         _lastOptionsSection = ViewModel.ActiveOptionsSection;
         ApplyTextScaleLayout();
+        ApplyBodyScrollMode();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
         _relativeTimeTimer = DispatcherQueue.CreateTimer();
@@ -248,6 +249,7 @@ public sealed partial class MainPage : Page, IDisposable
             OptionsSection nextSection = ViewModel.ActiveOptionsSection;
             _lastSurfaceState = nextSurface;
             _lastOptionsSection = nextSection;
+            ApplyBodyScrollMode();
             bool isNavigationChange = optionsSectionChanged
                 || (surfaceChanged
                     && (previousSurface == FlyoutSurfaceState.Options
@@ -289,6 +291,17 @@ public sealed partial class MainPage : Page, IDisposable
         {
             ScheduleSampleReveal();
         }
+    }
+
+    private void ApplyBodyScrollMode()
+    {
+        bool allowScrolling = !ViewModel.IsSample;
+        BodyScrollViewer.VerticalScrollMode = allowScrolling
+            ? ScrollMode.Enabled
+            : ScrollMode.Disabled;
+        BodyScrollViewer.VerticalScrollBarVisibility = allowScrolling
+            ? ScrollBarVisibility.Auto
+            : ScrollBarVisibility.Hidden;
     }
 
     private void PrepareViewTransition(double startOffset)

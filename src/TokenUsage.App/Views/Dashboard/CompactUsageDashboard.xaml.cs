@@ -74,8 +74,13 @@ public sealed partial class CompactUsageDashboard : UserControl
         }
     }
 
-    public void ApplyAppearance(AppearanceSettings settings) =>
-        RootStack.Spacing = settings.Density == AppDensityMode.Compact ? 8 : 10;
+    public void ApplyAppearance(AppearanceSettings settings)
+    {
+        bool isCompact = settings.Density == AppDensityMode.Compact;
+        RootStack.Spacing = isCompact ? 5 : 6;
+        ProviderScopeStack.Spacing = isCompact ? 6 : 8;
+        ProviderDetailStack.Spacing = isCompact ? 6 : 8;
+    }
 
     public void ScheduleReveal()
     {

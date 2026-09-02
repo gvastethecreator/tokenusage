@@ -9,6 +9,7 @@
     xmlns:converters="using:TokenUsage.App.Converters"
     xmlns:dashboard="using:TokenUsage.App.ViewModels.Dashboard"
     xmlns:viewModels="using:TokenUsage.App.ViewModels"
+    HorizontalContentAlignment="Stretch"
     mc:Ignorable="d">
 
     <StackPanel AutomationProperties.AutomationId="PersonalizationSection">
@@ -19,6 +20,8 @@
                 x:Name="DashboardLayoutExpander"
                 x:Uid="DashboardLayoutExpander"
                 AutomationProperties.AutomationId="DashboardLayoutExpander"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
                 IsExpanded="False">
                 <StackPanel Spacing="8">
                     <TextBlock
