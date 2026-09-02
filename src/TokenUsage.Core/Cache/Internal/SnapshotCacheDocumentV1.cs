@@ -61,6 +61,8 @@ internal sealed class SnapshotCacheMetricV1
 
     public bool? IsActive { get; set; }
 
+    public string? DisplayName { get; set; }
+
     public SnapshotCacheProvenanceV1? Provenance { get; set; }
 }
 

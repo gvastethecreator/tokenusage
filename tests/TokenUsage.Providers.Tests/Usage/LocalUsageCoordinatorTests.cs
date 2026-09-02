@@ -52,7 +52,9 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Equal(
             string.Format(CultureInfo.CurrentCulture, "${0:0.00} USD", 0.62m),
             FindValue(card, "UsageProductCard.EstimatedCost"));
-        Assert.Equal("9.460", FindValue(card, "UsageProductCard.UnpricedUsage"));
+        Assert.Equal(
+            9_460.ToString("N0", CultureInfo.CurrentCulture),
+            FindValue(card, "UsageProductCard.UnpricedUsage"));
 
         UsageRepository cliRepository = await UsageRepository.OpenAsync(folder.DatabasePath);
         IReadOnlyList<DailyUsageRollup> cliRollups = await cliRepository.QueryDailyRollupsAsync(
@@ -388,7 +390,9 @@ public sealed class LocalUsageCoordinatorTests
         });
 
         Assert.Equal("Claude Code · logs locales", card.SourceLabel);
-        Assert.Equal("1.200", FindValue(card, "UsageProductCard.TotalTokens"));
+        Assert.Equal(
+            1_200.ToString("N0", CultureInfo.CurrentCulture),
+            FindValue(card, "UsageProductCard.TotalTokens"));
         Assert.NotEqual("Sin datos", FindValue(card, "UsageProductCard.EstimatedCost"));
         Assert.Equal("100%", FindValue(card, "UsageProductCard.CostCoverage"));
     }

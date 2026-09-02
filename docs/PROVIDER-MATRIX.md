@@ -163,7 +163,9 @@ Each provider needs:
   type, plan, and auth requirement
 - quota: `account/rateLimits/read`
 - tokens and daily buckets: `account/usage/read`
-- optional local detail: `CODEX_HOME/sessions` and `archived_sessions`
+- optional local detail: `CODEX_HOME/sessions` and `archived_sessions`; the
+  `state_5.sqlite` index is merged with the folders so a new session is not
+  hidden while the index catches up
 
 The official [`app-server`](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) manages login and renewal. The app does not read `auth.json` in the MVP.
 
@@ -176,7 +178,8 @@ otherwise.
 
 - primary window
 - secondary window
-- additional per-model limits
+- additional limits named by the official `limitName`; the current
+  `base_model_inference` bucket is shown as `GPT reserve`
 - next reset
 - plan
 - credits and spending controls when they exist
@@ -435,8 +438,7 @@ fail-closed when the schema changes.
 
 Coding Plan quota stays closed: the official plugin's monitoring endpoints are
 private and require another tool's credential, and no ZCode hook exposes plan
-or real remaining (see
-).
+or real remaining.
 
 A quota estimated from plan credits was delivered briefly (public formula,
 multipliers, and tiers published by Z.ai) and was withdrawn by maintainer

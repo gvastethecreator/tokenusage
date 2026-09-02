@@ -25,7 +25,11 @@ public sealed class CodexDashboardProjectorTests
                 ["model-private-name"] = new(
                     "plus",
                     new CodexRateLimitWindow(75, Now.AddHours(1), 60),
-                    null),
+                    null)
+                {
+                    LimitId = "base_model_inference",
+                    LimitName = "gpt-reserve",
+                },
             });
         CodexSnapshotMappingResult.Available mapped = Assert.IsType<
             CodexSnapshotMappingResult.Available>(
@@ -45,7 +49,7 @@ public sealed class CodexDashboardProjectorTests
         Assert.Equal(3, card.Windows.Count);
         Assert.Equal("Session", card.Windows[0].Title);
         Assert.Equal("Weekly", card.Windows[1].Title);
-        Assert.Equal("Additional limit 1", card.Windows[2].Title);
+        Assert.Equal("GPT reserve", card.Windows[2].Title);
         Assert.Equal("58% remaining · 42% used", card.Windows[0].RemainingText);
         Assert.Equal("Resets in 4 h", card.Windows[0].ResetText);
         Assert.Equal("210% projected · limit in 1 h 23 min", card.Windows[0].PaceText);

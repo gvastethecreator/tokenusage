@@ -188,22 +188,25 @@
         </DataTemplate>
     </Page.Resources>
 
-    <Grid>
-        <ScrollViewer
-            x:Name="ReportScrollViewer"
-            HorizontalContentAlignment="Stretch"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto"
-            ZoomMode="Disabled">
+    <Grid
+        x:Name="ReportCaptureSurface"
+        Background="{ThemeResource TokenUsageShellBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border
+            Grid.Row="0"
+            Background="{ThemeResource TokenUsageShellBrush}"
+            BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+            BorderThickness="0,0,0,1">
             <Grid
-                x:Name="ReportCaptureRoot"
+                x:Name="ReportHeaderRoot"
                 MaxWidth="1280"
-                Padding="20,18,20,32"
-                Background="{ThemeResource TokenUsageShellBrush}"
+                Padding="20,14,20,12"
                 HorizontalAlignment="Stretch"
-                RowSpacing="14">
+                RowSpacing="10">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -274,16 +277,24 @@
                         </StackPanel>
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.IsPeriodPickerVisible, Mode=OneWay}">
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <RadioButton x:Uid="UsageReport1DayButton" AutomationProperties.AutomationId="UsageReport1DayButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsOneDay, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="1" Click="OnPeriodClick" />
-                            <RadioButton x:Uid="UsageReport3DaysButton" AutomationProperties.AutomationId="UsageReport3DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsThreeDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="3" Click="OnPeriodClick" />
-                            <RadioButton x:Uid="UsageReport7DaysButton" AutomationProperties.AutomationId="UsageReport7DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsSevenDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="7" Click="OnPeriodClick" />
-                            <RadioButton x:Uid="UsageReport30DaysButton" AutomationProperties.AutomationId="UsageReport30DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsThirtyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="30" Click="OnPeriodClick" />
-                            <RadioButton x:Uid="UsageReport90DaysButton" AutomationProperties.AutomationId="UsageReport90DaysButton" GroupName="UsageReportPeriodTabs" IsChecked="{x:Bind ViewModel.IsNinetyDays, Mode=OneWay}" Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="90" Click="OnPeriodClick" />
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="2">
+                            <ComboBox
+                                x:Uid="UsageReportPeriodSelector"
+                                AutomationProperties.AutomationId="UsageReportPeriodSelector"
+                                ItemsSource="{x:Bind ViewModel.PeriodOptions, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedPeriod, Mode=OneWay}"
+                                SelectionChanged="OnPeriodSelectionChanged"
+                                Style="{StaticResource ReportToolbarComboBoxStyle}"
+                                Width="124">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="reports:UsageReportPeriodOption">
+                                        <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                             <RadioButton
                                 x:Uid="UsageReportResetCycleButton"
                                 AutomationProperties.AutomationId="UsageReportResetCycleButton"
-                                GroupName="UsageReportPeriodTabs"
                                 IsChecked="{x:Bind ViewModel.IsResetCycleWindow, Mode=OneWay}"
                                 Style="{StaticResource ReportToolbarToggleButtonStyle}"
                                 Click="OnResetCycleClick"
@@ -385,8 +396,23 @@
                 </Grid>
 
                 <ProgressBar Grid.Row="1" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+            </Grid>
+        </Border>
 
-                <StackPanel Grid.Row="2" Spacing="12">
+        <ScrollViewer
+            x:Name="ReportScrollViewer"
+            Grid.Row="1"
+            HorizontalContentAlignment="Stretch"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+            ZoomMode="Disabled">
+                <StackPanel
+                    x:Name="ReportCaptureRoot"
+                    MaxWidth="1280"
+                    Padding="20,14,20,32"
+                    Background="{ThemeResource TokenUsageShellBrush}"
+                    HorizontalAlignment="Stretch"
+                    Spacing="12">
                 <Grid
                     x:Name="ReportProviderCarousel"
                     Height="40"
@@ -942,7 +968,6 @@
                     </StackPanel>
                 </StackPanel>
                 </StackPanel>
-            </Grid>
         </ScrollViewer>
         <Button
             x:Name="ReportCaptureFocusSink"

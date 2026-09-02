@@ -96,7 +96,7 @@ public sealed class CodexAppServerClientTests
         using var peer = new ScriptedCodexJsonlPeer(
             """{"id":1,"result":{}}""",
             """
-            {"id":2,"result":{"rateLimits":{"planType":"pro","primary":null,"secondary":null},"rateLimitsByLimitId":{"codex-model":{"limitId":"IGNORED","limitName":"IGNORED","planType":"pro","primary":{"usedPercent":75}},"codex-mini":{"planType":"free","secondary":{"usedPercent":100,"windowDurationMins":60}}}}}
+            {"id":2,"result":{"rateLimits":{"planType":"pro","primary":null,"secondary":null},"rateLimitsByLimitId":{"codex-model":{"limitId":"base_model_inference","limitName":"gpt-reserve","planType":"pro","primary":{"usedPercent":75}},"codex-mini":{"planType":"free","secondary":{"usedPercent":100,"windowDurationMins":60}}}}}
             """);
         await using CodexAppServerClient client = peer.CreateClient();
 
@@ -106,6 +106,8 @@ public sealed class CodexAppServerClientTests
         Assert.Null(result.RateLimits.Primary);
         Assert.Null(result.RateLimits.Secondary);
         Assert.Equal(2, result.RateLimitsByLimitId.Count);
+        Assert.Equal("base_model_inference", result.RateLimitsByLimitId["codex-model"].LimitId);
+        Assert.Equal("gpt-reserve", result.RateLimitsByLimitId["codex-model"].LimitName);
         Assert.Equal(75, result.RateLimitsByLimitId["codex-model"].Primary?.UsedPercent);
         Assert.Equal(100, result.RateLimitsByLimitId["codex-mini"].Secondary?.UsedPercent);
     }

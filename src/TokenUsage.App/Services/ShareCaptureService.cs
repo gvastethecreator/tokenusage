@@ -54,49 +54,93 @@ internal static class ShareCaptureService
         return (await ResolveDownloadsFolderAsync()).Path;
     }
 
-    public static async Task<ShareCaptureResult> CaptureAsync(
+    public static Task<ShareCaptureResult> CaptureAsync(
         FrameworkElement captureRoot,
         string captureKind,
         Windows.UI.Color backgroundColor,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(captureRoot);
+        return CaptureAsync(
+            [captureRoot],
+            captureKind,
+            backgroundColor,
+            cancellationToken);
+    }
+
+    public static async Task<ShareCaptureResult> CaptureAsync(
+        IReadOnlyList<FrameworkElement> captureRoots,
+        string captureKind,
+        Windows.UI.Color backgroundColor,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(captureRoots);
+        if (captureRoots.Count == 0 || captureRoots.Any(captureRoot => captureRoot is null))
+        {
+            throw new ArgumentException("At least one capture surface is required.", nameof(captureRoots));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(captureKind);
 
         await CaptureGate.WaitAsync(cancellationToken);
         try
         {
-            DismissTransientOverlays(captureRoot);
-            captureRoot.UpdateLayout();
-            double sourceWidth = captureRoot.ActualWidth;
-            double sourceHeight = captureRoot.ActualHeight;
-            if (sourceWidth <= 0 || sourceHeight <= 0)
+            foreach (FrameworkElement captureRoot in captureRoots)
             {
-                throw new InvalidOperationException("The capture surface is not ready.");
+                DismissTransientOverlays(captureRoot);
+                captureRoot.UpdateLayout();
+                if (captureRoot.ActualWidth <= 0 || captureRoot.ActualHeight <= 0)
+                {
+                    throw new InvalidOperationException("The capture surface is not ready.");
+                }
             }
 
+            double sourceWidth = captureRoots.Max(captureRoot => captureRoot.ActualWidth);
+            double sourceHeight = captureRoots.Sum(captureRoot => captureRoot.ActualHeight);
             double scale = Math.Min(
                 1,
                 (MaximumRenderDimension - (CapturePadding * 2d))
                     / Math.Max(sourceWidth, sourceHeight));
-            int renderWidth = Math.Max(1, (int)Math.Round(sourceWidth * scale));
-            int renderHeight = Math.Max(1, (int)Math.Round(sourceHeight * scale));
-            var bitmap = new RenderTargetBitmap();
-            await bitmap.RenderAsync(captureRoot, renderWidth, renderHeight);
-            IBuffer pixelBuffer = await bitmap.GetPixelsAsync();
-            byte[] pixels = new byte[pixelBuffer.Length];
-            using (DataReader reader = DataReader.FromBuffer(pixelBuffer))
+
+            var renderedSurfaces = new List<RenderedCaptureSurface>(captureRoots.Count);
+            foreach (FrameworkElement captureRoot in captureRoots)
             {
-                reader.ReadBytes(pixels);
+                int renderWidth = Math.Max(
+                    1,
+                    (int)Math.Round(captureRoot.ActualWidth * scale));
+                int renderHeight = Math.Max(
+                    1,
+                    (int)Math.Round(captureRoot.ActualHeight * scale));
+                var bitmap = new RenderTargetBitmap();
+                await bitmap.RenderAsync(captureRoot, renderWidth, renderHeight);
+                IBuffer pixelBuffer = await bitmap.GetPixelsAsync();
+                byte[] surfacePixels = new byte[pixelBuffer.Length];
+                using (DataReader reader = DataReader.FromBuffer(pixelBuffer))
+                {
+                    reader.ReadBytes(surfacePixels);
+                }
+
+                FlattenTransparency(surfacePixels, backgroundColor);
+                renderedSurfaces.Add(new RenderedCaptureSurface(
+                    surfacePixels,
+                    bitmap.PixelWidth,
+                    bitmap.PixelHeight));
             }
-            FlattenTransparency(pixels, backgroundColor);
-            byte[] paddedPixels = AddPadding(
-                pixels,
-                bitmap.PixelWidth,
-                bitmap.PixelHeight,
+
+            int renderedWidth = renderedSurfaces.Max(surface => surface.Width);
+            int renderedHeight = renderedSurfaces.Sum(surface => surface.Height);
+            byte[] combinedPixels = StackVertically(
+                renderedSurfaces,
+                renderedWidth,
+                renderedHeight,
                 backgroundColor);
-            int outputWidth = bitmap.PixelWidth + (CapturePadding * 2);
-            int outputHeight = bitmap.PixelHeight + (CapturePadding * 2);
+            byte[] paddedPixels = AddPadding(
+                combinedPixels,
+                renderedWidth,
+                renderedHeight,
+                backgroundColor);
+            int outputWidth = renderedWidth + (CapturePadding * 2);
+            int outputHeight = renderedHeight + (CapturePadding * 2);
 
             StorageFolder destination = await ResolveDestinationFolderAsync();
             string timestamp = DateTimeOffset.Now.ToString(
@@ -134,6 +178,35 @@ internal static class ShareCaptureService
         {
             CaptureGate.Release();
         }
+    }
+
+    private static byte[] StackVertically(
+        IReadOnlyList<RenderedCaptureSurface> surfaces,
+        int width,
+        int height,
+        Windows.UI.Color background)
+    {
+        byte[] output = new byte[checked(width * height * 4)];
+        FillBackground(output, background);
+        int outputStride = width * 4;
+        int top = 0;
+        foreach (RenderedCaptureSurface surface in surfaces)
+        {
+            int sourceStride = surface.Width * 4;
+            for (int row = 0; row < surface.Height; row++)
+            {
+                System.Buffer.BlockCopy(
+                    surface.Pixels,
+                    row * sourceStride,
+                    output,
+                    ((top + row) * outputStride),
+                    sourceStride);
+            }
+
+            top += surface.Height;
+        }
+
+        return output;
     }
 
     private static void FlattenTransparency(byte[] pixels, Windows.UI.Color background)
@@ -178,13 +251,7 @@ internal static class ShareCaptureService
         int outputWidth = width + (CapturePadding * 2);
         int outputHeight = height + (CapturePadding * 2);
         byte[] output = new byte[checked(outputWidth * outputHeight * 4)];
-        for (int index = 0; index < output.Length; index += 4)
-        {
-            output[index] = background.B;
-            output[index + 1] = background.G;
-            output[index + 2] = background.R;
-            output[index + 3] = byte.MaxValue;
-        }
+        FillBackground(output, background);
 
         int sourceStride = width * 4;
         int outputStride = outputWidth * 4;
@@ -200,6 +267,17 @@ internal static class ShareCaptureService
         }
 
         return output;
+    }
+
+    private static void FillBackground(byte[] output, Windows.UI.Color background)
+    {
+        for (int index = 0; index < output.Length; index += 4)
+        {
+            output[index] = background.B;
+            output[index + 1] = background.G;
+            output[index + 2] = background.R;
+            output[index + 3] = byte.MaxValue;
+        }
     }
 
     private static byte Composite(byte foreground, byte background, int inverseAlpha) =>
@@ -234,5 +312,7 @@ internal static class ShareCaptureService
         return await StorageFolder.GetFolderFromPathAsync(downloadsPath);
     }
 }
+
+internal sealed record RenderedCaptureSurface(byte[] Pixels, int Width, int Height);
 
 internal sealed record ShareCaptureResult(string FilePath, int PixelWidth, int PixelHeight);

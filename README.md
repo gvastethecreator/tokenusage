@@ -53,10 +53,10 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 
 | State | Count | Meaning |
 |---|---:|---|
-| Active | 10 | A bounded reader produces real local usage data. |
+| Active | 11 | A bounded reader produces real local usage data. |
 | Opt-in, held | 1 | The adapter is retained, but the provider is currently disabled. |
 | Prepared | 36 | Identity, capabilities, and status exist. No reader runs. |
-| Policy blocked | 9 | The known source is unsafe, private, unstable, or not permitted. |
+| Policy blocked | 8 | The known source is unsafe, private, unstable, or not permitted. |
 
 ### Active readers
 
@@ -66,7 +66,7 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 | Claude Code | Yes | Reported or estimated | Not available through an approved interface |
 | Cursor | Yes, partial | Estimated when the model matches | Not available through the current contract |
 | Grok Build | Yes | Reported or estimated | Not available through an approved interface |
-| Grok Bot | No | Not available through an approved interface | Not available through an approved interface |
+| ZCode | Yes, counters per request | Estimated when the model matches | Not available through an approved interface |
 | OpenCode | Yes | Reported | No common quota source |
 | Antigravity | Yes, experimental | Estimated | Blocked by policy |
 | Amp | Yes, partial | Credits stay separate from USD | No stable public source |

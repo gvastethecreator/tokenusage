@@ -96,16 +96,16 @@ public sealed partial class UsageReportPage : Page
             ReportScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
     }
 
-    private void OnPeriodClick(object sender, RoutedEventArgs e)
+    private void OnPeriodSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string value }
-            && int.TryParse(value, out int days))
+        if (sender is ComboBox { SelectedItem: UsageReportPeriodOption period })
         {
-            bool changesPeriod = days != ViewModel.WindowDays || ViewModel.IsResetCycleWindow;
+            bool changesPeriod = period.Days != ViewModel.WindowDays
+                || ViewModel.IsResetCycleWindow;
             if (ShouldStartReportDataTransition(ReportDataTransitionIntent.Period, changesPeriod))
             {
                 PlayReportDataTransition(
-                    () => ViewModel.SetWindowDays(days),
+                    () => ViewModel.SetWindowDays(period.Days),
                     ReportDataTransitionIntent.Period);
             }
         }
@@ -214,11 +214,12 @@ public sealed partial class UsageReportPage : Page
             ReportControlBar.Visibility = Visibility.Collapsed;
             ReportCoverageHintButton.Visibility = Visibility.Collapsed;
             ReportCaptureBrand.Visibility = Visibility.Visible;
+            ReportHeaderRoot.UpdateLayout();
             ReportCaptureRoot.UpdateLayout();
             ShareCaptureResult result = await ShareCaptureService.CaptureAsync(
-                ReportCaptureRoot,
+                [ReportHeaderRoot, ReportCaptureRoot],
                 "report",
-                ReportCaptureRoot.ActualTheme == ElementTheme.Light
+                ReportCaptureSurface.ActualTheme == ElementTheme.Light
                     ? Microsoft.UI.Colors.White
                     : Microsoft.UI.Colors.Black);
             ShowShareStatus(
@@ -240,6 +241,7 @@ public sealed partial class UsageReportPage : Page
             ReportControlBar.Visibility = controlBarVisibility;
             ReportCoverageHintButton.Visibility = coverageHintVisibility;
             ReportCaptureBrand.Visibility = captureBrandVisibility;
+            ReportHeaderRoot.UpdateLayout();
             ReportCaptureRoot.UpdateLayout();
             source?.Focus(FocusState.Programmatic);
         }

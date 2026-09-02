@@ -17,7 +17,7 @@ $runbookPath = Join-Path $repoRoot 'docs\store\README.md'
 $certificationNotesPath = Join-Path $repoRoot 'docs\store\CERTIFICATION-NOTES.md'
 $listingPath = Join-Path $repoRoot 'docs\store\LISTING.md'
 $evidenceTemplatePath = Join-Path $repoRoot 'docs\store\RELEASE-EVIDENCE-TEMPLATE.md'
-$packageRoot = Join-Path $repoRoot 'src\TokenUsage.Package'
+$appProjectRoot = Join-Path $repoRoot 'src\TokenUsage.App'
 
 $errors = [System.Collections.Generic.List[string]]::new()
 $checks = [System.Collections.Generic.List[object]]::new()
@@ -140,9 +140,12 @@ if ($targetFamilies.Count -gt 0) {
 }
 
 $languages = @($manifest.SelectNodes('/f:Package/f:Resources/f:Resource', $ns) | ForEach-Object { $_.GetAttribute('Language') })
-foreach ($requiredLanguage in @('en-US', 'es-ES')) {
-    Add-Check -Name "Resource language $requiredLanguage" -Passed ($languages -contains $requiredLanguage) -Details "declared languages: $($languages -join ', ')"
-}
+$supportedLanguages = @('en-US')
+$languageDifferences = @(Compare-Object -ReferenceObject $supportedLanguages -DifferenceObject $languages)
+Add-Check `
+    -Name 'Package resource languages' `
+    -Passed ($languageDifferences.Count -eq 0 -and $languages.Count -eq $supportedLanguages.Count) `
+    -Details "expected: $($supportedLanguages -join ', '); declared: $($languages -join ', ')"
 
 Add-Check -Name 'runFullTrust declaration' -Passed ($null -ne $fullTrustNode) -Details 'desktop app requires a restricted-capability declaration and Partner Center explanation'
 Add-Check -Name 'tokenusage.exe execution alias' -Passed ($null -ne $aliasNode) -Details 'the packaged CLI alias must remain declared'
@@ -155,8 +158,31 @@ $requiredAssets = @(
     'Assets\SplashScreen.png'
 )
 foreach ($relativeAsset in $requiredAssets) {
-    $assetPath = Join-Path $packageRoot $relativeAsset
-    Add-Check -Name "Package asset $relativeAsset" -Passed (Test-Path -LiteralPath $assetPath -PathType Leaf) -Details 'manifest-referenced asset must exist'
+    $assetPath = Join-Path $appProjectRoot $relativeAsset
+    $assetDirectory = Split-Path -Parent $assetPath
+    $assetName = [System.IO.Path]::GetFileNameWithoutExtension($assetPath)
+    $assetExtension = [System.IO.Path]::GetExtension($assetPath)
+    $qualifiedAssets = @()
+    if (Test-Path -LiteralPath $assetDirectory -PathType Container) {
+        $qualifiedAssets = @(Get-ChildItem -LiteralPath $assetDirectory -File | Where-Object {
+            $_.Name.StartsWith("$assetName.", [StringComparison]::OrdinalIgnoreCase) `
+                -and $_.Extension.Equals($assetExtension, [StringComparison]::OrdinalIgnoreCase)
+        })
+    }
+    $assetExists = (Test-Path -LiteralPath $assetPath -PathType Leaf) -or $qualifiedAssets.Count -gt 0
+    $assetSources = if (Test-Path -LiteralPath $assetPath -PathType Leaf) {
+        Get-RepoRelativePath -Path $assetPath
+    }
+    elseif ($qualifiedAssets.Count -gt 0) {
+        ($qualifiedAssets | ForEach-Object { Get-RepoRelativePath -Path $_.FullName }) -join ', '
+    }
+    else {
+        'none'
+    }
+    Add-Check `
+        -Name "Package asset $relativeAsset" `
+        -Passed $assetExists `
+        -Details "source asset: $assetSources"
 }
 
 Test-ExactText -Name 'Documented PFN' -Actual $storeIdentity.packageIdentity.packageFamilyName -Expected 'GVASTETHECREATOR.TokenUsage_h2dcbfhqhrgv8'

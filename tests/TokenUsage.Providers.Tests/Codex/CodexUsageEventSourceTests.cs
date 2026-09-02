@@ -135,6 +135,30 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
+    public async Task StateIndexDoesNotHideARecentlyCreatedSession()
+    {
+        using var corpus = new CodexCorpus();
+        string indexed = corpus.WriteSession(
+            "indexed-session",
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
+        corpus.WriteSession(
+            "new-session",
+            Context("gpt-5.6-luna"),
+            Usage("2026-07-27T12:02:00Z", 200, 40, 20, 4));
+        corpus.WriteStateIndex((indexed, "gpt-5.6-sol"));
+
+        UsageEvent[] events = (await corpus.CreateSource().ReadAsync()).Events
+            .OrderBy(usageEvent => usageEvent.ModelId.Value, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Collection(
+            events,
+            usageEvent => Assert.Equal("gpt-5.6-luna", usageEvent.ModelId.Value),
+            usageEvent => Assert.Equal("gpt-5.6-sol", usageEvent.ModelId.Value));
+    }
+
+    [Fact]
     public async Task OfficialDailyTotalsUseTheBoundedLocalModelSample()
     {
         using var corpus = new CodexCorpus();
@@ -460,6 +484,33 @@ public sealed class CodexUsageEventSourceTests
         Assert.Single(result.Events);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
         Assert.Equal(UsageSourceIssueKind.UnsupportedSchema, result.Issue);
+    }
+
+    [Fact]
+    public async Task OversizedContentThatMentionsTokenCountDoesNotClaimSchemaFailure()
+    {
+        using var corpus = new CodexCorpus();
+        string oversizedContent = JsonSerializer.Serialize(new
+        {
+            type = "response_item",
+            payload = new { text = "token_count " + new string('x', 70 * 1024) },
+        });
+        corpus.WriteSession(
+            "session-large-content",
+            oversizedContent,
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
+        CodexUsageEventSource source = corpus.CreateSource(
+            maximumTailBytes: 256 * 1024,
+            checkpointPath: Path.Combine(corpus.Root, "codex-usage.v1.json"),
+            clock: new FixedTimeProvider(
+                new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
+
+        UsageSourceReadResult result = await source.ReadAsync();
+
+        Assert.Single(result.Events);
+        Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
     }
 
     [Fact]

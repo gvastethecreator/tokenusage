@@ -118,6 +118,7 @@ internal static class SnapshotCacheMapper
                 dto.Unit = progress.Unit;
                 dto.ResetCadence = progress.ResetCadence?.ToString();
                 dto.IsActive = progress.IsActive;
+                dto.DisplayName = progress.DisplayName;
                 break;
             case ScalarMetricSnapshot scalar:
                 dto.Kind = "scalar";
@@ -210,7 +211,8 @@ internal static class SnapshotCacheMapper
                 ParseOptionalEnum<ProgressResetCadence>(
                     dto.ResetCadence,
                     nameof(dto.ResetCadence)),
-                dto.IsActive),
+                dto.IsActive,
+                OptionalText(dto.DisplayName, nameof(dto.DisplayName))),
             "scalar" => new ScalarMetricSnapshot(
                 id,
                 dto.Value ?? throw new SnapshotCacheFormatException("Scalar value is missing."),
