@@ -566,11 +566,12 @@
   <data name="UsageReportButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Open usage report</value></data>
   <data name="UsageReportWindowTitle" xml:space="preserve"><value>TokenUsage usage report</value></data>
   <data name="UsageReportTitle.Text" xml:space="preserve"><value>Usage report</value></data>
-  <data name="UsageReport1DayButton.Content" xml:space="preserve"><value>Last day</value></data>
-  <data name="UsageReport3DaysButton.Content" xml:space="preserve"><value>3 days</value></data>
-  <data name="UsageReport7DaysButton.Content" xml:space="preserve"><value>7 days</value></data>
-  <data name="UsageReport30DaysButton.Content" xml:space="preserve"><value>30 days</value></data>
-  <data name="UsageReport90DaysButton.Content" xml:space="preserve"><value>90 days</value></data>
+  <data name="UsageReportPeriodSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report period</value></data>
+  <data name="UsageReportPeriod1Day" xml:space="preserve"><value>Last day</value></data>
+  <data name="UsageReportPeriod3Days" xml:space="preserve"><value>Last 3 days</value></data>
+  <data name="UsageReportPeriod7Days" xml:space="preserve"><value>Last 7 days</value></data>
+  <data name="UsageReportPeriod30Days" xml:space="preserve"><value>Last 30 days</value></data>
+  <data name="UsageReportPeriod90Days" xml:space="preserve"><value>Last 90 days</value></data>
   <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Cycle</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between Codex resets</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed Codex reset cycle</value></data>

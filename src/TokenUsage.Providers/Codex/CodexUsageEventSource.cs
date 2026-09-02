@@ -8,11 +8,10 @@ public sealed partial class CodexUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    // Version 6 rotates the emission contract: the official account history no
-    // longer reaches the 2025 aggregates the reader used to emit, so the parser
-    // supersession prune retires those stored fossils beyond the window while
-    // session-derived events return from disk under this version.
-    public const string ParserVersion = "codex-jsonl/6";
+    // Version 7 also discovers sessions that have not reached state_5.sqlite yet.
+    // It keeps oversized non-usage records from misclassifying valid counters as
+    // an unsupported Codex schema.
+    public const string ParserVersion = "codex-jsonl/7";
     private const int DefaultTailBytes = 64 * 1024;
     private const int RecentLocalWindowDays = 3;
     private const long MaximumInitialRecentScanBytes = 16L * 1024 * 1024 * 1024;

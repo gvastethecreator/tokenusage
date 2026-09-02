@@ -105,13 +105,21 @@ public static class CodexRateLimitsSnapshotMapper
     {
         if (bucket.Primary is not null)
         {
-            metrics.Add(CreateProgressMetric($"{prefix}.primary", bucket.Primary, provenance));
+            metrics.Add(CreateProgressMetric(
+                $"{prefix}.primary",
+                bucket.Primary,
+                provenance,
+                ResolveLimitDisplayName(bucket)));
             AddWindowDuration(metrics, $"{prefix}.primary", bucket.Primary, provenance);
         }
 
         if (bucket.Secondary is not null)
         {
-            metrics.Add(CreateProgressMetric($"{prefix}.secondary", bucket.Secondary, provenance));
+            metrics.Add(CreateProgressMetric(
+                $"{prefix}.secondary",
+                bucket.Secondary,
+                provenance,
+                ResolveLimitDisplayName(bucket)));
             AddWindowDuration(metrics, $"{prefix}.secondary", bucket.Secondary, provenance);
         }
     }
@@ -138,13 +146,23 @@ public static class CodexRateLimitsSnapshotMapper
     private static ProgressMetricSnapshot CreateProgressMetric(
         string metricId,
         CodexRateLimitWindow window,
-        DataProvenance provenance) =>
+        DataProvenance provenance,
+        string? displayName) =>
         new(
             new MetricId(metricId),
             window.UsedPercent,
             limit: 100m,
             window.ResetsAtUtc,
-            provenance);
+            provenance,
+            displayName: displayName);
+
+    private static string? ResolveLimitDisplayName(CodexRateLimitBucket bucket) =>
+        bucket.LimitName switch
+        {
+            "gpt-reserve" => "GPT reserve",
+            { Length: > 0 } name => name,
+            _ => null,
+        };
 
     private static bool HasSameWindows(
         CodexRateLimitBucket left,

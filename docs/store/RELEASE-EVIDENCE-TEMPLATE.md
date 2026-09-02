@@ -37,7 +37,7 @@ Do not commit credentials, Partner Center session data, private account screensh
 | Package/bundle inside upload | `[name]` |
 | Manifest target family | `Windows.Desktop` |
 | Minimum OS | `10.0.17763.0` |
-| Languages | `en-US`, `es-ES` |
+| Package resource languages | `en-US` |
 | Restricted capabilities | `runFullTrust` |
 | App execution alias | `tokenusage.exe` |
 | Symbols included | `[yes/no and location]` |

@@ -13,12 +13,15 @@ public sealed partial class CodexUsageEventSource
         CancellationToken cancellationToken)
     {
         SessionFile[]? indexed = ReadStateIndex(roots, state, cancellationToken);
+        var bySession = new Dictionary<string, SessionFile>(StringComparer.OrdinalIgnoreCase);
         if (indexed is { Length: > 0 })
         {
-            return indexed;
+            foreach (SessionFile file in indexed)
+            {
+                AddSessionFile(bySession, file);
+            }
         }
 
-        var bySession = new Dictionary<string, SessionFile>(StringComparer.OrdinalIgnoreCase);
         foreach (string root in roots)
         {
             foreach (string path in EnumerateJsonlFiles(root, state, cancellationToken))

@@ -118,6 +118,7 @@ public static class CodexDashboardProjector
             100m));
         string title = ResolveWindowTitle(
             metric.Id.Value,
+            metric.DisplayName,
             durationMinutes,
             text,
             ref additionalWindow);
@@ -255,6 +256,7 @@ public static class CodexDashboardProjector
 
     private static string ResolveWindowTitle(
         string metricId,
+        string? displayName,
         decimal durationMinutes,
         Func<string, string> text,
         ref int additionalWindow)
@@ -282,6 +284,11 @@ public static class CodexDashboardProjector
         if (IsSparkLimit(metricId))
         {
             return text("CodexWindowSpark");
+        }
+
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName;
         }
 
         additionalWindow++;

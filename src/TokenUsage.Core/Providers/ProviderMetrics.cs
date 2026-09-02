@@ -89,7 +89,8 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
         DataProvenance provenance,
         string? unit = null,
         ProgressResetCadence? resetCadence = null,
-        bool? isActive = null)
+        bool? isActive = null,
+        string? displayName = null)
         : base(id, provenance)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(used);
@@ -110,12 +111,23 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
             throw new ArgumentOutOfRangeException(nameof(resetCadence));
         }
 
+        if (displayName is not null
+            && (string.IsNullOrWhiteSpace(displayName)
+                || displayName.Length > 64
+                || displayName.Any(char.IsControl)))
+        {
+            throw new ArgumentException(
+                "Metric display name must be readable and no longer than 64 characters.",
+                nameof(displayName));
+        }
+
         Used = used;
         Limit = limit;
         ResetsAtUtc = resetsAtUtc;
         Unit = unit;
         ResetCadence = resetCadence;
         IsActive = isActive;
+        DisplayName = displayName;
     }
 
     public decimal Used { get; }
@@ -131,6 +143,8 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
     public ProgressResetCadence? ResetCadence { get; }
 
     public bool? IsActive { get; }
+
+    public string? DisplayName { get; }
 }
 
 public sealed class ScalarMetricSnapshot : MetricSnapshot

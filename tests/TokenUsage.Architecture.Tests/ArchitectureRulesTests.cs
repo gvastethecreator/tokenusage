@@ -531,8 +531,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(172, matches.Count);
-        Assert.Equal(157, distinctIds.Length);
+        Assert.Equal(168, matches.Count);
+        Assert.Equal(153, distinctIds.Length);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPopoverEnabledToggle", distinctIds, StringComparer.Ordinal);
@@ -554,8 +554,9 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportNextResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportPeriodSelector", distinctIds, StringComparer.Ordinal);
+        Assert.DoesNotContain("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
+        Assert.DoesNotContain("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutGitHubLink", distinctIds, StringComparer.Ordinal);
         Assert.Contains("TraySummary", distinctIds, StringComparer.Ordinal);
@@ -693,7 +694,6 @@ public sealed class ArchitectureRulesTests
         foreach (string requiredName in new[]
         {
             "UsageReportScopeTabs",
-            "UsageReportPeriodTabs",
             "UsageReportMetricTabs",
             "UsageReportValueModeTabs",
             "UsageReportChartLayoutTabs",
@@ -728,6 +728,12 @@ public sealed class ArchitectureRulesTests
         Assert.DoesNotContain("ReportSummaryValuesRoot", reportXaml, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportCacheValuesRoot", reportXaml, StringComparison.Ordinal);
         Assert.DoesNotContain("BreakdownContentRoot", reportXaml, StringComparison.Ordinal);
+        Assert.Contains("x:Uid=\"UsageReportPeriodSelector\"", reportXaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ReportHeaderRoot\"", reportXaml, StringComparison.Ordinal);
+        Assert.Contains(
+            "x:Name=\"ReportScrollViewer\"\n            Grid.Row=\"1\"",
+            reportXaml.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
 
         string reportViewModel = File.ReadAllText(Path.Combine(
             repoRoot,
@@ -955,6 +961,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("ReportControlBar.Visibility = Visibility.Collapsed", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCoverageHintButton.Visibility = Visibility.Collapsed", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCaptureBrand.Visibility = Visibility.Visible", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("[ReportHeaderRoot, ReportCaptureRoot]", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportControlBar.Visibility = controlBarVisibility", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCoverageHintButton.Visibility = coverageHintVisibility", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCaptureBrand.Visibility = captureBrandVisibility", reportPageCode, StringComparison.Ordinal);

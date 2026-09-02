@@ -34,6 +34,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private UsageReportCompareAxis _compareAxis = UsageReportCompareAxis.Providers;
     private UsageReportValueMode _valueMode = UsageReportValueMode.Absolute;
     private UsageReportProviderOption? _selectedProvider;
+    private UsageReportPeriodOption? _selectedPeriod;
     private UsageReportProviderOption? _compareLeftProvider;
     private UsageReportProviderOption? _compareRightProvider;
     private UsageReportResetCycleOption? _compareLeftCycle;
@@ -79,6 +80,14 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _getProviderLimits = getProviderLimits ?? (_ => []);
         _resetHistoryStore = resetHistoryStore;
         _clock = clock ?? TimeProvider.System;
+        PeriodOptions =
+        [
+            new(1, GetString("UsageReportPeriod1Day")),
+            new(3, GetString("UsageReportPeriod3Days")),
+            new(7, GetString("UsageReportPeriod7Days")),
+            new(30, GetString("UsageReportPeriod30Days")),
+            new(90, GetString("UsageReportPeriod90Days")),
+        ];
         ApplyRequestCore(initialRequest ?? UsageReportRequest.Global);
         ProviderLimits = _selectedProvider is null
             ? []
@@ -93,6 +102,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public int WindowDays => _windowDays;
 
+    public IReadOnlyList<UsageReportPeriodOption> PeriodOptions { get; }
+
+    public UsageReportPeriodOption SelectedPeriod => _selectedPeriod
+        ?? throw new InvalidOperationException("The report period is unavailable.");
+
     public UsageReportMetric Metric => _metric;
 
     public UsageReportBreakdown Breakdown => _breakdown;
@@ -100,16 +114,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public UsageReportScope Scope => _scope;
 
     public UsageReportValueMode ValueMode => _valueMode;
-
-    public bool IsOneDay => !IsResetCycleWindow && WindowDays == 1;
-
-    public bool IsThreeDays => !IsResetCycleWindow && WindowDays == 3;
-
-    public bool IsSevenDays => !IsResetCycleWindow && WindowDays == 7;
-
-    public bool IsThirtyDays => !IsResetCycleWindow && WindowDays == 30;
-
-    public bool IsNinetyDays => !IsResetCycleWindow && WindowDays == 90;
 
     public bool IsCostMetric => Metric == UsageReportMetric.Cost;
 
@@ -671,10 +675,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         }
 
         _windowDays = days;
+        _selectedPeriod = FindPeriod(days);
         _usesResetCycle = false;
         OnPropertyChanged(nameof(WindowDays));
-        OnPropertyChanged(nameof(IsOneDay));
-        OnPropertyChanged(nameof(IsThreeDays));
+        OnPropertyChanged(nameof(SelectedPeriod));
         NotifyRangeChanged();
         _ = LoadAsync();
     }
@@ -833,6 +837,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     {
         _scope = request.Scope;
         _windowDays = request.WindowDays;
+        _selectedPeriod = FindPeriod(_windowDays);
         _usesResetCycle = false;
         _metric = request.Metric;
         _breakdown = request.Breakdown;
@@ -870,11 +875,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsAbsoluteValueMode));
         OnPropertyChanged(nameof(IsShareValueMode));
         OnPropertyChanged(nameof(WindowDays));
-        OnPropertyChanged(nameof(IsOneDay));
-        OnPropertyChanged(nameof(IsThreeDays));
-        OnPropertyChanged(nameof(IsSevenDays));
-        OnPropertyChanged(nameof(IsThirtyDays));
-        OnPropertyChanged(nameof(IsNinetyDays));
+        OnPropertyChanged(nameof(SelectedPeriod));
         OnPropertyChanged(nameof(PeriodText));
         OnPropertyChanged(nameof(Metric));
         OnPropertyChanged(nameof(IsCostMetric));
@@ -1130,11 +1131,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(CanSelectPreviousResetCycle));
         OnPropertyChanged(nameof(CanSelectNextResetCycle));
-        OnPropertyChanged(nameof(IsOneDay));
-        OnPropertyChanged(nameof(IsThreeDays));
-        OnPropertyChanged(nameof(IsSevenDays));
-        OnPropertyChanged(nameof(IsThirtyDays));
-        OnPropertyChanged(nameof(IsNinetyDays));
+        OnPropertyChanged(nameof(SelectedPeriod));
         OnPropertyChanged(nameof(PeriodText));
         OnPropertyChanged(nameof(ResetCycleHelpText));
         OnPropertyChanged(nameof(HasResetCountSummary));
@@ -1166,6 +1163,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return -1;
         }
     }
+
+    private UsageReportPeriodOption FindPeriod(int days) => PeriodOptions.Single(option =>
+        option.Days == days);
 
     private static DateTimeOffset LocalDateStartUtc(DateOnly date)
     {

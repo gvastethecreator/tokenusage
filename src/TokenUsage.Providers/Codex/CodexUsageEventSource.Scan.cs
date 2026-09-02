@@ -205,10 +205,8 @@ public sealed partial class CodexUsageEventSource
 
                     ProcessRecentLine(utf8, checkpoint, recentFrom, state);
                 }
-                else if (line.GetBuffer().AsSpan(0, checked((int)line.Length))
-                         .IndexOf("token_count"u8) >= 0)
+                else
                 {
-                    state.UnsupportedSchema = true;
                     state.MarkPartial();
                 }
 

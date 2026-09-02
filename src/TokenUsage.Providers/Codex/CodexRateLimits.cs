@@ -45,7 +45,12 @@ public sealed record CodexRateLimitWindow
 public sealed record CodexRateLimitBucket(
     string? PlanType,
     CodexRateLimitWindow? Primary,
-    CodexRateLimitWindow? Secondary);
+    CodexRateLimitWindow? Secondary)
+{
+    public string? LimitId { get; init; }
+
+    public string? LimitName { get; init; }
+}
 
 public sealed record CodexRateLimitsSnapshot
 {
@@ -126,7 +131,35 @@ internal static class CodexRateLimitsParser
         return new CodexRateLimitBucket(
             planType,
             ParseOptionalWindow(element, "primary"),
-            ParseOptionalWindow(element, "secondary"));
+            ParseOptionalWindow(element, "secondary"))
+        {
+            LimitId = ParseOptionalLabel(element, "limitId"),
+            LimitName = ParseOptionalLabel(element, "limitName"),
+        };
+    }
+
+    private static string? ParseOptionalLabel(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            throw ContractFailure();
+        }
+
+        string? label = value.GetString()?.Trim();
+        if (string.IsNullOrEmpty(label)
+            || label.Length > 64
+            || label.Any(char.IsControl))
+        {
+            throw ContractFailure();
+        }
+
+        return label;
     }
 
     private static CodexRateLimitWindow? ParseOptionalWindow(

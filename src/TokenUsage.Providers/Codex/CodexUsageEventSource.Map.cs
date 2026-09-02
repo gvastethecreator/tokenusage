@@ -20,9 +20,15 @@ public sealed partial class CodexUsageEventSource
         bool captureResumeCarry,
         ref TokenBreakdown? resumeCarry)
     {
-        if (utf8.Length == 0 || utf8.Length > state.MaximumLineBytes)
+        if (utf8.Length == 0)
         {
-            return utf8.Length == 0 || MarkSchemaFailure(state, markSchemaFailures);
+            return true;
+        }
+
+        if (utf8.Length > state.MaximumLineBytes)
+        {
+            state.MarkPartial();
+            return false;
         }
 
         ReadOnlySpan<byte> bytes = utf8.Span;
