@@ -38,5 +38,7 @@ internal static class MotionSettings
 
     public static readonly TimeSpan ProviderLimitsFadeDuration = TimeSpan.FromMilliseconds(200);
 
+    public static readonly TimeSpan ChartHoverDuration = TimeSpan.FromMilliseconds(110);
+
     public static bool AreAnimationsEnabled() => Settings.AnimationsEnabled;
 }

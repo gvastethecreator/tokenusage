@@ -23,10 +23,10 @@ public sealed class AppearanceDashboardProjectorTests
         string percent = 23.5.ToString("0.#", CultureInfo.CurrentCulture);
 
         Assert.Equal(23.5, window.RemainingPercent);
-        Assert.Equal($"{percent}% remaining", window.RemainingText);
+        Assert.Equal($"{percent}% left", window.RemainingText);
         Assert.Equal("Resets in 1 d 2 h", window.ResetText);
         Assert.Equal(
-            $"Session: {percent}% remaining. Resets in 1 d 2 h",
+            $"Session: {percent}% left. Resets in 1 d 2 h",
             window.AutomationName);
         Assert.Equal("legacy text", Assert.Single(Assert.Single(source.Providers).Windows).RemainingText);
     }
@@ -138,7 +138,7 @@ public sealed class AppearanceDashboardProjectorTests
 
     private static string Text(string key) => key switch
     {
-        "AppearanceRemainingPercentFormat" => "{0:0.#}% remaining",
+        "AppearanceRemainingPercentFormat" => "{0:0.#}% left",
         "AppearanceUsedPercentFormat" => "{0:0.#}% used",
         "AppearanceResetExactFormat" => "Resets {0}",
         "AppearanceResetExactUnavailable" => "Exact reset unavailable",

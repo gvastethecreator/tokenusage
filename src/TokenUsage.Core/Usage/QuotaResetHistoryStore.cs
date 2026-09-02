@@ -32,6 +32,7 @@ public sealed record QuotaResetRecord(
     decimal CurrentUsedPercent,
     DateTimeOffset? PreviousExpectedResetAtUtc,
     DateTimeOffset? CurrentExpectedResetAtUtc,
+    decimal? WindowDurationMinutes,
     QuotaResetDetectionKind DetectionKind);
 
 public sealed record QuotaResetHistory(
@@ -47,6 +48,8 @@ public sealed record QuotaResetCycle(
     DateTimeOffset FromUtc,
     DateTimeOffset ToUtc,
     bool IsCurrent,
+    decimal? WindowDurationMinutes,
+    decimal UsedPercent,
     QuotaResetDetectionKind? EndingResetKind);
 
 public static class QuotaResetCycleQuery
@@ -77,29 +80,78 @@ public static class QuotaResetCycleQuery
                 window.CurrentCycleStartedAtUtc,
                 currentEnd,
                 IsCurrent: true,
+                window.WindowDurationMinutes,
+                window.UsedPercent,
                 EndingResetKind: null));
-
-            cycles.AddRange(history.Resets
-                .Where(item => string.Equals(item.ProviderId, providerId, StringComparison.Ordinal)
-                    && string.Equals(item.MetricId, window.MetricId, StringComparison.Ordinal)
-                    && item.PreviousCycleStartedAtUtc < item.OccurredAtUtc)
-                .OrderByDescending(item => item.OccurredAtUtc)
-                .Select(item => new QuotaResetCycle(
-                    item.ProviderId,
-                    item.MetricId,
-                    item.PreviousCycleStartedAtUtc,
-                    item.OccurredAtUtc,
-                    IsCurrent: false,
-                    item.DetectionKind)));
         }
+
+        cycles.AddRange(history.Resets
+            .Where(item => string.Equals(item.ProviderId, providerId, StringComparison.Ordinal)
+                && item.PreviousCycleStartedAtUtc < item.OccurredAtUtc)
+            .OrderBy(item => item.MetricId, StringComparer.Ordinal)
+            .ThenByDescending(item => item.OccurredAtUtc)
+            .Select(item => new QuotaResetCycle(
+                item.ProviderId,
+                item.MetricId,
+                item.PreviousCycleStartedAtUtc,
+                item.OccurredAtUtc,
+                IsCurrent: false,
+                ResolveWindowDuration(item),
+                item.PreviousUsedPercent,
+                item.DetectionKind)));
 
         return cycles;
     }
+
+    private static decimal? ResolveWindowDuration(QuotaResetRecord reset)
+    {
+        if (reset.WindowDurationMinutes is > 0m)
+        {
+            return reset.WindowDurationMinutes;
+        }
+
+        if (reset.CurrentExpectedResetAtUtc is not { } expectedReset
+            || expectedReset <= reset.DetectedAtUtc)
+        {
+            return null;
+        }
+
+        decimal remainingMinutes = (decimal)(expectedReset - reset.DetectedAtUtc).TotalMinutes;
+        if (remainingMinutes is >= 180m and <= 420m)
+        {
+            return 300m;
+        }
+
+        if (remainingMinutes is >= 4_320m and <= 11_520m)
+        {
+            return 10_080m;
+        }
+
+        return decimal.Round(remainingMinutes, 2, MidpointRounding.AwayFromZero);
+    }
+
+    internal static bool SameWindowDuration(decimal? left, decimal? right) =>
+        left is null && right is null
+        || left is > 0m
+            && right is > 0m
+            && Math.Abs(left.Value - right.Value) <= 0.01m;
 }
 
 public static class QuotaResetCountQuery
 {
     public static int Count(
+        QuotaResetHistory history,
+        string providerId,
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtcExclusive,
+        string? metricId = null) => Summarize(
+            history,
+            providerId,
+            fromUtc,
+            toUtcExclusive,
+            metricId).Total;
+
+    public static QuotaResetCountSummary Summarize(
         QuotaResetHistory history,
         string providerId,
         DateTimeOffset fromUtc,
@@ -122,14 +174,35 @@ public static class QuotaResetCountQuery
             ArgumentException.ThrowIfNullOrWhiteSpace(metricId);
         }
 
-        return history.Resets.Count(item =>
-            string.Equals(item.ProviderId, providerId, StringComparison.Ordinal)
-            && (metricId is null
-                || string.Equals(item.MetricId, metricId, StringComparison.Ordinal))
-            && item.OccurredAtUtc >= fromUtc
-            && item.OccurredAtUtc < toUtcExclusive);
+        Dictionary<string, QuotaResetWindowState> activeWindows = history.Windows
+            .Where(item => string.Equals(item.ProviderId, providerId, StringComparison.Ordinal)
+                && (metricId is null
+                    || string.Equals(item.MetricId, metricId, StringComparison.Ordinal)))
+            .ToDictionary(item => item.MetricId, StringComparer.Ordinal);
+
+        QuotaResetRecord[] matchingResets = history.Resets
+            .Where(item => string.Equals(item.ProviderId, providerId, StringComparison.Ordinal)
+                && activeWindows.TryGetValue(item.MetricId, out QuotaResetWindowState? window)
+                && QuotaResetCycleQuery.SameWindowDuration(
+                    item.WindowDurationMinutes,
+                    window.WindowDurationMinutes)
+                && item.OccurredAtUtc >= fromUtc
+                && item.OccurredAtUtc < toUtcExclusive)
+            .ToArray();
+
+        return new QuotaResetCountSummary(
+            matchingResets.Length,
+            matchingResets.Count(item => item.DetectionKind == QuotaResetDetectionKind.Scheduled),
+            matchingResets.Count(item => item.DetectionKind == QuotaResetDetectionKind.Early),
+            matchingResets.Count(item => item.DetectionKind == QuotaResetDetectionKind.Observed));
     }
 }
+
+public sealed record QuotaResetCountSummary(
+    int Total,
+    int Scheduled,
+    int Early,
+    int Observed);
 
 public sealed class QuotaResetHistoryVersionException(int actualVersion, int supportedVersion)
     : InvalidOperationException(
@@ -200,10 +273,28 @@ public sealed class QuotaResetHistoryStore
                 metric => metric.Id.Value[..^".window-minutes".Length],
                 metric => metric.Value,
                 StringComparer.Ordinal);
+        ProgressMetricSnapshot[] progressMetrics = snapshot.Metrics
+            .OfType<ProgressMetricSnapshot>()
+            .Where(metric => metric.Id.Value.StartsWith("quota.", StringComparison.Ordinal))
+            .ToArray();
+        if (snapshot.Coverage == CoverageKind.Complete)
+        {
+            var currentMetricIds = progressMetrics
+                .Select(metric => metric.Id.Value)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach ((string providerId, string metricId) in windows.Keys
+                         .Where(key => string.Equals(
+                                 key.ProviderId,
+                                 snapshot.ProviderId.Value,
+                                 StringComparison.Ordinal)
+                             && !currentMetricIds.Contains(key.MetricId))
+                         .ToArray())
+            {
+                windows.Remove((providerId, metricId));
+            }
+        }
 
-        foreach (ProgressMetricSnapshot metric in snapshot.Metrics
-                     .OfType<ProgressMetricSnapshot>()
-                     .Where(metric => metric.Id.Value.StartsWith("quota.", StringComparison.Ordinal)))
+        foreach (ProgressMetricSnapshot metric in progressMetrics)
         {
             string providerId = snapshot.ProviderId.Value;
             string metricId = metric.Id.Value;
@@ -234,12 +325,27 @@ public sealed class QuotaResetHistoryStore
                 continue;
             }
 
-            ResetDetection? detection = DetectReset(
-                previous,
-                usedPercent,
-                snapshot.SourceObservedAtUtc,
-                metric.ResetsAtUtc);
-            DateTimeOffset cycleStart = previous.CurrentCycleStartedAtUtc;
+            bool sameWindowDuration = QuotaResetCycleQuery.SameWindowDuration(
+                previous.WindowDurationMinutes,
+                durationMinutes ?? previous.WindowDurationMinutes);
+            ResetDetection? detection = sameWindowDuration
+                ? DetectReset(
+                    previous,
+                    usedPercent,
+                    snapshot.SourceObservedAtUtc,
+                    metric.ResetsAtUtc)
+                : null;
+            DateTimeOffset previousCycleStart = TryInferCycleStart(
+                    previous.ObservedAtUtc,
+                    previous.ExpectedResetAtUtc,
+                    previous.WindowDurationMinutes)
+                ?? previous.CurrentCycleStartedAtUtc;
+            decimal? currentDuration = durationMinutes ?? previous.WindowDurationMinutes;
+            DateTimeOffset cycleStart = TryInferCycleStart(
+                    snapshot.SourceObservedAtUtc,
+                    metric.ResetsAtUtc,
+                    currentDuration)
+                ?? previous.CurrentCycleStartedAtUtc;
             if (detection is not null)
             {
                 resets.Add(new QuotaResetRecord(
@@ -247,14 +353,14 @@ public sealed class QuotaResetHistoryStore
                     metricId,
                     detection.OccurredAtUtc,
                     snapshot.SourceObservedAtUtc,
-                    previous.CurrentCycleStartedAtUtc,
+                    previousCycleStart,
                     previous.ObservedAtUtc,
                     previous.UsedPercent,
                     usedPercent,
                     previous.ExpectedResetAtUtc,
                     metric.ResetsAtUtc,
+                    previous.WindowDurationMinutes,
                     detection.Kind));
-                cycleStart = detection.OccurredAtUtc;
             }
 
             windows[key] = previous with
@@ -263,7 +369,7 @@ public sealed class QuotaResetHistoryStore
                 ObservedAtUtc = snapshot.SourceObservedAtUtc,
                 CurrentCycleStartedAtUtc = cycleStart,
                 ExpectedResetAtUtc = metric.ResetsAtUtc,
-                WindowDurationMinutes = durationMinutes ?? previous.WindowDurationMinutes,
+                WindowDurationMinutes = currentDuration,
             };
         }
 
@@ -397,6 +503,7 @@ public sealed class QuotaResetHistoryStore
             || IsUtc(item.PreviousExpectedResetAtUtc.Value))
         && (item.CurrentExpectedResetAtUtc is null
             || IsUtc(item.CurrentExpectedResetAtUtc.Value))
+        && (item.WindowDurationMinutes is null || item.WindowDurationMinutes > 0m)
         && Enum.IsDefined(item.DetectionKind);
 
     private static bool IsValidId(string value) =>
@@ -410,6 +517,13 @@ public sealed class QuotaResetHistoryStore
     private static DateTimeOffset InferCycleStart(
         DateTimeOffset observedAtUtc,
         DateTimeOffset? expectedResetAtUtc,
+        decimal? durationMinutes) =>
+        TryInferCycleStart(observedAtUtc, expectedResetAtUtc, durationMinutes)
+        ?? observedAtUtc;
+
+    private static DateTimeOffset? TryInferCycleStart(
+        DateTimeOffset observedAtUtc,
+        DateTimeOffset? expectedResetAtUtc,
         decimal? durationMinutes)
     {
         if (expectedResetAtUtc is not null && durationMinutes is > 0m)
@@ -421,7 +535,7 @@ public sealed class QuotaResetHistoryStore
             }
         }
 
-        return observedAtUtc;
+        return null;
     }
 
     private static ResetDetection? DetectReset(

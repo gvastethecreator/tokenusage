@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Foundation;
@@ -17,10 +18,12 @@ namespace TokenUsage.App.Controls;
 public sealed partial class UsageTrendChart : UserControl
 {
     private const double TopPadding = 8;
-    private const double SinglePointMarkerDiameter = 8;
+    private const double BottomPadding = 10;
     private readonly ResourceLoader _resources = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private Line? _crosshair;
+    private TranslateTransform? _crosshairTransform;
+    private Storyboard? _hoverMotionStoryboard;
     private int? _hoverIndex;
 
     public static readonly DependencyProperty DataProperty = DependencyProperty.Register(
@@ -109,6 +112,7 @@ public sealed partial class UsageTrendChart : UserControl
 
     private void Rebuild()
     {
+        StopHoverMotion();
         double width = PlotCanvas.ActualWidth;
         double height = PlotCanvas.ActualHeight;
         if (width <= 0 || height <= 0)
@@ -118,7 +122,12 @@ public sealed partial class UsageTrendChart : UserControl
 
         PlotCanvas.Children.Clear();
         YAxisCanvas.Children.Clear();
+        PlotCanvas.Clip = new RectangleGeometry
+        {
+            Rect = new Rect(0, 0, width, height),
+        };
         _crosshair = null;
+        _crosshairTransform = null;
         HoverCard.Visibility = Visibility.Collapsed;
 
         UsageReportTrendDataset data = Data ?? UsageReportTrendDataset.Empty;
@@ -142,9 +151,10 @@ public sealed partial class UsageTrendChart : UserControl
 
         foreach (double tick in UsageTrendGeometry.SelectTicksForHeight(scale.Ticks, height))
         {
+            double baseline = height - BottomPadding;
             double y = scale.Maximum == 0
-                ? height
-                : height - (tick / scale.Maximum * (height - TopPadding));
+                ? baseline
+                : baseline - (tick / scale.Maximum * (baseline - TopPadding));
             PlotCanvas.Children.Add(new Line
             {
                 X1 = 0,
@@ -174,35 +184,92 @@ public sealed partial class UsageTrendChart : UserControl
             YAxisCanvas.Children.Add(label);
         }
 
-        var visuals = data.Series
-            .Select((series, index) => CreateSeriesVisual(series, index, width, height, scale.Maximum))
-            .ToArray();
-        foreach (SeriesVisual visual in visuals)
+        if (data.Days.Count == 1)
         {
-            PlotCanvas.Children.Add(visual.Area);
+            AddSingleDayBars(data, width, height, scale.Maximum);
         }
-        foreach (SeriesVisual visual in visuals)
+        else
         {
-            PlotCanvas.Children.Add(visual.Line);
-        }
-        foreach (SeriesVisual visual in visuals)
-        {
-            if (visual.PointMarker is not null)
+            var visuals = data.Series
+                .Select((series, index) => CreateSeriesVisual(
+                    series,
+                    index,
+                    width,
+                    height,
+                    scale.Maximum))
+                .ToArray();
+            foreach (SeriesVisual visual in visuals)
             {
-                PlotCanvas.Children.Add(visual.PointMarker);
+                PlotCanvas.Children.Add(visual.Area);
+            }
+            foreach (SeriesVisual visual in visuals)
+            {
+                PlotCanvas.Children.Add(visual.Line);
             }
         }
 
+        _crosshairTransform = new TranslateTransform();
         _crosshair = new Line
         {
+            X1 = 0,
+            X2 = 0,
             Y1 = TopPadding,
-            Y2 = height,
+            Y2 = height - BottomPadding,
+            RenderTransform = _crosshairTransform,
             Stroke = textBrush,
             StrokeThickness = 1,
             IsHitTestVisible = false,
             Visibility = Visibility.Collapsed,
         };
         PlotCanvas.Children.Add(_crosshair);
+    }
+
+    private void AddSingleDayBars(
+        UsageReportTrendDataset data,
+        double width,
+        double height,
+        double maximum)
+    {
+        int count = data.Series.Count;
+        double gap = count <= 4 ? 8 : 4;
+        double barWidth = Math.Clamp(
+            (Math.Min(width * 0.78, count * 48d) - (Math.Max(0, count - 1) * gap)) / count,
+            6,
+            44);
+        double groupWidth = count * barWidth + Math.Max(0, count - 1) * gap;
+        double groupLeft = Math.Max(0, (width - groupWidth) / 2);
+
+        for (int index = 0; index < count; index++)
+        {
+            UsageReportTrendSeries series = data.Series[index];
+            double value = series.Values.Count == 0 ? 0 : Math.Max(0, series.Values[0]);
+            double baseline = height - BottomPadding;
+            double availableHeight = Math.Max(0, baseline - TopPadding);
+            double barHeight = maximum <= 0
+                ? 0
+                : value / maximum * availableHeight;
+            if (value > 0)
+            {
+                barHeight = Math.Max(3, barHeight);
+            }
+
+            Color color = ProviderColorPalette.Parse(series.ColorHex);
+            Brush fill = _accessibilitySettings.HighContrast
+                ? TextBrushProxy.Background
+                : new SolidColorBrush(color);
+            var bar = new Rectangle
+            {
+                Width = barWidth,
+                Height = barHeight,
+                Fill = fill,
+                RadiusX = 3,
+                RadiusY = 3,
+                IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(bar, groupLeft + index * (barWidth + gap));
+            Canvas.SetTop(bar, baseline - barHeight);
+            PlotCanvas.Children.Add(bar);
+        }
     }
 
     private SeriesVisual CreateSeriesVisual(
@@ -217,7 +284,8 @@ public sealed partial class UsageTrendChart : UserControl
             width,
             height,
             maximum,
-            TopPadding);
+            TopPadding,
+            BottomPadding);
         Color color = ProviderColorPalette.Parse(series.ColorHex);
         bool highContrast = _accessibilitySettings.HighContrast;
         Brush stroke = highContrast
@@ -244,48 +312,11 @@ public sealed partial class UsageTrendChart : UserControl
         return new SeriesVisual(
             new XamlPath
             {
-                Data = CreateAreaGeometry(path, height),
+                Data = CreateAreaGeometry(path, height - BottomPadding),
                 Fill = fill,
                 IsHitTestVisible = false,
             },
-            line,
-            CreateSinglePointMarker(path, stroke, width, height));
-    }
-
-    private Ellipse? CreateSinglePointMarker(
-        UsageTrendPath path,
-        Brush fill,
-        double width,
-        double height)
-    {
-        if (path.Points.Count != 1)
-        {
-            return null;
-        }
-
-        UsageTrendPoint point = path.Points[0];
-        var marker = new Ellipse
-        {
-            Width = SinglePointMarkerDiameter,
-            Height = SinglePointMarkerDiameter,
-            Fill = fill,
-            Stroke = SurfaceBrushProxy.Background,
-            StrokeThickness = 2,
-            IsHitTestVisible = false,
-        };
-        Canvas.SetLeft(
-            marker,
-            Math.Clamp(
-                point.X - (SinglePointMarkerDiameter / 2),
-                0,
-                Math.Max(0, width - SinglePointMarkerDiameter)));
-        Canvas.SetTop(
-            marker,
-            Math.Clamp(
-                point.Y - (SinglePointMarkerDiameter / 2),
-                0,
-                Math.Max(0, height - SinglePointMarkerDiameter)));
-        return marker;
+            line);
     }
 
     private static LinearGradientBrush CreateAreaFill(Color color)
@@ -437,14 +468,14 @@ public sealed partial class UsageTrendChart : UserControl
             return;
         }
 
+        bool animatePosition = HoverCard.Visibility == Visibility.Visible
+            && _crosshair?.Visibility == Visibility.Visible;
         _hoverIndex = index;
         double x = Data.Days.Count <= 1
             ? PlotCanvas.ActualWidth / 2
             : index * PlotCanvas.ActualWidth / (Data.Days.Count - 1);
         if (_crosshair is not null)
         {
-            _crosshair.X1 = x;
-            _crosshair.X2 = x;
             _crosshair.Visibility = Visibility.Visible;
         }
 
@@ -453,9 +484,72 @@ public sealed partial class UsageTrendChart : UserControl
         double cardX = absoluteX > ActualWidth * 0.62
             ? absoluteX - HoverCard.Width - 8
             : absoluteX + 8;
-        HoverTransform.X = Math.Clamp(cardX, 0, Math.Max(0, ActualWidth - HoverCard.Width));
         HoverTransform.Y = 8;
         HoverCard.Visibility = Visibility.Visible;
+        MoveHoverVisuals(
+            x,
+            Math.Clamp(cardX, 0, Math.Max(0, ActualWidth - HoverCard.Width)),
+            animatePosition);
+    }
+
+    private void MoveHoverVisuals(double crosshairX, double cardX, bool animate)
+    {
+        if (_crosshairTransform is null)
+        {
+            HoverTransform.X = cardX;
+            return;
+        }
+
+        double currentCrosshairX = _crosshairTransform.X;
+        double currentCardX = HoverTransform.X;
+        StopHoverMotion();
+        _crosshairTransform.X = currentCrosshairX;
+        HoverTransform.X = currentCardX;
+        if (!animate || !MotionSettings.AreAnimationsEnabled())
+        {
+            _crosshairTransform.X = crosshairX;
+            HoverTransform.X = cardX;
+            return;
+        }
+
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var crosshairAnimation = new DoubleAnimation
+        {
+            From = currentCrosshairX,
+            To = crosshairX,
+            Duration = MotionSettings.ChartHoverDuration,
+            EasingFunction = easing,
+        };
+        Storyboard.SetTarget(crosshairAnimation, _crosshairTransform);
+        Storyboard.SetTargetProperty(crosshairAnimation, nameof(TranslateTransform.X));
+
+        var cardAnimation = new DoubleAnimation
+        {
+            From = currentCardX,
+            To = cardX,
+            Duration = MotionSettings.ChartHoverDuration,
+            EasingFunction = easing,
+        };
+        Storyboard.SetTarget(cardAnimation, HoverTransform);
+        Storyboard.SetTargetProperty(cardAnimation, nameof(TranslateTransform.X));
+
+        var storyboard = new Storyboard();
+        storyboard.Children.Add(crosshairAnimation);
+        storyboard.Children.Add(cardAnimation);
+        storyboard.Completed += (_, _) =>
+        {
+            if (!ReferenceEquals(_hoverMotionStoryboard, storyboard))
+            {
+                return;
+            }
+
+            storyboard.Stop();
+            _crosshairTransform.X = crosshairX;
+            HoverTransform.X = cardX;
+            _hoverMotionStoryboard = null;
+        };
+        _hoverMotionStoryboard = storyboard;
+        storyboard.Begin();
     }
 
     private void BuildHoverContent(int index)
@@ -463,7 +557,10 @@ public sealed partial class UsageTrendChart : UserControl
         HoverContent.Children.Clear();
         HoverContent.Children.Add(new TextBlock
         {
-            Text = Data.Days[index].Date.ToString("D", System.Globalization.CultureInfo.CurrentCulture),
+            Text = Data.Days[index].HoverText
+                ?? Data.Days[index].Date.ToString(
+                    "D",
+                    System.Globalization.CultureInfo.CurrentCulture),
             Foreground = TextBrushProxy.Background,
             FontSize = 12,
             TextWrapping = TextWrapping.WrapWholeWords,
@@ -539,11 +636,19 @@ public sealed partial class UsageTrendChart : UserControl
 
     private void HideHover()
     {
+        StopHoverMotion();
         HoverCard.Visibility = Visibility.Collapsed;
         if (_crosshair is not null)
         {
             _crosshair.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void StopHoverMotion()
+    {
+        Storyboard? storyboard = _hoverMotionStoryboard;
+        _hoverMotionStoryboard = null;
+        storyboard?.Stop();
     }
 
     private void UpdateDateLabels(UsageReportTrendDataset data)
@@ -561,6 +666,14 @@ public sealed partial class UsageTrendChart : UserControl
             FirstDayLabel.Text = string.Empty;
             MiddleDayLabel.Text = data.Days[0].Label;
             LastDayLabel.Text = string.Empty;
+            return;
+        }
+
+        if (data.Days.Count == 2)
+        {
+            FirstDayLabel.Text = data.Days[0].Label;
+            MiddleDayLabel.Text = string.Empty;
+            LastDayLabel.Text = data.Days[1].Label;
             return;
         }
 
@@ -588,5 +701,5 @@ public sealed partial class UsageTrendChart : UserControl
             : value;
     }
 
-    private sealed record SeriesVisual(XamlPath Area, XamlPath Line, Ellipse? PointMarker);
+    private sealed record SeriesVisual(XamlPath Area, XamlPath Line);
 }

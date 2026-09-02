@@ -119,6 +119,12 @@
             <Setter Property="MinWidth" Value="30" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <DataTemplate x:Key="ReportResetCycleOptionTemplate" x:DataType="reports:UsageReportResetCycleOption">
+            <StackPanel AutomationProperties.Name="{x:Bind AutomationName}" Orientation="Horizontal" Spacing="8" ToolTipService.ToolTip="{x:Bind AutomationName}">
+                <TextBlock MaxWidth="420" Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{x:Bind DurationText}" />
+            </StackPanel>
+        </DataTemplate>
         <Style
             x:Key="ReportProviderTabStyle"
             BasedOn="{StaticResource ReportToolbarToggleButtonStyle}"
@@ -148,42 +154,45 @@
         </Style>
         <DataTemplate x:Key="ReportQuotaPillTemplate" x:DataType="dashboard:QuotaWindow">
             <Grid
-                Width="232"
+                Padding="0,5,0,6"
                 AutomationProperties.Name="{x:Bind DisplayAutomationName}"
-                ColumnSpacing="6"
-                RowSpacing="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                RowSpacing="5">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <FontIcon FontSize="12" Glyph="{x:Bind IconGlyph}" />
-                <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="2" FontFamily="Consolas" FontWeight="SemiBold" Text="{x:Bind RemainingText}" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="12" FontWeight="SemiBold" Text="{x:Bind RemainingText}" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                </Grid>
                 <controls:AnimatedProgressBar
                     Grid.Row="1"
-                    Grid.ColumnSpan="3"
-                    Height="4"
+                    Height="12"
                     AutomationName="{x:Bind DisplayAutomationName}"
+                    IndicatorScale="2.5"
                     RemainingValue="{x:Bind ColorRemainingPercent}"
                     TargetValue="{x:Bind RemainingPercent}" />
-                <TextBlock
-                    Grid.Row="2"
-                    Grid.ColumnSpan="3"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="{x:Bind ResetText}"
-                    TextAlignment="Right"
-                    TextTrimming="CharacterEllipsis">
-                    <ToolTipService.ToolTip>
-                        <ToolTip MaxWidth="332" Content="{x:Bind ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
-                    </ToolTipService.ToolTip>
-                </TextBlock>
+                <Grid Grid.Row="2" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ResetText}" TextTrimming="CharacterEllipsis">
+                        <ToolTipService.ToolTip>
+                            <ToolTip MaxWidth="332" Content="{x:Bind ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
+                        </ToolTipService.ToolTip>
+                    </TextBlock>
+                    <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind UsedText}" TextAlignment="Right" TextTrimming="CharacterEllipsis">
+                        <ToolTipService.ToolTip>
+                            <ToolTip MaxWidth="332" Content="{x:Bind UsedText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
+                        </ToolTipService.ToolTip>
+                    </TextBlock>
+                </Grid>
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -221,28 +230,71 @@
                             <TextBlock x:Uid="UsageReportTitle" FontSize="21" FontWeight="SemiBold" />
                             <Button
                                 x:Name="ReportCoverageHintButton"
+                                x:Uid="UsageReportCoverageHintButton"
                                 AutomationProperties.AutomationId="UsageReportCoverageHintButton"
-                                AutomationProperties.Name="{x:Bind ViewModel.CoverageHintText, Mode=OneWay}"
                                 AutomationProperties.HelpText="{x:Bind ViewModel.CoverageHintText, Mode=OneWay}"
-                                GotFocus="OnCoverageHintEntered"
-                                LostFocus="OnCoverageHintExited"
                                 MinHeight="25"
                                 MinWidth="25"
                                 Padding="4"
-                                PointerEntered="OnCoverageHintEntered"
-                                PointerExited="OnCoverageHintExited"
-                                Style="{StaticResource SubtleButtonStyle}"
-                                Visibility="{x:Bind ViewModel.HasCoverageHint, Mode=OneWay}">
-                                <ToolTipService.ToolTip>
-                                    <ToolTip x:Name="CoverageHintToolTip" MaxWidth="360" Placement="Bottom">
-                                        <TextBlock MaxWidth="328" Text="{x:Bind ViewModel.CoverageHintText, Mode=OneWay}" TextWrapping="WrapWholeWords" />
-                                    </ToolTip>
-                                </ToolTipService.ToolTip>
+                                Style="{StaticResource SubtleButtonStyle}">
+                                <Button.Flyout>
+                                    <Flyout Placement="BottomEdgeAlignedLeft" ShouldConstrainToRootBounds="True">
+                                        <StackPanel Width="320" Spacing="10">
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Uid="UsageReportQualityTitle" FontSize="16" FontWeight="SemiBold" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    HorizontalAlignment="Right"
+                                                    FontFamily="Consolas"
+                                                    FontWeight="SemiBold"
+                                                    Text="{x:Bind ViewModel.SummaryCoverageText, Mode=OneWay}" />
+                                            </Grid>
+                                            <ProgressBar
+                                                Height="6"
+                                                Maximum="100"
+                                                Value="{x:Bind ViewModel.PriceCoveragePercent, Mode=OneWay}" />
+                                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.QualityRows, Mode=OneWay}">
+                                                <ItemsRepeater.ItemTemplate>
+                                                    <DataTemplate x:DataType="reports:UsageReportQualityRow">
+                                                        <Grid Padding="0,4" ColumnSpacing="16">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind Label}" />
+                                                            <TextBlock Grid.Column="1" FontFamily="Consolas" FontWeight="SemiBold" Text="{x:Bind Value}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsRepeater.ItemTemplate>
+                                            </ItemsRepeater>
+                                            <Border
+                                                Padding="10,8"
+                                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                                CornerRadius="5">
+                                                <TextBlock
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{x:Bind ViewModel.CoverageHintText, Mode=OneWay}"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </Border>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
                                 <FontIcon FontSize="13" Glyph="&#xE946;" />
                             </Button>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="7">
-                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.PeriodText, Mode=OneWay}" />
+                            <TextBlock
+                                MaxWidth="360"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="{x:Bind ViewModel.PeriodText, Mode=OneWay}"
+                                TextTrimming="CharacterEllipsis"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.PeriodText, Mode=OneWay}" />
                             <Border
                                 Padding="6,1"
                                 AutomationProperties.AutomationId="UsageReportResetCount"
@@ -300,55 +352,6 @@
                                 Click="OnResetCycleClick"
                                 Visibility="{x:Bind ViewModel.CanUseResetCycles, Mode=OneWay}" />
                         </StackPanel>
-                        <Grid
-                            Width="168"
-                            ColumnSpacing="2"
-                            Visibility="{x:Bind ViewModel.HasMultipleResetCycles, Mode=OneWay}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="28" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="28" />
-                            </Grid.ColumnDefinitions>
-                            <Button
-                                x:Uid="UsageReportPreviousResetCycleButton"
-                                AutomationProperties.AutomationId="UsageReportPreviousResetCycleButton"
-                                Click="OnPreviousResetCycleClick"
-                                IsEnabled="{x:Bind ViewModel.CanSelectPreviousResetCycle, Mode=OneWay}"
-                                MinWidth="28"
-                                Padding="6"
-                                Style="{StaticResource ReportToolbarButtonStyle}"
-                                Width="28">
-                                <FontIcon FontSize="12" Glyph="&#xE76B;" />
-                            </Button>
-                            <ComboBox
-                                x:Uid="UsageReportResetCycleSelector"
-                                Grid.Column="1"
-                                AutomationProperties.AutomationId="UsageReportResetCycleSelector"
-                                AutomationProperties.HelpText="{x:Bind ViewModel.ResetCycleHelpText, Mode=OneWay}"
-                                HorizontalAlignment="Stretch"
-                                ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
-                                SelectedItem="{x:Bind ViewModel.SelectedResetCycle, Mode=TwoWay}"
-                                Style="{StaticResource ReportToolbarComboBoxStyle}"
-                                ToolTipService.ToolTip="{x:Bind ViewModel.ResetCycleHelpText, Mode=OneWay}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="reports:UsageReportResetCycleOption">
-                                        <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <Button
-                                x:Uid="UsageReportNextResetCycleButton"
-                                Grid.Column="2"
-                                AutomationProperties.AutomationId="UsageReportNextResetCycleButton"
-                                Click="OnNextResetCycleClick"
-                                IsEnabled="{x:Bind ViewModel.CanSelectNextResetCycle, Mode=OneWay}"
-                                MinWidth="28"
-                                Padding="6"
-                                Style="{StaticResource ReportToolbarButtonStyle}"
-                                Width="28">
-                                <FontIcon FontSize="12" Glyph="&#xE76C;" />
-                            </Button>
-                        </Grid>
                         </StackPanel>
                         <Border Width="1" Height="16" VerticalAlignment="Center" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -369,7 +372,12 @@
                                 Click="OnShareCaptureClick"
                                 Padding="7"
                                 Style="{StaticResource ReportToolbarButtonStyle}">
-                                <FontIcon FontSize="14" Glyph="&#xE72D;" />
+                                <Viewbox Width="14" Height="14">
+                                    <PathIcon
+                                        Width="22"
+                                        Height="22"
+                                        Data="M18,16.08 C17.24,16.08 16.56,16.38 16.04,16.85 L8.91,12.7 C8.96,12.47 9,12.24 9,12 C9,11.76 8.96,11.53 8.91,11.3 L15.96,7.19 C16.5,7.69 17.21,8 18,8 C19.66,8 21,6.66 21,5 C21,3.34 19.66,2 18,2 C16.34,2 15,3.34 15,5 C15,5.24 15.04,5.47 15.09,5.7 L8.04,9.81 C7.5,9.31 6.79,9 6,9 C4.34,9 3,10.34 3,12 C3,13.66 4.34,15 6,15 C6.79,15 7.5,14.69 8.04,14.19 L15.16,18.35 C15.11,18.56 15.08,18.78 15.08,19 C15.08,20.61 16.39,21.92 18,21.92 C19.61,21.92 20.92,20.61 20.92,19 C20.92,17.39 19.61,16.08 18,16.08 Z" />
+                                </Viewbox>
                             </Button>
                         </StackPanel>
                     </StackPanel>
@@ -553,38 +561,126 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
                     </StackPanel>
-                    <StackPanel
-                        Orientation="Horizontal"
-                        Spacing="8"
+                    <Border
+                        Padding="14,12"
+                        Style="{StaticResource ReportCardStyle}"
                         Visibility="{x:Bind ViewModel.IsCompareCyclePickersVisible, Mode=OneWay}">
-                        <ComboBox
-                            x:Uid="UsageReportCompareLeftCycleSelector"
-                            AutomationProperties.AutomationId="UsageReportCompareLeftCycleSelector"
-                            ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
-                            MinWidth="220"
-                            SelectedItem="{x:Bind ViewModel.CompareLeftCycle, Mode=TwoWay}"
-                            Style="{StaticResource ReportToolbarComboBoxStyle}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="reports:UsageReportResetCycleOption">
-                                    <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <ComboBox
-                            x:Uid="UsageReportCompareRightCycleSelector"
-                            AutomationProperties.AutomationId="UsageReportCompareRightCycleSelector"
-                            ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
-                            MinWidth="220"
-                            SelectedItem="{x:Bind ViewModel.CompareRightCycle, Mode=TwoWay}"
-                            Style="{StaticResource ReportToolbarComboBoxStyle}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="reports:UsageReportResetCycleOption">
-                                    <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
+                        <Grid ColumnSpacing="12" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.ColumnSpan="3" Spacing="2">
+                                <TextBlock x:Uid="UsageReportCycleComparisonTitle" FontWeight="SemiBold" />
+                                <TextBlock x:Uid="UsageReportCompareCyclesHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Spacing="5">
+                                <TextBlock x:Uid="UsageReportCompareCycleALabel" Style="{StaticResource ReportSectionLabelStyle}" />
+                                <ComboBox
+                                    x:Uid="UsageReportCompareLeftCycleSelector"
+                                    AutomationProperties.AutomationId="UsageReportCompareLeftCycleSelector"
+                                    HorizontalAlignment="Stretch"
+                                    ItemTemplate="{StaticResource ReportResetCycleOptionTemplate}"
+                                    ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
+                                    SelectedItem="{x:Bind ViewModel.CompareLeftCycle, Mode=TwoWay}"
+                                    Style="{StaticResource ReportToolbarComboBoxStyle}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.CompareLeftCycle.RangeText, Mode=OneWay}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ViewModel.CompareLeftCycle.RangeText, Mode=OneWay}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorTertiaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.CompareLeftCycle.DetailText, Mode=OneWay}" />
+                            </StackPanel>
+                            <TextBlock
+                                x:Uid="UsageReportCompareCycleVersus"
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="2,32"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                Style="{StaticResource ReportSectionLabelStyle}"
+                                VerticalAlignment="Top" />
+                            <StackPanel Grid.Row="1" Grid.Column="2" Spacing="5">
+                                <TextBlock x:Uid="UsageReportCompareCycleBLabel" Style="{StaticResource ReportSectionLabelStyle}" />
+                                <ComboBox
+                                    x:Uid="UsageReportCompareRightCycleSelector"
+                                    AutomationProperties.AutomationId="UsageReportCompareRightCycleSelector"
+                                    HorizontalAlignment="Stretch"
+                                    ItemTemplate="{StaticResource ReportResetCycleOptionTemplate}"
+                                    ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
+                                    SelectedItem="{x:Bind ViewModel.CompareRightCycle, Mode=TwoWay}"
+                                    Style="{StaticResource ReportToolbarComboBoxStyle}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.CompareRightCycle.RangeText, Mode=OneWay}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ViewModel.CompareRightCycle.RangeText, Mode=OneWay}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorTertiaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.CompareRightCycle.DetailText, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </StackPanel>
+
+                <Border
+                    Padding="14,12"
+                    Style="{StaticResource ReportCardStyle}"
+                    Visibility="{x:Bind ViewModel.IsResetCycleWindow, Mode=OneWay}">
+                    <Grid ColumnSpacing="10" RowSpacing="9">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="32" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.ColumnSpan="3" Spacing="2">
+                            <TextBlock x:Uid="UsageReportCycleSelectionTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Uid="UsageReportCycleSelectionHelp" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </StackPanel>
+                        <Button
+                            x:Uid="UsageReportPreviousResetCycleButton"
+                            Grid.Row="1"
+                            AutomationProperties.AutomationId="UsageReportPreviousResetCycleButton"
+                            Click="OnPreviousResetCycleClick"
+                            IsEnabled="{x:Bind ViewModel.CanSelectPreviousResetCycle, Mode=OneWay}"
+                            MinWidth="32"
+                            Padding="7"
+                            Style="{StaticResource ReportToolbarButtonStyle}">
+                            <FontIcon FontSize="12" Glyph="&#xE76B;" />
+                        </Button>
+                        <ComboBox
+                            x:Uid="UsageReportResetCycleSelector"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            AutomationProperties.AutomationId="UsageReportResetCycleSelector"
+                            AutomationProperties.HelpText="{x:Bind ViewModel.ResetCycleHelpText, Mode=OneWay}"
+                            HorizontalAlignment="Stretch"
+                            ItemTemplate="{StaticResource ReportResetCycleOptionTemplate}"
+                            ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
+                            SelectedItem="{x:Bind ViewModel.SelectedResetCycle, Mode=TwoWay}"
+                            Style="{StaticResource ReportToolbarComboBoxStyle}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.ResetCycleHelpText, Mode=OneWay}" />
+                        <Button
+                            x:Uid="UsageReportNextResetCycleButton"
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            AutomationProperties.AutomationId="UsageReportNextResetCycleButton"
+                            Click="OnNextResetCycleClick"
+                            IsEnabled="{x:Bind ViewModel.CanSelectNextResetCycle, Mode=OneWay}"
+                            MinWidth="32"
+                            Padding="7"
+                            Style="{StaticResource ReportToolbarButtonStyle}">
+                            <FontIcon FontSize="12" Glyph="&#xE76C;" />
+                        </Button>
+                        <Grid Grid.Row="2" Grid.Column="1" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.SelectedResetCycle.RangeText, Mode=OneWay}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ViewModel.SelectedResetCycle.RangeText, Mode=OneWay}" />
+                            <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.SelectedResetCycle.DetailText, Mode=OneWay}" />
+                        </Grid>
+                    </Grid>
+                </Border>
 
                 <Border Padding="16,12" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}" CornerRadius="6" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
                     <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" TextWrapping="Wrap" />
@@ -592,9 +688,9 @@
 
                 <StackPanel HorizontalAlignment="Center" Margin="0,72" Spacing="12" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
                     <FontIcon FontSize="28" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE9D9;" />
-                    <TextBlock x:Uid="UsageReportEmptyTitle" HorizontalAlignment="Center" FontWeight="SemiBold" />
-                    <TextBlock x:Uid="UsageReportEmptyBody" MaxWidth="440" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" />
-                    <Button x:Uid="UsageReportEmptyRefreshButton" AutomationProperties.AutomationId="UsageReportEmptyRefreshButton" Command="{x:Bind ViewModel.RefreshCommand}" HorizontalAlignment="Center" />
+                    <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.EmptyTitleText, Mode=OneWay}" />
+                    <TextBlock MaxWidth="440" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.EmptyBodyText, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap" />
+                    <Button x:Uid="UsageReportEmptyRefreshButton" AutomationProperties.AutomationId="UsageReportEmptyRefreshButton" Command="{x:Bind ViewModel.RefreshCommand}" HorizontalAlignment="Center" Visibility="{x:Bind ViewModel.IsEmptyRefreshVisible, Mode=OneWay}" />
                 </StackPanel>
 
                 <StackPanel x:Name="ReportDataContent" Spacing="12" Visibility="{x:Bind ViewModel.HasData, Mode=OneWay}">
@@ -605,7 +701,6 @@
                                 <ColumnDefinition Width="1*" />
                                 <ColumnDefinition Width="1.25*" />
                                 <ColumnDefinition Width="0.9*" />
-                                <ColumnDefinition Width="1.7*" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Padding="16,12" Spacing="3">
                                 <TextBlock x:Uid="UsageReportSummaryTokensLabel" Style="{StaticResource ReportSectionLabelStyle}" />
@@ -621,13 +716,6 @@
                                 <StackPanel Spacing="3">
                                     <TextBlock x:Uid="UsageReportSummaryCoverageLabel" Style="{StaticResource ReportSectionLabelStyle}" />
                                     <TextBlock x:Name="ReportSummaryCoverageValue" FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryCoverageText, Mode=OneWay}" />
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="3" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
-                                <StackPanel Spacing="5">
-                                    <TextBlock x:Uid="UsageReportSummaryQualityLabel" Style="{StaticResource ReportSectionLabelStyle}" />
-                                    <ProgressBar x:Name="ReportSummaryQualityProgress" Height="6" Maximum="100" Value="{x:Bind ViewModel.PriceCoveragePercent, Mode=OneWay}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
-                                    <TextBlock x:Name="ReportSummaryQualityValue" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.SummaryQualityText, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -744,11 +832,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="12">
                         <Border Padding="12,8" Style="{StaticResource ReportCardStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -774,29 +858,28 @@
                             </Grid>
                         </Border>
                         <Border
-                            Grid.Column="1"
-                            Margin="12,0,0,0"
-                            Padding="12,8"
+                            Padding="14,10"
                             Style="{StaticResource ReportCardStyle}"
                             Visibility="{x:Bind ViewModel.HasProviderLimits, Mode=OneWay}">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="UsageReportLimitsTitle" FontWeight="SemiBold" Margin="0,1,0,0" VerticalAlignment="Top" />
+                            <StackPanel Spacing="5">
+                                <TextBlock x:Uid="UsageReportLimitsTitle" FontWeight="SemiBold" />
                                 <ItemsRepeater
                                     x:Name="ReportProviderLimitsContentRoot"
-                                    Grid.Column="1"
                                     ItemTemplate="{StaticResource ReportQuotaPillTemplate}"
                                     ItemsSource="{x:Bind ViewModel.ProviderLimits, Mode=OneWay}">
                                     <ItemsRepeater.Layout>
-                                        <StackLayout Orientation="Horizontal" Spacing="14" />
+                                        <UniformGridLayout
+                                            ItemsStretch="Fill"
+                                            MaximumRowsOrColumns="4"
+                                            MinColumnSpacing="14"
+                                            MinItemWidth="240"
+                                            MinRowSpacing="5"
+                                            Orientation="Horizontal" />
                                     </ItemsRepeater.Layout>
                                 </ItemsRepeater>
-                            </Grid>
+                            </StackPanel>
                         </Border>
-                    </Grid>
+                    </StackPanel>
 
                     <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
                         <StackPanel Spacing="7">
@@ -969,6 +1052,24 @@
                 </StackPanel>
                 </StackPanel>
         </ScrollViewer>
+        <Border
+            Grid.Row="1"
+            Background="{ThemeResource TokenUsageShellBrush}"
+            Visibility="{x:Bind ViewModel.IsInitialLoading, Mode=OneWay}">
+            <StackPanel
+                HorizontalAlignment="Center"
+                Spacing="12"
+                VerticalAlignment="Center">
+                <ProgressRing
+                    Width="28"
+                    Height="28"
+                    IsActive="{x:Bind ViewModel.IsInitialLoading, Mode=OneWay}" />
+                <TextBlock
+                    x:Uid="UsageReportLoading"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
         <Button
             x:Name="ReportCaptureFocusSink"
             Width="1"

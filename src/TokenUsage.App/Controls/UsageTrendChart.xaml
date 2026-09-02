@@ -89,9 +89,5 @@
             x:Name="TextBrushProxy"
             Background="{ThemeResource TextFillColorSecondaryBrush}"
             Visibility="Collapsed" />
-        <Border
-            x:Name="SurfaceBrushProxy"
-            Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-            Visibility="Collapsed" />
     </Grid>
 </UserControl>

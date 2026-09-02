@@ -598,8 +598,10 @@ public sealed partial class MainWindow : Window, IDisposable
                 reportDpi);
             _reportWindow.Closed += OnUsageReportWindowClosed;
         }
-
-        _reportWindow.ApplyRequest(e.Request);
+        else
+        {
+            _reportWindow.ApplyRequest(e.Request);
+        }
 
         _reportWindow.Activate();
     }

@@ -137,7 +137,7 @@ public sealed class SampleDashboardProjectorTests
         key switch
         {
             "SampleSpendAccessibleNameFormat" => "Total {0}, providers {1}. {2}",
-            "SampleRemainingFormat" => "{0}% remaining",
+            "SampleRemainingFormat" => "{0}% left",
             "SampleResetHoursFormat" => "Resets in {0} h",
             "SampleResetDaysFormat" => "Resets in {0} d",
             "SampleResetDaysHoursFormat" => "Resets in {0} d {1} h",

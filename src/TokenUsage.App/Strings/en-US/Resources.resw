@@ -152,7 +152,7 @@
   <data name="SampleStateErrorLabel.Text" xml:space="preserve"><value>30 days · error, showing cache</value></data>
   <data name="SampleStateThrottledLabel.Text" xml:space="preserve"><value>30 days · waiting to retry</value></data>
   <data name="SampleStateNotSavedLabel.Text" xml:space="preserve"><value>30 days · updated, not saved</value></data>
-  <data name="SampleRemainingFormat" xml:space="preserve"><value>{0}% remaining</value></data>
+  <data name="SampleRemainingFormat" xml:space="preserve"><value>{0}% left</value></data>
   <data name="SampleResetHoursFormat" xml:space="preserve"><value>Resets in {0} h</value></data>
   <data name="SampleResetDaysFormat" xml:space="preserve"><value>Resets in {0} d</value></data>
   <data name="SampleResetDaysHoursFormat" xml:space="preserve"><value>Resets in {0} d {1} h</value></data>
@@ -198,12 +198,13 @@
   <data name="CodexQuotaTitle" xml:space="preserve"><value>Codex quota</value></data>
   <data name="CodexQuotaPeriod" xml:space="preserve"><value>Current Codex limits</value></data>
   <data name="CodexPlanUnknown" xml:space="preserve"><value>Plan unavailable</value></data>
-  <data name="CodexUsageFormat" xml:space="preserve"><value>{0}% remaining · {1}% used</value></data>
+  <data name="CodexUsageFormat" xml:space="preserve"><value>{0}% left · {1}% used</value></data>
   <data name="CodexWindowPrimary" xml:space="preserve"><value>Primary limit</value></data>
   <data name="CodexWindowSecondary" xml:space="preserve"><value>Secondary limit</value></data>
   <data name="CodexWindowAdditionalPrimaryFormat" xml:space="preserve"><value>Additional limit {0}</value></data>
   <data name="CodexWindowAdditionalSecondaryFormat" xml:space="preserve"><value>Additional limit {0}</value></data>
-  <data name="CodexWindowSpark" xml:space="preserve"><value>Codex Spark</value></data>
+  <data name="CodexWindowSparkSession" xml:space="preserve"><value>Spark session</value></data>
+  <data name="CodexWindowSparkWeekly" xml:space="preserve"><value>Spark weekly</value></data>
   <data name="CodexResetUnknown" xml:space="preserve"><value>Reset time unavailable</value></data>
   <data name="CodexResetDue" xml:space="preserve"><value>Reset due</value></data>
   <data name="CodexStateCacheRefreshing" xml:space="preserve"><value>Codex quota · cache, updating…</value></data>
@@ -242,7 +243,7 @@
   <data name="CodexUsageLast30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="CodexUsageMissing" xml:space="preserve"><value>No data</value></data>
   <data name="CodexTokenCountFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
-  <data name="CodexQuotaUsedTokensFormat" xml:space="preserve"><value>{0} tokens used</value></data>
+  <data name="CodexQuotaUsedTokensFormat" xml:space="preserve"><value>{0} local tokens since reset</value></data>
   <data name="CodexTokenCountSingular" xml:space="preserve"><value>{0:N0} token</value></data>
   <data name="CodexPaceAheadFormat" xml:space="preserve"><value>{0}% projected · below pace</value></data>
   <data name="CodexPaceOnTrackFormat" xml:space="preserve"><value>{0}% projected · on pace</value></data>
@@ -530,7 +531,7 @@
   <data name="AppearanceThemeDark" xml:space="preserve"><value>Dark</value></data>
   <data name="AppearanceDensityRegular" xml:space="preserve"><value>Default</value></data>
   <data name="AppearanceDensityCompact" xml:space="preserve"><value>Compact</value></data>
-  <data name="AppearanceUsageRemaining" xml:space="preserve"><value>Remaining</value></data>
+  <data name="AppearanceUsageRemaining" xml:space="preserve"><value>Left</value></data>
   <data name="AppearanceUsageUsed" xml:space="preserve"><value>Used</value></data>
   <data name="AppearanceResetRelative" xml:space="preserve"><value>Relative</value></data>
   <data name="AppearanceResetExact" xml:space="preserve"><value>Exact</value></data>
@@ -558,7 +559,7 @@
   <data name="AppearanceNewerVersionFormat" xml:space="preserve"><value>Appearance format {0} is newer. Update TokenUsage before changing it.</value></data>
   <data name="AppearanceUnavailable" xml:space="preserve"><value>Appearance settings cannot be read. Changes are disabled.</value></data>
   <data name="AppearanceSaveFailed" xml:space="preserve"><value>Appearance settings could not be saved.</value></data>
-  <data name="AppearanceRemainingPercentFormat" xml:space="preserve"><value>{0:0.#}% remaining</value></data>
+  <data name="AppearanceRemainingPercentFormat" xml:space="preserve"><value>{0:0.#}% left</value></data>
   <data name="AppearanceUsedPercentFormat" xml:space="preserve"><value>{0:0.#}% used</value></data>
   <data name="AppearanceResetExactFormat" xml:space="preserve"><value>Resets {0}</value></data>
   <data name="AppearanceResetExactUnavailable" xml:space="preserve"><value>Exact reset unavailable</value></data>
@@ -570,9 +571,11 @@
   <data name="UsageReportPeriod1Day" xml:space="preserve"><value>Last day</value></data>
   <data name="UsageReportPeriod3Days" xml:space="preserve"><value>Last 3 days</value></data>
   <data name="UsageReportPeriod7Days" xml:space="preserve"><value>Last 7 days</value></data>
+  <data name="UsageReportPeriod15Days" xml:space="preserve"><value>Last 15 days</value></data>
   <data name="UsageReportPeriod30Days" xml:space="preserve"><value>Last 30 days</value></data>
+  <data name="UsageReportPeriod60Days" xml:space="preserve"><value>Last 60 days</value></data>
   <data name="UsageReportPeriod90Days" xml:space="preserve"><value>Last 90 days</value></data>
-  <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Cycle</value></data>
+  <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Reset cycle</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between Codex resets</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed Codex reset cycle</value></data>
   <data name="UsageReportResetCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Codex reset history</value></data>
@@ -583,22 +586,42 @@
   <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>No Codex reset cycle has been observed yet.</value></data>
   <data name="UsageReportResetCycleExactBoundaryNote" xml:space="preserve"><value>Events are assigned to this cycle from their recorded timestamps. The shared report shows this exact local range.</value></data>
   <data name="UsageReportResetCycleCurrentFormat" xml:space="preserve"><value>{0} · current</value></data>
-  <data name="UsageReportResetCyclePreviousFormat" xml:space="preserve"><value>{0} · from {1}</value></data>
+  <data name="UsageReportResetCyclePreviousFormat" xml:space="preserve"><value>{0} · {1} · {2}</value></data>
   <data name="UsageReportResetCycleNow" xml:space="preserve"><value>now</value></data>
-  <data name="UsageReportResetCycleEarly" xml:space="preserve"><value>early reset detected</value></data>
+  <data name="UsageReportResetCycleEarly" xml:space="preserve"><value>early/manual reset possible</value></data>
   <data name="UsageReportResetCycleScheduled" xml:space="preserve"><value>scheduled reset</value></data>
-  <data name="UsageReportResetCycleObserved" xml:space="preserve"><value>reset detected at 100% remaining</value></data>
+  <data name="UsageReportResetCycleObserved" xml:space="preserve"><value>reset detected when quota returned to 100%</value></data>
   <data name="UsageReportResetCycleActive" xml:space="preserve"><value>active cycle</value></data>
-  <data name="UsageReportResetCycleRangeFormat" xml:space="preserve"><value>{0} – {1} · {2} · {3}</value></data>
+  <data name="UsageReportResetCycleRangeFormat" xml:space="preserve"><value>{0} – {1}</value></data>
+  <data name="UsageReportResetCycleDetailFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="UsageReportResetCycleActiveDetailFormat" xml:space="preserve"><value>Active for {0}</value></data>
   <data name="UsageReportResetCycleDaysFormat" xml:space="preserve"><value>{0:0.#} days</value></data>
+  <data name="UsageReportResetCycleDayFormat" xml:space="preserve"><value>{0:0.#} day</value></data>
   <data name="UsageReportResetCycleHoursFormat" xml:space="preserve"><value>{0:0.#} hours</value></data>
+  <data name="UsageReportResetCycleHourFormat" xml:space="preserve"><value>{0:0.#} hour</value></data>
+  <data name="UsageReportResetCycleDaysHoursFormat" xml:space="preserve"><value>{0} d {1} h</value></data>
+  <data name="UsageReportResetCycleHoursMinutesFormat" xml:space="preserve"><value>{0} h {1} min</value></data>
+  <data name="UsageReportResetCycleMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
   <data name="UsageReportResetCountOneFormat" xml:space="preserve"><value>{0:N0} reset</value></data>
   <data name="UsageReportResetCountManyFormat" xml:space="preserve"><value>{0:N0} resets</value></data>
-  <data name="UsageReportResetCountHelpText" xml:space="preserve"><value>Recorded official reset boundaries in this period. A scheduled Codex reset is counted when its next-reset timestamp advances, even if use resumed before the next refresh. Early resets are included; repeated refreshes count once.</value></data>
+  <data name="UsageReportResetCountHelpText" xml:space="preserve"><value>{0:N0} scheduled · {1:N0} early/manual possible · {2:N0} observed at full quota. The provider does not identify manual resets, so early resets are not labeled as manual with certainty. Repeated refreshes count once.</value></data>
+  <data name="UsageReportCycleSelectionTitle.Text" xml:space="preserve"><value>Reset cycle</value></data>
+  <data name="UsageReportCycleSelectionHelp.Text" xml:space="preserve"><value>Choose a tracked quota window. Use the arrows to move through its history.</value></data>
+  <data name="UsageReportCycleComparisonTitle.Text" xml:space="preserve"><value>Compare reset cycles</value></data>
+  <data name="UsageReportCompareCyclesHint.Text" xml:space="preserve"><value>Compare two tracked quota windows. The previous cycle of the same limit is selected first.</value></data>
+  <data name="UsageReportCompareCycleALabel.Text" xml:space="preserve"><value>CYCLE A</value></data>
+  <data name="UsageReportCompareCycleBLabel.Text" xml:space="preserve"><value>CYCLE B</value></data>
+  <data name="UsageReportCompareCycleVersus.Text" xml:space="preserve"><value>VS</value></data>
+  <data name="UsageReportCycleComparisonPeriodText" xml:space="preserve"><value>Reset-cycle comparison</value></data>
   <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh usage report</value></data>
   <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Refresh real data</value></data>
-  <data name="UsageReportEmptyTitle.Text" xml:space="preserve"><value>No usage in this period yet</value></data>
-  <data name="UsageReportEmptyBody.Text" xml:space="preserve"><value>Refresh to read Codex, Grok Build, Antigravity, OpenCode, and ZCode from their local sources.</value></data>
+  <data name="UsageReportLoading.Text" xml:space="preserve"><value>Loading usage report…</value></data>
+  <data name="UsageReportEmptyDefaultTitle" xml:space="preserve"><value>No local usage in this period yet</value></data>
+  <data name="UsageReportEmptyDefaultBody" xml:space="preserve"><value>Refresh to read supported providers from their local sources.</value></data>
+  <data name="UsageReportEmptyCurrentCycleTitle" xml:space="preserve"><value>No local usage in this cycle yet</value></data>
+  <data name="UsageReportEmptyCurrentCycleBody" xml:space="preserve"><value>Refresh to read the latest Codex events from local history.</value></data>
+  <data name="UsageReportEmptyHistoricalCycleTitle" xml:space="preserve"><value>No local usage was recorded in this cycle</value></data>
+  <data name="UsageReportEmptyHistoricalCycleBody" xml:space="preserve"><value>This closed cycle has no matching Codex events in local history.</value></data>
   <data name="UsageReportEmptyRefreshButton.Content" xml:space="preserve"><value>Refresh data</value></data>
   <data name="UsageReportCostButton.Content" xml:space="preserve"><value>Cost</value></data>
   <data name="UsageReportTokensButton.Content" xml:space="preserve"><value>Tokens</value></data>
@@ -608,6 +631,7 @@
   <data name="UsageReportCompareProvidersButton.Content" xml:space="preserve"><value>Providers</value></data>
   <data name="UsageReportComparePeriodsButton.Content" xml:space="preserve"><value>Periods</value></data>
   <data name="UsageReportCompareCyclesButton.Content" xml:space="preserve"><value>Cycles</value></data>
+  <data name="UsageReportCompareTokenDeltaFormat" xml:space="preserve"><value>{0} tokens</value></data>
   <data name="UsageReportCompareLeftProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left provider</value></data>
   <data name="UsageReportCompareRightProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right provider</value></data>
   <data name="UsageReportCompareLeftCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left Codex cycle</value></data>
@@ -623,6 +647,11 @@
   <data name="UsageReportCompareEstimatedCostMetric" xml:space="preserve"><value>Catalog estimate</value></data>
   <data name="UsageReportCompareUnpricedMetric" xml:space="preserve"><value>Unpriced tokens</value></data>
   <data name="UsageReportCompareEventsMetric" xml:space="preserve"><value>Events</value></data>
+  <data name="UsageReportCompareQuotaUsedMetric" xml:space="preserve"><value>Quota used</value></data>
+  <data name="UsageReportCompareCostPerMillionMetric" xml:space="preserve"><value>Cost per 1M tokens</value></data>
+  <data name="UsageReportCompareTokensPerQuotaPointMetric" xml:space="preserve"><value>Tokens per 1% quota</value></data>
+  <data name="UsageReportComparePercentagePointsFormat" xml:space="preserve"><value>{0} pp</value></data>
+  <data name="UsageReportCompareUnavailable" xml:space="preserve"><value>—</value></data>
   <data name="UsageReportCompareDayFormat" xml:space="preserve"><value>Day {0}</value></data>
   <data name="UsageReportCompareCurrentRangeFormat" xml:space="preserve"><value>Current · {0} to {1}</value></data>
   <data name="UsageReportComparePreviousRangeFormat" xml:space="preserve"><value>Previous · {0} to {1}</value></data>
@@ -645,7 +674,9 @@
   <data name="UsageReportCoverageColumn.Text" xml:space="preserve"><value>Coverage</value></data>
   <data name="UsageReportDayColumn.Text" xml:space="preserve"><value>Day</value></data>
   <data name="UsageReportEventsColumn.Text" xml:space="preserve"><value>Events</value></data>
-  <data name="UsageReportQualityTitle.Text" xml:space="preserve"><value>Cost quality</value></data>
+  <data name="UsageReportQualityTitle.Text" xml:space="preserve"><value>Data quality</value></data>
+  <data name="UsageReportCoverageHintButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open data quality details</value></data>
+  <data name="UsageReportCoverageHintButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Data quality details</value></data>
   <data name="UsageTrendEmpty.Text" xml:space="preserve"><value>No daily activity</value></data>
   <data name="UsageReportPeriodFormat" xml:space="preserve"><value>Calendar days · {0} to {1}</value></data>
   <data name="UsageReportTotalCostLabel" xml:space="preserve"><value>OBSERVED COST</value></data>
@@ -708,12 +739,10 @@
   <data name="DataCollectionRefresh30Minutes" xml:space="preserve"><value>Every 30 minutes</value></data>
   <data name="DataCollectionRefresh60Minutes" xml:space="preserve"><value>Every hour</value></data>
   <data name="CompactCostUnavailable" xml:space="preserve"><value>Cost unavailable</value></data>
-  <data name="UsageReportQualitySummaryFormat" xml:space="preserve"><value>{0} reported · {1} estimated · {2} unpriced</value></data>
   <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHED INPUT  {0}    •    UNCACHED INPUT  {1}    •    OUTPUT  {2}</value></data>
   <data name="UsageReportSummaryTokensLabel.Text" xml:space="preserve"><value>TOKENS</value></data>
   <data name="UsageReportSummaryCostLabel.Text" xml:space="preserve"><value>OBSERVED COST</value></data>
   <data name="UsageReportSummaryCoverageLabel.Text" xml:space="preserve"><value>COVERAGE</value></data>
-  <data name="UsageReportSummaryQualityLabel.Text" xml:space="preserve"><value>DATA QUALITY</value></data>
   <data name="UsageReportCompositionTitle.Text" xml:space="preserve"><value>COMPOSITION BY PROVIDER</value></data>
   <data name="UsageReportCombinedChartButton.Content" xml:space="preserve"><value>Combined</value></data>
   <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>Separate</value></data>

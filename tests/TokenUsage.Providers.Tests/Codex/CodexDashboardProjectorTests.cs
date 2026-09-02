@@ -50,7 +50,7 @@ public sealed class CodexDashboardProjectorTests
         Assert.Equal("Session", card.Windows[0].Title);
         Assert.Equal("Weekly", card.Windows[1].Title);
         Assert.Equal("GPT reserve", card.Windows[2].Title);
-        Assert.Equal("58% remaining · 42% used", card.Windows[0].RemainingText);
+        Assert.Equal("58% left · 42% used", card.Windows[0].RemainingText);
         Assert.Equal("Resets in 4 h", card.Windows[0].ResetText);
         Assert.Equal("210% projected · limit in 1 h 23 min", card.Windows[0].PaceText);
         Assert.True(card.Windows[0].HasPace);
@@ -241,7 +241,7 @@ public sealed class CodexDashboardProjectorTests
     }
 
     [Fact]
-    public void BengalfoxAdditionalLimitUsesTheCodexSparkProductName()
+    public void BengalfoxLimitsUseSparkCadenceNames()
     {
         var provenance = new DataProvenance(
             SourceKind.OfficialLocalApi,
@@ -265,7 +265,23 @@ public sealed class CodexDashboardProjectorTests
                     new MetricId("quota.codex-bengalfox.primary"),
                     0m,
                     100m,
+                    Now.AddHours(5),
+                    provenance),
+                new ScalarMetricSnapshot(
+                    new MetricId("quota.codex-bengalfox.primary.window-minutes"),
+                    300m,
+                    "minutes",
+                    provenance),
+                new ProgressMetricSnapshot(
+                    new MetricId("quota.codex-bengalfox.secondary"),
+                    0m,
+                    100m,
                     Now.AddDays(7),
+                    provenance),
+                new ScalarMetricSnapshot(
+                    new MetricId("quota.codex-bengalfox.secondary.window-minutes"),
+                    10_080m,
+                    "minutes",
                     provenance),
             ],
             CoverageKind.Complete,
@@ -276,7 +292,8 @@ public sealed class CodexDashboardProjectorTests
             new FixedTimeProvider(Now),
             GetString).Providers);
 
-        Assert.Equal("Codex Spark", card.Windows[1].Title);
+        Assert.Equal("Spark session", card.Windows[1].Title);
+        Assert.Equal("Spark weekly", card.Windows[2].Title);
     }
 
     [Fact]
@@ -348,12 +365,13 @@ public sealed class CodexDashboardProjectorTests
     {
         "CodexQuotaPeriod" => "Current Codex limits",
         "CodexPlanUnknown" => "Plan unavailable",
-        "CodexUsageFormat" => "{0}% remaining · {1}% used",
+        "CodexUsageFormat" => "{0}% left · {1}% used",
         "CodexWindowPrimary" => "Primary limit",
         "CodexWindowSecondary" => "Secondary limit",
         "CodexWindowAdditionalPrimaryFormat" => "Additional limit {0}",
         "CodexWindowAdditionalSecondaryFormat" => "Additional limit {0}",
-        "CodexWindowSpark" => "Codex Spark",
+        "CodexWindowSparkSession" => "Spark session",
+        "CodexWindowSparkWeekly" => "Spark weekly",
         "CodexResetUnknown" => "Reset time unavailable",
         "CodexResetDue" => "Reset due",
         "SampleWindowSession" => "Session",

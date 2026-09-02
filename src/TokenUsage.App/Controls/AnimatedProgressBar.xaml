@@ -16,6 +16,11 @@
             x:Name="FillBar"
             AutomationProperties.Name="{x:Bind AutomationName, Mode=OneWay}"
             Maximum="100"
-            Value="0" />
+            RenderTransformOrigin="0.5,0.5"
+            Value="0">
+            <ProgressBar.RenderTransform>
+                <ScaleTransform ScaleY="{x:Bind IndicatorScale, Mode=OneWay}" />
+            </ProgressBar.RenderTransform>
+        </ProgressBar>
     </Grid>
 </UserControl>

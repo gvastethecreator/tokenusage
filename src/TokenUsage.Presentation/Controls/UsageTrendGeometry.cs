@@ -64,7 +64,8 @@ public static class UsageTrendGeometry
         double width,
         double height,
         double maximum,
-        double topPadding = 8)
+        double topPadding = 8,
+        double bottomPadding = 0)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (!double.IsFinite(width) || width <= 0
@@ -73,14 +74,18 @@ public static class UsageTrendGeometry
             return new UsageTrendPath([], []);
         }
 
-        double usableHeight = Math.Max(0, height - Math.Max(0, topPadding));
+        double baseline = Math.Max(0, height - Math.Max(0, bottomPadding));
+        double usableHeight = Math.Max(0, baseline - Math.Max(0, topPadding));
         double step = values.Count <= 1 ? 0 : width / (values.Count - 1);
         UsageTrendPoint[] points = values
             .Select((value, index) => new UsageTrendPoint(
                 values.Count == 1 ? width / 2 : index * step,
                 maximum <= 0
-                    ? height
-                    : height - (Math.Max(0, value) / maximum * usableHeight)))
+                    ? baseline
+                    : baseline - (Math.Clamp(
+                        double.IsFinite(value) ? value : 0,
+                        0,
+                        maximum) / maximum * usableHeight)))
             .ToArray();
         if (points.Length < 2)
         {
