@@ -90,7 +90,9 @@ public sealed partial class UsageReportPage : Page
         }
 
         _loadedOnce = true;
-        await ViewModel.LoadAsync();
+        // The report must not open on a stale scanner database. A live refresh also discovers
+        // Codex sessions created since the tray dashboard was last opened.
+        await ViewModel.LoadAsync(refreshSource: true);
         SynchronizeProviderTabs();
         _ = DispatcherQueue.TryEnqueue(() =>
             ReportScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
@@ -325,12 +327,6 @@ public sealed partial class UsageReportPage : Page
         _reportRefreshInProgress = false;
         _reportRefreshLoading = false;
     }
-
-    private void OnCoverageHintEntered(object sender, RoutedEventArgs e) =>
-        CoverageHintToolTip.IsOpen = true;
-
-    private void OnCoverageHintExited(object sender, RoutedEventArgs e) =>
-        CoverageHintToolTip.IsOpen = false;
 
     private async void ShowShareStatus(string message, bool isError)
     {

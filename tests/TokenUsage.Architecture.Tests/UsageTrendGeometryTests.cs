@@ -66,4 +66,24 @@ public sealed class UsageTrendGeometryTests
         Assert.Equal(200, point.X);
         Assert.InRange(point.Y, 8, 200);
     }
+
+    [Fact]
+    public void ZeroValuesStayOnThePaddedBaselineInsteadOfBelowTheAxis()
+    {
+        UsageTrendPath path = UsageTrendGeometry.CreatePath(
+            [0, 100],
+            width: 400,
+            height: 200,
+            maximum: 100,
+            topPadding: 8,
+            bottomPadding: 10);
+
+        Assert.Equal(190, path.Points[0].Y);
+        Assert.Equal(8, path.Points[1].Y);
+        Assert.All(path.Segments, segment =>
+        {
+            Assert.InRange(segment.Control1.Y, 8, 190);
+            Assert.InRange(segment.Control2.Y, 8, 190);
+        });
+    }
 }

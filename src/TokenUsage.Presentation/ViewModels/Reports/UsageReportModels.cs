@@ -29,13 +29,19 @@ public sealed record UsageReportResetCycleOption(
     string MetricId,
     string DisplayName,
     string RangeText,
+    string DetailText,
+    string DurationText,
     DateTimeOffset FromUtc,
     DateTimeOffset ToUtc,
     DateOnly FromDate,
     DateOnly ToDate,
+    decimal UsedPercent,
+    decimal? WindowDurationMinutes,
     bool IsCurrent)
 {
-    public string AutomationName => $"{DisplayName}. {RangeText}";
+    public string AutomationName => $"{DisplayName}. {DurationText}. {RangeText}. {DetailText}";
+
+    public override string ToString() => $"{DisplayName} · {DurationText}";
 }
 
 public sealed record UsageReportProviderSelectionState(
@@ -89,7 +95,10 @@ public static class UsageReportProviderOptionReconciler
     }
 }
 
-public sealed record UsageReportTrendDay(DateOnly Date, string Label);
+public sealed record UsageReportTrendDay(
+    DateOnly Date,
+    string Label,
+    string? HoverText = null);
 
 public sealed record UsageReportTrendSeries(
     string ProviderId,

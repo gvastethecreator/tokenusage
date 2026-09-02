@@ -62,6 +62,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private IReadOnlyList<UsageReportResetCycleOption> _resetCycleOptions = [];
     private UsageReportResetCycleOption? _selectedResetCycle;
     private bool _usesResetCycle;
+    private bool _hasCompletedInitialLoad;
     private UsageReportTrendDataset _trend = UsageReportTrendDataset.Empty;
     private bool _disposed;
 
@@ -85,7 +86,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             new(1, GetString("UsageReportPeriod1Day")),
             new(3, GetString("UsageReportPeriod3Days")),
             new(7, GetString("UsageReportPeriod7Days")),
+            new(15, GetString("UsageReportPeriod15Days")),
             new(30, GetString("UsageReportPeriod30Days")),
+            new(60, GetString("UsageReportPeriod60Days")),
             new(90, GetString("UsageReportPeriod90Days")),
         ];
         ApplyRequestCore(initialRequest ?? UsageReportRequest.Global);
@@ -147,7 +150,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public bool IsCompareCyclePickersVisible =>
         IsCompareScope && IsCompareCyclesAxis && ResetCycleOptions.Count > 0;
 
-    public bool IsPeriodPickerVisible => !IsCompareCyclesAxis;
+    public bool IsPeriodPickerVisible => !(IsCompareScope && IsCompareCyclesAxis);
 
     public bool IsAbsoluteValueMode => ValueMode == UsageReportValueMode.Absolute;
 
@@ -195,6 +198,23 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     }
 
     public bool IsEmpty => !HasData && !HasError && !IsLoading;
+
+    public bool IsInitialLoading => !_hasCompletedInitialLoad;
+
+    public string EmptyTitleText => IsResetCycleWindow && SelectedResetCycle is not null
+        ? GetString(SelectedResetCycle.IsCurrent
+            ? "UsageReportEmptyCurrentCycleTitle"
+            : "UsageReportEmptyHistoricalCycleTitle")
+        : GetString("UsageReportEmptyDefaultTitle");
+
+    public string EmptyBodyText => IsResetCycleWindow && SelectedResetCycle is not null
+        ? GetString(SelectedResetCycle.IsCurrent
+            ? "UsageReportEmptyCurrentCycleBody"
+            : "UsageReportEmptyHistoricalCycleBody")
+        : GetString("UsageReportEmptyDefaultBody");
+
+    public bool IsEmptyRefreshVisible => IsEmpty
+        && !(IsResetCycleWindow && SelectedResetCycle is { IsCurrent: false });
 
     public bool HasCoverageHint
     {
@@ -343,8 +363,23 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         get => _compareLeftCycle;
         set
         {
-            if (SetProperty(ref _compareLeftCycle, value)
-                && value is not null
+            if (!SetProperty(ref _compareLeftCycle, value))
+            {
+                return;
+            }
+
+            if (value is not null
+                && string.Equals(_compareRightCycle?.Id, value.Id, StringComparison.Ordinal))
+            {
+                UsageReportResetCycleOption? replacement = FindOtherCycle(ResetCycleOptions, value);
+                if (replacement is not null)
+                {
+                    _compareRightCycle = replacement;
+                    OnPropertyChanged(nameof(CompareRightCycle));
+                }
+            }
+
+            if (value is not null
                 && IsCompareScope
                 && IsCompareCyclesAxis
                 && !IsLoading)
@@ -359,8 +394,23 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         get => _compareRightCycle;
         set
         {
-            if (SetProperty(ref _compareRightCycle, value)
-                && value is not null
+            if (!SetProperty(ref _compareRightCycle, value))
+            {
+                return;
+            }
+
+            if (value is not null
+                && string.Equals(_compareLeftCycle?.Id, value.Id, StringComparison.Ordinal))
+            {
+                UsageReportResetCycleOption? replacement = FindOtherCycle(ResetCycleOptions, value);
+                if (replacement is not null)
+                {
+                    _compareLeftCycle = replacement;
+                    OnPropertyChanged(nameof(CompareLeftCycle));
+                }
+            }
+
+            if (value is not null
                 && IsCompareScope
                 && IsCompareCyclesAxis
                 && !IsLoading)
@@ -409,13 +459,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public bool HasResetCountSummary => IsProviderScope
         && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal);
 
-    public int ObservedResetCount
+    private QuotaResetCountSummary ResetCountSummary
     {
         get
         {
             if (!HasResetCountSummary)
             {
-                return 0;
+                return new QuotaResetCountSummary(0, 0, 0, 0);
             }
 
             DateTimeOffset fromUtc;
@@ -433,7 +483,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 toUtcExclusive = LocalDateStartUtc(EndDate.AddDays(1));
             }
 
-            return QuotaResetCountQuery.Count(
+            return QuotaResetCountQuery.Summarize(
                 _resetHistory,
                 "codex",
                 fromUtc,
@@ -442,6 +492,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         }
     }
 
+    public int ObservedResetCount => ResetCountSummary.Total;
+
     public string ResetCountText => string.Format(
         CultureInfo.CurrentCulture,
         GetString(ObservedResetCount == 1
@@ -449,7 +501,19 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             : "UsageReportResetCountManyFormat"),
         ObservedResetCount);
 
-    public string ResetCountHelpText => GetString("UsageReportResetCountHelpText");
+    public string ResetCountHelpText
+    {
+        get
+        {
+            QuotaResetCountSummary summary = ResetCountSummary;
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageReportResetCountHelpText"),
+                summary.Scheduled,
+                summary.Early,
+                summary.Observed);
+        }
+    }
 
     public UsageReportTrendDataset Trend
     {
@@ -465,7 +529,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 && CompareLeftCycle is not null
                 && CompareRightCycle is not null)
             {
-                return $"{CompareLeftCycle.RangeText} · {CompareRightCycle.RangeText}";
+                return GetString("UsageReportCycleComparisonPeriodText");
             }
 
             return IsResetCycleWindow && SelectedResetCycle is not null
@@ -512,20 +576,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public string SummaryCoverageText => FormatPercent(
         _report.Totals.PriceCoveragePercent / 100m);
 
-    public string SummaryQualityText => string.Format(
-        CultureInfo.CurrentCulture,
-        GetString("UsageReportQualitySummaryFormat"),
-        QualityShare(_report.Totals.ReportedCostUsd),
-        QualityShare(_report.Totals.EstimatedCostUsd),
-        FormatPercent(_report.Totals.Tokens.Total == 0
-            ? 0
-            : (decimal)_report.Totals.UnpricedTokens / _report.Totals.Tokens.Total));
-
-    public double ReportedCostSharePercent => _report.Totals.TotalCostUsd == 0
-        ? 0
-        : decimal.ToDouble(
-            (_report.Totals.ReportedCostUsd ?? 0) * 100m / _report.Totals.TotalCostUsd);
-
     public double PriceCoveragePercent => decimal.ToDouble(
         _report.Totals.PriceCoveragePercent);
 
@@ -561,7 +611,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _loadCancellation = cancellation;
         IsLoading = true;
         HasError = false;
-        OnPropertyChanged(nameof(IsEmpty));
+        NotifyEmptyStateChanged();
 
         try
         {
@@ -660,15 +710,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         {
             if (ReferenceEquals(_loadCancellation, cancellation))
             {
+                _hasCompletedInitialLoad = true;
                 IsLoading = false;
-                OnPropertyChanged(nameof(IsEmpty));
+                NotifyEmptyStateChanged();
             }
         }
     }
 
     public void SetWindowDays(int days)
     {
-        if (days is not (1 or 3 or 7 or 30 or 90)
+        if (days is not (1 or 3 or 7 or 15 or 30 or 60 or 90)
             || (days == _windowDays && !IsResetCycleWindow))
         {
             return;
@@ -984,6 +1035,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             .Where(window => !string.IsNullOrWhiteSpace(window.LayoutMetricId))
             .GroupBy(window => window.LayoutMetricId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First().Title, StringComparer.Ordinal);
+        var windowDurations = _resetHistory.Windows
+            .Where(window => string.Equals(
+                window.ProviderId,
+                "codex",
+                StringComparison.Ordinal))
+            .GroupBy(window => window.MetricId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().WindowDurationMinutes,
+                StringComparer.Ordinal);
         foreach (QuotaResetWindowState window in _resetHistory.Windows
                      .Where(window => string.Equals(
                          window.ProviderId,
@@ -1007,18 +1068,28 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         {
             windowOrder.TryAdd(window.MetricId, windowOrder.Count);
         }
+        foreach (QuotaResetRecord reset in _resetHistory.Resets
+                     .Where(reset => string.Equals(
+                         reset.ProviderId,
+                         "codex",
+                         StringComparison.Ordinal))
+                     .OrderBy(reset => ResetWindowOrder(reset.MetricId)))
+        {
+            windowOrder.TryAdd(reset.MetricId, windowOrder.Count);
+        }
         string? selectedId = _selectedResetCycle?.Id;
+        string? compareLeftId = _compareLeftCycle?.Id;
+        string? compareRightId = _compareRightCycle?.Id;
         UsageReportResetCycleOption[] options = QuotaResetCycleQuery.Build(
                 _resetHistory,
                 "codex",
                 _clock.GetUtcNow().ToUniversalTime())
-            .Where(cycle => windowNames.Count == 0 || windowNames.ContainsKey(cycle.MetricId))
             .OrderBy(cycle => windowOrder.GetValueOrDefault(cycle.MetricId, int.MaxValue))
             .ThenByDescending(cycle => cycle.IsCurrent)
             .ThenByDescending(cycle => cycle.FromUtc)
             .Select(cycle => CreateResetCycleOption(
                 cycle,
-                windowNames.GetValueOrDefault(cycle.MetricId, cycle.MetricId)))
+                ResolveResetWindowName(cycle, windowNames, windowDurations)))
             .ToArray();
         ResetCycleOptions = options;
         _selectedResetCycle = options.FirstOrDefault(option => string.Equals(
@@ -1034,7 +1105,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SelectedResetCycle));
         if (IsCompareScope && IsCompareCyclesAxis)
         {
-            EnsureCompareCycleSelections();
+            EnsureCompareCycleSelections(compareLeftId, compareRightId);
         }
 
         OnPropertyChanged(nameof(IsCompareCyclePickersVisible));
@@ -1048,22 +1119,18 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         DateTimeOffset localFrom = cycle.FromUtc.ToLocalTime();
         DateTimeOffset localTo = cycle.ToUtc.ToLocalTime();
         DateOnly fromDate = DateOnly.FromDateTime(localFrom.DateTime);
-        DateOnly toDate = DateOnly.FromDateTime(localTo.DateTime);
+        DateTimeOffset includedLocalEnd = cycle.ToUtc > cycle.FromUtc
+            ? cycle.ToUtc.AddTicks(-1).ToLocalTime()
+            : localTo;
+        DateOnly toDate = DateOnly.FromDateTime(includedLocalEnd.DateTime);
         if (toDate < fromDate)
         {
             toDate = fromDate;
         }
 
-        string displayName = string.Format(
-            CultureInfo.CurrentCulture,
-            GetString(cycle.IsCurrent
-                ? "UsageReportResetCycleCurrentFormat"
-                : "UsageReportResetCyclePreviousFormat"),
-            windowName,
-            localFrom.ToString("d MMM", CultureInfo.CurrentCulture));
         string endText = cycle.IsCurrent
             ? GetString("UsageReportResetCycleNow")
-            : localTo.ToString("g", CultureInfo.CurrentCulture);
+            : FormatCycleTimestamp(localTo);
         string reasonText = cycle.EndingResetKind switch
         {
             QuotaResetDetectionKind.Early => GetString("UsageReportResetCycleEarly"),
@@ -1071,40 +1138,98 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             QuotaResetDetectionKind.Observed => GetString("UsageReportResetCycleObserved"),
             _ => GetString("UsageReportResetCycleActive"),
         };
+        string displayName = cycle.IsCurrent
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageReportResetCycleCurrentFormat"),
+                windowName)
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageReportResetCyclePreviousFormat"),
+                windowName,
+                localFrom.ToString("d MMM", CultureInfo.CurrentCulture),
+                reasonText);
         string rangeText = string.Format(
             CultureInfo.CurrentCulture,
             GetString("UsageReportResetCycleRangeFormat"),
-            localFrom.ToString("g", CultureInfo.CurrentCulture),
-            endText,
-            FormatCycleDuration(cycle.ToUtc - cycle.FromUtc),
-            reasonText);
+            FormatCycleTimestamp(localFrom),
+            endText);
+        string elapsedDurationText = FormatCycleDuration(cycle.ToUtc - cycle.FromUtc);
+        string detailText = cycle.IsCurrent
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageReportResetCycleActiveDetailFormat"),
+                elapsedDurationText)
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageReportResetCycleDetailFormat"),
+                elapsedDurationText,
+                reasonText);
+        TimeSpan displayedDuration = cycle.IsCurrent && cycle.WindowDurationMinutes is > 0m
+            ? TimeSpan.FromMinutes(decimal.ToDouble(cycle.WindowDurationMinutes.Value))
+            : cycle.ToUtc - cycle.FromUtc;
+        string durationText = FormatCycleDuration(displayedDuration);
         return new UsageReportResetCycleOption(
             $"{cycle.MetricId}:{cycle.FromUtc:O}",
             cycle.MetricId,
             displayName,
             rangeText,
+            detailText,
+            durationText,
             cycle.FromUtc,
             cycle.ToUtc,
             fromDate,
             toDate,
+            cycle.UsedPercent,
+            cycle.WindowDurationMinutes,
             cycle.IsCurrent);
     }
 
-    private string ResetWindowName(QuotaResetWindowState window)
+    private string ResolveResetWindowName(
+        QuotaResetCycle cycle,
+        Dictionary<string, string> activeNames,
+        Dictionary<string, decimal?> activeDurations)
     {
-        if (window.MetricId.Contains("bengalfox", StringComparison.Ordinal))
+        if (activeNames.TryGetValue(cycle.MetricId, out string? activeName)
+            && (cycle.IsCurrent
+                || activeDurations.TryGetValue(cycle.MetricId, out decimal? activeDuration)
+                    && SameResetWindowDuration(
+                        cycle.WindowDurationMinutes,
+                        activeDuration)))
         {
-            return GetString("CodexWindowSpark");
+            return activeName;
         }
 
-        if (string.Equals(window.MetricId, "quota.primary", StringComparison.Ordinal))
+        return ResetWindowName(cycle.MetricId, cycle.WindowDurationMinutes);
+    }
+
+    private string ResetWindowName(QuotaResetWindowState window) =>
+        ResetWindowName(window.MetricId, window.WindowDurationMinutes);
+
+    private string ResetWindowName(string metricId, decimal? windowDurationMinutes)
+    {
+        if (metricId.Contains("bengalfox", StringComparison.Ordinal)
+            || metricId.Contains("codex-spark", StringComparison.Ordinal))
         {
-            return window.WindowDurationMinutes is >= 1_440m
+            return GetString(windowDurationMinutes is >= 1_440m
+                || metricId.EndsWith(".secondary", StringComparison.Ordinal)
+                    ? "CodexWindowSparkWeekly"
+                    : "CodexWindowSparkSession");
+        }
+
+        if (string.Equals(metricId, "quota.primary", StringComparison.Ordinal))
+        {
+            return windowDurationMinutes is >= 1_440m
                 ? GetString("SampleWindowWeekly")
-                : GetString("CodexWindowPrimary");
+                : GetString("SampleWindowSession");
         }
 
-        return window.MetricId;
+        if (string.Equals(metricId, "quota.secondary", StringComparison.Ordinal))
+        {
+            return GetString("SampleWindowWeekly");
+        }
+
+        return metricId;
     }
 
     private static int ResetWindowOrder(string metricId) => metricId switch
@@ -1114,15 +1239,64 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _ => 2,
     };
 
-    private string FormatCycleDuration(TimeSpan duration) => duration.TotalDays >= 1d
-        ? string.Format(
+    private string FormatCycleDuration(TimeSpan duration)
+    {
+        long totalMinutes = Math.Max(
+            0,
+            checked((long)Math.Round(
+                duration.TotalMinutes,
+                MidpointRounding.AwayFromZero)));
+        if (totalMinutes >= 1_440)
+        {
+            long roundedHours = (totalMinutes + 30) / 60;
+            long days = roundedHours / 24;
+            long hours = roundedHours % 24;
+            if (hours > 0)
+            {
+                return string.Format(
+                    CultureInfo.CurrentCulture,
+                    GetString("UsageReportResetCycleDaysHoursFormat"),
+                    days,
+                    hours);
+            }
+
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                GetString(days == 1
+                    ? "UsageReportResetCycleDayFormat"
+                    : "UsageReportResetCycleDaysFormat"),
+                days);
+        }
+
+        if (totalMinutes >= 60)
+        {
+            long hours = totalMinutes / 60;
+            long minutes = totalMinutes % 60;
+            if (minutes > 0)
+            {
+                return string.Format(
+                    CultureInfo.CurrentCulture,
+                    GetString("UsageReportResetCycleHoursMinutesFormat"),
+                    hours,
+                    minutes);
+            }
+
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                GetString(hours == 1
+                    ? "UsageReportResetCycleHourFormat"
+                    : "UsageReportResetCycleHoursFormat"),
+                hours);
+        }
+
+        return string.Format(
             CultureInfo.CurrentCulture,
-            GetString("UsageReportResetCycleDaysFormat"),
-            duration.TotalDays)
-        : string.Format(
-            CultureInfo.CurrentCulture,
-            GetString("UsageReportResetCycleHoursFormat"),
-            Math.Max(0d, duration.TotalHours));
+            GetString("UsageReportResetCycleMinutesFormat"),
+            totalMinutes);
+    }
+
+    private static string FormatCycleTimestamp(DateTimeOffset value) =>
+        value.ToString("d MMM, HH:mm", CultureInfo.CurrentCulture);
 
     private void NotifyRangeChanged()
     {
@@ -1138,6 +1312,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ObservedResetCount));
         OnPropertyChanged(nameof(ResetCountText));
         OnPropertyChanged(nameof(ResetCountHelpText));
+        OnPropertyChanged(nameof(EmptyTitleText));
+        OnPropertyChanged(nameof(EmptyBodyText));
+        OnPropertyChanged(nameof(IsEmptyRefreshVisible));
     }
 
     private int SelectedResetCycleIndex
@@ -1195,7 +1372,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         HasData = IsCompareScope
             ? _report.Totals.EventCount > 0 || _compareRightReport.Totals.EventCount > 0
             : _report.Totals.EventCount > 0;
-        OnPropertyChanged(nameof(IsEmpty));
+        NotifyEmptyStateChanged();
 
         Providers = CreateProviderRows();
         MetricCards = CreateMetricCards();
@@ -1230,16 +1407,14 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 && (_compareRightReport.Totals.Coverage != CoverageKind.Complete
                     || _compareRightReport.Totals.UnpricedTokens > 0
                     || _compareRightReport.Totals.UnavailableCostEventCount > 0));
-        CoverageHintText = HasCoverageHint
-            ? string.Format(
-                CultureInfo.CurrentCulture,
-                GetString("UsageReportCoverageHintFormat"),
-                CoverageLabel(_report.Totals.Coverage),
-                FormatTokens(_report.Totals.UnpricedTokens),
-                _report.Totals.UnavailableCostEventCount.ToString(
-                    "N0",
-                    CultureInfo.CurrentCulture))
-            : string.Empty;
+        CoverageHintText = string.Format(
+            CultureInfo.CurrentCulture,
+            GetString("UsageReportCoverageHintFormat"),
+            CoverageLabel(_report.Totals.Coverage),
+            FormatTokens(_report.Totals.UnpricedTokens),
+            _report.Totals.UnavailableCostEventCount.ToString(
+                "N0",
+                CultureInfo.CurrentCulture));
 
         OnPropertyChanged(nameof(HeadlineLabel));
         OnPropertyChanged(nameof(HeadlineValue));
@@ -1248,8 +1423,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SummaryTokensText));
         OnPropertyChanged(nameof(SummaryCostText));
         OnPropertyChanged(nameof(SummaryCoverageText));
-        OnPropertyChanged(nameof(SummaryQualityText));
-        OnPropertyChanged(nameof(ReportedCostSharePercent));
         OnPropertyChanged(nameof(PriceCoveragePercent));
         OnPropertyChanged(nameof(CacheSummaryText));
         OnPropertyChanged(nameof(CachedInputText));
@@ -1400,7 +1573,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         return null;
     }
 
-    private void EnsureCompareCycleSelections()
+    private void EnsureCompareCycleSelections(
+        string? preferredLeftId = null,
+        string? preferredRightId = null)
     {
         if (ResetCycleOptions.Count == 0)
         {
@@ -1411,14 +1586,18 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return;
         }
 
-        string? leftId = _compareLeftCycle?.Id;
-        string? rightId = _compareRightCycle?.Id;
+        string? leftId = preferredLeftId ?? _compareLeftCycle?.Id;
+        string? rightId = preferredRightId ?? _compareRightCycle?.Id;
         UsageReportResetCycleOption left = FindCycle(ResetCycleOptions, leftId)
             ?? FindCurrentCycle(ResetCycleOptions)
             ?? ResetCycleOptions[0];
         UsageReportResetCycleOption right = FindCycle(ResetCycleOptions, rightId)
-            ?? FindOtherCycle(ResetCycleOptions, left.Id)
+            ?? FindOtherCycle(ResetCycleOptions, left)
             ?? left;
+        if (string.Equals(left.Id, right.Id, StringComparison.Ordinal))
+        {
+            right = FindOtherCycle(ResetCycleOptions, left) ?? left;
+        }
         _compareLeftCycle = left;
         _compareRightCycle = right;
         OnPropertyChanged(nameof(CompareLeftCycle));
@@ -1461,17 +1640,103 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private static UsageReportResetCycleOption? FindOtherCycle(
         IReadOnlyList<UsageReportResetCycleOption> options,
-        string excludeId)
+        UsageReportResetCycleOption selected)
     {
         for (int index = 0; index < options.Count; index++)
         {
-            if (!string.Equals(options[index].Id, excludeId, StringComparison.Ordinal))
+            if (!string.Equals(options[index].Id, selected.Id, StringComparison.Ordinal)
+                && string.Equals(options[index].MetricId, selected.MetricId, StringComparison.Ordinal)
+                && SameCycleCadence(options[index], selected))
+            {
+                return options[index];
+            }
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(options[index].Id, selected.Id, StringComparison.Ordinal)
+                && string.Equals(options[index].MetricId, selected.MetricId, StringComparison.Ordinal))
+            {
+                return options[index];
+            }
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(options[index].Id, selected.Id, StringComparison.Ordinal)
+                && !options[index].IsCurrent
+                && SameCycleCadence(options[index], selected))
+            {
+                return options[index];
+            }
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(options[index].Id, selected.Id, StringComparison.Ordinal)
+                && !options[index].IsCurrent)
+            {
+                return options[index];
+            }
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(options[index].Id, selected.Id, StringComparison.Ordinal)
+                && SameCycleCadence(options[index], selected))
+            {
+                return options[index];
+            }
+        }
+
+        for (int index = 0; index < options.Count; index++)
+        {
+            if (!string.Equals(options[index].Id, selected.Id, StringComparison.Ordinal))
             {
                 return options[index];
             }
         }
 
         return null;
+    }
+
+    private static bool SameCycleCadence(
+        UsageReportResetCycleOption left,
+        UsageReportResetCycleOption right)
+    {
+        if (SameResetWindowDuration(
+            left.WindowDurationMinutes,
+            right.WindowDurationMinutes))
+        {
+            return true;
+        }
+
+        if (left.WindowDurationMinutes is > 0m || right.WindowDurationMinutes is > 0m)
+        {
+            return false;
+        }
+
+        TimeSpan leftDuration = left.ToUtc - left.FromUtc;
+        TimeSpan rightDuration = right.ToUtc - right.FromUtc;
+        double longerMinutes = Math.Max(leftDuration.TotalMinutes, rightDuration.TotalMinutes);
+        return longerMinutes > 0d
+            && Math.Abs(leftDuration.TotalMinutes - rightDuration.TotalMinutes)
+                <= Math.Max(1d, longerMinutes * 0.1d);
+    }
+
+    private static bool SameResetWindowDuration(decimal? left, decimal? right) =>
+        left is null && right is null
+        || left is > 0m
+            && right is > 0m
+            && Math.Abs(left.Value - right.Value) <= 0.01m;
+
+    private void NotifyEmptyStateChanged()
+    {
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(IsInitialLoading));
+        OnPropertyChanged(nameof(EmptyTitleText));
+        OnPropertyChanged(nameof(EmptyBodyText));
+        OnPropertyChanged(nameof(IsEmptyRefreshVisible));
     }
 
     private void AssignCompareLabels()
@@ -1505,7 +1770,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         CompareRightCostText = FormatUsd(_compareRightReport.Totals.TotalCostUsd);
         CompareRightTokensText = FormatTokens(_compareRightReport.Totals.Tokens.Total);
         CompareDeltaCostText = FormatSignedUsd(delta.TotalCostUsd);
-        CompareDeltaTokensText = FormatSignedTokens(delta.Tokens);
+        CompareDeltaTokensText = string.Format(
+            CultureInfo.CurrentCulture,
+            GetString("UsageReportCompareTokenDeltaFormat"),
+            FormatSignedTokens(delta.Tokens));
     }
 
     private string FormatCompareRange(string resourceKey, DateOnly start, DateOnly end) =>
@@ -1520,7 +1788,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         UsageReportMetricDelta delta = UsageReportQuery.Subtract(
             _report.Totals,
             _compareRightReport.Totals);
-        return
+        List<UsageReportCompareRow> rows =
         [
             new(
                 GetString("UsageReportCompareTokensMetric"),
@@ -1553,6 +1821,96 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 UsageValueFormatter.Count(_compareRightReport.Totals.EventCount),
                 FormatSignedCount(delta.EventCount)),
         ];
+
+        if (IsCompareCyclesAxis
+            && CompareLeftCycle is not null
+            && CompareRightCycle is not null)
+        {
+            decimal leftQuotaUsed = CompareLeftCycle.UsedPercent;
+            decimal rightQuotaUsed = CompareRightCycle.UsedPercent;
+            decimal? leftCostPerMillion = CostPerMillionTokens(
+                _report.Totals.TotalCostUsd,
+                _report.Totals.Tokens.Total);
+            decimal? rightCostPerMillion = CostPerMillionTokens(
+                _compareRightReport.Totals.TotalCostUsd,
+                _compareRightReport.Totals.Tokens.Total);
+            decimal? leftTokensPerQuotaPoint = TokensPerQuotaPoint(
+                _report.Totals.Tokens.Total,
+                leftQuotaUsed);
+            decimal? rightTokensPerQuotaPoint = TokensPerQuotaPoint(
+                _compareRightReport.Totals.Tokens.Total,
+                rightQuotaUsed);
+
+            rows.Insert(0, new UsageReportCompareRow(
+                GetString("UsageReportCompareQuotaUsedMetric"),
+                UsageValueFormatter.PercentText(leftQuotaUsed),
+                UsageValueFormatter.PercentText(rightQuotaUsed),
+                FormatSignedPercentagePoints(leftQuotaUsed - rightQuotaUsed)));
+            rows.Insert(3, new UsageReportCompareRow(
+                GetString("UsageReportCompareCostPerMillionMetric"),
+                FormatOptionalUsd(leftCostPerMillion),
+                FormatOptionalUsd(rightCostPerMillion),
+                FormatOptionalSignedUsd(leftCostPerMillion, rightCostPerMillion)));
+            rows.Insert(4, new UsageReportCompareRow(
+                GetString("UsageReportCompareTokensPerQuotaPointMetric"),
+                FormatOptionalTokens(leftTokensPerQuotaPoint),
+                FormatOptionalTokens(rightTokensPerQuotaPoint),
+                FormatOptionalSignedTokens(leftTokensPerQuotaPoint, rightTokensPerQuotaPoint)));
+        }
+
+        return rows.ToArray();
+    }
+
+    private static decimal? CostPerMillionTokens(decimal costUsd, long tokens) =>
+        tokens > 0 ? costUsd * 1_000_000m / tokens : null;
+
+    private static decimal? TokensPerQuotaPoint(long tokens, decimal usedPercent) =>
+        usedPercent > 0m ? tokens / usedPercent : null;
+
+    private string FormatOptionalUsd(decimal? amount) => amount is decimal value
+        ? FormatUsd(value)
+        : GetString("UsageReportCompareUnavailable");
+
+    private string FormatOptionalTokens(decimal? tokens) => tokens is decimal value
+        ? FormatCompactTokens((double)value)
+        : GetString("UsageReportCompareUnavailable");
+
+    private string FormatOptionalSignedUsd(decimal? left, decimal? right) =>
+        left is decimal leftValue && right is decimal rightValue
+            ? FormatSignedUsd(leftValue - rightValue)
+            : GetString("UsageReportCompareUnavailable");
+
+    private string FormatOptionalSignedTokens(decimal? left, decimal? right)
+    {
+        if (left is not decimal leftValue || right is not decimal rightValue)
+        {
+            return GetString("UsageReportCompareUnavailable");
+        }
+
+        decimal difference = leftValue - rightValue;
+        if (difference == 0m)
+        {
+            return FormatCompactTokens(0);
+        }
+
+        string magnitude = FormatCompactTokens((double)Math.Abs(difference));
+        return difference > 0m ? "+" + magnitude : "\u2212" + magnitude;
+    }
+
+    private string FormatSignedPercentagePoints(decimal value)
+    {
+        string magnitude = value == 0m
+            ? "0"
+            : Math.Abs(value).ToString("0.#", CultureInfo.CurrentCulture);
+        string signed = value > 0m
+            ? "+" + magnitude
+            : value < 0m
+                ? "\u2212" + magnitude
+                : magnitude;
+        return string.Format(
+            CultureInfo.CurrentCulture,
+            GetString("UsageReportComparePercentagePointsFormat"),
+            signed);
     }
 
     private UsageReportTrendDataset CreateCompareTrend()
@@ -1571,7 +1929,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                         GetString("UsageReportCompareDayFormat"),
                         offset + 1)
                     : date.ToString("d MMM", CultureInfo.CurrentCulture);
-                return new UsageReportTrendDay(date, label);
+                return new UsageReportTrendDay(
+                    date,
+                    label,
+                    alignByIndex ? label : null);
             })
             .ToArray();
         double[] leftValues = DailyCompareValues(_report, _compareLeftStart, dayCount);
@@ -1745,12 +2106,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     : 0d)
                 .ToArray());
         return new UsageReportTrendDataset(Metric, days, [series]);
-    }
-
-    private string QualityShare(decimal? value)
-    {
-        decimal total = _report.Totals.TotalCostUsd;
-        return FormatPercent(total == 0 ? 0 : (value ?? 0) / total);
     }
 
     private IReadOnlyList<UsageReportMetricCard> CreateMetricCards()

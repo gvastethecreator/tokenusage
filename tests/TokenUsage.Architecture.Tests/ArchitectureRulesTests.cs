@@ -701,8 +701,6 @@ public sealed class ArchitectureRulesTests
             "ReportSummaryTokensValue",
             "ReportSummaryCostValue",
             "ReportSummaryCoverageValue",
-            "ReportSummaryQualityProgress",
-            "ReportSummaryQualityValue",
             "ReportCompositionLegendRoot",
             "ReportCompositionBar",
             "GlobalChartTransitionRoot",
@@ -906,8 +904,8 @@ public sealed class ArchitectureRulesTests
             appRoot,
             "Controls",
             "UsageTrendChart.xaml.cs"));
-        Assert.Contains("CreateSinglePointMarker", trendChartCode, StringComparison.Ordinal);
-        Assert.Contains("path.Points.Count != 1", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("AddSingleDayBars", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("if (data.Days.Count == 2)", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("if (data.Days.Count == 1)", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("MiddleDayLabel.Text = data.Days[0].Label", trendChartCode, StringComparison.Ordinal);
     }

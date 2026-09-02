@@ -31,6 +31,7 @@ public sealed class QuotaResetHistoryStoreTests
             InitialObservation.AddHours(1)));
         Assert.True(cycle.IsCurrent);
         Assert.Equal(window.CurrentCycleStartedAtUtc, cycle.FromUtc);
+        Assert.Equal(68m, cycle.UsedPercent);
     }
 
     [Fact]
@@ -130,6 +131,54 @@ public sealed class QuotaResetHistoryStoreTests
     }
 
     [Fact]
+    public async Task MovingResetScheduleRealignsTheCurrentWindowStart()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset firstReset = InitialObservation.AddHours(5);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation,
+            usedPercent: 40m,
+            firstReset,
+            windowMinutes: 300m));
+        DateTimeOffset observedAt = InitialObservation.AddHours(1);
+        DateTimeOffset movedReset = firstReset.AddMinutes(30);
+
+        QuotaResetHistory history = await store.ObserveAsync(CreateSnapshot(
+            observedAt,
+            usedPercent: 38m,
+            movedReset,
+            windowMinutes: 300m));
+
+        Assert.Empty(history.Resets);
+        Assert.Equal(
+            movedReset.AddMinutes(-300),
+            Assert.Single(history.Windows).CurrentCycleStartedAtUtc);
+    }
+
+    [Fact]
+    public async Task CompleteSnapshotRemovesWindowsThatTheProviderNoLongerReports()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation,
+            usedPercent: 40m,
+            InitialObservation.AddHours(5),
+            windowMinutes: 300m));
+
+        QuotaResetHistory history = await store.ObserveAsync(CreateSnapshot(
+            InitialObservation.AddMinutes(1),
+            usedPercent: 20m,
+            InitialObservation.AddDays(7),
+            windowMinutes: 10_080m,
+            metricId: "quota.secondary"));
+
+        QuotaResetWindowState window = Assert.Single(history.Windows);
+        Assert.Equal("quota.secondary", window.MetricId);
+    }
+
+    [Fact]
     public async Task MaterialUsageDropThatDoesNotReturnToFullRemainingDoesNotCreateReset()
     {
         using var folder = new TemporaryFolder();
@@ -182,11 +231,14 @@ public sealed class QuotaResetHistoryStoreTests
     {
         DateTimeOffset fromUtc = InitialObservation;
         QuotaResetHistory history = new(
-            [],
             [
-                CreateResetRecord("quota.primary", fromUtc),
-                CreateResetRecord("quota.codex-bengalfox.primary", fromUtc.AddDays(1)),
-                CreateResetRecord("quota.primary", fromUtc.AddDays(2)),
+                CreateWindow("quota.primary", 300m),
+                CreateWindow("quota.codex-bengalfox.primary", 300m),
+            ],
+            [
+                CreateResetRecord("quota.primary", fromUtc, QuotaResetDetectionKind.Scheduled),
+                CreateResetRecord("quota.codex-bengalfox.primary", fromUtc.AddDays(1), QuotaResetDetectionKind.Early),
+                CreateResetRecord("quota.primary", fromUtc.AddDays(2), QuotaResetDetectionKind.Observed),
             ]);
 
         Assert.Equal(2, QuotaResetCountQuery.Count(
@@ -200,6 +252,74 @@ public sealed class QuotaResetHistoryStoreTests
             fromUtc,
             fromUtc.AddDays(2),
             metricId: "quota.primary"));
+        Assert.Equal(
+            new QuotaResetCountSummary(2, Scheduled: 1, Early: 1, Observed: 0),
+            QuotaResetCountQuery.Summarize(
+                history,
+                "codex",
+                fromUtc,
+                fromUtc.AddDays(2)));
+    }
+
+    [Fact]
+    public async Task ChangedWindowDurationKeepsOldCadenceInHistoryWithoutCountingItAsCurrent()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset firstReset = InitialObservation.AddHours(5);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation,
+            usedPercent: 80m,
+            firstReset,
+            windowMinutes: 300m));
+        await store.ObserveAsync(CreateSnapshot(
+            firstReset.AddMinutes(1),
+            usedPercent: 0m,
+            firstReset.AddHours(5),
+            windowMinutes: 300m));
+
+        QuotaResetHistory history = await store.ObserveAsync(CreateSnapshot(
+            firstReset.AddHours(1),
+            usedPercent: 5m,
+            firstReset.AddDays(7),
+            windowMinutes: 10_080m));
+
+        QuotaResetCycle[] cycles = QuotaResetCycleQuery.Build(
+            history,
+            "codex",
+            firstReset.AddHours(2)).ToArray();
+        Assert.Equal(2, cycles.Length);
+        Assert.True(cycles[0].IsCurrent);
+        Assert.Equal(10_080m, cycles[0].WindowDurationMinutes);
+        Assert.False(cycles[1].IsCurrent);
+        Assert.Equal(300m, cycles[1].WindowDurationMinutes);
+        Assert.Equal(0, QuotaResetCountQuery.Count(
+            history,
+            "codex",
+            InitialObservation,
+            firstReset.AddDays(1)));
+    }
+
+    [Fact]
+    public void CompletedCyclesRemainAvailableAfterTheirMetricLeavesTheActiveSnapshot()
+    {
+        DateTimeOffset resetAt = InitialObservation.AddDays(7);
+        QuotaResetHistory history = new(
+            [CreateWindow("quota.primary", 300m)],
+            [CreateResetRecord(
+                "quota.secondary",
+                resetAt,
+                QuotaResetDetectionKind.Scheduled)]);
+
+        QuotaResetCycle[] cycles = QuotaResetCycleQuery.Build(
+                history,
+                "codex",
+                resetAt.AddHours(1))
+            .ToArray();
+
+        Assert.Equal(2, cycles.Length);
+        Assert.Contains(cycles, cycle => cycle.IsCurrent && cycle.MetricId == "quota.primary");
+        Assert.Contains(cycles, cycle => !cycle.IsCurrent && cycle.MetricId == "quota.secondary");
     }
 
     [Fact]
@@ -229,7 +349,9 @@ public sealed class QuotaResetHistoryStoreTests
 
         Assert.Equal(2, cycles.Length);
         Assert.True(cycles[0].IsCurrent);
+        Assert.Equal(0m, cycles[0].UsedPercent);
         Assert.False(cycles[1].IsCurrent);
+        Assert.Equal(88m, cycles[1].UsedPercent);
         Assert.Equal(QuotaResetDetectionKind.Scheduled, cycles[1].EndingResetKind);
         Assert.Equal(expectedReset, cycles[1].ToUtc);
     }
@@ -271,7 +393,8 @@ public sealed class QuotaResetHistoryStoreTests
 
     private static QuotaResetRecord CreateResetRecord(
         string metricId,
-        DateTimeOffset occurredAtUtc) => new(
+        DateTimeOffset occurredAtUtc,
+        QuotaResetDetectionKind detectionKind = QuotaResetDetectionKind.Observed) => new(
             "codex",
             metricId,
             occurredAtUtc,
@@ -282,7 +405,19 @@ public sealed class QuotaResetHistoryStoreTests
             CurrentUsedPercent: 0m,
             PreviousExpectedResetAtUtc: null,
             CurrentExpectedResetAtUtc: null,
-            QuotaResetDetectionKind.Observed);
+            WindowDurationMinutes: 300m,
+            detectionKind);
+
+    private static QuotaResetWindowState CreateWindow(
+        string metricId,
+        decimal windowMinutes) => new(
+            "codex",
+            metricId,
+            UsedPercent: 50m,
+            InitialObservation,
+            InitialObservation,
+            InitialObservation.AddMinutes((double)windowMinutes),
+            windowMinutes);
 
     private sealed class TemporaryFolder : IDisposable
     {

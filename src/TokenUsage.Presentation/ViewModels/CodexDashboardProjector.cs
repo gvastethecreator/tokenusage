@@ -283,7 +283,9 @@ public static class CodexDashboardProjector
 
         if (IsSparkLimit(metricId))
         {
-            return text("CodexWindowSpark");
+            return text(durationMinutes >= WeeklyMinimumMinutes || isSecondary
+                ? "CodexWindowSparkWeekly"
+                : "CodexWindowSparkSession");
         }
 
         if (!string.IsNullOrWhiteSpace(displayName))

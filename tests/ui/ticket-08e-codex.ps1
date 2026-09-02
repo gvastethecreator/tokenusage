@@ -143,8 +143,8 @@ Test-Ui "Live Codex surface renders without synthetic spend or account data" {
 
     Assert-VisibleText "Codex"
     if ($live.matchCount -gt 0) {
-        Assert-VisibleText "58% remaining"
-        Assert-VisibleText "82% remaining"
+        Assert-VisibleText "58% left"
+        Assert-VisibleText "82% left"
     }
 
     foreach ($forbidden in @('$48.12', 'private-live@example.invalid', 'auth.json', 'Bearer')) {

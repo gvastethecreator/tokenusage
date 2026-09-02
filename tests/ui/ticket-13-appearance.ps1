@@ -148,7 +148,7 @@ if ($Phase -eq "Configure") {
     Test-Ui "Defaults are coherent" {
         Assert-OneOf (Get-ControlValue "AppearanceThemeSelector") @("System", "Sistema") "Theme"
         Assert-OneOf (Get-ControlValue "AppearanceDensitySelector") @("Regular", "Predeterminada") "Density"
-        Assert-OneOf (Get-ControlValue "AppearanceUsageSelector") @("Remaining", "Restante") "Usage display"
+        Assert-OneOf (Get-ControlValue "AppearanceUsageSelector") @("Left", "Restante") "Usage display"
         Assert-OneOf (Get-ControlValue "AppearanceResetTimeSelector") @("Relative", "Relativa") "Reset display"
         Wait-ForToggle "AppearanceTransparencyToggle" "Off"
     }

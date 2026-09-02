@@ -58,6 +58,8 @@ public sealed class UsageReportRequestTests
     [Theory]
     [InlineData(1)]
     [InlineData(3)]
+    [InlineData(15)]
+    [InlineData(60)]
     public void ShortWindowsAreValidReportRanges(int windowDays)
     {
         var request = new UsageReportRequest(windowDays: windowDays);

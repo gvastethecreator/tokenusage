@@ -31,6 +31,13 @@ public sealed partial class AnimatedProgressBar : UserControl
             typeof(AnimatedProgressBar),
             new PropertyMetadata(0d, OnValueChanged));
 
+    public static readonly DependencyProperty IndicatorScaleProperty =
+        DependencyProperty.Register(
+            nameof(IndicatorScale),
+            typeof(double),
+            typeof(AnimatedProgressBar),
+            new PropertyMetadata(1d));
+
     public AnimatedProgressBar()
     {
         InitializeComponent();
@@ -55,6 +62,12 @@ public sealed partial class AnimatedProgressBar : UserControl
     {
         get => (double)GetValue(RemainingValueProperty);
         set => SetValue(RemainingValueProperty, value);
+    }
+
+    public double IndicatorScale
+    {
+        get => (double)GetValue(IndicatorScaleProperty);
+        set => SetValue(IndicatorScaleProperty, value);
     }
 
     public void PlayReveal(int token)
