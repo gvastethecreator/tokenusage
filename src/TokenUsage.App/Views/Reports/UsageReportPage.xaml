@@ -1047,6 +1047,24 @@
                         x:Name="ReportCompareContent"
                         Spacing="12"
                         Visibility="{x:Bind ViewModel.IsCompareScope, Mode=OneWay}">
+                        <Border
+                            AutomationProperties.AutomationId="UsageReportCompareCycleWarning"
+                            Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                            CornerRadius="6"
+                            Padding="12,9"
+                            Visibility="{x:Bind ViewModel.HasCompareCycleWarning, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon
+                                    FontSize="14"
+                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                    Glyph="&#xE7BA;" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.CompareCycleWarningText, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                         <Border Style="{StaticResource ReportCardStyle}">
                             <Grid x:Name="ReportCompareSummary">
                                 <Grid.ColumnDefinitions>

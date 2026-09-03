@@ -311,6 +311,27 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public string CompareDeltaTokensText { get; private set; } = string.Empty;
 
+    public bool HasCompareCycleWarning => IsCompareScope
+        && IsCompareCyclesAxis
+        && CreateCycleComparison() is { } comparison
+        && (!comparison.IsCompatible || comparison.HasIncompleteCycle);
+
+    public string CompareCycleWarningText
+    {
+        get
+        {
+            UsageReportCycleComparison? comparison = CreateCycleComparison();
+            return comparison switch
+            {
+                { IsCompatible: false, HasIncompleteCycle: true } =>
+                    GetString("UsageReportCompareCycleIncompatibleIncompleteWarning"),
+                { IsCompatible: false } => GetString("UsageReportCompareCycleIncompatibleWarning"),
+                { HasIncompleteCycle: true } => GetString("UsageReportCompareCycleIncompleteWarning"),
+                _ => string.Empty,
+            };
+        }
+    }
+
     public bool HasProviderOptions => ProviderOptions.Count > 0;
 
     public bool IsProviderPickerVisible => IsProviderScope && HasProviderOptions;
@@ -1632,6 +1653,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CompareRightTokensText));
         OnPropertyChanged(nameof(CompareDeltaCostText));
         OnPropertyChanged(nameof(CompareDeltaTokensText));
+        OnPropertyChanged(nameof(HasCompareCycleWarning));
+        OnPropertyChanged(nameof(CompareCycleWarningText));
         OnPropertyChanged(nameof(PeriodText));
     }
 
@@ -1961,11 +1984,20 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         UsageReportMetricDelta delta = UsageReportQuery.Subtract(
             _report.Totals,
             _compareRightReport.Totals);
-        CompareLeftCostText = FormatUsd(_report.Totals.TotalCostUsd);
+        UsageReportCycleComparison? cycleComparison = CreateCycleComparison();
+        CompareLeftCostText = cycleComparison is null
+            ? FormatUsd(_report.Totals.TotalCostUsd)
+            : FormatOptionalUsd(cycleComparison.CostUsd.Left);
         CompareLeftTokensText = FormatTokens(_report.Totals.Tokens.Total);
-        CompareRightCostText = FormatUsd(_compareRightReport.Totals.TotalCostUsd);
+        CompareRightCostText = cycleComparison is null
+            ? FormatUsd(_compareRightReport.Totals.TotalCostUsd)
+            : FormatOptionalUsd(cycleComparison.CostUsd.Right);
         CompareRightTokensText = FormatTokens(_compareRightReport.Totals.Tokens.Total);
-        CompareDeltaCostText = FormatSignedUsd(delta.TotalCostUsd);
+        CompareDeltaCostText = cycleComparison is null
+            ? FormatSignedUsd(delta.TotalCostUsd)
+            : FormatOptionalSignedUsd(
+                cycleComparison.CostUsd.Left,
+                cycleComparison.CostUsd.Right);
         CompareDeltaTokensText = string.Format(
             CultureInfo.CurrentCulture,
             GetString("UsageReportCompareTokenDeltaFormat"),
@@ -1981,6 +2013,52 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private UsageReportCompareRow[] CreateCompareRows()
     {
+        UsageReportCycleComparison? cycleComparison = CreateCycleComparison();
+        if (cycleComparison is not null)
+        {
+            return
+            [
+                new(
+                    GetString("UsageReportCompareQuotaUsedMetric"),
+                    FormatOptionalPercent(cycleComparison.QuotaUsedPercent.Left),
+                    FormatOptionalPercent(cycleComparison.QuotaUsedPercent.Right),
+                    FormatOptionalSignedPercentagePoints(cycleComparison.QuotaUsedPercent)),
+                new(
+                    GetString("UsageReportCompareTokensMetric"),
+                    FormatOptionalTokens(cycleComparison.Tokens.Left),
+                    FormatOptionalTokens(cycleComparison.Tokens.Right),
+                    FormatOptionalSignedTokens(
+                        cycleComparison.Tokens.Left,
+                        cycleComparison.Tokens.Right)),
+                new(
+                    GetString("UsageReportCompareCostMetric"),
+                    FormatOptionalUsd(cycleComparison.CostUsd.Left),
+                    FormatOptionalUsd(cycleComparison.CostUsd.Right),
+                    FormatOptionalSignedUsd(
+                        cycleComparison.CostUsd.Left,
+                        cycleComparison.CostUsd.Right)),
+                new(
+                    GetString("UsageReportCompareEventsMetric"),
+                    FormatOptionalCount(cycleComparison.EventCount.Left),
+                    FormatOptionalCount(cycleComparison.EventCount.Right),
+                    FormatOptionalSignedCount(cycleComparison.EventCount)),
+                new(
+                    GetString("UsageReportCompareTokensPerQuotaPointMetric"),
+                    FormatOptionalTokens(cycleComparison.TokensPerQuotaPoint.Left),
+                    FormatOptionalTokens(cycleComparison.TokensPerQuotaPoint.Right),
+                    FormatOptionalSignedTokens(
+                        cycleComparison.TokensPerQuotaPoint.Left,
+                        cycleComparison.TokensPerQuotaPoint.Right)),
+                new(
+                    GetString("UsageReportCompareCostPerMillionMetric"),
+                    FormatOptionalUsd(cycleComparison.CostPerMillionTokens.Left),
+                    FormatOptionalUsd(cycleComparison.CostPerMillionTokens.Right),
+                    FormatOptionalSignedUsd(
+                        cycleComparison.CostPerMillionTokens.Left,
+                        cycleComparison.CostPerMillionTokens.Right)),
+            ];
+        }
+
         UsageReportMetricDelta delta = UsageReportQuery.Subtract(
             _report.Totals,
             _compareRightReport.Totals);
@@ -2018,50 +2096,41 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 FormatSignedCount(delta.EventCount)),
         ];
 
-        if (IsCompareCyclesAxis
-            && CompareLeftCycle is not null
-            && CompareRightCycle is not null)
-        {
-            decimal leftQuotaUsed = CompareLeftCycle.UsedPercent;
-            decimal rightQuotaUsed = CompareRightCycle.UsedPercent;
-            decimal? leftCostPerMillion = CostPerMillionTokens(
-                _report.Totals.TotalCostUsd,
-                _report.Totals.Tokens.Total);
-            decimal? rightCostPerMillion = CostPerMillionTokens(
-                _compareRightReport.Totals.TotalCostUsd,
-                _compareRightReport.Totals.Tokens.Total);
-            decimal? leftTokensPerQuotaPoint = TokensPerQuotaPoint(
-                _report.Totals.Tokens.Total,
-                leftQuotaUsed);
-            decimal? rightTokensPerQuotaPoint = TokensPerQuotaPoint(
-                _compareRightReport.Totals.Tokens.Total,
-                rightQuotaUsed);
-
-            rows.Insert(0, new UsageReportCompareRow(
-                GetString("UsageReportCompareQuotaUsedMetric"),
-                UsageValueFormatter.PercentText(leftQuotaUsed),
-                UsageValueFormatter.PercentText(rightQuotaUsed),
-                FormatSignedPercentagePoints(leftQuotaUsed - rightQuotaUsed)));
-            rows.Insert(3, new UsageReportCompareRow(
-                GetString("UsageReportCompareCostPerMillionMetric"),
-                FormatOptionalUsd(leftCostPerMillion),
-                FormatOptionalUsd(rightCostPerMillion),
-                FormatOptionalSignedUsd(leftCostPerMillion, rightCostPerMillion)));
-            rows.Insert(4, new UsageReportCompareRow(
-                GetString("UsageReportCompareTokensPerQuotaPointMetric"),
-                FormatOptionalTokens(leftTokensPerQuotaPoint),
-                FormatOptionalTokens(rightTokensPerQuotaPoint),
-                FormatOptionalSignedTokens(leftTokensPerQuotaPoint, rightTokensPerQuotaPoint)));
-        }
-
         return rows.ToArray();
     }
 
-    private static decimal? CostPerMillionTokens(decimal costUsd, long tokens) =>
-        tokens > 0 ? costUsd * 1_000_000m / tokens : null;
+    private UsageReportCycleComparison? CreateCycleComparison()
+    {
+        if (!IsCompareScope
+            || !IsCompareCyclesAxis
+            || CompareLeftCycle is null
+            || CompareRightCycle is null)
+        {
+            return null;
+        }
 
-    private static decimal? TokensPerQuotaPoint(long tokens, decimal usedPercent) =>
-        usedPercent > 0m ? tokens / usedPercent : null;
+        return UsageReportCycleComparisonCalculator.Compare(
+            CreateCycleObservation(CompareLeftCycle, _report.Totals),
+            CreateCycleObservation(CompareRightCycle, _compareRightReport.Totals));
+    }
+
+    private static UsageReportCycleObservation CreateCycleObservation(
+        UsageReportResetCycleOption cycle,
+        UsageReportMetrics metrics) => new(
+            cycle.GroupId,
+            !cycle.IsCurrent,
+            cycle.UsedPercent,
+            metrics.Tokens.Total,
+            ComparableCost(metrics),
+            metrics.EventCount,
+            Math.Max(0, metrics.Tokens.Total - metrics.UnpricedTokens));
+
+    private static decimal? ComparableCost(UsageReportMetrics metrics) =>
+        metrics.UnavailableCostEventCount > 0
+        && metrics.ReportedCostUsd is null
+        && metrics.EstimatedCostUsd is null
+            ? null
+            : metrics.TotalCostUsd;
 
     private string FormatOptionalUsd(decimal? amount) => amount is decimal value
         ? FormatUsd(value)
@@ -2069,6 +2138,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private string FormatOptionalTokens(decimal? tokens) => tokens is decimal value
         ? FormatCompactTokens((double)value)
+        : GetString("UsageReportCompareUnavailable");
+
+    private string FormatOptionalCount(decimal? count) => count is decimal value
+        ? decimal.Round(value, 0, MidpointRounding.AwayFromZero).ToString(
+            "N0",
+            CultureInfo.CurrentCulture)
+        : GetString("UsageReportCompareUnavailable");
+
+    private string FormatOptionalPercent(decimal? percent) => percent is decimal value
+        ? UsageValueFormatter.PercentText(value)
         : GetString("UsageReportCompareUnavailable");
 
     private string FormatOptionalSignedUsd(decimal? left, decimal? right) =>
@@ -2092,6 +2171,25 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         string magnitude = FormatCompactTokens((double)Math.Abs(difference));
         return difference > 0m ? "+" + magnitude : "\u2212" + magnitude;
     }
+
+    private string FormatOptionalSignedCount(UsageReportNumericComparison comparison)
+    {
+        if (comparison.Delta is not decimal difference)
+        {
+            return GetString("UsageReportCompareUnavailable");
+        }
+
+        string magnitude = decimal.Round(
+            Math.Abs(difference),
+            0,
+            MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.CurrentCulture);
+        return difference > 0m ? "+" + magnitude : difference < 0m ? "\u2212" + magnitude : magnitude;
+    }
+
+    private string FormatOptionalSignedPercentagePoints(
+        UsageReportNumericComparison comparison) => comparison.Delta is decimal difference
+            ? FormatSignedPercentagePoints(difference)
+            : GetString("UsageReportCompareUnavailable");
 
     private string FormatSignedPercentagePoints(decimal value)
     {
