@@ -374,6 +374,42 @@ public sealed class UsageRepository
             cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<(DateOnly From, DateOnly To)?> QueryDailyRollupRangeAsync(
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        CancellationToken cancellationToken = default)
+    {
+        if (toInclusive < fromInclusive)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(toInclusive),
+                "The end date cannot precede the start date.");
+        }
+
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT MIN(civil_date), MAX(civil_date)
+            FROM daily_usage_rollup
+            WHERE civil_date >= $from AND civil_date <= $to;
+            """;
+        command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
+        command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
+            || reader.IsDBNull(0)
+            || reader.IsDBNull(1))
+        {
+            return null;
+        }
+
+        return (
+            DateOnly.ParseExact(reader.GetString(0), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            DateOnly.ParseExact(reader.GetString(1), "yyyy-MM-dd", CultureInfo.InvariantCulture));
+    }
+
     public async Task<IReadOnlyList<UsageEvent>> QueryUsageEventsAsync(
         DateTimeOffset fromInclusiveUtc,
         DateTimeOffset toExclusiveUtc,

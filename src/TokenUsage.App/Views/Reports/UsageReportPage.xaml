@@ -722,41 +722,6 @@
                     </Border>
 
                     <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
-                        <Grid ColumnSpacing="12">
-                            <TextBlock x:Uid="UsageReportCompositionTitle" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                            <ItemsRepeater x:Name="ReportCompositionLegendRoot" HorizontalAlignment="Right" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
-                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="20" /></ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate>
-                                    <DataTemplate x:DataType="reports:UsageReportProviderRow">
-                                        <Grid ColumnSpacing="7" VerticalAlignment="Center">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <controls:ProviderColorSwatch Height="9" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center" Width="9" />
-                                            <TextBlock Grid.Column="1" VerticalAlignment="Center">
-                                                <Run Text="{x:Bind Name}" /><Run Text="  " /><Run Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ShareText}" />
-                                            </TextBlock>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                        </Grid>
-                        <ItemsRepeater
-                            x:Name="ReportCompositionBar"
-                            Height="6"
-                            HorizontalAlignment="Stretch"
-                            ElementPrepared="OnReportCompositionElementPrepared"
-                            ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}"
-                            SizeChanged="OnReportCompositionSizeChanged">
-                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" /></ItemsRepeater.Layout>
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="reports:UsageReportProviderRow">
-                                    <controls:ProviderColorSwatch Height="6" ProviderId="{x:Bind ProviderId}" Width="2" />
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-
                         <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
                             <StackPanel Spacing="7">
                                 <Grid>
@@ -818,6 +783,48 @@
                                     </ItemsRepeater.ItemTemplate>
                                     </ItemsRepeater>
                                 </Grid>
+                                <Border
+                                    Margin="0,2,0,0"
+                                    Padding="0,10,0,0"
+                                    BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+                                    BorderThickness="0,1,0,0">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnSpacing="12">
+                                            <TextBlock x:Uid="UsageReportCompositionTitle" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
+                                            <ItemsRepeater x:Name="ReportCompositionLegendRoot" HorizontalAlignment="Right" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
+                                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="20" /></ItemsRepeater.Layout>
+                                                <ItemsRepeater.ItemTemplate>
+                                                    <DataTemplate x:DataType="reports:UsageReportProviderRow">
+                                                        <Grid ColumnSpacing="7" VerticalAlignment="Center">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <controls:ProviderColorSwatch Height="9" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center" Width="9" />
+                                                            <TextBlock Grid.Column="1" VerticalAlignment="Center">
+                                                                <Run Text="{x:Bind Name}" /><Run Text="  " /><Run Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ShareText}" />
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsRepeater.ItemTemplate>
+                                            </ItemsRepeater>
+                                        </Grid>
+                                        <ItemsRepeater
+                                            x:Name="ReportCompositionBar"
+                                            Height="6"
+                                            HorizontalAlignment="Stretch"
+                                            ElementPrepared="OnReportCompositionElementPrepared"
+                                            ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}"
+                                            SizeChanged="OnReportCompositionSizeChanged">
+                                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" /></ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate x:DataType="reports:UsageReportProviderRow">
+                                                    <controls:ProviderColorSwatch Height="6" ProviderId="{x:Bind ProviderId}" Width="2" />
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </StackPanel>

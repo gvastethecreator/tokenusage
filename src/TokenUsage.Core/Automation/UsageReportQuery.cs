@@ -102,6 +102,20 @@ public sealed class UsageReportQuery
         return Build(rollups);
     }
 
+    public async Task<(DateOnly From, DateOnly To)?> ReadAvailableDateRangeAsync(
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        CancellationToken cancellationToken = default)
+    {
+        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(
+            _databasePath,
+            cancellationToken).ConfigureAwait(false);
+        return await repository.QueryDailyRollupRangeAsync(
+            fromInclusive,
+            toInclusive,
+            cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Reads events in a UTC half-open range. Reset-cycle reports use this path so activity on
     /// a reset date stays in the cycle that contains its event timestamp.

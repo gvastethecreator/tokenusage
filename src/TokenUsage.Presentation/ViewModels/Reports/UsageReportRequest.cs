@@ -31,7 +31,8 @@ public sealed record UsageReportRequest
             throw new ArgumentOutOfRangeException(nameof(scope));
         }
 
-        if (windowDays is not (1 or 3 or 7 or 15 or 30 or 60 or 90))
+        if (windowDays is not (UsageReportPeriodOption.AllHistoryDays
+            or 1 or 3 or 7 or 15 or 30 or 60 or 90))
         {
             throw new ArgumentOutOfRangeException(nameof(windowDays));
         }

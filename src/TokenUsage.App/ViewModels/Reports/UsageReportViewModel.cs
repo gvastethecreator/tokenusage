@@ -27,6 +27,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private UsageReport _globalReport = UsageReportQuery.Build([]);
     private UsageReport _compareRightReport = UsageReportQuery.Build([]);
     private (DateOnly Start, DateOnly End)? _globalReportRange;
+    private DateOnly? _effectiveStartDate;
     private int _windowDays = 30;
     private UsageReportMetric _metric = UsageReportMetric.Cost;
     private UsageReportBreakdown _breakdown = UsageReportBreakdown.Model;
@@ -90,6 +91,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             new(30, GetString("UsageReportPeriod30Days")),
             new(60, GetString("UsageReportPeriod60Days")),
             new(90, GetString("UsageReportPeriod90Days")),
+            new(UsageReportPeriodOption.AllHistoryDays, GetString("UsageReportPeriodAllHistory")),
         ];
         ApplyRequestCore(initialRequest ?? UsageReportRequest.Global);
         ProviderLimits = _selectedProvider is null
@@ -104,6 +106,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand RefreshCommand { get; }
 
     public int WindowDays => _windowDays;
+
+    public bool IsAllHistoryWindow =>
+        _windowDays == UsageReportPeriodOption.AllHistoryDays;
 
     public IReadOnlyList<UsageReportPeriodOption> PeriodOptions { get; }
 
@@ -532,13 +537,18 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 return GetString("UsageReportCycleComparisonPeriodText");
             }
 
-            return IsResetCycleWindow && SelectedResetCycle is not null
-                ? SelectedResetCycle.RangeText
-                : string.Format(
-                    CultureInfo.CurrentCulture,
-                    GetString("UsageReportPeriodFormat"),
-                    StartDate.ToString("d MMM", CultureInfo.CurrentCulture),
-                    EndDate.ToString("d MMM", CultureInfo.CurrentCulture));
+            if (IsResetCycleWindow && SelectedResetCycle is not null)
+            {
+                return SelectedResetCycle.RangeText;
+            }
+
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                GetString(IsAllHistoryWindow
+                    ? "UsageReportAllHistoryPeriodFormat"
+                    : "UsageReportPeriodFormat"),
+                StartDate.ToString("d MMM", CultureInfo.CurrentCulture),
+                EndDate.ToString("d MMM", CultureInfo.CurrentCulture));
         }
     }
 
@@ -598,6 +608,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private DateOnly StartDate => IsResetCycleWindow && SelectedResetCycle is not null
         ? SelectedResetCycle.FromDate
+        : _effectiveStartDate ?? RequestedStartDate;
+
+    private DateOnly RequestedStartDate => IsAllHistoryWindow
+        ? EndDate
         : EndDate.AddDays(-(_windowDays - 1));
 
     private int RangeDayCount => Math.Max(1, EndDate.DayNumber - StartDate.DayNumber + 1);
@@ -622,12 +636,17 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             }
 
             await LoadResetCyclesAsync(cancellation.Token).ConfigureAwait(true);
-            DateOnly startDate = StartDate;
             DateOnly endDate = EndDate;
 
             if (File.Exists(_databasePath))
             {
                 var query = new UsageReportQuery(_databasePath);
+                DateOnly effectiveStartDate = await ResolveEffectiveStartDateAsync(
+                    query,
+                    endDate,
+                    cancellation.Token).ConfigureAwait(true);
+                SetEffectiveStartDate(effectiveStartDate);
+                DateOnly startDate = StartDate;
 
                 async Task<UsageReport> ReadRangeAsync(DateOnly start, DateOnly end)
                 {
@@ -680,6 +699,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             }
             else
             {
+                SetEffectiveStartDate(RequestedStartDate);
                 _globalReport = UsageReportQuery.Build([]);
                 _globalReportRange = null;
                 _report = _globalReport;
@@ -719,7 +739,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public void SetWindowDays(int days)
     {
-        if (days is not (1 or 3 or 7 or 15 or 30 or 60 or 90)
+        if (days is not (UsageReportPeriodOption.AllHistoryDays
+            or 1 or 3 or 7 or 15 or 30 or 60 or 90)
             || (days == _windowDays && !IsResetCycleWindow))
         {
             return;
@@ -728,6 +749,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _windowDays = days;
         _selectedPeriod = FindPeriod(days);
         _usesResetCycle = false;
+        _effectiveStartDate = null;
         OnPropertyChanged(nameof(WindowDays));
         OnPropertyChanged(nameof(SelectedPeriod));
         NotifyRangeChanged();
@@ -890,6 +912,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _windowDays = request.WindowDays;
         _selectedPeriod = FindPeriod(_windowDays);
         _usesResetCycle = false;
+        _effectiveStartDate = null;
         _metric = request.Metric;
         _breakdown = request.Breakdown;
         _valueMode = UsageReportValueMode.Absolute;
@@ -926,6 +949,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsAbsoluteValueMode));
         OnPropertyChanged(nameof(IsShareValueMode));
         OnPropertyChanged(nameof(WindowDays));
+        OnPropertyChanged(nameof(IsAllHistoryWindow));
         OnPropertyChanged(nameof(SelectedPeriod));
         OnPropertyChanged(nameof(PeriodText));
         OnPropertyChanged(nameof(Metric));
@@ -1300,6 +1324,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void NotifyRangeChanged()
     {
+        OnPropertyChanged(nameof(IsAllHistoryWindow));
         OnPropertyChanged(nameof(CanUseResetCycles));
         OnPropertyChanged(nameof(IsResetCycleWindow));
         OnPropertyChanged(nameof(HasMultipleResetCycles));
@@ -1343,6 +1368,41 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private UsageReportPeriodOption FindPeriod(int days) => PeriodOptions.Single(option =>
         option.Days == days);
+
+    private async Task<DateOnly> ResolveEffectiveStartDateAsync(
+        UsageReportQuery query,
+        DateOnly endDate,
+        CancellationToken cancellationToken)
+    {
+        if (IsResetCycleWindow)
+        {
+            return RequestedStartDate;
+        }
+
+        DateOnly requestedStart = RequestedStartDate;
+        if (!IsAllHistoryWindow && _windowDays != 90)
+        {
+            return requestedStart;
+        }
+
+        DateOnly searchStart = IsAllHistoryWindow ? DateOnly.MinValue : requestedStart;
+        (DateOnly From, DateOnly To)? available = await query.ReadAvailableDateRangeAsync(
+            searchStart,
+            endDate,
+            cancellationToken).ConfigureAwait(true);
+        return available?.From ?? requestedStart;
+    }
+
+    private void SetEffectiveStartDate(DateOnly value)
+    {
+        if (_effectiveStartDate == value)
+        {
+            return;
+        }
+
+        _effectiveStartDate = value;
+        NotifyRangeChanged();
+    }
 
     private static DateTimeOffset LocalDateStartUtc(DateOnly date)
     {

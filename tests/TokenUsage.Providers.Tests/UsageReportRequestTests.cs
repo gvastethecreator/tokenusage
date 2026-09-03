@@ -60,6 +60,7 @@ public sealed class UsageReportRequestTests
     [InlineData(3)]
     [InlineData(15)]
     [InlineData(60)]
+    [InlineData(UsageReportPeriodOption.AllHistoryDays)]
     public void ShortWindowsAreValidReportRanges(int windowDays)
     {
         var request = new UsageReportRequest(windowDays: windowDays);
