@@ -176,7 +176,13 @@ tokenusage report --from 2026-07-01 --to 2026-07-31 --agent codex --format json
 tokenusage limits --format json
 tokenusage providers --format human
 tokenusage doctor --format human
+tokenusage pricing audit --format human
+tokenusage pricing refresh --dry-run
 ```
+
+Pricing evidence keeps direct API rates separate from host-specific rates. The
+weekly refresh checks only allowlisted official pages and never stores their
+content or edits a price. See [pricing evidence and refresh](docs/PRICING.md).
 
 Run `tokenusage refresh` before a report when the app has not updated the local store. Refresh writes normalized numeric records from installed providers.
 

@@ -374,8 +374,8 @@ public sealed class KnownModelPricingCatalogTests
 
     [Theory]
     [InlineData("2026-08-31T23:59:59Z", 3.0)]
-    [InlineData("2026-09-01T00:00:00Z", 4.5)]
-    public void ClaudeSonnetFiveSwitchesToTheStandardRateAfterTheIntroductoryPeriod(
+    [InlineData("2026-09-01T00:00:00Z", 3.0)]
+    public void ClaudeSonnetFiveKeepsThePublishedStandardRate(
         string occurredAt,
         decimal expectedUsd)
     {
