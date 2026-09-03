@@ -8,14 +8,6 @@ public static class ClaudePricingCatalog
     public const string Version = "anthropic-api-2026-09-03";
     private const decimal TokensPerMillion = 1_000_000m;
 
-    private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
-        new(StringComparer.Ordinal)
-        {
-            ["claude-sonnet-5"] = new(
-                new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero),
-                new(3m, 15m, 3.75m, 6m, 0.3m)),
-        };
-
     private static readonly Dictionary<string, Rates> RatesByModel =
         new Dictionary<string, Rates>(StringComparer.Ordinal)
         {
@@ -69,12 +61,6 @@ public static class ClaudePricingCatalog
         if (!TryResolveRates(model, isFast, out Rates rates, out string priceMatch))
         {
             return CostObservation.Unavailable();
-        }
-
-        if (ListRatesFromUtc.TryGetValue(priceMatch, out DatedRates? dated)
-            && occurredAtUtc >= dated.ListEffectiveFromUtc)
-        {
-            rates = dated.ListRates;
         }
 
         decimal amount =
@@ -162,36 +148,16 @@ public static class ClaudePricingCatalog
         decimal CacheWrite1Hour,
         decimal CacheRead);
 
-    private sealed record DatedRates(
-        DateTimeOffset ListEffectiveFromUtc,
-        Rates ListRates);
-
     private static List<PricingRateEvidence> BuildEvidence()
     {
         string[] priceMatches = RatesByModel.Keys.ToArray();
         var evidence = new List<PricingRateEvidence>();
         foreach (string priceMatch in priceMatches)
         {
-            if (ListRatesFromUtc.TryGetValue(priceMatch, out DatedRates? dated))
-            {
-                evidence.Add(PricingEvidence.Promotion(
-                    Version,
-                    priceMatch,
-                    PricingOfficialSources.Anthropic,
-                    dated.ListEffectiveFromUtc));
-                evidence.Add(PricingEvidence.FollowOn(
-                    Version,
-                    priceMatch,
-                    PricingOfficialSources.Anthropic,
-                    dated.ListEffectiveFromUtc));
-            }
-            else
-            {
-                evidence.Add(PricingEvidence.Ongoing(
-                    Version,
-                    priceMatch,
-                    PricingOfficialSources.Anthropic));
-            }
+            evidence.Add(PricingEvidence.Ongoing(
+                Version,
+                priceMatch,
+                PricingOfficialSources.Anthropic));
         }
 
         PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);

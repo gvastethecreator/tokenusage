@@ -65,7 +65,9 @@ public static class CursorPricingCatalog
             .Select(priceMatch => PricingEvidence.Ongoing(
                 Version,
                 priceMatch,
-                PricingOfficialSources.Cursor))
+                priceMatch == "gemini-3.8-flash"
+                    ? PricingOfficialSources.CursorGemini
+                    : PricingOfficialSources.Cursor))
             .ToArray();
         PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
         return evidence;

@@ -65,6 +65,25 @@ public sealed class PricingEvidenceCatalogTests
     }
 
     [Fact]
+    public void ExpiredPromotionWithoutSuccessorFailsTheCatalogDiagnostics()
+    {
+        DateTimeOffset now = new(2026, 9, 3, 0, 0, 0, TimeSpan.Zero);
+        PricingRateEvidence expired = PricingEvidence.Promotion(
+            "catalog-v1",
+            "model-a",
+            PricingOfficialSources.OpenAi,
+            now.AddTicks(-1));
+
+        PricingDiagnostic diagnostic = Assert.Single(PricingCatalogAudit.Evaluate(
+            [expired],
+            now,
+            TimeSpan.FromDays(45),
+            TimeSpan.FromDays(30)));
+
+        Assert.Equal(PricingDiagnosticKind.ExpiredPromotionWithoutSuccessor, diagnostic.Kind);
+    }
+
+    [Fact]
     public void PromotionalEndBoundaryIsExclusiveAndSuccessorStartsAtTheSameInstant()
     {
         DateTimeOffset cutoff = new(2026, 9, 9, 16, 0, 0, TimeSpan.Zero);

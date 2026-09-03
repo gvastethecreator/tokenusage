@@ -224,6 +224,12 @@ public static class PricingOfficialSources
         ReviewDate,
         PricingBillingScope.HostSpecific);
 
+    public static PricingSourceEvidence CursorGemini { get; } = new(
+        "cursor-gemini-3-8-pricing",
+        new Uri("https://prod.cursor.com/docs/models/gemini-3-8-flash"),
+        ReviewDate,
+        PricingBillingScope.HostSpecific);
+
     public static PricingSourceEvidence Zai { get; } = new(
         "zai-model-pricing",
         new Uri("https://docs.z.ai/guides/overview/pricing"),
@@ -232,7 +238,7 @@ public static class PricingOfficialSources
 
     public static PricingSourceEvidence Moonshot { get; } = new(
         "moonshot-model-pricing",
-        new Uri("https://platform.moonshot.ai/docs/pricing/chat"),
+        new Uri("https://platform.kimi.ai/docs/pricing/chat"),
         ReviewDate,
         PricingBillingScope.DirectProviderApi);
 }
