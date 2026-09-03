@@ -45,7 +45,11 @@ public sealed partial class MainPage : Page, IDisposable
         var options = new AppCompositionOptions(
             DashboardLayoutPath: GetDashboardLayoutPath(localFolderPath),
             AppearanceSettingsPath: GetAppearanceSettingsPath(localFolderPath));
-        ViewModel = AppComposition.CreateFlyoutViewModel(localFolderPath, clock, options);
+        ViewModel = AppComposition.CreateFlyoutViewModel(
+            localFolderPath,
+            clock,
+            options,
+            App.AlertNotifications);
         SessionHost = ViewModel.SessionHost;
         InitializeComponent();
         _lastSurfaceState = ViewModel.SurfaceState;

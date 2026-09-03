@@ -1,10 +1,12 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Alerts;
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
@@ -21,6 +23,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private readonly PersonalizationSurfaceViewModel _personalization;
     private readonly ProviderStatusSurfaceViewModel _providerStatus;
     private readonly Func<string, string> _getString;
+    private readonly AlertNotificationDispatcher _alertNotifications;
     private AppearanceSettings _lastAppearanceSettings;
     private CancellationTokenSource? _refreshCancellation;
     private int _projectionBatchDepth;
@@ -49,7 +52,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         PersonalizationSurfaceViewModel personalization,
         ProviderStatusSurfaceViewModel providerStatus,
         Func<string, string> getString,
-        SynchronizationContext? synchronizationContext)
+        SynchronizationContext? synchronizationContext,
+        IAlertNotificationSink? alertNotifications = null)
     {
         _sampleSession = sampleSession ?? throw new ArgumentNullException(nameof(sampleSession));
         _liveSession = liveSession ?? throw new ArgumentNullException(nameof(liveSession));
@@ -59,6 +63,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             ?? throw new ArgumentNullException(nameof(personalization));
         _providerStatus = providerStatus ?? throw new ArgumentNullException(nameof(providerStatus));
         _getString = getString ?? throw new ArgumentNullException(nameof(getString));
+        _alertNotifications = new AlertNotificationDispatcher(
+            alertNotifications ?? NullAlertNotificationSink.Instance,
+            _getString);
         _lastAppearanceSettings = _appearance.Settings;
         _providerStatus.BindRefresh(() => RunRefreshAsync(scenario: null, forceRefresh: true));
         _general.SampleModeChanged += OnSampleModeChanged;
@@ -726,10 +733,10 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
     }
 
-    private static Task ApplyProviderUpdateAsync(AppSessionUpdateEventArgs update)
+    private Task ApplyProviderUpdateAsync(AppSessionUpdateEventArgs update)
     {
         ArgumentNullException.ThrowIfNull(update);
-        return Task.CompletedTask;
+        return _alertNotifications.DeliverAsync(update.Alerts);
     }
 
     private bool PublishCombinedLiveDashboard(bool reveal)

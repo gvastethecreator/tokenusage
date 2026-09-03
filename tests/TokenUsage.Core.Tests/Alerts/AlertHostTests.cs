@@ -25,6 +25,59 @@ public sealed class AlertHostTests
     }
 
     [Fact]
+    public void FactsBuilderProjectsExhaustionOnlyWhenDurationEvidenceIsPresent()
+    {
+        var clock = new FixedTimeProvider(Now);
+        DataProvenance provenance = CreateProvenance();
+        var snapshot = new ProviderSnapshot(
+            new ProviderId("codex"),
+            "Codex",
+            "Plus",
+            Now,
+            Now,
+            "UTC",
+            [
+                new ProgressMetricSnapshot(
+                    new MetricId("quota.primary"),
+                    75m,
+                    100m,
+                    Now.AddHours(12),
+                    provenance),
+                new ScalarMetricSnapshot(
+                    new MetricId("quota.primary.window-minutes"),
+                    1440m,
+                    "minutes",
+                    provenance),
+            ],
+            CoverageKind.Complete,
+            1);
+
+        QuotaAlertFacts quota = Assert.Single(AlertFactsBuilder.FromSnapshot(snapshot, clock).Quotas);
+
+        Assert.Equal(Now.AddHours(4), quota.ProjectedExhaustionAtUtc);
+    }
+
+    [Fact]
+    public void AlertActivationArgumentsRoundTripAndRejectMismatchedRoutes()
+    {
+        var original = new AlertActivationTarget(
+            AlertActivationArea.QuotaReport,
+            "codex",
+            "quota.primary");
+
+        Assert.True(AlertActivationTarget.TryParse(original.ToArguments(), out AlertActivationTarget? parsed));
+        Assert.Equal(original, parsed);
+        Assert.False(AlertActivationTarget.TryParse(
+            new Dictionary<string, string>
+            {
+                ["area"] = "status",
+                ["provider"] = "codex",
+                ["metric"] = "quota.primary",
+            },
+            out _));
+    }
+
+    [Fact]
     public void FactsBuilderMarksCredentialFailureFromNotConfiguredOutcome()
     {
         var clock = new FixedTimeProvider(Now);
@@ -71,6 +124,61 @@ public sealed class AlertHostTests
 
         IReadOnlyList<AlertNotificationIntent> second = await host.EvaluateAsync(Now.AddMinutes(1), [facts]);
         Assert.Empty(second);
+    }
+
+    [Fact]
+    public async Task NewQuotaWindowCanNotifyAfterAlertsWereTemporarilyDisabled()
+    {
+        using var folder = new TemporaryFolder();
+        var settingsStore = new AlertSettingsStore(Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName));
+        var decisionStore = new AlertDecisionStore(Path.Combine(folder.Root, AlertDecisionStore.DefaultFileName));
+        var host = new AlertHost(decisionStore, settingsStore);
+        AlertSettings enabled = CreateSettings(enabled: true);
+        await settingsStore.SaveAsync(enabled);
+
+        ProviderAlertFacts firstWindow = CreateFacts(10m);
+        Assert.Single(await host.EvaluateAsync(Now, [firstWindow]));
+
+        await settingsStore.SaveAsync(CreateSettings(enabled: false));
+        ProviderAlertFacts nextWindow = CreateFacts(10m, Now.AddDays(8));
+        Assert.Empty(await host.EvaluateAsync(Now.AddMinutes(1), [nextWindow]));
+        Assert.Single((await decisionStore.LoadAsync()).NotifiedConditionKeys);
+
+        await settingsStore.SaveAsync(enabled);
+        Assert.Single(await host.EvaluateAsync(Now.AddMinutes(2), [nextWindow]));
+        Assert.Equal(2, (await decisionStore.LoadAsync()).NotifiedConditionKeys.Count);
+    }
+
+    [Fact]
+    public async Task HostEmitsOneExhaustionForecastPerWindow()
+    {
+        using var folder = new TemporaryFolder();
+        var settingsStore = new AlertSettingsStore(Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName));
+        var decisionStore = new AlertDecisionStore(Path.Combine(folder.Root, AlertDecisionStore.DefaultFileName));
+        await settingsStore.SaveAsync(new AlertSettings(
+            enabled: true,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: false,
+            exhaustionForecastEnabled: true,
+            staleDataEnabled: false,
+            credentialFailureEnabled: false));
+        var host = new AlertHost(decisionStore, settingsStore);
+        var facts = new ProviderAlertFacts(
+            new ProviderId("codex"),
+            isStale: false,
+            hasCredentialFailure: false,
+            [
+                new QuotaAlertFacts(
+                    new MetricId("quota.primary"),
+                    remainingPercent: 25m,
+                    resetsAtUtc: Now.AddHours(12),
+                    projectedExhaustionAtUtc: Now.AddHours(4)),
+            ]);
+
+        AlertNotificationIntent intent = Assert.Single(await host.EvaluateAsync(Now, [facts]));
+        Assert.Equal(AlertKind.ExhaustionForecast, intent.Kind);
+        Assert.Equal(Now.AddHours(4), intent.Candidate.ProjectedExhaustionAtUtc);
+        Assert.Empty(await host.EvaluateAsync(Now.AddMinutes(1), [facts]));
     }
 
     [Fact]
@@ -135,7 +243,9 @@ public sealed class AlertHostTests
         Assert.Equal(AlertKind.QuotaThreshold, candidates[0].ConditionKey.Kind);
     }
 
-    private static ProviderAlertFacts CreateFacts(decimal remainingPercent) => new(
+    private static ProviderAlertFacts CreateFacts(
+        decimal remainingPercent,
+        DateTimeOffset? resetsAtUtc = null) => new(
         new ProviderId("codex"),
         isStale: false,
         hasCredentialFailure: false,
@@ -143,9 +253,17 @@ public sealed class AlertHostTests
             new QuotaAlertFacts(
                 new MetricId("session"),
                 remainingPercent,
-                resetsAtUtc: Now.AddDays(1),
+                resetsAtUtc: resetsAtUtc ?? Now.AddDays(1),
                 projectedExhaustionAtUtc: null),
         ]);
+
+    private static AlertSettings CreateSettings(bool enabled) => new(
+        enabled,
+        quotaThresholdPercent: 20,
+        quotaThresholdEnabled: true,
+        exhaustionForecastEnabled: true,
+        staleDataEnabled: true,
+        credentialFailureEnabled: true);
 
     private static ProviderSnapshot CreateSnapshot(decimal used, decimal limit, DateTimeOffset observedAt) =>
         new(
@@ -161,13 +279,15 @@ public sealed class AlertHostTests
                     used,
                     limit,
                     Now.AddDays(1),
-                    new DataProvenance(
-                        SourceKind.OfficialLocalApi,
-                        MeasurementKind.ProviderReported,
-                        "test/1")),
+                    CreateProvenance()),
             ],
             CoverageKind.Complete,
             1);
+
+    private static DataProvenance CreateProvenance() => new(
+        SourceKind.OfficialLocalApi,
+        MeasurementKind.ProviderReported,
+        "test/1");
 
     private sealed class TemporaryFolder : IDisposable
     {

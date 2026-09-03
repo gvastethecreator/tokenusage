@@ -101,6 +101,37 @@ public sealed class SessionModuleTests
     }
 
     [Fact]
+    public async Task GeneralOptionsPersistsQuotaAlertControlsWithoutChangingHealthKinds()
+    {
+        using var folder = new TemporaryFolder();
+        string path = Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName);
+        var store = new AlertSettingsStore(path);
+        await store.SaveAsync(new AlertSettings(
+            enabled: false,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: true,
+            exhaustionForecastEnabled: true,
+            staleDataEnabled: false,
+            credentialFailureEnabled: true));
+        var surface = new GeneralOptionsViewModel(key => key, alertSettings: store);
+        await surface.Initialization;
+
+        surface.AreAlertsEnabled = true;
+        surface.QuotaAlertThresholdPercent = 15;
+        surface.IsQuotaThresholdAlertEnabled = false;
+        surface.IsExhaustionForecastAlertEnabled = false;
+        await surface.WaitForPendingAlertSaveAsync();
+
+        AlertSettings saved = await store.LoadAsync();
+        Assert.True(saved.Enabled);
+        Assert.Equal(15, saved.QuotaThresholdPercent);
+        Assert.False(saved.QuotaThresholdEnabled);
+        Assert.False(saved.ExhaustionForecastEnabled);
+        Assert.False(saved.StaleDataEnabled);
+        Assert.True(saved.CredentialFailureEnabled);
+    }
+
+    [Fact]
     public void OptionsNavigationOwnsDepthAndCloseRequest()
     {
         var navigation = new OptionsNavigationViewModel();

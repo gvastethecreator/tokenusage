@@ -6,6 +6,7 @@ using TokenUsage.App.Localization;
 using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Alerts;
 using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
 using Microsoft.UI.Dispatching;
@@ -29,7 +30,9 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AppearanceSettingsStore appearanceSettingsStore,
         QuotaResetHistoryStore quotaResetHistory,
         IManualProviderCredentialStore? manualCredentials = null,
-        DataCollectionSettingsStore? dataCollectionSettings = null)
+        DataCollectionSettingsStore? dataCollectionSettings = null,
+        AlertSettingsStore? alertSettings = null,
+        IAlertNotificationSink? alertNotifications = null)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
@@ -48,7 +51,10 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             new AppearanceSession(appearanceSettingsStore),
             GetString);
         AppearanceOptions.SettingsChanged += OnAppearanceSettingsChanged;
-        GeneralOptions = new GeneralOptionsViewModel(GetString, dataCollectionSettings);
+        GeneralOptions = new GeneralOptionsViewModel(
+            GetString,
+            dataCollectionSettings,
+            alertSettings);
         GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
         ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
@@ -69,7 +75,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             Personalization,
             ProviderStatus,
             GetString,
-            SynchronizationContext.Current);
+            SynchronizationContext.Current,
+            alertNotifications);
         Dashboard.PropertyChanged += OnDashboardPropertyChanged;
         _resultSurface = Dashboard.ResultSurface;
         _openRefreshTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();

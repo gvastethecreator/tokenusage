@@ -768,6 +768,24 @@
   <data name="DataCollectionRefresh15Minutes" xml:space="preserve"><value>Every 15 minutes</value></data>
   <data name="DataCollectionRefresh30Minutes" xml:space="preserve"><value>Every 30 minutes</value></data>
   <data name="DataCollectionRefresh60Minutes" xml:space="preserve"><value>Every hour</value></data>
+  <data name="AlertsMasterLabel.Text" xml:space="preserve"><value>Windows alerts</value></data>
+  <data name="AlertsMasterDescription.Text" xml:space="preserve"><value>Notify you about quota and provider health changes.</value></data>
+  <data name="AlertsMasterToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Windows alerts</value></data>
+  <data name="QuotaAlertThresholdLabel.Text" xml:space="preserve"><value>Low quota threshold (%)</value></data>
+  <data name="QuotaAlertThresholdNumberBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Low quota threshold percent</value></data>
+  <data name="QuotaThresholdAlertLabel.Text" xml:space="preserve"><value>Low quota</value></data>
+  <data name="QuotaThresholdAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Low quota alerts</value></data>
+  <data name="ExhaustionForecastAlertLabel.Text" xml:space="preserve"><value>Exhaustion forecast</value></data>
+  <data name="ExhaustionForecastAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Exhaustion forecast alerts</value></data>
+  <data name="AlertQuotaTitleFormat" xml:space="preserve"><value>{0} quota is low</value></data>
+  <data name="AlertQuotaBodyFormat" xml:space="preserve"><value>{0}% remains. Your alert threshold is {1}%.</value></data>
+  <data name="AlertExhaustionTitleFormat" xml:space="preserve"><value>{0} may run out before reset</value></data>
+  <data name="AlertExhaustionBodyFormat" xml:space="preserve"><value>At the current pace, quota may run out around {0}.</value></data>
+  <data name="AlertTimeUnavailable" xml:space="preserve"><value>an unknown time</value></data>
+  <data name="AlertStaleTitleFormat" xml:space="preserve"><value>{0} data is stale</value></data>
+  <data name="AlertStaleBody" xml:space="preserve"><value>TokenUsage has not received recent data. Open provider status to review the connection.</value></data>
+  <data name="AlertCredentialTitleFormat" xml:space="preserve"><value>{0} needs attention</value></data>
+  <data name="AlertCredentialBody" xml:space="preserve"><value>TokenUsage could not read this provider. Open provider status to review its setup.</value></data>
   <data name="CompactCostUnavailable" xml:space="preserve"><value>Cost unavailable</value></data>
   <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHED INPUT  {0}    •    UNCACHED INPUT  {1}    •    OUTPUT  {2}</value></data>
   <data name="UsageReportSummaryTokensLabel.Text" xml:space="preserve"><value>TOKENS</value></data>
