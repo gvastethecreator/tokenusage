@@ -25,6 +25,9 @@ public static class CursorPricingCatalog
             ["grok-4.6-fast"] = new(4m, 1m, 12m),
         };
 
+    public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
+        BuildEvidence();
+
     public static CostObservation Resolve(
         string model,
         DateTimeOffset occurredAtUtc,
@@ -54,4 +57,17 @@ public static class CursorPricingCatalog
         decimal Input,
         decimal CacheRead,
         decimal Output);
+
+    private static PricingRateEvidence[] BuildEvidence()
+    {
+        string[] priceMatches = FirstPartyRatesByModel.Keys.ToArray();
+        PricingRateEvidence[] evidence = priceMatches
+            .Select(priceMatch => PricingEvidence.Ongoing(
+                Version,
+                priceMatch,
+                PricingOfficialSources.Cursor))
+            .ToArray();
+        PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
+        return evidence;
+    }
 }

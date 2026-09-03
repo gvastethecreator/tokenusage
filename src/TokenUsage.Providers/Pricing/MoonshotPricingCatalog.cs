@@ -22,6 +22,9 @@ public static class MoonshotPricingCatalog
             ["kimi-k2.6"] = new(0.95m, 0.16m, 4m),
         };
 
+    public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
+        BuildEvidence();
+
     public static CostObservation Resolve(string model, TokenBreakdown tokens)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
@@ -48,4 +51,17 @@ public static class MoonshotPricingCatalog
         decimal Input,
         decimal CacheRead,
         decimal Output);
+
+    private static PricingRateEvidence[] BuildEvidence()
+    {
+        string[] priceMatches = RatesByModel.Keys.ToArray();
+        PricingRateEvidence[] evidence = priceMatches
+            .Select(priceMatch => PricingEvidence.Ongoing(
+                Version,
+                priceMatch,
+                PricingOfficialSources.Moonshot))
+            .ToArray();
+        PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
+        return evidence;
+    }
 }

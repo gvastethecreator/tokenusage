@@ -73,6 +73,9 @@ public static class GooglePricingCatalog
             ["gemini-3.8-flash"] = new("gemini-3.8-flash", 0.75m, 0.075m, 3.75m),
         };
 
+    public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
+        BuildEvidence();
+
     public static CostObservation Resolve(
         string model,
         TokenBreakdown tokens,
@@ -130,4 +133,39 @@ public static class GooglePricingCatalog
     private sealed record DatedRates(
         DateTimeOffset ListEffectiveFromUtc,
         Rates ListRates);
+
+    private static List<PricingRateEvidence> BuildEvidence()
+    {
+        string[] priceMatches = RatesByModel.Values
+            .Select(rate => rate.PriceMatch)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var evidence = new List<PricingRateEvidence>();
+        foreach (string priceMatch in priceMatches)
+        {
+            if (ListRatesFromUtc.TryGetValue(priceMatch, out DatedRates? dated))
+            {
+                evidence.Add(PricingEvidence.Promotion(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.Google,
+                    dated.ListEffectiveFromUtc));
+                evidence.Add(PricingEvidence.FollowOn(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.Google,
+                    dated.ListEffectiveFromUtc));
+            }
+            else
+            {
+                evidence.Add(PricingEvidence.Ongoing(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.Google));
+            }
+        }
+
+        PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
+        return evidence;
+    }
 }
