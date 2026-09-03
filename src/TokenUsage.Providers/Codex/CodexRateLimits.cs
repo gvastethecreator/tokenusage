@@ -133,9 +133,20 @@ internal static class CodexRateLimitsParser
             ParseOptionalWindow(element, "primary"),
             ParseOptionalWindow(element, "secondary"))
         {
-            LimitId = ParseOptionalLabel(element, "limitId"),
+            LimitId = ParseOptionalLimitId(element, "limitId"),
             LimitName = ParseOptionalLabel(element, "limitName"),
         };
+    }
+
+    private static string? ParseOptionalLimitId(JsonElement element, string propertyName)
+    {
+        string? value = ParseOptionalLabel(element, propertyName);
+        if (value is not null && !IsSafeLimitId(value))
+        {
+            throw ContractFailure();
+        }
+
+        return value;
     }
 
     private static string? ParseOptionalLabel(JsonElement element, string propertyName)

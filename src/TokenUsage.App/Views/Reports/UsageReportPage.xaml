@@ -167,7 +167,15 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            FontSize="10"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Text="{x:Bind LabelEvidenceText}"
+                            TextTrimming="CharacterEllipsis"
+                            Visibility="{x:Bind HasLabelEvidence}" />
+                    </StackPanel>
                     <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="12" FontWeight="SemiBold" Text="{x:Bind RemainingText}" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
                 </Grid>
                 <controls:AnimatedProgressBar

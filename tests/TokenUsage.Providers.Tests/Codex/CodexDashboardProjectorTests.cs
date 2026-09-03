@@ -49,7 +49,8 @@ public sealed class CodexDashboardProjectorTests
         Assert.Equal(3, card.Windows.Count);
         Assert.Equal("Session", card.Windows[0].Title);
         Assert.Equal("Weekly", card.Windows[1].Title);
-        Assert.Equal("GPT reserve", card.Windows[2].Title);
+        Assert.Equal("gpt-reserve", card.Windows[2].Title);
+        Assert.Equal("Provider label", card.Windows[2].LabelEvidenceText);
         Assert.Equal("58% left · 42% used", card.Windows[0].RemainingText);
         Assert.Equal("Resets in 4 h", card.Windows[0].ResetText);
         Assert.Equal("210% projected · limit in 1 h 23 min", card.Windows[0].PaceText);
@@ -241,7 +242,7 @@ public sealed class CodexDashboardProjectorTests
     }
 
     [Fact]
-    public void BengalfoxLimitsUseSparkCadenceNames()
+    public void UnnamedAdditionalLimitsUseNeutralIdentityAndDurationNames()
     {
         var provenance = new DataProvenance(
             SourceKind.OfficialLocalApi,
@@ -266,7 +267,13 @@ public sealed class CodexDashboardProjectorTests
                     0m,
                     100m,
                     Now.AddHours(5),
-                    provenance),
+                    provenance,
+                    labelEvidence: new MetricLabelEvidence(
+                        "codex-bengalfox",
+                        null,
+                        null,
+                        MetricLabelSource.Duration,
+                        MetricLabelConfidence.Derived)),
                 new ScalarMetricSnapshot(
                     new MetricId("quota.codex-bengalfox.primary.window-minutes"),
                     300m,
@@ -277,7 +284,13 @@ public sealed class CodexDashboardProjectorTests
                     0m,
                     100m,
                     Now.AddDays(7),
-                    provenance),
+                    provenance,
+                    labelEvidence: new MetricLabelEvidence(
+                        "codex-bengalfox",
+                        null,
+                        null,
+                        MetricLabelSource.Duration,
+                        MetricLabelConfidence.Derived)),
                 new ScalarMetricSnapshot(
                     new MetricId("quota.codex-bengalfox.secondary.window-minutes"),
                     10_080m,
@@ -292,8 +305,11 @@ public sealed class CodexDashboardProjectorTests
             new FixedTimeProvider(Now),
             GetString).Providers);
 
-        Assert.Equal("Spark session", card.Windows[1].Title);
-        Assert.Equal("Spark weekly", card.Windows[2].Title);
+        Assert.Equal("Limit codex-bengalfox · 5 h", card.Windows[1].Title);
+        Assert.Equal("Limit codex-bengalfox · 168 h", card.Windows[2].Title);
+        Assert.Equal("Name derived from duration", card.Windows[1].LabelEvidenceText);
+        Assert.DoesNotContain("Spark", card.Windows[1].DisplayAutomationName, StringComparison.Ordinal);
+        Assert.DoesNotContain("Spark", card.Windows[2].DisplayAutomationName, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -370,8 +386,11 @@ public sealed class CodexDashboardProjectorTests
         "CodexWindowSecondary" => "Secondary limit",
         "CodexWindowAdditionalPrimaryFormat" => "Additional limit {0}",
         "CodexWindowAdditionalSecondaryFormat" => "Additional limit {0}",
-        "CodexWindowSparkSession" => "Spark session",
-        "CodexWindowSparkWeekly" => "Spark weekly",
+        "CodexWindowUnnamedFormat" => "Limit {0}",
+        "CodexWindowUnnamedDurationFormat" => "Limit {0} · {1}",
+        "CodexLabelProviderSupplied" => "Provider label",
+        "CodexLabelDurationDerived" => "Name derived from duration",
+        "CodexLabelUnknown" => "Provider did not supply a name",
         "CodexResetUnknown" => "Reset time unavailable",
         "CodexResetDue" => "Reset due",
         "SampleWindowSession" => "Session",

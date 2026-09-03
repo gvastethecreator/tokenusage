@@ -119,6 +119,16 @@ internal static class SnapshotCacheMapper
                 dto.ResetCadence = progress.ResetCadence?.ToString();
                 dto.IsActive = progress.IsActive;
                 dto.DisplayName = progress.DisplayName;
+                dto.LabelEvidence = progress.LabelEvidence is null
+                    ? null
+                    : new SnapshotCacheMetricLabelEvidenceV1
+                    {
+                        ProviderMetricKey = progress.LabelEvidence.ProviderMetricKey,
+                        ProviderMetricId = progress.LabelEvidence.ProviderMetricId,
+                        ProviderMetricName = progress.LabelEvidence.ProviderMetricName,
+                        Source = progress.LabelEvidence.Source.ToString(),
+                        Confidence = progress.LabelEvidence.Confidence.ToString(),
+                    };
                 break;
             case ScalarMetricSnapshot scalar:
                 dto.Kind = "scalar";
@@ -212,7 +222,8 @@ internal static class SnapshotCacheMapper
                     dto.ResetCadence,
                     nameof(dto.ResetCadence)),
                 dto.IsActive,
-                OptionalText(dto.DisplayName, nameof(dto.DisplayName))),
+                OptionalText(dto.DisplayName, nameof(dto.DisplayName)),
+                FromLabelEvidence(dto.LabelEvidence)),
             "scalar" => new ScalarMetricSnapshot(
                 id,
                 dto.Value ?? throw new SnapshotCacheFormatException("Scalar value is missing."),
@@ -221,6 +232,17 @@ internal static class SnapshotCacheMapper
             _ => throw new SnapshotCacheFormatException("The metric kind is missing or unsupported."),
         };
     }
+
+    private static MetricLabelEvidence? FromLabelEvidence(
+        SnapshotCacheMetricLabelEvidenceV1? dto) =>
+        dto is null
+            ? null
+            : new MetricLabelEvidence(
+                OptionalText(dto.ProviderMetricKey, nameof(dto.ProviderMetricKey)),
+                OptionalText(dto.ProviderMetricId, nameof(dto.ProviderMetricId)),
+                OptionalText(dto.ProviderMetricName, nameof(dto.ProviderMetricName)),
+                ParseEnum<MetricLabelSource>(dto.Source, nameof(dto.Source)),
+                ParseEnum<MetricLabelConfidence>(dto.Confidence, nameof(dto.Confidence)));
 
     private static DataProvenance FromProvenance(SnapshotCacheProvenanceV1 dto) =>
         new(

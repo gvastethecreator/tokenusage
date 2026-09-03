@@ -297,9 +297,8 @@ public static class TraySummaryProjector
         ?? limits.FirstOrDefault(window => window != session);
 
     private static bool IsAdditionalLimit(string metricId) =>
-        metricId.StartsWith("quota.codex-spark.", StringComparison.Ordinal)
-        || metricId.StartsWith("quota.codex-bengalfox.", StringComparison.Ordinal)
-        || metricId.StartsWith("quota.z-model.", StringComparison.Ordinal);
+        metricId.StartsWith("quota.", StringComparison.Ordinal)
+        && metricId.Count(character => character == '.') > 1;
 
     private static string ResolvePeriodShortLabel(
         QuotaWindow? period,

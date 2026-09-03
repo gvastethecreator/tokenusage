@@ -125,7 +125,8 @@ public sealed record QuotaWindow(
     string HighlightLabel = "",
     DateTimeOffset? ResetAtUtc = null,
     double? QuotaRemainingPercent = null,
-    string UsedText = "")
+    string UsedText = "",
+    string LabelEvidenceText = "")
 {
     public bool IsWithinLimit => !IsNearLimit;
 
@@ -141,17 +142,20 @@ public sealed record QuotaWindow(
 
     public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
 
-    public string DisplayAutomationName => HasHighlight
-        ? $"{AutomationName}. {HighlightLabel}"
-        : AutomationName;
+    public bool HasLabelEvidence => !string.IsNullOrWhiteSpace(LabelEvidenceText);
+
+    public string DisplayAutomationName
+    {
+        get
+        {
+            string label = HasLabelEvidence
+                ? $"{AutomationName}. {LabelEvidenceText}"
+                : AutomationName;
+            return HasHighlight ? $"{label}. {HighlightLabel}" : label;
+        }
+    }
 
     public double ColorRemainingPercent => QuotaRemainingPercent ?? RemainingPercent;
-
-    public string IconGlyph =>
-        LayoutMetricId.Contains("bengalfox", StringComparison.OrdinalIgnoreCase)
-        || Title.Contains("Spark", StringComparison.OrdinalIgnoreCase)
-            ? "\uE945"
-            : "\uE787";
 }
 
 public sealed record DashboardMetric(

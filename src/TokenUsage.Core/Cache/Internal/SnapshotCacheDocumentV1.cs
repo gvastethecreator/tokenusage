@@ -63,7 +63,22 @@ internal sealed class SnapshotCacheMetricV1
 
     public string? DisplayName { get; set; }
 
+    public SnapshotCacheMetricLabelEvidenceV1? LabelEvidence { get; set; }
+
     public SnapshotCacheProvenanceV1? Provenance { get; set; }
+}
+
+internal sealed class SnapshotCacheMetricLabelEvidenceV1
+{
+    public string? ProviderMetricKey { get; set; }
+
+    public string? ProviderMetricId { get; set; }
+
+    public string? ProviderMetricName { get; set; }
+
+    public string? Source { get; set; }
+
+    public string? Confidence { get; set; }
 }
 
 internal sealed class SnapshotCacheProvenanceV1

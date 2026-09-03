@@ -79,6 +79,73 @@ public enum ProgressResetCadence
     Never,
 }
 
+public enum MetricLabelSource
+{
+    Provider,
+    Duration,
+    Unknown,
+}
+
+public enum MetricLabelConfidence
+{
+    Exact,
+    Derived,
+    Unknown,
+}
+
+public sealed record MetricLabelEvidence
+{
+    public MetricLabelEvidence(
+        string? providerMetricKey,
+        string? providerMetricId,
+        string? providerMetricName,
+        MetricLabelSource source,
+        MetricLabelConfidence confidence)
+    {
+        ValidateOptionalText(providerMetricKey, nameof(providerMetricKey));
+        ValidateOptionalText(providerMetricId, nameof(providerMetricId));
+        ValidateOptionalText(providerMetricName, nameof(providerMetricName));
+        if (!Enum.IsDefined(source))
+        {
+            throw new ArgumentOutOfRangeException(nameof(source));
+        }
+
+        if (!Enum.IsDefined(confidence))
+        {
+            throw new ArgumentOutOfRangeException(nameof(confidence));
+        }
+
+        ProviderMetricKey = providerMetricKey;
+        ProviderMetricId = providerMetricId;
+        ProviderMetricName = providerMetricName;
+        Source = source;
+        Confidence = confidence;
+    }
+
+    public string? ProviderMetricKey { get; }
+
+    public string? ProviderMetricId { get; }
+
+    public string? ProviderMetricName { get; }
+
+    public MetricLabelSource Source { get; }
+
+    public MetricLabelConfidence Confidence { get; }
+
+    private static void ValidateOptionalText(string? value, string paramName)
+    {
+        if (value is not null
+            && (string.IsNullOrWhiteSpace(value)
+                || value.Length > 64
+                || value.Any(char.IsControl)))
+        {
+            throw new ArgumentException(
+                "Metric label evidence must be readable and no longer than 64 characters.",
+                paramName);
+        }
+    }
+}
+
 public sealed class ProgressMetricSnapshot : MetricSnapshot
 {
     public ProgressMetricSnapshot(
@@ -90,7 +157,8 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
         string? unit = null,
         ProgressResetCadence? resetCadence = null,
         bool? isActive = null,
-        string? displayName = null)
+        string? displayName = null,
+        MetricLabelEvidence? labelEvidence = null)
         : base(id, provenance)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(used);
@@ -128,6 +196,7 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
         ResetCadence = resetCadence;
         IsActive = isActive;
         DisplayName = displayName;
+        LabelEvidence = labelEvidence;
     }
 
     public decimal Used { get; }
@@ -145,6 +214,8 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
     public bool? IsActive { get; }
 
     public string? DisplayName { get; }
+
+    public MetricLabelEvidence? LabelEvidence { get; }
 }
 
 public sealed class ScalarMetricSnapshot : MetricSnapshot

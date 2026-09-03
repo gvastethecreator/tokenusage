@@ -670,7 +670,13 @@ public sealed class SnapshotStoreTests
                     "usd",
                     ProgressResetCadence.Monthly,
                     isActive: true,
-                    displayName: "GPT reserve"),
+                    displayName: "gpt-reserve",
+                    labelEvidence: new MetricLabelEvidence(
+                        "codex-model",
+                        "base_model_inference",
+                        "gpt-reserve",
+                        MetricLabelSource.Provider,
+                        MetricLabelConfidence.Exact)),
                 new ScalarMetricSnapshot(
                     new MetricId("spend-usd"),
                     12.34m,
@@ -711,6 +717,7 @@ public sealed class SnapshotStoreTests
         Assert.Equal(expectedProgress.ResetCadence, actualProgress.ResetCadence);
         Assert.Equal(expectedProgress.IsActive, actualProgress.IsActive);
         Assert.Equal(expectedProgress.DisplayName, actualProgress.DisplayName);
+        Assert.Equal(expectedProgress.LabelEvidence, actualProgress.LabelEvidence);
         Assert.Equal(expectedProgress.Provenance, actualProgress.Provenance);
 
         var expectedScalar = Assert.IsType<ScalarMetricSnapshot>(expected.Metrics[1]);
