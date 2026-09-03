@@ -575,6 +575,7 @@
   <data name="UsageReportPeriod30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="UsageReportPeriod60Days" xml:space="preserve"><value>Last 60 days</value></data>
   <data name="UsageReportPeriod90Days" xml:space="preserve"><value>Last 90 days</value></data>
+  <data name="UsageReportPeriodAllHistory" xml:space="preserve"><value>All history</value></data>
   <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Reset cycle</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between Codex resets</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed Codex reset cycle</value></data>
@@ -679,6 +680,7 @@
   <data name="UsageReportCoverageHintButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Data quality details</value></data>
   <data name="UsageTrendEmpty.Text" xml:space="preserve"><value>No daily activity</value></data>
   <data name="UsageReportPeriodFormat" xml:space="preserve"><value>Calendar days · {0} to {1}</value></data>
+  <data name="UsageReportAllHistoryPeriodFormat" xml:space="preserve"><value>All history · {0} to {1}</value></data>
   <data name="UsageReportTotalCostLabel" xml:space="preserve"><value>OBSERVED COST</value></data>
   <data name="UsageReportProcessedTokensLabel" xml:space="preserve"><value>Processed tokens</value></data>
   <data name="UsageReportCostBasisHint" xml:space="preserve"><value>Provider-reported cost plus catalog estimates. This is not a bill.</value></data>

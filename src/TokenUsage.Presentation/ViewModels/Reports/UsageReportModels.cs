@@ -22,7 +22,10 @@ public enum UsageReportValueMode
 
 public sealed record UsageReportProviderOption(string ProviderId, string Name);
 
-public sealed record UsageReportPeriodOption(int Days, string DisplayName);
+public sealed record UsageReportPeriodOption(int Days, string DisplayName)
+{
+    public const int AllHistoryDays = 0;
+}
 
 public sealed record UsageReportResetCycleOption(
     string Id,

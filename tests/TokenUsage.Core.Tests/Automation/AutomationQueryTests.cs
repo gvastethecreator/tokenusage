@@ -62,6 +62,9 @@ public sealed class AutomationQueryTests
             new DateOnly(2026, 7, 24),
             new DateOnly(2026, 7, 25),
             new AgentId("codex"));
+        (DateOnly From, DateOnly To)? availableRange = await query.ReadAvailableDateRangeAsync(
+            new DateOnly(2026, 7, 1),
+            new DateOnly(2026, 7, 25));
 
         Assert.Equal(3, report.Totals.EventCount);
         Assert.Equal(450, report.Totals.Tokens.Total);
@@ -85,6 +88,9 @@ public sealed class AutomationQueryTests
         Assert.Single(codexOnly.Agents);
         Assert.Equal("codex", codexOnly.Agents[0].AgentId.Value);
         Assert.Equal(2, codexOnly.AgentDays.Count);
+        Assert.Equal(
+            (new DateOnly(2026, 7, 24), new DateOnly(2026, 7, 25)),
+            availableRange);
 
         UsageReport filtered = UsageReportQuery.FilterByAgent(report, new AgentId("codex"));
         Assert.Equal(codexOnly.Totals, filtered.Totals);
