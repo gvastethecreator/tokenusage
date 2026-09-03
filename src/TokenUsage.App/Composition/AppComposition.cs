@@ -31,7 +31,8 @@ public static class AppComposition
     public static FlyoutViewModel CreateFlyoutViewModel(
         string localFolderPath,
         TimeProvider? clock = null,
-        AppCompositionOptions? options = null)
+        AppCompositionOptions? options = null,
+        IAlertNotificationSink? alertNotifications = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(localFolderPath);
         TimeProvider resolvedClock = clock ?? TimeProvider.System;
@@ -81,15 +82,16 @@ public static class AppComposition
             () => dataCollectionSettings.LoadAsync()).GetAwaiter().GetResult();
         RefreshHookAutoSetup.EnsureInstalled(
             backgroundCollection: collectionSettings.BackgroundCollection);
+        var alertSettings = new AlertSettingsStore(
+            Path.Combine(localFolderPath, AlertSettingsStore.DefaultFileName),
+            resolvedClock);
         var sessionHost = new AppSessionHost(
             providers.RefreshHost,
             new AlertHost(
                 new AlertDecisionStore(
                     Path.Combine(localFolderPath, AlertDecisionStore.DefaultFileName),
                     resolvedClock),
-                new AlertSettingsStore(
-                    Path.Combine(localFolderPath, AlertSettingsStore.DefaultFileName),
-                    resolvedClock)),
+                alertSettings),
             resolvedClock);
 
         return new FlyoutViewModel(
@@ -103,7 +105,9 @@ public static class AppComposition
             new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock),
             quotaResetHistory,
             new WindowsManualProviderCredentialStore(),
-            dataCollectionSettings);
+            dataCollectionSettings,
+            alertSettings,
+            alertNotifications ?? NullAlertNotificationSink.Instance);
     }
 
     public static string GetUsageDatabasePath(string localFolderPath)

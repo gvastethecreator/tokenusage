@@ -17,6 +17,16 @@ public static class AlertFactsBuilder
         ArgumentNullException.ThrowIfNull(clock);
 
         bool isStale = SnapshotFreshness.IsStale(snapshot, clock, staleAfter);
+        DateTimeOffset nowUtc = clock.GetUtcNow().ToUniversalTime();
+        Dictionary<string, TimeSpan> durations = snapshot.Metrics
+            .OfType<ScalarMetricSnapshot>()
+            .Where(metric => metric.Id.Value.EndsWith(".window-minutes", StringComparison.Ordinal)
+                && metric.Value > 0m
+                && metric.Value <= (decimal)TimeSpan.MaxValue.TotalMinutes)
+            .ToDictionary(
+                metric => metric.Id.Value[..^".window-minutes".Length],
+                metric => TimeSpan.FromMinutes((double)metric.Value),
+                StringComparer.Ordinal);
         var quotas = new List<QuotaAlertFacts>();
         foreach (MetricSnapshot metric in snapshot.Metrics)
         {
@@ -25,11 +35,21 @@ public static class AlertFactsBuilder
                 continue;
             }
 
+            durations.TryGetValue(progress.Id.Value, out TimeSpan windowDuration);
+            QuotaPaceResult? pace = QuotaPace.Evaluate(
+                progress.Used,
+                progress.Limit,
+                progress.ResetsAtUtc,
+                windowDuration == default ? null : windowDuration,
+                nowUtc);
+            DateTimeOffset? projectedExhaustion = pace?.TimeToExhaust is TimeSpan eta
+                ? nowUtc + eta
+                : null;
             quotas.Add(new QuotaAlertFacts(
                 progress.Id,
                 progress.RemainingPercent,
                 progress.ResetsAtUtc,
-                projectedExhaustionAtUtc: null));
+                projectedExhaustion));
         }
 
         return new ProviderAlertFacts(

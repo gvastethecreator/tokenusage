@@ -1,6 +1,7 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
+using TokenUsage.App.Services;
 
 namespace TokenUsage.App;
 
@@ -13,7 +14,13 @@ internal static class Program
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
+        using var notifications = new WindowsAlertNotificationService();
+        notifications.ActivationRequested += App.OnAlertNotificationActivation;
+        notifications.Register();
+        App.ConfigureAlertNotifications(notifications);
+
         var activationArguments = AppInstance.GetCurrent().GetActivatedEventArgs();
+        _ = notifications.TryActivate(activationArguments);
         var keyInstance = AppInstance.FindOrRegisterForKey(InstanceKey);
         if (!keyInstance.IsCurrent)
         {
@@ -29,6 +36,8 @@ internal static class Program
                 new DispatcherQueueSynchronizationContext(dispatcherQueue));
             _ = new App();
         });
+
+        notifications.ActivationRequested -= App.OnAlertNotificationActivation;
 
         return 0;
     }

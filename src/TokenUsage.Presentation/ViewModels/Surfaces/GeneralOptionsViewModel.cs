@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using TokenUsage.App.ViewModels.Sample;
+using TokenUsage.Core.Alerts;
 using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Surfaces;
@@ -10,13 +11,17 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
 {
     private bool _isInitializing = true;
     private readonly DataCollectionSettingsStore? _dataCollectionSettings;
+    private readonly AlertSettingsStore? _alertSettings;
+    private Task _pendingAlertSave = Task.CompletedTask;
 
     public GeneralOptionsViewModel(
         Func<string, string> getString,
-        DataCollectionSettingsStore? dataCollectionSettings = null)
+        DataCollectionSettingsStore? dataCollectionSettings = null,
+        AlertSettingsStore? alertSettings = null)
     {
         ArgumentNullException.ThrowIfNull(getString);
         _dataCollectionSettings = dataCollectionSettings;
+        _alertSettings = alertSettings;
         DataCollectionRefreshOptions =
         [
             new(0, getString("DataCollectionRefreshManual")),
@@ -35,10 +40,9 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
         ];
         SelectedSampleScenario = SampleScenarios[0];
         _isInitializing = false;
-        if (_dataCollectionSettings is not null)
-        {
-            _ = InitializeDataCollectionAsync();
-        }
+        Initialization = _dataCollectionSettings is not null || _alertSettings is not null
+            ? InitializeAsync()
+            : Task.CompletedTask;
     }
 
     public event EventHandler? SampleModeChanged;
@@ -53,34 +57,68 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
 
     public IReadOnlyList<DataCollectionRefreshOption> DataCollectionRefreshOptions { get; }
 
+    public Task Initialization { get; }
+
     [ObservableProperty]
     public partial bool IsBackgroundCollectionEnabled { get; set; } = true;
 
     [ObservableProperty]
     public partial DataCollectionRefreshOption SelectedDataCollectionRefresh { get; set; }
 
-    private async Task InitializeDataCollectionAsync()
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AreAlertControlsEnabled))]
+    public partial bool AreAlertsEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial double QuotaAlertThresholdPercent { get; set; } =
+        AlertSettings.Default.QuotaThresholdPercent;
+
+    [ObservableProperty]
+    public partial bool IsQuotaThresholdAlertEnabled { get; set; } =
+        AlertSettings.Default.QuotaThresholdEnabled;
+
+    [ObservableProperty]
+    public partial bool IsExhaustionForecastAlertEnabled { get; set; } =
+        AlertSettings.Default.ExhaustionForecastEnabled;
+
+    public bool AreAlertControlsEnabled => AreAlertsEnabled;
+
+    private async Task InitializeAsync()
     {
         try
         {
-            DataCollectionSettings settings = await _dataCollectionSettings!.LoadAsync()
-                .ConfigureAwait(true);
             _isInitializing = true;
-            IsBackgroundCollectionEnabled = settings.BackgroundCollection;
-            DataCollectionRefreshOption? match = DataCollectionRefreshOptions.FirstOrDefault(
-                option => option.Minutes == settings.OpenRefreshMinutes);
-            if (match is not null)
+            if (_dataCollectionSettings is not null)
             {
-                SelectedDataCollectionRefresh = match;
+                DataCollectionSettings settings = await _dataCollectionSettings.LoadAsync()
+                    .ConfigureAwait(true);
+                IsBackgroundCollectionEnabled = settings.BackgroundCollection;
+                DataCollectionRefreshOption? match = DataCollectionRefreshOptions.FirstOrDefault(
+                    option => option.Minutes == settings.OpenRefreshMinutes);
+                if (match is not null)
+                {
+                    SelectedDataCollectionRefresh = match;
+                }
             }
 
-            _isInitializing = false;
+            if (_alertSettings is not null)
+            {
+                AlertSettings alerts = await _alertSettings.LoadAsync().ConfigureAwait(true);
+                AreAlertsEnabled = alerts.Enabled;
+                QuotaAlertThresholdPercent = alerts.QuotaThresholdPercent;
+                IsQuotaThresholdAlertEnabled = alerts.QuotaThresholdEnabled;
+                IsExhaustionForecastAlertEnabled = alerts.ExhaustionForecastEnabled;
+            }
         }
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
                                            or TimeoutException)
         {
             // A settings file that cannot be read keeps the defaults.
+        }
+        finally
+        {
+            _isInitializing = false;
         }
     }
 
@@ -109,6 +147,55 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
         if (_dataCollectionSettings is not null)
         {
             _ = SaveDataCollectionAsync();
+        }
+    }
+
+    partial void OnAreAlertsEnabledChanged(bool value) => QueueAlertSettingsSave();
+
+    partial void OnQuotaAlertThresholdPercentChanged(double value) => QueueAlertSettingsSave();
+
+    partial void OnIsQuotaThresholdAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
+
+    partial void OnIsExhaustionForecastAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
+
+    private void QueueAlertSettingsSave()
+    {
+        if (!_isInitializing
+            && _alertSettings is not null
+            && double.IsFinite(QuotaAlertThresholdPercent)
+            && QuotaAlertThresholdPercent is >= 1d and <= 99d)
+        {
+            _pendingAlertSave = _pendingAlertSave
+                .ContinueWith(
+                    _ => SaveAlertSettingsAsync(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default)
+                .Unwrap();
+        }
+    }
+
+    public Task WaitForPendingAlertSaveAsync() => _pendingAlertSave;
+
+    private async Task SaveAlertSettingsAsync()
+    {
+        try
+        {
+            AlertSettings current = await _alertSettings!.LoadAsync().ConfigureAwait(false);
+            await _alertSettings.SaveAsync(new AlertSettings(
+                AreAlertsEnabled,
+                (int)Math.Round(QuotaAlertThresholdPercent),
+                IsQuotaThresholdAlertEnabled,
+                IsExhaustionForecastAlertEnabled,
+                current.StaleDataEnabled,
+                current.CredentialFailureEnabled)).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or TimeoutException
+                                           or ArgumentException)
+        {
+            // A failed save keeps the last stored preference.
         }
     }
 

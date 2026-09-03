@@ -6,6 +6,7 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 using Windows.UI.ViewManagement;
 using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Alerts;
 using TokenUsage.App.Composition;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Tray;
@@ -258,6 +259,28 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             ShowFlyout(true);
         }
+    }
+
+    internal void ShowAlertActivation(AlertActivationTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (target.Area == AlertActivationArea.QuotaReport)
+        {
+            OpenUsageReport(new UsageReportRequest(
+                UsageReportScope.Provider,
+                target.ProviderId));
+            return;
+        }
+
+        RootPage.ViewModel.OpenOptionsCommand.Execute(null);
+        RootPage.ViewModel.OptionsNavigation.ShowProvidersCommand.Execute(null);
+        RootPage.ViewModel.OptionsNavigation.ShowProviderStatusCommand.Execute(null);
+        ShowFlyout(false);
     }
 
     internal IDisposable SuppressDeactivateHide()
@@ -573,8 +596,12 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void OnHideRequested(object? sender, EventArgs e) => HideFlyout();
 
-    private void OnUsageReportRequested(object? sender, UsageReportRequestedEventArgs e)
+    private void OnUsageReportRequested(object? sender, UsageReportRequestedEventArgs e) =>
+        OpenUsageReport(e.Request);
+
+    private void OpenUsageReport(UsageReportRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         if (_reportWindow is null)
         {
             string localFolderPath = TokenUsageDataDirectory.Resolve(
@@ -592,7 +619,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 resetHistoryPath,
                 () => RootPage.ViewModel.Dashboard.RefreshLiveAsync(),
                 RootPage.ViewModel.Appearance,
-                e.Request,
+                request,
                 RootPage.ViewModel.Dashboard.GetProviderLimits,
                 RootPage.ViewModel.Dashboard.GetProviderCreditSummary,
                 display.WorkArea,
@@ -601,7 +628,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         else
         {
-            _reportWindow.ApplyRequest(e.Request);
+            _reportWindow.ApplyRequest(request);
         }
 
         _reportWindow.Activate();

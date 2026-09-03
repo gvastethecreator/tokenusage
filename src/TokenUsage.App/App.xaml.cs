@@ -2,6 +2,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using System.Globalization;
 using TokenUsage.App.Localization;
+using TokenUsage.App.Services;
+using TokenUsage.Core.Alerts;
 
 namespace TokenUsage.App;
 
@@ -9,12 +11,19 @@ public partial class App : Application
 {
     private static readonly object ActivationSync = new();
     private static bool _redirectedActivationPending;
+    private static AlertActivationTarget? _pendingAlertActivation;
+    private static IAlertNotificationSink _alertNotifications = NullAlertNotificationSink.Instance;
 
     public static Window Window { get; private set; } = null!;
 
     public static Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; private set; } = null!;
 
     public static nint WindowHandle => WinRT.Interop.WindowNative.GetWindowHandle(Window);
+
+    internal static IAlertNotificationSink AlertNotifications => _alertNotifications;
+
+    internal static void ConfigureAlertNotifications(IAlertNotificationSink notifications) =>
+        _alertNotifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
 
     public App()
     {
@@ -88,13 +97,21 @@ public partial class App : Application
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         bool showRedirectedActivation;
+        AlertActivationTarget? alertActivation;
         lock (ActivationSync)
         {
             showRedirectedActivation = _redirectedActivationPending;
             _redirectedActivationPending = false;
+            alertActivation = _pendingAlertActivation;
+            _pendingAlertActivation = null;
         }
 
-        if (showRedirectedActivation)
+        if (alertActivation is not null)
+        {
+            _ = DispatcherQueue.TryEnqueue(
+                () => ((MainWindow)Window).ShowAlertActivation(alertActivation));
+        }
+        else if (showRedirectedActivation)
         {
             _ = DispatcherQueue.TryEnqueue(
                 () => ((MainWindow)Window).ShowFromExternalActivation());
@@ -105,12 +122,51 @@ public partial class App : Application
         object? sender,
         AppActivationArguments args)
     {
+        _ = WindowsAlertNotificationService.TryParse(args, out AlertActivationTarget? alertTarget);
         Microsoft.UI.Dispatching.DispatcherQueue? dispatcherQueue;
         lock (ActivationSync)
         {
             if (Window is null || DispatcherQueue is null)
             {
-                _redirectedActivationPending = true;
+                if (alertTarget is not null)
+                {
+                    _pendingAlertActivation = alertTarget;
+                }
+                else
+                {
+                    _redirectedActivationPending = true;
+                }
+
+                return;
+            }
+
+            dispatcherQueue = DispatcherQueue;
+        }
+
+        _ = dispatcherQueue.TryEnqueue(() =>
+        {
+            if (alertTarget is not null)
+            {
+                ((MainWindow)Window).ShowAlertActivation(alertTarget);
+            }
+            else
+            {
+                ((MainWindow)Window).ShowFromExternalActivation();
+            }
+        });
+    }
+
+    internal static void OnAlertNotificationActivation(
+        object? sender,
+        AlertActivationRequestedEventArgs args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        Microsoft.UI.Dispatching.DispatcherQueue? dispatcherQueue;
+        lock (ActivationSync)
+        {
+            if (Window is null || DispatcherQueue is null)
+            {
+                _pendingAlertActivation = args.Target;
                 return;
             }
 
@@ -118,7 +174,7 @@ public partial class App : Application
         }
 
         _ = dispatcherQueue.TryEnqueue(
-            () => ((MainWindow)Window).ShowFromExternalActivation());
+            () => ((MainWindow)Window).ShowAlertActivation(args.Target));
     }
 
 #if DEBUG || UI_TEST_FIXTURES

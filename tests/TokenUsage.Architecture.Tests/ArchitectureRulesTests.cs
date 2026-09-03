@@ -458,6 +458,9 @@ public sealed class ArchitectureRulesTests
         [
             "CloseWhenInactiveToggle",
             "DataCollectionBackgroundToggle",
+            "AlertsMasterToggle",
+            "QuotaThresholdAlertToggle",
+            "ExhaustionForecastAlertToggle",
             "AppearanceTransparencyToggle",
             "AppearanceTrayPopoverEnabledToggle",
             "AppearanceTrayProviderNameToggle",
@@ -485,7 +488,7 @@ public sealed class ArchitectureRulesTests
                     && attribute.Value == automationId));
             Assert.Contains(
                 stateButton.Descendants(),
-                element => element.Name.LocalName == "SymbolIcon");
+                element => element.Name.LocalName is "SymbolIcon" or "FontIcon");
         }
     }
 
@@ -590,10 +593,14 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(170, matches.Count);
-        Assert.Equal(155, distinctIds.Length);
+        Assert.Equal(174, matches.Count);
+        Assert.Equal(159, distinctIds.Length);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AlertsMasterToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("QuotaAlertThresholdNumberBox", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("QuotaThresholdAlertToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ExhaustionForecastAlertToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPopoverEnabledToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPrimarySelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTraySecondarySelector", distinctIds, StringComparer.Ordinal);

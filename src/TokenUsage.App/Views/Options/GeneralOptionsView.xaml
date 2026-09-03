@@ -101,6 +101,87 @@
                     SelectedItem="{x:Bind ViewModel.SelectedDataCollectionRefresh, Mode=TwoWay}" />
             </StackPanel>
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
+            <Grid ColumnSpacing="12" MinHeight="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock
+                        x:Uid="AlertsMasterLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock
+                        x:Uid="AlertsMasterDescription"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+                <ToggleButton
+                    x:Uid="AlertsMasterToggle"
+                    Grid.Column="1"
+                    AutomationProperties.AutomationId="AlertsMasterToggle"
+                    HorizontalAlignment="Right"
+                    IsChecked="{x:Bind ViewModel.AreAlertsEnabled, Mode=TwoWay}"
+                    Style="{StaticResource OptionsStateButtonStyle}"
+                    VerticalAlignment="Center">
+                    <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE7ED;" />
+                </ToggleButton>
+            </Grid>
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                    <TextBlock
+                        x:Uid="QuotaAlertThresholdLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <NumberBox
+                        x:Uid="QuotaAlertThresholdNumberBox"
+                        AutomationProperties.AutomationId="QuotaAlertThresholdNumberBox"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
+                        Maximum="99"
+                        Minimum="1"
+                        SmallChange="1"
+                        SpinButtonPlacementMode="Compact"
+                        Value="{x:Bind ViewModel.QuotaAlertThresholdPercent, Mode=TwoWay}" />
+                </StackPanel>
+                <Grid ColumnSpacing="12" MinHeight="32">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Uid="QuotaThresholdAlertLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        VerticalAlignment="Center" />
+                    <ToggleButton
+                        x:Uid="QuotaThresholdAlertToggle"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="QuotaThresholdAlertToggle"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
+                        IsChecked="{x:Bind ViewModel.IsQuotaThresholdAlertEnabled, Mode=TwoWay}"
+                        Style="{StaticResource OptionsStateButtonStyle}">
+                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE9D9;" />
+                    </ToggleButton>
+                </Grid>
+                <Grid ColumnSpacing="12" MinHeight="32">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Uid="ExhaustionForecastAlertLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        VerticalAlignment="Center" />
+                    <ToggleButton
+                        x:Uid="ExhaustionForecastAlertToggle"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="ExhaustionForecastAlertToggle"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
+                        IsChecked="{x:Bind ViewModel.IsExhaustionForecastAlertEnabled, Mode=TwoWay}"
+                        Style="{StaticResource OptionsStateButtonStyle}">
+                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE823;" />
+                    </ToggleButton>
+                </Grid>
+            </StackPanel>
+            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
             <Grid ColumnSpacing="8" RowSpacing="7">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
