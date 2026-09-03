@@ -56,8 +56,8 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
-    [InlineData("composer-2.5", "xai-api-2026-09-02")]
-    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-02")]
+    [InlineData("composer-2.5", "cursor-models-2026-09-02")]
+    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-03")]
     [InlineData("gpt-5.1-codex", "openai-api-2026-09-02")]
     [InlineData("gemini-3.6-flash", "google-api-2026-09-02")]
     [InlineData("gemini-3.8-flash", "google-api-2026-09-02")]
@@ -370,6 +370,23 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(CostKind.CatalogEstimated, snapshot.Kind);
         Assert.Equal(baseModel.EstimatedCostUsd, snapshot.EstimatedCostUsd);
         Assert.Equal(2m, snapshot.EstimatedCostUsd);
+    }
+
+    [Theory]
+    [InlineData("2026-08-31T23:59:59Z", 3.0)]
+    [InlineData("2026-09-01T00:00:00Z", 4.5)]
+    public void ClaudeSonnetFiveSwitchesToTheStandardRateAfterTheIntroductoryPeriod(
+        string occurredAt,
+        decimal expectedUsd)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            "claude-sonnet-5",
+            DateTimeOffset.Parse(occurredAt, CultureInfo.InvariantCulture),
+            MillionInHundredKOut);
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+        Assert.Equal("claude-sonnet-5", cost.ExactPriceMatch);
     }
 
     [Theory]

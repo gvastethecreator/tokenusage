@@ -1,5 +1,6 @@
 using System.Globalization;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Codex;
 
@@ -43,6 +44,9 @@ public static class CodexPricingCatalog
             ["gpt-5.6-sol"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
             ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
         };
+
+    public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
+        BuildEvidence();
 
     public static CostObservation Resolve(
         string model,
@@ -137,4 +141,39 @@ public static class CodexPricingCatalog
     private sealed record DatedRates(
         DateTimeOffset ListEffectiveFromUtc,
         Rates ListRates);
+
+    private static List<PricingRateEvidence> BuildEvidence()
+    {
+        string[] priceMatches = RatesByModel.Values
+            .Select(rate => rate.PriceMatch)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var evidence = new List<PricingRateEvidence>();
+        foreach (string priceMatch in priceMatches)
+        {
+            if (ListRatesFromUtc.TryGetValue(priceMatch, out DatedRates? dated))
+            {
+                evidence.Add(PricingEvidence.Promotion(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.OpenAi,
+                    dated.ListEffectiveFromUtc));
+                evidence.Add(PricingEvidence.FollowOn(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.OpenAi,
+                    dated.ListEffectiveFromUtc));
+            }
+            else
+            {
+                evidence.Add(PricingEvidence.Ongoing(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.OpenAi));
+            }
+        }
+
+        PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
+        return evidence;
+    }
 }

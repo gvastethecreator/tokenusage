@@ -1,4 +1,5 @@
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Grok;
@@ -16,25 +17,28 @@ public static class GrokPricingCatalog
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
         {
-            ["composer-2"] = new("composer-2", 0.5m, 0.2m, 2.5m, false),
-            ["composer-2-fast"] = new("composer-2-fast", 1.5m, 0.35m, 7.5m, false),
-            ["composer-2.5"] = new("composer-2.5", 0.5m, 0.2m, 2.5m, false),
-            ["composer-2.5-fast"] = new("composer-2.5-fast", 3m, 0.5m, 15m, false),
+            ["composer-2"] = new("composer-2", 0.5m, 0.2m, 2.5m, false, true),
+            ["composer-2-fast"] = new("composer-2-fast", 1.5m, 0.35m, 7.5m, false, true),
+            ["composer-2.5"] = new("composer-2.5", 0.5m, 0.2m, 2.5m, false, true),
+            ["composer-2.5-fast"] = new("composer-2.5-fast", 3m, 0.5m, 15m, false, true),
             ["grok-build"] = new("grok-build", 1m, 0.2m, 2m, true),
-            ["grok-composer-2"] = new("composer-2", 0.5m, 0.2m, 2.5m, false),
-            ["grok-composer-2-fast"] = new("composer-2-fast", 1.5m, 0.35m, 7.5m, false),
-            ["grok-composer-2.5"] = new("composer-2.5", 0.5m, 0.2m, 2.5m, false),
-            ["grok-composer-2.5-fast"] = new("composer-2.5-fast", 3m, 0.5m, 15m, false),
+            ["grok-composer-2"] = new("composer-2", 0.5m, 0.2m, 2.5m, false, true),
+            ["grok-composer-2-fast"] = new("composer-2-fast", 1.5m, 0.35m, 7.5m, false, true),
+            ["grok-composer-2.5"] = new("composer-2.5", 0.5m, 0.2m, 2.5m, false, true),
+            ["grok-composer-2.5-fast"] = new("composer-2.5-fast", 3m, 0.5m, 15m, false, true),
             ["grok-4.1-fast"] = new("xai/grok-4-1-fast", 0.2m, 0.05m, 0.5m, false),
             ["grok-4.3"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
             ["grok-4.5"] = new("grok-4.5", 2m, 0.3m, 6m, true),
-            ["grok-4.5-fast"] = new("grok-4.5-fast", 4m, 1m, 18m, false),
+            ["grok-4.5-fast"] = new("grok-4.5-fast", 4m, 1m, 18m, false, true),
             ["grok-4.6"] = new("grok-4.6", 2m, 0.5m, 6m, true),
-            ["grok-4.6-fast"] = new("grok-4.6-fast", 4m, 1m, 12m, false),
+            ["grok-4.6-fast"] = new("grok-4.6-fast", 4m, 1m, 12m, false, true),
             ["grok-4.20-0309-reasoning"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
             ["grok-4.20-0309-non-reasoning"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
             ["grok-4.20-multi-agent-0309"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
         };
+
+    public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
+        BuildEvidence();
 
     public static CostObservation Resolve(
         string model,
@@ -66,7 +70,7 @@ public static class GrokPricingCatalog
             / TokensPerMillion;
         return CostObservation.CatalogEstimated(
             decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
-            Version,
+            rates.HostSpecific ? CursorPricingCatalog.Version : Version,
             rates.PriceMatch);
     }
 
@@ -113,5 +117,32 @@ public static class GrokPricingCatalog
         decimal Input,
         decimal CacheRead,
         decimal Output,
-        bool HasLongContext);
+        bool HasLongContext,
+        bool HostSpecific = false);
+
+    private static PricingRateEvidence[] BuildEvidence()
+    {
+        PricingRateEvidence[] evidence = RatesByModel.Values
+            .Select(rate => new
+            {
+                rate.PriceMatch,
+                CatalogVersion = rate.HostSpecific ? CursorPricingCatalog.Version : Version,
+                Source = rate.HostSpecific ? PricingOfficialSources.Cursor : PricingOfficialSources.Xai,
+            })
+            .Distinct()
+            .Select(rate => PricingEvidence.Ongoing(
+                rate.CatalogVersion,
+                rate.PriceMatch,
+                rate.Source))
+            .ToArray();
+        PricingCatalogAudit.ValidateCoverage(
+            Version,
+            RatesByModel.Values.Where(rate => !rate.HostSpecific).Select(rate => rate.PriceMatch),
+            evidence);
+        PricingCatalogAudit.ValidateCoverage(
+            CursorPricingCatalog.Version,
+            RatesByModel.Values.Where(rate => rate.HostSpecific).Select(rate => rate.PriceMatch),
+            evidence);
+        return evidence;
+    }
 }

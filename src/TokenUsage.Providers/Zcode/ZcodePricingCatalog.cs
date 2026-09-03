@@ -45,6 +45,9 @@ public static class ZcodePricingCatalog
             ["glm-4.5-flash"] = new(0m, 0m, 0m),
         };
 
+    public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
+        BuildEvidence();
+
     public static CostObservation Resolve(
         string model,
         TokenBreakdown tokens,
@@ -84,4 +87,36 @@ public static class ZcodePricingCatalog
     private sealed record DatedRates(
         DateTimeOffset ListEffectiveFromUtc,
         Rates ListRates);
+
+    private static List<PricingRateEvidence> BuildEvidence()
+    {
+        string[] priceMatches = RatesByModel.Keys.ToArray();
+        var evidence = new List<PricingRateEvidence>();
+        foreach (string priceMatch in priceMatches)
+        {
+            if (ListRatesFromUtc.TryGetValue(priceMatch, out DatedRates? dated))
+            {
+                evidence.Add(PricingEvidence.Promotion(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.Zai,
+                    dated.ListEffectiveFromUtc));
+                evidence.Add(PricingEvidence.FollowOn(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.Zai,
+                    dated.ListEffectiveFromUtc));
+            }
+            else
+            {
+                evidence.Add(PricingEvidence.Ongoing(
+                    Version,
+                    priceMatch,
+                    PricingOfficialSources.Zai));
+            }
+        }
+
+        PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
+        return evidence;
+    }
 }

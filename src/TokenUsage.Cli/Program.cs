@@ -15,6 +15,17 @@ if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal
     return await CursorCommand.RunAsync(args.Skip(1).ToArray(), Console.Out, Console.Error);
 }
 
+// Pricing evidence and refresh checks only read repository or public catalog data.
+// Keep them usable from an unpackaged CLI build without application storage.
+if (args.Length > 0 && string.Equals(args[0], "pricing", StringComparison.Ordinal))
+{
+    return await PricingCommand.RunAsync(
+        args.Skip(1).ToArray(),
+        Console.Out,
+        Console.Error,
+        TimeProvider.System);
+}
+
 // ZCode hook management and the Stop-hook trigger follow the same unpackaged-safe rule.
 // A hook host that pipes a payload gives redirected input; a detached launch on a hidden
 // console gives console input, which never reaches end-of-stream, so it must not be drained.
