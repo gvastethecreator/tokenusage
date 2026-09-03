@@ -114,6 +114,7 @@
   <data name="EmptyOpenOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open options</value></data>
   <data name="CloseWhenInactiveLabel.Text" xml:space="preserve"><value>Close when focus is lost</value></data>
   <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Close when focus is lost</value></data>
+  <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Close when focus is lost</value></data>
   <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>TokenUsage 0.1</value></data>
   <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
   <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Options</value></data>
@@ -524,6 +525,7 @@
   <data name="AppearanceThemeSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Theme</value></data>
   <data name="AppearanceDensitySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Density</value></data>
   <data name="AppearanceTransparencyToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Increase transparency</value></data>
+  <data name="AppearanceTransparencyToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Increase transparency</value></data>
   <data name="AppearanceUsageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show usage as</value></data>
   <data name="AppearanceResetTimeSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset times</value></data>
   <data name="AppearanceThemeSystem" xml:space="preserve"><value>System</value></data>
@@ -542,6 +544,7 @@
   <data name="AppearanceVisualizationHeatmap" xml:space="preserve"><value>Map</value></data>
   <data name="AppearanceTrayPopoverHeading.Text" xml:space="preserve"><value>Tray hover popover</value></data>
   <data name="AppearanceTrayPopoverEnabledToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show the tray hover popover</value></data>
+  <data name="AppearanceTrayPopoverEnabledToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the tray hover popover</value></data>
   <data name="AppearanceTrayPrimaryLabel.Text" xml:space="preserve"><value>Top value</value></data>
   <data name="AppearanceTrayPrimarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Top value in the tray hover popover</value></data>
   <data name="AppearanceTraySecondaryLabel.Text" xml:space="preserve"><value>Bottom value</value></data>
@@ -550,6 +553,7 @@
   <data name="AppearanceTrayProviderCountSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Providers shown in the tray hover popover</value></data>
   <data name="AppearanceTrayProviderNameLabel.Text" xml:space="preserve"><value>Show the provider name</value></data>
   <data name="AppearanceTrayProviderNameToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show the provider name in the tray hover popover</value></data>
+  <data name="AppearanceTrayProviderNameToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the provider name in the tray hover popover</value></data>
   <data name="AppearanceTrayMetricNone" xml:space="preserve"><value>Nothing</value></data>
   <data name="AppearanceTrayMetricSessionQuota" xml:space="preserve"><value>Session quota</value></data>
   <data name="AppearanceTrayMetricPeriodQuota" xml:space="preserve"><value>Weekly or monthly quota</value></data>
@@ -733,6 +737,7 @@
   <data name="ZcodeGlobalLimitTitlePrefix" xml:space="preserve"><value>ZCode · </value></data>
   <data name="DataCollectionBackgroundLabel.Text" xml:space="preserve"><value>Update usage in the background</value></data>
   <data name="DataCollectionBackgroundLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update usage in the background</value></data>
+  <data name="DataCollectionBackgroundToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update usage in the background</value></data>
   <data name="DataCollectionBackgroundTooltip.Content" xml:space="preserve"><value>When on, provider Stop hooks refresh TokenUsage data after each task, even when the app is closed. When off, data refreshes only inside the app.</value></data>
   <data name="DataCollectionRefreshLabel.Text" xml:space="preserve"><value>Refresh while the app is open</value></data>
   <data name="DataCollectionRefreshLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh interval while the app is open</value></data>
