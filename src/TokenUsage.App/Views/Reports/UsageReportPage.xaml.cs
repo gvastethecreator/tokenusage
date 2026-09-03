@@ -207,19 +207,37 @@ public sealed partial class UsageReportPage : Page
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
         Control? source = sender as Control;
-        Visibility controlBarVisibility = ReportControlBar.Visibility;
-        Visibility coverageHintVisibility = ReportCoverageHintButton.Visibility;
-        Visibility captureBrandVisibility = ReportCaptureBrand.Visibility;
+        double controlBarOpacity = ReportControlBar.Opacity;
+        bool controlBarHitTest = ReportControlBar.IsHitTestVisible;
+        double coverageHintOpacity = ReportCoverageHintButton.Opacity;
+        bool coverageHintHitTest = ReportCoverageHintButton.IsHitTestVisible;
+        double captureBrandOpacity = ReportCaptureBrand.Opacity;
+        Thickness capturePadding = ReportCaptureRoot.Padding;
         try
         {
+            if (source is not null)
+            {
+                source.IsEnabled = false;
+            }
+
             ReportCaptureFocusSink.Focus(FocusState.Programmatic);
-            ReportControlBar.Visibility = Visibility.Collapsed;
-            ReportCoverageHintButton.Visibility = Visibility.Collapsed;
-            ReportCaptureBrand.Visibility = Visibility.Visible;
+            ReportControlBar.Opacity = 0;
+            ReportControlBar.IsHitTestVisible = false;
+            ReportCoverageHintButton.Opacity = 0;
+            ReportCoverageHintButton.IsHitTestVisible = false;
+            ReportCaptureBrand.Opacity = 1;
+            ReportCaptureRoot.Padding = new Thickness(
+                capturePadding.Left,
+                capturePadding.Top,
+                capturePadding.Right,
+                10);
             ReportHeaderRoot.UpdateLayout();
             ReportCaptureRoot.UpdateLayout();
-            ShareCaptureResult result = await ShareCaptureService.CaptureAsync(
-                [ReportHeaderRoot, ReportCaptureRoot],
+            await Task.Yield();
+            ShareCaptureResult result = await ShareCaptureService.CaptureScrollableAsync(
+                ReportHeaderRoot,
+                ReportScrollViewer,
+                ReportCaptureRoot,
                 "report",
                 ReportCaptureSurface.ActualTheme == ElementTheme.Light
                     ? Microsoft.UI.Colors.White
@@ -240,12 +258,19 @@ public sealed partial class UsageReportPage : Page
         }
         finally
         {
-            ReportControlBar.Visibility = controlBarVisibility;
-            ReportCoverageHintButton.Visibility = coverageHintVisibility;
-            ReportCaptureBrand.Visibility = captureBrandVisibility;
+            ReportControlBar.Opacity = controlBarOpacity;
+            ReportControlBar.IsHitTestVisible = controlBarHitTest;
+            ReportCoverageHintButton.Opacity = coverageHintOpacity;
+            ReportCoverageHintButton.IsHitTestVisible = coverageHintHitTest;
+            ReportCaptureBrand.Opacity = captureBrandOpacity;
+            ReportCaptureRoot.Padding = capturePadding;
             ReportHeaderRoot.UpdateLayout();
             ReportCaptureRoot.UpdateLayout();
-            source?.Focus(FocusState.Programmatic);
+            if (source is not null)
+            {
+                source.IsEnabled = true;
+                source.Focus(FocusState.Programmatic);
+            }
         }
     }
 

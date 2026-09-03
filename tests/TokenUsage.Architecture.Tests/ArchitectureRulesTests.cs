@@ -935,9 +935,10 @@ public sealed class ArchitectureRulesTests
             "src",
             "TokenUsage.App",
             "MainPage.xaml.cs")).ReplaceLineEndings("\n");
-        Assert.Contains("HeaderActionButtons.Visibility = Visibility.Collapsed", mainPageCode, StringComparison.Ordinal);
+        Assert.Contains("HeaderActionButtons.Opacity = 0", mainPageCode, StringComparison.Ordinal);
         Assert.Contains("ShareCaptureService.CaptureAsync(\n                FlyoutChrome", mainPageCode, StringComparison.Ordinal);
-        Assert.Contains("HeaderActionButtons.Visibility = actionButtonsVisibility", mainPageCode, StringComparison.Ordinal);
+        Assert.Contains("HeaderActionButtons.Opacity = actionButtonsOpacity", mainPageCode, StringComparison.Ordinal);
+        Assert.Contains("Glyph=\"&#xE72D;\"", mainPageXaml, StringComparison.Ordinal);
 
         string reportPageXaml = File.ReadAllText(Path.Combine(
             repoRoot,
@@ -956,13 +957,16 @@ public sealed class ArchitectureRulesTests
             "Views",
             "Reports",
             "UsageReportPage.xaml.cs"));
-        Assert.Contains("ReportControlBar.Visibility = Visibility.Collapsed", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportCoverageHintButton.Visibility = Visibility.Collapsed", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportCaptureBrand.Visibility = Visibility.Visible", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("[ReportHeaderRoot, ReportCaptureRoot]", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportControlBar.Visibility = controlBarVisibility", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportCoverageHintButton.Visibility = coverageHintVisibility", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportCaptureBrand.Visibility = captureBrandVisibility", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportControlBar.Opacity = 0", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportCoverageHintButton.Opacity = 0", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("Opacity=\"0\"", reportPageXaml, StringComparison.Ordinal);
+        Assert.Contains("ReportCaptureBrand.Opacity = 1", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ShareCaptureService.CaptureScrollableAsync", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportScrollViewer", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportControlBar.Opacity = controlBarOpacity", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportCoverageHintButton.Opacity = coverageHintOpacity", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportCaptureBrand.Opacity = captureBrandOpacity", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("Glyph=\"&#xE72D;\"", reportPageXaml, StringComparison.Ordinal);
 
         string shareCaptureCode = File.ReadAllText(Path.Combine(
             repoRoot,
@@ -973,6 +977,8 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("private const int CapturePadding = 10", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("DismissTransientOverlays(captureRoot)", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("byte[] paddedPixels = AddPadding", shareCaptureCode, StringComparison.Ordinal);
+        Assert.Contains("CaptureScrollableAsync", shareCaptureCode, StringComparison.Ordinal);
+        Assert.Contains("CropVertical", shareCaptureCode, StringComparison.Ordinal);
 
         string generalOptionsCode = File.ReadAllText(Path.Combine(
             repoRoot,

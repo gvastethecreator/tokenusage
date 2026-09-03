@@ -105,11 +105,20 @@ public sealed partial class MainPage : Page, IDisposable
 
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
-        Visibility actionButtonsVisibility = HeaderActionButtons.Visibility;
+        Control? source = sender as Control;
+        double actionButtonsOpacity = HeaderActionButtons.Opacity;
+        bool actionButtonsHitTest = HeaderActionButtons.IsHitTestVisible;
         try
         {
-            HeaderActionButtons.Visibility = Visibility.Collapsed;
+            if (source is not null)
+            {
+                source.IsEnabled = false;
+            }
+
+            HeaderActionButtons.Opacity = 0;
+            HeaderActionButtons.IsHitTestVisible = false;
             FlyoutChrome.UpdateLayout();
+            await Task.Yield();
             ShareCaptureResult result = await ShareCaptureService.CaptureAsync(
                 FlyoutChrome,
                 "compact",
@@ -132,8 +141,13 @@ public sealed partial class MainPage : Page, IDisposable
         }
         finally
         {
-            HeaderActionButtons.Visibility = actionButtonsVisibility;
+            HeaderActionButtons.Opacity = actionButtonsOpacity;
+            HeaderActionButtons.IsHitTestVisible = actionButtonsHitTest;
             FlyoutChrome.UpdateLayout();
+            if (source is not null)
+            {
+                source.IsEnabled = true;
+            }
         }
     }
 
