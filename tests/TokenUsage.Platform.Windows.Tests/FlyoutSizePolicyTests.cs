@@ -56,14 +56,14 @@ public sealed class FlyoutSizePolicyTests
     }
 
     [Fact]
-    public void ClampHeightEnforcesAbsoluteMaximumHeight()
+    public void ClampHeightKeepsTheMeasuredDashboardHeightBeyondTheLegacyCap()
     {
         var height = FlyoutSizePolicy.ClampHeightDips(
             900,
             new PlatformRect(0, 0, 1920, 2000),
             96);
 
-        Assert.Equal(720, height);
+        Assert.Equal(900, height);
     }
 
     [Fact]
@@ -96,6 +96,6 @@ public sealed class FlyoutSizePolicyTests
             new PlatformRect(0, 0, 2880, 1440),
             144);
 
-        Assert.Equal(720, height);
+        Assert.Equal(800, height);
     }
 }

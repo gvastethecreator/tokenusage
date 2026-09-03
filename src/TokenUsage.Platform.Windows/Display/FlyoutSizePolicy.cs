@@ -6,7 +6,6 @@ public static class FlyoutSizePolicy
 {
     public const double WidthDips = 480d;
     public const double MinimumHeightDips = 200d;
-    public const double AbsoluteMaximumHeightDips = 720d;
     public const double WorkAreaHeightFraction = 0.85d;
     private const double DefaultDpi = 96d;
 
@@ -44,9 +43,7 @@ public static class FlyoutSizePolicy
         ValidateWorkAreaAndDpi(workArea, dpi);
 
         var workAreaHeightDips = workArea.Height * DefaultDpi / dpi;
-        var maximumHeightDips = Math.Min(
-            AbsoluteMaximumHeightDips,
-            workAreaHeightDips * WorkAreaHeightFraction);
+        var maximumHeightDips = workAreaHeightDips * WorkAreaHeightFraction;
         var heightWithMinimum = Math.Max(MinimumHeightDips, desiredHeightDips);
         return Math.Min(maximumHeightDips, heightWithMinimum);
     }
