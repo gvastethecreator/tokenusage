@@ -129,6 +129,13 @@ internal static class SnapshotCacheMapper
                         Source = progress.LabelEvidence.Source.ToString(),
                         Confidence = progress.LabelEvidence.Confidence.ToString(),
                     };
+                dto.ResetEvidence = progress.ResetEvidence is null
+                    ? null
+                    : new SnapshotCacheProviderResetEvidenceV1
+                    {
+                        Cause = progress.ResetEvidence.Cause.ToString(),
+                        OccurredAtUtc = progress.ResetEvidence.OccurredAtUtc,
+                    };
                 break;
             case ScalarMetricSnapshot scalar:
                 dto.Kind = "scalar";
@@ -223,7 +230,8 @@ internal static class SnapshotCacheMapper
                     nameof(dto.ResetCadence)),
                 dto.IsActive,
                 OptionalText(dto.DisplayName, nameof(dto.DisplayName)),
-                FromLabelEvidence(dto.LabelEvidence)),
+                FromLabelEvidence(dto.LabelEvidence),
+                FromResetEvidence(dto.ResetEvidence)),
             "scalar" => new ScalarMetricSnapshot(
                 id,
                 dto.Value ?? throw new SnapshotCacheFormatException("Scalar value is missing."),
@@ -243,6 +251,14 @@ internal static class SnapshotCacheMapper
                 OptionalText(dto.ProviderMetricName, nameof(dto.ProviderMetricName)),
                 ParseEnum<MetricLabelSource>(dto.Source, nameof(dto.Source)),
                 ParseEnum<MetricLabelConfidence>(dto.Confidence, nameof(dto.Confidence)));
+
+    private static ProviderResetEvidence? FromResetEvidence(
+        SnapshotCacheProviderResetEvidenceV1? dto) =>
+        dto is null
+            ? null
+            : new ProviderResetEvidence(
+                ParseEnum<ProviderReportedResetCause>(dto.Cause, nameof(dto.Cause)),
+                RequireUtc(dto.OccurredAtUtc, nameof(dto.OccurredAtUtc)));
 
     private static DataProvenance FromProvenance(SnapshotCacheProvenanceV1 dto) =>
         new(

@@ -93,6 +93,33 @@ public enum MetricLabelConfidence
     Unknown,
 }
 
+public enum ProviderReportedResetCause
+{
+    Manual,
+    ResetCredit,
+}
+
+public sealed record ProviderResetEvidence
+{
+    public ProviderResetEvidence(
+        ProviderReportedResetCause cause,
+        DateTimeOffset occurredAtUtc)
+    {
+        if (!Enum.IsDefined(cause))
+        {
+            throw new ArgumentOutOfRangeException(nameof(cause));
+        }
+
+        UtcTimestamp.Require(occurredAtUtc, nameof(occurredAtUtc));
+        Cause = cause;
+        OccurredAtUtc = occurredAtUtc;
+    }
+
+    public ProviderReportedResetCause Cause { get; }
+
+    public DateTimeOffset OccurredAtUtc { get; }
+}
+
 public sealed record MetricLabelEvidence
 {
     public MetricLabelEvidence(
@@ -158,7 +185,8 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
         ProgressResetCadence? resetCadence = null,
         bool? isActive = null,
         string? displayName = null,
-        MetricLabelEvidence? labelEvidence = null)
+        MetricLabelEvidence? labelEvidence = null,
+        ProviderResetEvidence? resetEvidence = null)
         : base(id, provenance)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(used);
@@ -197,6 +225,7 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
         IsActive = isActive;
         DisplayName = displayName;
         LabelEvidence = labelEvidence;
+        ResetEvidence = resetEvidence;
     }
 
     public decimal Used { get; }
@@ -216,6 +245,8 @@ public sealed class ProgressMetricSnapshot : MetricSnapshot
     public string? DisplayName { get; }
 
     public MetricLabelEvidence? LabelEvidence { get; }
+
+    public ProviderResetEvidence? ResetEvidence { get; }
 }
 
 public sealed class ScalarMetricSnapshot : MetricSnapshot
