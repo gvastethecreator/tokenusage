@@ -55,6 +55,9 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsAdditionalProvidersExpanded { get; set; }
 
+    [ObservableProperty]
+    public partial string? FocusedProviderId { get; private set; }
+
     public bool HasAdditionalProviders => AdditionalProviders.Count > 0;
 
     public string AdditionalProvidersToggleLabel => string.Format(
@@ -290,6 +293,21 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     }
 
     public void UnbindRefresh() => _refresh = null;
+
+    public void FocusProvider(string providerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        if (AdditionalProviders.Any(provider => string.Equals(
+            provider.ProviderId,
+            providerId,
+            StringComparison.Ordinal)))
+        {
+            IsAdditionalProvidersExpanded = true;
+        }
+
+        FocusedProviderId = null;
+        FocusedProviderId = providerId;
+    }
 
     [RelayCommand]
     private Task RefreshAsync() => _refresh?.Invoke() ?? Task.CompletedTask;

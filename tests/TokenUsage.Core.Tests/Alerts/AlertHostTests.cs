@@ -101,8 +101,8 @@ public sealed class AlertHostTests
             quotaThresholdPercent: 20,
             quotaThresholdEnabled: true,
             exhaustionForecastEnabled: true,
-            staleDataEnabled: true,
-            credentialFailureEnabled: true));
+            staleDataEnabled: false,
+            credentialFailureEnabled: false));
 
         var host = new AlertHost(decisionStore, settingsStore);
         ProviderAlertFacts facts = new(
@@ -194,8 +194,8 @@ public sealed class AlertHostTests
             quotaThresholdPercent: 20,
             quotaThresholdEnabled: true,
             exhaustionForecastEnabled: true,
-            staleDataEnabled: true,
-            credentialFailureEnabled: true));
+            staleDataEnabled: false,
+            credentialFailureEnabled: false));
 
         // A file the store cannot parse is quarantined the moment it is read, so the file staying
         // in place is proof the read never happened.
@@ -241,6 +241,75 @@ public sealed class AlertHostTests
         IReadOnlyList<AlertCandidate> candidates = AlertEvaluator.Evaluate(settings, Now, [facts]);
         Assert.Single(candidates);
         Assert.Equal(AlertKind.QuotaThreshold, candidates[0].ConditionKey.Kind);
+    }
+
+    [Fact]
+    public async Task ProviderHealthRecoveryAllowsOneLaterRecurrence()
+    {
+        using var folder = new TemporaryFolder();
+        var settingsStore = new AlertSettingsStore(Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName));
+        var decisionStore = new AlertDecisionStore(Path.Combine(folder.Root, AlertDecisionStore.DefaultFileName));
+        await settingsStore.SaveAsync(new AlertSettings(
+            enabled: true,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: false,
+            exhaustionForecastEnabled: false,
+            staleDataEnabled: true,
+            credentialFailureEnabled: true));
+        var host = new AlertHost(decisionStore, settingsStore);
+        var active = new ProviderAlertFacts(
+            new ProviderId("codex"),
+            isStale: true,
+            hasCredentialFailure: true,
+            []);
+        var recovered = new ProviderAlertFacts(
+            new ProviderId("codex"),
+            isStale: false,
+            hasCredentialFailure: false,
+            []);
+
+        Assert.Equal(2, (await host.EvaluateAsync(Now, [active])).Count);
+        Assert.Empty(await host.EvaluateAsync(Now.AddMinutes(1), [active]));
+        Assert.Empty(await host.EvaluateAsync(Now.AddMinutes(2), [recovered]));
+        IReadOnlyList<AlertNotificationIntent> recurrence =
+            await host.EvaluateAsync(Now.AddMinutes(3), [active]);
+
+        Assert.Equal(2, recurrence.Count);
+        Assert.Contains(recurrence, intent => intent.Kind == AlertKind.StaleData);
+        Assert.Contains(recurrence, intent => intent.Kind == AlertKind.CredentialFailure);
+    }
+
+    [Fact]
+    public async Task DisabledHealthKindDoesNotClearItsDecisionHistory()
+    {
+        using var folder = new TemporaryFolder();
+        var settingsStore = new AlertSettingsStore(Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName));
+        var decisionStore = new AlertDecisionStore(Path.Combine(folder.Root, AlertDecisionStore.DefaultFileName));
+        var host = new AlertHost(decisionStore, settingsStore);
+        AlertSettings enabled = new(
+            enabled: true,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: false,
+            exhaustionForecastEnabled: false,
+            staleDataEnabled: true,
+            credentialFailureEnabled: false);
+        await settingsStore.SaveAsync(enabled);
+        var stale = new ProviderAlertFacts(new ProviderId("codex"), true, false, []);
+        var recovered = new ProviderAlertFacts(new ProviderId("codex"), false, false, []);
+        Assert.Single(await host.EvaluateAsync(Now, [stale]));
+
+        await settingsStore.SaveAsync(new AlertSettings(
+            enabled: false,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: false,
+            exhaustionForecastEnabled: false,
+            staleDataEnabled: true,
+            credentialFailureEnabled: false));
+        Assert.Empty(await host.EvaluateAsync(Now.AddMinutes(1), [recovered]));
+        await settingsStore.SaveAsync(enabled);
+
+        Assert.Empty(await host.EvaluateAsync(Now.AddMinutes(2), [stale]));
+        Assert.Single((await decisionStore.LoadAsync()).NotifiedConditionKeys);
     }
 
     private static ProviderAlertFacts CreateFacts(

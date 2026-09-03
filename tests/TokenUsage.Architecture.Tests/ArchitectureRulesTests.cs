@@ -461,6 +461,8 @@ public sealed class ArchitectureRulesTests
             "AlertsMasterToggle",
             "QuotaThresholdAlertToggle",
             "ExhaustionForecastAlertToggle",
+            "StaleDataAlertToggle",
+            "CredentialFailureAlertToggle",
             "AppearanceTransparencyToggle",
             "AppearanceTrayPopoverEnabledToggle",
             "AppearanceTrayProviderNameToggle",
@@ -593,14 +595,16 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(174, matches.Count);
-        Assert.Equal(159, distinctIds.Length);
+        Assert.Equal(176, matches.Count);
+        Assert.Equal(161, distinctIds.Length);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AlertsMasterToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("QuotaAlertThresholdNumberBox", distinctIds, StringComparer.Ordinal);
         Assert.Contains("QuotaThresholdAlertToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ExhaustionForecastAlertToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("StaleDataAlertToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CredentialFailureAlertToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPopoverEnabledToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPrimarySelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTraySecondarySelector", distinctIds, StringComparer.Ordinal);

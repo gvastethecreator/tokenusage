@@ -777,6 +777,10 @@
   <data name="QuotaThresholdAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Low quota alerts</value></data>
   <data name="ExhaustionForecastAlertLabel.Text" xml:space="preserve"><value>Exhaustion forecast</value></data>
   <data name="ExhaustionForecastAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Exhaustion forecast alerts</value></data>
+  <data name="StaleDataAlertLabel.Text" xml:space="preserve"><value>Stale provider data</value></data>
+  <data name="StaleDataAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Stale provider data alerts</value></data>
+  <data name="CredentialFailureAlertLabel.Text" xml:space="preserve"><value>Provider setup issues</value></data>
+  <data name="CredentialFailureAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider setup alerts</value></data>
   <data name="AlertQuotaTitleFormat" xml:space="preserve"><value>{0} quota is low</value></data>
   <data name="AlertQuotaBodyFormat" xml:space="preserve"><value>{0}% remains. Your alert threshold is {1}%.</value></data>
   <data name="AlertExhaustionTitleFormat" xml:space="preserve"><value>{0} may run out before reset</value></data>

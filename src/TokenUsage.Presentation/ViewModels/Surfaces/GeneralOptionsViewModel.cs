@@ -81,6 +81,14 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
     public partial bool IsExhaustionForecastAlertEnabled { get; set; } =
         AlertSettings.Default.ExhaustionForecastEnabled;
 
+    [ObservableProperty]
+    public partial bool IsStaleDataAlertEnabled { get; set; } =
+        AlertSettings.Default.StaleDataEnabled;
+
+    [ObservableProperty]
+    public partial bool IsCredentialFailureAlertEnabled { get; set; } =
+        AlertSettings.Default.CredentialFailureEnabled;
+
     public bool AreAlertControlsEnabled => AreAlertsEnabled;
 
     private async Task InitializeAsync()
@@ -108,6 +116,8 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
                 QuotaAlertThresholdPercent = alerts.QuotaThresholdPercent;
                 IsQuotaThresholdAlertEnabled = alerts.QuotaThresholdEnabled;
                 IsExhaustionForecastAlertEnabled = alerts.ExhaustionForecastEnabled;
+                IsStaleDataAlertEnabled = alerts.StaleDataEnabled;
+                IsCredentialFailureAlertEnabled = alerts.CredentialFailureEnabled;
             }
         }
         catch (Exception exception) when (exception is IOException
@@ -158,6 +168,10 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
 
     partial void OnIsExhaustionForecastAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
 
+    partial void OnIsStaleDataAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
+
+    partial void OnIsCredentialFailureAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
+
     private void QueueAlertSettingsSave()
     {
         if (!_isInitializing
@@ -181,14 +195,13 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
     {
         try
         {
-            AlertSettings current = await _alertSettings!.LoadAsync().ConfigureAwait(false);
-            await _alertSettings.SaveAsync(new AlertSettings(
+            await _alertSettings!.SaveAsync(new AlertSettings(
                 AreAlertsEnabled,
                 (int)Math.Round(QuotaAlertThresholdPercent),
                 IsQuotaThresholdAlertEnabled,
                 IsExhaustionForecastAlertEnabled,
-                current.StaleDataEnabled,
-                current.CredentialFailureEnabled)).ConfigureAwait(false);
+                IsStaleDataAlertEnabled,
+                IsCredentialFailureAlertEnabled)).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
