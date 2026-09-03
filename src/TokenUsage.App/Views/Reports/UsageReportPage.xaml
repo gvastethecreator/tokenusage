@@ -161,6 +161,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
@@ -201,6 +202,14 @@
                         </ToolTipService.ToolTip>
                     </TextBlock>
                 </Grid>
+                <TextBlock
+                    Grid.Row="3"
+                    AutomationProperties.Name="{x:Bind PaceAutomationName}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind PaceText}"
+                    TextWrapping="Wrap"
+                    Visibility="{x:Bind HasPace}" />
             </Grid>
         </DataTemplate>
     </Page.Resources>

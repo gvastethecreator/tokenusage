@@ -1318,6 +1318,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 MidpointRounding.AwayFromZero);
         string groupId = $"{cycle.MetricId}:{cadenceMinutes.ToString(CultureInfo.InvariantCulture)}";
         string groupName = $"{windowName} · {durationText}";
+        (decimal? projectedUsagePercent, string paceText) = CreateResetCyclePace(cycle);
         return new UsageReportResetCycleOption(
             $"{cycle.MetricId}:{cycle.FromUtc:O}",
             cycle.MetricId,
@@ -1334,7 +1335,53 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             cycle.UsedPercent,
             cycle.WindowDurationMinutes,
             cycle.IsCurrent,
-            cycle.EndingResetCause);
+            cycle.EndingResetCause,
+            projectedUsagePercent,
+            paceText);
+    }
+
+    private (decimal? ProjectedUsagePercent, string Text) CreateResetCyclePace(
+        QuotaResetCycle cycle)
+    {
+        TimeSpan? duration = cycle.WindowDurationMinutes is > 0m
+            ? TimeSpan.FromMinutes(decimal.ToDouble(cycle.WindowDurationMinutes.Value))
+            : null;
+        QuotaPaceResult? pace = QuotaPace.Evaluate(
+            cycle.UsedPercent,
+            100m,
+            cycle.ExpectedResetAtUtc,
+            duration,
+            cycle.ObservedAtUtc);
+        if (pace is null)
+        {
+            return (null, string.Empty);
+        }
+
+        decimal projectedPercent = decimal.Round(
+            pace.ProjectedUsage,
+            0,
+            MidpointRounding.AwayFromZero);
+        string text = pace.Status switch
+        {
+            QuotaPaceStatus.Ahead => string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("CodexPaceAheadFormat"),
+                projectedPercent),
+            QuotaPaceStatus.OnTrack => string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("CodexPaceOnTrackFormat"),
+                projectedPercent),
+            QuotaPaceStatus.Behind when pace.TimeToExhaust is TimeSpan eta => string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("CodexPaceBehindEtaFormat"),
+                projectedPercent,
+                FormatCycleDuration(eta)),
+            _ => string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("CodexPaceBehindFormat"),
+                projectedPercent),
+        };
+        return (projectedPercent, text);
     }
 
     private string ResolveResetWindowName(
@@ -2016,7 +2063,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         UsageReportCycleComparison? cycleComparison = CreateCycleComparison();
         if (cycleComparison is not null)
         {
-            return
+            List<UsageReportCompareRow> cycleRows =
             [
                 new(
                     GetString("UsageReportCompareQuotaUsedMetric"),
@@ -2057,6 +2104,21 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                         cycleComparison.CostPerMillionTokens.Left,
                         cycleComparison.CostPerMillionTokens.Right)),
             ];
+
+            if (cycleComparison.IsCompatible
+                && CompareLeftCycle is { HasPace: true } leftCycle
+                && CompareRightCycle is { HasPace: true } rightCycle)
+            {
+                cycleRows.Add(new UsageReportCompareRow(
+                    GetString("UsageReportComparePaceMetric"),
+                    leftCycle.PaceText,
+                    rightCycle.PaceText,
+                    FormatSignedPercentagePoints(
+                        leftCycle.ProjectedUsagePercent!.Value
+                        - rightCycle.ProjectedUsagePercent!.Value)));
+            }
+
+            return cycleRows.ToArray();
         }
 
         UsageReportMetricDelta delta = UsageReportQuery.Subtract(

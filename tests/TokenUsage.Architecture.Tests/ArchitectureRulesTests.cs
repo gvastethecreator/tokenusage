@@ -538,24 +538,34 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
-    public void QuotaSurfacesDoNotRenderProjectedPaceText()
+    public void QuotaPaceRendersOnlyInReportDetails()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         string appRoot = Path.Combine(repoRoot, "src", "TokenUsage.App");
-        string[] quotaSurfaces =
+        string[] compactQuotaSurfaces =
         [
             Path.Combine(appRoot, "App.xaml"),
             Path.Combine(appRoot, "Views", "Dashboard", "DashboardView.xaml"),
-            Path.Combine(appRoot, "Views", "Reports", "UsageReportPage.xaml"),
         ];
 
-        foreach (string quotaSurface in quotaSurfaces)
+        foreach (string quotaSurface in compactQuotaSurfaces)
         {
             string xaml = File.ReadAllText(quotaSurface);
             Assert.DoesNotContain("CompactPaceText", xaml, StringComparison.Ordinal);
             Assert.DoesNotContain("Text=\"{x:Bind PaceText}\"", xaml, StringComparison.Ordinal);
             Assert.DoesNotContain("Text=\"{Binding PaceText}\"", xaml, StringComparison.Ordinal);
         }
+
+        string report = File.ReadAllText(Path.Combine(
+            appRoot,
+            "Views",
+            "Reports",
+            "UsageReportPage.xaml"));
+        Assert.Contains("Text=\"{x:Bind PaceText}\"", report, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{x:Bind PaceAutomationName}\"",
+            report,
+            StringComparison.Ordinal);
     }
 
     [Fact]

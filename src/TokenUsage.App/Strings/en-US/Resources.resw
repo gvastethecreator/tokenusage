@@ -674,6 +674,7 @@
   <data name="UsageReportCompareQuotaUsedMetric" xml:space="preserve"><value>Quota used</value></data>
   <data name="UsageReportCompareCostPerMillionMetric" xml:space="preserve"><value>Cost per 1M tokens</value></data>
   <data name="UsageReportCompareTokensPerQuotaPointMetric" xml:space="preserve"><value>Tokens per 1% quota</value></data>
+  <data name="UsageReportComparePaceMetric" xml:space="preserve"><value>Projected pace</value></data>
   <data name="UsageReportComparePercentagePointsFormat" xml:space="preserve"><value>{0} pp</value></data>
   <data name="UsageReportCompareUnavailable" xml:space="preserve"><value>—</value></data>
   <data name="UsageReportCompareCycleIncompatibleWarning" xml:space="preserve"><value>These cycles use different limits or cadences. Raw values are shown, but efficiency deltas are not directly comparable.</value></data>

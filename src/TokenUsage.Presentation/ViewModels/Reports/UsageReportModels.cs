@@ -45,9 +45,14 @@ public sealed record UsageReportResetCycleOption(
     decimal UsedPercent,
     decimal? WindowDurationMinutes,
     bool IsCurrent,
-    QuotaResetCause? EndingResetCause)
+    QuotaResetCause? EndingResetCause,
+    decimal? ProjectedUsagePercent,
+    string PaceText)
 {
     public string AutomationName => $"{DisplayName}. {DurationText}. {RangeText}. {DetailText}";
+
+    public bool HasPace => ProjectedUsagePercent is not null
+        && !string.IsNullOrWhiteSpace(PaceText);
 
     public override string ToString() => $"{DisplayName} · {DurationText}";
 }
