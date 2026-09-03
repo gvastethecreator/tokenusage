@@ -37,6 +37,7 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("gemini-3-6-flash", 1.125, "gemini-3.6-flash")]
     [InlineData("gemini-3.7-flash", 1.125, "gemini-3.7-flash")]
     [InlineData("gemini-3.7-flash-control", 1.125, "gemini-3.7-flash")]
+    [InlineData("gemini-3.8-flash", 1.10, "gemini-3.8-flash")]
     [InlineData("claude-sonnet-4.6", 4.5, "claude-sonnet-4-6")]
     [InlineData("grok-4-5", 2.6, "grok-4.5")]
     public void PricesCursorModelIdsFromOfficialProviderRates(
@@ -59,6 +60,7 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-02")]
     [InlineData("gpt-5.1-codex", "openai-api-2026-09-02")]
     [InlineData("gemini-3.6-flash", "google-api-2026-09-02")]
+    [InlineData("gemini-3.8-flash", "google-api-2026-09-02")]
     [InlineData("glm-5.3-flash", "zai-api-2026-09-02")]
     [InlineData("kimi-k3", "moonshot-api-2026-09-02")]
     public void UsesTheOfficialCatalogVersion(string model, string catalogVersion)
@@ -421,6 +423,22 @@ public sealed class KnownModelPricingCatalogTests
     [Theory]
     [InlineData("2026-12-31T23:59:59Z", 1.125)]
     [InlineData("2027-01-01T00:00:00Z", 2.25)]
+    public void GeminiThreeEightFlashUsesThePublishedPromotionalCutoff(
+        string occurredAt,
+        decimal expectedUsd)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            "gemini-3.8-flash",
+            DateTimeOffset.Parse(occurredAt, CultureInfo.InvariantCulture),
+            MillionInHundredKOut);
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+    }
+
+    [Theory]
+    [InlineData("2026-12-31T23:59:59Z", 1.125)]
+    [InlineData("2027-01-01T00:00:00Z", 2.25)]
     public void GeminiThreeSixFlashUsesTheSamePromotionalCutoff(
         string occurredAt,
         decimal expectedUsd)
@@ -432,6 +450,21 @@ public sealed class KnownModelPricingCatalogTests
 
         Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
         Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+    }
+
+    [Theory]
+    [InlineData("gemini-3.1-flash-lite", 0.4)]
+    [InlineData("gemini-3.5-flash-lite", 0.55)]
+    public void PricesCurrentGeminiFlashLiteModels(string model, decimal expectedUsd)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            model,
+            OccurredAtUtc,
+            MillionInHundredKOut);
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+        Assert.Equal(GooglePricingCatalog.Version, cost.CatalogVersion);
     }
 
     [Fact]

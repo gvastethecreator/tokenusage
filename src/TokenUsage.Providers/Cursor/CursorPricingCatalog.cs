@@ -18,6 +18,7 @@ public static class CursorPricingCatalog
         {
             ["composer-2.5"] = new(0.5m, 0.2m, 2.5m),
             ["composer-2.5-fast"] = new(3m, 0.5m, 15m),
+            ["gemini-3.8-flash"] = new(0.75m, 0.075m, 3.5m),
             ["grok-4.5"] = new(2m, 0.5m, 6m),
             ["grok-4.5-fast"] = new(4m, 1m, 18m),
             ["grok-4.6"] = new(2m, 0.5m, 6m),
