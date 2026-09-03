@@ -593,8 +593,12 @@ public sealed class QuotaResetHistoryStoreTests
         Assert.Equal(2, cycles.Length);
         Assert.True(cycles[0].IsCurrent);
         Assert.Equal(0m, cycles[0].UsedPercent);
+        Assert.Equal(expectedReset.AddMinutes(1), cycles[0].ObservedAtUtc);
+        Assert.Equal(expectedReset.AddHours(5), cycles[0].ExpectedResetAtUtc);
         Assert.False(cycles[1].IsCurrent);
         Assert.Equal(88m, cycles[1].UsedPercent);
+        Assert.Equal(InitialObservation, cycles[1].ObservedAtUtc);
+        Assert.Equal(expectedReset, cycles[1].ExpectedResetAtUtc);
         Assert.Equal(QuotaResetDetectionKind.Scheduled, cycles[1].EndingResetKind);
         Assert.Equal(QuotaResetCause.Scheduled, cycles[1].EndingResetCause);
         Assert.Equal(expectedReset, cycles[1].ToUtc);

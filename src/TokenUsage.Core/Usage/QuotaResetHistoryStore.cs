@@ -83,6 +83,8 @@ public sealed record QuotaResetCycle(
     bool IsCurrent,
     decimal? WindowDurationMinutes,
     decimal UsedPercent,
+    DateTimeOffset ObservedAtUtc,
+    DateTimeOffset? ExpectedResetAtUtc,
     QuotaResetDetectionKind? EndingResetKind,
     QuotaResetCause? EndingResetCause,
     QuotaChangeEvidenceKind? EndingEvidenceKind);
@@ -117,6 +119,8 @@ public static class QuotaResetCycleQuery
                 IsCurrent: true,
                 window.WindowDurationMinutes,
                 window.UsedPercent,
+                window.ObservedAtUtc,
+                window.ExpectedResetAtUtc,
                 EndingResetKind: null,
                 EndingResetCause: null,
                 EndingEvidenceKind: null));
@@ -135,6 +139,8 @@ public static class QuotaResetCycleQuery
                 IsCurrent: false,
                 ResolveWindowDuration(item),
                 item.PreviousUsedPercent,
+                item.PreviousObservedAtUtc,
+                item.PreviousExpectedResetAtUtc,
                 item.DetectionKind,
                 item.Cause,
                 item.EvidenceKind)));
