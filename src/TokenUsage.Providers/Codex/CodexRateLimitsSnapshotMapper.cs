@@ -27,6 +27,12 @@ public static class CodexRateLimitsSnapshotMapper
     private const string AdapterVersion = "codex-app-server/1";
     private const int AdapterContractVersion = 1;
     private const int MaximumAdditionalLimits = 64;
+    public const string ResetCreditsReportedAvailableMetricId = "quota.reset-credits.reported-available";
+    public const string ResetCreditsAvailableMetricId = "quota.reset-credits.available";
+    public const string ResetCreditsHasDetailsMetricId = "quota.reset-credits.has-details";
+    public const string ResetCreditsDetailCountMetricId = "quota.reset-credits.detail-count";
+    public const string ResetCreditsExpiredMetricId = "quota.reset-credits.expired";
+    public const string ResetCreditsNextExpiryMetricId = "quota.reset-credits.next-expiry-unix";
     private static readonly ProviderId CodexProviderId = new("codex");
 
     public static CodexSnapshotMappingResult Map(
@@ -79,10 +85,12 @@ public static class CodexRateLimitsSnapshotMapper
             AddBucketMetrics(metrics, prefix, bucket, provenance, limitId);
         }
 
-        if (metrics.Count == 0)
+        if (!metrics.OfType<ProgressMetricSnapshot>().Any())
         {
             return new CodexSnapshotMappingResult.NoRateLimits();
         }
+
+        AddResetCreditMetrics(metrics, source.ResetCredits, observedAtUtc, provenance);
 
         return new CodexSnapshotMappingResult.Available(
             new ProviderSnapshot(
@@ -96,6 +104,66 @@ public static class CodexRateLimitsSnapshotMapper
                 CoverageKind.Complete,
                 AdapterContractVersion));
     }
+
+    private static void AddResetCreditMetrics(
+        List<MetricSnapshot> metrics,
+        CodexResetCreditInventory? inventory,
+        DateTimeOffset observedAtUtc,
+        DataProvenance provenance)
+    {
+        if (inventory is null)
+        {
+            return;
+        }
+
+        IReadOnlyList<CodexResetCredit>? details = inventory.Credits;
+        int effectiveAvailable = inventory.AvailableCount;
+        int expired = 0;
+        DateTimeOffset? nextExpiry = null;
+        if (details is not null)
+        {
+            CodexResetCredit[] available = details
+                .Where(credit =>
+                    string.Equals(credit.Status, "available", StringComparison.OrdinalIgnoreCase)
+                    && (credit.ExpiresAtUtc is null || credit.ExpiresAtUtc > observedAtUtc))
+                .ToArray();
+            effectiveAvailable = Math.Min(inventory.AvailableCount, available.Length);
+            expired = details.Count(credit =>
+                string.Equals(credit.Status, "expired", StringComparison.OrdinalIgnoreCase)
+                || credit.ExpiresAtUtc is not null && credit.ExpiresAtUtc <= observedAtUtc);
+            nextExpiry = available
+                .Where(credit => credit.ExpiresAtUtc is not null)
+                .Select(credit => credit.ExpiresAtUtc)
+                .Min();
+        }
+
+        AddScalar(metrics, ResetCreditsReportedAvailableMetricId, inventory.AvailableCount, "credits", provenance);
+        AddScalar(metrics, ResetCreditsAvailableMetricId, effectiveAvailable, "credits", provenance);
+        AddScalar(metrics, ResetCreditsHasDetailsMetricId, details is null ? 0 : 1, "boolean", provenance);
+        if (details is not null)
+        {
+            AddScalar(metrics, ResetCreditsDetailCountMetricId, details.Count, "credits", provenance);
+            AddScalar(metrics, ResetCreditsExpiredMetricId, expired, "credits", provenance);
+        }
+
+        if (nextExpiry is not null)
+        {
+            AddScalar(
+                metrics,
+                ResetCreditsNextExpiryMetricId,
+                nextExpiry.Value.ToUnixTimeSeconds(),
+                "unix-seconds",
+                provenance);
+        }
+    }
+
+    private static void AddScalar(
+        List<MetricSnapshot> metrics,
+        string metricId,
+        decimal value,
+        string unit,
+        DataProvenance provenance) =>
+        metrics.Add(new ScalarMetricSnapshot(new MetricId(metricId), value, unit, provenance));
 
     private static void AddBucketMetrics(
         List<MetricSnapshot> metrics,

@@ -209,6 +209,16 @@
   <data name="CodexLabelProviderSupplied" xml:space="preserve"><value>Provider label</value></data>
   <data name="CodexLabelDurationDerived" xml:space="preserve"><value>Name derived from duration</value></data>
   <data name="CodexLabelUnknown" xml:space="preserve"><value>Provider did not supply a name</value></data>
+  <data name="CodexResetCreditsTitle" xml:space="preserve"><value>Reset credits</value></data>
+  <data name="CodexResetCreditsUnavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="CodexResetCreditsUnavailableDetail" xml:space="preserve"><value>Codex did not report reset-credit availability.</value></data>
+  <data name="CodexResetCreditsAvailableFormat" xml:space="preserve"><value>{0:N0} available</value></data>
+  <data name="CodexResetCreditsExpired" xml:space="preserve"><value>Expired</value></data>
+  <data name="CodexResetCreditsCountOnlyDetail" xml:space="preserve"><value>Credit details were not reported.</value></data>
+  <data name="CodexResetCreditsExpiredDetailFormat" xml:space="preserve"><value>{0:N0} expired</value></data>
+  <data name="CodexResetCreditsExpiryFormat" xml:space="preserve"><value>Next expiry {0}</value></data>
+  <data name="CodexResetCreditsNoneDetail" xml:space="preserve"><value>No reset credits are currently available.</value></data>
+  <data name="CodexResetCreditsNoExpiryDetail" xml:space="preserve"><value>No expiry was reported.</value></data>
   <data name="CodexResetUnknown" xml:space="preserve"><value>Reset time unavailable</value></data>
   <data name="CodexResetDue" xml:space="preserve"><value>Reset due</value></data>
   <data name="CodexStateCacheRefreshing" xml:space="preserve"><value>Codex quota · cache, updating…</value></data>

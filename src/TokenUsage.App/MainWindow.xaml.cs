@@ -594,6 +594,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 RootPage.ViewModel.Appearance,
                 e.Request,
                 RootPage.ViewModel.Dashboard.GetProviderLimits,
+                RootPage.ViewModel.Dashboard.GetProviderCreditSummary,
                 display.WorkArea,
                 reportDpi);
             _reportWindow.Closed += OnUsageReportWindowClosed;

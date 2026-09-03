@@ -72,6 +72,7 @@ public sealed class CodexDashboardProjectorTests
         Assert.False(string.IsNullOrWhiteSpace(card.ObservedValue));
         Assert.Contains("Official local API", card.DetailsTooltip, StringComparison.Ordinal);
         Assert.Equal("Details for Codex", card.DetailsAutomationName);
+        Assert.Equal("Unavailable", card.CreditSummary?.Value);
         Assert.Collection(
             card.Metrics,
             metric => Assert.Equal(new DashboardMetric("Today", "No data", "CodexUsage.Today", "usage.tokens.today"), metric),
@@ -242,6 +243,30 @@ public sealed class CodexDashboardProjectorTests
     }
 
     [Fact]
+    public void ResetCreditSummaryDistinguishesCountOnlyZeroFromExpiredCredits()
+    {
+        ProviderCard countOnly = CreateCreditCard(new CodexResetCreditInventory(0, null));
+        Assert.Equal("0 available", countOnly.CreditSummary?.Value);
+        Assert.Equal("Credit details were not reported.", countOnly.CreditSummary?.Detail);
+        Assert.False(countOnly.CreditSummary?.HasAvailableCredits);
+        Assert.False(countOnly.CreditSummary?.IsExpired);
+
+        ProviderCard expired = CreateCreditCard(new CodexResetCreditInventory(
+            1,
+            [
+                new CodexResetCredit(
+                    "codexRateLimits",
+                    "available",
+                    Now.AddDays(-2),
+                    Now.AddMinutes(-1)),
+            ]));
+        Assert.Equal("Expired", expired.CreditSummary?.Value);
+        Assert.Equal("1 expired", expired.CreditSummary?.Detail);
+        Assert.False(expired.CreditSummary?.HasAvailableCredits);
+        Assert.True(expired.CreditSummary?.IsExpired);
+    }
+
+    [Fact]
     public void UnnamedAdditionalLimitsUseNeutralIdentityAndDurationNames()
     {
         var provenance = new DataProvenance(
@@ -377,6 +402,23 @@ public sealed class CodexDashboardProjectorTests
             windowUsedTokens).Providers);
     }
 
+    private static ProviderCard CreateCreditCard(CodexResetCreditInventory inventory)
+    {
+        var source = new CodexRateLimitsSnapshot(
+            new CodexRateLimitBucket(
+                "pro",
+                new CodexRateLimitWindow(10, Now.AddHours(5), 300),
+                null),
+            new Dictionary<string, CodexRateLimitBucket>(),
+            inventory);
+        ProviderSnapshot snapshot = Assert.IsType<CodexSnapshotMappingResult.Available>(
+            CodexRateLimitsSnapshotMapper.Map(source, Now, "UTC")).Snapshot;
+        return Assert.Single(CodexDashboardProjector.Create(
+            snapshot,
+            new FixedTimeProvider(Now),
+            GetString).Providers);
+    }
+
     private static string GetString(string key) => key switch
     {
         "CodexQuotaPeriod" => "Current Codex limits",
@@ -391,6 +433,16 @@ public sealed class CodexDashboardProjectorTests
         "CodexLabelProviderSupplied" => "Provider label",
         "CodexLabelDurationDerived" => "Name derived from duration",
         "CodexLabelUnknown" => "Provider did not supply a name",
+        "CodexResetCreditsTitle" => "Reset credits",
+        "CodexResetCreditsUnavailable" => "Unavailable",
+        "CodexResetCreditsUnavailableDetail" => "Codex did not report reset-credit availability.",
+        "CodexResetCreditsAvailableFormat" => "{0:N0} available",
+        "CodexResetCreditsExpired" => "Expired",
+        "CodexResetCreditsCountOnlyDetail" => "Credit details were not reported.",
+        "CodexResetCreditsExpiredDetailFormat" => "{0:N0} expired",
+        "CodexResetCreditsExpiryFormat" => "Next expiry {0}",
+        "CodexResetCreditsNoneDetail" => "No reset credits are currently available.",
+        "CodexResetCreditsNoExpiryDetail" => "No expiry was reported.",
         "CodexResetUnknown" => "Reset time unavailable",
         "CodexResetDue" => "Reset due",
         "SampleWindowSession" => "Session",

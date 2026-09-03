@@ -136,6 +136,43 @@ public sealed class CodexRateLimitsSnapshotMapperTests
     }
 
     [Fact]
+    public void ResetCreditsMapReportedEffectiveExpiredAndExpiryValues()
+    {
+        var source = new CodexRateLimitsSnapshot(
+            new CodexRateLimitBucket("pro", Window(10, ObservedAt.AddDays(1), 300), null),
+            new Dictionary<string, CodexRateLimitBucket>(),
+            new CodexResetCreditInventory(
+                2,
+                [
+                    new CodexResetCredit(
+                        "codexRateLimits",
+                        "available",
+                        ObservedAt.AddDays(-1),
+                        ObservedAt.AddDays(5)),
+                    new CodexResetCredit(
+                        "codexRateLimits",
+                        "available",
+                        ObservedAt.AddDays(-2),
+                        ObservedAt.AddMinutes(-1)),
+                ]));
+
+        ProviderSnapshot snapshot = Assert.IsType<CodexSnapshotMappingResult.Available>(
+            CodexRateLimitsSnapshotMapper.Map(source, ObservedAt, "UTC")).Snapshot;
+        Dictionary<string, ScalarMetricSnapshot> scalars = snapshot.Metrics
+            .OfType<ScalarMetricSnapshot>()
+            .ToDictionary(metric => metric.Id.Value, StringComparer.Ordinal);
+
+        Assert.Equal(2m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsReportedAvailableMetricId].Value);
+        Assert.Equal(1m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsAvailableMetricId].Value);
+        Assert.Equal(1m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsHasDetailsMetricId].Value);
+        Assert.Equal(2m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsDetailCountMetricId].Value);
+        Assert.Equal(1m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsExpiredMetricId].Value);
+        Assert.Equal(
+            ObservedAt.AddDays(5).ToUnixTimeSeconds(),
+            scalars[CodexRateLimitsSnapshotMapper.ResetCreditsNextExpiryMetricId].Value);
+    }
+
+    [Fact]
     public void AUniqueAdditionalPlanSuppliesThePlanLabel()
     {
         var source = new CodexRateLimitsSnapshot(

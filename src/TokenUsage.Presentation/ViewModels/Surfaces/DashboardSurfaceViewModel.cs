@@ -506,6 +506,14 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         return limits;
     }
 
+    public ProviderCreditSummary? GetProviderCreditSummary(string providerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        DashboardSnapshot source = _appearanceDashboard ?? ActiveSample;
+        return source.Providers.FirstOrDefault(card =>
+            string.Equals(card.ProviderId, providerId, StringComparison.Ordinal))?.CreditSummary;
+    }
+
     public async Task StartAsync()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
