@@ -676,6 +676,9 @@
   <data name="UsageReportCompareTokensPerQuotaPointMetric" xml:space="preserve"><value>Tokens per 1% quota</value></data>
   <data name="UsageReportComparePercentagePointsFormat" xml:space="preserve"><value>{0} pp</value></data>
   <data name="UsageReportCompareUnavailable" xml:space="preserve"><value>—</value></data>
+  <data name="UsageReportCompareCycleIncompatibleWarning" xml:space="preserve"><value>These cycles use different limits or cadences. Raw values are shown, but efficiency deltas are not directly comparable.</value></data>
+  <data name="UsageReportCompareCycleIncompleteWarning" xml:space="preserve"><value>One selected cycle is still active. Its values can increase before the cycle ends.</value></data>
+  <data name="UsageReportCompareCycleIncompatibleIncompleteWarning" xml:space="preserve"><value>These cycles use different limits or cadences, and one is still active. Raw values remain visible, but the comparison is provisional.</value></data>
   <data name="UsageReportCompareDayFormat" xml:space="preserve"><value>Day {0}</value></data>
   <data name="UsageReportCompareCurrentRangeFormat" xml:space="preserve"><value>Current · {0} to {1}</value></data>
   <data name="UsageReportComparePreviousRangeFormat" xml:space="preserve"><value>Previous · {0} to {1}</value></data>

@@ -580,8 +580,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(169, matches.Count);
-        Assert.Equal(154, distinctIds.Length);
+        Assert.Equal(170, matches.Count);
+        Assert.Equal(155, distinctIds.Length);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayPopoverEnabledToggle", distinctIds, StringComparer.Ordinal);
@@ -603,6 +603,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportResetCycleGroupSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportNextResetCycleButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportCompareCycleWarning", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportPeriodSelector", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
