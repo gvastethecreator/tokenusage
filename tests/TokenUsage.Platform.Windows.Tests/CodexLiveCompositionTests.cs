@@ -358,8 +358,6 @@ public sealed class CodexLiveCompositionTests
         "CodexWindowSecondary" => "Secondary limit",
         "CodexWindowAdditionalPrimaryFormat" => "Additional limit {0}",
         "CodexWindowAdditionalSecondaryFormat" => "Additional limit {0}",
-        "CodexWindowSparkSession" => "Spark session",
-        "CodexWindowSparkWeekly" => "Spark weekly",
         "CodexResetUnknown" => "Reset time unavailable",
         "CodexResetDue" => "Reset due",
         "SampleWindowSession" => "Session",

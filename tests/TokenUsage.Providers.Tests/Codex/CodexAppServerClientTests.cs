@@ -112,6 +112,28 @@ public sealed class CodexAppServerClientTests
         Assert.Equal(100, result.RateLimitsByLimitId["codex-mini"].Secondary?.UsedPercent);
     }
 
+    [Theory]
+    [InlineData("unsafe id")]
+    [InlineData("path/segment")]
+    public async Task UnsafeProviderLimitIdsFailClosed(string limitId)
+    {
+        using var peer = new ScriptedCodexJsonlPeer(
+            """{"id":1,"result":{}}""",
+            """
+            {"id":2,"result":{"rateLimits":{"primary":null,"secondary":null},"rateLimitsByLimitId":{"safe-key":{"limitId":"$limitId$","primary":{"usedPercent":25}}}}}
+            """.Replace("$limitId$", limitId, StringComparison.Ordinal));
+        await using CodexAppServerClient client = peer.CreateClient();
+
+        await client.HandshakeAsync(CancellationToken.None);
+        CodexProtocolException error = await Assert.ThrowsAsync<CodexProtocolException>(() =>
+            client.ReadRateLimitsAsync(CancellationToken.None));
+
+        Assert.Equal(
+            "Codex app-server returned an unsupported rate-limit response.",
+            error.Message);
+        Assert.DoesNotContain(limitId, error.ToString(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task NullWindowsRemainAbsent()
     {

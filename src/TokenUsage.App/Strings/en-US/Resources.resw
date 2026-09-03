@@ -204,8 +204,11 @@
   <data name="CodexWindowSecondary" xml:space="preserve"><value>Secondary limit</value></data>
   <data name="CodexWindowAdditionalPrimaryFormat" xml:space="preserve"><value>Additional limit {0}</value></data>
   <data name="CodexWindowAdditionalSecondaryFormat" xml:space="preserve"><value>Additional limit {0}</value></data>
-  <data name="CodexWindowSparkSession" xml:space="preserve"><value>Spark session</value></data>
-  <data name="CodexWindowSparkWeekly" xml:space="preserve"><value>Spark weekly</value></data>
+  <data name="CodexWindowUnnamedFormat" xml:space="preserve"><value>Limit {0}</value></data>
+  <data name="CodexWindowUnnamedDurationFormat" xml:space="preserve"><value>Limit {0} · {1}</value></data>
+  <data name="CodexLabelProviderSupplied" xml:space="preserve"><value>Provider label</value></data>
+  <data name="CodexLabelDurationDerived" xml:space="preserve"><value>Name derived from duration</value></data>
+  <data name="CodexLabelUnknown" xml:space="preserve"><value>Provider did not supply a name</value></data>
   <data name="CodexResetUnknown" xml:space="preserve"><value>Reset time unavailable</value></data>
   <data name="CodexResetDue" xml:space="preserve"><value>Reset due</value></data>
   <data name="CodexStateCacheRefreshing" xml:space="preserve"><value>Codex quota · cache, updating…</value></data>

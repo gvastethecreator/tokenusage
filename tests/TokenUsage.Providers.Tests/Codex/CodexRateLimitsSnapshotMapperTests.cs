@@ -66,6 +66,41 @@ public sealed class CodexRateLimitsSnapshotMapperTests
             ],
             snapshot.Metrics.Select(metric => metric.Id.Value));
         Assert.Equal(4, snapshot.Metrics.Count);
+        ProgressMetricSnapshot additional = Assert.IsType<ProgressMetricSnapshot>(snapshot.Metrics[2]);
+        Assert.Null(additional.DisplayName);
+        Assert.Equal("Z_Model", additional.LabelEvidence?.ProviderMetricKey);
+        Assert.Equal(MetricLabelSource.Duration, additional.LabelEvidence?.Source);
+        Assert.Equal(MetricLabelConfidence.Derived, additional.LabelEvidence?.Confidence);
+    }
+
+    [Fact]
+    public void NamedAdditionalBucketPreservesProviderIdentityAndExactLabel()
+    {
+        var source = new CodexRateLimitsSnapshot(
+            new CodexRateLimitBucket("pro", null, null),
+            new Dictionary<string, CodexRateLimitBucket>(StringComparer.Ordinal)
+            {
+                ["codex-model"] = new(
+                    "pro",
+                    Window(75, ObservedAt.AddHours(2), 300),
+                    null)
+                {
+                    LimitId = "base_model_inference",
+                    LimitName = "gpt-reserve",
+                },
+            });
+
+        ProviderSnapshot snapshot = Assert.IsType<CodexSnapshotMappingResult.Available>(
+            CodexRateLimitsSnapshotMapper.Map(source, ObservedAt, "UTC")).Snapshot;
+
+        ProgressMetricSnapshot metric = Assert.IsType<ProgressMetricSnapshot>(snapshot.Metrics[0]);
+        Assert.Equal("quota.codex-model.primary", metric.Id.Value);
+        Assert.Equal("gpt-reserve", metric.DisplayName);
+        Assert.Equal("codex-model", metric.LabelEvidence?.ProviderMetricKey);
+        Assert.Equal("base_model_inference", metric.LabelEvidence?.ProviderMetricId);
+        Assert.Equal("gpt-reserve", metric.LabelEvidence?.ProviderMetricName);
+        Assert.Equal(MetricLabelSource.Provider, metric.LabelEvidence?.Source);
+        Assert.Equal(MetricLabelConfidence.Exact, metric.LabelEvidence?.Confidence);
     }
 
     [Fact]

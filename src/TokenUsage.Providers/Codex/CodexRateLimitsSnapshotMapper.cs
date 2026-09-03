@@ -54,7 +54,7 @@ public static class CodexRateLimitsSnapshotMapper
             AdapterVersion);
         var metrics = new List<MetricSnapshot>();
 
-        AddBucketMetrics(metrics, "quota", source.RateLimits, provenance);
+        AddBucketMetrics(metrics, "quota", source.RateLimits, provenance, providerMetricKey: null);
 
         var usedPrefixes = new HashSet<string>(StringComparer.Ordinal);
         foreach ((string limitId, CodexRateLimitBucket bucket) in
@@ -76,7 +76,7 @@ public static class CodexRateLimitsSnapshotMapper
                 throw MappingFailure();
             }
 
-            AddBucketMetrics(metrics, prefix, bucket, provenance);
+            AddBucketMetrics(metrics, prefix, bucket, provenance, limitId);
         }
 
         if (metrics.Count == 0)
@@ -101,7 +101,8 @@ public static class CodexRateLimitsSnapshotMapper
         List<MetricSnapshot> metrics,
         string prefix,
         CodexRateLimitBucket bucket,
-        DataProvenance provenance)
+        DataProvenance provenance,
+        string? providerMetricKey)
     {
         if (bucket.Primary is not null)
         {
@@ -109,7 +110,8 @@ public static class CodexRateLimitsSnapshotMapper
                 $"{prefix}.primary",
                 bucket.Primary,
                 provenance,
-                ResolveLimitDisplayName(bucket)));
+                bucket.LimitName,
+                CreateLabelEvidence(providerMetricKey, bucket, bucket.Primary)));
             AddWindowDuration(metrics, $"{prefix}.primary", bucket.Primary, provenance);
         }
 
@@ -119,7 +121,8 @@ public static class CodexRateLimitsSnapshotMapper
                 $"{prefix}.secondary",
                 bucket.Secondary,
                 provenance,
-                ResolveLimitDisplayName(bucket)));
+                bucket.LimitName,
+                CreateLabelEvidence(providerMetricKey, bucket, bucket.Secondary)));
             AddWindowDuration(metrics, $"{prefix}.secondary", bucket.Secondary, provenance);
         }
     }
@@ -147,22 +150,41 @@ public static class CodexRateLimitsSnapshotMapper
         string metricId,
         CodexRateLimitWindow window,
         DataProvenance provenance,
-        string? displayName) =>
+        string? displayName,
+        MetricLabelEvidence? labelEvidence) =>
         new(
             new MetricId(metricId),
             window.UsedPercent,
             limit: 100m,
             window.ResetsAtUtc,
             provenance,
-            displayName: displayName);
+            displayName: displayName,
+            labelEvidence: labelEvidence);
 
-    private static string? ResolveLimitDisplayName(CodexRateLimitBucket bucket) =>
-        bucket.LimitName switch
+    private static MetricLabelEvidence? CreateLabelEvidence(
+        string? providerMetricKey,
+        CodexRateLimitBucket bucket,
+        CodexRateLimitWindow window)
+    {
+        if (providerMetricKey is null)
         {
-            "gpt-reserve" => "GPT reserve",
-            { Length: > 0 } name => name,
-            _ => null,
+            return null;
+        }
+
+        (MetricLabelSource source, MetricLabelConfidence confidence) = bucket.LimitName switch
+        {
+            { Length: > 0 } => (MetricLabelSource.Provider, MetricLabelConfidence.Exact),
+            _ when window.WindowDurationMinutes is not null =>
+                (MetricLabelSource.Duration, MetricLabelConfidence.Derived),
+            _ => (MetricLabelSource.Unknown, MetricLabelConfidence.Unknown),
         };
+        return new MetricLabelEvidence(
+            providerMetricKey,
+            bucket.LimitId,
+            bucket.LimitName,
+            source,
+            confidence);
+    }
 
     private static bool HasSameWindows(
         CodexRateLimitBucket left,

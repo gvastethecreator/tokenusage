@@ -77,7 +77,7 @@
                         BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
                         BorderThickness="2"
                         CornerRadius="7">
-                        <FontIcon FontSize="14" Glyph="{Binding IconGlyph}" />
+                        <FontIcon FontSize="14" Glyph="&#xE787;" />
                     </Border>
                     <TextBlock
                         Grid.Column="1"

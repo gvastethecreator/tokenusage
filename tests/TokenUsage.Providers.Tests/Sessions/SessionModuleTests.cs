@@ -561,7 +561,7 @@ public sealed class SessionModuleTests
         Assert.Collection(
             surface.GlobalProviderLimits,
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
-            spark => Assert.Equal("CodexWindowSparkWeekly", spark.Title));
+            additional => Assert.Equal("CodexWindowAdditionalPrimaryFormat", additional.Title));
         Assert.Equal(surface.GlobalProviderLimits, surface.SelectedProviderLimits);
         Assert.Same(surface.GlobalProviderLimits, surface.GetProviderLimits("codex"));
         Assert.True(surface.HasGlobalProviderLimits);
@@ -619,7 +619,7 @@ public sealed class SessionModuleTests
         Assert.Collection(
             surface.GlobalProviderLimits,
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
-            spark => Assert.Equal("CodexWindowSparkWeekly", spark.Title));
+            additional => Assert.Equal("CodexWindowAdditionalPrimaryFormat", additional.Title));
         Assert.True(surface.SelectedProviderHasLimits);
         Assert.True(codexProvider.SawForcedRefresh);
         Assert.Equal([false, true], codexProvider.ForceRefreshRequests.Take(2));

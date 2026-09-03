@@ -1232,15 +1232,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private string ResetWindowName(string metricId, decimal? windowDurationMinutes)
     {
-        if (metricId.Contains("bengalfox", StringComparison.Ordinal)
-            || metricId.Contains("codex-spark", StringComparison.Ordinal))
-        {
-            return GetString(windowDurationMinutes is >= 1_440m
-                || metricId.EndsWith(".secondary", StringComparison.Ordinal)
-                    ? "CodexWindowSparkWeekly"
-                    : "CodexWindowSparkSession");
-        }
-
         if (string.Equals(metricId, "quota.primary", StringComparison.Ordinal))
         {
             return windowDurationMinutes is >= 1_440m
@@ -1253,13 +1244,31 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return GetString("SampleWindowWeekly");
         }
 
-        return metricId;
+        string identity = metricId.StartsWith("quota.", StringComparison.Ordinal)
+            ? metricId["quota.".Length..]
+            : metricId;
+        identity = identity.EndsWith(".primary", StringComparison.Ordinal)
+            ? identity[..^".primary".Length]
+            : identity.EndsWith(".secondary", StringComparison.Ordinal)
+                ? identity[..^".secondary".Length]
+                : identity;
+        return windowDurationMinutes is > 0m
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("CodexWindowUnnamedDurationFormat"),
+                identity,
+                FormatCycleDuration(TimeSpan.FromMinutes(
+                    decimal.ToDouble(windowDurationMinutes.Value))))
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("CodexWindowUnnamedFormat"),
+                identity);
     }
 
     private static int ResetWindowOrder(string metricId) => metricId switch
     {
         "quota.primary" => 0,
-        _ when metricId.Contains("bengalfox", StringComparison.Ordinal) => 1,
+        "quota.secondary" => 1,
         _ => 2,
     };
 

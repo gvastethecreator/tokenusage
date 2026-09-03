@@ -119,9 +119,11 @@ public static class CodexDashboardProjector
         string title = ResolveWindowTitle(
             metric.Id.Value,
             metric.DisplayName,
+            metric.LabelEvidence,
             durationMinutes,
             text,
             ref additionalWindow);
+        string labelEvidenceText = ResolveLabelEvidenceText(metric.LabelEvidence, text);
         string usage = Format(text, "CodexUsageFormat", remaining, used);
         string reset = FormatReset(metric.ResetsAtUtc, clock, text);
         (string? paceText, bool isPaceBehind) = CreatePace(
@@ -152,7 +154,8 @@ public static class CodexDashboardProjector
             $"CodexPace.{metric.Id.Value}",
             LayoutMetricId: metric.Id.Value,
             ResetAtUtc: metric.ResetsAtUtc,
-            UsedText: usedTokens);
+            UsedText: usedTokens,
+            LabelEvidenceText: labelEvidenceText);
     }
 
     private static IReadOnlyList<DashboardMetric> CreateUsageMetrics(
@@ -257,6 +260,7 @@ public static class CodexDashboardProjector
     private static string ResolveWindowTitle(
         string metricId,
         string? displayName,
+        MetricLabelEvidence? labelEvidence,
         decimal durationMinutes,
         Func<string, string> text,
         ref int additionalWindow)
@@ -281,16 +285,22 @@ public static class CodexDashboardProjector
             return text(isPrimary ? "CodexWindowPrimary" : "CodexWindowSecondary");
         }
 
-        if (IsSparkLimit(metricId))
-        {
-            return text(durationMinutes >= WeeklyMinimumMinutes || isSecondary
-                ? "CodexWindowSparkWeekly"
-                : "CodexWindowSparkSession");
-        }
-
         if (!string.IsNullOrWhiteSpace(displayName))
         {
             return displayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(labelEvidence?.ProviderMetricKey))
+        {
+            string identity = labelEvidence.ProviderMetricId
+                ?? labelEvidence.ProviderMetricKey;
+            return durationMinutes > 0
+                ? Format(
+                    text,
+                    "CodexWindowUnnamedDurationFormat",
+                    identity,
+                    FormatDuration(TimeSpan.FromMinutes(decimal.ToDouble(durationMinutes)), text))
+                : Format(text, "CodexWindowUnnamedFormat", identity);
         }
 
         additionalWindow++;
@@ -302,9 +312,15 @@ public static class CodexDashboardProjector
             additionalWindow);
     }
 
-    private static bool IsSparkLimit(string metricId) =>
-        metricId.StartsWith("quota.codex-bengalfox.", StringComparison.Ordinal)
-        || metricId.StartsWith("quota.codex-spark.", StringComparison.Ordinal);
+    private static string ResolveLabelEvidenceText(
+        MetricLabelEvidence? evidence,
+        Func<string, string> text) => evidence?.Source switch
+        {
+            MetricLabelSource.Provider => text("CodexLabelProviderSupplied"),
+            MetricLabelSource.Duration => text("CodexLabelDurationDerived"),
+            MetricLabelSource.Unknown => text("CodexLabelUnknown"),
+            _ => string.Empty,
+        };
 
     private static string FormatReset(
         DateTimeOffset? resetsAtUtc,
