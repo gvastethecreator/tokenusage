@@ -622,6 +622,22 @@
                 </StackPanel>
 
                 <Border
+                    Padding="14,10"
+                    Style="{StaticResource ReportCardStyle}"
+                    Visibility="{x:Bind ViewModel.HasResetCycleAvailabilityNotice, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="9">
+                        <FontIcon
+                            FontSize="14"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Glyph="&#xE946;" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="{x:Bind ViewModel.ResetCycleAvailabilityText, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border
                     Padding="14,12"
                     Style="{StaticResource ReportCardStyle}"
                     Visibility="{x:Bind ViewModel.IsResetCycleWindow, Mode=OneWay}">
@@ -635,14 +651,33 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.ColumnSpan="3" Spacing="2">
                             <TextBlock x:Uid="UsageReportCycleSelectionTitle" FontWeight="SemiBold" />
                             <TextBlock x:Uid="UsageReportCycleSelectionHelp" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
                         </StackPanel>
+                        <Grid Grid.Row="1" Grid.ColumnSpan="3" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                x:Uid="UsageReportResetCycleGroupLabel"
+                                VerticalAlignment="Center" />
+                            <ComboBox
+                                x:Uid="UsageReportResetCycleGroupSelector"
+                                Grid.Column="1"
+                                AutomationProperties.AutomationId="UsageReportResetCycleGroupSelector"
+                                DisplayMemberPath="DisplayName"
+                                HorizontalAlignment="Stretch"
+                                ItemsSource="{x:Bind ViewModel.ResetCycleGroupOptions, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedResetCycleGroup, Mode=TwoWay}"
+                                Style="{StaticResource ReportToolbarComboBoxStyle}" />
+                        </Grid>
                         <Button
                             x:Uid="UsageReportPreviousResetCycleButton"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             AutomationProperties.AutomationId="UsageReportPreviousResetCycleButton"
                             Click="OnPreviousResetCycleClick"
                             IsEnabled="{x:Bind ViewModel.CanSelectPreviousResetCycle, Mode=OneWay}"
@@ -653,19 +688,19 @@
                         </Button>
                         <ComboBox
                             x:Uid="UsageReportResetCycleSelector"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             Grid.Column="1"
                             AutomationProperties.AutomationId="UsageReportResetCycleSelector"
                             AutomationProperties.HelpText="{x:Bind ViewModel.ResetCycleHelpText, Mode=OneWay}"
                             HorizontalAlignment="Stretch"
                             ItemTemplate="{StaticResource ReportResetCycleOptionTemplate}"
-                            ItemsSource="{x:Bind ViewModel.ResetCycleOptions, Mode=OneWay}"
+                            ItemsSource="{x:Bind ViewModel.SelectedResetCycleOptions, Mode=OneWay}"
                             SelectedItem="{x:Bind ViewModel.SelectedResetCycle, Mode=TwoWay}"
                             Style="{StaticResource ReportToolbarComboBoxStyle}"
                             ToolTipService.ToolTip="{x:Bind ViewModel.ResetCycleHelpText, Mode=OneWay}" />
                         <Button
                             x:Uid="UsageReportNextResetCycleButton"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             Grid.Column="2"
                             AutomationProperties.AutomationId="UsageReportNextResetCycleButton"
                             Click="OnNextResetCycleClick"
@@ -675,7 +710,7 @@
                             Style="{StaticResource ReportToolbarButtonStyle}">
                             <FontIcon FontSize="12" Glyph="&#xE76C;" />
                         </Button>
-                        <Grid Grid.Row="2" Grid.Column="1" ColumnSpacing="16">
+                        <Grid Grid.Row="3" Grid.Column="1" ColumnSpacing="16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
