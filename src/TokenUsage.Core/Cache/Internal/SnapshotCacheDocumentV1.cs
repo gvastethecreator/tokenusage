@@ -65,7 +65,16 @@ internal sealed class SnapshotCacheMetricV1
 
     public SnapshotCacheMetricLabelEvidenceV1? LabelEvidence { get; set; }
 
+    public SnapshotCacheProviderResetEvidenceV1? ResetEvidence { get; set; }
+
     public SnapshotCacheProvenanceV1? Provenance { get; set; }
+}
+
+internal sealed class SnapshotCacheProviderResetEvidenceV1
+{
+    public string? Cause { get; set; }
+
+    public DateTimeOffset? OccurredAtUtc { get; set; }
 }
 
 internal sealed class SnapshotCacheMetricLabelEvidenceV1
