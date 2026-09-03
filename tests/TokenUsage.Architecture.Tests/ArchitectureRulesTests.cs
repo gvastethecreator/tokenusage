@@ -441,6 +441,55 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
+    public void OptionsBooleanSettingsUseIconToggleButtons()
+    {
+        string optionsRoot = Path.Combine(
+            ProjectReferenceGraph.FindRepoRoot(),
+            "src",
+            "TokenUsage.App",
+            "Views",
+            "Options");
+        XDocument[] documents =
+        [
+            XDocument.Load(Path.Combine(optionsRoot, "GeneralOptionsView.xaml")),
+            XDocument.Load(Path.Combine(optionsRoot, "AppearanceOptionsView.xaml")),
+        ];
+        string[] requiredAutomationIds =
+        [
+            "CloseWhenInactiveToggle",
+            "DataCollectionBackgroundToggle",
+            "AppearanceTransparencyToggle",
+            "AppearanceTrayPopoverEnabledToggle",
+            "AppearanceTrayProviderNameToggle",
+        ];
+
+        Assert.DoesNotContain(
+            documents.SelectMany(document => document.Descendants()),
+            element => element.Name.LocalName == "ToggleSwitch");
+
+        XElement[] stateButtons = documents
+            .SelectMany(document => document.Descendants())
+            .Where(element => element.Name.LocalName == "ToggleButton")
+            .Where(element => element.Attributes().Any(attribute =>
+                attribute.Name.LocalName == "Style"
+                && attribute.Value == "{StaticResource OptionsStateButtonStyle}"))
+            .ToArray();
+        Assert.Equal(requiredAutomationIds.Length, stateButtons.Length);
+
+        foreach (string automationId in requiredAutomationIds)
+        {
+            XElement stateButton = Assert.Single(
+                stateButtons,
+                element => element.Attributes().Any(attribute =>
+                    attribute.Name.LocalName == "AutomationProperties.AutomationId"
+                    && attribute.Value == automationId));
+            Assert.Contains(
+                stateButton.Descendants(),
+                element => element.Name.LocalName == "SymbolIcon");
+        }
+    }
+
+    [Fact]
     public void ProviderStatusUsesCompactRowsWithAccessibleDetails()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();

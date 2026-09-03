@@ -44,16 +44,19 @@
                     x:Uid="CloseWhenInactiveLabel"
                     Style="{StaticResource BodyStrongTextBlockStyle}"
                     VerticalAlignment="Center" />
-                <ToggleSwitch
+                <ToggleButton
                     x:Name="CloseWhenInactiveToggle"
                     x:Uid="CloseWhenInactiveToggle"
                     Grid.Column="1"
                     AutomationProperties.AutomationId="CloseWhenInactiveToggle"
                     HorizontalAlignment="Right"
-                    IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
-                    OffContent=""
-                    OnContent=""
-                    VerticalAlignment="Center" />
+                    IsChecked="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}"
+                    Style="{StaticResource OptionsStateButtonStyle}"
+                    VerticalAlignment="Center">
+                    <SymbolIcon
+                        AutomationProperties.AccessibilityView="Raw"
+                        Symbol="Cancel" />
+                </ToggleButton>
             </Grid>
             <Grid ColumnSpacing="12" MinHeight="32">
                 <Grid.ColumnDefinitions>
@@ -65,14 +68,14 @@
                         x:Uid="DataCollectionBackgroundLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}" />
                 </StackPanel>
-                <ToggleSwitch
+                <ToggleButton
                     x:Name="DataCollectionBackgroundToggle"
+                    x:Uid="DataCollectionBackgroundToggle"
                     Grid.Column="1"
                     AutomationProperties.AutomationId="DataCollectionBackgroundToggle"
                     HorizontalAlignment="Right"
-                    IsOn="{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}"
-                    OffContent=""
-                    OnContent=""
+                    IsChecked="{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}"
+                    Style="{StaticResource OptionsStateButtonStyle}"
                     VerticalAlignment="Center">
                     <ToolTipService.ToolTip>
                         <ToolTip
@@ -80,7 +83,10 @@
                             ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
                             MaxWidth="300" />
                     </ToolTipService.ToolTip>
-                </ToggleSwitch>
+                    <SymbolIcon
+                        AutomationProperties.AccessibilityView="Raw"
+                        Symbol="Sync" />
+                </ToggleButton>
             </Grid>
             <StackPanel Spacing="4">
                 <TextBlock
