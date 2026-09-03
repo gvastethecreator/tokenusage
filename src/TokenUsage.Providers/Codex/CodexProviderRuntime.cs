@@ -204,7 +204,8 @@ public sealed class CodexProviderRuntime : IProviderRuntime
 
         return new CodexRateLimitsSnapshot(
             rateLimits.RateLimits with { PlanType = accountPlanType },
-            rateLimits.RateLimitsByLimitId);
+            rateLimits.RateLimitsByLimitId,
+            rateLimits.ResetCredits);
     }
 
     private static ProviderOutcome.TransientFailure TransientFailure(

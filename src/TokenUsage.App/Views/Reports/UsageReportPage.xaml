@@ -888,6 +888,31 @@
                                             Orientation="Horizontal" />
                                     </ItemsRepeater.Layout>
                                 </ItemsRepeater>
+                                <Grid
+                                    Margin="0,6,0,0"
+                                    Padding="0,9,0,0"
+                                    AutomationProperties.Name="{x:Bind ViewModel.ProviderCreditSummary.AutomationName, Mode=OneWay}"
+                                    BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+                                    BorderThickness="0,1,0,0"
+                                    ColumnSpacing="16"
+                                    Visibility="{x:Bind ViewModel.HasProviderCreditSummary, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ProviderCreditSummary.Title, Mode=OneWay}" />
+                                        <TextBlock
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="{x:Bind ViewModel.ProviderCreditSummary.Detail, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        FontFamily="Consolas"
+                                        Text="{x:Bind ViewModel.ProviderCreditSummary.Value, Mode=OneWay}"
+                                        VerticalAlignment="Center" />
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </StackPanel>

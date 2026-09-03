@@ -19,6 +19,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private readonly string _databasePath;
     private readonly Func<Task> _refreshSourceAsync;
     private readonly Func<string, IReadOnlyList<QuotaWindow>> _getProviderLimits;
+    private readonly Func<string, ProviderCreditSummary?> _getProviderCreditSummary;
     private readonly QuotaResetHistoryStore? _resetHistoryStore;
     private readonly TimeProvider _clock;
     private readonly Dictionary<string, Brush> _providerBrushes = new(StringComparer.Ordinal);
@@ -59,6 +60,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private IReadOnlyList<UsageReportSourceRow> _sourceRows = [];
     private IReadOnlyList<UsageReportProviderOption> _providerOptions = [];
     private IReadOnlyList<QuotaWindow> _providerLimits = [];
+    private ProviderCreditSummary? _providerCreditSummary;
     private QuotaResetHistory _resetHistory = QuotaResetHistory.Empty;
     private IReadOnlyList<UsageReportResetCycleOption> _resetCycleOptions = [];
     private UsageReportResetCycleOption? _selectedResetCycle;
@@ -73,13 +75,15 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         UsageReportRequest? initialRequest = null,
         Func<string, IReadOnlyList<QuotaWindow>>? getProviderLimits = null,
         QuotaResetHistoryStore? resetHistoryStore = null,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        Func<string, ProviderCreditSummary?>? getProviderCreditSummary = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         _databasePath = Path.GetFullPath(databasePath);
         _refreshSourceAsync = refreshSourceAsync
             ?? throw new ArgumentNullException(nameof(refreshSourceAsync));
         _getProviderLimits = getProviderLimits ?? (_ => []);
+        _getProviderCreditSummary = getProviderCreditSummary ?? (_ => null);
         _resetHistoryStore = resetHistoryStore;
         _clock = clock ?? TimeProvider.System;
         PeriodOptions =
@@ -94,9 +98,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             new(UsageReportPeriodOption.AllHistoryDays, GetString("UsageReportPeriodAllHistory")),
         ];
         ApplyRequestCore(initialRequest ?? UsageReportRequest.Global);
-        ProviderLimits = _selectedProvider is null
-            ? []
-            : _getProviderLimits(_selectedProvider.ProviderId);
+        RefreshProviderDetails();
         RefreshCommand = new AsyncRelayCommand(
             () => LoadAsync(refreshSource: true),
             () => !IsLoading && !_disposed);
@@ -312,16 +314,15 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         get => _selectedProvider;
         set
         {
-            if (SetProperty(ref _selectedProvider, value) && value is not null)
+            if (SetProperty(ref _selectedProvider, value))
             {
-                ProviderLimits = _getProviderLimits(value.ProviderId);
+                RefreshProviderDetails();
                 RebuildResetCycleOptions();
-                if (!string.Equals(value.ProviderId, "codex", StringComparison.Ordinal))
+                if (!string.Equals(value?.ProviderId, "codex", StringComparison.Ordinal))
                 {
                     _usesResetCycle = false;
                 }
                 OnPropertyChanged(nameof(SelectedProviderName));
-                OnPropertyChanged(nameof(HasProviderLimits));
                 NotifyRangeChanged();
                 if (IsProviderScope && !IsLoading)
                 {
@@ -434,6 +435,15 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public string SelectedProviderName => SelectedProvider?.Name ?? string.Empty;
 
     public bool HasProviderLimits => IsProviderScope && ProviderLimits.Count > 0;
+
+    public ProviderCreditSummary? ProviderCreditSummary
+    {
+        get => _providerCreditSummary;
+        private set => SetProperty(ref _providerCreditSummary, value);
+    }
+
+    public bool HasProviderCreditSummary =>
+        IsProviderScope && ProviderCreditSummary is not null;
 
     public IReadOnlyList<UsageReportResetCycleOption> ResetCycleOptions
     {
@@ -837,12 +847,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         if (scope == UsageReportScope.Provider && SelectedProvider is null)
         {
             _selectedProvider = ProviderOptions.Count == 0 ? null : ProviderOptions[0];
-            ProviderLimits = _selectedProvider is null
-                ? []
-                : _getProviderLimits(_selectedProvider.ProviderId);
+            RefreshProviderDetails();
             OnPropertyChanged(nameof(SelectedProvider));
             OnPropertyChanged(nameof(SelectedProviderName));
-            OnPropertyChanged(nameof(HasProviderLimits));
         }
         if (scope != UsageReportScope.Global)
         {
@@ -945,6 +952,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(ResetCycleHelpText));
         OnPropertyChanged(nameof(HasProviderLimits));
+        OnPropertyChanged(nameof(HasProviderCreditSummary));
         OnPropertyChanged(nameof(ValueMode));
         OnPropertyChanged(nameof(IsAbsoluteValueMode));
         OnPropertyChanged(nameof(IsShareValueMode));
@@ -1002,13 +1010,22 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(SelectedProviderName));
         }
         ReconcileCompareProviders(state.Options);
+        RefreshProviderDetails();
+        RebuildResetCycleOptions();
+        OnPropertyChanged(nameof(ScopeTitle));
+        OnPropertyChanged(nameof(IsCompareProviderPickersVisible));
+    }
+
+    private void RefreshProviderDetails()
+    {
         ProviderLimits = _selectedProvider is null
             ? []
             : _getProviderLimits(_selectedProvider.ProviderId);
-        RebuildResetCycleOptions();
+        ProviderCreditSummary = _selectedProvider is null
+            ? null
+            : _getProviderCreditSummary(_selectedProvider.ProviderId);
         OnPropertyChanged(nameof(HasProviderLimits));
-        OnPropertyChanged(nameof(ScopeTitle));
-        OnPropertyChanged(nameof(IsCompareProviderPickersVisible));
+        OnPropertyChanged(nameof(HasProviderCreditSummary));
     }
 
     private async Task LoadResetCyclesAsync(CancellationToken cancellationToken)

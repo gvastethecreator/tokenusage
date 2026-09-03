@@ -52,11 +52,74 @@ public sealed record CodexRateLimitBucket(
     public string? LimitName { get; init; }
 }
 
+public sealed record CodexResetCredit
+{
+    public CodexResetCredit(
+        string resetType,
+        string status,
+        DateTimeOffset? grantedAtUtc,
+        DateTimeOffset? expiresAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resetType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        RequireUtc(grantedAtUtc, nameof(grantedAtUtc));
+        RequireUtc(expiresAtUtc, nameof(expiresAtUtc));
+        ResetType = resetType;
+        Status = status;
+        GrantedAtUtc = grantedAtUtc;
+        ExpiresAtUtc = expiresAtUtc;
+    }
+
+    public string ResetType { get; }
+
+    public string Status { get; }
+
+    public DateTimeOffset? GrantedAtUtc { get; }
+
+    public DateTimeOffset? ExpiresAtUtc { get; }
+
+    private static void RequireUtc(DateTimeOffset? value, string paramName)
+    {
+        if (value is not null && value.Value.Offset != TimeSpan.Zero)
+        {
+            throw new ArgumentException("Credit timestamps must use UTC.", paramName);
+        }
+    }
+}
+
+public sealed record CodexResetCreditInventory
+{
+    public CodexResetCreditInventory(
+        int availableCount,
+        IReadOnlyList<CodexResetCredit>? credits)
+    {
+        if (availableCount is < 0 or > 1_000_000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(availableCount));
+        }
+
+        if (credits?.Any(credit => credit is null) is true)
+        {
+            throw new ArgumentException("Reset credits cannot contain null items.", nameof(credits));
+        }
+
+        AvailableCount = availableCount;
+        Credits = credits is null
+            ? null
+            : new ReadOnlyCollection<CodexResetCredit>(credits.ToArray());
+    }
+
+    public int AvailableCount { get; }
+
+    public IReadOnlyList<CodexResetCredit>? Credits { get; }
+}
+
 public sealed record CodexRateLimitsSnapshot
 {
     public CodexRateLimitsSnapshot(
         CodexRateLimitBucket rateLimits,
-        IReadOnlyDictionary<string, CodexRateLimitBucket> rateLimitsByLimitId)
+        IReadOnlyDictionary<string, CodexRateLimitBucket> rateLimitsByLimitId,
+        CodexResetCreditInventory? resetCredits = null)
     {
         RateLimits = rateLimits ?? throw new ArgumentNullException(nameof(rateLimits));
         ArgumentNullException.ThrowIfNull(rateLimitsByLimitId);
@@ -69,16 +132,20 @@ public sealed record CodexRateLimitsSnapshot
 
         RateLimitsByLimitId = new ReadOnlyDictionary<string, CodexRateLimitBucket>(
             new Dictionary<string, CodexRateLimitBucket>(rateLimitsByLimitId, StringComparer.Ordinal));
+        ResetCredits = resetCredits;
     }
 
     public CodexRateLimitBucket RateLimits { get; }
 
     public IReadOnlyDictionary<string, CodexRateLimitBucket> RateLimitsByLimitId { get; }
+
+    public CodexResetCreditInventory? ResetCredits { get; }
 }
 
 internal static class CodexRateLimitsParser
 {
     private const int MaximumAdditionalLimits = 64;
+    private const int MaximumResetCredits = 64;
     public static CodexRateLimitsSnapshot Parse(JsonElement result)
     {
         if (result.ValueKind != JsonValueKind.Object
@@ -111,7 +178,55 @@ internal static class CodexRateLimitsParser
             }
         }
 
-        return new CodexRateLimitsSnapshot(rateLimits, additionalLimits);
+        CodexResetCreditInventory? resetCredits = ParseOptionalResetCredits(result);
+        return new CodexRateLimitsSnapshot(rateLimits, additionalLimits, resetCredits);
+    }
+
+    private static CodexResetCreditInventory? ParseOptionalResetCredits(JsonElement result)
+    {
+        if (!result.TryGetProperty("rateLimitResetCredits", out JsonElement inventory)
+            || inventory.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (inventory.ValueKind != JsonValueKind.Object
+            || !inventory.TryGetProperty("availableCount", out JsonElement countElement)
+            || !countElement.TryGetInt32(out int availableCount)
+            || availableCount is < 0 or > 1_000_000)
+        {
+            throw ContractFailure();
+        }
+
+        IReadOnlyList<CodexResetCredit>? credits = null;
+        if (inventory.TryGetProperty("credits", out JsonElement creditsElement)
+            && creditsElement.ValueKind != JsonValueKind.Null)
+        {
+            if (creditsElement.ValueKind != JsonValueKind.Array
+                || creditsElement.GetArrayLength() > MaximumResetCredits)
+            {
+                throw ContractFailure();
+            }
+
+            var parsed = new List<CodexResetCredit>(creditsElement.GetArrayLength());
+            foreach (JsonElement credit in creditsElement.EnumerateArray())
+            {
+                if (credit.ValueKind != JsonValueKind.Object)
+                {
+                    throw ContractFailure();
+                }
+
+                parsed.Add(new CodexResetCredit(
+                    ParseRequiredToken(credit, "resetType"),
+                    ParseRequiredToken(credit, "status"),
+                    ParseOptionalUnixTimestamp(credit, "grantedAt"),
+                    ParseOptionalUnixTimestamp(credit, "expiresAt")));
+            }
+
+            credits = parsed;
+        }
+
+        return new CodexResetCreditInventory(availableCount, credits);
     }
 
     private static CodexRateLimitBucket ParseBucket(JsonElement element)
@@ -171,6 +286,51 @@ internal static class CodexRateLimitsParser
         }
 
         return label;
+    }
+
+    private static string ParseRequiredToken(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind != JsonValueKind.String)
+        {
+            throw ContractFailure();
+        }
+
+        string? token = value.GetString();
+        if (string.IsNullOrWhiteSpace(token)
+            || token.Length > 64
+            || !token.All(character =>
+                char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.'))
+        {
+            throw ContractFailure();
+        }
+
+        return token;
+    }
+
+    private static DateTimeOffset? ParseOptionalUnixTimestamp(
+        JsonElement element,
+        string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (!value.TryGetInt64(out long seconds))
+        {
+            throw ContractFailure();
+        }
+
+        try
+        {
+            return DateTimeOffset.FromUnixTimeSeconds(seconds);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            throw ContractFailure();
+        }
     }
 
     private static CodexRateLimitWindow? ParseOptionalWindow(

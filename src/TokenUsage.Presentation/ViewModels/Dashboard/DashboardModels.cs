@@ -173,6 +173,16 @@ public sealed record DashboardMetric(
         : $"{Label}: {Value}";
 }
 
+public sealed record ProviderCreditSummary(
+    string Title,
+    string Value,
+    string Detail,
+    bool HasAvailableCredits,
+    bool IsExpired)
+{
+    public string AutomationName => $"{Title}: {Value}. {Detail}";
+}
+
 public sealed class DashboardMetricItem
 {
     private DashboardMetricItem(QuotaWindow? window, DashboardMetric? metric)
@@ -250,7 +260,8 @@ public sealed record ProviderCard(
     IReadOnlyList<DashboardMetricItem>? OrderedPrimaryMetrics = null,
     IReadOnlyList<DashboardMetricItem>? OrderedOnDemandMetrics = null,
     string? ProviderColorHex = null,
-    UsageHeatmapModel? ActivityHeatmap = null) : INotifyPropertyChanged
+    UsageHeatmapModel? ActivityHeatmap = null,
+    ProviderCreditSummary? CreditSummary = null) : INotifyPropertyChanged
 {
     private bool _isOnDemandMetricsExpanded;
 

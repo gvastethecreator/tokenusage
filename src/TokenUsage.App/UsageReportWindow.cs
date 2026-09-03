@@ -28,6 +28,7 @@ public sealed class UsageReportWindow : Window, IDisposable
         AppearanceSettings appearance,
         UsageReportRequest request,
         Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
+        Func<string, ProviderCreditSummary?> getProviderCreditSummary,
         PlatformRect workArea,
         uint dpi)
     {
@@ -36,7 +37,8 @@ public sealed class UsageReportWindow : Window, IDisposable
             refreshSourceAsync,
             request,
             getProviderLimits,
-            new TokenUsage.Core.Usage.QuotaResetHistoryStore(resetHistoryPath));
+            new TokenUsage.Core.Usage.QuotaResetHistoryStore(resetHistoryPath),
+            getProviderCreditSummary: getProviderCreditSummary);
         _page = new UsageReportPage(_viewModel);
         Content = _page;
         Title = GetString("UsageReportWindowTitle");

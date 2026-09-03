@@ -92,7 +92,8 @@ public static class CodexDashboardProjector
             DetailsAutomationName: Format(
                 getString,
                 "ProviderDetailsAutomationNameFormat",
-                snapshot.DisplayName));
+                snapshot.DisplayName),
+            CreditSummary: CreateResetCreditSummary(scalars, snapshot.SourceObservedAtUtc, getString));
 
         return new DashboardSnapshot(
             SampleScenario.Normal,
@@ -101,6 +102,72 @@ public static class CodexDashboardProjector
             SpendAccessibleName: string.Empty,
             SpendSlices: [],
             Providers: [provider]);
+    }
+
+    private static ProviderCreditSummary CreateResetCreditSummary(
+        Dictionary<string, decimal> scalars,
+        DateTimeOffset observedAtUtc,
+        Func<string, string> text)
+    {
+        string title = text("CodexResetCreditsTitle");
+        if (!scalars.TryGetValue(
+                CodexRateLimitsSnapshotMapper.ResetCreditsReportedAvailableMetricId,
+                out decimal reportedAvailable))
+        {
+            return new ProviderCreditSummary(
+                title,
+                text("CodexResetCreditsUnavailable"),
+                text("CodexResetCreditsUnavailableDetail"),
+                HasAvailableCredits: false,
+                IsExpired: false);
+        }
+
+        decimal available = scalars.GetValueOrDefault(
+            CodexRateLimitsSnapshotMapper.ResetCreditsAvailableMetricId,
+            reportedAvailable);
+        bool hasDetails = scalars.GetValueOrDefault(
+            CodexRateLimitsSnapshotMapper.ResetCreditsHasDetailsMetricId) == 1m;
+        decimal expired = scalars.GetValueOrDefault(
+            CodexRateLimitsSnapshotMapper.ResetCreditsExpiredMetricId);
+        bool isExpired = available == 0m && expired > 0m;
+        string value = isExpired
+            ? text("CodexResetCreditsExpired")
+            : Format(text, "CodexResetCreditsAvailableFormat", available);
+        string detail;
+        if (!hasDetails)
+        {
+            detail = text("CodexResetCreditsCountOnlyDetail");
+        }
+        else if (isExpired)
+        {
+            detail = Format(text, "CodexResetCreditsExpiredDetailFormat", expired);
+        }
+        else if (scalars.TryGetValue(
+            CodexRateLimitsSnapshotMapper.ResetCreditsNextExpiryMetricId,
+            out decimal nextExpirySeconds))
+        {
+            DateTimeOffset nextExpiry = DateTimeOffset.FromUnixTimeSeconds(
+                decimal.ToInt64(nextExpirySeconds));
+            detail = nextExpiry <= observedAtUtc
+                ? text("CodexResetCreditsExpired")
+                : Format(
+                    text,
+                    "CodexResetCreditsExpiryFormat",
+                    nextExpiry.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
+        }
+        else
+        {
+            detail = available == 0m
+                ? text("CodexResetCreditsNoneDetail")
+                : text("CodexResetCreditsNoExpiryDetail");
+        }
+
+        return new ProviderCreditSummary(
+            title,
+            value,
+            detail,
+            HasAvailableCredits: available > 0m && !isExpired,
+            IsExpired: isExpired);
     }
 
     private static QuotaWindow CreateWindow(

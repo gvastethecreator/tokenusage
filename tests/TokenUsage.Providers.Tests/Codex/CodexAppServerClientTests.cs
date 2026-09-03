@@ -52,6 +52,7 @@ public sealed class CodexAppServerClientTests
         Assert.Equal(300, result.RateLimits.Primary?.WindowDurationMinutes);
         Assert.Equal(18, result.RateLimits.Secondary?.UsedPercent);
         Assert.Empty(result.RateLimitsByLimitId);
+        Assert.Null(result.ResetCredits);
 
         IReadOnlyList<string> requestLines = peer.GetRequestLines();
         Assert.Equal(3, requestLines.Count);
@@ -72,6 +73,84 @@ public sealed class CodexAppServerClientTests
         Assert.Equal("account/rateLimits/read", rateLimits.RootElement.GetProperty("method").GetString());
         Assert.Equal(JsonValueKind.Null, rateLimits.RootElement.GetProperty("params").ValueKind);
         Assert.DoesNotContain("SYNTHETIC_PATH_SENTINEL", string.Join('\n', requestLines), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ResetCreditsPreserveAvailabilityAndSafeMetadataOnly()
+    {
+        using var peer = new ScriptedCodexJsonlPeer(
+            """{"id":1,"result":{}}""",
+            """
+            {"id":2,"result":{"rateLimits":{"primary":{"usedPercent":10}},"rateLimitResetCredits":{"availableCount":1,"credits":[{"id":"PRIVATE_CREDIT_ID","resetType":"codexRateLimits","status":"available","grantedAt":1787353826,"expiresAt":1789945826,"title":"Full reset","description":"PRIVATE_DESCRIPTION"}]},"accountId":"PRIVATE_ACCOUNT_ID"}}
+            """);
+        await using CodexAppServerClient client = peer.CreateClient();
+
+        await client.HandshakeAsync(CancellationToken.None);
+        CodexRateLimitsSnapshot result = await client.ReadRateLimitsAsync(CancellationToken.None);
+
+        CodexResetCreditInventory inventory = Assert.IsType<CodexResetCreditInventory>(
+            result.ResetCredits);
+        Assert.Equal(1, inventory.AvailableCount);
+        CodexResetCredit credit = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CodexResetCredit>>(
+            inventory.Credits));
+        Assert.Equal("codexRateLimits", credit.ResetType);
+        Assert.Equal("available", credit.Status);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1787353826), credit.GrantedAtUtc);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1789945826), credit.ExpiresAtUtc);
+        Assert.DoesNotContain("PRIVATE", JsonSerializer.Serialize(result), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ZeroCountWithoutDetailsRemainsAvailableAsCountOnlyData()
+    {
+        using var peer = new ScriptedCodexJsonlPeer(
+            """{"id":1,"result":{}}""",
+            """{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":10}},"rateLimitResetCredits":{"availableCount":0}}}""");
+        await using CodexAppServerClient client = peer.CreateClient();
+
+        await client.HandshakeAsync(CancellationToken.None);
+        CodexRateLimitsSnapshot result = await client.ReadRateLimitsAsync(CancellationToken.None);
+
+        Assert.Equal(0, result.ResetCredits?.AvailableCount);
+        Assert.Null(result.ResetCredits?.Credits);
+    }
+
+    [Theory]
+    [InlineData("{\"availableCount\":-1}")]
+    [InlineData("{\"availableCount\":1,\"credits\":[{\"resetType\":\"unsafe type\",\"status\":\"available\"}]}")]
+    [InlineData("[]")]
+    public async Task MalformedResetCreditsFailClosed(string resetCredits)
+    {
+        using var peer = new ScriptedCodexJsonlPeer(
+            """{"id":1,"result":{}}""",
+            """{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":10}},"rateLimitResetCredits":$credits$}}"""
+                .Replace("$credits$", resetCredits, StringComparison.Ordinal));
+        await using CodexAppServerClient client = peer.CreateClient();
+
+        await client.HandshakeAsync(CancellationToken.None);
+        CodexProtocolException error = await Assert.ThrowsAsync<CodexProtocolException>(() =>
+            client.ReadRateLimitsAsync(CancellationToken.None));
+
+        Assert.Equal(
+            "Codex app-server returned an unsupported rate-limit response.",
+            error.Message);
+        Assert.DoesNotContain(resetCredits, error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OversizedResetCreditCollectionFailsClosed()
+    {
+        string credit = """{"resetType":"codexRateLimits","status":"available"}""";
+        string credits = string.Join(',', Enumerable.Repeat(credit, 65));
+        using var peer = new ScriptedCodexJsonlPeer(
+            """{"id":1,"result":{}}""",
+            """{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":10}},"rateLimitResetCredits":{"availableCount":65,"credits":[$credits$]}}}"""
+                .Replace("$credits$", credits, StringComparison.Ordinal));
+        await using CodexAppServerClient client = peer.CreateClient();
+
+        await client.HandshakeAsync(CancellationToken.None);
+        await Assert.ThrowsAsync<CodexProtocolException>(() =>
+            client.ReadRateLimitsAsync(CancellationToken.None));
     }
 
     [Fact]
