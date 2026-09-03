@@ -650,6 +650,22 @@ API keeps its separate manual gate.
 
 Upstream comparison source: [Cursor provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
+## Gemini CLI
+
+Gemini CLI `0.58.0` exposes token counters in `/stats model` and OpenTelemetry,
+but neither is an eligible passive source. `/stats` is interactive and has no
+machine history export. Chat JSONL combines counters with messages, tool
+arguments and results, paths, and session data. The telemetry file combines
+metrics with logs and traces; prompt logging defaults on, and common metric
+attributes include session, installation, email, and authentication data.
+
+Result: `policy-blocked`. TokenUsage does not open `.gemini` chats, settings,
+credentials, or telemetry. The gate reopens only for a documented metrics-only
+export that excludes content and identity before bytes reach the file. Local
+usage, Google quota, and direct Gemini API cost remain separate.
+
+See [the complete Gemini CLI source gate](source-gates/GEMINI-CLI.md).
+
 ## GitHub Copilot
 
 ### Chosen source

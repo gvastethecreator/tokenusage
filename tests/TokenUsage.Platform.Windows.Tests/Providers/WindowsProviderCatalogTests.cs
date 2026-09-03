@@ -31,12 +31,12 @@ public sealed class WindowsProviderCatalogTests
         Assert.Equal(
             [ProviderCapability.Limits, ProviderCapability.Spend],
             deferredEntries.Single(entry => entry.Id.Value == "vercel-ai-gateway").Capabilities);
-        Assert.Equal(36, WindowsProviderCatalog.PreparedEntries.Count);
+        Assert.Equal(35, WindowsProviderCatalog.PreparedEntries.Count);
         Assert.Contains(
             WindowsProviderCatalog.PreparedEntries,
             entry => entry.Id.Value == "openrouter");
         Assert.Equal(
-            ["cline", "cline-cli", "kilo-code", "kimi-cli", "kimi-code", "perplexity", "zai", "zed"],
+            ["cline", "cline-cli", "gemini-cli", "kilo-code", "kimi-cli", "kimi-code", "perplexity", "zai", "zed"],
             WindowsProviderCatalog.PolicyBlockedEntries.Select(entry => entry.Id.Value));
         Assert.Equal(56, WindowsProviderCatalog.AllEntries.Count);
         Assert.Equal(
