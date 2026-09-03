@@ -55,8 +55,8 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 |---|---:|---|
 | Active | 11 | A bounded reader produces real local usage data. |
 | Opt-in, held | 1 | The adapter is retained, but the provider is currently disabled. |
-| Prepared | 36 | Identity, capabilities, and status exist. No reader runs. |
-| Policy blocked | 8 | The known source is unsafe, private, unstable, or not permitted. |
+| Prepared | 35 | Identity, capabilities, and status exist. No reader runs. |
+| Policy blocked | 9 | The known source is unsafe, private, unstable, or not permitted. |
 
 ### Active readers
 
