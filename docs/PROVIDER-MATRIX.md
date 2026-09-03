@@ -596,7 +596,9 @@ names those counters `estimatedTokens`: they represent the conversation's
 current context, not accumulated billed tokens. That is why the app marks the
 read as local, partial, and estimated. If the model matches an official
 catalog, that context carries estimated API value. Auto and unknown models stay
-unpriced. The previous hook is out of the active path because the official
+unpriced. Gemini 3.8 Flash uses Cursor's published $0.75 input, $0.075 cache-read,
+and $3.50 output rates for Cursor events. Other providers use Google's $3.75
+output rate. The previous hook is out of the active path because the official
 `stop` contract does not deliver token counters. That legacy hook was
 withdrawn. Today the app automatically registers a `stop` hook at launch that
 acts only as a refresh trigger (also with `tokenusage cursor install-hook`): it
