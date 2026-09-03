@@ -139,13 +139,10 @@ public sealed partial class UsageTrendChart : UserControl
             return;
         }
 
-        double peak = data.Series
-            .SelectMany(series => series.Values)
-            .DefaultIfEmpty(0)
-            .Max();
         UsageTrendScale scale = data.Metric == UsageReportMetric.Share
             ? new UsageTrendScale(100, [0, 25, 50, 75, 100])
-            : UsageTrendGeometry.CreateScale(peak);
+            : UsageTrendGeometry.CreateAdaptiveScale(
+                data.Series.Select(series => series.Values));
         Brush gridBrush = GridBrushProxy.Background;
         Brush textBrush = TextBrushProxy.Background;
 
@@ -154,7 +151,7 @@ public sealed partial class UsageTrendChart : UserControl
             double baseline = height - BottomPadding;
             double y = scale.Maximum == 0
                 ? baseline
-                : baseline - (tick / scale.Maximum * (baseline - TopPadding));
+                : baseline - (scale.Normalize(tick) * (baseline - TopPadding));
             PlotCanvas.Children.Add(new Line
             {
                 X1 = 0,
@@ -186,7 +183,7 @@ public sealed partial class UsageTrendChart : UserControl
 
         if (data.Days.Count == 1)
         {
-            AddSingleDayBars(data, width, height, scale.Maximum);
+            AddSingleDayBars(data, width, height, scale);
         }
         else
         {
@@ -196,7 +193,7 @@ public sealed partial class UsageTrendChart : UserControl
                     index,
                     width,
                     height,
-                    scale.Maximum))
+                    scale))
                 .ToArray();
             foreach (SeriesVisual visual in visuals)
             {
@@ -228,7 +225,7 @@ public sealed partial class UsageTrendChart : UserControl
         UsageReportTrendDataset data,
         double width,
         double height,
-        double maximum)
+        UsageTrendScale scale)
     {
         int count = data.Series.Count;
         double gap = count <= 4 ? 8 : 4;
@@ -245,9 +242,9 @@ public sealed partial class UsageTrendChart : UserControl
             double value = series.Values.Count == 0 ? 0 : Math.Max(0, series.Values[0]);
             double baseline = height - BottomPadding;
             double availableHeight = Math.Max(0, baseline - TopPadding);
-            double barHeight = maximum <= 0
+            double barHeight = scale.Maximum <= 0
                 ? 0
-                : value / maximum * availableHeight;
+                : scale.Normalize(value) * availableHeight;
             if (value > 0)
             {
                 barHeight = Math.Max(3, barHeight);
@@ -277,15 +274,16 @@ public sealed partial class UsageTrendChart : UserControl
         int seriesIndex,
         double width,
         double height,
-        double maximum)
+        UsageTrendScale scale)
     {
         UsageTrendPath path = UsageTrendGeometry.CreatePath(
             series.Values,
             width,
             height,
-            maximum,
+            scale.Maximum,
             TopPadding,
-            BottomPadding);
+            BottomPadding,
+            scale.Exponent);
         Color color = ProviderColorPalette.Parse(series.ColorHex);
         bool highContrast = _accessibilitySettings.HighContrast;
         Brush stroke = highContrast

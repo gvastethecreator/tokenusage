@@ -68,6 +68,21 @@ public sealed class UsageTrendGeometryTests
     }
 
     [Fact]
+    public void AdaptiveScaleMakesSmallerSeriesReadableWithoutChangingDisplayedValues()
+    {
+        UsageTrendScale scale = UsageTrendGeometry.CreateAdaptiveScale(
+        [
+            new double[] { 0, 4_000, 2_000 },
+            new double[] { 0, 40, 20 },
+        ]);
+
+        Assert.True(scale.IsAdaptive);
+        Assert.True(scale.Normalize(40) >= 0.08);
+        Assert.Equal(1, scale.Normalize(scale.Maximum), 12);
+        Assert.Contains(4_000, scale.Ticks);
+    }
+
+    [Fact]
     public void ZeroValuesStayOnThePaddedBaselineInsteadOfBelowTheAxis()
     {
         UsageTrendPath path = UsageTrendGeometry.CreatePath(

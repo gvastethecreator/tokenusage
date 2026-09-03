@@ -14,7 +14,25 @@ public sealed record UsageTrendPath(
 
 public readonly record struct UsageTrendScale(
     double Maximum,
-    IReadOnlyList<double> Ticks);
+    IReadOnlyList<double> Ticks,
+    double Exponent = 1)
+{
+    public bool IsAdaptive => Exponent < 0.999;
+
+    public double Normalize(double value)
+    {
+        if (Maximum <= 0)
+        {
+            return 0;
+        }
+
+        double fraction = Math.Clamp(
+            double.IsFinite(value) ? value : 0,
+            0,
+            Maximum) / Maximum;
+        return Math.Pow(fraction, Exponent);
+    }
+}
 
 public static class UsageTrendGeometry
 {
@@ -59,13 +77,47 @@ public static class UsageTrendGeometry
         return new UsageTrendScale(maximum, ticks);
     }
 
+    public static UsageTrendScale CreateAdaptiveScale(
+        IEnumerable<IReadOnlyList<double>> seriesValues,
+        int targetTickCount = 4)
+    {
+        ArgumentNullException.ThrowIfNull(seriesValues);
+        double[] peaks = seriesValues
+            .Select(values => values
+                .Where(value => double.IsFinite(value) && value > 0)
+                .DefaultIfEmpty(0)
+                .Max())
+            .Where(value => value > 0)
+            .ToArray();
+        UsageTrendScale linear = CreateScale(
+            peaks.DefaultIfEmpty(0).Max(),
+            targetTickCount);
+        if (peaks.Length < 2 || linear.Maximum <= 0)
+        {
+            return linear;
+        }
+
+        double smallestPeakFraction = peaks.Min() / peaks.Max();
+        if (smallestPeakFraction >= 0.08)
+        {
+            return linear;
+        }
+
+        double exponent = Math.Clamp(
+            Math.Log(0.10) / Math.Log(smallestPeakFraction),
+            0.35,
+            0.75);
+        return linear with { Exponent = exponent };
+    }
+
     public static UsageTrendPath CreatePath(
         IReadOnlyList<double> values,
         double width,
         double height,
         double maximum,
         double topPadding = 8,
-        double bottomPadding = 0)
+        double bottomPadding = 0,
+        double exponent = 1)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (!double.IsFinite(width) || width <= 0
@@ -82,10 +134,12 @@ public static class UsageTrendGeometry
                 values.Count == 1 ? width / 2 : index * step,
                 maximum <= 0
                     ? baseline
-                    : baseline - (Math.Clamp(
-                        double.IsFinite(value) ? value : 0,
-                        0,
-                        maximum) / maximum * usableHeight)))
+                    : baseline - (Math.Pow(
+                        Math.Clamp(
+                            double.IsFinite(value) ? value : 0,
+                            0,
+                            maximum) / maximum,
+                        exponent) * usableHeight)))
             .ToArray();
         if (points.Length < 2)
         {
