@@ -120,6 +120,8 @@ public sealed class SessionModuleTests
         surface.QuotaAlertThresholdPercent = 15;
         surface.IsQuotaThresholdAlertEnabled = false;
         surface.IsExhaustionForecastAlertEnabled = false;
+        surface.IsStaleDataAlertEnabled = true;
+        surface.IsCredentialFailureAlertEnabled = false;
         await surface.WaitForPendingAlertSaveAsync();
 
         AlertSettings saved = await store.LoadAsync();
@@ -127,8 +129,24 @@ public sealed class SessionModuleTests
         Assert.Equal(15, saved.QuotaThresholdPercent);
         Assert.False(saved.QuotaThresholdEnabled);
         Assert.False(saved.ExhaustionForecastEnabled);
-        Assert.False(saved.StaleDataEnabled);
-        Assert.True(saved.CredentialFailureEnabled);
+        Assert.True(saved.StaleDataEnabled);
+        Assert.False(saved.CredentialFailureEnabled);
+    }
+
+    [Fact]
+    public void ProviderStatusFocusExpandsAndSelectsTheMatchingProvider()
+    {
+        var surface = new ProviderStatusSurfaceViewModel(key => key);
+        surface.Update(
+            codexOutcome: null,
+            hasPublishedDashboard: false,
+            SampleDataState.Idle,
+            []);
+
+        surface.FocusProvider("gemini-cli");
+
+        Assert.Equal("gemini-cli", surface.FocusedProviderId);
+        Assert.True(surface.IsAdditionalProvidersExpanded);
     }
 
     [Fact]

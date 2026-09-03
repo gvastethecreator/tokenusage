@@ -23,6 +23,9 @@ public sealed class AlertDecisionState
     public void MarkNotified(AlertConditionKey key) =>
         _notifiedKeys.Add(SerializeKey(key));
 
+    public bool ClearNotified(AlertConditionKey key) =>
+        _notifiedKeys.Remove(SerializeKey(key));
+
     public static string SerializeKey(AlertConditionKey key)
     {
         ArgumentNullException.ThrowIfNull(key);

@@ -100,6 +100,43 @@ public sealed class AlertNotificationDispatcherTests
         Assert.DoesNotContain("outcome", message.Title + message.Body, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task HealthIntentsDeliverSanitizedProviderStatusMessagesOnce()
+    {
+        using var folder = new TemporaryFolder();
+        var settingsStore = new AlertSettingsStore(Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName));
+        var decisionStore = new AlertDecisionStore(Path.Combine(folder.Root, AlertDecisionStore.DefaultFileName));
+        await settingsStore.SaveAsync(new AlertSettings(
+            enabled: true,
+            quotaThresholdPercent: 20,
+            quotaThresholdEnabled: false,
+            exhaustionForecastEnabled: false,
+            staleDataEnabled: true,
+            credentialFailureEnabled: true));
+        var host = new AlertHost(decisionStore, settingsStore);
+        var facts = new ProviderAlertFacts(
+            new ProviderId("codex"),
+            isStale: true,
+            hasCredentialFailure: true,
+            []);
+        var sink = new RecordingSink();
+        var dispatcher = new AlertNotificationDispatcher(sink, GetString);
+
+        await dispatcher.DeliverAsync(await host.EvaluateAsync(Now, [facts]));
+        await dispatcher.DeliverAsync(await host.EvaluateAsync(Now.AddMinutes(1), [facts]));
+
+        Assert.Equal(2, sink.Notifications.Count);
+        Assert.All(sink.Notifications, notification =>
+        {
+            Assert.Equal(AlertActivationArea.ProviderStatus, notification.ActivationTarget.Area);
+            Assert.Equal("codex", notification.ActivationTarget.ProviderId);
+            Assert.Null(notification.ActivationTarget.MetricId);
+            Assert.DoesNotContain("secret-token-account@example.com", notification.Title + notification.Body, StringComparison.OrdinalIgnoreCase);
+        });
+        Assert.Contains(sink.Notifications, notification => notification.Title == "Codex data is stale");
+        Assert.Contains(sink.Notifications, notification => notification.Title == "Codex needs attention");
+    }
+
     private static string GetString(string key) => key switch
     {
         "AlertQuotaTitleFormat" => "{0} quota is low",
@@ -107,6 +144,10 @@ public sealed class AlertNotificationDispatcherTests
         "AlertExhaustionTitleFormat" => "{0} may run out before reset",
         "AlertExhaustionBodyFormat" => "At the current pace, quota may run out around {0}.",
         "AlertTimeUnavailable" => "an unknown time",
+        "AlertStaleTitleFormat" => "{0} data is stale",
+        "AlertStaleBody" => "TokenUsage has not received recent data. Open provider status to review the connection.",
+        "AlertCredentialTitleFormat" => "{0} needs attention",
+        "AlertCredentialBody" => "TokenUsage could not read this provider. Open provider status to review its setup.",
         "LocalUsageAgentCodex" => "Codex",
         _ => key,
     };

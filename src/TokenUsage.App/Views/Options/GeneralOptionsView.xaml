@@ -180,6 +180,44 @@
                         <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE823;" />
                     </ToggleButton>
                 </Grid>
+                <Grid ColumnSpacing="12" MinHeight="32">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Uid="StaleDataAlertLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        VerticalAlignment="Center" />
+                    <ToggleButton
+                        x:Uid="StaleDataAlertToggle"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="StaleDataAlertToggle"
+                        IsChecked="{x:Bind ViewModel.IsStaleDataAlertEnabled, Mode=TwoWay}"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
+                        Style="{StaticResource OptionsStateButtonStyle}">
+                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE783;" />
+                    </ToggleButton>
+                </Grid>
+                <Grid ColumnSpacing="12" MinHeight="32">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Uid="CredentialFailureAlertLabel"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        VerticalAlignment="Center" />
+                    <ToggleButton
+                        x:Uid="CredentialFailureAlertToggle"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="CredentialFailureAlertToggle"
+                        IsChecked="{x:Bind ViewModel.IsCredentialFailureAlertEnabled, Mode=TwoWay}"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
+                        Style="{StaticResource OptionsStateButtonStyle}">
+                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE72E;" />
+                    </ToggleButton>
+                </Grid>
             </StackPanel>
             <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
             <Grid ColumnSpacing="8" RowSpacing="7">

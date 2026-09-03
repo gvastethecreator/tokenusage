@@ -281,6 +281,7 @@ public sealed partial class MainWindow : Window, IDisposable
         RootPage.ViewModel.OptionsNavigation.ShowProvidersCommand.Execute(null);
         RootPage.ViewModel.OptionsNavigation.ShowProviderStatusCommand.Execute(null);
         ShowFlyout(false);
+        RootPage.ViewModel.ProviderStatus.FocusProvider(target.ProviderId);
     }
 
     internal IDisposable SuppressDeactivateHide()
