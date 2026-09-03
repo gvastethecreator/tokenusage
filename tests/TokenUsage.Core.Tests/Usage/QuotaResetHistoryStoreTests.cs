@@ -508,6 +508,64 @@ public sealed class QuotaResetHistoryStoreTests
     }
 
     [Fact]
+    public void CycleQueryKeepsTwoSameDaySessionsSeparateFromWeeklyHistory()
+    {
+        DateTimeOffset dayStart = new(InitialObservation.Date, TimeSpan.Zero);
+        QuotaResetHistory history = new(
+            [
+                CreateWindow(
+                    "quota.primary",
+                    300m) with
+                {
+                    CurrentCycleStartedAtUtc = dayStart.AddHours(10),
+                    ObservedAtUtc = dayStart.AddHours(11),
+                },
+                CreateWindow("quota.secondary", 10_080m),
+            ],
+            [
+                CreateResetRecord(
+                    "quota.primary",
+                    dayStart.AddHours(5),
+                    QuotaResetDetectionKind.Scheduled,
+                    dayStart,
+                    300m),
+                CreateResetRecord(
+                    "quota.primary",
+                    dayStart.AddHours(10),
+                    QuotaResetDetectionKind.Scheduled,
+                    dayStart.AddHours(5),
+                    300m),
+                CreateResetRecord(
+                    "quota.secondary",
+                    dayStart.AddDays(-1),
+                    QuotaResetDetectionKind.Scheduled,
+                    dayStart.AddDays(-8),
+                    10_080m),
+            ],
+            []);
+
+        QuotaResetCycle[] cycles = QuotaResetCycleQuery.Build(
+            history,
+            "codex",
+            dayStart.AddHours(12)).ToArray();
+
+        QuotaResetCycle[] sessions = cycles
+            .Where(cycle => cycle.MetricId == "quota.primary")
+            .OrderBy(cycle => cycle.FromUtc)
+            .ToArray();
+        Assert.Equal(3, sessions.Length);
+        Assert.Equal(dayStart, sessions[0].FromUtc);
+        Assert.Equal(dayStart.AddHours(5), sessions[0].ToUtc);
+        Assert.Equal(dayStart.AddHours(5), sessions[1].FromUtc);
+        Assert.Equal(dayStart.AddHours(10), sessions[1].ToUtc);
+        Assert.True(sessions[2].IsCurrent);
+        Assert.All(sessions, cycle => Assert.Equal(300m, cycle.WindowDurationMinutes));
+        Assert.All(
+            cycles.Where(cycle => cycle.MetricId == "quota.secondary"),
+            cycle => Assert.Equal(10_080m, cycle.WindowDurationMinutes));
+    }
+
+    [Fact]
     public async Task PersistedHistoryBuildsCurrentAndCompletedReportCycles()
     {
         using var folder = new TemporaryFolder();
@@ -583,18 +641,20 @@ public sealed class QuotaResetHistoryStoreTests
     private static QuotaResetRecord CreateResetRecord(
         string metricId,
         DateTimeOffset occurredAtUtc,
-        QuotaResetDetectionKind detectionKind = QuotaResetDetectionKind.Observed) => new(
+        QuotaResetDetectionKind detectionKind = QuotaResetDetectionKind.Observed,
+        DateTimeOffset? previousCycleStartedAtUtc = null,
+        decimal windowDurationMinutes = 300m) => new(
             "codex",
             metricId,
             occurredAtUtc,
             occurredAtUtc,
-            occurredAtUtc.AddDays(-1),
+            previousCycleStartedAtUtc ?? occurredAtUtc.AddDays(-1),
             occurredAtUtc.AddMinutes(-1),
             PreviousUsedPercent: 50m,
             CurrentUsedPercent: 0m,
             PreviousExpectedResetAtUtc: null,
             CurrentExpectedResetAtUtc: null,
-            WindowDurationMinutes: 300m,
+            WindowDurationMinutes: windowDurationMinutes,
             detectionKind,
             detectionKind == QuotaResetDetectionKind.Scheduled
                 ? QuotaResetCause.Scheduled

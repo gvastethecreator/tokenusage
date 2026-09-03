@@ -597,17 +597,23 @@
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between Codex resets</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed Codex reset cycle</value></data>
   <data name="UsageReportResetCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Codex reset history</value></data>
+  <data name="UsageReportResetCycleGroupLabel.Text" xml:space="preserve"><value>Limit and cadence</value></data>
+  <data name="UsageReportResetCycleGroupSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Codex limit and cadence</value></data>
   <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous reset cycle</value></data>
   <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the previous observed reset cycle</value></data>
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next reset cycle</value></data>
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the next observed reset cycle</value></data>
   <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>No Codex reset cycle has been observed yet.</value></data>
+  <data name="UsageReportResetCycleQuotaUnavailable" xml:space="preserve"><value>Codex quota data is unavailable, so reset cycles cannot be built.</value></data>
+  <data name="UsageReportResetCycleHistoryEmpty" xml:space="preserve"><value>Codex quota is available, but no reset-cycle observation has been stored yet.</value></data>
   <data name="UsageReportResetCycleExactBoundaryNote" xml:space="preserve"><value>Events are assigned to this cycle from their recorded timestamps. The shared report shows this exact local range.</value></data>
   <data name="UsageReportResetCycleCurrentFormat" xml:space="preserve"><value>{0} · current</value></data>
   <data name="UsageReportResetCyclePreviousFormat" xml:space="preserve"><value>{0} · {1} · {2}</value></data>
   <data name="UsageReportResetCycleNow" xml:space="preserve"><value>now</value></data>
-  <data name="UsageReportResetCycleEarly" xml:space="preserve"><value>early/manual reset possible</value></data>
+  <data name="UsageReportResetCycleEarly" xml:space="preserve"><value>early reset · cause unknown</value></data>
   <data name="UsageReportResetCycleScheduled" xml:space="preserve"><value>scheduled reset</value></data>
+  <data name="UsageReportResetCycleManual" xml:space="preserve"><value>manual reset · provider confirmed</value></data>
+  <data name="UsageReportResetCycleCredit" xml:space="preserve"><value>reset credit · provider confirmed</value></data>
   <data name="UsageReportResetCycleObserved" xml:space="preserve"><value>reset detected when quota returned to 100%</value></data>
   <data name="UsageReportResetCycleActive" xml:space="preserve"><value>active cycle</value></data>
   <data name="UsageReportResetCycleRangeFormat" xml:space="preserve"><value>{0} – {1}</value></data>

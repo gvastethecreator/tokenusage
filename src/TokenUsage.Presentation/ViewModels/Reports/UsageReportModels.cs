@@ -1,3 +1,5 @@
+using TokenUsage.Core.Usage;
+
 namespace TokenUsage.App.ViewModels.Reports;
 
 public enum UsageReportMetric
@@ -30,6 +32,8 @@ public sealed record UsageReportPeriodOption(int Days, string DisplayName)
 public sealed record UsageReportResetCycleOption(
     string Id,
     string MetricId,
+    string GroupId,
+    string GroupName,
     string DisplayName,
     string RangeText,
     string DetailText,
@@ -40,11 +44,20 @@ public sealed record UsageReportResetCycleOption(
     DateOnly ToDate,
     decimal UsedPercent,
     decimal? WindowDurationMinutes,
-    bool IsCurrent)
+    bool IsCurrent,
+    QuotaResetCause? EndingResetCause)
 {
     public string AutomationName => $"{DisplayName}. {DurationText}. {RangeText}. {DetailText}";
 
     public override string ToString() => $"{DisplayName} · {DurationText}";
+}
+
+public sealed record UsageReportResetCycleGroupOption(
+    string Id,
+    string DisplayName,
+    IReadOnlyList<UsageReportResetCycleOption> Cycles)
+{
+    public override string ToString() => DisplayName;
 }
 
 public sealed record UsageReportProviderSelectionState(

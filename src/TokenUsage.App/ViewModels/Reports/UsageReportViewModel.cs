@@ -63,7 +63,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private ProviderCreditSummary? _providerCreditSummary;
     private QuotaResetHistory _resetHistory = QuotaResetHistory.Empty;
     private IReadOnlyList<UsageReportResetCycleOption> _resetCycleOptions = [];
+    private IReadOnlyList<UsageReportResetCycleOption> _selectedResetCycleOptions = [];
+    private IReadOnlyList<UsageReportResetCycleGroupOption> _resetCycleGroupOptions = [];
     private UsageReportResetCycleOption? _selectedResetCycle;
+    private UsageReportResetCycleGroupOption? _selectedResetCycleGroup;
     private bool _usesResetCycle;
     private bool _hasCompletedInitialLoad;
     private UsageReportTrendDataset _trend = UsageReportTrendDataset.Empty;
@@ -169,13 +172,22 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
         && ResetCycleOptions.Count > 0;
 
+    public bool HasResetCycleAvailabilityNotice => IsProviderScope
+        && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+        && ResetCycleOptions.Count == 0;
+
+    public string ResetCycleAvailabilityText => ProviderLimits.Count == 0
+        ? GetString("UsageReportResetCycleQuotaUnavailable")
+        : GetString("UsageReportResetCycleHistoryEmpty");
+
     public bool IsResetCycleWindow => _usesResetCycle && CanUseResetCycles;
 
-    public bool HasMultipleResetCycles => IsResetCycleWindow && ResetCycleOptions.Count > 1;
+    public bool HasMultipleResetCycles =>
+        IsResetCycleWindow && SelectedResetCycleOptions.Count > 1;
 
     public bool CanSelectPreviousResetCycle => IsResetCycleWindow
         && SelectedResetCycleIndex >= 0
-        && SelectedResetCycleIndex < ResetCycleOptions.Count - 1;
+        && SelectedResetCycleIndex < SelectedResetCycleOptions.Count - 1;
 
     public bool CanSelectNextResetCycle => IsResetCycleWindow
         && SelectedResetCycleIndex > 0;
@@ -451,6 +463,45 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _resetCycleOptions, value);
     }
 
+    public IReadOnlyList<UsageReportResetCycleOption> SelectedResetCycleOptions
+    {
+        get => _selectedResetCycleOptions;
+        private set => SetProperty(ref _selectedResetCycleOptions, value);
+    }
+
+    public IReadOnlyList<UsageReportResetCycleGroupOption> ResetCycleGroupOptions
+    {
+        get => _resetCycleGroupOptions;
+        private set => SetProperty(ref _resetCycleGroupOptions, value);
+    }
+
+    public UsageReportResetCycleGroupOption? SelectedResetCycleGroup
+    {
+        get => _selectedResetCycleGroup;
+        set
+        {
+            if (!SetProperty(ref _selectedResetCycleGroup, value) || value is null)
+            {
+                return;
+            }
+
+            SelectedResetCycleOptions = value.Cycles;
+            UsageReportResetCycleOption next = value.Cycles.FirstOrDefault(cycle => cycle.IsCurrent)
+                ?? value.Cycles[0];
+            if (!Equals(_selectedResetCycle, next))
+            {
+                _selectedResetCycle = next;
+                OnPropertyChanged(nameof(SelectedResetCycle));
+            }
+
+            NotifyRangeChanged();
+            if (IsResetCycleWindow && !IsLoading)
+            {
+                _ = LoadAsync();
+            }
+        }
+    }
+
     public UsageReportResetCycleOption? SelectedResetCycle
     {
         get => _selectedResetCycle;
@@ -458,6 +509,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _selectedResetCycle, value) && value is not null)
             {
+                SynchronizeSelectedResetCycleGroup(value);
                 NotifyRangeChanged();
                 if (IsResetCycleWindow && !IsLoading)
                 {
@@ -784,9 +836,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public void SelectPreviousResetCycle()
     {
         int index = SelectedResetCycleIndex;
-        if (IsResetCycleWindow && index >= 0 && index < ResetCycleOptions.Count - 1)
+        if (IsResetCycleWindow && index >= 0 && index < SelectedResetCycleOptions.Count - 1)
         {
-            SelectedResetCycle = ResetCycleOptions[index + 1];
+            SelectedResetCycle = SelectedResetCycleOptions[index + 1];
         }
     }
 
@@ -795,7 +847,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         int index = SelectedResetCycleIndex;
         if (IsResetCycleWindow && index > 0)
         {
-            SelectedResetCycle = ResetCycleOptions[index - 1];
+            SelectedResetCycle = SelectedResetCycleOptions[index - 1];
         }
     }
 
@@ -948,6 +1000,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasProviderOptions));
         OnPropertyChanged(nameof(IsValueModeVisible));
         OnPropertyChanged(nameof(CanUseResetCycles));
+        OnPropertyChanged(nameof(HasResetCycleAvailabilityNotice));
+        OnPropertyChanged(nameof(ResetCycleAvailabilityText));
         OnPropertyChanged(nameof(IsResetCycleWindow));
         OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(ResetCycleHelpText));
@@ -1060,8 +1114,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         if (!NeedsCodexResetCycles)
         {
             ResetCycleOptions = [];
+            ResetCycleGroupOptions = [];
+            SelectedResetCycleOptions = [];
             _selectedResetCycle = null;
+            _selectedResetCycleGroup = null;
             OnPropertyChanged(nameof(SelectedResetCycle));
+            OnPropertyChanged(nameof(SelectedResetCycleGroup));
             OnPropertyChanged(nameof(IsCompareCyclePickersVisible));
             NotifyRangeChanged();
             return;
@@ -1133,17 +1191,33 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 ResolveResetWindowName(cycle, windowNames, windowDurations)))
             .ToArray();
         ResetCycleOptions = options;
+        UsageReportResetCycleGroupOption[] groups = options
+            .GroupBy(option => option.GroupId, StringComparer.Ordinal)
+            .Select(group => new UsageReportResetCycleGroupOption(
+                group.Key,
+                group.First().GroupName,
+                group.ToArray()))
+            .ToArray();
+        ResetCycleGroupOptions = groups;
         _selectedResetCycle = options.FirstOrDefault(option => string.Equals(
                 option.Id,
                 selectedId,
                 StringComparison.Ordinal))
             ?? options.FirstOrDefault();
+        _selectedResetCycleGroup = _selectedResetCycle is null
+            ? null
+            : groups.FirstOrDefault(group => string.Equals(
+                group.Id,
+                _selectedResetCycle.GroupId,
+                StringComparison.Ordinal));
+        SelectedResetCycleOptions = _selectedResetCycleGroup?.Cycles ?? [];
         if (_selectedResetCycle is null)
         {
             _usesResetCycle = false;
         }
 
         OnPropertyChanged(nameof(SelectedResetCycle));
+        OnPropertyChanged(nameof(SelectedResetCycleGroup));
         if (IsCompareScope && IsCompareCyclesAxis)
         {
             EnsureCompareCycleSelections(compareLeftId, compareRightId);
@@ -1172,12 +1246,17 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         string endText = cycle.IsCurrent
             ? GetString("UsageReportResetCycleNow")
             : FormatCycleTimestamp(localTo);
-        string reasonText = cycle.EndingResetKind switch
+        string reasonText = cycle.EndingResetCause switch
         {
-            QuotaResetDetectionKind.Early => GetString("UsageReportResetCycleEarly"),
-            QuotaResetDetectionKind.Scheduled => GetString("UsageReportResetCycleScheduled"),
-            QuotaResetDetectionKind.Observed => GetString("UsageReportResetCycleObserved"),
-            _ => GetString("UsageReportResetCycleActive"),
+            QuotaResetCause.Manual => GetString("UsageReportResetCycleManual"),
+            QuotaResetCause.ResetCredit => GetString("UsageReportResetCycleCredit"),
+            QuotaResetCause.Scheduled => GetString("UsageReportResetCycleScheduled"),
+            _ => cycle.EndingResetKind switch
+            {
+                QuotaResetDetectionKind.Early => GetString("UsageReportResetCycleEarly"),
+                QuotaResetDetectionKind.Observed => GetString("UsageReportResetCycleObserved"),
+                _ => GetString("UsageReportResetCycleActive"),
+            },
         };
         string displayName = cycle.IsCurrent
             ? string.Format(
@@ -1210,9 +1289,19 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             ? TimeSpan.FromMinutes(decimal.ToDouble(cycle.WindowDurationMinutes.Value))
             : cycle.ToUtc - cycle.FromUtc;
         string durationText = FormatCycleDuration(displayedDuration);
+        decimal cadenceMinutes = cycle.WindowDurationMinutes is > 0m
+            ? cycle.WindowDurationMinutes.Value
+            : decimal.Round(
+                (decimal)displayedDuration.TotalMinutes,
+                2,
+                MidpointRounding.AwayFromZero);
+        string groupId = $"{cycle.MetricId}:{cadenceMinutes.ToString(CultureInfo.InvariantCulture)}";
+        string groupName = $"{windowName} · {durationText}";
         return new UsageReportResetCycleOption(
             $"{cycle.MetricId}:{cycle.FromUtc:O}",
             cycle.MetricId,
+            groupId,
+            groupName,
             displayName,
             rangeText,
             detailText,
@@ -1223,7 +1312,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             toDate,
             cycle.UsedPercent,
             cycle.WindowDurationMinutes,
-            cycle.IsCurrent);
+            cycle.IsCurrent,
+            cycle.EndingResetCause);
     }
 
     private string ResolveResetWindowName(
@@ -1352,6 +1442,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(IsAllHistoryWindow));
         OnPropertyChanged(nameof(CanUseResetCycles));
+        OnPropertyChanged(nameof(HasResetCycleAvailabilityNotice));
+        OnPropertyChanged(nameof(ResetCycleAvailabilityText));
         OnPropertyChanged(nameof(IsResetCycleWindow));
         OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(CanSelectPreviousResetCycle));
@@ -1368,6 +1460,24 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsEmptyRefreshVisible));
     }
 
+    private void SynchronizeSelectedResetCycleGroup(UsageReportResetCycleOption cycle)
+    {
+        UsageReportResetCycleGroupOption? group = ResetCycleGroupOptions.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, cycle.GroupId, StringComparison.Ordinal));
+        if (group is null)
+        {
+            return;
+        }
+
+        if (!Equals(_selectedResetCycleGroup, group))
+        {
+            _selectedResetCycleGroup = group;
+            OnPropertyChanged(nameof(SelectedResetCycleGroup));
+        }
+
+        SelectedResetCycleOptions = group.Cycles;
+    }
+
     private int SelectedResetCycleIndex
     {
         get
@@ -1377,10 +1487,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 return -1;
             }
 
-            for (int index = 0; index < ResetCycleOptions.Count; index++)
+            for (int index = 0; index < SelectedResetCycleOptions.Count; index++)
             {
                 if (string.Equals(
-                    ResetCycleOptions[index].Id,
+                    SelectedResetCycleOptions[index].Id,
                     SelectedResetCycle.Id,
                     StringComparison.Ordinal))
                 {
