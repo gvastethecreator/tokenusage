@@ -36,4 +36,37 @@ public sealed class CopilotSourcePolicyTests
             Assert.DoesNotContain(token, combined, StringComparison.OrdinalIgnoreCase);
         }
     }
+
+    [Fact]
+    public void CopilotCliTelemetryRemainsSeparateAndPolicyBlocked()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string gate = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "docs",
+            "source-gates",
+            "COPILOT-CLI.md"));
+
+        Assert.Contains("Status: `policy-blocked`", gate, StringComparison.Ordinal);
+        Assert.Contains("1.0.82", gate, StringComparison.Ordinal);
+        Assert.Contains("be82101e70f0253b57519bebb9cc9d0f6dfb2ed2", gate, StringComparison.Ordinal);
+        Assert.Contains("gen_ai.client.token.usage", gate, StringComparison.Ordinal);
+        Assert.Contains("would not replace the existing opt-in GitHub Billing", gate, StringComparison.Ordinal);
+        Assert.Contains("Content-bearing field", gate, StringComparison.Ordinal);
+
+        string catalog = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.Providers",
+            "Catalog",
+            "ProviderModuleCatalog.cs"));
+        string copilotLine = catalog.Split('\n').Single(line =>
+            line.Contains("Module(\"copilot\"", StringComparison.Ordinal));
+        Assert.DoesNotContain("ProviderCapability.LocalUsage", copilotLine, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(Path.Combine(
+            repoRoot,
+            "src",
+            "TokenUsage.Providers",
+            "CopilotCli")));
+    }
 }

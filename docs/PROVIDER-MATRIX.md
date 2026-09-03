@@ -699,6 +699,20 @@ forbidden. The provider ignores an existing editor or GitHub CLI session.
 The gate is resolved as `implement-subset`. The public build stays off until
 an authorized smoke and credential deletion.
 
+### Copilot CLI local telemetry
+
+This is a separate gate from the Billing REST connection above. Copilot CLI
+`1.0.82` documents `gen_ai.client.token.usage`, but its file exporter writes all
+OTel signals into one JSONL file. The same file can contain session, user, tool,
+server, error, and—when enabled—prompt and response fields. The normal
+`.copilot` directory contains session history, logs, command history, settings,
+and credential-related state rather than a minimal usage store.
+
+Result: `policy-blocked`. TokenUsage does not open Copilot CLI telemetry,
+sessions, editor state, Credential Manager, or `gh auth`. Re-entry requires a
+documented metrics-only export that filters content and identity before the
+file is written. See [the complete Copilot CLI source gate](source-gates/COPILOT-CLI.md).
+
 
 
 Upstream comparison source: [Copilot provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/copilot.md).
