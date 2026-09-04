@@ -8,10 +8,8 @@ public sealed partial class CodexUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    // Version 7 also discovers sessions that have not reached state_5.sqlite yet.
-    // It keeps oversized non-usage records from misclassifying valid counters as
-    // an unsupported Codex schema.
-    public const string ParserVersion = "codex-jsonl/7";
+    // Version 8 normalizes model identities and prices usage at its recorded date.
+    public const string ParserVersion = "codex-jsonl/8";
     private const int DefaultTailBytes = 64 * 1024;
     private const int RecentLocalWindowDays = 3;
     private const long MaximumInitialRecentScanBytes = 16L * 1024 * 1024 * 1024;

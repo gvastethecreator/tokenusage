@@ -406,24 +406,7 @@ public sealed partial class CodexUsageEventSource
         CostObservation cost)
     {
         DateTimeOffset observedAtUtc = _clock.GetUtcNow().ToUniversalTime();
-        DateOnly observedLocalDate = DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTime(observedAtUtc, groupingTimeZone).DateTime);
-        DateTimeOffset timestamp;
-        if (date == observedLocalDate)
-        {
-            // Today's provider bucket is cumulative through this refresh. Stamping it at noon
-            // can put the event in the future and leave the active reset cycle empty.
-            timestamp = observedAtUtc;
-        }
-        else
-        {
-            DateTime localNoon = DateTime.SpecifyKind(
-                date.ToDateTime(new TimeOnly(12, 0)),
-                DateTimeKind.Unspecified);
-            timestamp = new DateTimeOffset(
-                TimeZoneInfo.ConvertTimeToUtc(localNoon, groupingTimeZone),
-                TimeSpan.Zero);
-        }
+        DateTimeOffset timestamp = DailyTimestamp(date, groupingTimeZone, observedAtUtc);
 
         return new UsageEvent(
             new UsageEventKey(Hash(
@@ -473,8 +456,33 @@ public sealed partial class CodexUsageEventSource
             costs[0].ExactPriceMatch!));
     }
 
-    private static ModelSample CreateModelSample(string model, TokenBreakdown tokens) =>
-        new(model, tokens, CodexPricingCatalog.Resolve(model, tokens));
+    private static DateTimeOffset DailyTimestamp(
+        DateOnly date,
+        TimeZoneInfo groupingTimeZone,
+        DateTimeOffset observedAtUtc)
+    {
+        DateOnly observedLocalDate = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(observedAtUtc, groupingTimeZone).DateTime);
+        // Today's cumulative bucket must not be stamped in the future.
+        if (date == observedLocalDate)
+        {
+            return observedAtUtc;
+        }
+
+        DateTime localNoon = DateTime.SpecifyKind(
+            date.ToDateTime(new TimeOnly(12, 0)),
+            DateTimeKind.Unspecified);
+        return new DateTimeOffset(
+            TimeZoneInfo.ConvertTimeToUtc(localNoon, groupingTimeZone),
+            TimeSpan.Zero);
+    }
+
+    private ModelSample CreateModelSample(string model, TokenBreakdown tokens, DateOnly date) =>
+        new(model, tokens, CodexPricingCatalog.Resolve(
+            model,
+            tokens,
+            DailyTimestamp(date, TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId),
+                _clock.GetUtcNow().ToUniversalTime())));
 
     private static long SumTokens(IEnumerable<ModelSample> samples)
     {
@@ -621,7 +629,7 @@ public sealed partial class CodexUsageEventSource
         Candidate candidate,
         TokenBreakdown tokens)
     {
-        CostObservation cost = CodexPricingCatalog.Resolve(candidate.Model, tokens);
+        CostObservation cost = CodexPricingCatalog.Resolve(candidate.Model, tokens, candidate.Timestamp);
         return new UsageEvent(
             new UsageEventKey(Hash($"codex\0{sessionIdentity}")),
             AgentId,
@@ -704,7 +712,7 @@ public sealed partial class CodexUsageEventSource
     }
 
     private static string? NormalizeModel(string? model) =>
-        string.IsNullOrWhiteSpace(model) ? null : model.Trim().ToLowerInvariant();
+        string.IsNullOrWhiteSpace(model) ? null : ModelIdentity.ForStorage(model);
 
     private static ModelId CreateModelId(string model) => ModelIdentity.ToModelId(model);
 
