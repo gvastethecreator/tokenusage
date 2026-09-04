@@ -731,7 +731,10 @@
                 </Border>
 
                 <Border Padding="16,12" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}" CornerRadius="6" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}">
-                    <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" TextWrapping="Wrap" />
+                    <StackPanel Spacing="8">
+                        <TextBlock AutomationProperties.AutomationId="UsageReportErrorMessage" AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" TextWrapping="Wrap" />
+                        <Button x:Uid="UsageReportRetryButton" AutomationProperties.AutomationId="UsageReportRetryButton" Command="{x:Bind ViewModel.RefreshCommand}" HorizontalAlignment="Left" />
+                    </StackPanel>
                 </Border>
 
                 <StackPanel HorizontalAlignment="Center" Margin="0,72" Spacing="12" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">

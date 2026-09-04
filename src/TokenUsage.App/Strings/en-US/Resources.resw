@@ -740,6 +740,8 @@
   <data name="UsageReportCoverageSummaryOnly" xml:space="preserve"><value>Summary only</value></data>
   <data name="UsageReportCoverageUnpriced" xml:space="preserve"><value>Unpriced usage</value></data>
   <data name="UsageReportReadFailed" xml:space="preserve"><value>The local report could not be read. Existing data was not changed.</value></data>
+  <data name="UsageReportRefreshFailed" xml:space="preserve"><value>Refresh failed. Showing the last loaded report.</value></data>
+  <data name="UsageReportRetryButton.Content" xml:space="preserve"><value>Try again</value></data>
   <data name="CompactProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Select provider</value></data>
   <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous provider</value></data>
   <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Previous provider</value></data>
