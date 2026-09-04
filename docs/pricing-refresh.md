@@ -11,6 +11,7 @@ Generated from bounded projections of allowlisted official pricing pages. No fet
 | cursor-model-pricing | hostSpecific | current (4/4 markers) | `bbf4b7777675` |
 | google-gemini-api-pricing | directProviderApi | current (5/5 markers) | `082169f7c293` |
 | moonshot-model-pricing | directProviderApi | current (4/4 markers) | `b77cabf0031a` |
+| openai-astra-pricing | directProviderApi | current (7/7 markers) | `7fbd2f696250` |
 | openai-model-pricing | directProviderApi | current (5/5 markers) | `26c97fe41d42` |
 | xai-model-pricing | directProviderApi | current (4/4 markers) | `23c7b84042a5` |
 | zai-model-pricing | directProviderApi | current (5/5 markers) | `9d023ff00026` |

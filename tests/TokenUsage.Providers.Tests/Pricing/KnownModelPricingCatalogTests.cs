@@ -29,6 +29,8 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("gpt-5.6 sol", 11.0, "gpt-5.6-sol")]
     [InlineData("gpt-5.6-luna", 0.58, "gpt-5.6-luna")]
     [InlineData("gpt-5.6-terra", 5.8, "gpt-5.6-terra")]
+    [InlineData("gpt-6-astra", 27.5, "gpt-6-astra")]
+    [InlineData("openai/gpt-6-astra-max", 27.5, "gpt-6-astra")]
     [InlineData("grok-4.6", 2.6, "grok-4.6")]
     [InlineData("gemini-3.6-flash", 1.125, "gemini-3.6-flash")]
     [InlineData("gemini-2.5-flash", 0.55, "gemini-2.5-flash")]
@@ -58,7 +60,7 @@ public sealed class KnownModelPricingCatalogTests
     [Theory]
     [InlineData("composer-2.5", "cursor-models-2026-09-02")]
     [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-03")]
-    [InlineData("gpt-5.1-codex", "openai-api-2026-09-02")]
+    [InlineData("gpt-5.1-codex", "openai-api-2026-09-04")]
     [InlineData("gemini-3.6-flash", "google-api-2026-09-02")]
     [InlineData("gemini-3.8-flash", "google-api-2026-09-02")]
     [InlineData("glm-5.3-flash", "zai-api-2026-09-02")]
@@ -78,6 +80,9 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("auto")]
     [InlineData("unknown-model")]
     [InlineData("kimi-k3-max")]
+    [InlineData("gpt-6")]
+    [InlineData("gpt-6-astra-preview")]
+    [InlineData("gpt-6-astra-fast")]
     public void LeavesUnknownAndAutoModelsUnpriced(string model)
     {
         CostObservation cost = CursorPricingCatalog.Resolve(
@@ -114,6 +119,23 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(CodexPricingCatalog.Version, cost.CatalogVersion);
     }
 
+    [Theory]
+    [InlineData(270_000, 2.9635)]
+    [InlineData(270_001, 5.80202)]
+    public void AstraPricesCacheWritesAndReasoningAcrossTheLongContextBoundary(
+        long input, decimal expectedUsd)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            "gpt-6-astra",
+            OccurredAtUtc,
+            new TokenBreakdown(input, 4_000, 1_000, 1_000, 1_000));
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+        Assert.Equal(CodexPricingCatalog.Version, cost.CatalogVersion);
+        Assert.Equal("gpt-6-astra", cost.ExactPriceMatch);
+    }
+
     [Fact]
     public void GrokComposerAliasKeepsTheSameRateAsTheCursorModelId()
     {
@@ -147,6 +169,9 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("Gemini 3.6 Flash (High)", "gemini-3.6-flash")]
     [InlineData("claude-sonnet-4-6@20250929", "claude-sonnet-4-6-20250929")]
     [InlineData("gpt-5.1-codex_max", "gpt-5.1-codex-max")]
+    [InlineData("GPT-6 Astra", "gpt-6-astra")]
+    [InlineData("openai/gpt-6-astra-max", "gpt-6-astra")]
+    [InlineData("gpt-6-astra-ultra", "gpt-6-astra")]
     public void SanitizesRawModelStringsIntoReadableStableIds(string raw, string expected)
     {
         Assert.Equal(expected, ModelIdentity.ForStorage(raw));

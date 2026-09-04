@@ -37,6 +37,8 @@ public static class KnownModelPricingCatalog
             ["claude-opus-4-6-thinking"] = "claude-opus-4-6",
             ["claude-opus-4-7-thinking"] = "claude-opus-4-7",
             ["gemini-3.7-flash-control"] = "gemini-3.7-flash",
+            ["gpt-6-astra-max"] = "gpt-6-astra",
+            ["gpt-6-astra-ultra"] = "gpt-6-astra",
         };
 
     /// <summary>
@@ -130,6 +132,11 @@ public static class KnownModelPricingCatalog
 
         // Sources like Grok logs can store "xai-grok-4.5"; strip the vendor prefix
         // so the id resolves like the same model from any other source.
+        if (normalized.StartsWith("openai-", StringComparison.Ordinal))
+        {
+            normalized = normalized["openai-".Length..];
+        }
+
         if (normalized.StartsWith("xai-", StringComparison.Ordinal))
         {
             normalized = normalized["xai-".Length..];

@@ -123,6 +123,17 @@ public sealed class PricingEvidenceCatalogTests
     }
 
     [Fact]
+    public void AstraUsesItsOwnReviewedSource()
+    {
+        PricingRateEvidence evidence = Assert.Single(PricingEvidenceCatalog.AllRates,
+            item => item.ExactPriceMatch == "gpt-6-astra");
+
+        Assert.Equal(PricingOfficialSources.OpenAiAstra, evidence.Source);
+        Assert.False(evidence.IsPromotional);
+        Assert.Equal(new DateOnly(2026, 9, 4), evidence.Source.ReviewedOn);
+    }
+
+    [Fact]
     public void StoredVersionAndExactMatchReproduceTheApplicableEvidence()
     {
         DateTimeOffset occurredAt = new(2026, 8, 12, 12, 0, 0, TimeSpan.Zero);
