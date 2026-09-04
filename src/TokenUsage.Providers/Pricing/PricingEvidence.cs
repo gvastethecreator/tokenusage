@@ -200,6 +200,12 @@ public static class PricingOfficialSources
         ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
+    public static PricingSourceEvidence OpenAiAstra { get; } = new(
+        "openai-astra-pricing",
+        new Uri("https://developers.openai.com/api/docs/models/gpt-6-astra"),
+        new DateOnly(2026, 9, 4),
+        PricingBillingScope.DirectProviderApi);
+
     public static PricingSourceEvidence Anthropic { get; } = new(
         "anthropic-model-pricing",
         new Uri("https://platform.claude.com/docs/en/about-claude/pricing"),

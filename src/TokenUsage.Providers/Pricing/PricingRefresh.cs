@@ -79,6 +79,10 @@ public static class PricingRefreshManifest
             "openai-model-pricing.html",
             ["GPT-5.6 Sol", "$4.00", "$0.40", "$20.00", "November 21, 2026"]),
         Define(
+            PricingOfficialSources.OpenAiAstra,
+            "openai-astra-pricing.html",
+            ["GPT-6 Astra", "$10.00", "$1.00", "$12.50", "$50.00", "272K", "1.5x"]),
+        Define(
             PricingOfficialSources.Xai,
             "xai-model-pricing.html",
             ["grok-4.6", "$2.00", "$0.50", "$6.00"]),

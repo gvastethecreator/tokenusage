@@ -6,7 +6,7 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-09-02";
+    public const string Version = "openai-api-2026-09-04";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 272_000;
 
@@ -43,6 +43,7 @@ public static class CodexPricingCatalog
             ["gpt-5.6-luna"] = new("gpt-5.6-luna", 0.2m, 0.02m, 1.2m, 0.25m, true),
             ["gpt-5.6-sol"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
             ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
+            ["gpt-6-astra"] = new("gpt-6-astra", 10m, 1m, 50m, 12.5m, true),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -169,7 +170,9 @@ public static class CodexPricingCatalog
                 evidence.Add(PricingEvidence.Ongoing(
                     Version,
                     priceMatch,
-                    PricingOfficialSources.OpenAi));
+                    priceMatch == "gpt-6-astra"
+                        ? PricingOfficialSources.OpenAiAstra
+                        : PricingOfficialSources.OpenAi));
             }
         }
 
