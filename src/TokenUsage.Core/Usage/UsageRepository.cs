@@ -472,6 +472,47 @@ public sealed class UsageRepository
         return events;
     }
 
+    public async Task<long> SumTokensAsync(
+        DateTimeOffset fromInclusiveUtc,
+        DateTimeOffset toExclusiveUtc,
+        AgentId agentId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(agentId);
+        UtcTimestamp.Require(fromInclusiveUtc, nameof(fromInclusiveUtc));
+        UtcTimestamp.Require(toExclusiveUtc, nameof(toExclusiveUtc));
+        if (toExclusiveUtc <= fromInclusiveUtc)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(toExclusiveUtc),
+                "The exclusive end of an event range must follow its start.");
+        }
+
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using SqliteCommand command = connection.CreateCommand();
+        // Sum columns separately so SQLite cannot promote a per-event integer overflow
+        // to a floating-point value. The final addition is also checked.
+        command.CommandText = """
+            SELECT COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
+                   COALESCE(SUM(reasoning_tokens), 0), COALESCE(SUM(cache_read_tokens), 0),
+                   COALESCE(SUM(cache_write_tokens), 0)
+            FROM usage_event
+            WHERE agent_id = $agentId
+              AND occurred_at_utc >= $from AND occurred_at_utc < $to;
+            """;
+        command.Parameters.AddWithValue("$agentId", agentId.Value);
+        command.Parameters.AddWithValue(
+            "$from", fromInclusiveUtc.ToString("O", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue(
+            "$to", toExclusiveUtc.ToString("O", CultureInfo.InvariantCulture));
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        return checked(reader.GetInt64(0) + reader.GetInt64(1) + reader.GetInt64(2)
+            + reader.GetInt64(3) + reader.GetInt64(4));
+    }
+
     public async Task<bool> HasUsageForAgentAsync(
         AgentId agentId,
         CancellationToken cancellationToken = default)

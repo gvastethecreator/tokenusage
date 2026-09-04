@@ -161,12 +161,11 @@ public sealed class LocalUsageRefresh
             return 0;
         }
 
-        IReadOnlyList<UsageEvent> events = await repository.QueryUsageEventsAsync(
+        return await repository.SumTokensAsync(
             fromInclusiveUtc,
             toExclusiveUtc,
             agentId,
             cancellationToken).ConfigureAwait(false);
-        return events.Sum(usageEvent => usageEvent.Tokens.Total);
     }
 
     public async Task<LocalUsageRefreshResult?> ReadCachedAsync(

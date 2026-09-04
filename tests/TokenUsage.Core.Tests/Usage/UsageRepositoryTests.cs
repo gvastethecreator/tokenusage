@@ -9,6 +9,27 @@ namespace TokenUsage.Core.Tests.Usage;
 public sealed class UsageRepositoryTests
 {
     [Fact]
+    public async Task TokenSumIncludesAllCountersForOnlyTheAgentAndHalfOpenRange()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var start = new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
+        DateTimeOffset end = start.AddHours(1);
+        await repository.IngestAsync(
+        [
+            CreateEvent("before", start.AddTicks(-1)),
+            CreateEvent("at-start", start, tokens: new TokenBreakdown(10, 20, 30, 40, 50)),
+            CreateEvent("inside", start.AddMinutes(1)),
+            CreateEvent("at-end", end),
+            CreateEvent("other-agent", start, agentId: "claude"),
+        ]);
+
+        UsageRepository readOnly = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
+        Assert.Equal(300, await readOnly.SumTokensAsync(start, end, new AgentId("grok")));
+        Assert.Equal(0, await readOnly.SumTokensAsync(start, end, new AgentId("codex")));
+    }
+
+    [Fact]
     public async Task DuplicateEventsIncrementTheDailyRollupOnce()
     {
         using var folder = new TemporaryFolder();
