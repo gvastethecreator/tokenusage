@@ -1,6 +1,6 @@
 # Provider matrix
 
-Cutoff date: 2026-09-02
+Cutoff date: 2026-09-04
 
 Temporary status: Vercel AI Gateway is out of the active catalog. Its implementation is kept so it can be reactivated in a later delivery.
 
@@ -28,9 +28,9 @@ The catalog represents 56 identities from the inspected union. A visible module 
   Mux, OpenCode, and ZCode. Each one creates a real, bounded local reader.
 - `OptIn`: Vercel AI Gateway. It keeps its public client and requires a key that
   the user gives to TokenUsage.
-- `Prepared`: 36 modules with identity, capabilities, brand when it exists, and
+- `Prepared`: 35 modules with identity, capabilities, brand when it exists, and
   visible status. They do not open files, credentials, or connections.
-- `PolicyBlocked`: Cline, Cline CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
+- `PolicyBlocked`: Cline, Cline CLI, Gemini CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
   Z.ai, and Zed. They keep the researched contract, but they do not
   activate readers.
 
@@ -70,7 +70,6 @@ source suitable for Windows is proven.
 
 | Candidate | Reason | Initial limit |
 |---|---|---|
-| Gemini CLI | Appears in CodeBurn and AgentsView | Do not read chats or credentials; separate local usage from Google quota |
 | Kiro | Appears in CodeBurn and AgentsView | Separate CLI, IDE, and account; do not read session content |
 | Roo Code | Appears in CodeBurn and AgentsView | Do not reuse VS Code tasks; avoid double counting with the model provider |
 | Kimi CLI | CodeBurn separates it from Kimi Code; AgentsView mixes both paths | Settle identity before inheriting Kimi Code storage or claims |
@@ -184,7 +183,7 @@ otherwise.
 - plan
 - credits and spending controls when they exist
 - daily tokens and trend
-- estimated cost by model in a later phase
+- estimated API cost by known model, including GPT-6 Astra
 
 ### Limits
 
