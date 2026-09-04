@@ -711,7 +711,7 @@ public sealed partial class CodexUsageEventSource
         }
     }
 
-    private static ScanResult CreateScanResult(
+    private ScanResult CreateScanResult(
         List<ScannedSession> sessions,
         CodexUsageCheckpointState? checkpoints,
         LocalScanState state)
@@ -736,7 +736,7 @@ public sealed partial class CodexUsageEventSource
                 .GroupBy(item => item.Key)
                 .Select(group => new DatedModelSample(
                     group.Key.Date,
-                    CreateModelSample(group.Key.Model, SumTokens(group.Select(item => item.Value)))))
+                    CreateModelSample(group.Key.Model, SumTokens(group.Select(item => item.Value)), group.Key.Date)))
                 .OrderBy(sample => sample.Date)
                 .ThenBy(sample => sample.Sample.Model, StringComparer.Ordinal)
                 .ToArray();

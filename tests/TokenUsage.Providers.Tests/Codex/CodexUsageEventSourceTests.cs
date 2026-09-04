@@ -43,13 +43,17 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(UsageSourceIssueKind.RootUnavailable, result.Issue);
     }
 
-    [Fact]
-    public async Task ReadsContentFreeCountersAndPricesKnownModels()
+    [Theory]
+    [InlineData("gpt-5.5", "gpt-5.5", 0.0071)]
+    [InlineData("gpt-6-astra", "gpt-6-astra", 0.0132)]
+    [InlineData("openai/gpt-6-astra-max", "gpt-6-astra", 0.0132)]
+    public async Task ReadsContentFreeCountersAndPricesKnownModels(
+        string model, string expectedModel, decimal expectedCost)
     {
         using var corpus = new CodexCorpus();
         corpus.WriteSession(
             "session-a",
-            Context("gpt-5.5"),
+            Context(model),
             Usage(
                 "2026-07-27T12:01:00Z",
                 input: 1_000,
@@ -63,13 +67,43 @@ public sealed class CodexUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single(result.Events);
 
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
-        Assert.Equal("gpt-5.5", usageEvent.ModelId.Value);
+        Assert.Equal(expectedModel, usageEvent.ModelId.Value);
         Assert.Equal(new TokenBreakdown(800, 60, 40, 200, 0), usageEvent.Tokens);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal(0.0071m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(expectedCost, usageEvent.Cost.EstimatedCostUsd);
         Assert.Equal(CodexPricingCatalog.Version, usageEvent.Cost.CatalogVersion);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(64, usageEvent.EventKey.Value.Length);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PricesUsageAtItsDateAcrossTheSolPromotionCutoff(bool useCheckpoints)
+    {
+        using var corpus = new CodexCorpus();
+        string promoPath = corpus.WriteSession("promo", Context("gpt-5.6-sol"),
+            Usage("2026-11-21T12:00:00Z", 100_000, 0, 10_000, 0));
+        string listPath = corpus.WriteSession("list", Context("gpt-5.6-sol"),
+            Usage("2026-11-22T12:00:00Z", 100_000, 0, 10_000, 0));
+        DateTimeOffset observedAt = new(2026, 11, 23, 0, 0, 0, TimeSpan.Zero);
+        File.SetLastWriteTimeUtc(promoPath, observedAt.UtcDateTime);
+        File.SetLastWriteTimeUtc(listPath, observedAt.UtcDateTime);
+        var usage = new CodexTokenUsageSnapshot(
+            new CodexUsageSummary(null, null, null, null, null), []);
+        CodexUsageEventSource source = corpus.CreateSource(
+            clientFactory: useCheckpoints ? new StubFactory(new StubClient(usage)) : null,
+            checkpointPath: useCheckpoints ? Path.Combine(corpus.Root, "usage.json") : null,
+            clock: new FixedTimeProvider(observedAt));
+
+        UsageSourceReadResult first = await source.ReadAsync();
+        Assert.Collection(first.Events.OrderBy(item => item.OccurredAtUtc),
+            item => Assert.Equal(0.6m, item.Cost.EstimatedCostUsd),
+            item => Assert.Equal(0.8m, item.Cost.EstimatedCostUsd));
+
+        // Reusing persisted counters must reproduce the same historical prices.
+        UsageSourceReadResult second = await source.ReadAsync();
+        Assert.Equal(first.Events, second.Events);
     }
 
     [Fact]

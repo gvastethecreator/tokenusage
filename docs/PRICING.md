@@ -15,6 +15,23 @@ Every active rate has typed evidence with:
 Host-specific rates are separate catalog entries. For example, Cursor's Gemini
 3.8 Flash output rate does not replace the direct Google API rate.
 
+GPT-6 Astra uses the [official OpenAI rates](https://developers.openai.com/api/docs/models/gpt-6-astra),
+reviewed on 2026-09-04: $10 input, $1 cached input, $12.50 cache writes, and
+$50 output per million tokens. Input and cache rates double above 272,000 prompt
+tokens. Output, including reasoning, then uses 1.5 times the standard rate.
+The catalog records these rates as `openai-api-2026-09-04`.
+
+Astra remains a model within each agent's usage. Its addition does not create
+another provider or subscription quota. Estimates use Standard API rates because
+the current usage contract does not record service tiers such as Fast, Batch, or
+Flex. A reasoning-effort suffix does not imply a different service tier.
+
+Codex prices individual records at their recorded timestamp. Daily checkpoint
+aggregates use the same date and timezone as the report bucket: local noon for
+past days, and the observation time for today. A daily aggregate cannot resolve
+rate changes within that day or recover per-request context lengths. Its cost
+coverage remains partial.
+
 Run the local audit:
 
 ```powershell
