@@ -48,6 +48,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private IReadOnlyList<UsageReportCompareRow> _compareRows = [];
     private bool _isLoading;
     private bool _hasData;
+    private bool _hasCurrentReport;
     private bool _hasError;
     private bool _hasCoverageHint;
     private string _statusText = string.Empty;
@@ -357,7 +358,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 }
                 OnPropertyChanged(nameof(SelectedProviderName));
                 NotifyRangeChanged();
-                if (IsProviderScope && !IsLoading)
+                if (IsProviderScope)
                 {
                     _ = LoadAsync();
                 }
@@ -373,8 +374,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _compareLeftProvider, value)
                 && value is not null
                 && IsCompareScope
-                && IsCompareProvidersAxis
-                && !IsLoading)
+                && IsCompareProvidersAxis)
             {
                 _ = LoadAsync();
             }
@@ -389,8 +389,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _compareRightProvider, value)
                 && value is not null
                 && IsCompareScope
-                && IsCompareProvidersAxis
-                && !IsLoading)
+                && IsCompareProvidersAxis)
             {
                 _ = LoadAsync();
             }
@@ -420,8 +419,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
             if (value is not null
                 && IsCompareScope
-                && IsCompareCyclesAxis
-                && !IsLoading)
+                && IsCompareCyclesAxis)
             {
                 _ = LoadAsync();
             }
@@ -451,8 +449,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
             if (value is not null
                 && IsCompareScope
-                && IsCompareCyclesAxis
-                && !IsLoading)
+                && IsCompareCyclesAxis)
             {
                 _ = LoadAsync();
             }
@@ -516,7 +513,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             }
 
             NotifyRangeChanged();
-            if (IsResetCycleWindow && !IsLoading)
+            if (IsResetCycleWindow)
             {
                 _ = LoadAsync();
             }
@@ -532,7 +529,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             {
                 SynchronizeSelectedResetCycleGroup(value);
                 NotifyRangeChanged();
-                if (IsResetCycleWindow && !IsLoading)
+                if (IsResetCycleWindow)
                 {
                     _ = LoadAsync();
                 }
@@ -703,9 +700,14 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
         var cancellation = new CancellationTokenSource();
+        CancellationToken token = cancellation.Token;
         _loadCancellation = cancellation;
+        if (!refreshSource)
+        {
+            _hasCurrentReport = false;
+            HasData = false;
+        }
         IsLoading = true;
         HasError = false;
         NotifyEmptyStateChanged();
@@ -715,10 +717,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             if (refreshSource)
             {
                 await _refreshSourceAsync();
-                cancellation.Token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
             }
 
-            await LoadResetCyclesAsync(cancellation.Token).ConfigureAwait(true);
+            await LoadResetCyclesAsync(token).ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
             DateOnly endDate = EndDate;
 
             if (File.Exists(_databasePath))
@@ -727,26 +730,29 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 DateOnly effectiveStartDate = await ResolveEffectiveStartDateAsync(
                     query,
                     endDate,
-                    cancellation.Token).ConfigureAwait(true);
+                    token).ConfigureAwait(true);
+                token.ThrowIfCancellationRequested();
                 SetEffectiveStartDate(effectiveStartDate);
                 DateOnly startDate = StartDate;
 
                 async Task<UsageReport> ReadRangeAsync(DateOnly start, DateOnly end)
                 {
-                    return await query.ReadAsync(
-                        start,
-                        end,
-                        cancellationToken: cancellation.Token);
+                    // Microsoft.Data.Sqlite executes synchronously, including its async APIs.
+                    // Keep both the query and report aggregation off the UI thread.
+                    UsageReport report = await Task.Run(
+                        () => query.ReadAsync(start, end, cancellationToken: token), token);
+                    token.ThrowIfCancellationRequested();
+                    return report;
                 }
 
                 async Task<UsageReport> ReadResetCycleAsync(
                     UsageReportResetCycleOption cycle)
                 {
-                    return await query.ReadExactAsync(
-                        cycle.FromUtc,
-                        cycle.ToUtc,
-                        new AgentId("codex"),
-                        cancellation.Token);
+                    UsageReport report = await Task.Run(
+                        () => query.ReadExactAsync(
+                            cycle.FromUtc, cycle.ToUtc, new AgentId("codex"), token), token);
+                    token.ThrowIfCancellationRequested();
+                    return report;
                 }
 
                 // Switching provider keeps the period, and the all-provider read only feeds the
@@ -795,9 +801,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             }
 
             StatusText = string.Empty;
+            _hasCurrentReport = true;
             RebuildProjection();
         }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
         }
         catch (Exception)
@@ -805,18 +812,21 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             if (ReferenceEquals(_loadCancellation, cancellation))
             {
                 HasError = true;
-                HasData = false;
-                StatusText = GetString("UsageReportReadFailed");
+                StatusText = GetString(HasData
+                    ? "UsageReportRefreshFailed"
+                    : "UsageReportReadFailed");
             }
         }
         finally
         {
             if (ReferenceEquals(_loadCancellation, cancellation))
             {
+                _loadCancellation = null;
                 _hasCompletedInitialLoad = true;
                 IsLoading = false;
                 NotifyEmptyStateChanged();
             }
+            cancellation.Dispose();
         }
     }
 
@@ -1114,9 +1124,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
         try
         {
-            _resetHistory = await _resetHistoryStore
+            QuotaResetHistory history = await _resetHistoryStore
                 .LoadAsync(cancellationToken)
                 .ConfigureAwait(true);
+            cancellationToken.ThrowIfCancellationRequested();
+            _resetHistory = history;
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
@@ -1124,6 +1136,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             or InvalidOperationException
             or System.Security.SecurityException)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             _resetHistory = QuotaResetHistory.Empty;
         }
 
@@ -1590,9 +1603,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         }
 
         DateOnly searchStart = IsAllHistoryWindow ? DateOnly.MinValue : requestedStart;
-        (DateOnly From, DateOnly To)? available = await query.ReadAvailableDateRangeAsync(
-            searchStart,
-            endDate,
+        (DateOnly From, DateOnly To)? available = await Task.Run(
+            () => query.ReadAvailableDateRangeAsync(searchStart, endDate, cancellationToken),
             cancellationToken).ConfigureAwait(true);
         return available?.From ?? requestedStart;
     }
@@ -1625,7 +1637,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
         _loadCancellation = null;
         RefreshCommand.NotifyCanExecuteChanged();
         GC.SuppressFinalize(this);
@@ -1633,9 +1644,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildProjection()
     {
-        HasData = IsCompareScope
+        HasData = _hasCurrentReport && (IsCompareScope
             ? _report.Totals.EventCount > 0 || _compareRightReport.Totals.EventCount > 0
-            : _report.Totals.EventCount > 0;
+            : _report.Totals.EventCount > 0);
         NotifyEmptyStateChanged();
 
         Providers = CreateProviderRows();
@@ -1738,9 +1749,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 int days = InclusiveDayCount(startDate, endDate);
                 DateOnly previousEnd = startDate.AddDays(-1);
                 DateOnly previousStart = previousEnd.AddDays(-(days - 1));
-                _report = _globalReport;
-                _compareRightReport = await readRangeAsync(previousStart, previousEnd)
+                UsageReport previousReport = await readRangeAsync(previousStart, previousEnd)
                     .ConfigureAwait(true);
+                _report = _globalReport;
+                _compareRightReport = previousReport;
                 _compareLeftStart = startDate;
                 _compareLeftEnd = endDate;
                 _compareRightStart = previousStart;
