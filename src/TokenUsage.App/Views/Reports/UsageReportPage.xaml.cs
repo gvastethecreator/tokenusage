@@ -97,13 +97,6 @@ public sealed partial class UsageReportPage : Page
     private void OnSmallValuesClick(object sender, RoutedEventArgs e) =>
         ViewModel.SetSmallValueScale(sender is Microsoft.UI.Xaml.Controls.Primitives.ToggleButton { IsChecked: true });
 
-    private void OnReportTitleSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        double size = Math.Max(40, e.NewSize.Height);
-        ReportHeaderLogo.Width = size;
-        ReportHeaderLogo.Height = size;
-    }
-
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         if (_loadedOnce)
@@ -241,7 +234,7 @@ public sealed partial class UsageReportPage : Page
         Thickness capturePadding = ReportCaptureRoot.Padding;
         GridLength captionInset = ReportCaptionInset.Width;
         Visibility toolbarVisibility = ReportToolbarHost.Visibility;
-        Visibility logoVisibility = ReportHeaderLogo.Visibility;
+        Visibility windowBrandVisibility = ReportWindowBrandRoot.Visibility;
         try
         {
             if (source is not null)
@@ -258,7 +251,7 @@ public sealed partial class UsageReportPage : Page
                 item.Control.IsHitTestVisible = false;
             }
             ReportToolbarHost.Visibility = Visibility.Collapsed;
-            ReportHeaderLogo.Visibility = Visibility.Collapsed;
+            ReportWindowBrandRoot.Visibility = Visibility.Collapsed;
             ReportCaptionInset.Width = new GridLength(0);
             ReportControlBar.Opacity = 0;
             ReportControlBar.IsHitTestVisible = false;
@@ -304,7 +297,7 @@ public sealed partial class UsageReportPage : Page
                 item.Control.IsHitTestVisible = item.IsHitTestVisible;
             }
             ReportToolbarHost.Visibility = toolbarVisibility;
-            ReportHeaderLogo.Visibility = logoVisibility;
+            ReportWindowBrandRoot.Visibility = windowBrandVisibility;
             ReportCaptionInset.Width = captionInset;
             ReportControlBar.Opacity = controlBarOpacity;
             ReportControlBar.IsHitTestVisible = controlBarHitTest;

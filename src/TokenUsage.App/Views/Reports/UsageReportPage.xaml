@@ -257,17 +257,20 @@
                 x:Name="ReportHeaderRoot"
                 Padding="20,0,20,12"
                 HorizontalAlignment="Stretch"
-                RowSpacing="4">
+                RowSpacing="4" ColumnSpacing="24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid ColumnSpacing="16" MinHeight="56">
+                <Grid x:Name="ReportWindowBrandRoot" Grid.ColumnSpan="2" ColumnSpacing="16" MinHeight="48">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition x:Name="ReportCaptionInset" Width="144" />
                     </Grid.ColumnDefinitions>
                     <Grid x:Name="ReportDragRegion" Background="Transparent" VerticalAlignment="Stretch">
@@ -275,69 +278,45 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Image x:Name="ReportHeaderLogo" Width="40" Height="40" Margin="0,0,12,0"
+                        <Image x:Name="ReportHeaderLogo" Width="28" Height="28" Margin="0,0,8,0"
                             Source="{ThemeResource TokenUsageAppIconSource}" />
-                    <StackPanel x:Name="ReportTitleBlock" Grid.Column="1" Spacing="2" VerticalAlignment="Center" SizeChanged="OnReportTitleSizeChanged">
-                        <StackPanel Orientation="Horizontal" Spacing="7">
-                            <TextBlock x:Uid="UsageReportTitle" FontSize="21" FontWeight="SemiBold" />
-
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="7">
-                            <TextBlock
-                                MaxWidth="360"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{StaticResource CaptionTextBlockStyle}"
-                                Text="{x:Bind ViewModel.PeriodText, Mode=OneWay}"
-                                TextTrimming="CharacterEllipsis"
-                                ToolTipService.ToolTip="{x:Bind ViewModel.PeriodText, Mode=OneWay}" />
-                            <Border
-                                Padding="6,1"
-                                AutomationProperties.AutomationId="UsageReportResetCount"
-                                AutomationProperties.HelpText="{x:Bind ViewModel.ResetCountHelpText, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.ResetCountText, Mode=OneWay}"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                CornerRadius="4"
-                                Visibility="{x:Bind ViewModel.HasResetCountSummary, Mode=OneWay}">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <FontIcon FontSize="9" Glyph="&#xE895;" />
-                                    <TextBlock FontFamily="Consolas" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.ResetCountText, Mode=OneWay}" />
-                                </StackPanel>
-                                <ToolTipService.ToolTip>
-                                    <ToolTip MaxWidth="320">
-                                        <TextBlock MaxWidth="288" Text="{x:Bind ViewModel.ResetCountHelpText, Mode=OneWay}" TextWrapping="WrapWholeWords" />
-                                    </ToolTip>
-                                </ToolTipService.ToolTip>
-                            </Border>
-                        </StackPanel>
-                    </StackPanel>
-
-
+                        <TextBlock Grid.Column="1" Text="TokenUsage" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>
-                    <StackPanel
-                        x:Name="ReportCaptureBrand"
-                        Visibility="Collapsed"
-                        Grid.Column="1"
-                        AutomationProperties.AccessibilityView="Raw"
-                        HorizontalAlignment="Right"
-                        IsHitTestVisible="False"
-                        Opacity="0"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        VerticalAlignment="Center">
-                        <Image
-                            Height="28"
-                            Source="{ThemeResource TokenUsageAppIconSource}"
-                            Width="28" />
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Text="TokenUsage"
-                            VerticalAlignment="Center" />
-                    </StackPanel>
                 </Grid>
 
-                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
-                    HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" HorizontalContentAlignment="Right" x:Name="ReportToolbarHost">
+                <StackPanel x:Name="ReportTitleBlock" Grid.Row="1" Spacing="2" MinWidth="240" MaxWidth="360" VerticalAlignment="Center">
+                    <TextBlock x:Uid="UsageReportTitle" FontSize="21" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <TextBlock
+                            MaxWidth="360"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind ViewModel.PeriodText, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.PeriodText, Mode=OneWay}" />
+                        <Border
+                            Padding="6,1"
+                            AutomationProperties.AutomationId="UsageReportResetCount"
+                            AutomationProperties.HelpText="{x:Bind ViewModel.ResetCountHelpText, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind ViewModel.ResetCountText, Mode=OneWay}"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="4"
+                            Visibility="{x:Bind ViewModel.HasResetCountSummary, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <FontIcon FontSize="9" Glyph="&#xE895;" />
+                                <TextBlock FontFamily="Consolas" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind ViewModel.ResetCountText, Mode=OneWay}" />
+                            </StackPanel>
+                            <ToolTipService.ToolTip>
+                                <ToolTip MaxWidth="320">
+                                    <TextBlock MaxWidth="288" Text="{x:Bind ViewModel.ResetCountHelpText, Mode=OneWay}" TextWrapping="WrapWholeWords" />
+                                </ToolTip>
+                            </ToolTipService.ToolTip>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                    HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" x:Name="ReportToolbarHost">
                     <StackPanel
                         x:Name="ReportControlBar"
                         HorizontalAlignment="Right"
@@ -470,7 +449,29 @@
 
                 </ScrollViewer>
 
-                <ProgressBar Grid.Row="2" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+                <StackPanel
+                    x:Name="ReportCaptureBrand"
+                    Visibility="Collapsed"
+                    Grid.Row="1" Grid.Column="1"
+                    AutomationProperties.AccessibilityView="Raw"
+                    HorizontalAlignment="Right"
+                    IsHitTestVisible="False"
+                    Opacity="0"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+                    <Image
+                        Height="28"
+                        Source="{ThemeResource TokenUsageAppIconSource}"
+                        Width="28" />
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Text="TokenUsage"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+
+                <ProgressBar Grid.Row="2" Grid.ColumnSpan="2" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
             </Grid>
         </Border>
 
