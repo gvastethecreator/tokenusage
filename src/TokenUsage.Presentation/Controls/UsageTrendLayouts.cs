@@ -15,23 +15,25 @@ public static class UsageTrendLayouts
     }
 
     public static IReadOnlyList<UsageTrendBar> Bars(IReadOnlyList<IReadOnlyList<double>> series,
-        int days, double width, double height, double maximum, double top = 8, double bottom = 10)
+        int days, double width, double height, double maximum, double top = 8, double bottom = 10,
+        bool emphasizeSmallValues = false)
     {
         if (days <= 0 || series.Count == 0 || width <= 0 || height <= 0 || maximum <= 0) return [];
         double dayWidth = width / days;
         double groupWidth = dayWidth * 0.8;
-        double slot = groupWidth / series.Count;
-        double barWidth = slot * 0.88;
+        double barWidth = groupWidth * 0.88;
+        var scale = new UsageTrendScale(maximum, [], emphasizeSmallValues);
         double baseline = height - bottom;
         double available = Math.Max(0, baseline - top);
         var bars = new List<UsageTrendBar>();
         for (int day = 0; day < days; day++)
-        for (int index = 0; index < series.Count; index++)
+        foreach (int index in Enumerable.Range(0, series.Count)
+            .OrderByDescending(index => day < series[index].Count ? series[index][day] : 0))
         {
             double value = day < series[index].Count ? series[index][day] : 0;
             if (!double.IsFinite(value) || value <= 0) continue;
-            double barHeight = Math.Clamp(value / maximum, 0, 1) * available;
-            bars.Add(new(index, day, day * dayWidth + dayWidth * 0.1 + index * slot,
+            double barHeight = scale.Normalize(value) * available;
+            bars.Add(new(index, day, day * dayWidth + dayWidth * 0.1,
                 baseline - barHeight, barWidth, barHeight));
         }
         return bars;

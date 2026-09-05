@@ -34,8 +34,10 @@ public sealed class AppearanceSettingsStoreTests
         Assert.False(File.Exists(store.DocumentPath));
     }
 
-    [Fact]
-    public async Task SaveAndLoadRoundTripUsesVersionFiveContract()
+    [Theory]
+    [InlineData(ReportChartStyle.Area, "area")]
+    [InlineData(ReportChartStyle.TwoHourBars, "twohourbars")]
+    public async Task SaveAndLoadRoundTripUsesVersionFiveContract(ReportChartStyle chartStyle, string serializedStyle)
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -52,7 +54,7 @@ public sealed class AppearanceSettingsStoreTests
                 providerCount: 2,
                 showProviderName: true,
                 isEnabled: false),
-            ReportChartStyle.Area,
+            chartStyle,
             ReportChartGrouping.Model);
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
@@ -62,7 +64,7 @@ public sealed class AppearanceSettingsStoreTests
         Assert.False(loaded.RequiresMigration);
         using JsonDocument json = JsonDocument.Parse(await File.ReadAllBytesAsync(store.DocumentPath));
         Assert.Equal(5, json.RootElement.GetProperty("schemaVersion").GetInt32());
-        Assert.Equal("area", json.RootElement.GetProperty("reportChartStyle").GetString());
+        Assert.Equal(serializedStyle, json.RootElement.GetProperty("reportChartStyle").GetString());
         Assert.Equal("model", json.RootElement.GetProperty("reportChartGrouping").GetString());
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
         Assert.Equal(

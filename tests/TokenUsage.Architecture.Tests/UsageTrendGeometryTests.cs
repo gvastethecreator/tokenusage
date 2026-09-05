@@ -69,7 +69,7 @@ public sealed class UsageTrendGeometryTests
     }
 
     [Fact]
-    public void EveryStyleKeepsALinearScaleAndDoesNotCombineComparisonPeriods()
+    public void OverlaidBarsShareBaselinesAndDrawSmallValuesInFrontWithoutSummingPeriods()
     {
         IReadOnlyList<double>[] values = [new double[] { 4_000, 40 }, new double[] { 40, 4 }];
         UsageTrendScale scale = UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(values, stacked: false));
@@ -80,9 +80,26 @@ public sealed class UsageTrendGeometryTests
         var bars = UsageTrendLayouts.Bars(values, 2, 400, 200, scale.Maximum);
         Assert.Equal(4, bars.Count);
         Assert.Equal(bars[0].Height / 100, bars[1].Height, 12);
-        Assert.True(bars[1].X > bars[0].X);
+        Assert.Equal(bars[0].X, bars[1].X);
+        Assert.Equal(bars[0].Y + bars[0].Height, bars[1].Y + bars[1].Height, 10);
         Assert.True(bars[2].X > bars[1].X);
         Assert.Empty(UsageTrendLayouts.Bars([new double[] { 0, double.NaN }], 2, 400, 200, 100));
+        var reversed = UsageTrendLayouts.Bars(values.Reverse().ToArray(), 2, 400, 200, 5000);
+        Assert.Equal(1, reversed[0].SeriesIndex);
+        Assert.Equal(0, reversed[1].SeriesIndex);
+        Assert.Equal(reversed[0].Width, reversed[1].Width);
+
+        UsageTrendScale small = UsageTrendGeometry.CreateScale(4000, emphasizeSmallValues: true);
+        Assert.True(small.Normalize(40) > scale.Normalize(40));
+        Assert.Equal(0, small.Normalize(0));
+        Assert.Equal(1, small.Normalize(small.Maximum));
+        var path = UsageTrendGeometry.CreatePath([40, double.NaN, 4000], 400, 200,
+            small.Maximum, bottomPadding: 10, emphasizeSmallValues: true);
+        Assert.Equal(190 - small.Normalize(40) * 182, path.Points[0].Y, 10);
+        Assert.True(double.IsNaN(path.Points[1].Y));
+        var timed = UsageTrendLayouts.Bars([Enumerable.Repeat(1d, 12).ToArray()], 12, 240, 100, 1);
+        Assert.Equal(12, timed.Count);
+        Assert.True(timed[^1].X + timed[^1].Width <= 240);
     }
 
     [Fact]

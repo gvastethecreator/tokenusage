@@ -30,7 +30,7 @@ public sealed partial class UsageTrendChart
         if (Data.Days.Count == 0 || PlotCanvas.ActualWidth <= 0) return;
         double x = e.GetCurrentPoint(PlotCanvas).Position.X;
         double fraction = Math.Clamp(x / PlotCanvas.ActualWidth, 0, 1);
-        int index = Data.Style == ReportChartStyle.Bars
+        int index = Data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars
             ? Math.Min(Data.Days.Count - 1, (int)(fraction * Data.Days.Count))
             : (int)Math.Round(fraction * (Data.Days.Count - 1));
         _hoverIndex = index; // Logical selection is immediate; only the visual movement is coalesced.
@@ -97,7 +97,7 @@ public sealed partial class UsageTrendChart
         bool wasVisible = HoverCard.Visibility == Visibility.Visible;
         _displayedHoverIndex = index;
         BuildHoverContent(index);
-        double x = Data.Style == ReportChartStyle.Bars || Data.Days.Count == 1
+        double x = Data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || Data.Days.Count == 1
             ? (index + 0.5) * PlotCanvas.ActualWidth / Data.Days.Count
             : index * PlotCanvas.ActualWidth / (Data.Days.Count - 1);
         double absoluteX = GetAxisWidth() + GetAxisGap() + x;

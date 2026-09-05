@@ -16,7 +16,8 @@ public sealed record UsageTrendPath(
 
 public readonly record struct UsageTrendScale(
     double Maximum,
-    IReadOnlyList<double> Ticks)
+    IReadOnlyList<double> Ticks,
+    bool EmphasizeSmallValues = false)
 {
     public double Normalize(double value)
     {
@@ -29,7 +30,7 @@ public readonly record struct UsageTrendScale(
             double.IsFinite(value) ? value : 0,
             0,
             Maximum) / Maximum;
-        return fraction;
+        return EmphasizeSmallValues ? Math.Sqrt(fraction) : fraction;
     }
 }
 
@@ -54,7 +55,7 @@ public static class UsageTrendGeometry
         return [ticks[0], ticks[^1]];
     }
 
-    public static UsageTrendScale CreateScale(double peak, int targetTickCount = 4)
+    public static UsageTrendScale CreateScale(double peak, int targetTickCount = 4, bool emphasizeSmallValues = false)
     {
         if (!double.IsFinite(peak) || peak <= 0 || targetTickCount <= 0)
         {
@@ -73,7 +74,9 @@ public static class UsageTrendGeometry
             ticks.Add(value);
         }
 
-        return new UsageTrendScale(maximum, ticks);
+        return emphasizeSmallValues
+            ? new UsageTrendScale(maximum, Enumerable.Range(0, 5).Select(index => maximum * Math.Pow(index / 4d, 2)).ToArray(), true)
+            : new UsageTrendScale(maximum, ticks);
     }
 
     public static UsageTrendPath CreatePath(
@@ -83,7 +86,8 @@ public static class UsageTrendGeometry
         double maximum,
         double topPadding = 8,
         double bottomPadding = 0,
-        ReportChartStyle style = ReportChartStyle.Smooth)
+        ReportChartStyle style = ReportChartStyle.Smooth,
+        bool emphasizeSmallValues = false)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (!double.IsFinite(width) || width <= 0
@@ -100,7 +104,7 @@ public static class UsageTrendGeometry
                 values.Count == 1 ? width / 2 : index * step,
                 !double.IsFinite(value) ? double.NaN : maximum <= 0
                     ? baseline
-                    : baseline - (Math.Clamp(value, 0, maximum) / maximum * usableHeight)))
+                    : baseline - (new UsageTrendScale(maximum, [], emphasizeSmallValues).Normalize(value) * usableHeight)))
             .ToArray();
         if (points.Length < 2)
         {

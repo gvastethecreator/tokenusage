@@ -634,11 +634,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             _report.Totals.EventCount.ToString("N0", CultureInfo.CurrentCulture));
 
     public string ChartTitle => GetString(
+        ChartStyle == ReportChartStyle.TwoHourBars ? "UsageReportTwoHourTitle" :
         IsShareValueMode && IsGlobalScope
             ? "UsageReportDailyShareTitle"
             : IsCostMetric
                 ? "UsageReportDailyCostTitle"
-                : "UsageReportDailyTokensTitle");
+                : "UsageReportDailyTokensTitle")
+        + (EmphasizeSmallValues && !(IsShareValueMode && IsGlobalScope) ? GetString("ReportSquareRootScaleSuffix") : "");
 
     public string ScopeTitle => IsGlobalScope
         ? GetString("UsageReportGlobalScope")
@@ -731,7 +733,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     // Microsoft.Data.Sqlite executes synchronously, including its async APIs.
                     // Keep both the query and report aggregation off the UI thread.
                     UsageReport report = await Task.Run(
-                        () => query.ReadAsync(start, end, cancellationToken: token), token);
+                        () => query.ReadAsync(start, end, cancellationToken: token, includeTimeBuckets: true), token);
                     token.ThrowIfCancellationRequested();
                     return report;
                 }
@@ -2335,14 +2337,23 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     "compare-left",
                     CompareLeftLabel,
                     CompareSeriesColor(isRight: false),
-                    leftValues),
+                    leftValues) { TimeValues = TimeCompareValues(_report, _compareLeftStart, dayCount) },
                 new UsageReportTrendSeries(
                     "compare-right",
                     "compare-right",
                     CompareRightLabel,
                     CompareSeriesColor(isRight: true),
-                    rightValues),
-            ], ChartStyle, IsComparison: true);
+                    rightValues) { TimeValues = TimeCompareValues(_compareRightReport,
+                        alignByIndex ? _compareRightStart : _compareLeftStart, dayCount) },
+            ], ChartStyle, IsComparison: true, EmphasizeSmallValues: EmphasizeSmallValues);
+    }
+
+    private double[] TimeCompareValues(UsageReport report, DateOnly start, int dayCount)
+    {
+        var buckets = report.TimeBuckets.GroupBy(item => (item.Usage.Date, item.Hour))
+            .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
+        return Enumerable.Range(0, dayCount).SelectMany(day => Enumerable.Range(0, 12)
+            .Select(slot => buckets.GetValueOrDefault((start.AddDays(day), slot * 2)))).ToArray();
     }
 
     private double[] DailyCompareValues(UsageReport report, DateOnly start, int dayCount)

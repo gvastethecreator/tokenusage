@@ -130,6 +130,8 @@ public sealed record UsageReportTrendSeries(
     IReadOnlyList<double> Values,
     string? ModelId = null)
 {
+    public IReadOnlyList<double> TimeValues { get; init; } = [];
+
     public bool IsReserve => ModelId == "gpt-reserve";
 }
 
@@ -138,7 +140,8 @@ public sealed record UsageReportTrendDataset(
     IReadOnlyList<UsageReportTrendDay> Days,
     IReadOnlyList<UsageReportTrendSeries> Series,
     ReportChartStyle Style = ReportChartStyle.Bars,
-    bool IsComparison = false)
+    bool IsComparison = false,
+    bool EmphasizeSmallValues = false)
 {
     public static UsageReportTrendDataset Empty { get; } = new(
         UsageReportMetric.Cost,

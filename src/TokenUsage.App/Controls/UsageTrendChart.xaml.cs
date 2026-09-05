@@ -23,6 +23,9 @@ public sealed partial class UsageTrendChart : UserControl
     private readonly ResourceLoader _resources = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private Line? _crosshair;
+    private Canvas _seriesCanvas = new();
+    private Microsoft.UI.Composition.InsetClip? _entranceClip;
+    private UsageReportTrendDataset? _lastAnimatedData;
 
 
     public static readonly DependencyProperty IsPreviewProperty = DependencyProperty.Register(
@@ -65,7 +68,7 @@ public sealed partial class UsageTrendChart : UserControl
         Loaded += OnLoaded;
         ActualThemeChanged += OnActualThemeChanged;
         GotFocus += OnGotFocus;
-        Unloaded += (_, _) => HideHover();
+        Unloaded += (_, _) => { HideHover(); FinishEntrance(); };
         AutomationProperties.SetName(this, GetString("UsageReportChartAutomationName"));
     }
 
@@ -93,7 +96,7 @@ public sealed partial class UsageTrendChart : UserControl
         set => SetValue(YAxisGapProperty, value);
     }
 
-    internal void DismissHover() => HideHover();
+    internal void DismissHover() { HideHover(); FinishEntrance(); }
 
     private static void OnDataChanged(
         DependencyObject dependencyObject,
@@ -130,8 +133,10 @@ public sealed partial class UsageTrendChart : UserControl
             return;
         }
 
+        ChartLayoutRoot.RowSpacing = IsPreview ? 0 : 6;
         PlotCanvas.IsHitTestVisible = !IsPreview;
         DateLabels.Visibility = IsPreview ? Visibility.Collapsed : Visibility.Visible;
+        FinishEntrance();
         PlotCanvas.Children.Clear();
         YAxisCanvas.Children.Clear();
         PlotCanvas.Clip = new RectangleGeometry
@@ -154,8 +159,9 @@ public sealed partial class UsageTrendChart : UserControl
         UsageTrendScale scale = data.Metric == UsageReportMetric.Share
             ? new UsageTrendScale(100, [0, 25, 50, 75, 100])
             : UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(
-                data.Series.Select(series => series.Values).ToArray(),
-                data.Style == ReportChartStyle.Area && !data.IsComparison));
+                data.Series.Select(series => data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values).ToArray(),
+                data.Style == ReportChartStyle.Area && data.Days.Count > 1 && !data.IsComparison),
+                emphasizeSmallValues: data.EmphasizeSmallValues);
         Brush gridBrush = GridBrushProxy.Background;
         Brush textBrush = TextBrushProxy.Background;
 
@@ -195,7 +201,22 @@ public sealed partial class UsageTrendChart : UserControl
             YAxisCanvas.Children.Add(label);
         }
 
+        _seriesCanvas = new Canvas { Width = width, Height = height, IsHitTestVisible = false };
+        PlotCanvas.Children.Add(_seriesCanvas);
         RenderSeries(data, width, height, scale);
+        if (!IsPreview && !ReferenceEquals(_lastAnimatedData, data) && MotionSettings.AreAnimationsEnabled())
+        {
+            var visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(_seriesCanvas);
+            _entranceClip = visual.Compositor.CreateInsetClip();
+            visual.Clip = _entranceClip;
+            var animation = visual.Compositor.CreateScalarKeyFrameAnimation();
+            animation.Duration = TimeSpan.FromMilliseconds(320);
+            animation.InsertKeyFrame(0, (float)width);
+            animation.InsertKeyFrame(1, 0, visual.Compositor.CreateCubicBezierEasingFunction(
+                new System.Numerics.Vector2(0.16f, 1), new System.Numerics.Vector2(0.3f, 1)));
+            _entranceClip.StartAnimation("RightInset", animation);
+        }
+        _lastAnimatedData = data;
 
         if (IsPreview) return;
         _crosshair = new Line
@@ -210,6 +231,14 @@ public sealed partial class UsageTrendChart : UserControl
             Visibility = Visibility.Collapsed,
         };
         PlotCanvas.Children.Add(_crosshair);
+    }
+
+    private void FinishEntrance()
+    {
+        if (_entranceClip is null) return;
+        _entranceClip.StopAnimation("RightInset");
+        _entranceClip.RightInset = 0;
+        _entranceClip = null;
     }
 
     private void UpdateDateLabels(UsageReportTrendDataset data)

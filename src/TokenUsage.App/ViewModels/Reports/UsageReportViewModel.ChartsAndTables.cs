@@ -19,6 +19,24 @@ public sealed partial class UsageReportViewModel
         [UsageReportBreakdown.Day] = new(ReportSortColumn.Date, true),
     };
 
+    private bool _emphasizeSmallValues = true;
+    public bool EmphasizeSmallValues => _emphasizeSmallValues;
+    public string ChartStyleName
+    {
+        get
+        {
+            string resourceKey = "ReportChartStyle" + ChartStyle;
+            return GetString(resourceKey);
+        }
+    }
+    public void SetSmallValueScale(bool enabled)
+    {
+        if (_emphasizeSmallValues == enabled) return;
+        _emphasizeSmallValues = enabled;
+        OnPropertyChanged(nameof(EmphasizeSmallValues));
+        RebuildProjection();
+    }
+
     public ReportChartStyle ChartStyle => _chartStyle;
     public ReportChartGrouping ChartGrouping => _chartGrouping;
     public bool IsCombinedChart => _chartGrouping == ReportChartGrouping.Combined;
@@ -31,6 +49,7 @@ public sealed partial class UsageReportViewModel
     {
         if (_chartStyle == style && _chartGrouping == grouping) return;
         _chartStyle = style;
+        OnPropertyChanged(nameof(ChartStyleName));
         _chartGrouping = grouping;
         OnPropertyChanged(nameof(ChartGrouping));
         OnPropertyChanged(nameof(IsProviderChart));
@@ -89,7 +108,32 @@ public sealed partial class UsageReportViewModel
                     model.ModelId.Value));
             }
         }
-        return new(percentage ? UsageReportMetric.Share : Metric, days, series, ChartStyle);
+        if (ChartStyle == ReportChartStyle.TwoHourBars)
+        {
+            var timeTotals = _report.TimeBuckets.GroupBy(item => (item.Usage.Date, item.Hour))
+                .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
+            for (int index = 0; index < series.Count; index++)
+            {
+                UsageReportTrendSeries current = series[index];
+                var buckets = _report.TimeBuckets.Where(item => item.Usage.AgentId.Value == current.ProviderId
+                    && (!byModel || ReportDataProjection.ModelKey(current.ProviderId,
+                        item.Usage.ModelProviderId?.Value, item.Usage.ModelId.Value) == current.Id))
+                    .GroupBy(item => (item.Usage.Date, item.Hour))
+                    .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
+                series[index] = current with
+                {
+                    TimeValues = days.SelectMany(day => Enumerable.Range(0, 12).Select(slot =>
+                    {
+                        double value = buckets.GetValueOrDefault((day.Date, slot * 2));
+                        if (!percentage || !double.IsFinite(value)) return value;
+                        double total = timeTotals.GetValueOrDefault((day.Date, slot * 2));
+                        return total > 0 ? 100 * value / total : 0;
+                    })).ToArray(),
+                };
+            }
+        }
+        return new(percentage ? UsageReportMetric.Share : Metric, days, series, ChartStyle,
+            EmphasizeSmallValues: EmphasizeSmallValues && !percentage);
     }
 
     private double MetricValue(UsageReportMetrics metrics) => IsCostMetric
