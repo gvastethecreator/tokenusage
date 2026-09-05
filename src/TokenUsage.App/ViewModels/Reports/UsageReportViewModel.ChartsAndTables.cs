@@ -29,6 +29,17 @@ public sealed partial class UsageReportViewModel
             return GetString(resourceKey);
         }
     }
+    public string ChartStyleIcon => ChartStyle switch
+    {
+        ReportChartStyle.Step => "stairs",
+        ReportChartStyle.Bars => "chart-bar",
+        ReportChartStyle.TwoHourBars => "calendar-stats",
+        ReportChartStyle.Area => "chart-area-line",
+        _ => "chart-line",
+    };
+    public string ChartStyleTooltip => string.Format(CultureInfo.CurrentCulture,
+        GetString("ReportChartStyleTooltipFormat"), ChartStyleName);
+
     public void SetSmallValueScale(bool enabled)
     {
         if (_emphasizeSmallValues == enabled) return;
@@ -50,6 +61,8 @@ public sealed partial class UsageReportViewModel
         if (_chartStyle == style && _chartGrouping == grouping) return;
         _chartStyle = style;
         OnPropertyChanged(nameof(ChartStyleName));
+        OnPropertyChanged(nameof(ChartStyleIcon));
+        OnPropertyChanged(nameof(ChartStyleTooltip));
         _chartGrouping = grouping;
         OnPropertyChanged(nameof(ChartGrouping));
         OnPropertyChanged(nameof(IsProviderChart));
