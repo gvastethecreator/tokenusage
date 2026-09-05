@@ -104,6 +104,7 @@ public sealed partial class UsageReportPage : Page
         // Codex sessions created since the tray dashboard was last opened.
         await ViewModel.LoadAsync(refreshSource: true);
         SynchronizeProviderTabs();
+        UpdateSortHeaders();
         _ = DispatcherQueue.TryEnqueue(() =>
             ReportScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
     }
@@ -362,6 +363,9 @@ public sealed partial class UsageReportPage : Page
             return;
         }
 
+        if (e.PropertyName == nameof(UsageReportViewModel.ModelShareLabel))
+            _ = DispatcherQueue.TryEnqueue(UpdateSortHeaders);
+
         if (_isTransitionCommit)
         {
             return;
@@ -386,6 +390,7 @@ public sealed partial class UsageReportPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _rowMotions.Clear();
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _reportDataTransitionToken++;
         StopReportDataTransition(resetTargets: true);

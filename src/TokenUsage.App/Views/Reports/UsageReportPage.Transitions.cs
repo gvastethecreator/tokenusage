@@ -18,7 +18,7 @@ public sealed partial class UsageReportPage
         ItemsRepeater sender,
         ItemsRepeaterElementPreparedEventArgs args) =>
         _ = DispatcherQueue.TryEnqueue(() =>
-            UpdateReportCompositionWidths(ReportCompositionBar.ActualWidth));
+            UpdateReportCompositionWidths(ReportCompositionLayout.ActualWidth));
 
     private void UpdateReportCompositionWidths(double availableWidth)
     {
@@ -27,6 +27,7 @@ public sealed partial class UsageReportPage
             return;
         }
 
+        ReportCompositionBar.Width = availableWidth;
         const double minimumSegmentWidth = 2;
         double[] shares = ViewModel.Providers
             .Select(provider => Math.Max(0, provider.SharePercent))
@@ -43,11 +44,6 @@ public sealed partial class UsageReportPage
 
         for (int index = 0; index < shares.Length; index++)
         {
-            if (ReportCompositionBar.TryGetElement(index) is not ProviderColorSwatch swatch)
-            {
-                continue;
-            }
-
             double width = usesMinimum[index]
                 ? minimumSegmentWidth
                 : flexibleShare <= 0
@@ -58,8 +54,11 @@ public sealed partial class UsageReportPage
                 width = Math.Max(0, availableWidth - assignedWidth);
             }
 
-            swatch.Width = width;
             assignedWidth += width;
+            if (ReportCompositionBar.TryGetElement(index) is ProviderColorSwatch swatch)
+            {
+                swatch.Width = width;
+            }
         }
     }
 
