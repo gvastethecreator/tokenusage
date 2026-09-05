@@ -217,6 +217,30 @@ and spoken screen-reader output were not checked. Data/provider suites were not
 repeated because this change only affects report layout, icons, and resources.
 The improve-win-ui pass preserved native input and capture behavior.
 
+### Brand and report heading alignment
+
+The latest header uses a 48-DIP native caption row with the app icon and
+TokenUsage name. Usage report and the selected period sit below it, to the left
+of the vertically centered toolbar. Both left-hand groups use the content's
+20-DIP inset. The top row remains the drag region. Capture hides this row and
+places the report title on the left and one app brand on the right; finally
+restores the window layout.
+
+The 106 architecture/resource tests and x64 Release MSIX build passed. Native
+inspection covered 1280 by 900 and 820 by 900, dark theme, 96 DPI, keyboard Tab
+from refresh to share, title-row dragging, capture, and restoration. The narrow
+toolbar retains its horizontal scroll. Evidence: brand-header-{wide,narrow}.png
+in .scratch/report-probe and TokenUsage-report-2026-09-05-204242.png in Downloads.
+Live collection continued, so usage totals were not frozen across screenshots.
+Other DPI/text scales, themes, screen-reader output, and clean-machine install
+were not tested. Data/provider suites were not repeated for this layout-only change.
+
+The development installation at .scratch/local-brand-header preserves LocalState
+and matches all 245 packaged app files. Package status is OK. Its resources.pri
+SHA-256 is 8B69990076CA657608E5440CBB5A7E2DAD0AD536529D5711743728FC76FDCE88.
+The improve-win-ui pass kept native drag/input behavior and checked the rendered
+alignment rather than relying on XAML inspection alone.
+
 ## Changes
 
 - Sum cycle tokens in SQLite instead of loading complete usage events. The repository
