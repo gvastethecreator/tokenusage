@@ -16,7 +16,6 @@ namespace TokenUsage.App.Views.Reports;
 public sealed partial class UsageReportPage : Page
 {
     private readonly ResourceLoader _resources = new();
-    private readonly SpatialTransitionState _chartLayoutTransition = new();
     private readonly SpatialTransitionState _breakdownTransition = new();
     private int _reportDataTransitionToken;
     private Storyboard? _reportDataTransitionStoryboard;
@@ -24,7 +23,6 @@ public sealed partial class UsageReportPage : Page
     private ReportDataTransitionIntent? _pendingReportDataIntent;
     private Action? _pendingReportDataCommit;
     private bool _reportDataCommitPending;
-    private bool _pendingShowCombined;
     private UsageReportBreakdown _pendingBreakdown;
     private int _reportRefreshGeneration;
     private int _lastCompletedRefreshGeneration;
@@ -69,11 +67,14 @@ public sealed partial class UsageReportPage : Page
 
     public UsageReportViewModel ViewModel { get; }
 
+    public event EventHandler<ReportChartGrouping>? ChartGroupingChanged;
+
     public object VisibleProviderTabs => _visibleProviderTabs;
 
     public void ApplyAppearance(AppearanceSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        ViewModel.SetChartAppearance(settings.ReportChartStyle, settings.ReportChartGrouping);
         RequestedTheme = settings.Theme switch
         {
             AppThemeMode.Light => ElementTheme.Light,
@@ -337,7 +338,6 @@ public sealed partial class UsageReportPage : Page
         _reportDataTransitionToken++;
         StopReportDataTransition(resetTargets: true);
         ResetReportDataTargets(GetAllReportDataTargets());
-        CancelSpatialTransition(_chartLayoutTransition);
         CancelSpatialTransition(_breakdownTransition);
         CancelProviderTabsTransition();
         ResetSpatialTarget(GlobalChartTransitionRoot, GlobalChartTransitionTransform);

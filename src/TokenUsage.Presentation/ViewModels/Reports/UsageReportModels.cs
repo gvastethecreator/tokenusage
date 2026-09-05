@@ -1,4 +1,5 @@
 using TokenUsage.Core.Usage;
+using TokenUsage.Core.Appearance;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
@@ -122,15 +123,22 @@ public sealed record UsageReportTrendDay(
     string? HoverText = null);
 
 public sealed record UsageReportTrendSeries(
+    string Id,
     string ProviderId,
     string Name,
     string ColorHex,
-    IReadOnlyList<double> Values);
+    IReadOnlyList<double> Values,
+    string? ModelId = null)
+{
+    public bool IsReserve => ModelId == "gpt-reserve";
+}
 
 public sealed record UsageReportTrendDataset(
     UsageReportMetric Metric,
     IReadOnlyList<UsageReportTrendDay> Days,
-    IReadOnlyList<UsageReportTrendSeries> Series)
+    IReadOnlyList<UsageReportTrendSeries> Series,
+    ReportChartStyle Style = ReportChartStyle.Bars,
+    bool IsComparison = false)
 {
     public static UsageReportTrendDataset Empty { get; } = new(
         UsageReportMetric.Cost,

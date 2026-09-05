@@ -684,7 +684,7 @@
   <data name="UsageReportCompareCurrentRangeFormat" xml:space="preserve"><value>Current · {0} to {1}</value></data>
   <data name="UsageReportComparePreviousRangeFormat" xml:space="preserve"><value>Previous · {0} to {1}</value></data>
   <data name="UsageReportAbsoluteButton.Content" xml:space="preserve"><value>Absolute</value></data>
-  <data name="UsageReportShareButton.Content" xml:space="preserve"><value>Share</value></data>
+  <data name="UsageReportShareButton.Content" xml:space="preserve"><value>Percentage</value></data>
   <data name="UsageReportSourceButton.Content" xml:space="preserve"><value>Sources</value></data>
   <data name="UsageReportLimitsTitle.Text" xml:space="preserve"><value>Official limits</value></data>
   <data name="UsageReportSourceColumn.Text" xml:space="preserve"><value>Source</value></data>
@@ -761,10 +761,7 @@
   <data name="CompactProviderHermesCoverageHint" xml:space="preserve"><value>Hermes: aggregate session tokens and actual cost come from numeric state.db columns. Messages are not queried.</value></data>
   <data name="CompactProviderZcodeCoverageHint" xml:space="preserve"><value>ZCode: per-request counters come from the local usage database. Cost is estimated from Z.ai API rates and is not the plan charge.</value></data>
   <data name="ZcodeGlobalLimitTitlePrefix" xml:space="preserve"><value>ZCode · </value></data>
-  <data name="DataCollectionBackgroundLabel.Text" xml:space="preserve"><value>Update usage in the background</value></data>
-  <data name="DataCollectionBackgroundLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update usage in the background</value></data>
-  <data name="DataCollectionBackgroundToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update usage in the background</value></data>
-  <data name="DataCollectionBackgroundTooltip.Content" xml:space="preserve"><value>When on, provider Stop hooks refresh TokenUsage data after each task, even when the app is closed. When off, data refreshes only inside the app.</value></data>
+  <data name="DataCollectionBackgroundToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Collect usage after each task</value></data>
   <data name="DataCollectionRefreshLabel.Text" xml:space="preserve"><value>Refresh while the app is open</value></data>
   <data name="DataCollectionRefreshLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh interval while the app is open</value></data>
   <data name="DataCollectionRefreshManual" xml:space="preserve"><value>Manual only</value></data>
@@ -802,7 +799,7 @@
   <data name="UsageReportSummaryCoverageLabel.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Tokens with a known or reported price. 0% means no price is available, not free usage.</value></data>
   <data name="UsageReportCompositionTitle.Text" xml:space="preserve"><value>COMPOSITION BY PROVIDER</value></data>
   <data name="UsageReportCombinedChartButton.Content" xml:space="preserve"><value>Combined</value></data>
-  <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>Separate</value></data>
+  <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>By provider</value></data>
   <data name="UsageReportProviderChartsTitle.Text" xml:space="preserve"><value>COST BY PROVIDER</value></data>
   <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Save and copy screenshot</value></data>
   <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Save and copy screenshot</value></data>
@@ -818,4 +815,24 @@
   <data name="AboutVersionFormat" xml:space="preserve"><value>Version {0}</value></data>
   <data name="AboutGitHubLink.Content" xml:space="preserve"><value>GitHub</value></data>
   <data name="AboutGitHubLink.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open gvastethecreator on GitHub</value></data>
+  <data name="NotificationsSectionTitle.Text" xml:space="preserve"><value>Notifications</value></data>
+  <data name="NotificationsSaveError.Message" xml:space="preserve"><value>Notifications could not be saved. Check folder permissions and try again.</value></data>
+  <data name="DataCollectionBackgroundToggle.Header" xml:space="preserve"><value>Collect usage after each task</value></data>
+  <data name="DataCollectionBackgroundDescription.Text" xml:space="preserve"><value>Collect usage when a task ends, even with TokenUsage closed. The interval below applies only while the app is open.</value></data>
+  <data name="ReportChartsAppearanceTitle.Text" xml:space="preserve"><value>Report charts</value></data>
+  <data name="ReportChartStyleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report chart style</value></data>
+  <data name="ReportChartStyleSmooth" xml:space="preserve"><value>Smooth curve</value></data>
+  <data name="ReportChartStyleLine" xml:space="preserve"><value>Straight line</value></data>
+  <data name="ReportChartStyleStep" xml:space="preserve"><value>Steps</value></data>
+  <data name="ReportChartStyleBars" xml:space="preserve"><value>Daily bars</value></data>
+  <data name="ReportChartStyleArea" xml:space="preserve"><value>Stacked area</value></data>
+  <data name="UsageReportModelChartButton.Content" xml:space="preserve"><value>By model</value></data>
+  <data name="UsageReportProviderTotalChartButton.Content" xml:space="preserve"><value>Total</value></data>
+  <data name="UsageReportProviderModelChartButton.Content" xml:space="preserve"><value>Models</value></data>
+  <data name="UsageReportActiveDaysColumn.Text" xml:space="preserve"><value>Active days</value></data>
+  <data name="UsageReportMoreModelsFormat" xml:space="preserve"><value>+{0} models · see the legend</value></data>
+  <data name="UsageReportKnownOnly" xml:space="preserve"><value>known values</value></data>
+  <data name="UsageReportSortAscending" xml:space="preserve"><value>Ascending</value></data>
+  <data name="UsageReportSortDescending" xml:space="preserve"><value>Descending</value></data>
+  <data name="UsageReportSortNone" xml:space="preserve"><value>Not sorted</value></data>
 </root>

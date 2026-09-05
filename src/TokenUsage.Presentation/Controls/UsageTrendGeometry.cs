@@ -1,3 +1,5 @@
+using TokenUsage.Core.Appearance;
+
 namespace TokenUsage.App.Controls;
 
 public readonly record struct UsageTrendPoint(double X, double Y);
@@ -14,11 +16,8 @@ public sealed record UsageTrendPath(
 
 public readonly record struct UsageTrendScale(
     double Maximum,
-    IReadOnlyList<double> Ticks,
-    double Exponent = 1)
+    IReadOnlyList<double> Ticks)
 {
-    public bool IsAdaptive => Exponent < 0.999;
-
     public double Normalize(double value)
     {
         if (Maximum <= 0)
@@ -30,7 +29,7 @@ public readonly record struct UsageTrendScale(
             double.IsFinite(value) ? value : 0,
             0,
             Maximum) / Maximum;
-        return Math.Pow(fraction, Exponent);
+        return fraction;
     }
 }
 
@@ -77,39 +76,6 @@ public static class UsageTrendGeometry
         return new UsageTrendScale(maximum, ticks);
     }
 
-    public static UsageTrendScale CreateAdaptiveScale(
-        IEnumerable<IReadOnlyList<double>> seriesValues,
-        int targetTickCount = 4)
-    {
-        ArgumentNullException.ThrowIfNull(seriesValues);
-        double[] peaks = seriesValues
-            .Select(values => values
-                .Where(value => double.IsFinite(value) && value > 0)
-                .DefaultIfEmpty(0)
-                .Max())
-            .Where(value => value > 0)
-            .ToArray();
-        UsageTrendScale linear = CreateScale(
-            peaks.DefaultIfEmpty(0).Max(),
-            targetTickCount);
-        if (peaks.Length < 2 || linear.Maximum <= 0)
-        {
-            return linear;
-        }
-
-        double smallestPeakFraction = peaks.Min() / peaks.Max();
-        if (smallestPeakFraction >= 0.08)
-        {
-            return linear;
-        }
-
-        double exponent = Math.Clamp(
-            Math.Log(0.10) / Math.Log(smallestPeakFraction),
-            0.35,
-            0.75);
-        return linear with { Exponent = exponent };
-    }
-
     public static UsageTrendPath CreatePath(
         IReadOnlyList<double> values,
         double width,
@@ -117,7 +83,7 @@ public static class UsageTrendGeometry
         double maximum,
         double topPadding = 8,
         double bottomPadding = 0,
-        double exponent = 1)
+        ReportChartStyle style = ReportChartStyle.Smooth)
     {
         ArgumentNullException.ThrowIfNull(values);
         if (!double.IsFinite(width) || width <= 0
@@ -132,18 +98,29 @@ public static class UsageTrendGeometry
         UsageTrendPoint[] points = values
             .Select((value, index) => new UsageTrendPoint(
                 values.Count == 1 ? width / 2 : index * step,
-                maximum <= 0
+                !double.IsFinite(value) ? double.NaN : maximum <= 0
                     ? baseline
-                    : baseline - (Math.Pow(
-                        Math.Clamp(
-                            double.IsFinite(value) ? value : 0,
-                            0,
-                            maximum) / maximum,
-                        exponent) * usableHeight)))
+                    : baseline - (Math.Clamp(value, 0, maximum) / maximum * usableHeight)))
             .ToArray();
         if (points.Length < 2)
         {
             return new UsageTrendPath(points, []);
+        }
+
+        if (style is ReportChartStyle.Line or ReportChartStyle.Area)
+        {
+            return new UsageTrendPath(points, points.Zip(points.Skip(1),
+                (from, to) => new UsageTrendSegment(from, from, to, to)).ToArray());
+        }
+        if (style == ReportChartStyle.Step)
+        {
+            var steps = points.Zip(points.Skip(1), (from, to) =>
+            {
+                var corner = new UsageTrendPoint(to.X, from.Y);
+                return new[] { new UsageTrendSegment(from, from, corner, corner),
+                    new UsageTrendSegment(corner, corner, to, to) };
+            }).SelectMany(segments => segments).ToArray();
+            return new UsageTrendPath(points, steps);
         }
 
         double[] tangents = CreateMonotoneTangents(points);
@@ -173,7 +150,7 @@ public static class UsageTrendGeometry
         for (int index = 0; index < slopes.Length; index++)
         {
             double deltaX = points[index + 1].X - points[index].X;
-            slopes[index] = deltaX == 0
+            slopes[index] = deltaX == 0 || !double.IsFinite(points[index].Y) || !double.IsFinite(points[index + 1].Y)
                 ? 0
                 : (points[index + 1].Y - points[index].Y) / deltaX;
         }

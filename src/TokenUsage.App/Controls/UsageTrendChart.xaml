@@ -9,9 +9,10 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Grid x:Name="PlotRegion" Height="{x:Bind PlotHeight, Mode=OneWay}">
+        <Grid Canvas.ZIndex="1" x:Name="PlotRegion" Height="{x:Bind PlotHeight, Mode=OneWay}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="{x:Bind YAxisWidth, Mode=OneWay}" />
                 <ColumnDefinition Width="{x:Bind YAxisGap, Mode=OneWay}" />
@@ -57,7 +58,7 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="1">
+        <Grid x:Name="DateLabels" Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="{x:Bind YAxisWidth, Mode=OneWay}" />
                 <ColumnDefinition Width="{x:Bind YAxisGap, Mode=OneWay}" />
@@ -80,6 +81,8 @@
                     Style="{StaticResource CaptionTextBlockStyle}" />
             </Grid>
         </Grid>
+
+        <StackPanel x:Name="LegendContent" Grid.Row="2" Spacing="4" Margin="0,6,0,0" Visibility="Collapsed" />
 
         <Border
             x:Name="GridBrushProxy"

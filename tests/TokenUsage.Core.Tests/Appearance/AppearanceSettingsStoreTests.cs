@@ -35,7 +35,7 @@ public sealed class AppearanceSettingsStoreTests
     }
 
     [Fact]
-    public async Task SaveAndLoadRoundTripUsesVersionFourContract()
+    public async Task SaveAndLoadRoundTripUsesVersionFiveContract()
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -51,7 +51,9 @@ public sealed class AppearanceSettingsStoreTests
                 TrayPopoverMetric.TokensLast30Days,
                 providerCount: 2,
                 showProviderName: true,
-                isEnabled: false));
+                isEnabled: false),
+            ReportChartStyle.Area,
+            ReportChartGrouping.Model);
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
         var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
@@ -59,7 +61,9 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(expected, loaded.Settings);
         Assert.False(loaded.RequiresMigration);
         using JsonDocument json = JsonDocument.Parse(await File.ReadAllBytesAsync(store.DocumentPath));
-        Assert.Equal(4, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(5, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal("area", json.RootElement.GetProperty("reportChartStyle").GetString());
+        Assert.Equal("model", json.RootElement.GetProperty("reportChartGrouping").GetString());
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
         Assert.Equal(
             "heatmap",
@@ -71,6 +75,29 @@ public sealed class AppearanceSettingsStoreTests
         Assert.True(popover.GetProperty("showProviderName").GetBoolean());
         Assert.False(popover.GetProperty("isEnabled").GetBoolean());
         Assert.Empty(Directory.GetFiles(directory.Path, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task VersionFourKeepsExistingPreferencesAndAddsDailyBarsByProvider()
+    {
+        using var directory = new TempDirectory();
+        var store = CreateStore(directory);
+        await File.WriteAllTextAsync(store.DocumentPath, """
+            {"schemaVersion":4,"theme":"light","density":"compact","increaseTransparency":true,
+             "usageDisplay":"used","resetTimeDisplay":"exact","dashboardVisualization":"donut",
+             "trayPopover":{"primaryMetric":"spendlast30days","secondaryMetric":"none",
+             "providerCount":3,"showProviderName":true,"isEnabled":false}}
+            """);
+        var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
+        Assert.True(loaded.RequiresMigration);
+        Assert.Equal(new AppearanceSettings(AppThemeMode.Light, AppDensityMode.Compact, true,
+            UsageDisplayMode.Used, ResetTimeDisplayMode.Exact, DashboardVisualizationMode.Donut,
+            new TrayPopoverSettings(TrayPopoverMetric.SpendLast30Days, TrayPopoverMetric.None, 3, true, false)),
+            loaded.Settings);
+        Assert.Equal(ReportChartStyle.Bars, loaded.Settings.ReportChartStyle);
+        Assert.Equal(ReportChartGrouping.Provider, loaded.Settings.ReportChartGrouping);
+        await store.SaveAsync(loaded.Settings);
+        Assert.False(Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync()).RequiresMigration);
     }
 
     [Fact]
