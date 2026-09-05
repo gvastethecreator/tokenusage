@@ -101,7 +101,7 @@ public sealed class SessionModuleTests
     }
 
     [Fact]
-    public async Task GeneralOptionsPersistsQuotaAlertControlsWithoutChangingHealthKinds()
+    public async Task NotificationsOptionsPersistsQuotaAlertControlsWithoutChangingHealthKinds()
     {
         using var folder = new TemporaryFolder();
         string path = Path.Combine(folder.Root, AlertSettingsStore.DefaultFileName);
@@ -113,7 +113,7 @@ public sealed class SessionModuleTests
             exhaustionForecastEnabled: true,
             staleDataEnabled: false,
             credentialFailureEnabled: true));
-        var surface = new GeneralOptionsViewModel(key => key, alertSettings: store);
+        var surface = new NotificationsOptionsViewModel(store);
         await surface.Initialization;
 
         surface.AreAlertsEnabled = true;

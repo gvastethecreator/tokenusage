@@ -7,8 +7,10 @@ public sealed class OptionsSurfaceViewModel
         GeneralOptionsViewModel general,
         AppearanceSurfaceViewModel appearance,
         PersonalizationSurfaceViewModel personalization,
-        ProviderStatusSurfaceViewModel providerStatus)
+        ProviderStatusSurfaceViewModel providerStatus,
+        NotificationsOptionsViewModel notifications)
     {
+        Notifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
         Navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         General = general ?? throw new ArgumentNullException(nameof(general));
         Appearance = appearance ?? throw new ArgumentNullException(nameof(appearance));
@@ -16,6 +18,8 @@ public sealed class OptionsSurfaceViewModel
             ?? throw new ArgumentNullException(nameof(personalization));
         ProviderStatus = providerStatus ?? throw new ArgumentNullException(nameof(providerStatus));
     }
+
+    public NotificationsOptionsViewModel Notifications { get; }
 
     public OptionsNavigationViewModel Navigation { get; }
 
