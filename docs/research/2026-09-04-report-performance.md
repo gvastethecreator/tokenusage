@@ -109,6 +109,26 @@ Changes are grouped into four commits: report data/charts; window header/icons;
 table/motion; and options with this evidence. The destination is origin/main.
 The pushed revision and remote CI run are reported with the delivery handoff.
 
+### Remote build follow-up
+
+The four feature commits reached origin/main at 247d917. The
+[Pages deployment](https://github.com/gvastethecreator/tokenusage/actions/runs/33992479685)
+passed. The [first CI run](https://github.com/gvastethecreator/tokenusage/actions/runs/33992479583)
+passed all 1,297 tests, then failed during packaging with NETSDK1032: win-x86 did
+not match the requested x64 platform. The baseline run at 529fc94 had the same error.
+
+The app project selected its runtime from the MSBuild process architecture. It now
+selects win-x64 for Platform=x64 and win-arm64 for Platform=ARM64. This change does
+not add an x86 target. The existing packaging contract test now checks both mappings;
+its focused run passed. MSBuild property evaluation also returned the correct runtime
+and platform target for each supported platform. The repeated local x64 Release
+solution/MSIX build passed without warnings. ARM64 execution remains untested.
+
+The fix-ci pass kept this correction limited to the project setting and its existing
+contract test. The corrective push uses the same
+[CI workflow](https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml);
+its final remote result is included in the delivery handoff.
+
 ## Changes
 
 - Sum cycle tokens in SQLite instead of loading complete usage events. The repository
