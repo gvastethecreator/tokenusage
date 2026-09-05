@@ -151,17 +151,18 @@
                         <TextBlock x:Uid="ReportChartsAppearanceTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
                         <ComboBox x:Uid="ReportChartStyleSelector"
                             AutomationProperties.AutomationId="ReportChartStyleSelector"
-                            HorizontalAlignment="Stretch"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            MinHeight="40" Padding="10,4"
                             ItemsSource="{x:Bind ViewModel.ReportChartStyleOptions}"
                             SelectedItem="{x:Bind ViewModel.SelectedReportChartStyle, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="surfaces:ReportChartStyleOption">
-                                    <Grid ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="108" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="72" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                         <controls:UsageTrendChart Data="{x:Bind Preview}" IsPreview="True" IsTabStop="False"
                                             AutomationProperties.AccessibilityView="Raw"
-                                            Width="108" PlotHeight="38" YAxisWidth="0" YAxisGap="0" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" VerticalAlignment="Center" />
+                                            Width="72" PlotHeight="24" YAxisWidth="0" YAxisGap="0" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                     </Grid>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>

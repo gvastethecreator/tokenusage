@@ -129,6 +129,69 @@ contract test. The corrective push uses the same
 [CI workflow](https://github.com/gvastethecreator/tokenusage/actions/workflows/ci.yml);
 its final remote result is included in the delivery handoff.
 
+## Chart polish follow-up (September 5)
+
+Daily and 2-hour bars now overlap from the same zero baseline. Within each time
+slot, the tallest bar is drawn first and smaller bars are drawn in front, using
+the same width and position. This replaces the additive bar layout after user
+review: heights represent individual values, not sums, and there are no gaps
+between colored layers. Top corners use a 4-DIP radius. Stacked areas still sum
+contributions; comparison areas keep independent baselines.
+
+The sixth style uses 12 real two-hour buckets per civil day. SQLite aggregates
+events using their stored grouping time zone. Daily marker selection remains at
+the center of the day. The CLI does not request these extra aggregates, and its
+public JSON and the database schema are unchanged.
+
+An explicit Small values toggle uses a square-root scale, with original amounts
+on ticks and tooltips. The title labels this scale; turning it off restores a
+linear axis. Percentage charts remain linear. The toggle starts enabled per
+report window. Chart style and grouping retain their existing saved preferences.
+
+Native area paths have rounded outlines and gradient fills. Charts reveal over
+320 ms, cancel interrupted reveals, finish before export, and skip motion when
+Windows animations are off. Model legends flow horizontally and wrap. The report
+has a style-cycle button; compact and report actions have wider spacing. The
+appearance selector uses a smaller preview, and the dashboard editor aligns its
+heading, actions, provider names, and full-width Metrics expanders. The
+improve-win-ui pass guided these native layout and motion choices.
+
+### Follow-up verification and local delivery
+
+The accumulated x64 Release suites passed: Architecture 106, Core 264, CLI 130,
+Providers 625, and Windows 174 (1,299 tests; none skipped). Coverage includes local
+two-hour boundaries, duplicate events, provider filters, unknown prices, daily
+total agreement, exact ranges, scale geometry, overlaid bar ordering/baselines,
+and saved style values. The focused overlay regression and the solution/MSIX
+build passed again after the final user-requested bar change. No build warnings
+remained.
+
+The installed development package runs from .scratch/local-chart-overlay.
+All 245 application files match the final MSIX payload. The installed and packaged
+resources.pri hashes both start with 53A870442756FD3F. Package status is OK.
+LocalState and the existing usage database were preserved.
+
+Native evidence in .scratch/report-probe includes polish-overlaid-bars.png,
+polish-overlay-narrow.png, polish-area.png, polish-two-hour.png, polish-models.png,
+polish-selector.png, polish-dashboard-final.png, and polish-compact.png.
+The final overlaid report export is TokenUsage-report-2026-09-05-201607.png in the
+configured Downloads folder. Its complete table, branding, hidden tools, and
+restored capture button were checked.
+
+The installed report was inspected at 1280 by 900 and 820 by 900, at 96 DPI.
+The narrow toolbar retains horizontal scrolling; legends wrap. The seven-second
+polish-overlay-motion.mp4 has 210 capture samples and 19 distinct images.
+Six rapid style changes completed in 363 ms, followed by scale reversal, and
+settled on Daily bars. Selected recorded frames and the final image were inspected.
+This 30-fps capture is not an application frame-rate benchmark. A second run with
+Windows client-area animations off completed six changes in 252 ms and displayed
+the final chart; the original Windows animation setting was restored.
+
+Other DPI/text scales, high contrast, spoken screen-reader output, and light-theme
+gradient rendering were not checked in this follow-up. This is local development
+installation proof, not clean-machine, ARM64, or public-release certification.
+Screenshots, recordings, extracted package layouts, and usage data remain local.
+
 ## Changes
 
 - Sum cycle tokens in SQLite instead of loading complete usage events. The repository
