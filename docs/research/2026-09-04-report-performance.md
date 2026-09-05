@@ -85,3 +85,51 @@ does not establish the behavior of every full-app startup path.
 - Startup composition still blocks on collection settings and performs hook setup
   synchronously. Moving those operations requires a separate lifecycle change that
   preserves the user's collection policy and real hook registrations.
+
+## Local pricing diagnosis and report clarity
+
+The running user installation still used
+`.scratch/winapp-health-alerts-20260903-0040/TokenUsage.App/TokenUsage.App.exe`.
+Its app assembly was dated September 2, before the Astra catalog update. The current
+source and Release build therefore did not describe the executable being tested.
+The September 4 report showed 154.5 million Astra tokens with zero price coverage;
+the old UI presented the missing price as `$0.00 USD` and `0%` cost share.
+
+The report now distinguishes an unavailable price (`Unpriced`, with no cost share)
+from a provider-reported zero cost. Totals, provider, model, day, and comparison
+cost displays use the existing nullable-cost rule. Model shares now follow the
+selected metric: token shares use tokens, not costs. The headings say `Cost share`,
+`Token share`, `Known cost`, and `Priced tokens`; summary tooltips explain that
+missing prices do not mean free usage. Layout and motion remain unchanged.
+
+Verification for this follow-up:
+
+- The 102 existing architecture and localization checks passed against the changed
+  sources. The x64 Release package build passed. Core and provider code did not
+  change, so their previously passed suites were not repeated.
+- The existing native diagnostic host loaded the compiled report page with three
+  synthetic events: 100 tokens at $2, 300 with no price, and 100 with a reported $0.
+  These are presentation fixtures, not assertions about Astra's actual tariff.
+- Native output showed $2 known cost, 500 tokens, and 40% priced tokens. The unknown
+  model showed `Unpriced` and a dash for cost share; the zero-cost model showed
+  `$0.00 USD` and 100% priced tokens. Token mode showed shares of 60%, 20%, and 20%.
+- UI Automation exposed the new headings and values. Keyboard focus and Space
+  selected the cost metric successfully. Rendered labels and columns were legible.
+- The diagnostic app assembly matched the Release assembly SHA-256:
+  `C81923061B052555746F217B52F9B8EED9CB9784F200569BCE5666170305BAFB`.
+
+Capture context: the user's original report was a 1351 by 1000 window with real
+last-day data. The separate diagnostic report was 1120 by 900 with synthetic
+30-day data. Both were on `\\.\DISPLAY2`, at 96 DPI, in dark mode, without high
+contrast, using English app text and Spanish window chrome. Windows had no
+configured text-scale registry override; increased text scaling was not tested.
+Both used development package registration. These captures establish the stated
+values and layout in each host, not a pixel-matched comparison of the same data.
+Evidence is in `.scratch/pricing-zero-before.png` and
+`.scratch/report-probe/pricing-{cost,tokens,cost-final}.png`, with adjacent UIA trees.
+
+Updating and restarting the user's installation still requires the requested
+confirmation. No real refresh, historical repricing, or installed-build correction
+is claimed yet. Other themes, DPI settings, increased text sizes, Narrator speech,
+and ARM64 were not exercised. Busy/error behavior was unchanged and retains the
+earlier evidence above; the empty state also rendered in the diagnostic host.

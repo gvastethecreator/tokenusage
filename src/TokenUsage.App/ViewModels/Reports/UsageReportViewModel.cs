@@ -636,7 +636,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         IsCostMetric ? "UsageReportTotalCostLabel" : "UsageReportProcessedTokensLabel");
 
     public string HeadlineValue => IsCostMetric
-        ? FormatUsd(_report.Totals.TotalCostUsd)
+        ? FormatKnownCost(_report.Totals)
         : FormatTokens(_report.Totals.Tokens.Total);
 
     public string HeadlineDetail => IsCostMetric
@@ -661,7 +661,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public string SummaryTokensText => FormatTokens(_report.Totals.Tokens.Total);
 
-    public string SummaryCostText => FormatUsd(_report.Totals.TotalCostUsd);
+    public string SummaryCostText => FormatKnownCost(_report.Totals);
+
+    public string ModelShareLabel => GetString(IsCostMetric
+        ? "UsageReportCostShareColumn"
+        : "UsageReportTokenShareColumn");
 
     public string SummaryCoverageText => FormatPercent(
         _report.Totals.PriceCoveragePercent / 100m);
@@ -1697,6 +1701,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ChartTitle));
         OnPropertyChanged(nameof(SummaryTokensText));
         OnPropertyChanged(nameof(SummaryCostText));
+        OnPropertyChanged(nameof(ModelShareLabel));
         OnPropertyChanged(nameof(SummaryCoverageText));
         OnPropertyChanged(nameof(PriceCoveragePercent));
         OnPropertyChanged(nameof(CacheSummaryText));
@@ -2045,15 +2050,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             _compareRightReport.Totals);
         UsageReportCycleComparison? cycleComparison = CreateCycleComparison();
         CompareLeftCostText = cycleComparison is null
-            ? FormatUsd(_report.Totals.TotalCostUsd)
+            ? FormatKnownCost(_report.Totals)
             : FormatOptionalUsd(cycleComparison.CostUsd.Left);
         CompareLeftTokensText = FormatTokens(_report.Totals.Tokens.Total);
         CompareRightCostText = cycleComparison is null
-            ? FormatUsd(_compareRightReport.Totals.TotalCostUsd)
+            ? FormatKnownCost(_compareRightReport.Totals)
             : FormatOptionalUsd(cycleComparison.CostUsd.Right);
         CompareRightTokensText = FormatTokens(_compareRightReport.Totals.Tokens.Total);
         CompareDeltaCostText = cycleComparison is null
-            ? FormatSignedUsd(delta.TotalCostUsd)
+            ? FormatOptionalSignedUsd(
+                ComparableCost(_report.Totals), ComparableCost(_compareRightReport.Totals))
             : FormatOptionalSignedUsd(
                 cycleComparison.CostUsd.Left,
                 cycleComparison.CostUsd.Right);
@@ -2145,9 +2151,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 FormatSignedTokens(delta.Tokens)),
             new(
                 GetString("UsageReportCompareCostMetric"),
-                FormatUsd(_report.Totals.TotalCostUsd),
-                FormatUsd(_compareRightReport.Totals.TotalCostUsd),
-                FormatSignedUsd(delta.TotalCostUsd)),
+                FormatKnownCost(_report.Totals),
+                FormatKnownCost(_compareRightReport.Totals),
+                FormatOptionalSignedUsd(
+                    ComparableCost(_report.Totals), ComparableCost(_compareRightReport.Totals))),
             new(
                 GetString("UsageReportCompareReportedCostMetric"),
                 FormatUsd(_report.Totals.ReportedCostUsd ?? 0m),
@@ -2205,6 +2212,25 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         && metrics.EstimatedCostUsd is null
             ? null
             : metrics.TotalCostUsd;
+
+    private string FormatKnownCost(UsageReportMetrics metrics) =>
+        ComparableCost(metrics) is decimal value
+            ? FormatUsd(value)
+            : GetString("UsageReportUnpricedLabel");
+
+    private string FormatMetricShare(UsageReportMetrics metrics)
+    {
+        if (!IsCostMetric)
+        {
+            return FormatPercent(_report.Totals.Tokens.Total == 0
+                ? 0m
+                : (decimal)metrics.Tokens.Total / _report.Totals.Tokens.Total);
+        }
+
+        return ComparableCost(metrics) is decimal cost && _report.Totals.TotalCostUsd > 0m
+            ? FormatPercent(cost / _report.Totals.TotalCostUsd)
+            : GetString("UsageReportCompareUnavailable");
+    }
 
     private string FormatOptionalUsd(decimal? amount) => amount is decimal value
         ? FormatUsd(value)
@@ -2413,21 +2439,21 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     providerId,
                     ProviderName(providerId),
                     IsCostMetric
-                        ? FormatUsd(agent.Metrics.TotalCostUsd)
+                        ? FormatKnownCost(agent.Metrics)
                         : FormatTokens(agent.Metrics.Tokens.Total),
                     IsCostMetric
                         ? string.Format(
                             CultureInfo.CurrentCulture,
                             GetString("UsageReportProviderCostDetailFormat"),
-                            FormatPercent(share),
+                            FormatMetricShare(agent.Metrics),
                             FormatTokens(agent.Metrics.Tokens.Total))
                         : string.Format(
                             CultureInfo.CurrentCulture,
                             GetString("UsageReportProviderTokenDetailFormat"),
                             FormatPercent(share),
-                            FormatUsd(agent.Metrics.TotalCostUsd)),
+                            FormatKnownCost(agent.Metrics)),
                     (double)(share * 100m),
-                    FormatPercent(share),
+                    FormatMetricShare(agent.Metrics),
                     GetProviderBrush(colorHex),
                     Math.Max(2d, (double)(share * 1080m)),
                     CreateProviderTrend(providerId));
@@ -2525,7 +2551,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private UsageReportModelRow[] CreateModelRows()
     {
-        decimal totalCost = _report.Totals.TotalCostUsd;
         return _report.Models
             .Where(model => !string.Equals(
                 model.ModelId.Value,
@@ -2544,10 +2569,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 model.AgentId.Value,
                 ProviderName(model.AgentId.Value),
                 model.ModelId.Value,
-                FormatUsd(model.Metrics.TotalCostUsd),
-                FormatPercent(totalCost == 0
-                    ? 0
-                    : model.Metrics.TotalCostUsd / totalCost),
+                FormatKnownCost(model.Metrics),
+                FormatMetricShare(model.Metrics),
                 FormatTokens(model.Metrics.Tokens.Total),
                 FormatPercent(model.Metrics.PriceCoveragePercent / 100m)))
             .ToArray();
@@ -2575,7 +2598,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         .OrderByDescending(day => day.Date)
         .Select(day => new UsageReportDayRow(
             day.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
-            FormatUsd(day.Metrics.TotalCostUsd),
+            FormatKnownCost(day.Metrics),
             FormatTokens(day.Metrics.Tokens.Total),
             day.Metrics.EventCount.ToString("N0", CultureInfo.CurrentCulture),
             FormatPercent(day.Metrics.PriceCoveragePercent / 100m)))

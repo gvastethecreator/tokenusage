@@ -697,9 +697,10 @@
   <data name="UsageReportDayButton.Content" xml:space="preserve"><value>Day</value></data>
   <data name="UsageReportModelColumn.Text" xml:space="preserve"><value>Model</value></data>
   <data name="UsageReportCostColumn.Text" xml:space="preserve"><value>Cost</value></data>
-  <data name="UsageReportShareColumn.Text" xml:space="preserve"><value>Share</value></data>
+  <data name="UsageReportCostShareColumn" xml:space="preserve"><value>Cost share</value></data>
+  <data name="UsageReportTokenShareColumn" xml:space="preserve"><value>Token share</value></data>
   <data name="UsageReportTokensColumn.Text" xml:space="preserve"><value>Tokens</value></data>
-  <data name="UsageReportCoverageColumn.Text" xml:space="preserve"><value>Coverage</value></data>
+  <data name="UsageReportCoverageColumn.Text" xml:space="preserve"><value>Priced tokens</value></data>
   <data name="UsageReportDayColumn.Text" xml:space="preserve"><value>Day</value></data>
   <data name="UsageReportEventsColumn.Text" xml:space="preserve"><value>Events</value></data>
   <data name="UsageReportQualityTitle.Text" xml:space="preserve"><value>Data quality</value></data>
@@ -795,8 +796,10 @@
   <data name="CompactCostUnavailable" xml:space="preserve"><value>Cost unavailable</value></data>
   <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHED INPUT  {0}    •    UNCACHED INPUT  {1}    •    OUTPUT  {2}</value></data>
   <data name="UsageReportSummaryTokensLabel.Text" xml:space="preserve"><value>TOKENS</value></data>
-  <data name="UsageReportSummaryCostLabel.Text" xml:space="preserve"><value>OBSERVED COST</value></data>
-  <data name="UsageReportSummaryCoverageLabel.Text" xml:space="preserve"><value>COVERAGE</value></data>
+  <data name="UsageReportSummaryCostLabel.Text" xml:space="preserve"><value>KNOWN COST</value></data>
+  <data name="UsageReportSummaryCostLabel.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Provider-reported cost plus catalog estimates. Unpriced usage is excluded. This is not a bill.</value></data>
+  <data name="UsageReportSummaryCoverageLabel.Text" xml:space="preserve"><value>PRICED TOKENS</value></data>
+  <data name="UsageReportSummaryCoverageLabel.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Tokens with a known or reported price. 0% means no price is available, not free usage.</value></data>
   <data name="UsageReportCompositionTitle.Text" xml:space="preserve"><value>COMPOSITION BY PROVIDER</value></data>
   <data name="UsageReportCombinedChartButton.Content" xml:space="preserve"><value>Combined</value></data>
   <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>Separate</value></data>
