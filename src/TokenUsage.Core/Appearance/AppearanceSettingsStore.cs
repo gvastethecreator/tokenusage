@@ -5,7 +5,7 @@ namespace TokenUsage.Core.Appearance;
 
 public sealed class AppearanceSettingsStore
 {
-    public const int SchemaVersion = 4;
+    public const int SchemaVersion = 5;
     public const string DefaultFileName = "appearance.v1.json";
     public const int MaxDocumentBytes = 16 * 1024;
     public const int MaxJsonDepth = 8;
@@ -58,7 +58,8 @@ public sealed class AppearanceSettingsStore
                 1 => ReadVersionOneDocument(parsed.RootElement),
                 2 => ReadVersionTwoDocument(parsed.RootElement),
                 3 => ReadVersionThreeDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionFourDocument(parsed.RootElement),
+                4 => ReadVersionFourDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionFiveDocument(parsed.RootElement),
                 _ => throw new AppearanceDocumentFormatException(),
             };
             return new AppearanceSettingsLoadResult.Loaded(
@@ -103,7 +104,8 @@ public sealed class AppearanceSettingsStore
                 1 => ReadVersionOneDocument(parsed.RootElement),
                 2 => ReadVersionTwoDocument(parsed.RootElement),
                 3 => ReadVersionThreeDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionFourDocument(parsed.RootElement),
+                4 => ReadVersionFourDocument(parsed.RootElement),
+                SchemaVersion => ReadVersionFiveDocument(parsed.RootElement),
                 > SchemaVersion => null,
                 _ => throw new AppearanceDocumentFormatException(),
             };
@@ -138,6 +140,16 @@ public sealed class AppearanceSettingsStore
 
     private static AppearanceSettings ReadVersionFourDocument(JsonElement root) =>
         ReadTrayPopoverDocument(root, includeEnabled: true);
+
+    private static AppearanceSettings ReadVersionFiveDocument(JsonElement root)
+    {
+        AppearanceSettings previous = ReadVersionFourDocument(root);
+        return new AppearanceSettings(previous.Theme, previous.Density,
+            previous.IncreaseTransparency, previous.UsageDisplay, previous.ResetTimeDisplay,
+            previous.DashboardVisualization, previous.TrayPopover,
+            ReadRequiredEnum<ReportChartStyle>(root, "reportChartStyle"),
+            ReadRequiredEnum<ReportChartGrouping>(root, "reportChartGrouping"));
+    }
 
     private static AppearanceSettings ReadTrayPopoverDocument(
         JsonElement root,
@@ -308,6 +320,8 @@ public sealed class AppearanceSettingsStore
             writer.WriteBoolean("increaseTransparency", settings.IncreaseTransparency);
             writer.WriteString("usageDisplay", ToStorageValue(settings.UsageDisplay));
             writer.WriteString("resetTimeDisplay", ToStorageValue(settings.ResetTimeDisplay));
+            writer.WriteString("reportChartStyle", ToStorageValue(settings.ReportChartStyle));
+            writer.WriteString("reportChartGrouping", ToStorageValue(settings.ReportChartGrouping));
             writer.WriteString(
                 "dashboardVisualization",
                 ToStorageValue(settings.DashboardVisualization));

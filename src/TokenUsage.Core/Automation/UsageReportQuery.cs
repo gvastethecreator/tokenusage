@@ -54,12 +54,20 @@ public sealed record UsageAgentDayReport(
     AgentId AgentId,
     UsageReportMetrics Metrics);
 
+public sealed record UsageModelDayReport(
+    DateOnly Date,
+    AgentId AgentId,
+    ModelProviderId? ModelProviderId,
+    ModelId ModelId,
+    UsageReportMetrics Metrics);
+
 public sealed record UsageReport(
     UsageReportMetrics Totals,
     IReadOnlyList<UsageAgentReport> Agents,
     IReadOnlyList<UsageModelReport> Models,
     IReadOnlyList<UsageDayReport> Days,
-    IReadOnlyList<UsageAgentDayReport> AgentDays);
+    IReadOnlyList<UsageAgentDayReport> AgentDays,
+    IReadOnlyList<UsageModelDayReport> ModelDays);
 
 public sealed record UsageReportMetricDelta(
     int EventCount,
@@ -164,7 +172,8 @@ public sealed class UsageReportQuery
             agents,
             models,
             days,
-            agentDays);
+            agentDays,
+            report.ModelDays.Where(item => item.AgentId == agentId).ToArray());
     }
 
     public static UsageReport Build(IEnumerable<DailyUsageRollup> rollups)
@@ -218,7 +227,22 @@ public sealed class UsageReportQuery
             .ThenBy(item => item.AgentId.Value, StringComparer.Ordinal)
             .ToArray();
 
-        return new UsageReport(Aggregate(snapshot), agents, models, days, agentDays);
+        UsageModelDayReport[] modelDays = snapshot
+            .GroupBy(rollup => new
+            {
+                rollup.Date,
+                rollup.AgentId,
+                rollup.ModelProviderId,
+                rollup.ModelId,
+            })
+            .Select(group => new UsageModelDayReport(
+                group.Key.Date, group.Key.AgentId, group.Key.ModelProviderId,
+                group.Key.ModelId, Aggregate(group)))
+            .OrderBy(item => item.Date)
+            .ThenBy(item => item.AgentId.Value, StringComparer.Ordinal)
+            .ThenBy(item => item.ModelId.Value, StringComparer.Ordinal)
+            .ToArray();
+        return new UsageReport(Aggregate(snapshot), agents, models, days, agentDays, modelDays);
     }
 
     private static UsageReportMetrics Aggregate(IEnumerable<DailyUsageRollup> rollups)

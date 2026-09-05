@@ -1,4 +1,5 @@
 using TokenUsage.App.Controls;
+using TokenUsage.Core.Appearance;
 
 namespace TokenUsage.Architecture.Tests;
 
@@ -68,18 +69,34 @@ public sealed class UsageTrendGeometryTests
     }
 
     [Fact]
-    public void AdaptiveScaleMakesSmallerSeriesReadableWithoutChangingDisplayedValues()
+    public void EveryStyleKeepsALinearScaleAndDoesNotCombineComparisonPeriods()
     {
-        UsageTrendScale scale = UsageTrendGeometry.CreateAdaptiveScale(
-        [
-            new double[] { 0, 4_000, 2_000 },
-            new double[] { 0, 40, 20 },
-        ]);
+        IReadOnlyList<double>[] values = [new double[] { 4_000, 40 }, new double[] { 40, 4 }];
+        UsageTrendScale scale = UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(values, stacked: false));
+        Assert.Equal(scale.Normalize(4_000) / 100, scale.Normalize(40), 12);
+        Assert.Equal(4_040, UsageTrendLayouts.Peak(values, stacked: true));
+        Assert.Equal([4_040d, 44d], UsageTrendLayouts.Bands(values, independent: false)[1].Upper);
+        Assert.Equal(values[1], UsageTrendLayouts.Bands(values, independent: true)[1].Upper);
+        var bars = UsageTrendLayouts.Bars(values, 2, 400, 200, scale.Maximum);
+        Assert.Equal(4, bars.Count);
+        Assert.Equal(bars[0].Height / 100, bars[1].Height, 12);
+        Assert.True(bars[1].X > bars[0].X);
+        Assert.True(bars[2].X > bars[1].X);
+        Assert.Empty(UsageTrendLayouts.Bars([new double[] { 0, double.NaN }], 2, 400, 200, 100));
+    }
 
-        Assert.True(scale.IsAdaptive);
-        Assert.True(scale.Normalize(40) >= 0.08);
-        Assert.Equal(1, scale.Normalize(scale.Maximum), 12);
-        Assert.Contains(4_000, scale.Ticks);
+    [Fact]
+    public void StraightAndStepPathsHaveDistinctGeometryAndKeepMissingPricesAsGaps()
+    {
+        var line = UsageTrendGeometry.CreatePath([0, 100], 400, 200, 100, style: ReportChartStyle.Line);
+        var step = UsageTrendGeometry.CreatePath([0, 100], 400, 200, 100, style: ReportChartStyle.Step);
+        Assert.Single(line.Segments);
+        Assert.Equal(line.Points[0], line.Segments[0].Control1);
+        Assert.Equal(2, step.Segments.Count);
+        Assert.Equal(step.Segments[0].From.Y, step.Segments[0].To.Y);
+        Assert.Equal(step.Segments[1].From.X, step.Segments[1].To.X);
+        var unknown = UsageTrendGeometry.CreatePath([1, double.NaN, 2], 400, 200, 100);
+        Assert.True(double.IsNaN(unknown.Points[1].Y));
     }
 
     [Fact]

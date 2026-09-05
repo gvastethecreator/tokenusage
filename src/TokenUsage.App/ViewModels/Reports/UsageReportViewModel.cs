@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Collections.ObjectModel;
+using TokenUsage.Core.Appearance;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
@@ -55,10 +57,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private string _coverageHintText = string.Empty;
     private IReadOnlyList<UsageReportProviderRow> _providers = [];
     private IReadOnlyList<UsageReportMetricCard> _metricCards = [];
-    private IReadOnlyList<UsageReportModelRow> _modelRows = [];
-    private IReadOnlyList<UsageReportDayRow> _dayRows = [];
     private IReadOnlyList<UsageReportQualityRow> _qualityRows = [];
-    private IReadOnlyList<UsageReportSourceRow> _sourceRows = [];
     private IReadOnlyList<UsageReportProviderOption> _providerOptions = [];
     private IReadOnlyList<QuotaWindow> _providerLimits = [];
     private ProviderCreditSummary? _providerCreditSummary;
@@ -266,17 +265,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _metricCards, value);
     }
 
-    public IReadOnlyList<UsageReportModelRow> ModelRows
-    {
-        get => _modelRows;
-        private set => SetProperty(ref _modelRows, value);
-    }
+    public ObservableCollection<UsageReportModelRow> ModelRows { get; } = [];
 
-    public IReadOnlyList<UsageReportDayRow> DayRows
-    {
-        get => _dayRows;
-        private set => SetProperty(ref _dayRows, value);
-    }
+    public ObservableCollection<UsageReportDayRow> DayRows { get; } = [];
 
     public IReadOnlyList<UsageReportQualityRow> QualityRows
     {
@@ -284,11 +275,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _qualityRows, value);
     }
 
-    public IReadOnlyList<UsageReportSourceRow> SourceRows
-    {
-        get => _sourceRows;
-        private set => SetProperty(ref _sourceRows, value);
-    }
+    public ObservableCollection<UsageReportSourceRow> SourceRows { get; } = [];
 
     public IReadOnlyList<UsageReportCompareRow> CompareRows
     {
@@ -1654,10 +1641,15 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         NotifyEmptyStateChanged();
 
         Providers = CreateProviderRows();
+        OnPropertyChanged(nameof(ChartStyle));
+        OnPropertyChanged(nameof(IsCombinedChart));
+        OnPropertyChanged(nameof(IsSplitChart));
+        OnPropertyChanged(nameof(IsModelChart));
+        OnPropertyChanged(nameof(IsProviderTotalChart));
         MetricCards = CreateMetricCards();
-        ModelRows = CreateModelRows();
-        SourceRows = CreateSourceRows();
-        DayRows = CreateDayRows();
+        ReconcileRows(ModelRows, OrderModelRows(CreateModelRows()), row => row.Id);
+        ReconcileRows(SourceRows, OrderSourceRows(CreateSourceRows()), row => row.Id);
+        ReconcileRows(DayRows, OrderDayRows(CreateDayRows()), row => row.Id);
         QualityRows = CreateQualityRows();
         if (IsCompareScope)
         {
@@ -2340,15 +2332,17 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             [
                 new UsageReportTrendSeries(
                     "compare-left",
+                    "compare-left",
                     CompareLeftLabel,
                     CompareSeriesColor(isRight: false),
                     leftValues),
                 new UsageReportTrendSeries(
                     "compare-right",
+                    "compare-right",
                     CompareRightLabel,
                     CompareSeriesColor(isRight: true),
                     rightValues),
-            ]);
+            ], ChartStyle, IsComparison: true);
     }
 
     private double[] DailyCompareValues(UsageReport report, DateOnly start, int dayCount)
@@ -2363,9 +2357,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     return 0d;
                 }
 
-                return IsCostMetric
-                    ? (double)metrics.TotalCostUsd
-                    : metrics.Tokens.Total;
+                return MetricValue(metrics);
             })
             .ToArray();
     }
@@ -2478,29 +2470,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         return brush;
     }
 
-    private UsageReportTrendDataset CreateProviderTrend(string providerId)
-    {
-        UsageReportTrendDay[] days = Enumerable.Range(0, RangeDayCount)
-            .Select(offset => StartDate.AddDays(offset))
-            .Select(date => new UsageReportTrendDay(
-                date,
-                date.ToString("d MMM", CultureInfo.CurrentCulture)))
-            .ToArray();
-        var metricsByDate = _report.AgentDays
-            .Where(item => string.Equals(item.AgentId.Value, providerId, StringComparison.Ordinal))
-            .ToDictionary(item => item.Date, item => item.Metrics);
-        var series = new UsageReportTrendSeries(
-            providerId,
-            ProviderName(providerId),
-            ProviderColorPalette.GetEffectiveHex(providerId, null),
-            days.Select(day => metricsByDate.TryGetValue(day.Date, out UsageReportMetrics? metrics)
-                    ? IsCostMetric
-                        ? (double)metrics.TotalCostUsd
-                        : metrics.Tokens.Total
-                    : 0d)
-                .ToArray());
-        return new UsageReportTrendDataset(Metric, days, [series]);
-    }
+    private UsageReportTrendDataset CreateProviderTrend(string providerId) =>
+        CreateReportTrend(providerId, IsModelChart);
 
     private IReadOnlyList<UsageReportMetricCard> CreateMetricCards()
     {
@@ -2551,58 +2522,40 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private UsageReportModelRow[] CreateModelRows()
     {
+        IReadOnlyDictionary<string, int> activeDays = ReportDataProjection.ActiveModelDays(_report);
         return _report.Models
-            .Where(model => !string.Equals(
-                model.ModelId.Value,
-                "codex-account",
-                StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(model => IsCostMetric
-                ? (double)model.Metrics.TotalCostUsd
-                : model.Metrics.Tokens.Total)
-            .ThenByDescending(model => IsCostMetric
-                ? model.Metrics.Tokens.Total
-                : (double)model.Metrics.TotalCostUsd)
-            .ThenBy(model => model.AgentId.Value, StringComparer.Ordinal)
-            .ThenBy(model => model.ModelId.Value, StringComparer.Ordinal)
-            .Take(30)
-            .Select(model => new UsageReportModelRow(
-                model.AgentId.Value,
-                ProviderName(model.AgentId.Value),
-                model.ModelId.Value,
-                FormatKnownCost(model.Metrics),
-                FormatMetricShare(model.Metrics),
-                FormatTokens(model.Metrics.Tokens.Total),
-                FormatPercent(model.Metrics.PriceCoveragePercent / 100m)))
-            .ToArray();
+            .Where(model => !string.Equals(model.ModelId.Value, "codex-account", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(model => ReportDataProjection.ModelKey(model.AgentId.Value, model.ModelProviderId?.Value, model.ModelId.Value), StringComparer.Ordinal)
+            .Select(model =>
+            {
+                string id = ReportDataProjection.ModelKey(model.AgentId.Value, model.ModelProviderId?.Value, model.ModelId.Value);
+                return new UsageReportModelRow(id, model.ModelId.Value, model.Metrics,
+                    activeDays.GetValueOrDefault(id), model.AgentId.Value, ProviderName(model.AgentId.Value),
+                    ReportDataProjection.ModelName(model.ModelId.Value), FormatKnownCost(model.Metrics),
+                    FormatMetricShare(model.Metrics), FormatTokens(model.Metrics.Tokens.Total),
+                    FormatPercent(model.Metrics.PriceCoveragePercent / 100m));
+            }).ToArray();
     }
 
-    private UsageReportSourceRow[] CreateSourceRows() => _report.Agents
-        .BySpend(
-            agent => agent.Metrics.TotalCostUsd,
-            agent => agent.Metrics.Tokens.Total,
-            agent => agent.AgentId.Value)
-        .Select(agent => new UsageReportSourceRow(
-            agent.AgentId.Value,
-            ProviderName(agent.AgentId.Value),
-            agent.Metrics.ReportedCostUsd is decimal reported
-                ? FormatUsd(reported)
-                : "—",
-            agent.Metrics.EstimatedCostUsd is decimal estimated
-                ? FormatUsd(estimated)
-                : "—",
-            FormatTokens(agent.Metrics.Tokens.Total),
-            FormatPercent(agent.Metrics.PriceCoveragePercent / 100m)))
-        .ToArray();
+    private UsageReportSourceRow[] CreateSourceRows()
+    {
+        IReadOnlyDictionary<string, int> activeDays = ReportDataProjection.ActiveProviderDays(_report);
+        return _report.Agents.OrderBy(agent => agent.AgentId.Value, StringComparer.Ordinal)
+            .Select(agent => new UsageReportSourceRow(agent.AgentId.Value, agent.Metrics,
+                activeDays.GetValueOrDefault(agent.AgentId.Value),
+                agent.AgentId.Value, ProviderName(agent.AgentId.Value),
+                agent.Metrics.ReportedCostUsd is decimal reported ? FormatUsd(reported) : "—",
+                agent.Metrics.EstimatedCostUsd is decimal estimated ? FormatUsd(estimated) : "—",
+                FormatTokens(agent.Metrics.Tokens.Total),
+                FormatPercent(agent.Metrics.PriceCoveragePercent / 100m))).ToArray();
+    }
 
-    private UsageReportDayRow[] CreateDayRows() => _report.Days
-        .OrderByDescending(day => day.Date)
-        .Select(day => new UsageReportDayRow(
-            day.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
-            FormatKnownCost(day.Metrics),
-            FormatTokens(day.Metrics.Tokens.Total),
+    private UsageReportDayRow[] CreateDayRows() => _report.Days.OrderBy(day => day.Date)
+        .Select(day => new UsageReportDayRow(day.Date.ToString("O", CultureInfo.InvariantCulture),
+            day.Date, day.Metrics, day.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
+            FormatKnownCost(day.Metrics), FormatTokens(day.Metrics.Tokens.Total),
             day.Metrics.EventCount.ToString("N0", CultureInfo.CurrentCulture),
-            FormatPercent(day.Metrics.PriceCoveragePercent / 100m)))
-        .ToArray();
+            FormatPercent(day.Metrics.PriceCoveragePercent / 100m))).ToArray();
 
     private IReadOnlyList<UsageReportQualityRow> CreateQualityRows()
     {
@@ -2631,60 +2584,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         ];
     }
 
-    private UsageReportTrendDataset CreateTrend()
-    {
-        UsageReportTrendDay[] days = Enumerable.Range(0, RangeDayCount)
-            .Select(offset => StartDate.AddDays(offset))
-            .Select(date => new UsageReportTrendDay(
-                date,
-                date.ToString("d MMM", CultureInfo.CurrentCulture)))
-            .ToArray();
-        var agentDays = _report.AgentDays.ToDictionary(
-            item => (item.Date, item.AgentId.Value),
-            item => item.Metrics);
-        UsageReportTrendSeries[] series = _report.Agents
-            .Select(agent =>
-            {
-                string providerId = agent.AgentId.Value;
-                return new UsageReportTrendSeries(
-                    providerId,
-                    ProviderName(providerId),
-                    ProviderColorPalette.GetEffectiveHex(providerId, null),
-                    days.Select(day => agentDays.TryGetValue(
-                                (day.Date, providerId),
-                                out UsageReportMetrics? metrics)
-                            ? IsShareValueMode && IsGlobalScope
-                                ? DailyShare(day.Date, providerId, metrics)
-                                : IsCostMetric
-                                    ? (double)metrics.TotalCostUsd
-                                    : metrics.Tokens.Total
-                            : 0d)
-                        .ToArray());
-            })
-            .OrderByDescending(series => series.Values.Sum())
-            .ToArray();
-        return new UsageReportTrendDataset(
-            IsShareValueMode && IsGlobalScope ? UsageReportMetric.Share : Metric,
-            days,
-            series);
-    }
-
-    private double DailyShare(
-        DateOnly date,
-        string providerId,
-        UsageReportMetrics metrics)
-    {
-        _ = providerId;
-        double total = _report.AgentDays
-            .Where(item => item.Date == date)
-            .Sum(item => IsCostMetric
-                ? (double)item.Metrics.TotalCostUsd
-                : item.Metrics.Tokens.Total);
-        double value = IsCostMetric
-            ? (double)metrics.TotalCostUsd
-            : metrics.Tokens.Total;
-        return total <= 0 ? 0 : value * 100d / total;
-    }
+    private UsageReportTrendDataset CreateTrend() =>
+        CreateReportTrend(IsProviderScope ? SelectedProvider?.ProviderId : null,
+            IsProviderScope && IsModelChart);
 
     private long AveragePerActiveDay()
     {

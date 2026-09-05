@@ -47,6 +47,22 @@ public enum DashboardVisualizationMode
     Heatmap,
 }
 
+public enum ReportChartStyle
+{
+    Smooth,
+    Line,
+    Step,
+    Bars,
+    Area,
+}
+
+public enum ReportChartGrouping
+{
+    Combined,
+    Provider,
+    Model,
+}
+
 /// <summary>
 /// Immutable user-facing appearance preferences.
 /// </summary>
@@ -71,7 +87,9 @@ public sealed record AppearanceSettings
         UsageDisplayMode usageDisplay,
         ResetTimeDisplayMode resetTimeDisplay,
         DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List,
-        TrayPopoverSettings? trayPopover = null)
+        TrayPopoverSettings? trayPopover = null,
+        ReportChartStyle reportChartStyle = ReportChartStyle.Bars,
+        ReportChartGrouping reportChartGrouping = ReportChartGrouping.Provider)
     {
         if (!Enum.IsDefined(theme))
         {
@@ -101,7 +119,17 @@ public sealed record AppearanceSettings
                 null);
         }
 
+        if (!Enum.IsDefined(reportChartStyle))
+        {
+            throw new ArgumentOutOfRangeException(nameof(reportChartStyle));
+        }
+
+        if (!Enum.IsDefined(reportChartGrouping))
+            throw new ArgumentOutOfRangeException(nameof(reportChartGrouping));
+
         Theme = theme;
+        ReportChartStyle = reportChartStyle;
+        ReportChartGrouping = reportChartGrouping;
         Density = density;
         IncreaseTransparency = increaseTransparency;
         UsageDisplay = usageDisplay;
@@ -123,4 +151,8 @@ public sealed record AppearanceSettings
     public DashboardVisualizationMode DashboardVisualization { get; }
 
     public TrayPopoverSettings TrayPopover { get; }
+
+    public ReportChartStyle ReportChartStyle { get; }
+
+    public ReportChartGrouping ReportChartGrouping { get; }
 }

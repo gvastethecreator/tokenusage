@@ -222,11 +222,12 @@ public static class CompactDashboardProjector
                     [
                         new UsageReportTrendSeries(
                             providerId,
+                            providerId,
                             ProviderDisplayName.Resolve(providerId, getString),
                             ProviderColorPreference.Resolve(providerId, customColorHex: null),
                             days.Select(day => (double)dailyTokens.GetValueOrDefault(day.Date, 0))
                                 .ToArray()),
-                    ]),
+                    ], TokenUsage.Core.Appearance.ReportChartStyle.Smooth),
             getProviderLimits(providerId));
     }
 

@@ -98,6 +98,9 @@ public sealed class AutomationQueryTests
         Assert.Equal(codexOnly.Models, filtered.Models);
         Assert.Equal(codexOnly.Days, filtered.Days);
         Assert.Equal(codexOnly.AgentDays, filtered.AgentDays);
+        Assert.Equal(codexOnly.ModelDays, filtered.ModelDays);
+        Assert.Equal(3, report.ModelDays.Count);
+        Assert.Equal(report.Totals.Tokens.Total, report.ModelDays.Sum(day => day.Metrics.Tokens.Total));
     }
 
     [Fact]
@@ -130,6 +133,7 @@ public sealed class AutomationQueryTests
         Assert.Equal(2, report.Totals.EventCount);
         Assert.Equal(300, report.Totals.Tokens.Total);
         Assert.Equal(0.50m, report.Totals.ReportedCostUsd);
+        Assert.Equal(2, Assert.Single(report.ModelDays).Metrics.EventCount);
     }
 
     [Fact]

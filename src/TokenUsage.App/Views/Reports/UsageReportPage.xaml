@@ -772,6 +772,31 @@
                         </Grid>
                     </Border>
 
+                        <Border Padding="12,8" Style="{StaticResource ReportCardStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Padding="8,2" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Uid="UsageReportCacheStripCachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ReportCachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Grid.Column="1" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Uid="UsageReportCacheStripUncachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ReportUncachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.UncachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Grid.Column="2" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Uid="UsageReportCacheStripOutputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ReportOutputTokensValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.OutputTokensText, Mode=OneWay}" VerticalAlignment="Center" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+
                     <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
                         <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
                             <StackPanel Spacing="7">
@@ -783,7 +808,7 @@
                                             x:Uid="UsageReportCombinedChartButton"
                                             AutomationProperties.AutomationId="UsageReportCombinedChartButton"
                                             GroupName="UsageReportChartLayoutTabs"
-                                            IsChecked="True"
+                                            IsChecked="{x:Bind ViewModel.IsCombinedChart, Mode=OneWay}"
                                             Style="{StaticResource ReportToolbarToggleButtonStyle}"
                                             Tag="Combined"
                                             Click="OnGlobalChartLayoutClick" />
@@ -793,8 +818,16 @@
                                             AutomationProperties.AutomationId="UsageReportSplitChartsButton"
                                             GroupName="UsageReportChartLayoutTabs"
                                             Style="{StaticResource ReportToolbarToggleButtonStyle}"
-                                            Tag="Split"
+                                            IsChecked="{x:Bind ViewModel.IsProviderChart, Mode=OneWay}"
+                                            Tag="Provider"
                                             Click="OnGlobalChartLayoutClick" />
+                                        <RadioButton
+                                            x:Uid="UsageReportModelChartButton"
+                                            AutomationProperties.AutomationId="UsageReportModelChartButton"
+                                            GroupName="UsageReportChartLayoutTabs"
+                                            IsChecked="{x:Bind ViewModel.IsModelChart, Mode=OneWay}"
+                                            Style="{StaticResource ReportToolbarToggleButtonStyle}"
+                                            Tag="Model" Click="OnGlobalChartLayoutClick" />
                                     </StackPanel>
                                 </Grid>
                                 <Grid x:Name="GlobalChartTransitionRoot">
@@ -803,21 +836,22 @@
                                     </Grid.RenderTransform>
                                     <controls:UsageTrendChart
                                         x:Name="GlobalCombinedChart"
+                                        Visibility="{x:Bind ViewModel.IsCombinedChart, Mode=OneWay}"
                                         AutomationProperties.AutomationId="UsageReportGlobalTrendChart"
                                         Data="{x:Bind ViewModel.Trend, Mode=OneWay}"
                                         PlotHeight="310" />
                                     <ItemsRepeater
                                         x:Name="GlobalSplitCharts"
                                         ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}"
-                                        Visibility="Collapsed">
+                                        Visibility="{x:Bind ViewModel.IsSplitChart, Mode=OneWay}">
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="reports:UsageReportProviderRow">
-                                            <Grid MinHeight="74" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
+                                            <Grid MinHeight="120" Padding="0,10" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="170" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <Grid Padding="3,0" ColumnSpacing="8">
+                                                <Grid Padding="3,0" ColumnSpacing="8" Height="130" VerticalAlignment="Top">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="20" />
                                                         <ColumnDefinition Width="*" />
@@ -828,7 +862,7 @@
                                                         <TextBlock FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ValueText}" />
                                                     </StackPanel>
                                                 </Grid>
-                                                <controls:UsageTrendChart Grid.Column="1" Data="{x:Bind Trend}" PlotHeight="56" />
+                                                <controls:UsageTrendChart Grid.Column="1" Data="{x:Bind Trend}" PlotHeight="130" />
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsRepeater.ItemTemplate>
@@ -840,10 +874,11 @@
                                     BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
                                     BorderThickness="0,1,0,0">
                                     <StackPanel Spacing="8">
-                                        <Grid ColumnSpacing="12">
+                                        <Grid RowSpacing="4">
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <TextBlock x:Uid="UsageReportCompositionTitle" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                            <ItemsRepeater x:Name="ReportCompositionLegendRoot" HorizontalAlignment="Right" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
-                                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="20" /></ItemsRepeater.Layout>
+                                            <ItemsRepeater x:Name="ReportCompositionLegendRoot" Grid.Row="1" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
+                                                <ItemsRepeater.Layout><UniformGridLayout Orientation="Horizontal" MinItemWidth="160" MinItemHeight="24" MinColumnSpacing="12" MinRowSpacing="4" /></ItemsRepeater.Layout>
                                                 <ItemsRepeater.ItemTemplate>
                                                     <DataTemplate x:DataType="reports:UsageReportProviderRow">
                                                         <Grid ColumnSpacing="7" VerticalAlignment="Center">
@@ -852,7 +887,7 @@
                                                                 <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
                                                             <controls:ProviderColorSwatch Height="9" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center" Width="9" />
-                                                            <TextBlock Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Name}">
                                                                 <Run Text="{x:Bind Name}" /><Run Text="  " /><Run Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ShareText}" />
                                                             </TextBlock>
                                                         </Grid>
@@ -886,35 +921,22 @@
                         Visibility="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}">
                         <StackPanel Spacing="7">
                             <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <RadioButton x:Uid="UsageReportProviderTotalChartButton"
+                                    AutomationProperties.AutomationId="UsageReportProviderTotalChartButton"
+                                    GroupName="ProviderChartGrouping" IsChecked="{x:Bind ViewModel.IsProviderTotalChart, Mode=OneWay}"
+                                    Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Provider" Click="OnGlobalChartLayoutClick" />
+                                <RadioButton x:Uid="UsageReportProviderModelChartButton"
+                                    AutomationProperties.AutomationId="UsageReportProviderModelChartButton"
+                                    GroupName="ProviderChartGrouping" IsChecked="{x:Bind ViewModel.IsModelChart, Mode=OneWay}"
+                                    Style="{StaticResource ReportToolbarToggleButtonStyle}" Tag="Model" Click="OnGlobalChartLayoutClick" />
+                            </StackPanel>
                             <controls:UsageTrendChart x:Name="ProviderChartContentRoot" AutomationProperties.AutomationId="UsageReportTrendChart" Data="{x:Bind ViewModel.Trend, Mode=OneWay}" PlotHeight="250" />
                         </StackPanel>
                     </Border>
 
                     <StackPanel Spacing="12">
-                        <Border Padding="12,8" Style="{StaticResource ReportCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Grid Padding="8,2" ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripCachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ReportCachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Grid Grid.Column="1" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripUncachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ReportUncachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.UncachedInputText, Mode=OneWay}" VerticalAlignment="Center" />
-                                </Grid>
-                                <Grid Grid.Column="2" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripOutputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ReportOutputTokensValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.OutputTokensText, Mode=OneWay}" VerticalAlignment="Center" />
-                                </Grid>
-                            </Grid>
-                        </Border>
+
                         <Border
                             Padding="14,10"
                             Style="{StaticResource ReportCardStyle}"

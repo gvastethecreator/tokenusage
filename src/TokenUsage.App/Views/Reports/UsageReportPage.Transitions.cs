@@ -1,4 +1,5 @@
 using System.Linq;
+using TokenUsage.Core.Appearance;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -90,33 +91,12 @@ public sealed partial class UsageReportPage
 
     private void OnGlobalChartLayoutClick(object sender, RoutedEventArgs e)
     {
-        bool showCombined = sender is FrameworkElement { Tag: "Combined" };
-        bool currentlyCombined = GlobalCombinedChart.Visibility == Visibility.Visible;
-        if (showCombined == currentlyCombined
-            && (!_chartLayoutTransition.CommitPending || _pendingShowCombined == showCombined))
+        if (sender is FrameworkElement { Tag: string tag }
+            && Enum.TryParse(tag, out ReportChartGrouping grouping))
         {
-            return;
+            ViewModel.SetChartAppearance(ViewModel.ChartStyle, grouping);
+            ChartGroupingChanged?.Invoke(this, grouping);
         }
-
-        _pendingShowCombined = showCombined;
-        _chartLayoutTransition.CommitPending = true;
-        PlaySpatialTransition(
-            _chartLayoutTransition,
-            GlobalChartTransitionRoot,
-            GlobalChartTransitionTransform,
-            () =>
-            {
-                GlobalCombinedChartButton.IsChecked = showCombined;
-                GlobalSplitChartsButton.IsChecked = !showCombined;
-                GlobalCombinedChart.Visibility = showCombined
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
-                GlobalSplitCharts.Visibility = showCombined
-                    ? Visibility.Collapsed
-                    : Visibility.Visible;
-            },
-            () => (GlobalChartTransitionRoot, GlobalChartTransitionTransform),
-            disableHitTesting: true);
     }
 
     private bool ShouldStartReportDataTransition(
