@@ -980,7 +980,7 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="150" /><ColumnDefinition Width="100" /><ColumnDefinition Width="140" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
                                     <TextBlock x:Uid="UsageReportModelColumn" Style="{StaticResource CaptionTextBlockStyle}" />
                                     <TextBlock x:Uid="UsageReportCostColumn" Grid.Column="1" TextAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
-                                    <TextBlock x:Uid="UsageReportShareColumn" Grid.Column="2" TextAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                                    <TextBlock Text="{x:Bind ViewModel.ModelShareLabel, Mode=OneWay}" Grid.Column="2" TextAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
                                     <TextBlock x:Uid="UsageReportTokensColumn" Grid.Column="3" TextAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
                                     <TextBlock x:Uid="UsageReportCoverageColumn" Grid.Column="4" TextAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
                                 </Grid>
