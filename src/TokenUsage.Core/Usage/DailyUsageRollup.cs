@@ -2,6 +2,8 @@ using TokenUsage.Core.Providers;
 
 namespace TokenUsage.Core.Usage;
 
+public sealed record UsageTimeRollup(DailyUsageRollup Usage, int Hour);
+
 public sealed record DailyUsageRollup
 {
     public DailyUsageRollup(

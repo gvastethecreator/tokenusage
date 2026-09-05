@@ -14,22 +14,25 @@ public sealed partial class UsageTrendChart
 {
     private void RenderSeries(UsageReportTrendDataset data, double width, double height, UsageTrendScale scale)
     {
-        IReadOnlyList<double>[] values = data.Series.Select(series => series.Values).ToArray();
-        if (data.Style == ReportChartStyle.Bars || data.Days.Count == 1)
+        IReadOnlyList<double>[] values = data.Series.Select(series => data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values).ToArray();
+        if (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
         {
-            foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, data.Days.Count, width, height, scale.Maximum))
+            foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1),
+                width, height, scale.Maximum, emphasizeSmallValues: scale.EmphasizeSmallValues))
             {
-                var bar = new Rectangle
+                var bar = new Border
                 {
                     Width = item.Width, Height = item.Height,
-                    Fill = SeriesBrush(data.Series[item.SeriesIndex]),
-                    Stroke = _accessibilitySettings.HighContrast ? TextBrushProxy.Background : null,
-                    StrokeThickness = _accessibilitySettings.HighContrast ? 1 : 0,
+                    Background = SeriesBrush(data.Series[item.SeriesIndex]),
+                    CornerRadius = new CornerRadius(4, 4, 0, 0),
+                    BorderBrush = _accessibilitySettings.HighContrast ? TextBrushProxy.Background : null,
+                    BorderThickness = new Thickness(_accessibilitySettings.HighContrast ? 1 : 0),
+                    UseLayoutRounding = false,
                     IsHitTestVisible = false,
                 };
                 Canvas.SetLeft(bar, item.X);
                 Canvas.SetTop(bar, item.Y);
-                PlotCanvas.Children.Add(bar);
+                _seriesCanvas.Children.Add(bar);
             }
             return;
         }
@@ -58,9 +61,9 @@ public sealed partial class UsageTrendChart
                     geometry.Figures.Add(figure);
                     from = to + 1;
                 }
-                PlotCanvas.Children.Add(new XamlPath
+                _seriesCanvas.Children.Add(new XamlPath
                 {
-                    Data = geometry, Fill = SeriesBrush(data.Series[index]),
+                    Data = geometry, Fill = AreaBrush(data.Series[index]), UseLayoutRounding = false,
                     Opacity = data.IsComparison ? 0.25 : 0.72, IsHitTestVisible = false,
                 });
                 AddLine(upper, data.Series[index], index);
@@ -72,7 +75,22 @@ public sealed partial class UsageTrendChart
             AddLine(Path(values[index], data.Style), data.Series[index], index);
 
         UsageTrendPath Path(IReadOnlyList<double> source, ReportChartStyle style) =>
-            UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, TopPadding, BottomPadding, style);
+            UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, TopPadding, BottomPadding, style, scale.EmphasizeSmallValues);
+    }
+
+    private Brush AreaBrush(UsageReportTrendSeries series)
+    {
+        if (_accessibilitySettings.HighContrast) return SeriesBrush(series);
+        Color color = ProviderColorPalette.Parse(series.ColorHex);
+        return new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0), EndPoint = new Point(0, 1),
+            GradientStops =
+            {
+                new GradientStop { Color = color, Offset = 0 },
+                new GradientStop { Color = Color.FromArgb(45, color.R, color.G, color.B), Offset = 1 },
+            },
+        };
     }
 
     private Brush SeriesBrush(UsageReportTrendSeries series) => _accessibilitySettings.HighContrast
@@ -106,11 +124,12 @@ public sealed partial class UsageTrendChart
         var line = new XamlPath
         {
             Data = geometry, Stroke = SeriesBrush(series), StrokeThickness = 2,
-            StrokeLineJoin = PenLineJoin.Round, IsHitTestVisible = false,
+            StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round, UseLayoutRounding = false, IsHitTestVisible = false,
         };
         if (_accessibilitySettings.HighContrast && seriesIndex > 0)
             line.StrokeDashArray = seriesIndex % 2 == 0 ? [2, 3] : [6, 3];
-        PlotCanvas.Children.Add(line);
+        _seriesCanvas.Children.Add(line);
         for (int index = 0; index < path.Points.Count; index++)
         {
             UsageTrendPoint point = path.Points[index];
@@ -121,7 +140,7 @@ public sealed partial class UsageTrendChart
             var marker = new Ellipse { Width = 4, Height = 4, Fill = SeriesBrush(series), IsHitTestVisible = false };
             Canvas.SetLeft(marker, point.X - 2);
             Canvas.SetTop(marker, point.Y - 2);
-            PlotCanvas.Children.Add(marker);
+            _seriesCanvas.Children.Add(marker);
         }
     }
 
@@ -129,7 +148,8 @@ public sealed partial class UsageTrendChart
 
     private void BuildLegend(UsageReportTrendDataset data)
     {
-        LegendContent.Children.Clear();
+        var items = new List<Grid>();
+        LegendContent.ItemsSource = items;
         LegendContent.Visibility = data.Series.Any(series => series.ModelId is not null)
             ? Visibility.Visible : Visibility.Collapsed;
         if (LegendContent.Visibility != Visibility.Visible) return;
@@ -141,7 +161,8 @@ public sealed partial class UsageTrendChart
             if (series.Values.Any(double.IsNaN) && total == 0) total = double.NaN;
             string value = data.Metric == UsageReportMetric.Share
                 ? "" : FormatValue(total, data.Metric);
-            LegendContent.Children.Add(CreateHoverRow(series, value));
+            items.Add(CreateHoverRow(series, value));
         }
+        LegendContent.ItemsSource = items.ToArray();
     }
 }

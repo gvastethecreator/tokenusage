@@ -30,6 +30,43 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task TwoHourReportBucketsKeepCivilDatesBoundariesAndDailyTotals()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var start = new DateTimeOffset(2026, 7, 22, 3, 0, 0, TimeSpan.Zero);
+        UsageEvent first = CreateEvent("midnight", start);
+        await repository.IngestAsync([
+            first, first,
+            CreateEvent("same-slot", start.AddHours(2).AddTicks(-1)),
+            CreateEvent("next-slot", start.AddHours(2)),
+            CreateEvent("last-slot", start.AddDays(1).AddTicks(-1)),
+            CreateEvent("next-day", start.AddDays(1)),
+            CreateEvent("other-agent", start, agentId: "claude"),
+            CreateEvent("unknown", start, agentId: "codex", cost: CostObservation.Unavailable()),
+        ]);
+        var query = new TokenUsage.Core.Automation.UsageReportQuery(folder.DatabasePath);
+        var date = new DateOnly(2026, 7, 22);
+        var report = await query.ReadAsync(date, date, includeTimeBuckets: true);
+        var filtered = TokenUsage.Core.Automation.UsageReportQuery.FilterByAgent(report, new AgentId("grok"));
+        Assert.Equal([0, 2, 22], filtered.TimeBuckets.Select(item => item.Hour));
+        Assert.Equal(2, filtered.TimeBuckets[0].Usage.EventCount);
+        Assert.All(filtered.TimeBuckets, item => Assert.Equal(date, item.Usage.Date));
+        Assert.Equal(filtered.Totals.Tokens.Total, filtered.TimeBuckets.Sum(item => item.Usage.Tokens.Total));
+        Assert.Equal(filtered.Totals.TotalCostUsd, filtered.TimeBuckets.Sum(item => item.Usage.ReportedCostUsd));
+        Assert.Equal(4, filtered.Totals.EventCount);
+        Assert.Equal(5, report.TimeBuckets.Count);
+        var unknown = Assert.Single(report.TimeBuckets, item => item.Usage.AgentId.Value == "codex").Usage;
+        Assert.Null(unknown.ReportedCostUsd);
+        Assert.Equal(unknown.Tokens.Total, unknown.UnpricedTokens);
+        Assert.Equal(1, unknown.UnavailableCostEventCount);
+        var exact = await query.ReadExactAsync(start.AddHours(1), start.AddHours(3), new AgentId("grok"));
+        Assert.Equal(2, exact.TimeBuckets.Count);
+        Assert.Equal(2, exact.Totals.EventCount);
+        Assert.Empty((await query.ReadAsync(date, date)).TimeBuckets);
+    }
+
+    [Fact]
     public async Task DuplicateEventsIncrementTheDailyRollupOnce()
     {
         using var folder = new TemporaryFolder();
@@ -941,7 +978,8 @@ public sealed class UsageRepositoryTests
         DateTimeOffset? occurredAtUtc = null,
         TokenBreakdown? tokens = null,
         string agentId = "grok",
-        string parserVersion = "fixture/1") =>
+        string parserVersion = "fixture/1",
+        CostObservation? cost = null) =>
         new(
             new UsageEventKey(Convert.ToHexString(SHA256.HashData(
                 Encoding.UTF8.GetBytes(localIdentity))).ToLowerInvariant()),
@@ -951,7 +989,7 @@ public sealed class UsageRepositoryTests
             occurredAtUtc ?? new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
             "Argentina Standard Time",
             tokens ?? new TokenBreakdown(100, 25, 5, 20, 0),
-            CostObservation.ProviderReported(0.25m),
+            cost ?? CostObservation.ProviderReported(0.25m),
             parserVersion,
             CoverageKind.Complete);
 

@@ -77,7 +77,7 @@ public static class CliApplication
                         fullDataDirectory,
                         "scanner",
                         "usage.v1.db"))
-                    .ReadAsync(from, to, agentId, token),
+                    .ReadAsync(from, to, agentId, cancellationToken: token),
                 clock,
                 cancellationToken).ConfigureAwait(false),
             "limits" => await LimitsCommand.RunAsync(

@@ -31,7 +31,8 @@ public sealed class UsageReportWindow : Window, IDisposable
         Func<string, ProviderCreditSummary?> getProviderCreditSummary,
         PlatformRect workArea,
         uint dpi,
-        Action<ReportChartGrouping>? saveChartGrouping = null)
+        Action<ReportChartGrouping>? saveChartGrouping = null,
+        Action<ReportChartStyle>? saveChartStyle = null)
     {
         _viewModel = new UsageReportViewModel(
             databasePath,
@@ -48,6 +49,7 @@ public sealed class UsageReportWindow : Window, IDisposable
         _page.Loaded += (_, _) => UpdateCaptionInset();
         _page.SizeChanged += (_, _) => UpdateCaptionInset();
         _page.ChartGroupingChanged += (_, grouping) => saveChartGrouping?.Invoke(grouping);
+        _page.ChartStyleChanged += (_, style) => saveChartStyle?.Invoke(style);
         Title = GetString("UsageReportWindowTitle");
         AppWindow.Title = Title;
         AppWindow.SetIcon(MainWindow.GetIconPath());

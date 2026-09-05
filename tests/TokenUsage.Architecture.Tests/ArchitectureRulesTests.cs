@@ -598,8 +598,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(200, matches.Count);
-        Assert.Equal(185, distinctIds.Length);
+        Assert.Equal(202, matches.Count);
+        Assert.Equal(187, distinctIds.Length);
         Assert.Contains("UsageReportErrorMessage", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportRetryButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);

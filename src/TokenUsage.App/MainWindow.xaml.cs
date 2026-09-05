@@ -625,7 +625,9 @@ public sealed partial class MainWindow : Window, IDisposable
                 RootPage.ViewModel.Dashboard.GetProviderCreditSummary,
                 display.WorkArea,
                 reportDpi,
-                grouping => RootPage.ViewModel.Options.Appearance.SelectedReportChartGrouping = grouping);
+                grouping => RootPage.ViewModel.Options.Appearance.SelectedReportChartGrouping = grouping,
+                style => RootPage.ViewModel.Options.Appearance.SelectedReportChartStyle =
+                    RootPage.ViewModel.Options.Appearance.ReportChartStyleOptions.Single(option => option.Value == style));
             _reportWindow.Closed += OnUsageReportWindowClosed;
         }
         else

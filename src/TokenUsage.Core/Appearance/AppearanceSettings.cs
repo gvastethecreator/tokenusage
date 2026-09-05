@@ -54,6 +54,7 @@ public enum ReportChartStyle
     Step,
     Bars,
     Area,
+    TwoHourBars,
 }
 
 public enum ReportChartGrouping

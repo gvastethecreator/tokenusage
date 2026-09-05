@@ -69,6 +69,7 @@ public sealed partial class UsageReportPage : Page
 
     public UIElement DragRegion => ReportDragRegion;
     public event EventHandler<ReportChartGrouping>? ChartGroupingChanged;
+    public event EventHandler<ReportChartStyle>? ChartStyleChanged;
     public void SetCaptionInset(double width) => ReportCaptionInset.Width = new GridLength(width);
 
     public object VisibleProviderTabs => _visibleProviderTabs;
@@ -84,6 +85,17 @@ public sealed partial class UsageReportPage : Page
             _ => ElementTheme.Default,
         };
     }
+
+    private void OnCycleChartStyleClick(object sender, RoutedEventArgs e)
+    {
+        ReportChartStyle[] styles = Enum.GetValues<ReportChartStyle>();
+        ReportChartStyle next = styles[(Array.IndexOf(styles, ViewModel.ChartStyle) + 1) % styles.Length];
+        ViewModel.SetChartAppearance(next, ViewModel.ChartGrouping);
+        ChartStyleChanged?.Invoke(this, next);
+    }
+
+    private void OnSmallValuesClick(object sender, RoutedEventArgs e) =>
+        ViewModel.SetSmallValueScale(sender is Microsoft.UI.Xaml.Controls.Primitives.ToggleButton { IsChecked: true });
 
     private void OnReportTitleSizeChanged(object sender, SizeChangedEventArgs e)
     {

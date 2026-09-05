@@ -67,7 +67,10 @@ public sealed record UsageReport(
     IReadOnlyList<UsageModelReport> Models,
     IReadOnlyList<UsageDayReport> Days,
     IReadOnlyList<UsageAgentDayReport> AgentDays,
-    IReadOnlyList<UsageModelDayReport> ModelDays);
+    IReadOnlyList<UsageModelDayReport> ModelDays)
+{
+    public IReadOnlyList<UsageTimeRollup> TimeBuckets { get; init; } = [];
+}
 
 public sealed record UsageReportMetricDelta(
     int EventCount,
@@ -91,6 +94,7 @@ public sealed class UsageReportQuery
         DateOnly fromInclusive,
         DateOnly toInclusive,
         AgentId? agentId = null,
+        bool includeTimeBuckets = false,
         CancellationToken cancellationToken = default)
     {
         UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(
@@ -107,7 +111,12 @@ public sealed class UsageReportQuery
                 agentId,
                 cancellationToken).ConfigureAwait(false);
 
-        return Build(rollups);
+        UsageReport report = Build(rollups);
+        return includeTimeBuckets ? report with
+        {
+            TimeBuckets = await repository.QueryTwoHourRollupsAsync(fromInclusive, toInclusive, agentId, cancellationToken)
+                .ConfigureAwait(false),
+        } : report;
     }
 
     public async Task<(DateOnly From, DateOnly To)?> ReadAvailableDateRangeAsync(
@@ -142,7 +151,16 @@ public sealed class UsageReportQuery
             toExclusiveUtc,
             agentId,
             cancellationToken).ConfigureAwait(false);
-        return Build(UsageRollupAggregator.Aggregate(events));
+        return Build(UsageRollupAggregator.Aggregate(events)) with
+        {
+            TimeBuckets = events.GroupBy(item =>
+            {
+                DateTime local = TimeZoneInfo.ConvertTime(item.OccurredAtUtc,
+                    TimeZoneInfo.FindSystemTimeZoneById(item.GroupingTimeZoneId)).DateTime;
+                return (DateOnly.FromDateTime(local), Hour: local.Hour / 2 * 2);
+            }).SelectMany(group => UsageRollupAggregator.Aggregate(group)
+                .Select(rollup => new UsageTimeRollup(rollup, group.Key.Hour))).ToArray(),
+        };
     }
 
     /// <summary>
@@ -173,7 +191,10 @@ public sealed class UsageReportQuery
             models,
             days,
             agentDays,
-            report.ModelDays.Where(item => item.AgentId == agentId).ToArray());
+            report.ModelDays.Where(item => item.AgentId == agentId).ToArray())
+        {
+            TimeBuckets = report.TimeBuckets.Where(item => item.Usage.AgentId == agentId).ToArray(),
+        };
     }
 
     public static UsageReport Build(IEnumerable<DailyUsageRollup> rollups)
@@ -245,7 +266,7 @@ public sealed class UsageReportQuery
         return new UsageReport(Aggregate(snapshot), agents, models, days, agentDays, modelDays);
     }
 
-    private static UsageReportMetrics Aggregate(IEnumerable<DailyUsageRollup> rollups)
+    public static UsageReportMetrics Aggregate(IEnumerable<DailyUsageRollup> rollups)
     {
         int eventCount = 0;
         long input = 0;

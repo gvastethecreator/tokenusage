@@ -472,6 +472,48 @@ public sealed class UsageRepository
         return events;
     }
 
+    public async Task<IReadOnlyList<UsageTimeRollup>> QueryTwoHourRollupsAsync(
+        DateOnly fromInclusive, DateOnly toInclusive, AgentId? agentId = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(toInclusive, fromInclusive);
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        var zones = new Dictionary<string, TimeZoneInfo>(StringComparer.Ordinal);
+        connection.CreateFunction<string, string, int>("two_hour_bucket", (timestamp, zoneId) =>
+        {
+            if (!zones.TryGetValue(zoneId, out TimeZoneInfo? zone))
+                zones[zoneId] = zone = TimeZoneInfo.FindSystemTimeZoneById(zoneId);
+            return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(timestamp, CultureInfo.InvariantCulture), zone).Hour / 2 * 2;
+        }, isDeterministic: true);
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT civil_date, grouping_time_zone_id, agent_id, COALESCE(model_provider_id, ''), model_id,
+                   SUM(input_tokens), SUM(output_tokens), SUM(reasoning_tokens),
+                   SUM(cache_read_tokens), SUM(cache_write_tokens),
+                   CASE WHEN SUM(CASE WHEN cost_kind = 0 THEN 1 ELSE 0 END) > 0
+                        THEN SUM(CASE WHEN cost_kind = 0 THEN reported_cost_micros ELSE 0 END) END,
+                   CASE WHEN SUM(CASE WHEN cost_kind = 1 THEN 1 ELSE 0 END) > 0
+                        THEN SUM(CASE WHEN cost_kind = 1 THEN estimated_cost_micros ELSE 0 END) END,
+                   SUM(CASE WHEN cost_kind = 2 THEN input_tokens + output_tokens + reasoning_tokens
+                            + cache_read_tokens + cache_write_tokens ELSE 0 END),
+                   SUM(CASE WHEN cost_kind = 2 THEN 1 ELSE 0 END), COUNT(*), MAX(coverage_kind),
+                   two_hour_bucket(occurred_at_utc, grouping_time_zone_id) AS bucket_hour
+            FROM usage_event
+            WHERE civil_date >= $from AND civil_date <= $to
+              AND ($agent IS NULL OR agent_id = $agent)
+            GROUP BY civil_date, grouping_time_zone_id, agent_id, COALESCE(model_provider_id, ''), model_id, bucket_hour
+            ORDER BY civil_date, bucket_hour, agent_id, model_id;
+            """;
+        command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
+        command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
+        command.Parameters.AddWithValue("$agent", (object?)agentId?.Value ?? DBNull.Value);
+        var result = new List<UsageTimeRollup>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            result.Add(new UsageTimeRollup(ReadRollup(reader), reader.GetInt32(16)));
+        return result;
+    }
+
     public async Task<long> SumTokensAsync(
         DateTimeOffset fromInclusiveUtc,
         DateTimeOffset toExclusiveUtc,

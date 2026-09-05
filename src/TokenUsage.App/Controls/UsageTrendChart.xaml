@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     IsTabStop="True"
     KeyDown="OnKeyDown">
-    <Grid RowSpacing="6">
+    <Grid x:Name="ChartLayoutRoot" RowSpacing="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -82,7 +82,12 @@
             </Grid>
         </Grid>
 
-        <StackPanel x:Name="LegendContent" Grid.Row="2" Spacing="4" Margin="0,6,0,0" Visibility="Collapsed" />
+        <ItemsRepeater x:Name="LegendContent" Grid.Row="2" Margin="0,6,0,0" Visibility="Collapsed">
+            <ItemsRepeater.Layout>
+                <UniformGridLayout Orientation="Horizontal" MinItemWidth="220" MinItemHeight="28"
+                    MinColumnSpacing="16" MinRowSpacing="4" />
+            </ItemsRepeater.Layout>
+        </ItemsRepeater>
 
         <Border
             x:Name="GridBrushProxy"
