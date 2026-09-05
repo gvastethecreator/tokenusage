@@ -38,6 +38,7 @@ public sealed partial class OptionsView : UserControl
     public UIElement GetPrimaryAction(OptionsSection section) => section switch
     {
         OptionsSection.General => GeneralView.PrimaryAction,
+        OptionsSection.Notifications => NotificationsView.PrimaryAction,
         OptionsSection.Appearance => AppearanceView.PrimaryAction,
         OptionsSection.Personalization => AppearanceView.PersonalizationPrimaryAction,
         OptionsSection.ProviderStatus => ProviderStatusView.PrimaryAction,

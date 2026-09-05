@@ -441,7 +441,7 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
-    public void OptionsBooleanSettingsUseIconToggleButtons()
+    public void OptionsCollectionUsesASwitchAndOtherBooleanSettingsKeepIconToggles()
     {
         string optionsRoot = Path.Combine(
             ProjectReferenceGraph.FindRepoRoot(),
@@ -452,12 +452,12 @@ public sealed class ArchitectureRulesTests
         XDocument[] documents =
         [
             XDocument.Load(Path.Combine(optionsRoot, "GeneralOptionsView.xaml")),
+            XDocument.Load(Path.Combine(optionsRoot, "NotificationsOptionsView.xaml")),
             XDocument.Load(Path.Combine(optionsRoot, "AppearanceOptionsView.xaml")),
         ];
         string[] requiredAutomationIds =
         [
             "CloseWhenInactiveToggle",
-            "DataCollectionBackgroundToggle",
             "AlertsMasterToggle",
             "QuotaThresholdAlertToggle",
             "ExhaustionForecastAlertToggle",
@@ -468,9 +468,12 @@ public sealed class ArchitectureRulesTests
             "AppearanceTrayProviderNameToggle",
         ];
 
-        Assert.DoesNotContain(
-            documents.SelectMany(document => document.Descendants()),
+        XElement collectionSwitch = Assert.Single(documents.SelectMany(document => document.Descendants()),
             element => element.Name.LocalName == "ToggleSwitch");
+        Assert.Equal("DataCollectionBackgroundToggle",
+            collectionSwitch.Attribute("AutomationProperties.AutomationId")?.Value);
+        Assert.Equal("{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}",
+            collectionSwitch.Attribute("IsOn")?.Value);
 
         XElement[] stateButtons = documents
             .SelectMany(document => document.Descendants())
@@ -490,7 +493,7 @@ public sealed class ArchitectureRulesTests
                     && attribute.Value == automationId));
             Assert.Contains(
                 stateButton.Descendants(),
-                element => element.Name.LocalName is "SymbolIcon" or "FontIcon");
+                element => element.Name.LocalName is "SymbolIcon" or "FontIcon" or "TablerIcon");
         }
     }
 
@@ -595,8 +598,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(178, matches.Count);
-        Assert.Equal(163, distinctIds.Length);
+        Assert.Equal(200, matches.Count);
+        Assert.Equal(185, distinctIds.Length);
         Assert.Contains("UsageReportErrorMessage", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportRetryButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
@@ -629,6 +632,11 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportCompareCycleWarning", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportPeriodSelector", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("NotificationsSection", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportChartStyleSelector", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportModelChartButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortModelActiveDays", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortDayDate", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
@@ -761,7 +769,7 @@ public sealed class ArchitectureRulesTests
             reportXaml,
             StringComparison.Ordinal);
         Assert.Contains(
-            "<ColumnDefinition MinWidth=\"240\" Width=\"*\" />",
+            "x:Name=\"ReportDragRegion\"",
             reportXaml,
             StringComparison.Ordinal);
         Assert.DoesNotContain("GeneratedDuration", reportXaml, StringComparison.Ordinal);
@@ -974,11 +982,8 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("PlayProviderTabsTransition", reportCode, StringComparison.Ordinal);
         Assert.Contains("tab.Width = _providerTabItemWidth", reportCode, StringComparison.Ordinal);
 
-        string trendChartCode = File.ReadAllText(Path.Combine(
-            appRoot,
-            "Controls",
-            "UsageTrendChart.xaml.cs"));
-        Assert.Contains("AddSingleDayBars", trendChartCode, StringComparison.Ordinal);
+        string trendChartCode = ReadCsharpSources(Path.Combine(appRoot, "Controls"), "UsageTrendChart");
+        Assert.Contains("UsageTrendLayouts.Bars", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("if (data.Days.Count == 2)", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("if (data.Days.Count == 1)", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("MiddleDayLabel.Text = data.Days[0].Label", trendChartCode, StringComparison.Ordinal);
@@ -1012,7 +1017,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("HeaderActionButtons.Opacity = 0", mainPageCode, StringComparison.Ordinal);
         Assert.Contains("ShareCaptureService.CaptureAsync(\n                FlyoutChrome", mainPageCode, StringComparison.Ordinal);
         Assert.Contains("HeaderActionButtons.Opacity = actionButtonsOpacity", mainPageCode, StringComparison.Ordinal);
-        Assert.Contains("Glyph=\"&#xE72D;\"", mainPageXaml, StringComparison.Ordinal);
+        Assert.Contains("Kind=\"share\"", mainPageXaml, StringComparison.Ordinal);
 
         string reportPageXaml = File.ReadAllText(Path.Combine(
             repoRoot,
@@ -1040,7 +1045,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("ReportControlBar.Opacity = controlBarOpacity", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCoverageHintButton.Opacity = coverageHintOpacity", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCaptureBrand.Opacity = captureBrandOpacity", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("Glyph=\"&#xE72D;\"", reportPageXaml, StringComparison.Ordinal);
+        Assert.Contains("Kind=\"share\"", reportPageXaml, StringComparison.Ordinal);
 
         string shareCaptureCode = File.ReadAllText(Path.Combine(
             repoRoot,

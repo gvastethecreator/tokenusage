@@ -3,6 +3,8 @@
     x:Class="TokenUsage.App.Views.Options.AppearanceOptionsView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:TokenUsage.App.Controls"
+    xmlns:surfaces="using:TokenUsage.App.ViewModels.Surfaces"
     xmlns:options="using:TokenUsage.App.Views.Options">
 
     <Border
@@ -145,6 +147,26 @@
 
                     </Grid>
 
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Uid="ReportChartsAppearanceTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <ComboBox x:Uid="ReportChartStyleSelector"
+                            AutomationProperties.AutomationId="ReportChartStyleSelector"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{x:Bind ViewModel.ReportChartStyleOptions}"
+                            SelectedItem="{x:Bind ViewModel.SelectedReportChartStyle, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="surfaces:ReportChartStyleOption">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="108" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <controls:UsageTrendChart Data="{x:Bind Preview}" IsPreview="True" IsTabStop="False"
+                                            AutomationProperties.AccessibilityView="Raw"
+                                            Width="108" PlotHeight="38" YAxisWidth="0" YAxisGap="0" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
                     <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
 
                     <Grid

@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using TokenUsage.App.ViewModels.Sample;
-using TokenUsage.Core.Alerts;
 using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Surfaces;
@@ -11,17 +10,13 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
 {
     private bool _isInitializing = true;
     private readonly DataCollectionSettingsStore? _dataCollectionSettings;
-    private readonly AlertSettingsStore? _alertSettings;
-    private Task _pendingAlertSave = Task.CompletedTask;
 
     public GeneralOptionsViewModel(
         Func<string, string> getString,
-        DataCollectionSettingsStore? dataCollectionSettings = null,
-        AlertSettingsStore? alertSettings = null)
+        DataCollectionSettingsStore? dataCollectionSettings = null)
     {
         ArgumentNullException.ThrowIfNull(getString);
         _dataCollectionSettings = dataCollectionSettings;
-        _alertSettings = alertSettings;
         DataCollectionRefreshOptions =
         [
             new(0, getString("DataCollectionRefreshManual")),
@@ -40,7 +35,7 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
         ];
         SelectedSampleScenario = SampleScenarios[0];
         _isInitializing = false;
-        Initialization = _dataCollectionSettings is not null || _alertSettings is not null
+        Initialization = _dataCollectionSettings is not null
             ? InitializeAsync()
             : Task.CompletedTask;
     }
@@ -65,32 +60,6 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
     [ObservableProperty]
     public partial DataCollectionRefreshOption SelectedDataCollectionRefresh { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AreAlertControlsEnabled))]
-    public partial bool AreAlertsEnabled { get; set; }
-
-    [ObservableProperty]
-    public partial double QuotaAlertThresholdPercent { get; set; } =
-        AlertSettings.Default.QuotaThresholdPercent;
-
-    [ObservableProperty]
-    public partial bool IsQuotaThresholdAlertEnabled { get; set; } =
-        AlertSettings.Default.QuotaThresholdEnabled;
-
-    [ObservableProperty]
-    public partial bool IsExhaustionForecastAlertEnabled { get; set; } =
-        AlertSettings.Default.ExhaustionForecastEnabled;
-
-    [ObservableProperty]
-    public partial bool IsStaleDataAlertEnabled { get; set; } =
-        AlertSettings.Default.StaleDataEnabled;
-
-    [ObservableProperty]
-    public partial bool IsCredentialFailureAlertEnabled { get; set; } =
-        AlertSettings.Default.CredentialFailureEnabled;
-
-    public bool AreAlertControlsEnabled => AreAlertsEnabled;
-
     private async Task InitializeAsync()
     {
         try
@@ -109,16 +78,6 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
                 }
             }
 
-            if (_alertSettings is not null)
-            {
-                AlertSettings alerts = await _alertSettings.LoadAsync().ConfigureAwait(true);
-                AreAlertsEnabled = alerts.Enabled;
-                QuotaAlertThresholdPercent = alerts.QuotaThresholdPercent;
-                IsQuotaThresholdAlertEnabled = alerts.QuotaThresholdEnabled;
-                IsExhaustionForecastAlertEnabled = alerts.ExhaustionForecastEnabled;
-                IsStaleDataAlertEnabled = alerts.StaleDataEnabled;
-                IsCredentialFailureAlertEnabled = alerts.CredentialFailureEnabled;
-            }
         }
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
@@ -157,58 +116,6 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
         if (_dataCollectionSettings is not null)
         {
             _ = SaveDataCollectionAsync();
-        }
-    }
-
-    partial void OnAreAlertsEnabledChanged(bool value) => QueueAlertSettingsSave();
-
-    partial void OnQuotaAlertThresholdPercentChanged(double value) => QueueAlertSettingsSave();
-
-    partial void OnIsQuotaThresholdAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
-
-    partial void OnIsExhaustionForecastAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
-
-    partial void OnIsStaleDataAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
-
-    partial void OnIsCredentialFailureAlertEnabledChanged(bool value) => QueueAlertSettingsSave();
-
-    private void QueueAlertSettingsSave()
-    {
-        if (!_isInitializing
-            && _alertSettings is not null
-            && double.IsFinite(QuotaAlertThresholdPercent)
-            && QuotaAlertThresholdPercent is >= 1d and <= 99d)
-        {
-            _pendingAlertSave = _pendingAlertSave
-                .ContinueWith(
-                    _ => SaveAlertSettingsAsync(),
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default)
-                .Unwrap();
-        }
-    }
-
-    public Task WaitForPendingAlertSaveAsync() => _pendingAlertSave;
-
-    private async Task SaveAlertSettingsAsync()
-    {
-        try
-        {
-            await _alertSettings!.SaveAsync(new AlertSettings(
-                AreAlertsEnabled,
-                (int)Math.Round(QuotaAlertThresholdPercent),
-                IsQuotaThresholdAlertEnabled,
-                IsExhaustionForecastAlertEnabled,
-                IsStaleDataAlertEnabled,
-                IsCredentialFailureAlertEnabled)).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException
-                                           or TimeoutException
-                                           or ArgumentException)
-        {
-            // A failed save keeps the last stored preference.
         }
     }
 

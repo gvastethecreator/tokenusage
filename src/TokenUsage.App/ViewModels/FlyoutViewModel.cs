@@ -53,8 +53,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AppearanceOptions.SettingsChanged += OnAppearanceSettingsChanged;
         GeneralOptions = new GeneralOptionsViewModel(
             GetString,
-            dataCollectionSettings,
-            alertSettings);
+            dataCollectionSettings);
         GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
         ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
@@ -63,7 +62,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             GeneralOptions,
             AppearanceOptions,
             Personalization,
-            ProviderStatus);
+            ProviderStatus,
+            new NotificationsOptionsViewModel(alertSettings));
         Dashboard = new DashboardSurfaceViewModel(
             new SampleDashboardSession(sampleRefreshCoordinator),
             new LiveDashboardSession(

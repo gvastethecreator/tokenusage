@@ -1,5 +1,114 @@
 # Report performance and recovery
 
+## Report redesign implementation (September 5)
+
+The report now uses an integrated title area with the native Windows caption
+buttons. Refresh and share sit before the scope tabs. The compact toolbar places
+Share, Report, and the visualization selector in that order. Captures show the
+report title and period on the left and the TokenUsage brand on the right. They
+hide navigation controls, focus, and chart tooltips, and restore the UI in finally.
+
+Daily bars and provider grouping are the new defaults. Smooth curves, straight
+lines, steps, grouped bars, and stacked areas use the existing native renderer
+with linear axes. Comparison areas have independent baselines. Model grouping
+keeps one panel per provider and ranks shades by the selected metric and period.
+Names and values accompany each color. The existing gpt-reserve identifier is
+displayed as Luna Reserve with a moon, and remains unpriced.
+
+Daily model aggregates reuse the existing rollups. Active days count distinct
+dates with positive token totals. Model, source, and day tables sort raw values,
+keep ties stable, and place unknown costs last in either direction. Model rows
+are no longer limited to 30. Row identities and the selected sort survive refresh.
+There is no database migration and no change to the public CLI JSON.
+
+Appearance schema 5 preserves existing preferences and adds chart style and
+grouping. Notifications have a separate view model and category using the existing
+alert store. Background collection is a switch with an explanation that it works
+after tasks even when TokenUsage is closed. The open-app refresh interval remains
+separate. Marker movement is coalesced at 40 ms and eased over 220 ms; row movement
+uses 240 ms. Keyboard selection and reduced-motion state changes are immediate.
+
+Local Tabler outline vectors are pinned to
+[v3.46.0](https://github.com/tabler/tabler-icons/tree/v3.46.0/icons/outline), with
+their MIT attribution in THIRD-PARTY-NOTICES.md. The header follows
+[Microsoft's title-bar contract](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/title-bar).
+The composition legend uses the native
+[wrapping layout](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.uniformgridlayout?view=windows-app-sdk-1.8).
+The improve-win-ui pass guided native caption behavior, theme-aware icons,
+accessible sorting, reduced motion, and the normal/narrow visual checks.
+
+### September 5 verification
+
+The x64 Release checks passed: Architecture 106, Core 262, CLI 130, Providers 625,
+and Windows platform 174. Total: 1,297, none skipped. The first architecture run
+found the changed automation-ID count; its repaired contract passed the focused
+rerun (200 occurrences, 185 distinct IDs). The solution/MSIX build passed, and the
+package build was repeated after the native UI fixes. No build warnings remained.
+
+The added coverage checks daily model totals, duplicate dates, provider isolation,
+zero consumption, more than 30 models, raw numeric order, unknown prices, shades,
+bar/step/area geometry, comparison baselines, and appearance migration/persistence.
+Existing CLI and provider suites remained unchanged in scope.
+
+Native checks used the real report window in the existing isolated probe and then
+the installed application. The probe uses 36 models, two providers, repeated dates,
+an unpriced reserve, and a zero-token model. It does not replace the user's database.
+The installed app retained its LocalState database and preferences. Both application
+files and package resources were compared against the final MSIX payload.
+
+Verified paths:
+
+- Five rendered styles and saved choices in both the probe and installed app.
+- Provider/model panels, names and shades, Luna Reserve, and the full model table.
+- Numeric and date sort direction, active days, unknown costs, and refresh retention.
+- UI Automation names, keyboard focus, chart Home/End navigation, and sort ItemStatus.
+- Native maximize/restore and the Snap layout popup.
+- Light and dark themes; 1280 by 900 and 820 by 900 installed windows at 96 DPI.
+- Complete installed-report capture, correct branding, and restoration afterward.
+- A controlled clipboard lock produced a capture error and restored the share button
+  and report controls. The lock was released.
+- Windows client-area animations were temporarily disabled, checked, and restored
+  to their original enabled setting. The final chart and sorted rows remained usable.
+
+The narrow check found overlapping provider labels and a composition bar that kept
+its old width. The legend now wraps below its heading, and the bar derives its
+width from the surrounding layout rather than its previous content size.
+
+Local evidence is under .scratch/report-probe/: installed-options.png,
+installed-{smooth,line,step,area,bars}.png, installed-models.png, installed-table.png,
+installed-narrow-final.png, redesign-sort-final.png, and redesign-no-animations.png.
+redesign-marker.mp4 and redesign-sort.mp4 include timestamped 30 fps frame evidence.
+The capture cadence is not an application frame-rate benchmark. Report PNG exports
+are in the configured Downloads folder; screenshots and usage data are not committed.
+
+### Verification limits
+
+Only 96-DPI / standard text scaling was available for the native checks. Other DPI
+and text scales, high-contrast rendering, and spoken screen-reader output are not
+verified. Windows later refused foreground activation, so title-bar dragging,
+double-click, system-menu mouse gestures, and a fully isolated rapid-interruption
+motion pass could not all be completed. Native caption controls remain responsible
+for those shell behaviors; this is not a claim that each gesture was exercised.
+Live provider integrations outside the existing collection path and ARM64 were not
+tested in this change.
+
+### Local delivery
+
+The registered development package is now at
+.scratch/local-report-update-reviewed, deployed from the final x64 Release MSIX.
+Windows reports the package healthy. All 245 application payload files and the root
+resources.pri match the extracted MSIX. LocalState was not deleted, and the existing
+usage database remains in place. Report preferences were returned to bars/provider;
+the user's other appearance and collection settings were retained.
+
+The final narrow screenshot confirms both wrapped labels and correctly sized
+composition segments. The two affected report/automation structure checks passed
+again after the layout correction. Tests are not duplicated in the total above.
+
+Changes are grouped into four commits: report data/charts; window header/icons;
+table/motion; and options with this evidence. The destination is origin/main.
+The pushed revision and remote CI run are reported with the delivery handoff.
+
 ## Changes
 
 - Sum cycle tokens in SQLite instead of loading complete usage events. The repository
