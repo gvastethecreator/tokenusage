@@ -67,7 +67,9 @@ public sealed partial class UsageReportPage : Page
 
     public UsageReportViewModel ViewModel { get; }
 
+    public UIElement DragRegion => ReportDragRegion;
     public event EventHandler<ReportChartGrouping>? ChartGroupingChanged;
+    public void SetCaptionInset(double width) => ReportCaptionInset.Width = new GridLength(width);
 
     public object VisibleProviderTabs => _visibleProviderTabs;
 
@@ -81,6 +83,13 @@ public sealed partial class UsageReportPage : Page
             AppThemeMode.Dark => ElementTheme.Dark,
             _ => ElementTheme.Default,
         };
+    }
+
+    private void OnReportTitleSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        double size = Math.Max(40, e.NewSize.Height);
+        ReportHeaderLogo.Width = size;
+        ReportHeaderLogo.Height = size;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -208,12 +217,18 @@ public sealed partial class UsageReportPage : Page
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
         Control? source = sender as Control;
+        var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
+            .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
         double controlBarOpacity = ReportControlBar.Opacity;
         bool controlBarHitTest = ReportControlBar.IsHitTestVisible;
         double coverageHintOpacity = ReportCoverageHintButton.Opacity;
         bool coverageHintHitTest = ReportCoverageHintButton.IsHitTestVisible;
         double captureBrandOpacity = ReportCaptureBrand.Opacity;
+        Visibility captureBrandVisibility = ReportCaptureBrand.Visibility;
         Thickness capturePadding = ReportCaptureRoot.Padding;
+        GridLength captionInset = ReportCaptionInset.Width;
+        Visibility toolbarVisibility = ReportToolbarHost.Visibility;
+        Visibility logoVisibility = ReportHeaderLogo.Visibility;
         try
         {
             if (source is not null)
@@ -222,10 +237,21 @@ public sealed partial class UsageReportPage : Page
             }
 
             ReportCaptureFocusSink.Focus(FocusState.Programmatic);
+            ReportCoverageHintButton.Flyout.Hide();
+            DismissChartHovers(ReportCaptureRoot);
+            foreach (var item in captureSelectors)
+            {
+                item.Control.Opacity = 0;
+                item.Control.IsHitTestVisible = false;
+            }
+            ReportToolbarHost.Visibility = Visibility.Collapsed;
+            ReportHeaderLogo.Visibility = Visibility.Collapsed;
+            ReportCaptionInset.Width = new GridLength(0);
             ReportControlBar.Opacity = 0;
             ReportControlBar.IsHitTestVisible = false;
             ReportCoverageHintButton.Opacity = 0;
             ReportCoverageHintButton.IsHitTestVisible = false;
+            ReportCaptureBrand.Visibility = Visibility.Visible;
             ReportCaptureBrand.Opacity = 1;
             ReportCaptureRoot.Padding = new Thickness(
                 capturePadding.Left,
@@ -259,11 +285,20 @@ public sealed partial class UsageReportPage : Page
         }
         finally
         {
+            foreach (var item in captureSelectors)
+            {
+                item.Control.Opacity = item.Opacity;
+                item.Control.IsHitTestVisible = item.IsHitTestVisible;
+            }
+            ReportToolbarHost.Visibility = toolbarVisibility;
+            ReportHeaderLogo.Visibility = logoVisibility;
+            ReportCaptionInset.Width = captionInset;
             ReportControlBar.Opacity = controlBarOpacity;
             ReportControlBar.IsHitTestVisible = controlBarHitTest;
             ReportCoverageHintButton.Opacity = coverageHintOpacity;
             ReportCoverageHintButton.IsHitTestVisible = coverageHintHitTest;
             ReportCaptureBrand.Opacity = captureBrandOpacity;
+            ReportCaptureBrand.Visibility = captureBrandVisibility;
             ReportCaptureRoot.Padding = capturePadding;
             ReportHeaderRoot.UpdateLayout();
             ReportCaptureRoot.UpdateLayout();
@@ -275,6 +310,23 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+            yield return child;
+            foreach (DependencyObject descendant in Descendants(child)) yield return descendant;
+        }
+    }
+
+    private static void DismissChartHovers(DependencyObject parent)
+    {
+        if (parent is UsageTrendChart chart) chart.DismissHover();
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            DismissChartHovers(VisualTreeHelper.GetChild(parent, i));
+    }
 
     private (FrameworkElement Rows, CompositeTransform Transform) GetBreakdownTransitionTarget(
         UsageReportBreakdown breakdown) => breakdown switch

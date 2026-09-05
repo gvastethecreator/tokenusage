@@ -102,21 +102,7 @@
                     Orientation="Horizontal"
                     Spacing="4"
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
-                    <Button
-                        x:Name="HeaderVisualizationButton"
-                        AutomationProperties.AutomationId="HeaderVisualizationButton"
-                        AutomationProperties.Name="{x:Bind ViewModel.Dashboard.VisualizationToggleText, Mode=OneWay}"
-                        Background="{ThemeResource TokenUsageButtonBrush}"
-                        Click="OnVisualizationToggleClick"
-                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
-                        Padding="8"
-                        ToolTipService.ToolTip="{x:Bind ViewModel.Dashboard.VisualizationToggleText, Mode=OneWay}">
-                        <FontIcon
-                            AutomationProperties.AccessibilityView="Raw"
-                            FontSize="14"
-                            Glyph="{x:Bind ViewModel.Dashboard.VisualizationToggleGlyph, Mode=OneWay}"
-                            IsTextScaleFactorEnabled="False" />
-                    </Button>
+
                     <Button
                         x:Name="HeaderShareButton"
                         x:Uid="HeaderShareButton"
@@ -125,11 +111,7 @@
                         Click="OnShareCaptureClick"
                         Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
                         Padding="8">
-                        <FontIcon
-                            AutomationProperties.AccessibilityView="Raw"
-                            FontSize="14"
-                            Glyph="&#xE72D;"
-                            IsTextScaleFactorEnabled="False" />
+                        <controls:TablerIcon Kind="share" />
                     </Button>
                     <Button
                         x:Name="UsageReportButton"
@@ -139,11 +121,18 @@
                         Background="{ThemeResource TokenUsageButtonBrush}"
                         Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
                         Padding="8">
-                        <FontIcon
-                            AutomationProperties.AccessibilityView="Raw"
-                            FontSize="14"
-                            IsTextScaleFactorEnabled="False"
-                            Glyph="&#xE9D2;" />
+                        <controls:TablerIcon Kind="file-analytics" />
+                    </Button>
+                    <Button
+                        x:Name="HeaderVisualizationButton"
+                        AutomationProperties.AutomationId="HeaderVisualizationButton"
+                        AutomationProperties.Name="{x:Bind ViewModel.Dashboard.VisualizationToggleText, Mode=OneWay}"
+                        Background="{ThemeResource TokenUsageButtonBrush}"
+                        Click="OnVisualizationToggleClick"
+                        Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
+                        Padding="8"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.Dashboard.VisualizationToggleText, Mode=OneWay}">
+                        <controls:TablerIcon Kind="{x:Bind ViewModel.Dashboard.VisualizationToggleIcon, Mode=OneWay}" />
                     </Button>
                     <Button
                         x:Name="HeaderRefreshButton"
@@ -153,11 +142,7 @@
                         Background="{ThemeResource TokenUsageButtonBrush}"
                         Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
                         Padding="8">
-                        <FontIcon
-                            AutomationProperties.AccessibilityView="Raw"
-                            FontSize="14"
-                            IsTextScaleFactorEnabled="False"
-                            Glyph="&#xE72C;" />
+                        <controls:TablerIcon Kind="refresh" />
                     </Button>
                     <Button
                         x:Name="HeaderOptionsButton"
@@ -167,11 +152,7 @@
                         Background="{ThemeResource TokenUsageButtonBrush}"
                         Foreground="{ThemeResource TokenUsageButtonForegroundBrush}"
                         Padding="8">
-                        <FontIcon
-                            AutomationProperties.AccessibilityView="Raw"
-                            FontSize="14"
-                            IsTextScaleFactorEnabled="False"
-                            Glyph="&#xE713;" />
+                        <controls:TablerIcon Kind="settings" />
                     </Button>
                 </StackPanel>
 
