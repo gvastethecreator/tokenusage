@@ -100,7 +100,7 @@
                     x:Name="HeaderActionButtons"
                     Grid.Column="1"
                     Orientation="Horizontal"
-                    Spacing="4"
+                    Spacing="8"
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
 
                     <Button
