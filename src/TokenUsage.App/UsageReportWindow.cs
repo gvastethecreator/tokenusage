@@ -30,7 +30,8 @@ public sealed class UsageReportWindow : Window, IDisposable
         Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
         Func<string, ProviderCreditSummary?> getProviderCreditSummary,
         PlatformRect workArea,
-        uint dpi)
+        uint dpi,
+        Action<ReportChartGrouping>? saveChartGrouping = null)
     {
         _viewModel = new UsageReportViewModel(
             databasePath,
@@ -41,6 +42,12 @@ public sealed class UsageReportWindow : Window, IDisposable
             getProviderCreditSummary: getProviderCreditSummary);
         _page = new UsageReportPage(_viewModel);
         Content = _page;
+        ExtendsContentIntoTitleBar = true;
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        SetTitleBar(_page.DragRegion);
+        _page.Loaded += (_, _) => UpdateCaptionInset();
+        _page.SizeChanged += (_, _) => UpdateCaptionInset();
+        _page.ChartGroupingChanged += (_, grouping) => saveChartGrouping?.Invoke(grouping);
         Title = GetString("UsageReportWindowTitle");
         AppWindow.Title = Title;
         AppWindow.SetIcon(MainWindow.GetIconPath());
@@ -48,6 +55,9 @@ public sealed class UsageReportWindow : Window, IDisposable
         ApplyAppearance(appearance);
         Closed += OnClosed;
     }
+
+    private void UpdateCaptionInset() =>
+        _page.SetCaptionInset(AppWindow.TitleBar.RightInset / (_page.XamlRoot?.RasterizationScale ?? 1));
 
     public void ApplyAppearance(AppearanceSettings settings)
     {
@@ -101,9 +111,9 @@ public sealed class UsageReportWindow : Window, IDisposable
         titleBar.ForegroundColor = foreground;
         titleBar.InactiveBackgroundColor = background;
         titleBar.InactiveForegroundColor = foreground;
-        titleBar.ButtonBackgroundColor = background;
+        titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
         titleBar.ButtonForegroundColor = foreground;
-        titleBar.ButtonInactiveBackgroundColor = background;
+        titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
         titleBar.ButtonInactiveForegroundColor = foreground;
         titleBar.ButtonHoverBackgroundColor = foreground;
         titleBar.ButtonHoverForegroundColor = background;

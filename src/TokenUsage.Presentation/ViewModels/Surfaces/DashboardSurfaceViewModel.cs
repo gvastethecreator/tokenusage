@@ -231,11 +231,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     public bool IsHeatmapVisualization => Visualization == DashboardVisualizationMode.Heatmap;
 
-    public string VisualizationToggleGlyph => Visualization switch
+    public string VisualizationToggleIcon => Visualization switch
     {
-        DashboardVisualizationMode.List => "\uEB05",
-        DashboardVisualizationMode.Donut => "\uE787",
-        _ => "\uE8FD",
+        DashboardVisualizationMode.List => "chart-donut",
+        DashboardVisualizationMode.Donut => "calendar-stats",
+        _ => "list",
     };
 
     public string VisualizationToggleText => _getString(Visualization switch
@@ -916,7 +916,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(IsListVisualization));
         OnPropertyChanged(nameof(IsDonutVisualization));
         OnPropertyChanged(nameof(IsHeatmapVisualization));
-        OnPropertyChanged(nameof(VisualizationToggleGlyph));
+        OnPropertyChanged(nameof(VisualizationToggleIcon));
         OnPropertyChanged(nameof(VisualizationToggleText));
         OnPropertyChanged(nameof(IsActivitySummaryVisible));
         bool dashboardProjectionChanged = previous.UsageDisplay != settings.UsageDisplay

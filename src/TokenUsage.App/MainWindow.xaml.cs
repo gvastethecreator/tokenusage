@@ -393,10 +393,10 @@ public sealed partial class MainWindow : Window, IDisposable
                 _appliedAppearance,
                 settings);
             _appliedAppearance = settings;
+            _reportWindow?.ApplyAppearance(settings);
             if (shellAppearanceChanged)
             {
                 ApplyAppearance();
-                _reportWindow?.ApplyAppearance(settings);
                 UpdateVisibleTraySummary();
                 ApplyBorderlessChrome();
                 if (_isFlyoutVisible)
@@ -624,7 +624,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 RootPage.ViewModel.Dashboard.GetProviderLimits,
                 RootPage.ViewModel.Dashboard.GetProviderCreditSummary,
                 display.WorkArea,
-                reportDpi);
+                reportDpi,
+                grouping => RootPage.ViewModel.Options.Appearance.SelectedReportChartGrouping = grouping);
             _reportWindow.Closed += OnUsageReportWindowClosed;
         }
         else
