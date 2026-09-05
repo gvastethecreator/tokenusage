@@ -23,6 +23,7 @@ public sealed class TablerIcon : UserControl
 
     private static readonly Dictionary<string, string> Paths = new Dictionary<string, string>
     {
+        ["square-root"] = "M3 12h2l4 8l4 -16h8",
         ["stairs"] = "M22 5h-5v5h-5v5h-5v5h-5",
         ["list"] = "M9 6l11 0 M9 12l11 0 M9 18l11 0 M5 6l0 .01 M5 12l0 .01 M5 18l0 .01",
         ["calendar-stats"] = "M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4 M18 14v4h4 M14 18a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M15 3v4 M7 3v4 M3 11h16",

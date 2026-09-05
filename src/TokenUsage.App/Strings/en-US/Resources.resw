@@ -837,8 +837,7 @@
   <data name="UsageReportSortNone" xml:space="preserve"><value>Not sorted</value></data>
   <data name="ReportChartStyleTwoHourBars" xml:space="preserve"><value>2-hour bars · 12/day</value></data>
   <data name="ReportCycleChartStyleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next chart style</value></data>
-  <data name="ReportCycleChartStyleButton.ToolTipService.ToolTip" xml:space="preserve"><value>Switch to the next chart style</value></data>
-  <data name="ReportSmallValuesButton.Content" xml:space="preserve"><value>Small values √</value></data>
+  <data name="ReportChartStyleTooltipFormat" xml:space="preserve"><value>Chart style: {0}. Click to switch to the next style.</value></data>
   <data name="ReportSmallValuesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Emphasize small values using a square-root scale</value></data>
   <data name="ReportSmallValuesButton.ToolTipService.ToolTip" xml:space="preserve"><value>Square-root scale makes small values easier to see. Turn off for a linear scale. Amounts are unchanged.</value></data>
   <data name="ReportSquareRootScaleSuffix" xml:space="preserve"><value> · √ scale</value></data>

@@ -192,6 +192,31 @@ gradient rendering were not checked in this follow-up. This is local development
 installation proof, not clean-machine, ARM64, or public-release certification.
 Screenshots, recordings, extracted package layouts, and usage data remain local.
 
+### Header spacing follow-up
+
+The cache strip now sits after the global/provider chart and before the table.
+The toolbar is right-aligned below the native caption controls. Its header row
+is 56 DIP high with a 4-DIP gap, moving the toolbar 18 DIP closer to the caption
+controls. Chart style and small-value scale use theme-aware icons with tooltips
+and their existing accessible names. The style icon and tooltip update together.
+
+The 106 architecture/resource checks and x64 Release solution/MSIX build passed.
+The package build passed again after the final spacing adjustment. Installed
+evidence is in .scratch/report-probe/toolbar-tight-{final,narrow}.png at 1280 by
+900 and 820 by 900, dark theme, 96 DPI. Keyboard Space changed style, Tab reached
+the scale toggle, and Space changed its state. The user's Steps style and enabled
+small-value scale were restored. Capture retained the cache strip below the chart
+and restored the share button. Current usage totals changed during collection;
+the before/after screenshots are not a frozen-data comparison.
+
+The installed development layout is .scratch/local-report-toolbar-tight.
+All 245 application files match the MSIX payload; resources.pri SHA-256 is
+76F66EED8B851C3356255A0F727B368CEC133BD61E53000E50B186DFEEAFD895.
+Package status is OK and LocalState was preserved. Other DPI/text scales, themes,
+and spoken screen-reader output were not checked. Data/provider suites were not
+repeated because this change only affects report layout, icons, and resources.
+The improve-win-ui pass preserved native input and capture behavior.
+
 ## Changes
 
 - Sum cycle tokens in SQLite instead of loading complete usage events. The repository
