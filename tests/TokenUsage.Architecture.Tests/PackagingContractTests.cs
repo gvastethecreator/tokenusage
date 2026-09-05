@@ -64,7 +64,7 @@ public sealed class PackagingContractTests
     }
 
     [Fact]
-    public void AppDoesNotOwnMsixAndCliEmitsTokenUsage()
+    public void AppUsesTargetRuntimesWithoutOwningMsixAndCliEmitsTokenUsage()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         XDocument app = XDocument.Load(Path.Combine(
@@ -81,6 +81,13 @@ public sealed class PackagingContractTests
         Assert.Empty(app.Descendants("EnableMsixTooling"));
         Assert.Empty(app.Descendants("AppxManifest"));
         Assert.Equal("WinExe", app.Descendants("OutputType").Single().Value);
+        foreach ((string platform, string runtime) in new[] { ("x64", "win-x64"), ("ARM64", "win-arm64") })
+        {
+            XElement targetRuntime = Assert.Single(app.Descendants("RuntimeIdentifier"),
+                element => ((string?)element.Attribute("Condition"))?.Contains(
+                    $"'$(Platform)' == '{platform}'", StringComparison.Ordinal) == true);
+            Assert.Equal(runtime, targetRuntime.Value);
+        }
         Assert.Equal("tokenusage", cli.Descendants("AssemblyName").Single().Value);
     }
 
