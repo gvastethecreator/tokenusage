@@ -438,12 +438,6 @@ public partial class VercelGatewaySettingsViewModel : ObservableObject, IVercelD
         }
     }
 
-    private static ProviderSnapshot? FindSnapshot(IEnumerable<ProviderSnapshot> snapshots) =>
-        snapshots.FirstOrDefault(snapshot => string.Equals(
-            snapshot.ProviderId.Value,
-            "vercel-ai-gateway",
-            StringComparison.Ordinal));
-
     private void PublishSnapshot(ProviderSnapshot snapshot)
     {
         _lastSnapshot = snapshot;

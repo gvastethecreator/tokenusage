@@ -138,29 +138,6 @@ public sealed class VersionedDocumentFile
         return bytes;
     }
 
-    public bool TryReadBoundedBytes(int maximumDocumentBytes, out byte[] bytes)
-    {
-        bytes = [];
-        try
-        {
-            if (!Exists)
-            {
-                return false;
-            }
-
-            bytes = ReadBoundedBytes(maximumDocumentBytes);
-            return true;
-        }
-        catch (Exception exception) when (exception is VersionedDocumentFormatException
-            or IOException
-            or UnauthorizedAccessException
-            or System.Security.SecurityException)
-        {
-            bytes = [];
-            return false;
-        }
-    }
-
     public string QuarantineCorrupt()
     {
         string directory = DocumentDirectory;
@@ -225,9 +202,6 @@ public sealed class VersionedDocumentFile
             ? bytes.AsMemory(Encoding.UTF8.Preamble.Length)
             : bytes;
     }
-
-    public static bool HasUtf8Preamble(ReadOnlySpan<byte> bytes) =>
-        bytes.StartsWith(Encoding.UTF8.Preamble);
 
     public static string CreateMutexName(string mutexNamePrefix, string documentPath)
     {

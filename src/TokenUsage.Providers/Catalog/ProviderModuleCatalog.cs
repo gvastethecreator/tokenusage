@@ -192,12 +192,6 @@ public static class ProviderModuleCatalog
     public static IReadOnlyList<ProviderModuleDefinition> OpenUsageEntries { get; } =
         Array.AsReadOnly(Catalog.Where(entry => entry.IsOpenUsageProvider).ToArray());
 
-    public static IReadOnlyList<ProviderModuleDefinition> CodexBarEntries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => entry.IsCodexBarProvider).ToArray());
-
-    public static IReadOnlyList<ProviderModuleDefinition> CodeBurnEntries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => entry.IsCodeBurnProvider).ToArray());
-
     /// <summary>
     /// Tools the app reads from disk today: shipped, not opt-in, not prepared, and able to
     /// report local usage. A screen that lists local providers asks this instead of keeping
