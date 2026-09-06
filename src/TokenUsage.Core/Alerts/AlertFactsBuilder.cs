@@ -93,34 +93,4 @@ public static class AlertFactsBuilder
 
         return FromSnapshot(snapshot, clock, credentialFailure, staleAfter);
     }
-
-    public static IReadOnlyList<ProviderAlertFacts> FromCacheFirstEvents(
-        IEnumerable<CacheFirstEventLike> events,
-        TimeProvider clock,
-        TimeSpan? staleAfter = null)
-    {
-        ArgumentNullException.ThrowIfNull(events);
-        ArgumentNullException.ThrowIfNull(clock);
-
-        var byProvider = new Dictionary<string, ProviderAlertFacts>(StringComparer.Ordinal);
-        foreach (CacheFirstEventLike item in events)
-        {
-            byProvider[item.ProviderId.Value] = FromOutcome(
-                item.ProviderId,
-                item.Outcome,
-                clock,
-                staleAfter);
-        }
-
-        return byProvider.Values
-            .OrderBy(facts => facts.ProviderId.Value, StringComparer.Ordinal)
-            .ToArray();
-    }
 }
-
-/// <summary>
-/// Lightweight host-facing view of a completed provider refresh (avoids Cache dependency in facts builder signature tests).
-/// </summary>
-public sealed record CacheFirstEventLike(
-    ProviderId ProviderId,
-    ProviderOutcome Outcome);

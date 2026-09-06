@@ -129,10 +129,6 @@ public sealed class LocalUsageCoordinator
                 result.Rollups);
     }
 
-    public Task<LocalUsageRefreshResult> RefreshDomainAsync(
-        CancellationToken cancellationToken = default) =>
-        Task.Run(() => _refresh.RefreshAsync(cancellationToken), cancellationToken);
-
     /// <summary>
     /// Exact tokens one agent spent since an arbitrary UTC instant, on a worker thread like
     /// every other store read.
