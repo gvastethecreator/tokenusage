@@ -6,6 +6,10 @@ Start with the [main README](../README.md) for supported providers, requirements
 
 - [Provider matrix](PROVIDER-MATRIX.md): sources, coverage, limits, and publication gates.
 
+## Research and proposed work
+
+- [Reliable usage comparisons: second-pass audit and implementation plan](research/usage-comparison/README.md): evidence, measurement contracts, prioritized development tickets, competitor research, and reproducible counterexamples. This is a proposal, not a claim that the features are implemented.
+
 ## Contributor references
 
 - [Contributor testing guide](CONTRIBUTOR-TESTING.md): evidence required for code, interface, and provider changes.

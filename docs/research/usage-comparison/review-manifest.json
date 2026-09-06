@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "tokenusage.research-review.v1",
+  "reviewDate": "2026-09-06",
+  "repository": "gvastethecreator/tokenusage",
+  "baselineCommit": "27d36e2b95aeb8ef4111f02233143ca6e2e87aaf",
+  "baselineTree": "dde0114ef5649c816d2684dd1dc01b2712288891",
+  "firstAuditCommit": "27d36e2b95aeb8ef4111f02233143ca6e2e87aaf",
+  "mainComparisonAtReviewStart": {"status": "identical", "aheadBy": 0, "behindBy": 0, "changedFiles": 0},
+  "openPullRequestsAtReviewStart": 0,
+  "writeScope": ["gvastethecreator/tokenusage"],
+  "externalRepositoriesAreReadOnlyReferences": true,
+  "pullRequestKind": "documentation-and-research-fixtures",
+  "runtimeChanges": false,
+  "findings": {"revalidated": 9, "additional": 9, "total": 18},
+  "tickets": {"retained": 14, "additional": 8, "total": 22, "remoteIssuesCreated": false},
+  "executedChecks": [{"name": "reduced synthetic and SQLite counterexamples", "count": 8, "passed": 8, "productionImplementationTest": false}],
+  "notExecuted": ["dotnet build", "xUnit", "Windows packaged application", "live account validation", "production database migrations", "performance benchmarks", "prior HTML browser checks"],
+  "sources": {
+    "usageEventBlob": "2f4a4c7203a6728d177066f7b07022a66ceeecef",
+    "usageRepositoryBlob": "f0143860a62364b2dac598cb1773b9be044cf11d",
+    "localUsageRefreshBlob": "aa972497710168a8feb3074274ae082e25aec51a",
+    "quotaResetHistoryBlob": "badcdb5fe927a1f1479799cb096c2ae77d5b23cd",
+    "reportViewModelBlob": "60bcb3f8297256e6147b6251b0ee6ad3d6454c64",
+    "codexQuotaMapperBlob": "b8290c09ea3f1da39f3afcf41c49514264efaccd",
+    "codexQuotaMapperTestsBlob": "3e18fcb893f719e350e8523d2a6ca1b63b3e649b"
+  },
+  "claims": {"staticConsequencesAreNotUserIncidents": true, "counterexamplePassDoesNotMeanFixed": true, "newerMainCommitsObserved": false}
+}
