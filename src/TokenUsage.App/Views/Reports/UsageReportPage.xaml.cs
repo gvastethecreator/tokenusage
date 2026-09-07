@@ -61,6 +61,7 @@ public sealed partial class UsageReportPage : Page
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
         Loaded += OnLoaded;
+        SizeChanged += OnReportSizeChanged;
         Unloaded += OnUnloaded;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -205,6 +206,16 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
+    private async void OnSaveComparisonClick(object sender, RoutedEventArgs e) => await ViewModel.SaveComparisonAsync();
+
+    private async void OnSavedComparisonSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox { SelectedItem: UsageSavedComparisonOption option })
+            await ViewModel.ShowSavedComparisonAsync(option.Id);
+    }
+
+    private void OnLiveComparisonClick(object sender, RoutedEventArgs e) => ViewModel.ReturnToLiveComparison();
+
     private void OnValueModeClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string value }
@@ -222,6 +233,7 @@ public sealed partial class UsageReportPage : Page
 
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
+        if (!ViewModel.CanCaptureReport) return;
         Control? source = sender as Control;
         var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
             .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
@@ -234,7 +246,12 @@ public sealed partial class UsageReportPage : Page
         Thickness capturePadding = ReportCaptureRoot.Padding;
         GridLength captionInset = ReportCaptionInset.Width;
         Visibility toolbarVisibility = ReportToolbarHost.Visibility;
+        Visibility comparisonToolbarVisibility = ReportCompareToolbar.Visibility;
+        Visibility measurementDetailsVisibility = MeasurementDetails.Visibility;
+        Visibility measurementCaptureVisibility = MeasurementCaptureDetails.Visibility;
         Visibility windowBrandVisibility = ReportWindowBrandRoot.Visibility;
+        var captureCharts = Descendants(ReportCaptureRoot).OfType<UsageTrendChart>()
+            .Select(chart => (Chart: chart, chart.IsHitTestVisible, chart.IsCaptureMode)).ToArray();
         try
         {
             if (source is not null)
@@ -244,6 +261,11 @@ public sealed partial class UsageReportPage : Page
 
             ReportCaptureFocusSink.Focus(FocusState.Programmatic);
             ReportCoverageHintButton.Flyout.Hide();
+            foreach (var chart in captureCharts)
+            {
+                chart.Chart.IsCaptureMode = true;
+                chart.Chart.IsHitTestVisible = false;
+            }
             DismissChartHovers(ReportCaptureRoot);
             foreach (var item in captureSelectors)
             {
@@ -251,6 +273,9 @@ public sealed partial class UsageReportPage : Page
                 item.Control.IsHitTestVisible = false;
             }
             ReportToolbarHost.Visibility = Visibility.Collapsed;
+            ReportCompareToolbar.Visibility = Visibility.Collapsed;
+            MeasurementDetails.Visibility = Visibility.Collapsed;
+            MeasurementCaptureDetails.Visibility = Visibility.Visible;
             ReportWindowBrandRoot.Visibility = Visibility.Collapsed;
             ReportCaptionInset.Width = new GridLength(0);
             ReportControlBar.Opacity = 0;
@@ -297,6 +322,14 @@ public sealed partial class UsageReportPage : Page
                 item.Control.IsHitTestVisible = item.IsHitTestVisible;
             }
             ReportToolbarHost.Visibility = toolbarVisibility;
+            foreach (var chart in captureCharts)
+            {
+                chart.Chart.IsCaptureMode = chart.IsCaptureMode;
+                chart.Chart.IsHitTestVisible = chart.IsHitTestVisible;
+            }
+            ReportCompareToolbar.Visibility = comparisonToolbarVisibility;
+            MeasurementDetails.Visibility = measurementDetailsVisibility;
+            MeasurementCaptureDetails.Visibility = measurementCaptureVisibility;
             ReportWindowBrandRoot.Visibility = windowBrandVisibility;
             ReportCaptionInset.Width = captionInset;
             ReportControlBar.Opacity = controlBarOpacity;
@@ -310,12 +343,65 @@ public sealed partial class UsageReportPage : Page
             ReportCaptureRoot.UpdateLayout();
             if (source is not null)
             {
-                source.IsEnabled = true;
+                source.IsEnabled = ViewModel.CanCaptureReport;
                 source.Focus(FocusState.Programmatic);
             }
         }
     }
 
+
+    private void OnReportSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        bool narrow = e.NewSize.Width < 1050;
+        Grid.SetRow(ReportSavedControls, narrow ? 1 : 0);
+        Grid.SetColumn(ReportSavedControls, narrow ? 0 : 1);
+        Grid.SetColumnSpan(ReportSavedControls, narrow ? 2 : 1);
+        ReportSavedControls.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+        Grid.SetRow(ReportToolbarHost, narrow ? 2 : 1);
+        Grid.SetColumn(ReportToolbarHost, narrow ? 0 : 1);
+        Grid.SetColumnSpan(ReportToolbarHost, narrow ? 2 : 1);
+    }
+
+    private void OnCycleTableSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCycleTableColumns();
+
+    private void OnCycleTableCellPrepared(ItemsRepeater sender, ItemsRepeaterElementPreparedEventArgs args)
+    {
+        double width = CycleTableCellWidth();
+        if (double.IsFinite(width) && args.Element is FrameworkElement cell) cell.Width = width;
+    }
+
+    private double CycleTableCellWidth()
+    {
+        double width = ReportCycleTable.ActualWidth;
+        int count = ViewModel.CycleSummaries.Count;
+        if (width <= 0 || count == 0) return double.NaN;
+        double labelWidth = Math.Clamp(width * 0.34, 160, 320);
+        return Math.Max(96, (width - labelWidth - 8) / count);
+    }
+
+    private void UpdateCycleTableColumns()
+    {
+        double cellWidth = CycleTableCellWidth();
+        if (!double.IsFinite(cellWidth)) return;
+        foreach (FrameworkElement cell in Descendants(ReportCycleTable).OfType<FrameworkElement>())
+        {
+            if (cell.Tag is string tag && tag == "CycleTableCell") cell.Width = cellWidth;
+        }
+    }
+
+    private void OnCycleSummariesSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCycleSummaryLayout();
+
+    private void UpdateCycleSummaryLayout()
+    {
+        int count = ViewModel.CycleSummaries.Count;
+        if (count == 0 || ReportCycleSummaries.Layout is not UniformGridLayout layout) return;
+        layout.MaximumRowsOrColumns = count;
+    }
+
+    private void OnCycleCountChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox { SelectedItem: int count }) ViewModel.CycleCount = count;
+    }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
     {
@@ -367,6 +453,8 @@ public sealed partial class UsageReportPage : Page
             }
             return;
         }
+
+        if (e.PropertyName == nameof(UsageReportViewModel.CycleSummaries)) UpdateCycleSummaryLayout();
 
         if (e.PropertyName == nameof(UsageReportViewModel.ModelShareLabel))
             _ = DispatcherQueue.TryEnqueue(UpdateSortHeaders);

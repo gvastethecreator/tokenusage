@@ -90,7 +90,7 @@ public sealed partial class UsageTrendChart
 
     private void ShowHover(int index, bool animate)
     {
-        if (index < 0 || index >= Data.Days.Count || PlotCanvas.ActualWidth <= 0) return;
+        if (IsCaptureMode || index < 0 || index >= Data.Days.Count || PlotCanvas.ActualWidth <= 0) return;
         _hoverIndex = index;
         if (!UsageTrendGeometry.ShouldRefreshHover(_displayedHoverIndex, index,
             HoverCard.Visibility == Visibility.Visible)) return;
@@ -201,6 +201,7 @@ public sealed partial class UsageTrendChart
         var name = new TextBlock
         {
             Text = series.Name, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = Data?.IsComparison == true ? TextWrapping.Wrap : TextWrapping.NoWrap,
             VerticalAlignment = VerticalAlignment.Center,
         };
         ToolTipService.SetToolTip(name, series.Name);

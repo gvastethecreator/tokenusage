@@ -269,6 +269,7 @@
 
                             <optionViews:OptionsView
                                 x:Name="OptionsSurfaceView"
+                                LayoutAnimationProgressed="OnDashboardLayoutAnimationProgressed"
                                 ViewModel="{x:Bind ViewModel.Options, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}" />
                         </Grid>

@@ -39,7 +39,7 @@
   <data name="StatusLoading" xml:space="preserve"><value>Updating…</value></data>
   <data name="ProviderHeader.Text" xml:space="preserve"><value>TokenUsage</value></data>
   <data name="UsageReportButtonLabel.Text" xml:space="preserve"><value>Report</value></data>
-  <data name="CompactGlobalCostLabel.Text" xml:space="preserve"><value>Observed cost</value></data>
+  <data name="CompactGlobalCostLabel.Text" xml:space="preserve"><value>Known usage cost</value></data>
   <data name="CompactGlobalTokensLabel.Text" xml:space="preserve"><value>Tokens</value></data>
   <data name="CompactListButton.Content" xml:space="preserve"><value>List</value></data>
   <data name="CompactDonutButton.Content" xml:space="preserve"><value>Donut</value></data>
@@ -257,7 +257,7 @@
   <data name="CodexUsageLast30Days" xml:space="preserve"><value>Last 30 days</value></data>
   <data name="CodexUsageMissing" xml:space="preserve"><value>No data</value></data>
   <data name="CodexTokenCountFormat" xml:space="preserve"><value>{0:N0} tokens</value></data>
-  <data name="CodexQuotaUsedTokensFormat" xml:space="preserve"><value>{0} local tokens since reset</value></data>
+  <data name="CodexQuotaUsedTokensFormat" xml:space="preserve"><value>{0} observed Codex tokens in this time range; pool attribution unknown</value></data>
   <data name="CodexTokenCountSingular" xml:space="preserve"><value>{0:N0} token</value></data>
   <data name="CodexPaceAheadFormat" xml:space="preserve"><value>{0}% projected · below pace</value></data>
   <data name="CodexPaceOnTrackFormat" xml:space="preserve"><value>{0}% projected · on pace</value></data>
@@ -279,8 +279,8 @@
   <data name="LocalUsageClaudeNotice" xml:space="preserve"><value>Saved sessions on this device only. Estimated cost uses API list prices and does not represent your plan charge.</value></data>
   <data name="LocalUsageClaudePartialNotice" xml:space="preserve"><value>Partial read: some files could not be processed. Visible totals may be lower.</value></data>
   <data name="LocalUsageClaudeNoDataNotice" xml:space="preserve"><value>No new Claude sessions were found. The last local total may remain.</value></data>
-  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Observed local usage. Codex uses official daily totals and an estimated model mix; cost can differ from your plan charge. Grok quota is unavailable.</value></data>
-  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Partial read: valid data is kept. Codex uses an estimated model mix; cost can differ from your plan charge. Grok quota is unavailable.</value></data>
+  <data name="LocalUsageAgentsNotice" xml:space="preserve"><value>Observed local usage. Official account totals are separate. Estimated API value is not your subscription charge. Grok quota is unavailable.</value></data>
+  <data name="LocalUsageAgentsPartialNotice" xml:space="preserve"><value>Partial read: valid local data is kept. Official account totals are separate; estimates are not subscription charges. Grok quota is unavailable.</value></data>
   <data name="LocalUsageAgentsNoDataNotice" xml:space="preserve"><value>No new sessions; the last local total is kept. Cost uses API rates and can differ from your plan charge. Grok quota is unavailable.</value></data>
   <data name="LocalUsageUnavailable" xml:space="preserve"><value>Local usage could not be read.</value></data>
   <data name="LocalUsageReportedCost" xml:space="preserve"><value>Reported cost</value></data>
@@ -546,7 +546,7 @@
   <data name="AppearanceThemeDark" xml:space="preserve"><value>Dark</value></data>
   <data name="AppearanceDensityRegular" xml:space="preserve"><value>Default</value></data>
   <data name="AppearanceDensityCompact" xml:space="preserve"><value>Compact</value></data>
-  <data name="AppearanceUsageRemaining" xml:space="preserve"><value>Left</value></data>
+  <data name="AppearanceUsageRemaining" xml:space="preserve"><value>Remaining</value></data>
   <data name="AppearanceUsageUsed" xml:space="preserve"><value>Used</value></data>
   <data name="AppearanceResetRelative" xml:space="preserve"><value>Relative</value></data>
   <data name="AppearanceResetExact" xml:space="preserve"><value>Exact</value></data>
@@ -632,7 +632,7 @@
   <data name="UsageReportCycleSelectionTitle.Text" xml:space="preserve"><value>Reset cycle</value></data>
   <data name="UsageReportCycleSelectionHelp.Text" xml:space="preserve"><value>Choose a tracked quota window. Use the arrows to move through its history.</value></data>
   <data name="UsageReportCycleComparisonTitle.Text" xml:space="preserve"><value>Compare reset cycles</value></data>
-  <data name="UsageReportCompareCyclesHint.Text" xml:space="preserve"><value>Compare two tracked quota windows. The previous cycle of the same limit is selected first.</value></data>
+  <data name="UsageReportCompareCyclesHint.Text" xml:space="preserve"><value>Baseline A · Same supported elapsed time</value></data>
   <data name="UsageReportCompareCycleALabel.Text" xml:space="preserve"><value>CYCLE A</value></data>
   <data name="UsageReportCompareCycleBLabel.Text" xml:space="preserve"><value>CYCLE B</value></data>
   <data name="UsageReportCompareCycleVersus.Text" xml:space="preserve"><value>VS</value></data>
@@ -656,30 +656,30 @@
   <data name="UsageReportComparePeriodsButton.Content" xml:space="preserve"><value>Periods</value></data>
   <data name="UsageReportCompareCyclesButton.Content" xml:space="preserve"><value>Cycles</value></data>
   <data name="UsageReportCompareTokenDeltaFormat" xml:space="preserve"><value>{0} tokens</value></data>
-  <data name="UsageReportCompareLeftProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left provider</value></data>
-  <data name="UsageReportCompareRightProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right provider</value></data>
-  <data name="UsageReportCompareLeftCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left Codex cycle</value></data>
-  <data name="UsageReportCompareRightCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right Codex cycle</value></data>
+  <data name="UsageReportCompareLeftProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline provider (A)</value></data>
+  <data name="UsageReportCompareRightProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Current provider (B)</value></data>
+  <data name="UsageReportCompareLeftCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline Codex cycle (A)</value></data>
+  <data name="UsageReportCompareRightCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Current Codex cycle (B)</value></data>
   <data name="UsageReportCompareScope" xml:space="preserve"><value>Compare</value></data>
   <data name="UsageReportCompareMetricColumn.Text" xml:space="preserve"><value>Metric</value></data>
-  <data name="UsageReportCompareLeftColumn.Text" xml:space="preserve"><value>Left</value></data>
-  <data name="UsageReportCompareRightColumn.Text" xml:space="preserve"><value>Right</value></data>
+  <data name="UsageReportCompareLeftColumn.Text" xml:space="preserve"><value>A · Baseline</value></data>
+  <data name="UsageReportCompareRightColumn.Text" xml:space="preserve"><value>B · Current</value></data>
   <data name="UsageReportCompareDeltaColumn.Text" xml:space="preserve"><value>Delta</value></data>
   <data name="UsageReportCompareTokensMetric" xml:space="preserve"><value>Processed tokens</value></data>
-  <data name="UsageReportCompareCostMetric" xml:space="preserve"><value>Observed cost</value></data>
+  <data name="UsageReportCompareCostMetric" xml:space="preserve"><value>Known usage cost</value></data>
   <data name="UsageReportCompareReportedCostMetric" xml:space="preserve"><value>Provider-reported cost</value></data>
   <data name="UsageReportCompareEstimatedCostMetric" xml:space="preserve"><value>Catalog estimate</value></data>
   <data name="UsageReportCompareUnpricedMetric" xml:space="preserve"><value>Unpriced tokens</value></data>
-  <data name="UsageReportCompareEventsMetric" xml:space="preserve"><value>Events</value></data>
-  <data name="UsageReportCompareQuotaUsedMetric" xml:space="preserve"><value>Quota used</value></data>
+  <data name="UsageReportCompareEventsMetric" xml:space="preserve"><value>Numeric records (not requests)</value></data>
+  <data name="UsageReportCompareQuotaUsedMetric" xml:space="preserve"><value>Quota level at cutoff</value></data>
   <data name="UsageReportCompareCostPerMillionMetric" xml:space="preserve"><value>Cost per 1M tokens</value></data>
-  <data name="UsageReportCompareTokensPerQuotaPointMetric" xml:space="preserve"><value>Tokens per 1% quota</value></data>
+  <data name="UsageReportCompareTokensPerQuotaPointMetric" xml:space="preserve"><value>Tokens per consumed quota point</value></data>
   <data name="UsageReportComparePaceMetric" xml:space="preserve"><value>Projected pace</value></data>
   <data name="UsageReportComparePercentagePointsFormat" xml:space="preserve"><value>{0} pp</value></data>
   <data name="UsageReportCompareUnavailable" xml:space="preserve"><value>—</value></data>
   <data name="UsageReportCompareCycleIncompatibleWarning" xml:space="preserve"><value>These cycles use different limits or cadences. Raw values are shown, but efficiency deltas are not directly comparable.</value></data>
-  <data name="UsageReportCompareCycleIncompleteWarning" xml:space="preserve"><value>One selected cycle is still active. Its values can increase before the cycle ends.</value></data>
-  <data name="UsageReportCompareCycleIncompatibleIncompleteWarning" xml:space="preserve"><value>These cycles use different limits or cadences, and one is still active. Raw values remain visible, but the comparison is provisional.</value></data>
+  <data name="UsageReportCompareCycleIncompleteWarning" xml:space="preserve"><value>Cycle evidence is incomplete or still active. A closed cycle does not prove complete collection or usage-to-pool attribution.</value></data>
+  <data name="UsageReportCompareCycleIncompatibleIncompleteWarning" xml:space="preserve"><value>These cycles have incompatible limits or incomplete evidence. Descriptive values remain visible; normalized quota deltas are unavailable.</value></data>
   <data name="UsageReportCompareDayFormat" xml:space="preserve"><value>Day {0}</value></data>
   <data name="UsageReportCompareCurrentRangeFormat" xml:space="preserve"><value>Current · {0} to {1}</value></data>
   <data name="UsageReportComparePreviousRangeFormat" xml:space="preserve"><value>Previous · {0} to {1}</value></data>
@@ -843,4 +843,76 @@
   <data name="ReportSquareRootScaleSuffix" xml:space="preserve"><value> · √ scale</value></data>
   <data name="UsageReportTwoHourTitle" xml:space="preserve"><value>2-hour usage · 12 bars per day</value></data>
   <data name="DashboardLayoutCardsTitle.Text" xml:space="preserve"><value>Provider cards</value></data>
+  <data name="UsageReportCompareModelsButton.Content" xml:space="preserve"><value>Models</value></data>
+  <data name="UsageComparisonPresetSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Comparison period</value></data>
+  <data name="UsageComparisonBaselineModel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline model A</value></data>
+  <data name="UsageComparisonBaselineModel.PlaceholderText" xml:space="preserve"><value>Baseline model A</value></data>
+  <data name="UsageComparisonCurrentModel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Current model B</value></data>
+  <data name="UsageComparisonCurrentModel.PlaceholderText" xml:space="preserve"><value>Current model B</value></data>
+  <data name="UsageComparisonAcrossPeriods.Content" xml:space="preserve"><value>Compare across periods</value></data>
+  <data name="UsageComparisonReferencePrices.Content" xml:space="preserve"><value>Use fixed reference prices</value></data>
+  <data name="UsageComparisonSaveButton.Content" xml:space="preserve"><value>Save comparison</value></data>
+  <data name="UsageComparisonSavedSelector.PlaceholderText" xml:space="preserve"><value>Saved comparisons</value></data>
+  <data name="UsageComparisonSavedSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Saved comparison revision</value></data>
+  <data name="UsageComparisonLiveButton.Content" xml:space="preserve"><value>Return to live data</value></data>
+  <data name="UsageComparisonPresetLastCompleteWeek" xml:space="preserve"><value>Last complete week vs previous week</value></data>
+  <data name="UsageComparisonPresetCurrentWeek" xml:space="preserve"><value>This week vs previous · completed days</value></data>
+  <data name="UsageComparisonPresetRollingSevenDays" xml:space="preserve"><value>Last 7 complete days vs preceding 7</value></data>
+  <data name="UsageComparisonPresetSelectedPeriod" xml:space="preserve"><value>Selected period vs preceding period</value></data>
+  <data name="UsageComparisonPriceReferenceFormat" xml:space="preserve"><value>Reference prices at {0}; each model keeps its own rates.</value></data>
+  <data name="UsageComparisonCompletedDaysEvidence" xml:space="preserve"><value>A = baseline, B = current. Equal completed calendar days in the report timezone; today is excluded for daily sources.</value></data>
+  <data name="UsageComparisonNoElapsedDays" xml:space="preserve"><value>This week has no completed days yet. No week-to-date comparison is available.</value></data>
+  <data name="UsageComparisonModelEvidence" xml:space="preserve"><value>Observed model mix only. Task quality, workload and missing configuration are not controlled.</value></data>
+  <data name="UsageComparisonCostEvidence" xml:space="preserve"><value>Known cost is reported usage value plus estimated API value, not a subscription invoice. Price coverage is not collection coverage.</value></data>
+  <data name="UsageComparisonRepricedEvidence" xml:space="preserve"><value>Reference-price estimate only. Unsupported timing or service tiers remain unpriced; this does not recalculate a provider charge.</value></data>
+  <data name="UsageComparisonAccountEvidence" xml:space="preserve"><value>Separate official account-day tokens: A {0}, B {1}. Provider-day timezone is not supplied; these totals overlap local usage and are not added or assigned to models.</value></data>
+  <data name="UsageComparisonQuotaEvidence" xml:space="preserve"><value>Quota readings are not interval consumption. Without matching usage-to-pool evidence, quota efficiency is unavailable. Gaps and inferred boundaries keep comparisons provisional.</value></data>
+  <data name="UsageComparisonHistoryUnavailable" xml:space="preserve"><value>Quota history could not be read. Last-good history, if present, is stale.</value></data>
+  <data name="UsageComparisonActiveDays" xml:space="preserve"><value>Active days</value></data>
+  <data name="UsageComparisonPriceCoverage" xml:space="preserve"><value>Priced tokens (%)</value></data>
+  <data name="UsageComparisonSavedEvidence" xml:space="preserve"><value>Saved immutable revision. Refresh cannot alter these values; return to live data to create a new revision.</value></data>
+  <data name="UsageComparisonSaveFailed" xml:space="preserve"><value>Could not save the comparison. Check storage access and the 100-revision / 4 MiB-per-revision limits.</value></data>
+  <data name="UsageComparisonReadSavedFailed" xml:space="preserve"><value>Could not read the saved comparison. Your stored revision was not changed.</value></data>
+  <data name="UsageComparisonCycleEvidenceFormat" xml:space="preserve"><value>Matched elapsed time: {0}. Timing exclusions: A {1}, B {2}. Quota journal readings: A {3}, B {4}.</value></data>
+  <data name="UsageComparisonCachedInput" xml:space="preserve"><value>Cached input tokens</value></data>
+  <data name="UsageComparisonUncachedInput" xml:space="preserve"><value>Uncached input tokens</value></data>
+  <data name="UsageComparisonOutput" xml:space="preserve"><value>Output and reasoning tokens</value></data>
+  <data name="UsageComparisonCostPerMillion" xml:space="preserve"><value>Known cost / million priced tokens</value></data>
+  <data name="UsageComparisonCycleGaps" xml:space="preserve"><value>Quota support is incomplete: missing start, collection gap, or truncated readings. Scheduled starts are not confirmed reset times.</value></data>
+  <data name="UsageComparisonJournalUnavailable" xml:space="preserve"><value>The quota journal is unavailable. Usage remains descriptive; no quota-efficiency conclusion is supported.</value></data>
+  <data name="UsageComparisonCacheWrite" xml:space="preserve"><value>Cache write tokens</value></data>
+  <data name="UsageComparisonTimingGaps" xml:space="preserve"><value>Exact-time history is partial. Sub-day views exclude unsupported timing. Daily views keep as-recorded dates; legacy or interval totals may not establish exact transitions. No recorded activity does not prove zero usage.</value></data>
+  <data name="UsageComparisonPricingExclusions" xml:space="preserve"><value>Excluded from reference pricing: A {0} tokens; B {1} tokens. Historical totals remain visible.</value></data>
+  <data name="UsageComparisonMixedZones" xml:space="preserve"><value>Sources use different stored timezones; date totals are not exact aligned UTC intervals.</value></data>
+  <data name="UsageComparisonReferenceDate.AutomationProperties.Name" xml:space="preserve"><value>Reference price date (UTC)</value></data>
+  <data name="UsageComparisonModelShare" xml:space="preserve"><value>Model share of period tokens</value></data>
+  <data name="UsageComparisonProfiles" xml:space="preserve"><value>Observed → canonical model · effort / tier · tokens · first–last observation</value></data>
+  <data name="UsageComparisonUnknownConfiguration" xml:space="preserve"><value>Unknown</value></data>
+  <data name="UsageComparisonDescriptive" xml:space="preserve"><value>Descriptive; not a quality comparison</value></data>
+  <data name="UsageComparisonInferredBoundary" xml:space="preserve"><value>Cycle start is inferred from the schedule or first reading, not an evidenced reset time.</value></data>
+  <data name="UsageComparisonFreshnessUnknown" xml:space="preserve"><value>Collection freshness was not recorded for this history.</value></data>
+  <data name="UsageComparisonFreshnessFormat" xml:space="preserve"><value>{0}: last collection attempt {1} · {2} ({3}). A complete scan is not complete account coverage.</value></data>
+  <data name="UsageComparisonCycleProvider" xml:space="preserve"><value>Codex · Reset cycles</value></data>
+  <data name="UsageComparisonCycleCount.PlaceholderText" xml:space="preserve"><value>Cycles</value></data>
+  <data name="UsageComparisonCycleCount.AutomationProperties.Name" xml:space="preserve"><value>Number of cycles to compare</value></data>
+  <data name="UsageComparisonCycleCountHint" xml:space="preserve"><value>Compare 2–4 distinct cycles. The available history limits the count. Cycle data currently supports Codex only.</value></data>
+  <data name="UsageComparisonCycleCLabel.Text" xml:space="preserve"><value>CYCLE C</value></data>
+  <data name="UsageComparisonCycleDLabel.Text" xml:space="preserve"><value>CYCLE D</value></data>
+  <data name="UsageComparisonCycleCSelector.AutomationProperties.Name" xml:space="preserve"><value>Codex compared cycle C</value></data>
+  <data name="UsageComparisonCycleDSelector.AutomationProperties.Name" xml:space="preserve"><value>Codex compared cycle D</value></data>
+  <data name="UsageComparisonBaselineCaption" xml:space="preserve"><value>A · Baseline</value></data>
+  <data name="UsageComparisonVersusA" xml:space="preserve"><value>vs A</value></data>
+  <data name="UsageComparisonCycleTableTitle.Text" xml:space="preserve"><value>Cycle values · each change below B, C and D is relative to A</value></data>
+  <data name="UsageComparisonMultiCycleEvidence" xml:space="preserve"><value>Shared elapsed time: {0}. Charts show timestamped usage from each reset; daily and ambiguous timing cannot establish the curve.</value></data>
+  <data name="UsageComparisonCycleCounts" xml:space="preserve"><value>{0} excluded timing records; {1} quota readings</value></data>
+  <data name="UsageMeasurementDetails.Header" xml:space="preserve"><value>Measurement details</value></data>
+  <data name="UsageMeasurementSummary.Text" xml:space="preserve"><value>Known cost includes estimates, not your subscription bill.</value></data>
+  <data name="UsageComparisonBaselineModel.Header" xml:space="preserve"><value>Baseline model · A</value></data>
+  <data name="UsageComparisonCurrentModel.Header" xml:space="preserve"><value>Compared model · B</value></data>
+  <data name="OptionsGeneralTab.Content" xml:space="preserve"><value>General</value></data>
+  <data name="OptionsNotificationsTab.Content" xml:space="preserve"><value>Notifications</value></data>
+  <data name="OptionsAppearanceTab.Content" xml:space="preserve"><value>Appearance</value></data>
+  <data name="OptionsProvidersTab.Content" xml:space="preserve"><value>Providers</value></data>
+  <data name="UsageComparisonCycleCountLabel.Text" xml:space="preserve"><value>Cycles</value></data>
+  <data name="UsageComparisonTokensFormat" xml:space="preserve"><value>{0} tokens</value></data>
 </root>

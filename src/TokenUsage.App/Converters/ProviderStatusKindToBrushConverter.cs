@@ -22,7 +22,7 @@ public sealed class ProviderStatusKindToBrushConverter : IValueConverter
                 ProviderStatusKind.Available => Color.FromArgb(255, 23, 137, 79),
                 ProviderStatusKind.Partial or ProviderStatusKind.Pending =>
                     Color.FromArgb(255, 168, 111, 0),
-                ProviderStatusKind.Missing or ProviderStatusKind.Blocked =>
+                ProviderStatusKind.Blocked =>
                     Color.FromArgb(255, 199, 79, 70),
                 _ => Color.FromArgb(255, 128, 128, 128),
             }

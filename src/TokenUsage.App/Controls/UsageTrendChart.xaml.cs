@@ -96,6 +96,8 @@ public sealed partial class UsageTrendChart : UserControl
         set => SetValue(YAxisGapProperty, value);
     }
 
+    internal bool IsCaptureMode { get; set; }
+
     internal void DismissHover() { HideHover(); FinishEntrance(); }
 
     private static void OnDataChanged(
@@ -149,6 +151,7 @@ public sealed partial class UsageTrendChart : UserControl
         UsageReportTrendDataset data = Data ?? UsageReportTrendDataset.Empty;
         bool hasSeries = data.Days.Count > 0 && data.Series.Count > 0;
         EmptyText.Visibility = hasSeries ? Visibility.Collapsed : Visibility.Visible;
+        HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(220, ActualWidth)) : 220;
         UpdateDateLabels(data);
         BuildLegend(data);
         if (!hasSeries)
@@ -167,10 +170,10 @@ public sealed partial class UsageTrendChart : UserControl
 
         foreach (double tick in UsageTrendGeometry.SelectTicksForHeight(scale.Ticks, height))
         {
-            double baseline = height - BottomPadding;
+            double baseline = height - (IsPreview ? 2 : BottomPadding);
             double y = scale.Maximum == 0
                 ? baseline
-                : baseline - (scale.Normalize(tick) * (baseline - TopPadding));
+                : baseline - (scale.Normalize(tick) * (baseline - (IsPreview ? 2 : TopPadding)));
             PlotCanvas.Children.Add(new Line
             {
                 X1 = 0,

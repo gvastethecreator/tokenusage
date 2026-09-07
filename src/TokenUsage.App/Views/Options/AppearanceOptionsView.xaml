@@ -94,19 +94,14 @@
                             Style="{StaticResource CaptionTextBlockStyle}"
                             TextWrapping="WrapWholeWords"
                             VerticalAlignment="Center" />
-                        <ToggleButton
+                        <ToggleSwitch
                             x:Name="AppearanceTransparencyToggle"
                             x:Uid="AppearanceTransparencyToggle"
                             Grid.Column="1"
                             AutomationProperties.AutomationId="AppearanceTransparencyToggle"
                             HorizontalAlignment="Right"
-                            IsChecked="{x:Bind ViewModel.IncreaseTransparency, Mode=TwoWay}"
-                            Style="{StaticResource OptionsStateButtonStyle}"
-                            VerticalAlignment="Center">
-                            <SymbolIcon
-                                AutomationProperties.AccessibilityView="Raw"
-                                Symbol="View" />
-                        </ToggleButton>
+                            IsOn="{x:Bind ViewModel.IncreaseTransparency, Mode=TwoWay}" MinWidth="0"
+                            VerticalAlignment="Center" />
                     </Grid>
 
                     <StackPanel x:Name="AppearanceUsageGroup" Grid.Row="3" Grid.ColumnSpan="2" Spacing="4">
@@ -197,19 +192,14 @@
                                 Style="{StaticResource BodyStrongTextBlockStyle}"
                                 TextWrapping="WrapWholeWords"
                                 VerticalAlignment="Center" />
-                            <ToggleButton
+                            <ToggleSwitch
                                 x:Name="AppearanceTrayPopoverEnabledToggle"
                                 x:Uid="AppearanceTrayPopoverEnabledToggle"
                                 Grid.Column="1"
                                 AutomationProperties.AutomationId="AppearanceTrayPopoverEnabledToggle"
                                 HorizontalAlignment="Right"
-                                IsChecked="{x:Bind ViewModel.ShowTrayPopover, Mode=TwoWay}"
-                                Style="{StaticResource OptionsStateButtonStyle}"
-                                VerticalAlignment="Center">
-                                <SymbolIcon
-                                    AutomationProperties.AccessibilityView="Raw"
-                                    Symbol="Message" />
-                            </ToggleButton>
+                                IsOn="{x:Bind ViewModel.ShowTrayPopover, Mode=TwoWay}" MinWidth="0"
+                                VerticalAlignment="Center" />
                         </Grid>
 
                     <StackPanel
@@ -242,6 +232,7 @@
                             DisplayMemberPath="DisplayName"
                             HorizontalAlignment="Stretch"
                             ItemsSource="{x:Bind ViewModel.TrayPopoverSecondaryOptions}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.SelectedTrayPopoverSecondary.DisplayName, Mode=OneWay}"
                             SelectedItem="{x:Bind ViewModel.SelectedTrayPopoverSecondary, Mode=TwoWay}" />
                     </StackPanel>
 
@@ -277,19 +268,14 @@
                             Style="{StaticResource CaptionTextBlockStyle}"
                             TextWrapping="WrapWholeWords"
                             VerticalAlignment="Center" />
-                        <ToggleButton
+                        <ToggleSwitch
                             x:Name="AppearanceTrayProviderNameToggle"
                             x:Uid="AppearanceTrayProviderNameToggle"
                             Grid.Column="1"
                             AutomationProperties.AutomationId="AppearanceTrayProviderNameToggle"
                             HorizontalAlignment="Right"
-                            IsChecked="{x:Bind ViewModel.ShowTrayPopoverProviderName, Mode=TwoWay}"
-                            Style="{StaticResource OptionsStateButtonStyle}"
-                            VerticalAlignment="Center">
-                            <SymbolIcon
-                                AutomationProperties.AccessibilityView="Raw"
-                                Symbol="Contact" />
-                        </ToggleButton>
+                            IsOn="{x:Bind ViewModel.ShowTrayPopoverProviderName, Mode=TwoWay}" MinWidth="0"
+                            VerticalAlignment="Center" />
                     </Grid>
                     </Grid>
                 </StackPanel>

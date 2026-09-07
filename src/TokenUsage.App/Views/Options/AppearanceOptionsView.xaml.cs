@@ -91,9 +91,9 @@ public sealed partial class AppearanceOptionsView : UserControl
             columnSpan: wide ? 1 : 2);
         Position(
             AppearanceTrayNameGroup,
-            row: wide ? 2 : 4,
-            column: wide ? 1 : 0,
-            columnSpan: wide ? 1 : 2);
+            row: wide ? 3 : 4,
+            column: 0,
+            columnSpan: 2);
     }
 
     private static void Position(

@@ -439,7 +439,7 @@
             <StackPanel Spacing="5">
                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.GlobalActivity, Mode=OneWay}">
                     <ItemsRepeater.Layout>
-                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="148" Orientation="Horizontal" />
+                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="100" ItemsStretch="Fill" MinColumnSpacing="8" Orientation="Horizontal" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="dashboard:DashboardActivitySummary">

@@ -10,6 +10,9 @@ public sealed partial class LocalizationContractTests
     {
         ResourceSet english = LoadResources("en-US");
 
+        // Regression: relabeling comparison columns must not rename a quota display preference.
+        Assert.Equal("Remaining", english.Values["AppearanceUsageRemaining"]);
+        Assert.Equal("Used", english.Values["AppearanceUsageUsed"]);
         Assert.DoesNotContain(english.Values, pair => string.IsNullOrWhiteSpace(pair.Value));
         Assert.DoesNotContain(english.Values.Values, value => value.Contains("WOpenUsage", StringComparison.Ordinal));
     }

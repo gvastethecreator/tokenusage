@@ -328,6 +328,14 @@ public sealed class ArchitectureRulesTests
             "ProvidersOptionsView.xaml"));
         Assert.DoesNotContain("VercelConnectionView", optionsView, StringComparison.Ordinal);
         Assert.Contains("UnifiedOptionsView", optionsView, StringComparison.Ordinal);
+        XNamespace optionsNamespace = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XDocument optionsDocument = XDocument.Parse(optionsView);
+        XElement[] categories = optionsDocument.Descendants(optionsNamespace + "RadioButton")
+            .Where(element => element.Attribute("GroupName")?.Value == "OptionsSections").ToArray();
+        Assert.Equal(4, categories.Length);
+        Assert.All(categories, category =>
+            Assert.Equal("{StaticResource SectionTabRadioButtonStyle}", category.Attribute("Style")?.Value));
+        Assert.Equal(4, optionsDocument.Descendants(optionsNamespace + "ScrollViewer").Count());
         Assert.Contains("GeneralOptionsView", optionsView, StringComparison.Ordinal);
         Assert.Contains("AppearanceOptionsView", optionsView, StringComparison.Ordinal);
         Assert.DoesNotContain("PersonalizationOptionsView", optionsView, StringComparison.Ordinal);
@@ -441,7 +449,7 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
-    public void OptionsCollectionUsesASwitchAndOtherBooleanSettingsKeepIconToggles()
+    public void OptionsBooleanSettingsExposeNativeSwitchStates()
     {
         string optionsRoot = Path.Combine(
             ProjectReferenceGraph.FindRepoRoot(),
@@ -469,7 +477,8 @@ public sealed class ArchitectureRulesTests
         ];
 
         XElement collectionSwitch = Assert.Single(documents.SelectMany(document => document.Descendants()),
-            element => element.Name.LocalName == "ToggleSwitch");
+            element => element.Name.LocalName == "ToggleSwitch"
+                && element.Attribute("AutomationProperties.AutomationId")?.Value == "DataCollectionBackgroundToggle");
         Assert.Equal("DataCollectionBackgroundToggle",
             collectionSwitch.Attribute("AutomationProperties.AutomationId")?.Value);
         Assert.Equal("{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}",
@@ -477,10 +486,8 @@ public sealed class ArchitectureRulesTests
 
         XElement[] stateButtons = documents
             .SelectMany(document => document.Descendants())
-            .Where(element => element.Name.LocalName == "ToggleButton")
-            .Where(element => element.Attributes().Any(attribute =>
-                attribute.Name.LocalName == "Style"
-                && attribute.Value == "{StaticResource OptionsStateButtonStyle}"))
+            .Where(element => element.Name.LocalName == "ToggleSwitch")
+            .Where(element => element.Attribute("AutomationProperties.AutomationId")?.Value != "DataCollectionBackgroundToggle")
             .ToArray();
         Assert.Equal(requiredAutomationIds.Length, stateButtons.Length);
 
@@ -491,9 +498,8 @@ public sealed class ArchitectureRulesTests
                 element => element.Attributes().Any(attribute =>
                     attribute.Name.LocalName == "AutomationProperties.AutomationId"
                     && attribute.Value == automationId));
-            Assert.Contains(
-                stateButton.Descendants(),
-                element => element.Name.LocalName is "SymbolIcon" or "FontIcon" or "TablerIcon");
+            Assert.Contains("Mode=TwoWay", stateButton.Attribute("IsOn")?.Value ?? string.Empty, StringComparison.Ordinal);
+            Assert.NotNull(stateButton.Attribute(XName.Get("Uid", "http://schemas.microsoft.com/winfx/2006/xaml")));
         }
     }
 
@@ -598,8 +604,10 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(202, matches.Count);
-        Assert.Equal(187, distinctIds.Length);
+        Assert.Equal(221, matches.Count);
+        Assert.Equal(206, distinctIds.Length);
+        Assert.Contains("UsageComparisonEvidence", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageComparisonReferenceDate", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportErrorMessage", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportRetryButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
@@ -748,8 +756,8 @@ public sealed class ArchitectureRulesTests
             "Reports");
         string reportXaml = File.ReadAllText(Path.Combine(reportRoot, "UsageReportPage.xaml"));
         Assert.Contains(
-            "x:Key=\"ReportToolbarToggleButtonStyle\" TargetType=\"RadioButton\"",
-            reportXaml,
+            "x:Key=\"SectionTabRadioButtonStyle\" TargetType=\"RadioButton\"",
+            File.ReadAllText(Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml")),
             StringComparison.Ordinal);
         Assert.Contains(
             "IsEnabled=\"{x:Bind ViewModel.HasProviderOptions, Mode=OneWay}\"",

@@ -114,9 +114,9 @@ public sealed partial class UsageReportPage
         {
             return new FrameworkElement[]
                 {
-                    ReportCompareSummary,
+                    ViewModel.IsCompareCyclesAxis ? ReportCycleSummaries : ReportCompareSummary,
                     ReportCompareChart,
-                    ReportCompareRows,
+                    ViewModel.IsCompareCyclesAxis ? ReportCycleRows : ReportCompareRows,
                 }
                 .Where(target => target.Visibility == Visibility.Visible)
                 .ToArray();
@@ -184,6 +184,8 @@ public sealed partial class UsageReportPage
             ReportCompareSummary,
             ReportCompareChart,
             ReportCompareRows,
+            ReportCycleSummaries,
+            ReportCycleRows,
         ];
 
     private void PlayReportDataTransition(

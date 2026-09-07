@@ -27,17 +27,14 @@
                         Style="{StaticResource CaptionTextBlockStyle}"
                         TextWrapping="Wrap" />
                 </StackPanel>
-                <ToggleButton
+                <ToggleSwitch
                     x:Name="AlertsMasterToggle"
                     x:Uid="AlertsMasterToggle"
                     Grid.Column="1"
                     AutomationProperties.AutomationId="AlertsMasterToggle"
                     HorizontalAlignment="Right"
-                    IsChecked="{x:Bind ViewModel.AreAlertsEnabled, Mode=TwoWay}"
-                    Style="{StaticResource OptionsStateButtonStyle}"
-                    VerticalAlignment="Center">
-                    <controls:TablerIcon Kind="bell" />
-                </ToggleButton>
+                    IsOn="{x:Bind ViewModel.AreAlertsEnabled, Mode=TwoWay}" MinWidth="0"
+                    VerticalAlignment="Center" />
             </Grid>
             <StackPanel Spacing="10">
                 <StackPanel Spacing="4">
@@ -63,15 +60,12 @@
                         x:Uid="QuotaThresholdAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleButton
+                    <ToggleSwitch
                         x:Uid="QuotaThresholdAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="QuotaThresholdAlertToggle"
                         IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
-                        IsChecked="{x:Bind ViewModel.IsQuotaThresholdAlertEnabled, Mode=TwoWay}"
-                        Style="{StaticResource OptionsStateButtonStyle}">
-                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE9D9;" />
-                    </ToggleButton>
+                        IsOn="{x:Bind ViewModel.IsQuotaThresholdAlertEnabled, Mode=TwoWay}" MinWidth="0" />
                 </Grid>
                 <Grid ColumnSpacing="12" MinHeight="32">
                     <Grid.ColumnDefinitions>
@@ -82,15 +76,12 @@
                         x:Uid="ExhaustionForecastAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleButton
+                    <ToggleSwitch
                         x:Uid="ExhaustionForecastAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="ExhaustionForecastAlertToggle"
                         IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
-                        IsChecked="{x:Bind ViewModel.IsExhaustionForecastAlertEnabled, Mode=TwoWay}"
-                        Style="{StaticResource OptionsStateButtonStyle}">
-                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE823;" />
-                    </ToggleButton>
+                        IsOn="{x:Bind ViewModel.IsExhaustionForecastAlertEnabled, Mode=TwoWay}" MinWidth="0" />
                 </Grid>
                 <Grid ColumnSpacing="12" MinHeight="32">
                     <Grid.ColumnDefinitions>
@@ -101,15 +92,12 @@
                         x:Uid="StaleDataAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleButton
+                    <ToggleSwitch
                         x:Uid="StaleDataAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="StaleDataAlertToggle"
-                        IsChecked="{x:Bind ViewModel.IsStaleDataAlertEnabled, Mode=TwoWay}"
-                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
-                        Style="{StaticResource OptionsStateButtonStyle}">
-                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE783;" />
-                    </ToggleButton>
+                        IsOn="{x:Bind ViewModel.IsStaleDataAlertEnabled, Mode=TwoWay}"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}" MinWidth="0" />
                 </Grid>
                 <Grid ColumnSpacing="12" MinHeight="32">
                     <Grid.ColumnDefinitions>
@@ -120,15 +108,12 @@
                         x:Uid="CredentialFailureAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleButton
+                    <ToggleSwitch
                         x:Uid="CredentialFailureAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="CredentialFailureAlertToggle"
-                        IsChecked="{x:Bind ViewModel.IsCredentialFailureAlertEnabled, Mode=TwoWay}"
-                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}"
-                        Style="{StaticResource OptionsStateButtonStyle}">
-                        <FontIcon AutomationProperties.AccessibilityView="Raw" Glyph="&#xE72E;" />
-                    </ToggleButton>
+                        IsOn="{x:Bind ViewModel.IsCredentialFailureAlertEnabled, Mode=TwoWay}"
+                        IsEnabled="{x:Bind ViewModel.AreAlertControlsEnabled, Mode=OneWay}" MinWidth="0" />
                 </Grid>
             </StackPanel>
             <InfoBar x:Uid="NotificationsSaveError" IsClosable="False" Severity="Warning"

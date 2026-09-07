@@ -18,13 +18,13 @@ public sealed partial class UsageTrendChart
         if (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
         {
             foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1),
-                width, height, scale.Maximum, emphasizeSmallValues: scale.EmphasizeSmallValues))
+                width, height, scale.Maximum, top: IsPreview ? 2 : TopPadding, bottom: IsPreview ? 2 : BottomPadding, emphasizeSmallValues: scale.EmphasizeSmallValues))
             {
                 var bar = new Border
                 {
                     Width = item.Width, Height = item.Height,
                     Background = SeriesBrush(data.Series[item.SeriesIndex]),
-                    CornerRadius = new CornerRadius(4, 4, 0, 0),
+                    CornerRadius = IsPreview ? new CornerRadius(1, 1, 0, 0) : new CornerRadius(4, 4, 0, 0),
                     BorderBrush = _accessibilitySettings.HighContrast ? TextBrushProxy.Background : null,
                     BorderThickness = new Thickness(_accessibilitySettings.HighContrast ? 1 : 0),
                     UseLayoutRounding = false,
@@ -75,7 +75,7 @@ public sealed partial class UsageTrendChart
             AddLine(Path(values[index], data.Style), data.Series[index], index);
 
         UsageTrendPath Path(IReadOnlyList<double> source, ReportChartStyle style) =>
-            UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, TopPadding, BottomPadding, style, scale.EmphasizeSmallValues);
+            UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, IsPreview ? 2 : TopPadding, IsPreview ? 2 : BottomPadding, style, scale.EmphasizeSmallValues);
     }
 
     private Brush AreaBrush(UsageReportTrendSeries series)
@@ -150,7 +150,7 @@ public sealed partial class UsageTrendChart
     {
         var items = new List<Grid>();
         LegendContent.ItemsSource = items;
-        LegendContent.Visibility = data.Series.Any(series => series.ModelId is not null)
+        LegendContent.Visibility = data.IsComparison || data.Series.Any(series => series.ModelId is not null)
             ? Visibility.Visible : Visibility.Collapsed;
         if (LegendContent.Visibility != Visibility.Visible) return;
         foreach (var series in data.Series)
@@ -161,7 +161,9 @@ public sealed partial class UsageTrendChart
             if (series.Values.Any(double.IsNaN) && total == 0) total = double.NaN;
             string value = data.Metric == UsageReportMetric.Share
                 ? "" : FormatValue(total, data.Metric);
-            items.Add(CreateHoverRow(series, value));
+            Grid row = CreateHoverRow(series, value);
+            ((TextBlock)row.Children[2]).Text = series.LegendName ?? series.Name;
+            items.Add(row);
         }
         LegendContent.ItemsSource = items.ToArray();
     }

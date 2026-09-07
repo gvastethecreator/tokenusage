@@ -62,6 +62,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private IReadOnlyList<QuotaWindow> _providerLimits = [];
     private ProviderCreditSummary? _providerCreditSummary;
     private QuotaResetHistory _resetHistory = QuotaResetHistory.Empty;
+    public QuotaHistoryAvailability ResetHistoryAvailability { get; private set; } = QuotaHistoryAvailability.Missing;
     private IReadOnlyList<UsageReportResetCycleOption> _resetCycleOptions = [];
     private IReadOnlyList<UsageReportResetCycleOption> _selectedResetCycleOptions = [];
     private IReadOnlyList<UsageReportResetCycleGroupOption> _resetCycleGroupOptions = [];
@@ -100,6 +101,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             new(90, GetString("UsageReportPeriod90Days")),
             new(UsageReportPeriodOption.AllHistoryDays, GetString("UsageReportPeriodAllHistory")),
         ];
+        InitializeComparisons();
         ApplyRequestCore(initialRequest ?? UsageReportRequest.Global);
         RefreshProviderDetails();
         RefreshCommand = new AsyncRelayCommand(
@@ -158,9 +160,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         IsCompareScope && IsCompareProvidersAxis && HasProviderOptions;
 
     public bool IsCompareCyclePickersVisible =>
-        IsCompareScope && IsCompareCyclesAxis && ResetCycleOptions.Count > 0;
+        IsCompareScope && IsCompareCyclesAxis && !HasSavedComparison && ResetCycleOptions.Count > 0;
 
-    public bool IsPeriodPickerVisible => !(IsCompareScope && IsCompareCyclesAxis);
+    public bool IsPeriodPickerVisible => !IsCompareScope || (!IsCompareCyclesAxis
+        && (!HasPeriodComparisonOptions || ComparisonPreset?.Preset == UsageComparisonPreset.SelectedPeriod));
 
     public bool IsAbsoluteValueMode => ValueMode == UsageReportValueMode.Absolute;
 
@@ -200,14 +203,20 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _isLoading, value))
             {
                 RefreshCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(CanCaptureReport));
             }
         }
     }
 
+    public bool CanCaptureReport => HasData && !IsLoading;
+
     public bool HasData
     {
         get => _hasData;
-        private set => SetProperty(ref _hasData, value);
+        private set
+        {
+            if (SetProperty(ref _hasData, value)) OnPropertyChanged(nameof(CanCaptureReport));
+        }
     }
 
     public bool HasError
@@ -386,61 +395,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public UsageReportResetCycleOption? CompareLeftCycle
     {
         get => _compareLeftCycle;
-        set
-        {
-            if (!SetProperty(ref _compareLeftCycle, value))
-            {
-                return;
-            }
-
-            if (value is not null
-                && string.Equals(_compareRightCycle?.Id, value.Id, StringComparison.Ordinal))
-            {
-                UsageReportResetCycleOption? replacement = FindOtherCycle(ResetCycleOptions, value);
-                if (replacement is not null)
-                {
-                    _compareRightCycle = replacement;
-                    OnPropertyChanged(nameof(CompareRightCycle));
-                }
-            }
-
-            if (value is not null
-                && IsCompareScope
-                && IsCompareCyclesAxis)
-            {
-                _ = LoadAsync();
-            }
-        }
+        set => SelectCycle(ref _compareLeftCycle, value, nameof(CompareLeftCycle));
     }
 
     public UsageReportResetCycleOption? CompareRightCycle
     {
         get => _compareRightCycle;
-        set
-        {
-            if (!SetProperty(ref _compareRightCycle, value))
-            {
-                return;
-            }
-
-            if (value is not null
-                && string.Equals(_compareLeftCycle?.Id, value.Id, StringComparison.Ordinal))
-            {
-                UsageReportResetCycleOption? replacement = FindOtherCycle(ResetCycleOptions, value);
-                if (replacement is not null)
-                {
-                    _compareLeftCycle = replacement;
-                    OnPropertyChanged(nameof(CompareLeftCycle));
-                }
-            }
-
-            if (value is not null
-                && IsCompareScope
-                && IsCompareCyclesAxis)
-            {
-                _ = LoadAsync();
-            }
-        }
+        set => SelectCycle(ref _compareRightCycle, value, nameof(CompareRightCycle));
     }
 
     public IReadOnlyList<QuotaWindow> ProviderLimits
@@ -597,6 +558,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     {
         get
         {
+            if (_savedComparison is { } saved) return GetString("UsageComparisonSavedEvidence") + " · " + saved.CreatedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+            if (IsCompareScope && (IsComparePeriodsAxis || IsCompareModelsAxis && CompareModelPeriods))
+                return ComparisonPreset?.Name + " · UTC" + _clock.GetLocalNow().ToString("zzz", CultureInfo.InvariantCulture);
+
             if (IsCompareScope && IsCompareCyclesAxis
                 && CompareLeftCycle is not null
                 && CompareRightCycle is not null)
@@ -692,6 +657,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public async Task LoadAsync(bool refreshSource = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_savedComparison is not null) return;
+        _measurementEvidence = string.Empty;
         _loadCancellation?.Cancel();
         var cancellation = new CancellationTokenSource();
         CancellationToken token = cancellation.Token;
@@ -741,9 +708,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 async Task<UsageReport> ReadResetCycleAsync(
                     UsageReportResetCycleOption cycle)
                 {
-                    UsageReport report = await Task.Run(
-                        () => query.ReadExactAsync(
-                            cycle.FromUtc, cycle.ToUtc, new AgentId("codex"), token), token);
+                    UsageReport report = await ReadMatchedCycleAsync(query, cycle, token);
                     token.ThrowIfCancellationRequested();
                     return report;
                 }
@@ -751,11 +716,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 // Switching provider keeps the period, and the all-provider read only feeds the
                 // picker and the all-provider scope. Reading it again per provider switch doubled
                 // the wait for a result the range already produced.
-                if (refreshSource || _globalReportRange != (startDate, endDate))
+                if (refreshSource || IsCompareScope || _globalReportRange != (startDate, endDate))
                 {
                     _globalReport = await ReadRangeAsync(startDate, endDate);
                     _globalReportRange = (startDate, endDate);
                     RebuildProviderOptions();
+                    RebuildComparisonModels();
                 }
 
                 if (IsCompareScope)
@@ -764,8 +730,19 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                         ReadRangeAsync,
                         ReadResetCycleAsync,
                         startDate,
-                        endDate)
+                        endDate, token)
                         .ConfigureAwait(true);
+                    if (UseReferencePrices && !IsCompareCyclesAxis)
+                    {
+                        UsageReport repricedA = await RepriceAsync(_report, _compareLeftStart, _compareLeftEnd, token);
+                        token.ThrowIfCancellationRequested();
+                        UsageReport repricedB = await RepriceAsync(_compareRightReport, _compareRightStart, _compareRightEnd, token);
+                        token.ThrowIfCancellationRequested();
+                        _report = repricedA;
+                        _compareRightReport = repricedB;
+                        _measurementEvidence += " " + GetString("UsageComparisonRepricedEvidence") + " " + PriceReferenceLabel;
+                    }
+                    await LoadSavedComparisonsAsync(token);
                 }
                 else
                 {
@@ -793,6 +770,30 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 return;
             }
 
+            _measurementEvidence += " " + GetString("UsageComparisonCostEvidence");
+            UsageCollectionState[] collection = _report.CollectionState.Concat(_compareRightReport.CollectionState)
+                .DistinctBy(row => row.AgentId).ToArray();
+            _measurementEvidence += " " + (collection.Length == 0 ? GetString("UsageComparisonFreshnessUnknown")
+                : string.Join("; ", collection.Select(row => string.Format(CultureInfo.CurrentCulture,
+                    GetString("UsageComparisonFreshnessFormat"), ProviderName(row.AgentId),
+                    row.AttemptedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture), row.Status, row.Issue))));
+            if (_report.HasTimingGaps || _compareRightReport.HasTimingGaps || IsCompareCyclesAxis && _cycleReports.Any(entry => entry.Report.HasTimingGaps))
+                _measurementEvidence += " " + GetString("UsageComparisonTimingGaps");
+            if (UseReferencePrices && IsCompareScope && !IsCompareCyclesAxis)
+                _measurementEvidence += " " + string.Format(CultureInfo.CurrentCulture,
+                    GetString("UsageComparisonPricingExclusions"), FormatTokens(_report.PriceReferenceExcludedTokens),
+                    FormatTokens(_compareRightReport.PriceReferenceExcludedTokens));
+            string[] zones = _report.GroupingTimeZoneIds.Concat(_compareRightReport.GroupingTimeZoneIds).Distinct().ToArray();
+            if (zones.Length > 1) _measurementEvidence += " " + GetString("UsageComparisonMixedZones");
+            if (_report.AccountUsage.Count > 0 || _compareRightReport.AccountUsage.Count > 0)
+                _measurementEvidence += " " + string.Format(CultureInfo.CurrentCulture, GetString("UsageComparisonAccountEvidence"),
+                    FormatTokens(_report.AccountUsage.Sum(item => item.Tokens)),
+                    FormatTokens(_compareRightReport.AccountUsage.Sum(item => item.Tokens)));
+            if (IsCompareCyclesAxis)
+                _measurementEvidence += " " + GetString("UsageComparisonQuotaEvidence") + " " + CycleEvidenceText();
+            if (ResetHistoryAvailability is not (QuotaHistoryAvailability.Available or QuotaHistoryAvailability.Missing))
+                _measurementEvidence += " " + GetString("UsageComparisonHistoryUnavailable") + " (" + ResetHistoryAvailability + ")";
+            OnPropertyChanged(nameof(MeasurementEvidence));
             StatusText = string.Empty;
             _hasCurrentReport = true;
             RebuildProjection();
@@ -1008,6 +1009,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void NotifyScopeChanged()
     {
+        _savedComparison = null;
+        OnPropertyChanged(nameof(IsCompareModelsAxis));
+        OnPropertyChanged(nameof(HasPeriodComparisonOptions));
+        OnPropertyChanged(nameof(CanChangeComparison));
+        OnPropertyChanged(nameof(CanUseReferencePrices));
+        OnPropertyChanged(nameof(HasSavedComparison));
         OnPropertyChanged(nameof(Scope));
         OnPropertyChanged(nameof(IsGlobalScope));
         OnPropertyChanged(nameof(IsProviderScope));
@@ -1115,24 +1122,14 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return;
         }
 
-        try
+        QuotaHistoryReadResult result = await _resetHistoryStore.ReadAsync(cancellationToken).ConfigureAwait(true);
+        cancellationToken.ThrowIfCancellationRequested();
+        ResetHistoryAvailability = result.Availability;
+        if (result.History is { } history)
         {
-            QuotaResetHistory history = await _resetHistoryStore
-                .LoadAsync(cancellationToken)
-                .ConfigureAwait(true);
-            cancellationToken.ThrowIfCancellationRequested();
             _resetHistory = history;
         }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or TimeoutException
-            or InvalidOperationException
-            or System.Security.SecurityException)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            _resetHistory = QuotaResetHistory.Empty;
-        }
-
+        OnPropertyChanged(nameof(ResetHistoryAvailability));
         RebuildResetCycleOptions();
     }
 
@@ -1343,7 +1340,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             cycle.IsCurrent,
             cycle.EndingResetCause,
             projectedUsagePercent,
-            paceText);
+            paceText) { ProviderId = cycle.ProviderId, ProviderName = ProviderName(cycle.ProviderId) };
     }
 
     private (decimal? ProjectedUsagePercent, string Text) CreateResetCyclePace(
@@ -1638,7 +1635,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private void RebuildProjection()
     {
         HasData = _hasCurrentReport && (IsCompareScope
-            ? _report.Totals.EventCount > 0 || _compareRightReport.Totals.EventCount > 0
+            ? _report.Totals.EventCount > 0 || _compareRightReport.Totals.EventCount > 0 || IsCompareCyclesAxis && _cycleReports.Any(entry => entry.Report.Totals.EventCount > 0)
             : _report.Totals.EventCount > 0);
         NotifyEmptyStateChanged();
 
@@ -1657,6 +1654,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         {
             AssignCompareLabels();
             CompareRows = CreateCompareRows();
+            RebuildCycleProjection();
             Trend = CreateCompareTrend();
         }
         else
@@ -1713,6 +1711,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasCompareCycleWarning));
         OnPropertyChanged(nameof(CompareCycleWarningText));
         OnPropertyChanged(nameof(PeriodText));
+        OnPropertyChanged(nameof(MeasurementEvidence));
     }
 
     private bool NeedsCodexResetCycles =>
@@ -1723,7 +1722,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         Func<DateOnly, DateOnly, Task<UsageReport>> readRangeAsync,
         Func<UsageReportResetCycleOption, Task<UsageReport>> readResetCycleAsync,
         DateOnly startDate,
-        DateOnly endDate)
+        DateOnly endDate, CancellationToken token)
     {
         EnsureCompareSelections();
         switch (CompareAxis)
@@ -1745,40 +1744,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 _compareRightEnd = endDate;
                 break;
             case UsageReportCompareAxis.Periods:
-                int days = InclusiveDayCount(startDate, endDate);
-                DateOnly previousEnd = startDate.AddDays(-1);
-                DateOnly previousStart = previousEnd.AddDays(-(days - 1));
-                UsageReport previousReport = await readRangeAsync(previousStart, previousEnd)
-                    .ConfigureAwait(true);
-                _report = _globalReport;
-                _compareRightReport = previousReport;
-                _compareLeftStart = startDate;
-                _compareLeftEnd = endDate;
-                _compareRightStart = previousStart;
-                _compareRightEnd = previousEnd;
+                await ApplyPeriodComparisonAsync(readRangeAsync, startDate, endDate);
+                break;
+            case UsageReportCompareAxis.Models:
+                await ApplyModelComparisonAsync(readRangeAsync, startDate, endDate, token);
                 break;
             case UsageReportCompareAxis.Cycles:
-                UsageReportResetCycleOption? leftCycle = CompareLeftCycle;
-                UsageReportResetCycleOption? rightCycle = CompareRightCycle;
-                UsageReport leftRaw = leftCycle is null
-                    ? UsageReportQuery.Build([])
-                    : await readResetCycleAsync(leftCycle)
-                        .ConfigureAwait(true);
-                UsageReport rightRaw = rightCycle is null
-                    ? UsageReportQuery.Build([])
-                    : await readResetCycleAsync(rightCycle)
-                        .ConfigureAwait(true);
-                AgentId codex = new("codex");
-                _report = leftCycle is null
-                    ? leftRaw
-                    : UsageReportQuery.FilterByAgent(leftRaw, codex);
-                _compareRightReport = rightCycle is null
-                    ? rightRaw
-                    : UsageReportQuery.FilterByAgent(rightRaw, codex);
-                _compareLeftStart = leftCycle?.FromDate ?? startDate;
-                _compareLeftEnd = leftCycle?.ToDate ?? endDate;
-                _compareRightStart = rightCycle?.FromDate ?? startDate;
-                _compareRightEnd = rightCycle?.ToDate ?? endDate;
+                await ApplyCycleSetAsync(readResetCycleAsync, startDate, endDate, token);
                 break;
             default:
                 _report = _globalReport;
@@ -1786,6 +1758,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 break;
         }
     }
+
+    private DateOnly MatchedCycleEndDate(UsageReportResetCycleOption cycle) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(cycle.FromUtc + (_matchedCycleDuration > TimeSpan.Zero
+            ? _matchedCycleDuration - TimeSpan.FromTicks(1) : TimeSpan.Zero), TimeZoneInfo.Local).DateTime);
 
     private void EnsureCompareSelections()
     {
@@ -1860,17 +1836,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             _compareRightCycle = null;
             OnPropertyChanged(nameof(CompareLeftCycle));
             OnPropertyChanged(nameof(CompareRightCycle));
+            NormalizeCycleSelections();
             return;
         }
 
         string? leftId = preferredLeftId ?? _compareLeftCycle?.Id;
         string? rightId = preferredRightId ?? _compareRightCycle?.Id;
-        UsageReportResetCycleOption left = FindCycle(ResetCycleOptions, leftId)
-            ?? FindCurrentCycle(ResetCycleOptions)
-            ?? ResetCycleOptions[0];
         UsageReportResetCycleOption right = FindCycle(ResetCycleOptions, rightId)
-            ?? FindOtherCycle(ResetCycleOptions, left)
-            ?? left;
+            ?? FindCurrentCycle(ResetCycleOptions) ?? ResetCycleOptions[0];
+        UsageReportResetCycleOption left = FindCycle(ResetCycleOptions, leftId)
+            ?? FindOtherCycle(ResetCycleOptions, right) ?? right;
         if (string.Equals(left.Id, right.Id, StringComparison.Ordinal))
         {
             right = FindOtherCycle(ResetCycleOptions, left) ?? left;
@@ -1879,6 +1854,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         _compareRightCycle = right;
         OnPropertyChanged(nameof(CompareLeftCycle));
         OnPropertyChanged(nameof(CompareRightCycle));
+        NormalizeCycleSelections();
     }
 
     private static UsageReportResetCycleOption? FindCycle(
@@ -2009,6 +1985,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void NotifyEmptyStateChanged()
     {
+        OnPropertyChanged(nameof(CanChangeComparison));
+        OnPropertyChanged(nameof(CanUseReferencePrices));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(IsInitialLoading));
         OnPropertyChanged(nameof(EmptyTitleText));
@@ -2018,30 +1996,32 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void AssignCompareLabels()
     {
-        CompareLeftLabel = CompareAxis switch
+        CompareLeftLabel = _savedComparison?.Definition.BaselineLabel ?? (CompareAxis switch
         {
             UsageReportCompareAxis.Providers => CompareLeftProvider?.Name ?? string.Empty,
-            UsageReportCompareAxis.Periods => FormatCompareRange(
-                "UsageReportCompareCurrentRangeFormat",
-                _compareLeftStart,
-                _compareLeftEnd),
-            UsageReportCompareAxis.Cycles => CompareLeftCycle?.DisplayName ?? string.Empty,
-            _ => string.Empty,
-        };
-        CompareRightLabel = CompareAxis switch
-        {
-            UsageReportCompareAxis.Providers => CompareRightProvider?.Name ?? string.Empty,
+            UsageReportCompareAxis.Models => (_baselineModel?.Name ?? string.Empty) + (CompareModelPeriods ? " · " + FormatCompareRange("UsageReportComparePreviousRangeFormat", _compareLeftStart, _compareLeftEnd) : ""),
             UsageReportCompareAxis.Periods => FormatCompareRange(
                 "UsageReportComparePreviousRangeFormat",
+                _compareLeftStart,
+                _compareLeftEnd),
+            UsageReportCompareAxis.Cycles => _cycleReports.Count > 0 ? _cycleReports[0].Label : string.Empty,
+            _ => string.Empty,
+        });
+        CompareRightLabel = _savedComparison?.Definition.CurrentLabel ?? (CompareAxis switch
+        {
+            UsageReportCompareAxis.Providers => CompareRightProvider?.Name ?? string.Empty,
+            UsageReportCompareAxis.Models => (_currentModel?.Name ?? string.Empty) + (CompareModelPeriods ? " · " + FormatCompareRange("UsageReportCompareCurrentRangeFormat", _compareRightStart, _compareRightEnd) : ""),
+            UsageReportCompareAxis.Periods => FormatCompareRange(
+                "UsageReportCompareCurrentRangeFormat",
                 _compareRightStart,
                 _compareRightEnd),
-            UsageReportCompareAxis.Cycles => CompareRightCycle?.DisplayName ?? string.Empty,
+            UsageReportCompareAxis.Cycles => _cycleReports.Count > 1 ? _cycleReports[1].Label : string.Empty,
             _ => string.Empty,
-        };
+        });
 
         UsageReportMetricDelta delta = UsageReportQuery.Subtract(
-            _report.Totals,
-            _compareRightReport.Totals);
+            _compareRightReport.Totals,
+            _report.Totals);
         UsageReportCycleComparison? cycleComparison = CreateCycleComparison();
         CompareLeftCostText = cycleComparison is null
             ? FormatKnownCost(_report.Totals)
@@ -2070,9 +2050,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             start.ToString("d MMM", CultureInfo.CurrentCulture),
             end.ToString("d MMM", CultureInfo.CurrentCulture));
 
-    private UsageReportCompareRow[] CreateCompareRows()
+    private UsageReportCompareRow[] CreateCompareRows() => CreatePairRows(_compareRightReport, CreateCycleComparison());
+
+    private UsageReportCompareRow[] CreatePairRows(UsageReport currentReport, UsageReportCycleComparison? cycleComparison)
     {
-        UsageReportCycleComparison? cycleComparison = CreateCycleComparison();
         if (cycleComparison is not null)
         {
             List<UsageReportCompareRow> cycleRows =
@@ -2086,16 +2067,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     GetString("UsageReportCompareTokensMetric"),
                     FormatOptionalTokens(cycleComparison.Tokens.Left),
                     FormatOptionalTokens(cycleComparison.Tokens.Right),
-                    FormatOptionalSignedTokens(
+                    FormatChangeWithPercent(FormatOptionalSignedTokens(
                         cycleComparison.Tokens.Left,
-                        cycleComparison.Tokens.Right)),
+                        cycleComparison.Tokens.Right), cycleComparison.Tokens.Left, cycleComparison.Tokens.Right)),
                 new(
                     GetString("UsageReportCompareCostMetric"),
                     FormatOptionalUsd(cycleComparison.CostUsd.Left),
                     FormatOptionalUsd(cycleComparison.CostUsd.Right),
-                    FormatOptionalSignedUsd(
+                    FormatChangeWithPercent(FormatOptionalSignedUsd(
                         cycleComparison.CostUsd.Left,
-                        cycleComparison.CostUsd.Right)),
+                        cycleComparison.CostUsd.Right), cycleComparison.CostUsd.Left, cycleComparison.CostUsd.Right)),
                 new(
                     GetString("UsageReportCompareEventsMetric"),
                     FormatOptionalCount(cycleComparison.EventCount.Left),
@@ -2108,74 +2089,58 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     FormatOptionalSignedTokens(
                         cycleComparison.TokensPerQuotaPoint.Left,
                         cycleComparison.TokensPerQuotaPoint.Right)),
-                new(
-                    GetString("UsageReportCompareCostPerMillionMetric"),
-                    FormatOptionalUsd(cycleComparison.CostPerMillionTokens.Left),
-                    FormatOptionalUsd(cycleComparison.CostPerMillionTokens.Right),
-                    FormatOptionalSignedUsd(
-                        cycleComparison.CostPerMillionTokens.Left,
-                        cycleComparison.CostPerMillionTokens.Right)),
             ];
 
-            if (cycleComparison.IsCompatible
-                && CompareLeftCycle is { HasPace: true } leftCycle
-                && CompareRightCycle is { HasPace: true } rightCycle)
-            {
-                cycleRows.Add(new UsageReportCompareRow(
-                    GetString("UsageReportComparePaceMetric"),
-                    leftCycle.PaceText,
-                    rightCycle.PaceText,
-                    FormatSignedPercentagePoints(
-                        leftCycle.ProjectedUsagePercent!.Value
-                        - rightCycle.ProjectedUsagePercent!.Value)));
-            }
-
+            cycleRows.AddRange(CreateMeasurementRows(currentReport));
             return cycleRows.ToArray();
         }
 
         UsageReportMetricDelta delta = UsageReportQuery.Subtract(
-            _report.Totals,
-            _compareRightReport.Totals);
+            currentReport.Totals,
+            _report.Totals);
         List<UsageReportCompareRow> rows =
         [
             new(
                 GetString("UsageReportCompareTokensMetric"),
                 FormatTokens(_report.Totals.Tokens.Total),
-                FormatTokens(_compareRightReport.Totals.Tokens.Total),
-                FormatSignedTokens(delta.Tokens)),
+                FormatTokens(currentReport.Totals.Tokens.Total),
+                FormatChangeWithPercent(FormatSignedTokens(delta.Tokens), _report.Totals.Tokens.Total, currentReport.Totals.Tokens.Total)),
             new(
                 GetString("UsageReportCompareCostMetric"),
                 FormatKnownCost(_report.Totals),
-                FormatKnownCost(_compareRightReport.Totals),
-                FormatOptionalSignedUsd(
-                    ComparableCost(_report.Totals), ComparableCost(_compareRightReport.Totals))),
+                FormatKnownCost(currentReport.Totals),
+                FormatChangeWithPercent(FormatOptionalSignedUsd(
+                    ComparableCost(_report.Totals), ComparableCost(currentReport.Totals)),
+                    ComparableCost(_report.Totals), ComparableCost(currentReport.Totals))),
             new(
                 GetString("UsageReportCompareReportedCostMetric"),
-                FormatUsd(_report.Totals.ReportedCostUsd ?? 0m),
-                FormatUsd(_compareRightReport.Totals.ReportedCostUsd ?? 0m),
-                FormatSignedUsd(delta.ReportedCostUsd)),
+                FormatOptionalUsd(_report.Totals.ReportedCostUsd),
+                FormatOptionalUsd(currentReport.Totals.ReportedCostUsd),
+                FormatOptionalSignedUsd(_report.Totals.ReportedCostUsd, currentReport.Totals.ReportedCostUsd)),
             new(
                 GetString("UsageReportCompareEstimatedCostMetric"),
-                FormatUsd(_report.Totals.EstimatedCostUsd ?? 0m),
-                FormatUsd(_compareRightReport.Totals.EstimatedCostUsd ?? 0m),
-                FormatSignedUsd(delta.EstimatedCostUsd)),
+                FormatOptionalUsd(_report.Totals.EstimatedCostUsd),
+                FormatOptionalUsd(currentReport.Totals.EstimatedCostUsd),
+                FormatOptionalSignedUsd(_report.Totals.EstimatedCostUsd, currentReport.Totals.EstimatedCostUsd)),
             new(
                 GetString("UsageReportCompareUnpricedMetric"),
                 FormatTokens(_report.Totals.UnpricedTokens),
-                FormatTokens(_compareRightReport.Totals.UnpricedTokens),
+                FormatTokens(currentReport.Totals.UnpricedTokens),
                 FormatSignedTokens(delta.UnpricedTokens)),
             new(
                 GetString("UsageReportCompareEventsMetric"),
                 UsageValueFormatter.Count(_report.Totals.EventCount),
-                UsageValueFormatter.Count(_compareRightReport.Totals.EventCount),
+                UsageValueFormatter.Count(currentReport.Totals.EventCount),
                 FormatSignedCount(delta.EventCount)),
         ];
 
+        rows.AddRange(CreateMeasurementRows(currentReport));
         return rows.ToArray();
     }
 
     private UsageReportCycleComparison? CreateCycleComparison()
     {
+        if (_savedComparison is not null) return _savedComparison.Definition.CycleComparison;
         if (!IsCompareScope
             || !IsCompareCyclesAxis
             || CompareLeftCycle is null
@@ -2189,23 +2154,18 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             CreateCycleObservation(CompareRightCycle, _compareRightReport.Totals));
     }
 
-    private static UsageReportCycleObservation CreateCycleObservation(
+    private UsageReportCycleObservation CreateCycleObservation(
         UsageReportResetCycleOption cycle,
         UsageReportMetrics metrics) => new(
             cycle.GroupId,
-            !cycle.IsCurrent,
-            cycle.UsedPercent,
+            false, // Lifecycle is not proof of complete measurement or pool attribution.
+            _cycleLevels.GetValueOrDefault(cycle.Id),
             metrics.Tokens.Total,
             ComparableCost(metrics),
             metrics.EventCount,
             Math.Max(0, metrics.Tokens.Total - metrics.UnpricedTokens));
 
-    private static decimal? ComparableCost(UsageReportMetrics metrics) =>
-        metrics.UnavailableCostEventCount > 0
-        && metrics.ReportedCostUsd is null
-        && metrics.EstimatedCostUsd is null
-            ? null
-            : metrics.TotalCostUsd;
+    private static decimal? ComparableCost(UsageReportMetrics metrics) => UsageComparison.KnownCost(metrics);
 
     private string FormatKnownCost(UsageReportMetrics metrics) =>
         ComparableCost(metrics) is decimal value
@@ -2246,7 +2206,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private string FormatOptionalSignedUsd(decimal? left, decimal? right) =>
         left is decimal leftValue && right is decimal rightValue
-            ? FormatSignedUsd(leftValue - rightValue)
+            ? FormatSignedUsd(rightValue - leftValue)
             : GetString("UsageReportCompareUnavailable");
 
     private string FormatOptionalSignedTokens(decimal? left, decimal? right)
@@ -2256,7 +2216,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return GetString("UsageReportCompareUnavailable");
         }
 
-        decimal difference = leftValue - rightValue;
+        decimal difference = rightValue - leftValue;
         if (difference == 0m)
         {
             return FormatCompactTokens(0);
@@ -2303,6 +2263,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private UsageReportTrendDataset CreateCompareTrend()
     {
+        if (IsCompareCyclesAxis) return CreateCycleTrend();
         bool alignByIndex = CompareAxis != UsageReportCompareAxis.Providers;
         int leftCount = InclusiveDayCount(_compareLeftStart, _compareLeftEnd);
         int rightCount = InclusiveDayCount(_compareRightStart, _compareRightEnd);

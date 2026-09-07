@@ -291,7 +291,7 @@ public sealed partial class MainWindow : Window, IDisposable
         return new DeactivateHideLease(this);
     }
 
-    private void PositionFlyout()
+    private void PositionFlyout(bool animateLayout = false)
     {
         if (_trayIcon is null)
         {
@@ -315,7 +315,7 @@ public sealed partial class MainWindow : Window, IDisposable
             initialHeightDips,
             96,
             display.FallbackAnchor);
-        MoveTo(initialPlacement.Bounds);
+        if (!animateLayout) MoveTo(initialPlacement.Bounds);
 
         var effectiveDpi = MonitorPlacementContextProvider.GetWindowDpi(_windowHandle);
         var finalWidthDips = FlyoutSizePolicy.ClampWidthDips(
@@ -590,7 +590,7 @@ public sealed partial class MainWindow : Window, IDisposable
             _layoutAnimationPositionPending = false;
             if (!_disposed && _isFlyoutVisible)
             {
-                PositionFlyout();
+                PositionFlyout(animateLayout: true);
             }
         });
     }

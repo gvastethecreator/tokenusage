@@ -8,43 +8,69 @@
     xmlns:options="using:TokenUsage.App.Views.Options"
     mc:Ignorable="d">
 
-    <StackPanel
-        x:Name="OptionsStack"
-        AutomationProperties.AutomationId="UnifiedOptionsView"
-        Spacing="12">
-        <options:GeneralOptionsView
-            x:Name="GeneralView"
-            ViewModel="{x:Bind ViewModel.General, Mode=OneWay}" />
-        <options:NotificationsOptionsView x:Name="NotificationsView"
-            ViewModel="{x:Bind ViewModel.Notifications, Mode=OneWay}" />
-        <options:AppearanceOptionsView
-            x:Name="AppearanceView"
-            PersonalizationViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}"
-            ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}" />
-        <options:ProviderStatusView
-            x:Name="ProviderStatusView"
-            ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}" />
-        <Border
-            AutomationProperties.AutomationId="AboutSection"
-            Style="{StaticResource OptionsCategoryCardStyle}">
-            <Grid ColumnSpacing="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Image Height="28" Source="{ThemeResource TokenUsageAppIconSource}" Width="28" />
-                <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                    <TextBlock x:Uid="AboutProjectTitle" FontWeight="SemiBold" />
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind VersionText, Mode=OneTime}" />
+    <Grid AutomationProperties.AutomationId="UnifiedOptionsView" RowSpacing="12">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal">
+            <RadioButton x:Name="GeneralTab" x:Uid="OptionsGeneralTab"
+                AutomationProperties.AutomationId="OptionsGeneralTab" GroupName="OptionsSections"
+                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="0" IsChecked="True"
+                Checked="OnOptionTabChecked" />
+            <RadioButton x:Name="NotificationsTab" x:Uid="OptionsNotificationsTab"
+                AutomationProperties.AutomationId="OptionsNotificationsTab" GroupName="OptionsSections"
+                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="1" IsChecked="False"
+                Checked="OnOptionTabChecked" />
+            <RadioButton x:Name="AppearanceTab" x:Uid="OptionsAppearanceTab"
+                AutomationProperties.AutomationId="OptionsAppearanceTab" GroupName="OptionsSections"
+                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="2" IsChecked="False"
+                Checked="OnOptionTabChecked" />
+            <RadioButton x:Name="ProvidersTab" x:Uid="OptionsProvidersTab"
+                AutomationProperties.AutomationId="OptionsProvidersTab" GroupName="OptionsSections"
+                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="3" IsChecked="False"
+                Checked="OnOptionTabChecked" />
+        </StackPanel>
+        <Grid x:Name="OptionsContentHost" Grid.Row="1" Height="440" SizeChanged="OnOptionsHostSizeChanged">
+            <Grid.Clip><RectangleGeometry x:Name="OptionsContentClip" /></Grid.Clip>
+            <ScrollViewer x:Name="GeneralScroll" Visibility="Visible" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="OptionsStack" Spacing="12" Margin="0">
+                    <options:GeneralOptionsView x:Name="GeneralView"
+                        ViewModel="{x:Bind ViewModel.General, Mode=OneWay}" />
+                    <Border
+                        AutomationProperties.AutomationId="AboutSection"
+                        Style="{StaticResource OptionsCategoryCardStyle}">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Image Height="28" Source="{ThemeResource TokenUsageAppIconSource}" Width="28" />
+                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                <TextBlock x:Uid="AboutProjectTitle" FontWeight="SemiBold" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind VersionText, Mode=OneTime}" />
+                            </StackPanel>
+                            <HyperlinkButton
+                                x:Uid="AboutGitHubLink"
+                                Grid.Column="2"
+                                AutomationProperties.AutomationId="AboutGitHubLink"
+                                NavigateUri="https://github.com/gvastethecreator"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
-                <HyperlinkButton
-                    x:Uid="AboutGitHubLink"
-                    Grid.Column="2"
-                    AutomationProperties.AutomationId="AboutGitHubLink"
-                    NavigateUri="https://github.com/gvastethecreator"
-                    VerticalAlignment="Center" />
-            </Grid>
-        </Border>
-    </StackPanel>
+            </ScrollViewer>
+            <ScrollViewer x:Name="NotificationsScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <options:NotificationsOptionsView x:Name="NotificationsView" Margin="0"
+                    ViewModel="{x:Bind ViewModel.Notifications, Mode=OneWay}" />
+            </ScrollViewer>
+            <ScrollViewer x:Name="AppearanceScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <options:AppearanceOptionsView x:Name="AppearanceView" Margin="0"
+                    PersonalizationViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}"
+                    ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}" />
+            </ScrollViewer>
+            <ScrollViewer x:Name="ProvidersScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <options:ProviderStatusView x:Name="ProviderStatusView" Margin="0"
+                    ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}" />
+            </ScrollViewer>
+        </Grid>
+    </Grid>
 </UserControl>
