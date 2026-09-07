@@ -11,6 +11,10 @@ using TokenUsage.Runtime.Windows.Credentials;
 using TokenUsage.Runtime.Windows.Providers;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 using TokenUsage.Runtime.Windows;
+using TokenUsage.App.ViewModels.Surfaces;
+using TokenUsage.Core.Updates;
+using TokenUsage.Runtime.Windows.Updates;
+using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace TokenUsage.App.Composition;
 
@@ -23,6 +27,16 @@ public sealed record AppCompositionOptions(
 /// </summary>
 public static class AppComposition
 {
+    private static readonly Lazy<HttpClient> UpdateHttpClient = new(() => new HttpClient(new HttpClientHandler
+    {
+        AllowAutoRedirect = false,
+        UseCookies = false,
+        UseDefaultCredentials = false,
+    })
+    {
+        Timeout = TimeSpan.FromMinutes(2),
+    });
+
     private static readonly Lazy<HttpClient> VercelHttpClient = new(() => new HttpClient
     {
         Timeout = TimeSpan.FromSeconds(30),
@@ -107,7 +121,21 @@ public static class AppComposition
             new WindowsManualProviderCredentialStore(),
             dataCollectionSettings,
             alertSettings,
-            alertNotifications ?? NullAlertNotificationSink.Instance);
+            alertNotifications ?? NullAlertNotificationSink.Instance,
+            CreateUpdateOptions(localFolderPath, resolvedClock));
+    }
+
+    private static UpdateOptionsViewModel CreateUpdateOptions(string localFolderPath, TimeProvider clock)
+    {
+        var resources = new ResourceLoader();
+        Version version = typeof(AppComposition).Assembly.GetName().Version ?? new Version(0, 0, 0);
+        return new UpdateOptionsViewModel(
+            UpdateEnvironment.Detect(version),
+            new UpdateSettingsStore(Path.Combine(localFolderPath, UpdateSettingsStore.DefaultFileName)),
+            new GitHubUpdateClient(UpdateHttpClient.Value),
+            Path.Combine(localFolderPath, "updates"),
+            resources.GetString,
+            clock);
     }
 
     public static string GetUsageDatabasePath(string localFolderPath)

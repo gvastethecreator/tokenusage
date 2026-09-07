@@ -32,7 +32,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         IManualProviderCredentialStore? manualCredentials = null,
         DataCollectionSettingsStore? dataCollectionSettings = null,
         AlertSettingsStore? alertSettings = null,
-        IAlertNotificationSink? alertNotifications = null)
+        IAlertNotificationSink? alertNotifications = null,
+        UpdateOptionsViewModel? updates = null)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
@@ -63,7 +64,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             AppearanceOptions,
             Personalization,
             ProviderStatus,
-            new NotificationsOptionsViewModel(alertSettings));
+            new NotificationsOptionsViewModel(alertSettings),
+            updates);
         Dashboard = new DashboardSurfaceViewModel(
             new SampleDashboardSession(sampleRefreshCoordinator),
             new LiveDashboardSession(
@@ -205,6 +207,12 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     public void SetPanelVisible(bool isVisible) => Dashboard.SetPanelVisible(isVisible);
 
+    internal void StopSessionForExit()
+    {
+        _openRefreshTimer.Stop();
+        Dashboard.Dispose();
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -213,6 +221,10 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
+        _openRefreshTimer.Stop();
+        GeneralOptions.BackgroundCollectionChanged -= OnBackgroundCollectionChanged;
+        GeneralOptions.DataCollectionRefreshChanged -= OnDataCollectionRefreshChanged;
+        Options.Updates?.Dispose();
         OptionsNavigation.PropertyChanged -= OnOptionsNavigationPropertyChanged;
         OptionsNavigation.CloseRequested -= OnOptionsNavigationCloseRequested;
         AppearanceOptions.SettingsChanged -= OnAppearanceSettingsChanged;

@@ -86,6 +86,8 @@ public sealed partial class MainWindow : Window, IDisposable
         RootPage.LayoutAnimationProgressed += OnLayoutAnimationProgressed;
         Activated += OnWindowActivated;
         Closed += OnWindowClosed;
+        AppWindow.Closing += OnAppWindowClosing;
+        if (RootPage.ViewModel.Options.Updates is { } updates) updates.ExitRequested += OnUpdateExitRequested;
 
         AppWindow.Hide();
         RootPage.ViewModel.SetPanelVisible(false);
@@ -218,8 +220,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         _ = DispatcherQueue.TryEnqueue(() =>
         {
-            DisposeTrayIcon();
-            Close();
+            RequestGracefulExit();
         });
     }
 
@@ -786,6 +787,8 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _disposed = true;
+        AppWindow.Closing -= OnAppWindowClosing;
+        if (RootPage.ViewModel.Options.Updates is { } updates) updates.ExitRequested -= OnUpdateExitRequested;
         _activationGuardTimer.Stop();
         _activationGuardTimer.Tick -= OnActivationGuardElapsed;
         _systemVisualSettingsTimer.Stop();
@@ -812,6 +815,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        if (_disposed) return;
         RootPage.Dispose();
         await RootPage.SessionHost.DisposeAsync();
         Dispose();

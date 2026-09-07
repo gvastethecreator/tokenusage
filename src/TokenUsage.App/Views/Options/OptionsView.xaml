@@ -76,6 +76,7 @@
                 <StackPanel x:Name="OptionsStack" Spacing="12" Margin="0">
                     <options:GeneralOptionsView x:Name="GeneralView"
                         ViewModel="{x:Bind ViewModel.General, Mode=OneWay}" />
+                    <options:UpdateOptionsView ViewModel="{x:Bind ViewModel.Updates, Mode=OneWay}" />
                     <Border
                         AutomationProperties.AutomationId="AboutSection"
                         Style="{StaticResource OptionsCategoryCardStyle}">

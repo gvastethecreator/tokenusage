@@ -590,8 +590,14 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(221, matches.Count);
-        Assert.Equal(206, distinctIds.Length);
+        Assert.Equal(230, matches.Count);
+        Assert.Equal(215, distinctIds.Length);
+        Assert.Contains("AutomaticUpdatesToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CheckAppUpdatesButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("DownloadAppUpdateButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("RetryAppUpdateButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("FinishAppUpdateButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CancelAppUpdateButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageComparisonEvidence", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageComparisonReferenceDate", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportErrorMessage", distinctIds, StringComparer.Ordinal);

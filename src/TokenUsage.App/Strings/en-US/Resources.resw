@@ -916,4 +916,37 @@
   <data name="UsageComparisonCycleCountLabel.Text" xml:space="preserve"><value>Cycles</value></data>
   <data name="UsageComparisonTokensFormat" xml:space="preserve"><value>{0} tokens</value></data>
   <data name="UsageReportChartResetFormat" xml:space="preserve"><value>Recorded reset · {0} · {1} · {2}</value></data>
+  <data name="UpdateSectionTitle.Text" xml:space="preserve"><value>App updates</value></data>
+  <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>v{0}</value></data>
+  <data name="UpdateAutomaticLabel.Text" xml:space="preserve"><value>Automatic updates</value></data>
+  <data name="AutomaticUpdatesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Download and install app updates automatically</value></data>
+  <data name="UpdateAutomaticDescription.Text" xml:space="preserve"><value>Checks GitHub once a day while TokenUsage runs. Downloads stable releases and installs them after you exit. No usage data is sent.</value></data>
+  <data name="UpdateDownloadProgress.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>App update download progress</value></data>
+  <data name="UpdateSettingsError.Text" xml:space="preserve"><value>The update preference could not be saved. Check access to the app data folder and try again.</value></data>
+  <data name="CheckAppUpdatesButton.Content" xml:space="preserve"><value>Check updates</value></data>
+  <data name="DownloadAppUpdateButton.Content" xml:space="preserve"><value>Download and install</value></data>
+  <data name="RetryAppUpdateButton.Content" xml:space="preserve"><value>Retry installation</value></data>
+  <data name="CancelAppUpdateButton.Content" xml:space="preserve"><value>Cancel</value></data>
+  <data name="UpdateRestartInstall" xml:space="preserve"><value>Restart and install</value></data>
+  <data name="UpdateCloseToFinish" xml:space="preserve"><value>Close to finish update</value></data>
+  <data name="UpdateIdle" xml:space="preserve"><value>Ready to check for updates.</value></data>
+  <data name="UpdateStoreManaged" xml:space="preserve"><value>Microsoft Store manages updates for this installation. GitHub downloads are disabled.</value></data>
+  <data name="UpdateDevelopmentBuild" xml:space="preserve"><value>This development installation does not receive updates. Use an official portable release or signed package.</value></data>
+  <data name="UpdateUnsupportedArchitecture" xml:space="preserve"><value>Automatic updates support x64 and ARM64 installations.</value></data>
+  <data name="UpdateUnsupportedWindows" xml:space="preserve"><value>Package updates require Windows 10 version 2004 or later.</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>Checking the latest stable release on GitHub…</value></data>
+  <data name="UpdateUpToDate" xml:space="preserve"><value>No newer compatible stable release is available.</value></data>
+  <data name="UpdateAvailable" xml:space="preserve"><value>Version {0} is available.</value></data>
+  <data name="UpdateDownloading" xml:space="preserve"><value>Downloading version {0}…</value></data>
+  <data name="UpdatePreparing" xml:space="preserve"><value>Verifying and preparing the update. TokenUsage will stay open.</value></data>
+  <data name="UpdateReadyPortable" xml:space="preserve"><value>Version {0} is ready. It will install when you exit; restart now to reopen afterward. Turning off automatic updates does not discard this prepared update.</value></data>
+  <data name="UpdateReadyMsix" xml:space="preserve"><value>Version {0} is staged by Windows. Close TokenUsage and open it again to finish. Turning off automatic updates does not discard this prepared update.</value></data>
+  <data name="UpdateInstalled" xml:space="preserve"><value>The update was installed successfully.</value></data>
+  <data name="UpdateCancelled" xml:space="preserve"><value>Update cancelled. Your installed version has not changed.</value></data>
+  <data name="UpdateFailed" xml:space="preserve"><value>The update could not be checked or downloaded safely. Check your connection and try again.</value></data>
+  <data name="UpdateIncomplete" xml:space="preserve"><value>The previous update has not finished. Retry installation; the saved recovery files are kept.</value></data>
+  <data name="UpdateRecoveryRequired" xml:space="preserve"><value>The previous update needs recovery. Close other TokenUsage and CLI processes, then retry. Recovery files have been kept.</value></data>
+  <data name="UpdateInitializationFailed" xml:space="preserve"><value>Update settings or recovery files could not be read. Check access to the app data folder.</value></data>
+  <data name="UpdateRestartFailed" xml:space="preserve"><value>TokenUsage could not finish closing for the update. Try again when active work has finished.</value></data>
+  <data name="UpdateLastCheckFormat" xml:space="preserve"><value>Last check: {0}</value></data>
 </root>
