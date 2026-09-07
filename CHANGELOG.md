@@ -2,9 +2,9 @@
 
 User-facing changes for TokenUsage. Release notes include installation details and known limits.
 
-## 0.0.1 — Release candidate
+## 0.0.1 Preview 1 — Unsigned portable
 
-The first Windows x64 release is being prepared. Publication is pending signing and final install checks.
+The first Windows x64 preview uses an unsigned portable ZIP. No MSIX installer is included. Stable releases remain subject to signing and install checks.
 
 ### Added
 
@@ -25,6 +25,6 @@ The first Windows x64 release is being prepared. Publication is pending signing 
 ### Release checks
 
 - Version, package identity, signature, asset size, and SHA-256 checks in the release pipeline.
-- Public publication remains gated on signing and install verification. No unsigned MSIX is published.
+- Stable publication remains gated on signing and install verification. Unsigned portable previews are labeled as pre-releases and are excluded from automatic delivery. No unsigned MSIX is published.
 
 Read the [complete 0.0.1 release notes](docs/releases/0.0.1.md).

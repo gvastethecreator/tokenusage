@@ -1,6 +1,6 @@
 # Release TokenUsage
 
-TokenUsage publishes one signed MSIX package and one portable ZIP for each Windows architecture.
+Stable TokenUsage releases publish one signed MSIX package and one portable ZIP for each Windows architecture. Explicitly approved unsigned previews publish only a portable ZIP and must be marked as pre-releases.
 
 The portable ZIP contains the WinUI app, the CLI, .NET, and the Windows App SDK runtime. It does not require installation.
 
@@ -25,6 +25,28 @@ The command writes these files to `artifacts\release`:
 - `SHA256SUMS.txt`
 
 Use `-SkipTests` only after the same commit passes the complete release check.
+
+## Unsigned portable preview
+
+Use this channel when a signing certificate is not available and an unsigned
+preview has been explicitly approved. Do not include an unsigned MSIX or change
+Windows trust settings. A preview is not a signed or fully qualified release.
+
+```powershell
+.\scripts\release.ps1 -Platform x64 -Version 0.0.1 -UnsignedPreview
+```
+
+The full test and package gate still runs. Only the portable ZIP, provenance
+manifest, and checksums go into `artifacts/release`. The ZIP name ends in
+`-portable-unsigned-preview.zip`; its readme states that it is unsigned.
+The provenance manifest records `channel: unsigned-preview`.
+
+Use a tag such as `v0.0.1-preview.1`. The workflow skips certificate loading only
+for this channel and creates a draft with `prerelease: true`. Verify the extracted
+ZIP outside the checkout, CLI, native startup, source commit, and remote asset
+digests before publication. Record missing clean-machine and lifecycle checks.
+Never mark an unsigned preview as Latest. The app ignores these pre-releases;
+users install them manually and can later update to a newer stable app version.
 
 ## Portable data
 
@@ -61,7 +83,10 @@ git tag v0.0.1
 git push origin v0.0.1
 ```
 
-Only stable `vMAJOR.MINOR.PATCH` tags can create a release. The release workflow checks that the tag matches the source version and points to the checked-out commit. It runs the complete x64 check and requires a valid signed package. Then it creates a draft GitHub release.
+Stable `vMAJOR.MINOR.PATCH` tags require a valid signed package. Tags ending in
+`-preview.N` use the unsigned portable channel described above. The workflow
+checks that the tag matches the source version and checked-out commit, runs the
+complete x64 check, and creates a draft in the selected channel.
 
 After upload, the workflow reads the draft assets through the GitHub API. Every uploaded asset must have the expected name, byte count, and `sha256:` digest. These digests must match the local files. Missing or different metadata fails the workflow; the draft stays unpublished. Manual runs without a certificate can create an unsigned candidate artifact, but cannot create a GitHub release.
 
@@ -69,7 +94,7 @@ Review the assets, checksums, notes, and installation results before you publish
 
 An empty draft may be prepared before signing is available. Set its target to
 the full source commit SHA, not a branch. The tag workflow can complete that
-draft only when it is still unpublished, is not a pre-release, targets the exact
+draft only when it is still unpublished, matches the selected channel, targets the exact
 tag commit, and has no assets. It never replaces existing assets or a published
 release. Candidate notes must keep signing and install checks marked as pending
 until they pass; then update the notes before publication.

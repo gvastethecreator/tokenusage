@@ -130,6 +130,15 @@ The corrected lookup passed the same six simulated cases plus a rejected remote
 digest mismatch. Live read-only checks found the draft through GraphQL and its
 release ID. The seven existing packaging contract tests also passed.
 
+## Unsigned preview authorization
+
+The user approved release without signing because no certificate is available.
+Publish `v0.0.1-preview.1` as an unsigned x64 portable pre-release, not as a stable
+or trusted package. Omit the MSIX installer. Keep size and digest checks, preserve
+the signed stable lane, and leave the updater's stable-only policy unchanged.
+The preview must pass artifact and extracted-app checks before publication.
+The existing installed development application and its data stay unchanged.
+
 ## References
 - [GitHub releases API](https://docs.github.com/en/rest/releases/releases)
 - [GitHub asset digests](https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/)

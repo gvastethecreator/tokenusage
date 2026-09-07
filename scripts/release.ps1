@@ -16,6 +16,9 @@ param(
     [switch] $SkipTests,
 
     [Parameter()]
+    [switch] $UnsignedPreview,
+
+    [Parameter()]
     [string] $PackageCertificateKeyFile = $env:TOKENUSAGE_CERTIFICATE_PATH,
 
     [Parameter()]
@@ -184,8 +187,9 @@ if ($buildProperties.Project.PropertyGroup.AssemblyVersion -ne $windowsVersion -
 }
 
 if ($ReleaseTag) {
-    if ($ReleaseTag -cne "v$Version") {
-        throw "The stable release tag must be v$Version."
+    $expectedTag = if ($UnsignedPreview) { '^v' + [regex]::Escape($Version) + '-preview\.[1-9]\d*$' } else { '^v' + [regex]::Escape($Version) + '$' }
+    if ($ReleaseTag -cnotmatch $expectedTag) {
+        throw 'The release tag must match the source version and selected stable or unsigned-preview channel.'
     }
     $tagCommit = & git -C $repoRoot rev-parse --verify "$ReleaseTag^{commit}"
     if ($LASTEXITCODE -ne 0) {
@@ -200,10 +204,14 @@ if ($ReleaseTag) {
 if ($PackageCertificatePassword -and -not $PackageCertificateKeyFile) {
     throw 'PackageCertificateKeyFile is required when PackageCertificatePassword is set.'
 }
+if ($UnsignedPreview -and ($PackageCertificateKeyFile -or $PackageCertificatePassword)) {
+    throw 'Unsigned previews must not use a package signing certificate.'
+}
 
 $architecture = $Platform.ToLowerInvariant()
 $runtimeIdentifier = "win-$architecture"
 $portableName = "TokenUsage-$Version-win-$architecture-portable"
+if ($UnsignedPreview) { $portableName += '-unsigned-preview' }
 $portableDirectory = Join-Path $stagingRoot $portableName
 $appPublish = Join-Path $stagingRoot 'app-publish'
 $cliPublish = Join-Path $stagingRoot 'cli-publish'
@@ -303,6 +311,7 @@ try {
     Set-Content -LiteralPath (Join-Path $portableDirectory 'README-PORTABLE.txt') -Encoding utf8 -Value @(
         "TokenUsage $Version portable"
         ''
+        $(if ($UnsignedPreview) { 'UNSIGNED PREVIEW: Windows may show an unknown-publisher warning. This is not a signed or stable release.' })
         'Run TokenUsage.App.exe to start the tray app.'
         'Run cli\tokenusage.exe from PowerShell to use the CLI.'
         'Keep TokenUsage.portable beside the executable files.'
@@ -340,21 +349,24 @@ try {
     if ($PackageCertificateKeyFile -and -not $packageIsSigned) {
         throw "The package signature is not valid: $($signature.StatusMessage)"
     }
-    if ($ReleaseTag -and -not $packageIsSigned) {
+    if ($ReleaseTag -and -not $UnsignedPreview -and -not $packageIsSigned) {
         throw 'A tagged release requires a valid signed package.'
     }
 
     $packageSuffix = if ($packageIsSigned) { '' } else { '-unsigned' }
     $packageName = "TokenUsage-$Version-win-$architecture$packageSuffix$($packageAsset.Extension)"
     $packageDestination = Join-Path $releaseRoot $packageName
-    Copy-Item -LiteralPath $packageAsset.FullName -Destination $packageDestination
+    if (-not $UnsignedPreview) {
+        Copy-Item -LiteralPath $packageAsset.FullName -Destination $packageDestination
+    }
 
     $commit = (& git rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) {
         throw 'Git did not return the release commit.'
     }
 
-    $payloadAssets = @($portableZip, $packageDestination)
+    $payloadAssets = @($portableZip)
+    if (-not $UnsignedPreview) { $payloadAssets += $packageDestination }
     $manifestAssets = @($payloadAssets | ForEach-Object {
         $item = Get-Item -LiteralPath $_
         [ordered]@{
@@ -366,6 +378,7 @@ try {
     $manifest = [ordered]@{
         schema = 'tokenusage.release.v1'
         version = $Version
+        channel = $(if ($UnsignedPreview) { 'unsigned-preview' } else { 'stable-candidate' })
         platform = $Platform
         runtimeIdentifier = $runtimeIdentifier
         commit = $commit
