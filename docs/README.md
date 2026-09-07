@@ -5,6 +5,9 @@ Start with the [main README](../README.md) for supported providers, requirements
 ## Product
 
 - [Provider matrix](PROVIDER-MATRIX.md): sources, coverage, limits, and publication gates.
+- [Usage measurement plan](research/2026-09-07-usage-measurement-plan.md): implemented local spending, weekly, model, and reset-cycle comparisons, with verification limits.
+
+- [Experience audit](research/2026-09-07-experience-design/readout/report.md): native UX findings, fixes and verification limits.
 
 ## Contributor references
 

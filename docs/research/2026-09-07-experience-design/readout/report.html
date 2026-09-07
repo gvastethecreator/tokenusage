@@ -1,0 +1,794 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Experience Design — informe</title><style>body{margin:0 auto;padding:32px;max-width:1050px;font:16px/1.6 system-ui;background:#f6f5f1;color:#202321}h1{font-size:clamp(28px,5vw,52px);letter-spacing:-.04em}h2{font-size:20px}section{border-top:1px solid #b5b8ae;padding:16px 0}pre{font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}aside{padding:18px;border:1px solid #b5b8ae}a{color:inherit}@media print{body{padding:0}section{break-inside:avoid}}</style><main><h1>Experience Design</h1><aside>Este documento conserva el registro completo. La validez del contrato no certifica UX, investigación ni accesibilidad.</aside><section><h2>session</h2><pre>{
+  &quot;id&quot;: &quot;2026-09-07-tokenusage-experience&quot;,
+  &quot;project&quot;: &quot;TokenUsage&quot;,
+  &quot;scope&quot;: &quot;Deep UX and visual audit of all current desktop surfaces; apply evidence-led improvements. Continue measurement closeout. Native fixtures, not user research.&quot;,
+  &quot;mode&quot;: &quot;apply&quot;,
+  &quot;language&quot;: &quot;en&quot;,
+  &quot;created_on&quot;: &quot;2026-09-07&quot;,
+  &quot;authorized_changes&quot;: &quot;Local product changes, synthetic fixtures, tests and audit documents. No provider calls, credentials, background hook changes, user database mutation, commit or remote publication.&quot;,
+  &quot;limitations&quot;: [
+    &quot;Fixture hosts do not prove production window placement or OS tray activation.&quot;,
+    &quot;No participants, screen reader session or controlled human measurements.&quot;,
+    &quot;High contrast, OS reduced motion and enlarged text were not exercised. Native proof includes observed 150% DPI, not every DPI or text scale.&quot;,
+    &quot;Inactive legacy controls are inventoried but not presented as current user routes.&quot;
+  ]
+}
+</pre></section><section><h2>conclusion</h2><pre>{
+  &quot;status&quot;: &quot;partial&quot;,
+  &quot;summary&quot;: &quot;Fourteen evidence-led fixes were applied to the existing native interface. Local tests, package builds and targeted native checks passed. The audit remains partial: OS accessibility settings, real credential and shell integration, and human outcomes are not qualified.&quot;
+}
+</pre></section><section><h2>evidence</h2><pre>[
+  {
+    &quot;id&quot;: &quot;E1&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-report-before.png&quot;,
+    &quot;description&quot;: &quot;Native reset-cycle report before the UX pass: dense evidence above totals and unused summary width.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E2&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-options-top-before.png&quot;,
+    &quot;description&quot;: &quot;Native General and Notifications: icon-only persistent settings.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E3&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-layout-before.png&quot;,
+    &quot;description&quot;: &quot;Native Appearance and layout editor: incorrect Remaining label and compressed chart thumbnails.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E4&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-providers-before.png&quot;,
+    &quot;description&quot;: &quot;Native Providers: missing optional providers use the same red accent as blocked access.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E5&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-compact-actual-before.png&quot;,
+    &quot;description&quot;: &quot;Native compact surface at about 466 DIP: three activity values wrap into two rows.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E6&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-dashboard-actual-before.png&quot;,
+    &quot;description&quot;: &quot;Native expanded sample dashboard: readable provider groups and quota labels; preserve them.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E7&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-credential-before.png&quot;,
+    &quot;description&quot;: &quot;Native empty credential editor: labels, password masking, optional field and Save are visible. No real credentials used.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E8&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;C:/Users/cristian/Downloads/TokenUsage-report-2026-09-07-041944.png&quot;,
+    &quot;description&quot;: &quot;Full report capture after capture-mode repair; no hover card. This precedes the evidence disclosure redesign.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E9&quot;,
+    &quot;kind&quot;: &quot;source&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/src/TokenUsage.App/Views&quot;,
+    &quot;description&quot;: &quot;XAML view inventory and call sites: MainPage mounts OptionsView, DashboardView and CompactUsageDashboard. OptionsHomeView, ProvidersOptionsView and VercelConnectionView are not mounted by the current shell.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E10&quot;,
+    &quot;kind&quot;: &quot;source&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/probe/Program.cs&quot;,
+    &quot;description&quot;: &quot;Isolated native harness uses synthetic numeric usage, sample scenarios and scratch settings. It does not compose real provider sources or background hooks.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E11&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-options-after.png&quot;,
+    &quot;description&quot;: &quot;Native switches show On/Off and disabled child settings when the master is off.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E12&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-appearance-after.png&quot;,
+    &quot;description&quot;: &quot;Remaining label repaired; alert switches and chart preview use the available width.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E13&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-chart-menu-after.png&quot;,
+    &quot;description&quot;: &quot;All six chart thumbnails are distinguishable in the native dropdown.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E14&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-providers-after.png&quot;,
+    &quot;description&quot;: &quot;Missing providers have neutral status. Provider-name switch occupies its own full row.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E15&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-compact-final-dark.png&quot;,
+    &quot;description&quot;: &quot;Three compact activity values form an equal-width row at the tested usual width.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E16&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-report-final-two.png&quot;,
+    &quot;description&quot;: &quot;Two summary cards fill the row. Intermediate toolbars precede the final cleanup.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E17&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-final-four-top.png&quot;,
+    &quot;description&quot;: &quot;Four cycles wrap into two rows; final toolbar and warning text fit at 760 DIP and observed 150% DPI.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E18&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;C:/Users/cristian/Downloads/TokenUsage-report-2026-09-07-044716.png&quot;,
+    &quot;description&quot;: &quot;Four-cycle capture shows short provider legends and combined absolute/relative changes. This intermediate capture exposed clipped detail text; it is not evidence of complete detail export.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E19&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-model-reference.png&quot;,
+    &quot;description&quot;: &quot;Model selectors have A/B labels and fixed-reference control remains available and selected.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E20&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-options-light-after.png&quot;,
+    &quot;description&quot;: &quot;Native option cards inspected in light theme. The surrounding black harness background is not production shell evidence.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E21&quot;,
+    &quot;kind&quot;: &quot;runtime&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/final-release-check.log&quot;,
+    &quot;description&quot;: &quot;Repository x64 Release gate passed 1,313 tests and produced the MSIX; later static capture fix is checked separately.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E22&quot;,
+    &quot;kind&quot;: &quot;runtime&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-marker-reversal.mp4&quot;,
+    &quot;description&quot;: &quot;Recorded quick pointer reversal and chart exit. Inspected frames show a redirected hover and cleared final state; no app FPS or human smoothness measurement.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E23&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-four-narrow-top.png&quot;,
+    &quot;description&quot;: &quot;Intermediate narrow capture revealed clipped caution text before the Grid layout repair.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E24&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;C:/Users/cristian/Downloads/TokenUsage-report-2026-09-07-043632.png&quot;,
+    &quot;description&quot;: &quot;Intermediate full four-cycle capture still has duplicate relative-change rows.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E25&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;C:/Users/cristian/Downloads/TokenUsage-report-2026-09-07-045206.png&quot;,
+    &quot;description&quot;: &quot;Final static detail block has its complete first and last lines below the title. Four-cycle values, short provider legends and combined changes are visible; no tooltip or action controls.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E26&quot;,
+    &quot;kind&quot;: &quot;runtime&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-final-runtime.json&quot;,
+    &quot;description&quot;: &quot;Native UI Automation readback after full capture: capture enabled, cycle-count control enabled, detail expander restored collapsed.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E27&quot;,
+    &quot;kind&quot;: &quot;render&quot;,
+    &quot;location&quot;: &quot;C:/Users/cristian/Downloads/TokenUsage-report-2026-09-07-045135.png&quot;,
+    &quot;description&quot;: &quot;Reproduced export during a pending cycle reload: data missing and progress line included. This is failed evidence, not a complete report.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E28&quot;,
+    &quot;kind&quot;: &quot;runtime&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-capture-gate-package.log&quot;,
+    &quot;description&quot;: &quot;Final x64 Release package rebuild passed after static capture content and capture availability guard. Earlier 1,313 test results are reused for unchanged lower layers.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  },
+  {
+    &quot;id&quot;: &quot;E29&quot;,
+    &quot;kind&quot;: &quot;runtime&quot;,
+    &quot;location&quot;: &quot;X:/tokenusage/.scratch/tokenusage-measurement/ux-capture-availability.json&quot;,
+    &quot;description&quot;: &quot;Native capture IsEnabled False during a four-second synthetic refresh, then True after report completion.&quot;,
+    &quot;observed_on&quot;: &quot;2026-09-07&quot;
+  }
+]
+</pre></section><section><h2>coverage</h2><pre>[
+  {
+    &quot;id&quot;: &quot;C1&quot;,
+    &quot;dimension&quot;: &quot;current-view inventory&quot;,
+    &quot;claim_kind&quot;: &quot;implementation&quot;,
+    &quot;scope&quot;: &quot;Report, compact, expanded dashboard, General, Notifications, Appearance, personalization, Providers, credentials, tray and shell.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;Current XAML routes were inventoried. Report, options, expanded/compact dashboard and empty credential editor were rendered in native fixtures. Shell and tray activation are source inventory only; unmounted legacy controls are not claimed as current routes.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E9&quot;,
+      &quot;E10&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C2&quot;,
+    &quot;dimension&quot;: &quot;visual craft&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;scope&quot;: &quot;Changed native surfaces after edits.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;Changed options, previews, provider status, compact activity and report layouts were inspected. Final capture details receive separate evidence.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E11&quot;,
+      &quot;E12&quot;,
+      &quot;E13&quot;,
+      &quot;E14&quot;,
+      &quot;E15&quot;,
+      &quot;E16&quot;,
+      &quot;E17&quot;,
+      &quot;E19&quot;,
+      &quot;E20&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C3&quot;,
+    &quot;dimension&quot;: &quot;export&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;scope&quot;: &quot;Report tooltip exclusion.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;Actual full PNG inspected without a chart tooltip.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E25&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C4&quot;,
+    &quot;dimension&quot;: &quot;assistive technology and OS settings&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Screen reader, high contrast, reduced motion, enlarged text.&quot;,
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;No executed session for these conditions. Static use of theme/focus/motion settings is not certification.&quot;,
+    &quot;evidence_ids&quot;: []
+  },
+  {
+    &quot;id&quot;: &quot;C5&quot;,
+    &quot;dimension&quot;: &quot;human task outcomes&quot;,
+    &quot;claim_kind&quot;: &quot;human&quot;,
+    &quot;scope&quot;: &quot;Reading speed, error rate and perceived polish.&quot;,
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;No participant study was requested or performed; improvements are design decisions, not measured human outcomes.&quot;,
+    &quot;evidence_ids&quot;: []
+  },
+  {
+    &quot;id&quot;: &quot;C6&quot;,
+    &quot;dimension&quot;: &quot;primary and difficult data&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;scope&quot;: &quot;Two/four cycles, model comparison, long labels, partial pricing and narrow report.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;Synthetic native states show explicit provider identity, a shared baseline, wrapped caveats and readable values.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E16&quot;,
+      &quot;E17&quot;,
+      &quot;E25&quot;,
+      &quot;E19&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C7&quot;,
+    &quot;dimension&quot;: &quot;empty and unavailable&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;scope&quot;: &quot;Empty credential editor, missing providers and disabled notification children.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;These states were rendered without real credentials or provider calls.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E7&quot;,
+      &quot;E11&quot;,
+      &quot;E14&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C8&quot;,
+    &quot;dimension&quot;: &quot;refresh failure&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Preserving an existing report after refresh failure.&quot;,
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;Earlier native fixture readback showed a failure message and retained values; this audit has no durable runtime transcript for that interaction. Unit coverage is not a substitute for that transcript.&quot;,
+    &quot;evidence_ids&quot;: []
+  },
+  {
+    &quot;id&quot;: &quot;C9&quot;,
+    &quot;dimension&quot;: &quot;pending and interruption&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Loading, rapid view changes, capture failure and close during capture.&quot;,
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;No complete executed state matrix or injected file-write failure. Finally restoration is source evidence only.&quot;,
+    &quot;evidence_ids&quot;: []
+  },
+  {
+    &quot;id&quot;: &quot;C10&quot;,
+    &quot;dimension&quot;: &quot;marker reversal and exit&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Rapid pointer reversal inside a chart followed by exit.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;A recording and inspected intermediate/final frames show redirection and cleared hover. Frame pacing is not measured.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E22&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C11&quot;,
+    &quot;dimension&quot;: &quot;return and persistence&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Saved four-cycle revision, notification settings and post-export restoration.&quot;,
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;Earlier fixture interactions exercised saved revisions and settings; final capture state readback will be recorded separately. This does not prove live data migration.&quot;,
+    &quot;evidence_ids&quot;: []
+  },
+  {
+    &quot;id&quot;: &quot;C12&quot;,
+    &quot;dimension&quot;: &quot;permission and native shell&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Real credential save, OS tray, window activation and installed main app.&quot;,
+    &quot;status&quot;: &quot;unknown&quot;,
+    &quot;reason&quot;: &quot;No real credential writes, provider connections or production-app replacement were authorized or performed.&quot;,
+    &quot;evidence_ids&quot;: []
+  },
+  {
+    &quot;id&quot;: &quot;C13&quot;,
+    &quot;dimension&quot;: &quot;release gate&quot;,
+    &quot;claim_kind&quot;: &quot;implementation&quot;,
+    &quot;scope&quot;: &quot;Core, provider, CLI, architecture, Windows tests and x64 MSIX.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;All 1,313 tests and repository Release gate passed. The final capture-only repair is followed by a package build and native export, not a duplicate full suite.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E21&quot;,
+      &quot;E28&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C14&quot;,
+    &quot;dimension&quot;: &quot;capture return&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Normal state after full PNG capture.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;Native UI Automation readback shows capture re-enabled and the detail expander still collapsed.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E26&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;C15&quot;,
+    &quot;dimension&quot;: &quot;pending capture availability&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;scope&quot;: &quot;Share during report refresh.&quot;,
+    &quot;status&quot;: &quot;passed&quot;,
+    &quot;reason&quot;: &quot;A four-second synthetic refresh shows IsEnabled False during loading and True after completion.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E29&quot;
+    ]
+  }
+]
+</pre></section><section><h2>findings</h2><pre>[
+  {
+    &quot;id&quot;: &quot;UX01&quot;,
+    &quot;title&quot;: &quot;Measurement details displace the result&quot;,
+    &quot;task&quot;: &quot;Compare reset cycles&quot;,
+    &quot;state&quot;: &quot;Loaded, incomplete evidence&quot;,
+    &quot;observation&quot;: &quot;The report puts a dense technical paragraph before the totals and chart.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Measurement details displace the result. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P1&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E1&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Move the full details to a disclosure after the results; keep the short cost caveat and cycle warning visible. Expand details for exported reports and restore state afterwards.&quot;,
+    &quot;tradeoff&quot;: &quot;Details need one extra action in the interactive report.&quot;,
+    &quot;acceptance_test&quot;: &quot;Totals and chart are visible earlier; details remain accessible, selectable and present in capture.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E25&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX02&quot;,
+    &quot;title&quot;: &quot;Remaining preference has a comparison label&quot;,
+    &quot;task&quot;: &quot;Choose how quota is displayed&quot;,
+    &quot;state&quot;: &quot;Appearance&quot;,
+    &quot;observation&quot;: &quot;Show usage as displays A · Baseline for the Remaining enum.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Remaining preference has a comparison label. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P1&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E3&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Restore the label to Remaining without changing its stored value.&quot;,
+    &quot;tradeoff&quot;: &quot;None; repairs an unrelated resource replacement.&quot;,
+    &quot;acceptance_test&quot;: &quot;Appearance selector shows Remaining and Used, not comparison roles.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E12&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX03&quot;,
+    &quot;title&quot;: &quot;Persistent settings look like actions&quot;,
+    &quot;task&quot;: &quot;Configure closure, notifications and tray&quot;,
+    &quot;state&quot;: &quot;Enabled and disabled options&quot;,
+    &quot;observation&quot;: &quot;The close preference uses an X and notification settings use icon-only buttons.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Persistent settings look like actions. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E2&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use native switches with explicit On/Off state and preserve all bindings, labels and automation identities.&quot;,
+    &quot;tradeoff&quot;: &quot;Switches use more width; stack the provider-name setting across both columns.&quot;,
+    &quot;acceptance_test&quot;: &quot;Keyboard changes state; alerts master gates child controls; states persist in the existing store.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E11&quot;,
+      &quot;E12&quot;,
+      &quot;E14&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX04&quot;,
+    &quot;title&quot;: &quot;Chart thumbnail loses most of its drawing space&quot;,
+    &quot;task&quot;: &quot;Choose report chart style&quot;,
+    &quot;state&quot;: &quot;Collapsed and expanded selector&quot;,
+    &quot;observation&quot;: &quot;The daily bars preview looks like small arcs because full-chart top and bottom padding consumes 18 of 24 DIP.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Chart thumbnail loses most of its drawing space. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E3&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use preview-specific padding and a proportionate corner radius, without changing report geometry.&quot;,
+    &quot;tradeoff&quot;: &quot;Small thumbnails simplify detail.&quot;,
+    &quot;acceptance_test&quot;: &quot;Bars, steps, line, smooth line, area and two-hour bars can be distinguished in the native selector.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E13&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX05&quot;,
+    &quot;title&quot;: &quot;Two-cycle summary leaves half the row empty&quot;,
+    &quot;task&quot;: &quot;Compare two to four cycles&quot;,
+    &quot;state&quot;: &quot;Loaded&quot;,
+    &quot;observation&quot;: &quot;Two summary cards use two of four fixed-width slots.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Two-cycle summary leaves half the row empty. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E1&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [
+      &quot;S1&quot;
+    ],
+    &quot;proposal&quot;: &quot;Fit the number of columns to the selected cycles and available width; spread cards across the row.&quot;,
+    &quot;tradeoff&quot;: &quot;Four cards wrap on narrow layouts.&quot;,
+    &quot;acceptance_test&quot;: &quot;Two cards fill the wide row; four cards wrap into two rows at 760 DIP without clipping.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E16&quot;,
+      &quot;E17&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX06&quot;,
+    &quot;title&quot;: &quot;Unavailable price controls add clutter&quot;,
+    &quot;task&quot;: &quot;Compare reset cycles&quot;,
+    &quot;state&quot;: &quot;Cycles selected&quot;,
+    &quot;observation&quot;: &quot;The fixed-price checkbox and date picker are disabled but remain above the cycle selectors.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Unavailable price controls add clutter. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E1&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Show them only for supported pair comparisons; add visible A/B headers to model selectors.&quot;,
+    &quot;tradeoff&quot;: &quot;Price features are not visible in cycle mode, where they cannot run.&quot;,
+    &quot;acceptance_test&quot;: &quot;Cycle mode omits inactive controls; model and period modes retain them.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E17&quot;,
+      &quot;E19&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX07&quot;,
+    &quot;title&quot;: &quot;Cycle legend repeats long metadata&quot;,
+    &quot;task&quot;: &quot;Identify chart series&quot;,
+    &quot;state&quot;: &quot;Long cycle names&quot;,
+    &quot;observation&quot;: &quot;Full labels compete with values in narrow legend slots and get truncated.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Cycle legend repeats long metadata. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E8&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use an explicit short legend label with A/B/C/D, provider and start date. Keep full labels in tooltips and summary cards.&quot;,
+    &quot;tradeoff&quot;: &quot;The legend alone omits the pool and boundary classification.&quot;,
+    &quot;acceptance_test&quot;: &quot;Series remain distinguishable without relying only on color; full metadata is still available.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E25&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX08&quot;,
+    &quot;title&quot;: &quot;Missing optional providers look like errors&quot;,
+    &quot;task&quot;: &quot;Inspect provider availability&quot;,
+    &quot;state&quot;: &quot;Not installed&quot;,
+    &quot;observation&quot;: &quot;Missing and blocked providers use the same red brush.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Missing optional providers look like errors. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E4&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use a neutral color for Missing and retain red for Blocked.&quot;,
+    &quot;tradeoff&quot;: &quot;Some missing providers may require user action; their text and details remain.&quot;,
+    &quot;acceptance_test&quot;: &quot;Missing is visibly neutral and status text stays visible. The unchanged Blocked branch remains red by source inspection; its live state is not exercised.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E14&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX09&quot;,
+    &quot;title&quot;: &quot;Compact activity values break into an uneven row&quot;,
+    &quot;task&quot;: &quot;Scan recent token activity&quot;,
+    &quot;state&quot;: &quot;Compact global view&quot;,
+    &quot;observation&quot;: &quot;At the usual narrow width the third activity item sits alone on a second row.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Compact activity values break into an uneven row. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E5&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use a smaller minimum cell width, equal stretch and consistent gaps.&quot;,
+    &quot;tradeoff&quot;: &quot;Large text can still require wrapping; verify the supported layout without fixing the height.&quot;,
+    &quot;acceptance_test&quot;: &quot;The three values align in one row at the tested compact width without clipping.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Inspected native post-change rendering in the cited scope; broader OS and production integration limits remain in coverage.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E15&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX10&quot;,
+    &quot;title&quot;: &quot;Export can include keyboard-induced hover&quot;,
+    &quot;task&quot;: &quot;Share a report&quot;,
+    &quot;state&quot;: &quot;Capture after chart focus&quot;,
+    &quot;observation&quot;: &quot;A previous export included the hover card; disabling pointer input did not prevent focus from recreating it.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Export can include keyboard-induced hover. This obscures a decision or weakens state interpretation.&quot;,
+    &quot;severity&quot;: &quot;P1&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected native surface; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E8&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Suppress hover creation for the complete report capture and restore the previous capture/input state in finally.&quot;,
+    &quot;tradeoff&quot;: &quot;No hover interaction during export.&quot;,
+    &quot;acceptance_test&quot;: &quot;Export excludes the hover card. Post-export interaction restoration is tracked separately in coverage.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Native PNG inspected without the hover card. Capture-mode restoration was read back separately; no injected file-write failure was tested.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E25&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX11&quot;,
+    &quot;title&quot;: &quot;Cycle caveat clips on a narrow window&quot;,
+    &quot;task&quot;: &quot;Read comparison limits&quot;,
+    &quot;state&quot;: &quot;Four cycles at 760 DIP&quot;,
+    &quot;observation&quot;: &quot;A horizontal StackPanel measures the wrapping caution text without a width limit.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Users can miss the warning about incomplete evidence.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected report state; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E23&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use an Auto/* Grid so the caution text wraps inside the available width.&quot;,
+    &quot;tradeoff&quot;: &quot;The warning grows by one line.&quot;,
+    &quot;acceptance_test&quot;: &quot;The complete caution text is visible without horizontal clipping.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Native final rendering inspected.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E17&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX12&quot;,
+    &quot;title&quot;: &quot;Separate percentage rows repeat the same totals&quot;,
+    &quot;task&quot;: &quot;Compare token and cost changes&quot;,
+    &quot;state&quot;: &quot;Loaded multi-cycle table&quot;,
+    &quot;observation&quot;: &quot;Relative-change rows repeat totals already displayed by the main token and cost rows.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;Extra rows make scanning harder without adding another metric.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected report state; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E24&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Show the absolute change and relative percentage together below each main value.&quot;,
+    &quot;tradeoff&quot;: &quot;Narrow cells may wrap the change onto two lines.&quot;,
+    &quot;acceptance_test&quot;: &quot;Token and cost rows show both changes, with no duplicate totals row and no invented percentage for a zero baseline.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Native final rendering inspected.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E25&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX13&quot;,
+    &quot;title&quot;: &quot;Capture catches the detail expander mid-animation&quot;,
+    &quot;task&quot;: &quot;Export all measurement evidence&quot;,
+    &quot;state&quot;: &quot;Full PNG export from collapsed details&quot;,
+    &quot;observation&quot;: &quot;The expander header overlaps the first lines of technical evidence in the export.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;visual&quot;,
+    &quot;impact&quot;: &quot;The shared report omits part of the measurement explanation.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected report state; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E18&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Use static capture-only detail content; leave the interactive expander state unchanged.&quot;,
+    &quot;tradeoff&quot;: &quot;The capture has a static detail block rather than a disclosure control.&quot;,
+    &quot;acceptance_test&quot;: &quot;The full evidence starts below its title in the PNG; the normal expander state remains unchanged.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Native full PNG inspected: the complete detail text is below the static title. UI Automation readback confirms collapsed expander and enabled capture after export.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E25&quot;,
+      &quot;E26&quot;
+    ]
+  },
+  {
+    &quot;id&quot;: &quot;UX14&quot;,
+    &quot;title&quot;: &quot;Share stays available while the report reloads&quot;,
+    &quot;task&quot;: &quot;Export all measurement evidence&quot;,
+    &quot;state&quot;: &quot;Immediately after changing cycle count&quot;,
+    &quot;observation&quot;: &quot;A share action during reload produced a PNG with no report data.&quot;,
+    &quot;classification&quot;: &quot;observed&quot;,
+    &quot;claim_kind&quot;: &quot;interaction&quot;,
+    &quot;impact&quot;: &quot;A partial loading state can be mistaken for a complete report.&quot;,
+    &quot;severity&quot;: &quot;P2&quot;,
+    &quot;confidence&quot;: &quot;high&quot;,
+    &quot;reach&quot;: &quot;Users of the affected report state; no population estimate.&quot;,
+    &quot;evidence_ids&quot;: [
+      &quot;E27&quot;,
+      &quot;E29&quot;
+    ],
+    &quot;principle_ids&quot;: [],
+    &quot;source_ids&quot;: [],
+    &quot;proposal&quot;: &quot;Disable capture while loading or without data; also guard the capture handler and restore availability from the current view model.&quot;,
+    &quot;tradeoff&quot;: &quot;Users wait until the selected report is ready before sharing.&quot;,
+    &quot;acceptance_test&quot;: &quot;Capture is disabled during a delayed refresh and enabled after a populated report completes.&quot;,
+    &quot;status&quot;: &quot;verified&quot;,
+    &quot;resolution&quot;: &quot;Native UI Automation confirms disabled capture during delayed refresh and enabled capture after completion.&quot;,
+    &quot;verification_evidence_ids&quot;: [
+      &quot;E29&quot;
+    ]
+  }
+]
+</pre></section><section><h2>metrics</h2><pre>[]
+</pre></section><section><h2>decisions</h2><pre>[
+  {
+    &quot;id&quot;: &quot;D1&quot;,
+    &quot;question&quot;: &quot;What visual direction should the audit preserve?&quot;,
+    &quot;choice&quot;: &quot;A restrained native utility: clear numeric hierarchy, provider colors, compact spacing, explicit controls and complete evidence on demand.&quot;,
+    &quot;rationale&quot;: &quot;The current dashboard grouping works. The observed problems are information density, misleading labels and uneven allocation of space, not absence of decoration.&quot;,
+    &quot;alternatives&quot;: [
+      &quot;Replace the visual system with new cards, gradients and custom controls.&quot;
+    ],
+    &quot;risk&quot;: &quot;Over-compressing can hide measurement caveats; preserve a short visible caveat and full capture details.&quot;,
+    &quot;owner&quot;: &quot;Current implementation task&quot;,
+    &quot;review_trigger&quot;: &quot;Any missing caveat, clipped control or failed native interaction.&quot;
+  }
+]
+</pre></section><section><h2>additional_sources</h2><pre>[
+  {
+    &quot;id&quot;: &quot;S1&quot;,
+    &quot;title&quot;: &quot;Microsoft UniformGridLayout&quot;,
+    &quot;url&quot;: &quot;https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.uniformgridlayout?view=windows-app-sdk-2.0&quot;,
+    &quot;kind&quot;: &quot;primary documentation&quot;,
+    &quot;reviewed_on&quot;: &quot;2026-09-07&quot;,
+    &quot;scope_note&quot;: &quot;Native ItemsStretch and MaximumRowsOrColumns behavior used for cycle summary layout; not usability outcome evidence.&quot;
+  }
+]
+</pre></section></main></html>
