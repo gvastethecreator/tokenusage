@@ -2,7 +2,7 @@
 
 User-facing changes for TokenUsage. Release notes include installation details and known limits.
 
-## 0.0.1 Preview 1 — Unsigned portable
+## 0.0.1 Preview 2 — Unsigned portable
 
 The first Windows x64 preview uses an unsigned portable ZIP. No MSIX installer is included. Stable releases remain subject to signing and install checks.
 
@@ -16,6 +16,8 @@ The first Windows x64 preview uses an unsigned portable ZIP. No MSIX installer i
 - Sortable full-result tables with active-day counts and clean report captures.
 
 ### Improved
+
+- Portable startup includes the required Windows App SDK resource and third-party license notices. The first unpublished candidate was rejected during native startup checks.
 
 - Report headers, action placement, chart controls, and cached-token breakdown placement.
 - Options tabs, label-and-switch rows, animated panel sizing, and compact two-column quota cards.

@@ -139,6 +139,17 @@ the signed stable lane, and leave the updater's stable-only policy unchanged.
 The preview must pass artifact and extracted-app checks before publication.
 The existing installed development application and its data stay unchanged.
 
+The first candidate passed the full 1,375-test x64 gate and produced a portable
+ZIP with a complete owned-file inventory. Extracted CLI help passed, but the
+native app crashed at AppNotificationManager.Register because
+`Microsoft.WindowsAppRuntime.Insights.Resource.dll` was absent. This matches
+[Windows App SDK #6071](https://github.com/microsoft/WindowsAppSDK/issues/6071).
+The resource is present in the pinned runtime NuGet package's framework MSIX,
+but not in component publish output. Adding that exact resource to the isolated
+copy restored native startup without installing anything or suppressing errors.
+The release script now bundles the matching restored resource and runtime license.
+Discard the unpublished preview.1 assets and qualify preview.2 from a fresh ZIP.
+
 ## References
 - [GitHub releases API](https://docs.github.com/en/rest/releases/releases)
 - [GitHub asset digests](https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/)

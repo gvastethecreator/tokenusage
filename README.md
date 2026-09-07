@@ -120,7 +120,7 @@ Published releases can include two Windows x64 files:
 - A signed MSIX package for normal installation
 - A portable ZIP that does not require installation
 
-The [0.0.1 preview](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.1)
+The [0.0.1 preview](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.2)
 is **unsigned and portable-only**. Windows may show a publisher or SmartScreen
 warning. It has no MSIX installer and is not delivered by automatic updates.
 Read the [release notes](docs/releases/0.0.1.md) for its limits.

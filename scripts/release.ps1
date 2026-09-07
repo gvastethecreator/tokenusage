@@ -126,6 +126,31 @@ function Assert-PublishedVersion {
     }
 }
 
+function Copy-PortableRuntimeResources {
+    param([Parameter(Mandatory)][string] $Destination)
+
+    # The component publish omits the aggregate runtime resource needed by
+    # AppNotificationManager.Register. Use the matching restored runtime, never
+    # a DLL from the machine's installed Windows App Runtime.
+    $restore = Get-Content -LiteralPath (Join-Path $repoRoot 'src\TokenUsage.App\obj\project.assets.json') -Raw | ConvertFrom-Json
+    $runtime = @($restore.libraries.PSObject.Properties | Where-Object Name -Like 'Microsoft.WindowsAppSDK.Runtime/*')
+    if ($runtime.Count -ne 1) { throw 'Expected exactly one restored Windows App SDK runtime.' }
+    $packageRoots = @($restore.packageFolders.PSObject.Properties.Name | ForEach-Object {
+        Join-Path $_ $runtime[0].Value.path
+    } | Where-Object { Test-Path -LiteralPath (Join-Path $_ "tools\MSIX\win10-$architecture\Microsoft.WindowsAppRuntime.2.msix") })
+    if ($packageRoots.Count -ne 1) { throw 'The restored runtime resource package could not be resolved uniquely.' }
+
+    $resourceName = 'Microsoft.WindowsAppRuntime.Insights.Resource.dll'
+    $archive = [System.IO.Compression.ZipFile]::OpenRead((Join-Path $packageRoots[0] "tools\MSIX\win10-$architecture\Microsoft.WindowsAppRuntime.2.msix"))
+    try {
+        $entry = $archive.GetEntry($resourceName)
+        if ($null -eq $entry) { throw 'The runtime package is missing its Insights resource.' }
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $Destination $resourceName), $true)
+    }
+    finally { $archive.Dispose() }
+    Copy-Item -LiteralPath (Join-Path $packageRoots[0] 'license.txt') -Destination (Join-Path $Destination 'LICENSE-WINDOWS-APP-SDK.txt')
+}
+
 function Assert-PackageIdentity {
     param([Parameter(Mandatory)][string] $Path)
 
@@ -300,6 +325,7 @@ try {
 
     Assert-PublishedVersion (Join-Path $appPublish 'TokenUsage.App.dll')
     Assert-PublishedVersion (Join-Path $cliPublish 'tokenusage.dll')
+    Copy-PortableRuntimeResources $appPublish
     Copy-PublishOutput $appPublish $portableDirectory
     Copy-PublishOutput $cliPublish (Join-Path $portableDirectory 'cli')
     Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $portableDirectory
