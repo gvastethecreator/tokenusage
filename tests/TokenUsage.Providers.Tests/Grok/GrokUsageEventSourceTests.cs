@@ -327,6 +327,21 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
+    public async Task SelfContainedSessionWithoutSummaryIsStillCounted()
+    {
+        using var corpus = new GrokCorpus();
+        corpus.WriteSession("child", Snapshot("2026-07-22T11:00:00Z", 25, 4, model: "grok-4.5"));
+        File.Delete(Path.Combine(corpus.Root, "sessions", "cwd", "child", "summary.json"));
+
+        UsageSourceReadResult result = await corpus.CreateSource(maximumFiles: 1).ReadAsync();
+
+        UsageEvent usageEvent = Assert.Single(result.Events);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal("grok-4.5", usageEvent.ModelId.Value);
+        Assert.Equal(new TokenBreakdown(25, 4, 0, 0, 0), usageEvent.Tokens);
+    }
+
+    [Fact]
     public async Task RotatedUnifiedLogFallsBackToSessionSnapshots()
     {
         using var corpus = new GrokCorpus();
@@ -418,6 +433,7 @@ public sealed class GrokUsageEventSourceTests
     {
         using var corpus = new GrokCorpus();
         corpus.WriteUnified(
+            "{\"ts\":\"2026-07-22T10:00:00Z\",\"pid\":11,\"msg\":\"model changed\",\"ctx\":{\"model\":\"grok-build\"}}",
             "{\"ts\":\"2026-07-22T10:01:00Z\",\"pid\":11,\"msg\":\"shell.turn.inference_done\",\"ctx\":{\"current_model_id\":\"grok-4.5\",\"prompt_tokens\":100,\"completion_tokens\":20}}");
 
         UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);

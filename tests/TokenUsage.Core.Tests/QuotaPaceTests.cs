@@ -53,19 +53,15 @@ public sealed class QuotaPaceTests
     }
 
     [Fact]
-    public void ZeroAndExhaustedBoundariesStayExplicit()
+    public void ZeroUsageHasNoForecastAndExhaustedQuotaStaysExplicit()
     {
         TimeSpan window = TimeSpan.FromHours(2);
         DateTimeOffset reset = Now.AddHours(1);
 
-        QuotaPaceResult zero = Assert.IsType<QuotaPaceResult>(
-            QuotaPace.Evaluate(0m, 100m, reset, window, Now));
+        Assert.Null(QuotaPace.Evaluate(0m, 100m, reset, window, Now));
         QuotaPaceResult exhausted = Assert.IsType<QuotaPaceResult>(
             QuotaPace.Evaluate(100m, 100m, reset, window, Now));
 
-        Assert.Equal(QuotaPaceStatus.Ahead, zero.Status);
-        Assert.Equal(0m, zero.ProjectedUsage);
-        Assert.Null(zero.TimeToExhaust);
         Assert.Equal(QuotaPaceStatus.Behind, exhausted.Status);
         Assert.Null(exhausted.TimeToExhaust);
     }

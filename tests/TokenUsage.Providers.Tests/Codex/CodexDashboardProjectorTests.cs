@@ -92,7 +92,7 @@ public sealed class CodexDashboardProjectorTests
     }
 
     [Fact]
-    public void MissingDurationOrResetHidesPaceWithoutHidingQuota()
+    public void MissingDurationResetOrActivityHidesPaceWithoutHidingQuota()
     {
         QuotaWindow missingDuration = Assert.Single(CreateCard(
             used: 25m,
@@ -103,6 +103,14 @@ public sealed class CodexDashboardProjectorTests
             reset: null,
             durationMinutes: 300m).Windows);
 
+        QuotaWindow untouched = Assert.Single(CreateCard(
+            used: 0m,
+            reset: Now.AddHours(2.5),
+            durationMinutes: 300m).Windows);
+
+        Assert.Equal(100d, untouched.RemainingPercent);
+        Assert.False(untouched.HasPace);
+        Assert.False(untouched.IsPaceWithinLimit);
         Assert.Equal("Resets in 3 h", missingDuration.ResetText);
         Assert.False(missingDuration.HasPace);
         Assert.False(missingDuration.IsPaceBehind);

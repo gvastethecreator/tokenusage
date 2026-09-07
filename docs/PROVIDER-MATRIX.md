@@ -283,21 +283,23 @@ Upstream comparison source: [OpenCode provider](https://github.com/robinebers/op
 ### Local source
 
 - `GROK_HOME/logs/unified.jsonl` as the primary source
-- `GROK_HOME/sessions` with `summary.json` and `updates.jsonl` as compatibility
+- `GROK_HOME/sessions/**/updates.jsonl` for cumulative session snapshots;
+  `summary.json` is optional when the snapshot has its own model and timestamp
 - `params.update.usage`, per-model breakdown, and `costUsdTicks` when they exist
 - catalog estimate only when the source does not report cost
 
 The unified log has priority when its oldest inference reaches the start of the
-35-day window, the same as in OpenUsage. If Grok rotated the log and only
+35-day window. If Grok rotated the log and only
 recent turns remain, TokenUsage uses the session snapshots. Mixing both sources
 would count the same inference twice. The snapshots keep reported
 `costUsdTicks`. A `0` is not treated as a free turn.
 
-A turn's model does not travel on the `shell.turn.inference_done` line. The app
-takes it from the last model announcement for the same `pid`. When the log no
-longer keeps that announcement, the turn is recorded under the `unknown` model,
-with tokens counted and cost unavailable. It was discarded before. In the Grok
-`1.0.0` test that hid 61 of 1034 turns while the read was declared complete.
+An explicit model on a `shell.turn.inference_done` context takes precedence over
+a process-level model announcement. Older records can omit the model; for those,
+the app uses the last announcement for the same `pid`. If neither source names
+the model, tokens stay visible under `unknown` and cost stays unavailable.
+Before unknown-model retention was added, a Grok `1.0.0` fixture lost 61 of 1034
+turns while the read was declared complete.
 
 ### Quota
 
@@ -312,6 +314,17 @@ restricts automated access. The public build does not read `auth.json` or call
 the private endpoint.
 
 ### Result
+
+Parser `grok-local/8` also discovers self-contained snapshots without a summary.
+It retains bounded reads and rejects reparse-point summaries. The parser version
+invalidates older numeric checkpoints; a complete refresh reconciles the existing
+window rather than adding a second parser's totals.
+
+This does not claim complete fork/replay deduplication across cumulative session
+snapshots. Those records do not provide the stable per-inference IDs needed to
+subtract shared parent history safely. Equal token totals are not duplicate proof.
+Support for the separate `turn_completed` ledger format needs its own source
+fixtures and identity rules; it is not added by this repair.
 
 Local tokens and cost in beta after version fixtures and a differential. Quota
 and balance only after a suitable official interface or written permission. The

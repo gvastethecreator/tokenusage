@@ -55,7 +55,9 @@ public static class QuotaPace
             UtcTimestamp.Require(resetsAtUtc.Value, nameof(resetsAtUtc));
         }
 
-        if (limit <= 0m
+        // A zero meter is an observed level, not evidence of a future consumption rate.
+        if (used == 0m
+            || limit <= 0m
             || resetsAtUtc is null
             || windowDuration is null
             || windowDuration <= TimeSpan.Zero

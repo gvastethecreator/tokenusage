@@ -37,8 +37,15 @@ public sealed class TraySummaryProjectorTests
         });
     }
 
-    [Fact]
-    public void CreateProjectsObservedLimitsAndKeepsMissingValuesUnavailable()
+    [Theory]
+    [InlineData(80, 12, QuotaUsageLevel.Healthy, QuotaUsageLevel.Warning)]
+    [InlineData(0, 80, QuotaUsageLevel.Critical, QuotaUsageLevel.Healthy)]
+    [InlineData(80, 0, QuotaUsageLevel.Healthy, QuotaUsageLevel.Critical)]
+    public void CreateProjectsObservedLimitsAndKeepsMissingValuesUnavailable(
+        int sessionRemaining,
+        int periodRemaining,
+        QuotaUsageLevel sessionLevel,
+        QuotaUsageLevel periodLevel)
     {
         var preferences = new[]
         {
@@ -52,20 +59,20 @@ public sealed class TraySummaryProjectorTests
             providerId => providerId == "codex"
                 ?
                 [
-                    Window("Session", "quota.primary", 80),
-                    Window("Weekly", "quota.secondary", 12),
+                    Window("Session", "quota.primary", sessionRemaining),
+                    Window("Weekly", "quota.secondary", periodRemaining),
                     Window("Codex Spark", "quota.codex-spark.primary", 100),
                 ]
                 : [],
             Text);
 
         TrayProviderSummary codex = result[0];
-        Assert.Equal("80%", codex.PrimaryValue);
-        Assert.Equal(QuotaUsageLevel.Healthy, codex.PrimaryLevel);
-        Assert.Equal("12%", codex.SecondaryValue);
-        Assert.Equal(QuotaUsageLevel.Warning, codex.SecondaryLevel);
+        Assert.Equal($"{sessionRemaining}%", codex.PrimaryValue);
+        Assert.Equal(sessionLevel, codex.PrimaryLevel);
+        Assert.Equal($"{periodRemaining}%", codex.SecondaryValue);
+        Assert.Equal(periodLevel, codex.SecondaryLevel);
         Assert.Equal("W", codex.SecondaryShortLabel);
-        Assert.Contains("Weekly: 12%", codex.AutomationName, StringComparison.Ordinal);
+        Assert.Contains($"Weekly: {periodRemaining}%", codex.AutomationName, StringComparison.Ordinal);
 
         TrayProviderSummary cursor = result[1];
         Assert.Equal("—", cursor.PrimaryValue);

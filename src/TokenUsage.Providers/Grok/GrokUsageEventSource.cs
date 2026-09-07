@@ -14,7 +14,7 @@ public sealed class GrokUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "grok-local/7";
+    public const string ParserVersion = "grok-local/8";
 
     /// <summary>
     /// Stands in for the model of a turn the log does not name. It matches no catalog rate, so the
@@ -138,9 +138,9 @@ public sealed class GrokUsageEventSource :
             return sessionEvents;
         }
 
-        foreach (string summaryPath in EnumerateNamedFiles(
+        foreach (string updatesPath in EnumerateNamedFiles(
                      sessionsRoot,
-                     "summary.json",
+                     "updates.jsonl",
                      state,
                      cancellationToken))
         {
@@ -152,8 +152,8 @@ public sealed class GrokUsageEventSource :
                 break;
             }
 
-            string sessionDirectory = Path.GetDirectoryName(summaryPath)!;
-            string updatesPath = Path.Combine(sessionDirectory, "updates.jsonl");
+            string sessionDirectory = Path.GetDirectoryName(updatesPath)!;
+            string summaryPath = Path.Combine(sessionDirectory, "summary.json");
             long length;
             DateTime lastWriteUtc;
             try
@@ -191,14 +191,19 @@ public sealed class GrokUsageEventSource :
                 continue;
             }
 
-            if (++state.FilesRead > _budget.MaximumFiles)
+            // A self-contained usage snapshot does not require its optional summary.
+            var summary = new SummaryInfo(null, null);
+            if (File.Exists(summaryPath))
             {
-                state.IsPartial = true;
-                interrupted = true;
-                break;
-            }
+                if (++state.FilesRead > _budget.MaximumFiles)
+                {
+                    state.IsPartial = true;
+                    interrupted = true;
+                    break;
+                }
 
-            SummaryInfo summary = ReadSummary(summaryPath, state, cancellationToken);
+                summary = ReadSummary(summaryPath, state, cancellationToken);
+            }
             SnapshotRead snapshotRead = ReadLatestSnapshot(
                 updatesPath, summary, state, cancellationToken);
             if (snapshotRead.Snapshot is { } snapshot)
@@ -256,6 +261,12 @@ public sealed class GrokUsageEventSource :
     {
         try
         {
+            if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+            {
+                state.IsPartial = true;
+                return new SummaryInfo(null, null);
+            }
+
             byte[] bytes = ReadSmallFile(path, cancellationToken);
             using JsonDocument document = JsonDocument.Parse(bytes);
             JsonElement root = document.RootElement;
@@ -424,11 +435,9 @@ public sealed class GrokUsageEventSource :
             // real tokens and no name for them. Dropping it hid about one turn in twenty from the
             // total, so it is counted under an unnamed model, which prices as unavailable.
             // Newer unified lines also put the model on the turn ctx itself.
-            if (!modelsByProcess.TryGetValue(processId.Value, out model))
-            {
-                model = GetFirstString(context, "current_model_id", "model", "model_id")
-                    ?? UnknownModel;
-            }
+            model = GetFirstString(context, "current_model_id", "model", "model_id")
+                ?? modelsByProcess.GetValueOrDefault(processId.Value)
+                ?? UnknownModel;
 
             long cacheRead = GetNonNegativeInt64OrZero(context, "cached_prompt_tokens");
             long output = GetNonNegativeInt64OrZero(context, "completion_tokens");
