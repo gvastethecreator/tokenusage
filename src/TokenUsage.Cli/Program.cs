@@ -1,7 +1,14 @@
 using Windows.Storage;
 using TokenUsage.Cli;
 using TokenUsage.Core.Usage;
+using TokenUsage.Core.Updates;
 using TokenUsage.Platform.Windows.Storage;
+
+// The private updater must work without package identity and never opens application data.
+if (args.Length > 0 && string.Equals(args[0], PortableUpdateInstaller.WorkerArgument, StringComparison.Ordinal))
+{
+    return await UpdateWorkerCommand.RunAsync(args.Skip(1).ToArray(), Console.Error);
+}
 
 if (CliApplication.IsHelpRequest(args))
 {
