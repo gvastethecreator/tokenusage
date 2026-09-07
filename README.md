@@ -17,6 +17,7 @@
   <a href="https://gvastethecreator.github.io/tokenusage/">Project site</a> ·
   <a href="#product-tour">Product tour</a> ·
   <a href="#provider-support">Providers</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
   <a href="#build-and-run">Build</a> ·
   <a href="#command-line">CLI</a>
 </p>
@@ -128,6 +129,19 @@ Keep `TokenUsage.portable` in the extracted folder. Move the complete folder whe
 The MSIX and portable builds use separate data folders. Installing one build does not delete or import data from the other build.
 
 Read the [release procedure](docs/RELEASING.md) for build, signature, and publication details.
+
+### Automatic updates
+
+In Options → General, enable automatic updates to check GitHub once every
+24 hours while TokenUsage runs. Startup checks respect the same interval.
+Updates are off by default. You can also
+check and install manually. Only newer stable releases for your architecture are
+accepted; downloads must pass GitHub SHA-256 and size verification.
+
+Portable updates apply after exit and preserve the Data folder. Direct MSIX
+updates also require a trusted package signature and Windows 10 version 2004 or
+later. Store installations use Microsoft Store updates; development builds do
+not self-update. Builds released before this updater need one manual upgrade.
 
 ## Build and run
 

@@ -55,7 +55,6 @@ public sealed class PackagingContractTests
 
         Assert.Equal("GVASTETHECREATOR.TokenUsage", (string?)identity.Attribute("Name"));
         Assert.Equal("CN=DB97CC4C-CCCD-41DF-8D43-C67641CBBC92", (string?)identity.Attribute("Publisher"));
-        Assert.Equal("0.0.1.0", (string?)identity.Attribute("Version"));
         Assert.Equal("TokenUsage.App.exe", (string?)application.Attribute("Executable"));
         Assert.Equal("Windows.FullTrustApplication", (string?)application.Attribute("EntryPoint"));
         Assert.Equal("TokenUsage.Cli\\tokenusage.exe", (string?)extension.Attribute("Executable"));
@@ -103,18 +102,22 @@ public sealed class PackagingContractTests
             "app.manifest"));
         XDocument packageManifest = XDocument.Load(PackagePath("Package.appxmanifest"));
 
-        Assert.Equal("0.0.1", buildProperties.Descendants("Version").Single().Value);
-        Assert.Equal("0.0.1.0", buildProperties.Descendants("AssemblyVersion").Single().Value);
-        Assert.Equal("0.0.1.0", buildProperties.Descendants("FileVersion").Single().Value);
-        Assert.Equal("0.0.1", buildProperties.Descendants("InformationalVersion").Single().Value);
+        string version = buildProperties.Descendants("Version").Single().Value;
+        string windowsVersion = $"{version}.0";
+        Assert.Matches(@"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$", version);
+        Assert.All(version.Split('.'), component => Assert.InRange(int.Parse(component,
+            System.Globalization.CultureInfo.InvariantCulture), 0, ushort.MaxValue));
+        Assert.Equal(windowsVersion, buildProperties.Descendants("AssemblyVersion").Single().Value);
+        Assert.Equal(windowsVersion, buildProperties.Descendants("FileVersion").Single().Value);
+        Assert.Equal(version, buildProperties.Descendants("InformationalVersion").Single().Value);
         Assert.Equal(
             "false",
             buildProperties.Descendants("IncludeSourceRevisionInInformationalVersion").Single().Value);
         Assert.Equal(
-            "0.0.1.0",
+            windowsVersion,
             (string?)appManifest.Root!.Element(Assembly + "assemblyIdentity")!.Attribute("version"));
         Assert.Equal(
-            "0.0.1.0",
+            windowsVersion,
             (string?)packageManifest.Root!.Element(Package + "Identity")!.Attribute("Version"));
     }
 

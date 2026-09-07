@@ -10,6 +10,9 @@ param(
     [string] $Version,
 
     [Parameter()]
+    [string] $ReleaseTag,
+
+    [Parameter()]
     [switch] $SkipTests,
 
     [Parameter()]
@@ -25,6 +28,7 @@ $buildPropertiesPath = Join-Path $repoRoot 'Directory.Build.props'
 $appProject = Join-Path $repoRoot 'src\TokenUsage.App\TokenUsage.App.csproj'
 $cliProject = Join-Path $repoRoot 'src\TokenUsage.Cli\TokenUsage.Cli.csproj'
 $packageProject = Join-Path $repoRoot 'src\TokenUsage.Package\TokenUsage.Package.wapproj'
+$packageManifestPath = Join-Path $repoRoot 'src\TokenUsage.Package\Package.appxmanifest'
 $packageOutput = Join-Path $repoRoot 'src\TokenUsage.Package\AppPackages'
 $releaseRoot = Join-Path $repoRoot 'artifacts\release'
 $stagingRoot = Join-Path $repoRoot 'artifacts\release-staging'
@@ -106,18 +110,91 @@ function Copy-PublishOutput {
     }
 }
 
+function Assert-PublishedVersion {
+    param([Parameter(Mandatory)][string] $Path)
+
+    $assemblyVersion = [System.Reflection.AssemblyName]::GetAssemblyName($Path).Version.ToString()
+    $fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($Path)
+    if ($assemblyVersion -ne $windowsVersion -or
+        $fileVersion.FileVersion -ne $windowsVersion -or
+        $fileVersion.ProductVersion -ne $Version -or
+        $fileVersion.ProductName -ne 'TokenUsage') {
+        throw "Published assembly metadata does not match release $Version`: $Path"
+    }
+}
+
+function Assert-PackageIdentity {
+    param([Parameter(Mandatory)][string] $Path)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+    try {
+        $entry = $archive.GetEntry('AppxManifest.xml')
+        if ($null -eq $entry) {
+            $entry = $archive.GetEntry('AppxMetadata/AppxBundleManifest.xml')
+        }
+        if ($null -eq $entry) {
+            throw 'The package does not contain an identity manifest.'
+        }
+
+        $reader = [System.IO.StreamReader]::new($entry.Open())
+        try {
+            [xml] $builtManifest = $reader.ReadToEnd()
+        }
+        finally {
+            $reader.Dispose()
+        }
+        $identity = $builtManifest.DocumentElement.Identity
+        if ($identity.Name -ne $packageIdentity.Name -or
+            $identity.Publisher -ne $packageIdentity.Publisher -or
+            $identity.Version -ne $windowsVersion) {
+            throw 'The built package identity does not match the release source.'
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
 [xml] $buildProperties = Get-Content -LiteralPath $buildPropertiesPath -Raw
 $sourceVersion = [string] $buildProperties.Project.PropertyGroup.Version
 if (-not $Version) {
     $Version = $sourceVersion
 }
 
-if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+if ($Version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$' -or
+    @($Version.Split('.') | Where-Object { [long] $_ -gt 65535 }).Count -gt 0) {
     throw "Version must use the major.minor.patch format: $Version"
 }
 
 if ($Version -ne $sourceVersion) {
     throw "Version $Version does not match Directory.Build.props version $sourceVersion."
+}
+
+$windowsVersion = "$Version.0"
+[xml] $appManifest = Get-Content -LiteralPath (Join-Path $repoRoot 'src\TokenUsage.App\app.manifest') -Raw
+[xml] $packageManifest = Get-Content -LiteralPath $packageManifestPath -Raw
+$packageIdentity = $packageManifest.Package.Identity
+if ($buildProperties.Project.PropertyGroup.AssemblyVersion -ne $windowsVersion -or
+    $buildProperties.Project.PropertyGroup.FileVersion -ne $windowsVersion -or
+    $buildProperties.Project.PropertyGroup.InformationalVersion -ne $Version -or
+    $appManifest.assembly.assemblyIdentity.version -ne $windowsVersion -or
+    $packageIdentity.Version -ne $windowsVersion) {
+    throw "Assembly, file, app manifest, and package versions must match release $Version."
+}
+
+if ($ReleaseTag) {
+    if ($ReleaseTag -cne "v$Version") {
+        throw "The stable release tag must be v$Version."
+    }
+    $tagCommit = & git -C $repoRoot rev-parse --verify "$ReleaseTag^{commit}"
+    if ($LASTEXITCODE -ne 0) {
+        throw "The release tag does not exist locally: $ReleaseTag"
+    }
+    $headCommit = & git -C $repoRoot rev-parse HEAD
+    if ($LASTEXITCODE -ne 0 -or $tagCommit -ne $headCommit) {
+        throw 'The release tag must point to the checked-out commit.'
+    }
 }
 
 if ($PackageCertificatePassword -and -not $PackageCertificateKeyFile) {
@@ -213,6 +290,8 @@ try {
             '-p:PublishSingleFile=false'
     }
 
+    Assert-PublishedVersion (Join-Path $appPublish 'TokenUsage.App.dll')
+    Assert-PublishedVersion (Join-Path $cliPublish 'tokenusage.dll')
     Copy-PublishOutput $appPublish $portableDirectory
     Copy-PublishOutput $cliPublish (Join-Path $portableDirectory 'cli')
     Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $portableDirectory
@@ -227,6 +306,7 @@ try {
         'Run TokenUsage.App.exe to start the tray app.'
         'Run cli\tokenusage.exe from PowerShell to use the CLI.'
         'Keep TokenUsage.portable beside the executable files.'
+        'Keep TokenUsage.files.json so updates can identify files owned by this release.'
         'The app and CLI use the Data folder in this directory.'
         'Move the complete directory when you move the app.'
     )
@@ -234,6 +314,15 @@ try {
         '@echo off'
         '"%~dp0cli\tokenusage.exe" %*'
     )
+
+    if (Test-Path -LiteralPath (Join-Path $portableDirectory 'Data')) {
+        throw 'A portable release must not contain user data.'
+    }
+    $inventoryName = 'TokenUsage.files.json'
+    $managedFiles = @($inventoryName) + @(Get-ChildItem -LiteralPath $portableDirectory -Recurse -File |
+        ForEach-Object { [System.IO.Path]::GetRelativePath($portableDirectory, $_.FullName).Replace('\', '/') })
+    ConvertTo-Json -InputObject @($managedFiles | Sort-Object -CaseSensitive -Unique) |
+        Set-Content -LiteralPath (Join-Path $portableDirectory $inventoryName) -Encoding utf8
 
     Compress-Archive -LiteralPath $portableDirectory -DestinationPath $portableZip -CompressionLevel Optimal
 
@@ -245,10 +334,14 @@ try {
         throw "The package build did not create an MSIX asset under $packageOutput."
     }
 
+    Assert-PackageIdentity $packageAsset.FullName
     $signature = Get-AuthenticodeSignature -LiteralPath $packageAsset.FullName
     $packageIsSigned = $signature.Status -eq [System.Management.Automation.SignatureStatus]::Valid
     if ($PackageCertificateKeyFile -and -not $packageIsSigned) {
         throw "The package signature is not valid: $($signature.StatusMessage)"
+    }
+    if ($ReleaseTag -and -not $packageIsSigned) {
+        throw 'A tagged release requires a valid signed package.'
     }
 
     $packageSuffix = if ($packageIsSigned) { '' } else { '-unsigned' }

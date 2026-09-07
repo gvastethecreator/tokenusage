@@ -39,11 +39,14 @@ jobs:
           MANUAL_VERSION: ${{ inputs.version }}
         run: |
           $version = if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            $env:GITHUB_REF_NAME -replace '^v', ''
+            if ($env:GITHUB_REF_NAME -cnotmatch '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') {
+              throw 'Only stable vMAJOR.MINOR.PATCH tags can create a release.'
+            }
+            $env:GITHUB_REF_NAME.Substring(1)
           } else {
             $env:MANUAL_VERSION
           }
-          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+          if ($version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') {
             throw "Release version is invalid: $version"
           }
           "TOKENUSAGE_RELEASE_VERSION=$version" >> $env:GITHUB_ENV
@@ -68,7 +71,12 @@ jobs:
 
       - name: Build release assets
         shell: pwsh
-        run: .\scripts\release.ps1 -Platform x64 -Version $env:TOKENUSAGE_RELEASE_VERSION
+        run: |
+          $parameters = @{ Platform = 'x64'; Version = $env:TOKENUSAGE_RELEASE_VERSION }
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $parameters.ReleaseTag = $env:GITHUB_REF_NAME
+          }
+          .\scripts\release.ps1 @parameters
 
       - name: Upload release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -89,19 +97,62 @@ jobs:
           }
           $assets = @(Get-ChildItem artifacts/release -File | Select-Object -ExpandProperty FullName)
           $notes = "docs/releases/$($env:TOKENUSAGE_RELEASE_VERSION).md"
-          $arguments = @(
-            'release', 'create', $env:GITHUB_REF_NAME,
-            '--draft',
-            '--verify-tag',
-            '--title', "TokenUsage $($env:GITHUB_REF_NAME)"
-          )
+          $releasePages = & gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/releases?per_page=100"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Existing releases could not be read.'
+          }
+          $existing = @($releasePages | ConvertFrom-Json | ForEach-Object { $_ } |
+            Where-Object { $_.tag_name -ceq $env:GITHUB_REF_NAME })
+          if ($existing.Count -gt 1) { throw 'More than one matching release was returned.' }
+          if ($existing.Count -eq 1) {
+            if (-not $existing[0].draft -or $existing[0].prerelease -or
+                $existing[0].target_commitish -cne $env:GITHUB_SHA -or $existing[0].assets.Count -ne 0) {
+              throw 'Only an empty stable draft for this exact commit can be reused. Existing assets are never replaced.'
+            }
+            $arguments = @('release', 'edit', $env:GITHUB_REF_NAME,
+              '--draft', '--title', "TokenUsage $($env:GITHUB_REF_NAME)")
+          } else {
+            $arguments = @('release', 'create', $env:GITHUB_REF_NAME,
+              '--draft', '--verify-tag', '--target', $env:GITHUB_SHA,
+              '--title', "TokenUsage $($env:GITHUB_REF_NAME)")
+          }
           if (Test-Path -LiteralPath $notes) {
             $arguments += @('--notes-file', $notes)
+          } elseif ($existing.Count -eq 1) {
+            throw 'Release notes are required to complete an existing draft.'
           } else {
             $arguments += '--generate-notes'
           }
-          $arguments += $assets
+          if ($existing.Count -eq 0) { $arguments += $assets }
           & gh @arguments
           if ($LASTEXITCODE -ne 0) {
             throw "GitHub release creation failed with exit code $LASTEXITCODE."
           }
+          if ($existing.Count -eq 1) {
+            & gh release upload $env:GITHUB_REF_NAME @assets
+            if ($LASTEXITCODE -ne 0) { throw 'Draft asset upload failed. Keep the release unpublished.' }
+          }
+
+          $releaseJson = & gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:GITHUB_REF_NAME"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'The draft asset digests could not be read. Do not publish this draft.'
+          }
+          $release = $releaseJson | ConvertFrom-Json
+          if (-not $release.draft -or $release.prerelease -or $release.tag_name -cne $env:GITHUB_REF_NAME) {
+            throw 'The uploaded release must remain a stable draft for manual review.'
+          }
+          foreach ($assetPath in $assets) {
+            $localAsset = Get-Item -LiteralPath $assetPath
+            $remoteAssets = @($release.assets | Where-Object { $_.name -ceq $localAsset.Name })
+            if ($remoteAssets.Count -ne 1) {
+              throw "The draft must contain exactly one asset named $($localAsset.Name)."
+            }
+            $remoteAsset = $remoteAssets[0]
+            $expectedDigest = 'sha256:' + (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($remoteAsset.state -ne 'uploaded' -or
+                $remoteAsset.size -ne $localAsset.Length -or
+                $remoteAsset.digest -ine $expectedDigest) {
+              throw "GitHub size or SHA-256 digest mismatch for $($localAsset.Name). Do not publish this draft."
+            }
+          }
+          Write-Host 'Draft asset digests verified. Manual review and publication are still required.'
