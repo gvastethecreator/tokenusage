@@ -132,6 +132,8 @@ public sealed record QuotaWindow(
 
     public bool HasPace => !string.IsNullOrWhiteSpace(PaceText);
 
+    public bool HasUsedText => !string.IsNullOrWhiteSpace(UsedText);
+
     public bool IsPaceWithinLimit => HasPace && !IsPaceBehind;
 
     public string PaceAutomationName => $"{Title}: {PaceText}";

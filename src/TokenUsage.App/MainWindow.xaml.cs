@@ -39,6 +39,10 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isTransparencyActive;
     private bool _suppressDeactivateHide;
     private bool _layoutAnimationPositionPending;
+    private PlatformRect? _resizeTarget;
+    private PlatformRect _resizeFrom;
+    private long _resizeStarted;
+    private uint _resizeDpi;
     private readonly bool _traySummaryPinnedForTest;
     private bool _disposed;
     private bool _lastHighContrast;
@@ -291,7 +295,7 @@ public sealed partial class MainWindow : Window, IDisposable
         return new DeactivateHideLease(this);
     }
 
-    private void PositionFlyout(bool animateLayout = false)
+    private void PositionFlyout(bool animateLayout = false, bool animateNavigation = false)
     {
         if (_trayIcon is null)
         {
@@ -315,7 +319,7 @@ public sealed partial class MainWindow : Window, IDisposable
             initialHeightDips,
             96,
             display.FallbackAnchor);
-        if (!animateLayout) MoveTo(initialPlacement.Bounds);
+        if (!animateLayout && !animateNavigation && _resizeTarget is null) MoveTo(initialPlacement.Bounds);
 
         var effectiveDpi = MonitorPlacementContextProvider.GetWindowDpi(_windowHandle);
         var finalWidthDips = FlyoutSizePolicy.ClampWidthDips(
@@ -334,10 +338,16 @@ public sealed partial class MainWindow : Window, IDisposable
             finalHeightDips,
             effectiveDpi,
             display.FallbackAnchor);
-        RootPage.MeasureRoot.Width = finalWidthDips;
-        RootPage.MeasureRoot.Height = finalHeightDips;
-        RootPage.MeasureRoot.UpdateLayout();
-        MoveTo(finalPlacement.Bounds);
+        if ((animateNavigation || _resizeTarget is not null) && _isFlyoutVisible
+            && Controls.MotionSettings.AreAnimationsEnabled())
+        {
+            AnimateWindowBounds(finalPlacement.Bounds, effectiveDpi);
+        }
+        else
+        {
+            StopWindowResize();
+            ApplyWindowBounds(finalPlacement.Bounds, effectiveDpi);
+        }
     }
 
     private double MeasureDesiredHeightDips(double widthDips)
@@ -419,7 +429,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if ((surfaceChanged || optionsSectionChanged || layoutChanged) && _isFlyoutVisible)
         {
             BeginActivationGuard();
-            SchedulePositionAfterLayout();
+            SchedulePositionAfterLayout(animateNavigation: surfaceChanged || optionsSectionChanged);
         }
 
         if (layoutChanged || refreshChanged)
@@ -557,7 +567,7 @@ public sealed partial class MainWindow : Window, IDisposable
         RootPage.ViewModel.StatusText = GetString(resourceKey);
     }
 
-    private void SchedulePositionAfterLayout()
+    private void SchedulePositionAfterLayout(bool animateNavigation = false)
     {
         _ = DispatcherQueue.TryEnqueue(() =>
         {
@@ -566,14 +576,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 return;
             }
 
-            PositionFlyout();
-            _ = DispatcherQueue.TryEnqueue(() =>
-            {
-                if (_isFlyoutVisible)
-                {
-                    PositionFlyout();
-                }
-            });
+            PositionFlyout(animateLayout: true, animateNavigation: animateNavigation);
         });
     }
 
@@ -725,6 +728,7 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        StopWindowResize();
         AppWindow.Hide();
         _isFlyoutVisible = false;
         RootPage.ViewModel.SetPanelVisible(false);
@@ -791,6 +795,7 @@ public sealed partial class MainWindow : Window, IDisposable
         RootPage.ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         RootPage.HideRequested -= OnHideRequested;
         RootPage.UsageReportRequested -= OnUsageReportRequested;
+        StopWindowResize();
         RootPage.LayoutAnimationProgressed -= OnLayoutAnimationProgressed;
         if (_reportWindow is not null)
         {

@@ -171,7 +171,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     public bool IsSampleUnavailable => SurfaceState == FlyoutSurfaceState.SampleUnavailable;
 
-    public bool IsCardSurface => !IsSample;
+    public bool IsCardSurface => !IsSample && !IsOptions;
 
     public bool IsUsageSurface => !IsOptions;
 

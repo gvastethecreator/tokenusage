@@ -2289,6 +2289,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             _compareRightReport,
             alignByIndex ? _compareRightStart : _compareLeftStart,
             dayCount);
+        AddResetMarkers(days, UsageReportResetMarkers.Calendar(_resetHistory.Resets,
+            _report.Agents.Select(agent => agent.AgentId.Value), _compareLeftStart, leftCount, TimeZoneInfo.Local), "A");
+        AddResetMarkers(days, UsageReportResetMarkers.Calendar(_resetHistory.Resets,
+            _compareRightReport.Agents.Select(agent => agent.AgentId.Value),
+            alignByIndex ? _compareRightStart : _compareLeftStart, rightCount, TimeZoneInfo.Local), "B");
         return new UsageReportTrendDataset(
             Metric,
             days,

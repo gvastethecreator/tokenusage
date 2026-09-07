@@ -56,7 +56,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" ColumnSpacing="8">
+            <Grid Grid.Row="0" ColumnSpacing="8" Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -89,12 +89,6 @@
                     </Border>
                 </StackPanel>
 
-                <TextBlock
-                    x:Uid="OptionsHeader"
-                    Grid.Column="0"
-                    Style="{StaticResource BodyStrongTextBlockStyle}"
-                    VerticalAlignment="Center"
-                    Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}" />
 
                 <StackPanel
                     x:Name="HeaderActionButtons"
@@ -156,20 +150,6 @@
                     </Button>
                 </StackPanel>
 
-                <Button
-                    x:Name="OptionsBackButton"
-                    x:Uid="OptionsBackButton"
-                    Grid.Column="1"
-                    AutomationProperties.AutomationId="OptionsBackButton"
-                    Command="{x:Bind ViewModel.OptionsNavigation.NavigateBackCommand}"
-                    Padding="8"
-                    Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}">
-                    <FontIcon
-                        AutomationProperties.AccessibilityView="Raw"
-                        FontSize="14"
-                        IsTextScaleFactorEnabled="False"
-                        Glyph="&#xE72B;" />
-                </Button>
             </Grid>
 
             <ScrollViewer
@@ -266,14 +246,14 @@
                                     Margin="0,4,0,0"
                                     Style="{StaticResource AccentButtonStyle}" />
                             </StackPanel>
-
-                            <optionViews:OptionsView
-                                x:Name="OptionsSurfaceView"
-                                LayoutAnimationProgressed="OnDashboardLayoutAnimationProgressed"
-                                ViewModel="{x:Bind ViewModel.Options, Mode=OneWay}"
-                                Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}" />
                         </Grid>
                     </Border>
+
+                    <optionViews:OptionsView
+                        x:Name="OptionsSurfaceView"
+                        LayoutAnimationProgressed="OnDashboardLayoutAnimationProgressed"
+                        ViewModel="{x:Bind ViewModel.Options, Mode=OneWay}"
+                        Visibility="{x:Bind ViewModel.IsOptions, Mode=OneWay}" />
 
                     <dashboardViews:CompactUsageDashboard
                         x:Name="DashboardSurfaceView"

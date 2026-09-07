@@ -78,6 +78,26 @@ public sealed partial class UsageTrendChart
             UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, IsPreview ? 2 : TopPadding, IsPreview ? 2 : BottomPadding, style, scale.EmphasizeSmallValues);
     }
 
+    private void RenderResetMarkers(UsageReportTrendDataset data, double width)
+    {
+        for (int index = 0; index < data.Days.Count; index++)
+        {
+            if (string.IsNullOrEmpty(data.Days[index].ResetText)) continue;
+            double x = data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1
+                ? (index + 0.5) * width / data.Days.Count
+                : index * width / (data.Days.Count - 1);
+            var marker = new Polygon
+            {
+                Points = new PointCollection { new(0, 0), new(8, 0), new(4, 6) },
+                Fill = TextBrushProxy.Background,
+                IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(marker, Math.Clamp(x - 4, 0, Math.Max(0, width - 8)));
+            Canvas.SetTop(marker, 1);
+            PlotCanvas.Children.Add(marker);
+        }
+    }
+
     private Brush AreaBrush(UsageReportTrendSeries series)
     {
         if (_accessibilitySettings.HighContrast) return SeriesBrush(series);

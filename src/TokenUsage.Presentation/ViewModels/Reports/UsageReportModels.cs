@@ -124,7 +124,10 @@ public static class UsageReportProviderOptionReconciler
 public sealed record UsageReportTrendDay(
     DateOnly Date,
     string Label,
-    string? HoverText = null);
+    string? HoverText = null)
+{
+    public string ResetText { get; init; } = string.Empty;
+}
 
 public sealed record UsageReportTrendSeries(
     string Id,

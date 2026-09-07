@@ -170,34 +170,11 @@
         AutomationProperties.AutomationId="ProviderStatusSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <Grid ColumnSpacing="10" MinHeight="30">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="26" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <FontIcon
-                    Glyph="&#xE774;"
-                    Style="{StaticResource OptionsCategoryIconStyle}" />
-                <StackPanel
-                    Grid.Column="1"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    VerticalAlignment="Center">
-                    <ToolTipService.ToolTip>
-                        <ToolTip
-                            x:Uid="ProviderStatusSectionDescription"
-                            ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
-                            MaxWidth="300" />
-                    </ToolTipService.ToolTip>
-                    <TextBlock
-                        x:Uid="ProviderStatusSectionTitle"
-                        Style="{StaticResource OptionsCategoryTitleStyle}" />
-                </StackPanel>
+            <Grid>
                 <Button
                     x:Name="ProviderStatusRefreshButton"
                     x:Uid="ProviderStatusRefreshButton"
-                    Grid.Column="2"
+                    HorizontalAlignment="Right"
                     AutomationProperties.AutomationId="ProviderStatusRefreshButton"
                     Command="{x:Bind ViewModel.RefreshCommand}"
                     Padding="7"

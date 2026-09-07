@@ -93,7 +93,7 @@ public sealed partial class OptionsView : UserControl
             tabs[slot].IsChecked = slot == index;
             Panels[slot].Visibility = slot == index ? Visibility.Visible : Visibility.Collapsed;
         }
-        UpdatePanelHeight(animate: true);
+        UpdatePanelHeight(animate: true, changedPanel: true);
     }
 
     private void QueuePanelMeasure()
@@ -116,7 +116,7 @@ public sealed partial class OptionsView : UserControl
         foreach (ScrollViewer panel in Panels) panel.Opacity = 1;
     }
 
-    private void UpdatePanelHeight(bool animate)
+    private void UpdatePanelHeight(bool animate, bool changedPanel = false)
     {
         if (ActualWidth <= 0) return;
         ScrollViewer panel = Panels[_selectedTab];
@@ -143,10 +143,13 @@ public sealed partial class OptionsView : UserControl
         Storyboard.SetTarget(resize, OptionsContentHost);
         Storyboard.SetTargetProperty(resize, nameof(Height));
         storyboard.Children.Add(resize);
-        var fade = new DoubleAnimation { From = 0.65, To = 1, Duration = MotionSettings.VisualizationSwitchDuration };
-        Storyboard.SetTarget(fade, panel);
-        Storyboard.SetTargetProperty(fade, nameof(Opacity));
-        storyboard.Children.Add(fade);
+        if (changedPanel)
+        {
+            var fade = new DoubleAnimation { From = 0.84, To = 1, Duration = MotionSettings.VisualizationSwitchDuration };
+            Storyboard.SetTarget(fade, panel);
+            Storyboard.SetTargetProperty(fade, nameof(Opacity));
+            storyboard.Children.Add(fade);
+        }
         storyboard.Completed += (_, _) =>
         {
             if (!ReferenceEquals(_panelTransition, storyboard)) return;

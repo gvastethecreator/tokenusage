@@ -11,26 +11,6 @@
         AutomationProperties.AutomationId="AppearanceSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <Grid ColumnSpacing="10" MinHeight="28">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="26" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <FontIcon Glyph="&#xE790;" Style="{StaticResource OptionsCategoryIconStyle}" />
-                <StackPanel
-                    Grid.Column="1"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    VerticalAlignment="Center">
-                    <ToolTipService.ToolTip>
-                        <ToolTip
-                            x:Uid="AppearanceSectionDescription"
-                            ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
-                            MaxWidth="300" />
-                    </ToolTipService.ToolTip>
-                    <TextBlock x:Uid="AppearanceSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
-                </StackPanel>
-            </Grid>
             <ContentControl
                 HorizontalContentAlignment="Stretch"
                 IsEnabled="{x:Bind ViewModel.IsEditable, Mode=OneWay}"
@@ -94,7 +74,7 @@
                             Style="{StaticResource CaptionTextBlockStyle}"
                             TextWrapping="WrapWholeWords"
                             VerticalAlignment="Center" />
-                        <ToggleSwitch
+                        <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                             x:Name="AppearanceTransparencyToggle"
                             x:Uid="AppearanceTransparencyToggle"
                             Grid.Column="1"
@@ -192,7 +172,7 @@
                                 Style="{StaticResource BodyStrongTextBlockStyle}"
                                 TextWrapping="WrapWholeWords"
                                 VerticalAlignment="Center" />
-                            <ToggleSwitch
+                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                                 x:Name="AppearanceTrayPopoverEnabledToggle"
                                 x:Uid="AppearanceTrayPopoverEnabledToggle"
                                 Grid.Column="1"
@@ -268,7 +248,7 @@
                             Style="{StaticResource CaptionTextBlockStyle}"
                             TextWrapping="WrapWholeWords"
                             VerticalAlignment="Center" />
-                        <ToggleSwitch
+                        <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                             x:Name="AppearanceTrayProviderNameToggle"
                             x:Uid="AppearanceTrayProviderNameToggle"
                             Grid.Column="1"

@@ -159,6 +159,12 @@ public sealed partial class UsageReportViewModel
                     LegendName = $"{(char)('A' + index)} · {entry.ProviderName} · {entry.FromUtc.ToLocalTime():d MMM}",
                 };
         }).ToArray();
+        for (int index = 0; index < _cycleReports.Count; index++)
+        {
+            var entry = _cycleReports[index];
+            AddResetMarkers(days, UsageReportResetMarkers.Elapsed(_resetHistory.Resets,
+                entry.ProviderId, entry.FromUtc, entry.ToUtc), ((char)('A' + index)).ToString());
+        }
         return new(Metric, days, series, ChartStyle, IsComparison: true, EmphasizeSmallValues: EmphasizeSmallValues);
     }
 }

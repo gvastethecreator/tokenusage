@@ -145,6 +145,8 @@ public sealed partial class UsageReportViewModel
                 };
             }
         }
+        AddResetMarkers(days, UsageReportResetMarkers.Calendar(_resetHistory.Resets,
+            series.Select(item => item.ProviderId), StartDate, days.Length, TimeZoneInfo.Local));
         return new(percentage ? UsageReportMetric.Share : Metric, days, series, ChartStyle,
             EmphasizeSmallValues: EmphasizeSmallValues && !percentage);
     }

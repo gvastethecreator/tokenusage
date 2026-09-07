@@ -207,6 +207,7 @@ public sealed partial class UsageTrendChart : UserControl
         _seriesCanvas = new Canvas { Width = width, Height = height, IsHitTestVisible = false };
         PlotCanvas.Children.Add(_seriesCanvas);
         RenderSeries(data, width, height, scale);
+        if (!IsPreview) RenderResetMarkers(data, width);
         if (!IsPreview && !ReferenceEquals(_lastAnimatedData, data) && MotionSettings.AreAnimationsEnabled())
         {
             var visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(_seriesCanvas);

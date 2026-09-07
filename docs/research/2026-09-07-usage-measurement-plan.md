@@ -336,3 +336,59 @@ and the existing `GVASTETHECREATOR.TokenUsage` identity. The MSIX SHA-256 is
 This is an internal unsigned build, not a public release. Clean-machine install,
 repair, uninstall, reboot, signature trust, high contrast, enlarged text and
 Windows reduced-motion qualification remain untested.
+
+## Compact limits and reset markers follow-up — 2026-09-07
+
+Compact limits keep two columns. Names can wrap to two lines, reset times remain
+visible, and the observed-token explanation moves into an accessible information
+tooltip. The explanation no longer determines the uniform tile size. Native
+synthetic captures cover 480- and 420-pixel windows in dark and light themes.
+
+Report charts show a small top-edge marker for days with recorded quota resets.
+The existing day tooltip and keyboard help include the provider, quota window
+and local timestamp. Multiple resets share one day marker. Calendar comparisons
+map each period separately; cycle comparisons use elapsed time and exclude the
+next cycle boundary. Missing history produces no invented markers. The feature
+reuses the reset ledger and does not detect new resets from chart values.
+
+Two projection regressions passed, and the final x64 Release application build
+passed with no warnings or errors. Native checks covered the combined and
+provider charts plus keyboard access to reset details. Evidence is stored in
+`.scratch/tokenusage-measurement/reset-markers-{tests,build}.log`,
+`reset-markers-{native,tooltip}.png` and `compact-columns{,-narrow}.png`.
+The installed application was not replaced for this follow-up. Additional DPI,
+enlarged text, high contrast and a full package gate were not rerun.
+
+## Options layout follow-up — 2026-09-07
+
+Category icons now sit in the shared tabs, outside the content cards. Redundant
+section headings are removed. Toggle labels and switches share a row. The Back
+button shares the tab row; tabs size to their text so Notifications is not cut
+off in the narrow layout. Navigation and panel height changes retain their
+current visual position when interrupted and respect Windows motion settings.
+
+The options contract checks passed. The final x64 Release build passed with no
+warnings or errors. Native inspection covered the product window at 460 pixels
+and a narrow options fixture at 420 pixels. The Back action returned to the
+dashboard. Evidence: `.scratch/tokenusage-measurement/options-single-row.png`,
+`options-single-row-narrow-final.png`, and `options-single-row-build.log`.
+Earlier navigation motion was recorded in `options-window-motion.mp4`; the final
+tab-row adjustment was checked with still captures. Reduced-motion runtime,
+additional DPI and enlarged text remain untested. The installed app is unchanged.
+
+## Report action placement — 2026-09-07
+
+Coverage help, refresh and share now sit beside the report title. Chart style and
+small-value scale sit before the chart view tabs. One shared control group moves
+between Global, Provider and Compare, preserving commands and automation IDs.
+Captures hide and restore both relocated action groups. The scale icon now follows
+the toggle foreground so it stays visible in the light theme.
+
+The x64 Release build and three existing report contracts passed. Native checks
+used the separate MeasurementProbe package with synthetic data, 1280- and
+760-pixel windows, English, light/dark themes and normal text scale. Checks covered
+the three scopes, keyboard scale switching and control reuse after capture.
+Evidence is under `.scratch/tokenusage-measurement/report-actions-*`; the shared
+image is `C:/Users/cristian/Downloads/TokenUsage-report-2026-09-07-171615.png`.
+No new motion, package installation or remote changes were made. Additional DPI,
+enlarged text, contrast themes and forced capture failure were not tested.

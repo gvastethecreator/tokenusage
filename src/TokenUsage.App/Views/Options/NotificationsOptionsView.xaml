@@ -7,10 +7,6 @@
     <Border AutomationProperties.AutomationId="NotificationsSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <controls:TablerIcon Kind="bell" Width="20" Height="20" />
-                <TextBlock x:Uid="NotificationsSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
-            </StackPanel>
 
             <Grid ColumnSpacing="12" MinHeight="32">
                 <Grid.ColumnDefinitions>
@@ -27,7 +23,7 @@
                         Style="{StaticResource CaptionTextBlockStyle}"
                         TextWrapping="Wrap" />
                 </StackPanel>
-                <ToggleSwitch
+                <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                     x:Name="AlertsMasterToggle"
                     x:Uid="AlertsMasterToggle"
                     Grid.Column="1"
@@ -60,7 +56,7 @@
                         x:Uid="QuotaThresholdAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleSwitch
+                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                         x:Uid="QuotaThresholdAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="QuotaThresholdAlertToggle"
@@ -76,7 +72,7 @@
                         x:Uid="ExhaustionForecastAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleSwitch
+                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                         x:Uid="ExhaustionForecastAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="ExhaustionForecastAlertToggle"
@@ -92,7 +88,7 @@
                         x:Uid="StaleDataAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleSwitch
+                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                         x:Uid="StaleDataAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="StaleDataAlertToggle"
@@ -108,7 +104,7 @@
                         x:Uid="CredentialFailureAlertLabel"
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         VerticalAlignment="Center" />
-                    <ToggleSwitch
+                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                         x:Uid="CredentialFailureAlertToggle"
                         Grid.Column="1"
                         AutomationProperties.AutomationId="CredentialFailureAlertToggle"

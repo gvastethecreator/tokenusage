@@ -15,26 +15,6 @@
         AutomationProperties.AutomationId="GeneralSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <Grid ColumnSpacing="10" MinHeight="28">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="26" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <FontIcon Glyph="&#xE713;" Style="{StaticResource OptionsCategoryIconStyle}" />
-                <StackPanel
-                    Grid.Column="1"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    VerticalAlignment="Center">
-                    <ToolTipService.ToolTip>
-                        <ToolTip
-                            x:Uid="GeneralSectionDescription"
-                            ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}"
-                            MaxWidth="300" />
-                    </ToolTipService.ToolTip>
-                    <TextBlock x:Uid="GeneralSectionTitle" Style="{StaticResource OptionsCategoryTitleStyle}" />
-                </StackPanel>
-            </Grid>
             <Grid ColumnSpacing="12" MinHeight="32">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -44,7 +24,7 @@
                     x:Uid="CloseWhenInactiveLabel"
                     Style="{StaticResource BodyStrongTextBlockStyle}"
                     VerticalAlignment="Center" />
-                <ToggleSwitch
+                <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
                     x:Name="CloseWhenInactiveToggle"
                     x:Uid="CloseWhenInactiveToggle"
                     Grid.Column="1"
@@ -54,10 +34,14 @@
                     VerticalAlignment="Center" />
             </Grid>
             <StackPanel Spacing="4">
-                <ToggleSwitch x:Name="DataCollectionBackgroundToggle"
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock x:Uid="DataCollectionBackgroundLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="DataCollectionBackgroundToggle"
                     x:Uid="DataCollectionBackgroundToggle"
                     AutomationProperties.AutomationId="DataCollectionBackgroundToggle"
                     IsOn="{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}" />
+                </Grid>
                 <TextBlock x:Uid="DataCollectionBackgroundDescription"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />

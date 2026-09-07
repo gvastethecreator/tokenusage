@@ -121,7 +121,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Grid ColumnSpacing="8">
+                <Grid ColumnSpacing="8" MinHeight="34">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -130,6 +130,9 @@
                         FontSize="13"
                         FontWeight="SemiBold"
                         Text="{x:Bind Title}"
+                        MaxLines="2"
+                        TextWrapping="Wrap"
+                        ToolTipService.ToolTip="{x:Bind Title}"
                         TextTrimming="CharacterEllipsis"
                         VerticalAlignment="Center" />
                     <TextBlock
@@ -149,7 +152,7 @@
                     IndicatorScale="1.8"
                     RemainingValue="{x:Bind ColorRemainingPercent}"
                     TargetValue="{x:Bind RemainingPercent}" />
-                <Grid Grid.Row="2" ColumnSpacing="8">
+                <Grid Grid.Row="2" ColumnSpacing="6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -167,21 +170,23 @@
                                 ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
                         </ToolTipService.ToolTip>
                     </TextBlock>
-                    <TextBlock
+                    <Button
                         Grid.Column="1"
-                        FontSize="11"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Text="{x:Bind UsedText}"
-                        TextAlignment="Right"
-                        TextTrimming="CharacterEllipsis">
+                        MinWidth="24"
+                        MinHeight="24"
+                        Padding="4"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        AutomationProperties.Name="{x:Bind UsedText}"
+                        AutomationProperties.HelpText="{x:Bind UsedText}"
+                        Visibility="{x:Bind HasUsedText}">
                         <ToolTipService.ToolTip>
                             <ToolTip
                                 MaxWidth="332"
                                 Content="{x:Bind UsedText}"
                                 ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
                         </ToolTipService.ToolTip>
-                    </TextBlock>
+                        <FontIcon FontSize="11" Glyph="&#xE946;" />
+                    </Button>
                 </Grid>
             </Grid>
         </DataTemplate>
@@ -416,15 +421,9 @@
                 <ItemsRepeater
                     x:Name="GlobalQuotaTilesRepeater"
                     ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
-                    ItemsSource="{x:Bind ViewModel.GlobalProviderLimits, Mode=OneWay}"
-                    SizeChanged="OnQuotaTilesSizeChanged">
+                    ItemsSource="{x:Bind ViewModel.GlobalProviderLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                     <ItemsRepeater.Layout>
-                        <UniformGridLayout
-                            MaximumRowsOrColumns="2"
-                            MinColumnSpacing="14"
-                            MinItemWidth="200"
-                            MinRowSpacing="5"
-                            Orientation="Horizontal" />
+                        <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
                     </ItemsRepeater.Layout>
                 </ItemsRepeater>
             </StackPanel>
@@ -643,15 +642,9 @@
                     <ItemsRepeater
                         x:Name="ProviderQuotaTilesRepeater"
                         ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
-                        ItemsSource="{x:Bind ViewModel.SelectedProviderLimits, Mode=OneWay}"
-                        SizeChanged="OnQuotaTilesSizeChanged">
+                        ItemsSource="{x:Bind ViewModel.SelectedProviderLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout
-                                MaximumRowsOrColumns="2"
-                                MinColumnSpacing="14"
-                                MinItemWidth="200"
-                                MinRowSpacing="5"
-                                Orientation="Horizontal" />
+                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
                 </StackPanel>

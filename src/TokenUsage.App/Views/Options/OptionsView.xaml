@@ -6,28 +6,70 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:options="using:TokenUsage.App.Views.Options"
+    xmlns:controls="using:TokenUsage.App.Controls"
     mc:Ignorable="d">
 
     <Grid AutomationProperties.AutomationId="UnifiedOptionsView" RowSpacing="12">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <StackPanel Orientation="Horizontal">
-            <RadioButton x:Name="GeneralTab" x:Uid="OptionsGeneralTab"
-                AutomationProperties.AutomationId="OptionsGeneralTab" GroupName="OptionsSections"
-                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="0" IsChecked="True"
-                Checked="OnOptionTabChecked" />
-            <RadioButton x:Name="NotificationsTab" x:Uid="OptionsNotificationsTab"
-                AutomationProperties.AutomationId="OptionsNotificationsTab" GroupName="OptionsSections"
-                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="1" IsChecked="False"
-                Checked="OnOptionTabChecked" />
-            <RadioButton x:Name="AppearanceTab" x:Uid="OptionsAppearanceTab"
-                AutomationProperties.AutomationId="OptionsAppearanceTab" GroupName="OptionsSections"
-                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="2" IsChecked="False"
-                Checked="OnOptionTabChecked" />
-            <RadioButton x:Name="ProvidersTab" x:Uid="OptionsProvidersTab"
-                AutomationProperties.AutomationId="OptionsProvidersTab" GroupName="OptionsSections"
-                Style="{StaticResource SectionTabRadioButtonStyle}" Tag="3" IsChecked="False"
-                Checked="OnOptionTabChecked" />
-        </StackPanel>
+        <Grid ColumnSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <RadioButton x:Name="GeneralTab" Grid.Column="0"
+                AutomationProperties.AutomationId="OptionsGeneralTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=GeneralTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="0" IsChecked="True" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE713;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="GeneralTabLabel" x:Uid="OptionsGeneralTabLabel" FontSize="11" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="NotificationsTab" Grid.Column="1"
+                AutomationProperties.AutomationId="OptionsNotificationsTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=NotificationsTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="1" IsChecked="False" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <controls:TablerIcon Kind="bell" Width="13" Height="13" Foreground="{Binding Foreground, ElementName=NotificationsTabLabel}" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="NotificationsTabLabel" x:Uid="OptionsNotificationsTabLabel" FontSize="11" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="AppearanceTab" Grid.Column="2"
+                AutomationProperties.AutomationId="OptionsAppearanceTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=AppearanceTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="2" IsChecked="False" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE790;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="AppearanceTabLabel" x:Uid="OptionsAppearanceTabLabel" FontSize="11" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="ProvidersTab" Grid.Column="3"
+                AutomationProperties.AutomationId="OptionsProvidersTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=ProvidersTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="3" IsChecked="False" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE774;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="ProvidersTabLabel" x:Uid="OptionsProvidersTabLabel" FontSize="11" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <Button x:Name="OptionsBackButton" x:Uid="OptionsBackButton" Grid.Column="4"
+                AutomationProperties.AutomationId="OptionsBackButton"
+                Command="{x:Bind ViewModel.Navigation.NavigateBackCommand, Mode=OneWay}"
+                Width="32" Height="32" MinWidth="0" Padding="8" Margin="4,0,0,0"
+                VerticalAlignment="Center" HorizontalAlignment="Right">
+                <FontIcon Glyph="&#xE72B;" FontSize="14" IsTextScaleFactorEnabled="False"
+                    AutomationProperties.AccessibilityView="Raw" />
+            </Button>
+        </Grid>
         <Grid x:Name="OptionsContentHost" Grid.Row="1" Height="440" SizeChanged="OnOptionsHostSizeChanged">
             <Grid.Clip><RectangleGeometry x:Name="OptionsContentClip" /></Grid.Clip>
             <ScrollViewer x:Name="GeneralScroll" Visibility="Visible" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

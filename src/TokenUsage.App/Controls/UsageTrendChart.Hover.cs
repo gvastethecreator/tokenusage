@@ -22,6 +22,7 @@ public sealed partial class UsageTrendChart
     private UsageReportTrendDataset? _hoverContentData;
     private TextBlock? _hoverDate;
     private TextBlock? _hoverTotal;
+    private TextBlock? _hoverResets;
     private readonly List<TextBlock> _hoverAmounts = [];
     private const int MaximumHoverRows = 8;
 
@@ -163,9 +164,13 @@ public sealed partial class UsageTrendChart
                 HoverContent.Children.Add(_hoverTotal);
             }
             else _hoverTotal = null;
+            _hoverResets = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.WrapWholeWords };
+            HoverContent.Children.Add(_hoverResets);
         }
         _hoverDate!.Text = Data.Days[index].HoverText
             ?? Data.Days[index].Date.ToString("D", System.Globalization.CultureInfo.CurrentCulture);
+        _hoverResets!.Text = Data.Days[index].ResetText;
+        _hoverResets.Visibility = string.IsNullOrEmpty(_hoverResets.Text) ? Visibility.Collapsed : Visibility.Visible;
         double total = 0;
         bool hasUnknown = false;
         for (int i = 0; i < Data.Series.Count; i++)
@@ -177,7 +182,7 @@ public sealed partial class UsageTrendChart
         if (_hoverTotal is not null)
             _hoverTotal.Text = GetString("UsageReportChartTotal") + "  " + FormatValue(total, Data.Metric)
                 + (hasUnknown ? " · " + GetString("UsageReportKnownOnly") : "");
-        AutomationProperties.SetHelpText(this, _hoverDate.Text + ". " + string.Join(". ",
+        AutomationProperties.SetHelpText(this, _hoverDate.Text + ". " + _hoverResets.Text + ". " + string.Join(". ",
             Data.Series.Select((series, i) => series.Name + ": "
                 + FormatValue(index < series.Values.Count ? series.Values[index] : 0, Data.Metric))));
     }

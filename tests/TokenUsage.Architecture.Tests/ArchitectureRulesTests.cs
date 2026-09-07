@@ -334,7 +334,11 @@ public sealed class ArchitectureRulesTests
             .Where(element => element.Attribute("GroupName")?.Value == "OptionsSections").ToArray();
         Assert.Equal(4, categories.Length);
         Assert.All(categories, category =>
-            Assert.Equal("{StaticResource SectionTabRadioButtonStyle}", category.Attribute("Style")?.Value));
+        {
+            Assert.Equal("{StaticResource SectionTabRadioButtonStyle}", category.Attribute("Style")?.Value);
+            Assert.Single(category.Descendants(), element => element.Name.LocalName is "FontIcon" or "TablerIcon");
+            Assert.Single(category.Descendants(optionsNamespace + "TextBlock"));
+        });
         Assert.Equal(4, optionsDocument.Descendants(optionsNamespace + "ScrollViewer").Count());
         Assert.Contains("GeneralOptionsView", optionsView, StringComparison.Ordinal);
         Assert.Contains("AppearanceOptionsView", optionsView, StringComparison.Ordinal);
@@ -393,13 +397,6 @@ public sealed class ArchitectureRulesTests
             "ProviderStatusView.xaml",
         ];
 
-        string[] descriptionUids =
-        [
-            "GeneralSectionDescription",
-            "AppearanceSectionDescription",
-            "ProviderStatusSectionDescription",
-        ];
-
         for (int index = 0; index < categoryFiles.Length; index++)
         {
             string categoryFile = categoryFiles[index];
@@ -412,21 +409,10 @@ public sealed class ArchitectureRulesTests
                 card.Attributes(),
                 attribute => attribute.Name.LocalName == "Style"
                     && attribute.Value == "{StaticResource OptionsCategoryCardStyle}");
-            Assert.Contains(
-                card.Descendants().Where(element => element.Name.LocalName == "FontIcon"),
-                icon => icon.Attributes().Any(attribute =>
-                    attribute.Name.LocalName == "Style"
-                    && attribute.Value == "{StaticResource OptionsCategoryIconStyle}"));
-            Assert.Contains(
-                card.Descendants().Where(element => element.Name.LocalName == "TextBlock"),
-                title => title.Attributes().Any(attribute =>
+            Assert.DoesNotContain(card.Descendants(),
+                element => element.Attributes().Any(attribute =>
                     attribute.Name.LocalName == "Style"
                     && attribute.Value == "{StaticResource OptionsCategoryTitleStyle}"));
-            Assert.Contains(
-                card.Descendants().Where(element => element.Name.LocalName == "ToolTip"),
-                tooltip => tooltip.Attributes().Any(attribute =>
-                    attribute.Name.LocalName == "Uid"
-                    && attribute.Value == descriptionUids[index]));
         }
 
         XDocument optionsDocument = XDocument.Load(Path.Combine(optionsRoot, "OptionsView.xaml"));

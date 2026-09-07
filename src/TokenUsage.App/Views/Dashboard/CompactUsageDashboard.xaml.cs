@@ -199,14 +199,11 @@ public sealed partial class CompactUsageDashboard : UserControl
             return;
         }
 
-        const double columnSpacing = 14d;
-        double perItem = Math.Floor((e.NewSize.Width - columnSpacing) / 2d);
-        if (perItem < 120d || Math.Abs(layout.MinItemWidth - perItem) < 0.5)
+        double width = Math.Floor((e.NewSize.Width - 14d) / 2d);
+        if (width > 0 && Math.Abs(layout.MinItemWidth - width) >= 0.5)
         {
-            return;
+            layout.MinItemWidth = width;
         }
-
-        layout.MinItemWidth = perItem;
     }
 
     private void OnOptionsClick(object sender, RoutedEventArgs e) =>

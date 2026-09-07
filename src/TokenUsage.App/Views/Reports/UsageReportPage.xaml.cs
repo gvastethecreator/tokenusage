@@ -60,6 +60,7 @@ public sealed partial class UsageReportPage : Page
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+        UpdateChartToolsHost();
         Loaded += OnLoaded;
         SizeChanged += OnReportSizeChanged;
         Unloaded += OnUnloaded;
@@ -237,6 +238,8 @@ public sealed partial class UsageReportPage : Page
         Control? source = sender as Control;
         var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
             .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
+        var captureActions = new FrameworkElement[] { ReportTitleActions, ReportChartTools }
+            .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
         double controlBarOpacity = ReportControlBar.Opacity;
         bool controlBarHitTest = ReportControlBar.IsHitTestVisible;
         double coverageHintOpacity = ReportCoverageHintButton.Opacity;
@@ -261,6 +264,11 @@ public sealed partial class UsageReportPage : Page
 
             ReportCaptureFocusSink.Focus(FocusState.Programmatic);
             ReportCoverageHintButton.Flyout.Hide();
+            foreach (var item in captureActions)
+            {
+                item.Control.Opacity = 0;
+                item.Control.IsHitTestVisible = false;
+            }
             foreach (var chart in captureCharts)
             {
                 chart.Chart.IsCaptureMode = true;
@@ -316,6 +324,11 @@ public sealed partial class UsageReportPage : Page
         }
         finally
         {
+            foreach (var item in captureActions)
+            {
+                item.Control.Opacity = item.Opacity;
+                item.Control.IsHitTestVisible = item.IsHitTestVisible;
+            }
             foreach (var item in captureSelectors)
             {
                 item.Control.Opacity = item.Opacity;
@@ -349,6 +362,23 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
+
+    private void UpdateChartToolsHost()
+    {
+        ContentControl target = ViewModel.Scope switch
+        {
+            UsageReportScope.Provider => ProviderChartToolsHost,
+            UsageReportScope.Compare => CompareChartToolsHost,
+            _ => GlobalChartToolsHost,
+        };
+        if (ReferenceEquals(target.Content, ReportChartTools)) return;
+
+        // Keep one set of commands and automation identities across report views.
+        GlobalChartToolsHost.Content = null;
+        ProviderChartToolsHost.Content = null;
+        CompareChartToolsHost.Content = null;
+        target.Content = ReportChartTools;
+    }
 
     private void OnReportSizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -431,6 +461,8 @@ public sealed partial class UsageReportPage : Page
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(UsageReportViewModel.Scope)) UpdateChartToolsHost();
+
         if (!_loadedOnce)
         {
             return;

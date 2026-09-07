@@ -288,7 +288,7 @@ public sealed partial class MainPage : Page, IDisposable
                 BodyScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
                 if (isNavigationChange && transitionToken == _viewTransitionToken)
                 {
-                    PlayViewTransition(transitionOffset);
+                    PlayViewTransition();
                 }
                 if (isNavigationChange)
                 {
@@ -324,6 +324,9 @@ public sealed partial class MainPage : Page, IDisposable
 
     private void PrepareViewTransition(double startOffset)
     {
+        bool interrupted = _viewTransitionStoryboard is not null;
+        double currentOpacity = BodyScrollViewer.Opacity;
+        double currentOffset = BodyTransitionTransform.TranslateX;
         _viewTransitionStoryboard?.Stop();
         _viewTransitionStoryboard = null;
         if (!MotionSettings.AreAnimationsEnabled())
@@ -333,11 +336,11 @@ public sealed partial class MainPage : Page, IDisposable
             return;
         }
 
-        BodyScrollViewer.Opacity = 0.84;
-        BodyTransitionTransform.TranslateX = startOffset;
+        BodyScrollViewer.Opacity = interrupted ? currentOpacity : 0.84;
+        BodyTransitionTransform.TranslateX = interrupted ? currentOffset : startOffset;
     }
 
-    private void PlayViewTransition(double startOffset)
+    private void PlayViewTransition()
     {
         _viewTransitionStoryboard?.Stop();
         _viewTransitionStoryboard = null;
@@ -351,7 +354,7 @@ public sealed partial class MainPage : Page, IDisposable
         var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
         var opacity = new DoubleAnimation
         {
-            From = 0.84,
+            From = BodyScrollViewer.Opacity,
             To = 1,
             Duration = MotionSettings.ViewTransitionDuration,
             EasingFunction = easing,
@@ -360,7 +363,7 @@ public sealed partial class MainPage : Page, IDisposable
         Storyboard.SetTargetProperty(opacity, nameof(Opacity));
         var translation = new DoubleAnimation
         {
-            From = startOffset,
+            From = BodyTransitionTransform.TranslateX,
             To = 0,
             Duration = MotionSettings.ViewTransitionDuration,
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },

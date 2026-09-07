@@ -12,6 +12,14 @@
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
             <CornerRadius x:Key="DashboardCardCornerRadius">12</CornerRadius>
+            <Style x:Key="OptionsInlineToggleStyle" TargetType="ToggleSwitch">
+                <Setter Property="Width" Value="56" />
+                <Setter Property="OnContent" Value="" />
+                <Setter Property="OffContent" Value="" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
             <DataTemplate x:Key="TokenUsageWrappedToolTipTemplate">
                 <TextBlock
                     MaxWidth="300"
