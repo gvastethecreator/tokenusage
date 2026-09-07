@@ -260,7 +260,7 @@ public sealed class CodexDashboardProjectorTests
         Assert.False(countOnly.CreditSummary?.IsExpired);
 
         ProviderCard expired = CreateCreditCard(new CodexResetCreditInventory(
-            1,
+            0,
             [
                 new CodexResetCredit(
                     "codexRateLimits",

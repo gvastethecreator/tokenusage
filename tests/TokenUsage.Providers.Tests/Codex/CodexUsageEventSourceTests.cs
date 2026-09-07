@@ -107,7 +107,7 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
-    public async Task KeepsOneLatestCumulativeCounterPerSession()
+    public async Task KeepsObservedModelForEachDeltaInsteadOfAssigningCumulativeToLastModel()
     {
         using var corpus = new CodexCorpus();
         corpus.WriteSession(
@@ -127,16 +127,15 @@ public sealed class CodexUsageEventSourceTests
                 totalReasoningOutput: 6));
 
         UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
-        UsageEvent usageEvent = Assert.Single(result.Events);
-
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
-        Assert.Equal("gpt-5.6-luna", usageEvent.ModelId.Value);
-        Assert.Equal(new TokenBreakdown(240, 24, 6, 60, 0), usageEvent.Tokens);
-        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
+        Assert.Collection(result.Events,
+            item => { Assert.Equal("gpt-5.6-terra", item.ModelId.Value); Assert.Equal(110, item.Tokens.Total); },
+            item => { Assert.Equal("gpt-5.6-luna", item.ModelId.Value); Assert.Equal(220, item.Tokens.Total); });
+        Assert.All(result.Events, item => Assert.Equal(UsageTimePrecision.Timestamp, item.TimePrecision));
     }
 
     [Fact]
-    public async Task UsesStateIndexModelAndReadsOnlyTheBoundedFileTail()
+    public async Task StateIndexCurrentModelDoesNotInventHistoricalObservationIdentity()
     {
         using var corpus = new CodexCorpus();
         string path = corpus.WriteSession(
@@ -148,9 +147,9 @@ public sealed class CodexUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single((await corpus.CreateSource(
             maximumTailBytes: 2 * 1024).ReadAsync()).Events);
 
-        Assert.Equal("gpt-5.4-mini", usageEvent.ModelId.Value);
-        Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal("gpt-5.4-mini", usageEvent.Cost.ExactPriceMatch);
+        Assert.Equal("unknown", usageEvent.ModelId.Value);
+        Assert.Equal(CostKind.Unavailable, usageEvent.Cost.Kind);
+        Assert.Null(usageEvent.ObservedModelId);
     }
 
     [Fact]
@@ -165,7 +164,7 @@ public sealed class CodexUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
         Assert.Equal(110, usageEvent.Tokens.Total);
-        Assert.Equal("gpt-5.6-sol", usageEvent.ModelId.Value);
+        Assert.Equal("unknown", usageEvent.ModelId.Value);
     }
 
     [Fact]
@@ -193,7 +192,7 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
-    public async Task OfficialDailyTotalsUseTheBoundedLocalModelSample()
+    public async Task OfficialDailyTotalsRemainSeparateFromObservedModelTokens()
     {
         using var corpus = new CodexCorpus();
         corpus.WriteSession(
@@ -213,13 +212,14 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(SourceKind.OfficialLocalApi, source.SourceKind);
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal("gpt-5.4-mini", usageEvent.ModelId.Value);
-        Assert.Equal(1_000, usageEvent.Tokens.Total);
+        Assert.Equal(110, usageEvent.Tokens.Total);
+        Assert.Equal(1_000, Assert.Single(result.AccountAggregates).Tokens);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
     }
 
     [Fact]
-    public async Task OfficialCurrentDayBucketUsesRefreshTimeInsteadOfAFutureNoon()
+    public async Task AccountDayDoesNotInventEventTime()
     {
         using var corpus = new CodexCorpus();
         DateTimeOffset observedAt = new(2026, 7, 28, 4, 0, 0, TimeSpan.Zero);
@@ -230,13 +230,15 @@ public sealed class CodexUsageEventSourceTests
             clientFactory: new StubFactory(new StubClient(usage)),
             clock: new FixedTimeProvider(observedAt));
 
-        UsageEvent usageEvent = Assert.Single((await source.ReadAsync()).Events);
-
-        Assert.Equal(observedAt, usageEvent.OccurredAtUtc);
+        UsageSourceReadResult result = await source.ReadAsync();
+        Assert.Empty(result.Events);
+        AccountUsageAggregate account = Assert.Single(result.AccountAggregates);
+        Assert.Equal(new DateOnly(2026, 7, 28), account.ProviderDate);
+        Assert.Equal(observedAt, account.ObservedAtUtc);
     }
 
     [Fact]
-    public async Task OfficialHistoryBeyondTheReconciliationWindowIsNotEmitted()
+    public async Task OfficialAccountHistoryIsRetainedWithoutLocalModelOrTimeAllocation()
     {
         using var corpus = new CodexCorpus();
         var usage = new CodexTokenUsageSnapshot(
@@ -251,12 +253,9 @@ public sealed class CodexUsageEventSourceTests
 
         UsageSourceReadResult result = await source.ReadAsync();
 
-        UsageEvent usageEvent = Assert.Single(result.Events);
-        Assert.Equal("codex-account", usageEvent.ModelId.Value);
-        Assert.Equal(1_000, usageEvent.Tokens.Total);
-        Assert.Equal(
-            new DateOnly(2026, 7, 27),
-            DateOnly.FromDateTime(usageEvent.OccurredAtUtc.UtcDateTime));
+        Assert.Empty(result.Events);
+        Assert.Equal(2, result.AccountAggregates.Count);
+        Assert.Equal(28_207_001, result.AccountAggregates.Sum(item => item.Tokens));
     }
 
     [Fact]
@@ -349,7 +348,8 @@ public sealed class CodexUsageEventSourceTests
         UsageSourceReadResult first = await source.ReadAsync();
         Assert.Collection(
             first.Events.OrderBy(usageEvent => usageEvent.OccurredAtUtc),
-            usageEvent => Assert.Equal(300, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(100, usageEvent.Tokens.Total),
+            usageEvent => { Assert.Equal(200, usageEvent.Tokens.Total); Assert.Equal(UsageTimePrecision.Interval, usageEvent.TimePrecision); Assert.Equal("unknown", usageEvent.ModelId.Value); },
             usageEvent => Assert.Equal(200, usageEvent.Tokens.Total));
 
         File.AppendAllLines(
@@ -368,8 +368,10 @@ public sealed class CodexUsageEventSourceTests
 
         Assert.Collection(
             second.Events.OrderBy(usageEvent => usageEvent.OccurredAtUtc),
-            usageEvent => Assert.Equal(300, usageEvent.Tokens.Total),
-            usageEvent => Assert.Equal(250, usageEvent.Tokens.Total));
+            usageEvent => Assert.Equal(100, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(200, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(200, usageEvent.Tokens.Total),
+            usageEvent => Assert.Equal(50, usageEvent.Tokens.Total));
     }
 
     [Fact]
@@ -662,6 +664,79 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal("gpt-5.4-mini", cost.ExactPriceMatch);
     }
 
+    [Fact]
+    public async Task ObservationReplayPreservesResetSplitAndAccountSeparationAcrossModelChanges()
+    {
+        using var corpus = new CodexCorpus();
+        string path = corpus.WriteSession("split", Context("gpt-5.6-sol"),
+            Usage("2026-07-27T09:00:00Z", 600, 0, 0, 0),
+            Context("gpt-5.6-luna"),
+            Usage("2026-07-27T13:00:00Z", 400, 0, 0, 0, totalInput: 1000));
+        string checkpoint = Path.Combine(corpus.Root, "checkpoint.json");
+        var source = corpus.CreateSource(checkpointPath: checkpoint);
+        UsageSourceReadResult beforeCommit = await source.ReadAsync();
+        // The checkpoint may commit before SQLite; restart must replay the exact numeric identities.
+        UsageSourceReadResult replay = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
+        Assert.Equal(beforeCommit.Events, replay.Events);
+        var repository = await UsageRepository.OpenAsync(Path.Combine(corpus.Root, "usage.db"));
+        await repository.IngestAsync(replay.Events);
+        await repository.IngestAsync(replay.Events);
+        await repository.UpsertAccountUsageAsync([new(new AgentId("codex"), new DateOnly(2026, 7, 27), 5_000,
+            new DateTimeOffset(2026, 7, 28, 0, 0, 0, TimeSpan.Zero))]);
+        var query = new TokenUsage.Core.Automation.UsageReportQuery(Path.Combine(corpus.Root, "usage.db"));
+        var from = new DateTimeOffset(2026, 7, 27, 0, 0, 0, TimeSpan.Zero);
+        var a = await query.ReadExactAsync(from, from.AddHours(11));
+        var b = await query.ReadExactAsync(from.AddHours(11), from.AddDays(1));
+        Assert.Equal(600, a.Totals.Tokens.Total);
+        Assert.Equal("gpt-5.6-sol", Assert.Single(a.Models).ModelId.Value);
+        Assert.Equal(400, b.Totals.Tokens.Total);
+        Assert.Equal("gpt-5.6-luna", Assert.Single(b.Models).ModelId.Value);
+        var daily = await query.ReadAsync(new DateOnly(2026, 7, 27), new DateOnly(2026, 7, 27));
+        Assert.Equal(1_000, daily.Totals.Tokens.Total);
+        Assert.Equal(5_000, Assert.Single(daily.AccountUsage).Tokens);
+        Directory.CreateDirectory(Path.Combine(corpus.Root, "archived_sessions"));
+        File.Move(path, Path.Combine(corpus.Root, "archived_sessions", "split.jsonl"));
+        Assert.Equal(replay.Events, (await source.ReadAsync()).Events);
+        string json = await File.ReadAllTextAsync(checkpoint);
+        Assert.DoesNotContain("private-project-path", json);
+        Assert.DoesNotContain("private fixture summary", json);
+    }
+
+    [Fact]
+    public async Task TrimmedSessionRetainsEarlierObservationsAndResumesFromItsWatermark()
+    {
+        using var corpus = new CodexCorpus();
+        string path = corpus.WriteSession("trim", Context("gpt-5.6-sol"),
+            Usage("2026-07-27T09:00:00Z", 600, 0, 0, 0),
+            Usage("2026-07-27T13:00:00Z", 400, 0, 0, 0, totalInput: 1000));
+        string checkpoint = Path.Combine(corpus.Root, "trim-checkpoint.json");
+        UsageSourceReadResult first = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
+        await File.WriteAllTextAsync(path, Context("gpt-5.6-sol") + "\n"
+            + Usage("2026-07-27T13:00:00Z", 400, 0, 0, 0, totalInput: 1000) + "\n");
+        Assert.Equal(first.Events, (await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()).Events);
+        await File.AppendAllTextAsync(path, Usage("2026-07-27T14:00:00Z", 200, 0, 0, 0, totalInput: 1200) + "\n");
+        UsageSourceReadResult resumed = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
+        Assert.Equal(3, resumed.Events.Count);
+        Assert.Equal(1200, resumed.Events.Sum(item => item.Tokens.Total));
+        Assert.Equal(first.Events.Select(item => item.EventKey), resumed.Events.Take(2).Select(item => item.EventKey));
+    }
+
+    [Fact]
+    public async Task LegacyCheckpointMigrationReplaysObservationsAndPreservesOriginalBytes()
+    {
+        using var corpus = new CodexCorpus();
+        corpus.WriteSession("migrate", Context("gpt-5.6-sol"), Usage("2026-07-27T09:00:00Z", 600, 0, 0, 0));
+        string path = Path.Combine(corpus.Root, "migration.json");
+        var first = await corpus.CreateSource(checkpointPath: path).ReadAsync();
+        var old = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+        old["schemaVersion"] = 2;
+        string legacyBytes = old.ToJsonString();
+        await File.WriteAllTextAsync(path, legacyBytes);
+        var migrated = await corpus.CreateSource(checkpointPath: path).ReadAsync();
+        Assert.Equal(first.Events, migrated.Events);
+        Assert.Equal(legacyBytes, await File.ReadAllTextAsync(path + ".pre-v3"));
+    }
+
     private static string Context(string model) => JsonSerializer.Serialize(new
     {
         timestamp = "2026-07-27T12:00:00Z",
@@ -795,7 +870,7 @@ public sealed class CodexUsageEventSourceTests
             maximumTailBytes: maximumTailBytes,
             clientFactory: clientFactory,
             checkpointPath: checkpointPath,
-            clock: clock);
+            clock: clock ?? new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
 
         public string WriteSession(string id, params string[] lines) =>
             WriteSession(id, false, lines);

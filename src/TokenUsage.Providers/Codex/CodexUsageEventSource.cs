@@ -8,10 +8,10 @@ public sealed partial class CodexUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    // Version 8 normalizes model identities and prices usage at its recorded date.
-    public const string ParserVersion = "codex-jsonl/8";
+    // Version 9 retains numeric observations and separates official account totals.
+    public const string ParserVersion = "codex-jsonl/9";
     private const int DefaultTailBytes = 64 * 1024;
-    private const int RecentLocalWindowDays = 3;
+    private const int RecentLocalWindowDays = UsagePeriodPolicy.ReconciliationDays;
     private const long MaximumInitialRecentScanBytes = 16L * 1024 * 1024 * 1024;
     private readonly string _codexHome;
     private readonly string _groupingTimeZoneId;
@@ -65,7 +65,7 @@ public sealed partial class CodexUsageEventSource :
     {
         ScanResult scan = _checkpointStore is null
             ? await Task.Run(
-                    () => ScanCore(checkpoints: null, cancellationToken),
+                    () => ScanCore(new CodexUsageCheckpointState(), cancellationToken),
                     cancellationToken)
                 .ConfigureAwait(false)
             : await _checkpointStore.UpdateAsync(
@@ -81,20 +81,13 @@ public sealed partial class CodexUsageEventSource :
     private sealed record SessionFile(string Path, string SessionIdentity, string? Model);
 
     private sealed record ScanResult(
-        IReadOnlyList<ScannedSession> Sessions,
-        IReadOnlyList<DatedModelSample> RecentSamples,
-        bool UsesCheckpoints,
         UsageSourceReadStatus Status,
-        UsageSourceIssueKind Issue);
+        UsageSourceIssueKind Issue)
+    {
+        public IReadOnlyList<UsageEvent> Observations { get; init; } = [];
+    }
 
     private sealed record ScannedSession(string SessionIdentity, Candidate Candidate);
-
-    private sealed record ModelSample(
-        string Model,
-        TokenBreakdown Tokens,
-        CostObservation Cost);
-
-    private sealed record DatedModelSample(DateOnly Date, ModelSample Sample);
 
     private sealed record Candidate(
         DateTimeOffset Timestamp,

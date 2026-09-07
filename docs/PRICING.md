@@ -22,15 +22,28 @@ tokens. Output, including reasoning, then uses 1.5 times the standard rate.
 The catalog records these rates as `openai-api-2026-09-04`.
 
 Astra remains a model within each agent's usage. Its addition does not create
-another provider or subscription quota. Estimates use Standard API rates because
-the current usage contract does not record service tiers such as Fast, Batch, or
-Flex. A reasoning-effort suffix does not imply a different service tier.
+another provider or subscription quota. Codex keeps an allowlisted service tier when the numeric record supplies it.
+The current estimator accepts Standard or an unspecified tier; explicitly different
+tiers stay unpriced. An unspecified tier is not proof of Standard billing.
+A reasoning-effort suffix does not imply a different service tier.
 
-Codex prices individual records at their recorded timestamp. Daily checkpoint
-aggregates use the same date and timezone as the report bucket: local noon for
-past days, and the observation time for today. A daily aggregate cannot resolve
-rate changes within that day or recover per-request context lengths. Its cost
-coverage remains partial.
+Codex parser `codex-jsonl/9` preserves numeric deltas and prices supported
+timestamped records at their event time. Unknown model transitions or timing
+stay unpriced; daily account totals remain a separate account view. The collector
+no longer distributes account totals across local models or invents a timestamp
+at local noon. Existing historical prices remain as recorded, with legacy timing
+explicitly unknown.
+
+The Compare view can reprice a matching supported cohort at a selected reference
+date. The reference is off by default and does not rewrite stored events. Codex
+and Cursor use their existing catalogs; unsupported providers, tiers, or missing
+raw history remain excluded and visible. Cost per million uses priced tokens,
+not the full partially priced population. Saved comparisons freeze the selected
+reference, catalog versions, exclusions, data revision, and displayed results.
+
+Known usage cost is not an invoice, subscription charge, or USD-per-quota value.
+Quota efficiency remains unavailable without evidenced consumption and matching
+pool attribution, even when a cycle has ended.
 
 Run the local audit:
 

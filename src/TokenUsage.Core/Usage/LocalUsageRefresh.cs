@@ -259,9 +259,10 @@ public sealed class LocalUsageRefresh
         {
             IUsageEventSource source = _sources[index];
             UsageSourceReadResult result = readResults[index];
+            await repository.UpsertAccountUsageAsync(result.AccountAggregates, cancellationToken).ConfigureAwait(false);
             if (source is ISnapshotUsageEventSource snapshotSource)
             {
-                if (result.Status == UsageSourceReadStatus.Complete)
+                if (result.Status == UsageSourceReadStatus.Complete && result.Events.Count > 0)
                 {
                     await repository.ReplaceAgentEventsAsync(
                         snapshotSource.AgentId,
@@ -293,9 +294,7 @@ public sealed class LocalUsageRefresh
                         return eventDate < reconcileFrom && eventDate <= today;
                     })
                     .ToArray();
-                bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete
-                    || (result.Status == UsageSourceReadStatus.NoData
-                        && result.Issue == UsageSourceIssueKind.Empty);
+                bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete && eventsInWindow.Length > 0;
                 if (isAuthoritative)
                 {
                     await repository.ReconcileAgentEventRangeAsync(
@@ -313,7 +312,9 @@ public sealed class LocalUsageRefresh
                             cancellationToken).ConfigureAwait(false);
                     }
                 }
-                else if (eventsInWindow.Length > 0 || olderEvents.Length > 0)
+                else if ((eventsInWindow.Length > 0 || olderEvents.Length > 0)
+                    && (result.Status == UsageSourceReadStatus.Complete || !await repository.HasDifferentParserInRangeAsync(
+                        windowedSource.AgentId, windowedSource.EventParserVersion, reconcileFrom, today, cancellationToken).ConfigureAwait(false)))
                 {
                     await repository.UpsertAgentEventsAsync(
                         windowedSource.AgentId,
@@ -338,22 +339,14 @@ public sealed class LocalUsageRefresh
                         ? UsageSourceReadStatus.Partial
                     : UsageSourceReadStatus.Complete;
 
-        // Sources that rotated parser versions stop emitting their old rows; the
-        // supersession prune retires those fossils beyond the reconciliation window.
-        var activeParserVersionsByAgent = _sources
-            .OfType<IWindowedSnapshotUsageEventSource>()
-            .GroupBy(source => source.AgentId)
-            .ToDictionary(
-                group => group.Key,
-                group => (IReadOnlyCollection<string>)group
-                    .Select(source => source.EventParserVersion)
-                    .Distinct()
-                    .ToArray());
+        for (int index = 0; index < _sources.Count; index++)
+            await repository.RecordCollectionAsync(new(_sources[index].AgentId.Value, _clock.GetUtcNow().ToUniversalTime(),
+                readResults[index].Status, readResults[index].Issue), cancellationToken).ConfigureAwait(false);
+
+        // Only authoritative range reconciliation may replace existing evidence.
         await repository.ApplyRetentionIfDueAsync(
                 _clock.GetUtcNow().ToUniversalTime(),
                 RetentionMinInterval,
-                activeParserVersionsByAgent: activeParserVersionsByAgent,
-                parserSupersessionDays: UsagePeriodPolicy.ReconciliationDays,
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 

@@ -2,6 +2,8 @@ using TokenUsage.Core.Providers;
 
 namespace TokenUsage.Core.Usage;
 
+public enum UsageTimePrecision { Unknown, Timestamp, Interval, Daily }
+
 public enum CostKind
 {
     ProviderReported,
@@ -188,7 +190,12 @@ public sealed record UsageEvent
         TokenBreakdown tokens,
         CostObservation cost,
         string parserVersion,
-        CoverageKind coverage)
+        CoverageKind coverage,
+        UsageTimePrecision timePrecision = UsageTimePrecision.Unknown,
+        DateTimeOffset? intervalStartedAtUtc = null,
+        ModelId? observedModelId = null,
+        string? reasoningEffort = null,
+        string? serviceTier = null)
     {
         UtcTimestamp.Require(occurredAtUtc, nameof(occurredAtUtc));
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
@@ -212,6 +219,20 @@ public sealed record UsageEvent
                 nameof(coverage));
         }
 
+        if (!Enum.IsDefined(timePrecision)
+            || intervalStartedAtUtc is { } start && (start.Offset != TimeSpan.Zero || start > occurredAtUtc)
+            || timePrecision == UsageTimePrecision.Interval && intervalStartedAtUtc is null)
+        {
+            throw new ArgumentException("Usage time precision must have valid UTC support.");
+        }
+        if (reasoningEffort is not (null or "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max" or "ultra")
+            || serviceTier is not (null or "standard" or "fast" or "batch" or "flex" or "priority"))
+            throw new ArgumentException("Usage configuration must use known numeric-source metadata labels.");
+        ObservedModelId = observedModelId;
+        ReasoningEffort = reasoningEffort;
+        ServiceTier = serviceTier;
+        TimePrecision = timePrecision;
+        IntervalStartedAtUtc = intervalStartedAtUtc;
         EventKey = eventKey ?? throw new ArgumentNullException(nameof(eventKey));
         AgentId = agentId ?? throw new ArgumentNullException(nameof(agentId));
         ModelProviderId = modelProviderId;
@@ -223,6 +244,16 @@ public sealed record UsageEvent
         ParserVersion = parserVersion;
         Coverage = coverage;
     }
+
+    public ModelId? ObservedModelId { get; }
+
+    public string? ReasoningEffort { get; }
+
+    public string? ServiceTier { get; }
+
+    public UsageTimePrecision TimePrecision { get; }
+
+    public DateTimeOffset? IntervalStartedAtUtc { get; }
 
     public UsageEventKey EventKey { get; }
 

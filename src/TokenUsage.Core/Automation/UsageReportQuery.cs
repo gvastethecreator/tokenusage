@@ -61,6 +61,11 @@ public sealed record UsageModelDayReport(
     ModelId ModelId,
     UsageReportMetrics Metrics);
 
+public sealed record UsageModelProfile(string AgentId, string CanonicalModel, string? ObservedModel,
+    string? Effort, string? Tier, DateTimeOffset FirstObservedAtUtc, DateTimeOffset LastObservedAtUtc, long Tokens);
+
+public sealed record UsageElapsedBucket(int Index, AgentId AgentId, UsageReportMetrics Metrics);
+
 public sealed record UsageReport(
     UsageReportMetrics Totals,
     IReadOnlyList<UsageAgentReport> Agents,
@@ -70,6 +75,30 @@ public sealed record UsageReport(
     IReadOnlyList<UsageModelDayReport> ModelDays)
 {
     public IReadOnlyList<UsageTimeRollup> TimeBuckets { get; init; } = [];
+
+    public IReadOnlyList<UsageElapsedBucket> ElapsedTwoHourBuckets { get; init; } = [];
+
+    public IReadOnlyList<AccountUsageAggregate> AccountUsage { get; init; } = [];
+
+    public IReadOnlyList<string> PricingVersions { get; init; } = [];
+
+    public IReadOnlyList<string> ParserVersions { get; init; } = [];
+
+    public int ExcludedTimingRecords { get; init; }
+
+    public bool IsExactInterval { get; init; }
+
+    public bool HasTimingGaps { get; init; }
+
+    public IReadOnlyList<string> GroupingTimeZoneIds { get; init; } = [];
+
+    public long PriceReferenceExcludedTokens { get; init; }
+
+    public IReadOnlyList<UsageModelProfile> ModelProfiles { get; init; } = [];
+
+    public long? PopulationTokens { get; init; }
+
+    public IReadOnlyList<UsageCollectionState> CollectionState { get; init; } = [];
 }
 
 public sealed record UsageReportMetricDelta(
@@ -111,12 +140,19 @@ public sealed class UsageReportQuery
                 agentId,
                 cancellationToken).ConfigureAwait(false);
 
-        UsageReport report = Build(rollups);
-        return includeTimeBuckets ? report with
+        var versions = await repository.ReadReportVersionsAsync(fromInclusive, toInclusive, agentId, cancellationToken).ConfigureAwait(false);
+        UsageReport report = Build(rollups) with
         {
-            TimeBuckets = await repository.QueryTwoHourRollupsAsync(fromInclusive, toInclusive, agentId, cancellationToken)
-                .ConfigureAwait(false),
-        } : report;
+            PricingVersions = versions.Pricing,
+            ParserVersions = versions.Parsers,
+            AccountUsage = await repository.ReadAccountUsageAsync(fromInclusive, toInclusive, agentId, cancellationToken).ConfigureAwait(false),
+            CollectionState = (await repository.ReadCollectionStateAsync(cancellationToken).ConfigureAwait(false)).Where(row => agentId is null || row.AgentId == agentId.Value).ToArray(),
+        };
+        if (!includeTimeBuckets) return report;
+        IReadOnlyList<UsageTimeRollup> buckets = await repository.QueryTwoHourRollupsAsync(
+            fromInclusive, toInclusive, agentId, cancellationToken).ConfigureAwait(false);
+        int excluded = Math.Max(0, report.Totals.EventCount - buckets.Sum(item => item.Usage.EventCount));
+        return report with { TimeBuckets = buckets, HasTimingGaps = excluded > 0, ExcludedTimingRecords = excluded };
     }
 
     public async Task<(DateOnly From, DateOnly To)?> ReadAvailableDateRangeAsync(
@@ -143,17 +179,62 @@ public sealed class UsageReportQuery
         AgentId? agentId = null,
         CancellationToken cancellationToken = default)
     {
+        if (toExclusiveUtc <= fromInclusiveUtc) throw new ArgumentException("The exact interval must have positive duration.", nameof(toExclusiveUtc));
         UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(
             _databasePath,
             cancellationToken).ConfigureAwait(false);
-        IReadOnlyList<UsageEvent> events = await repository.QueryUsageEventsAsync(
-            fromInclusiveUtc,
-            toExclusiveUtc,
+        IReadOnlyList<UsageEvent> candidates = await repository.QueryUsageEventsAsync(
+            fromInclusiveUtc.AddDays(-1),
+            toExclusiveUtc.AddDays(1),
             agentId,
-            cancellationToken).ConfigureAwait(false);
+            includeOverlappingIntervals: true, cancellationToken).ConfigureAwait(false);
+        UsageEvent[] events = candidates.Where(item =>
+            item.OccurredAtUtc >= fromInclusiveUtc && item.OccurredAtUtc < toExclusiveUtc
+            && (item.TimePrecision == UsageTimePrecision.Timestamp
+                || item.TimePrecision == UsageTimePrecision.Interval && item.IntervalStartedAtUtc >= fromInclusiveUtc)).ToArray();
+        var acceptedKeys = events.Select(item => item.EventKey).ToHashSet();
+        int excluded = candidates.Count(item =>
+        {
+            if (acceptedKeys.Contains(item.EventKey) || item.TimePrecision == UsageTimePrecision.Timestamp) return false;
+            if (item.TimePrecision == UsageTimePrecision.Interval)
+                return item.IntervalStartedAtUtc < toExclusiveUtc && item.OccurredAtUtc >= fromInclusiveUtc;
+            TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(item.GroupingTimeZoneId);
+            DateOnly date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(item.OccurredAtUtc, zone).DateTime);
+            return date >= DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(fromInclusiveUtc, zone).DateTime)
+                && date <= DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(toExclusiveUtc.AddTicks(-1), zone).DateTime);
+        });
+        DateOnly firstDate = DateOnly.FromDateTime(fromInclusiveUtc.UtcDateTime.AddDays(-1));
+        DateOnly lastDate = DateOnly.FromDateTime(toExclusiveUtc.UtcDateTime.AddDays(1));
+        IReadOnlyList<DailyUsageRollup> retained = agentId is null
+            ? await repository.QueryDailyRollupsAsync(firstDate, lastDate, cancellationToken).ConfigureAwait(false)
+            : await repository.QueryDailyRollupsByAgentAsync(firstDate, lastDate, agentId, cancellationToken).ConfigureAwait(false);
+        // Daily-only retained history cannot establish an exact interval, even when raw events are gone.
+        var supportedCounts = candidates.Where(item => item.TimePrecision is UsageTimePrecision.Timestamp or UsageTimePrecision.Interval)
+            .GroupBy(item => (DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(item.OccurredAtUtc,
+                TimeZoneInfo.FindSystemTimeZoneById(item.GroupingTimeZoneId)).DateTime),
+                item.GroupingTimeZoneId, item.AgentId, item.ModelProviderId, item.ModelId))
+            .ToDictionary(group => group.Key, group => group.Count());
+        bool timingGaps = retained.Any(row =>
+        {
+            TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(row.GroupingTimeZoneId);
+            DateOnly from = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(fromInclusiveUtc, zone).DateTime);
+            DateOnly to = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(toExclusiveUtc.AddTicks(-1), zone).DateTime);
+            return row.Date >= from && row.Date <= to && row.EventCount > supportedCounts.GetValueOrDefault(
+                (row.Date, row.GroupingTimeZoneId, row.AgentId, row.ModelProviderId, row.ModelId));
+        });
         return Build(UsageRollupAggregator.Aggregate(events)) with
         {
-            TimeBuckets = events.GroupBy(item =>
+            ExcludedTimingRecords = excluded,
+            PricingVersions = events.Select(item => item.Cost.CatalogVersion).OfType<string>().Distinct().Order().ToArray(),
+            ParserVersions = events.Select(item => item.ParserVersion).Distinct().Order().ToArray(),
+            HasTimingGaps = timingGaps || excluded > 0,
+            CollectionState = (await repository.ReadCollectionStateAsync(cancellationToken).ConfigureAwait(false)).Where(row => agentId is null || row.AgentId == agentId.Value).ToArray(),
+            IsExactInterval = true,
+            ElapsedTwoHourBuckets = events.Where(item => item.TimePrecision == UsageTimePrecision.Timestamp)
+                .GroupBy(item => (Index: (int)((item.OccurredAtUtc - fromInclusiveUtc).Ticks / TimeSpan.FromHours(2).Ticks), item.AgentId))
+                .Select(group => new UsageElapsedBucket(group.Key.Index, group.Key.AgentId,
+                    Aggregate(UsageRollupAggregator.Aggregate(group)))).ToArray(),
+            TimeBuckets = events.Where(item => item.TimePrecision == UsageTimePrecision.Timestamp).GroupBy(item =>
             {
                 DateTime local = TimeZoneInfo.ConvertTime(item.OccurredAtUtc,
                     TimeZoneInfo.FindSystemTimeZoneById(item.GroupingTimeZoneId)).DateTime;
@@ -194,8 +275,40 @@ public sealed class UsageReportQuery
             report.ModelDays.Where(item => item.AgentId == agentId).ToArray())
         {
             TimeBuckets = report.TimeBuckets.Where(item => item.Usage.AgentId == agentId).ToArray(),
+            ElapsedTwoHourBuckets = report.ElapsedTwoHourBuckets.Where(item => item.AgentId == agentId).ToArray(),
+            AccountUsage = report.AccountUsage.Where(item => item.AgentId == agentId).ToArray(),
+            ExcludedTimingRecords = report.ExcludedTimingRecords,
+            IsExactInterval = report.IsExactInterval,
+            HasTimingGaps = report.HasTimingGaps,
+            CollectionState = report.CollectionState.Where(row => row.AgentId == agentId.Value).ToArray(),
+            PricingVersions = report.PricingVersions,
+            ParserVersions = report.ParserVersions,
+            GroupingTimeZoneIds = report.GroupingTimeZoneIds,
+            PriceReferenceExcludedTokens = report.PriceReferenceExcludedTokens,
         };
     }
+
+    public static UsageReport FilterByModel(UsageReport report, AgentId agentId, ModelId modelId) =>
+        Build(report.ModelDays.Where(row => row.AgentId == agentId && row.ModelId == modelId)
+            .Select(row => ToRollup(row, report.GroupingTimeZoneIds.Count == 1 ? report.GroupingTimeZoneIds[0] : "mixed-or-unknown"))) with
+        {
+            TimeBuckets = report.TimeBuckets.Where(row => row.Usage.AgentId == agentId && row.Usage.ModelId == modelId).ToArray(),
+            PopulationTokens = report.Totals.Tokens.Total,
+            ModelProfiles = report.ModelProfiles.Where(row => row.AgentId == agentId.Value && row.CanonicalModel == modelId.Value).ToArray(),
+            ExcludedTimingRecords = report.ExcludedTimingRecords,
+            IsExactInterval = report.IsExactInterval,
+            HasTimingGaps = report.HasTimingGaps,
+            CollectionState = report.CollectionState.Where(row => row.AgentId == agentId.Value).ToArray(),
+            PricingVersions = report.PricingVersions,
+            ParserVersions = report.ParserVersions,
+            GroupingTimeZoneIds = report.GroupingTimeZoneIds,
+            PriceReferenceExcludedTokens = report.PriceReferenceExcludedTokens,
+        };
+
+    internal static DailyUsageRollup ToRollup(UsageModelDayReport row, string timeZoneId) => new(row.Date,
+        timeZoneId, row.AgentId, row.ModelProviderId, row.ModelId, row.Metrics.Tokens,
+        row.Metrics.ReportedCostUsd, row.Metrics.EstimatedCostUsd, row.Metrics.UnpricedTokens,
+        row.Metrics.UnavailableCostEventCount, row.Metrics.EventCount, row.Metrics.Coverage);
 
     public static UsageReport Build(IEnumerable<DailyUsageRollup> rollups)
     {
@@ -263,7 +376,10 @@ public sealed class UsageReportQuery
             .ThenBy(item => item.AgentId.Value, StringComparer.Ordinal)
             .ThenBy(item => item.ModelId.Value, StringComparer.Ordinal)
             .ToArray();
-        return new UsageReport(Aggregate(snapshot), agents, models, days, agentDays, modelDays);
+        return new UsageReport(Aggregate(snapshot), agents, models, days, agentDays, modelDays)
+        {
+            GroupingTimeZoneIds = snapshot.Select(row => row.GroupingTimeZoneId).Distinct().Order().ToArray(),
+        };
     }
 
     public static UsageReportMetrics Aggregate(IEnumerable<DailyUsageRollup> rollups)

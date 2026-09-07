@@ -232,7 +232,8 @@ public sealed class AutomationQueryTests
             "fixture/1",
             cost.Kind == CostKind.Unavailable
                 ? CoverageKind.Unpriced
-                : CoverageKind.Complete);
+                : CoverageKind.Complete,
+            UsageTimePrecision.Timestamp);
 
     private static ProviderSnapshot CreateSnapshot(string providerId, decimal used) =>
         new(

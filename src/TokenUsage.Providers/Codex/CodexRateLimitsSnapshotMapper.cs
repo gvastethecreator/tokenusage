@@ -71,7 +71,9 @@ public static class CodexRateLimitsSnapshotMapper
                 continue;
             }
 
-            if (HasSameWindows(source.RateLimits, bucket))
+            // Equal readings do not identify a pool. Only the advertised alias does.
+            if (source.RateLimits.LimitId is { Length: > 0 } legacyId
+                && string.Equals(legacyId, bucket.LimitId ?? limitId, StringComparison.Ordinal))
             {
                 continue;
             }
@@ -117,7 +119,6 @@ public static class CodexRateLimitsSnapshotMapper
         }
 
         IReadOnlyList<CodexResetCredit>? details = inventory.Credits;
-        int effectiveAvailable = inventory.AvailableCount;
         int expired = 0;
         DateTimeOffset? nextExpiry = null;
         if (details is not null)
@@ -127,18 +128,18 @@ public static class CodexRateLimitsSnapshotMapper
                     string.Equals(credit.Status, "available", StringComparison.OrdinalIgnoreCase)
                     && (credit.ExpiresAtUtc is null || credit.ExpiresAtUtc > observedAtUtc))
                 .ToArray();
-            effectiveAvailable = Math.Min(inventory.AvailableCount, available.Length);
             expired = details.Count(credit =>
                 string.Equals(credit.Status, "expired", StringComparison.OrdinalIgnoreCase)
                 || credit.ExpiresAtUtc is not null && credit.ExpiresAtUtc <= observedAtUtc);
-            nextExpiry = available
+            // Capped details cannot establish the next expiry of the whole inventory.
+            nextExpiry = available.Length == inventory.AvailableCount ? available
                 .Where(credit => credit.ExpiresAtUtc is not null)
                 .Select(credit => credit.ExpiresAtUtc)
-                .Min();
+                .Min() : null;
         }
 
         AddScalar(metrics, ResetCreditsReportedAvailableMetricId, inventory.AvailableCount, "credits", provenance);
-        AddScalar(metrics, ResetCreditsAvailableMetricId, effectiveAvailable, "credits", provenance);
+        AddScalar(metrics, ResetCreditsAvailableMetricId, inventory.AvailableCount, "credits", provenance);
         AddScalar(metrics, ResetCreditsHasDetailsMetricId, details is null ? 0 : 1, "boolean", provenance);
         if (details is not null)
         {
@@ -253,11 +254,6 @@ public static class CodexRateLimitsSnapshotMapper
             source,
             confidence);
     }
-
-    private static bool HasSameWindows(
-        CodexRateLimitBucket left,
-        CodexRateLimitBucket right) =>
-        left.Primary == right.Primary && left.Secondary == right.Secondary;
 
     private static string NormalizeLimitId(string value)
     {

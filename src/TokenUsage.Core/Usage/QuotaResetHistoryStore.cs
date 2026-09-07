@@ -36,7 +36,10 @@ public sealed record QuotaResetWindowState(
     DateTimeOffset ObservedAtUtc,
     DateTimeOffset CurrentCycleStartedAtUtc,
     DateTimeOffset? ExpectedResetAtUtc,
-    decimal? WindowDurationMinutes);
+    decimal? WindowDurationMinutes)
+{
+    public bool HasObservedStart { get; init; }
+}
 
 public sealed record QuotaResetRecord(
     string ProviderId,
@@ -52,7 +55,10 @@ public sealed record QuotaResetRecord(
     decimal? WindowDurationMinutes,
     QuotaResetDetectionKind DetectionKind,
     QuotaResetCause Cause,
-    QuotaChangeEvidenceKind EvidenceKind);
+    QuotaChangeEvidenceKind EvidenceKind)
+{
+    public bool HasObservedPreviousStart { get; init; }
+}
 
 public sealed record QuotaReplenishmentRecord(
     string ProviderId,
@@ -73,7 +79,17 @@ public sealed record QuotaResetHistory(
     IReadOnlyList<QuotaReplenishmentRecord> Replenishments)
 {
     public static QuotaResetHistory Empty { get; } = new([], [], []);
+
+    public IReadOnlyList<QuotaProviderWatermark> ProviderWatermarks { get; init; } = [];
+
+    public IReadOnlyList<QuotaResetWindowState> RetiredWindows { get; init; } = [];
 }
+
+public sealed record QuotaProviderWatermark(string ProviderId, DateTimeOffset ObservedAtUtc);
+
+public enum QuotaHistoryAvailability { Available, Missing, AccessDenied, Busy, UnsupportedSchema, InvalidData }
+
+public sealed record QuotaHistoryReadResult(QuotaHistoryAvailability Availability, QuotaResetHistory? History);
 
 public sealed record QuotaResetCycle(
     string ProviderId,
@@ -87,7 +103,10 @@ public sealed record QuotaResetCycle(
     DateTimeOffset? ExpectedResetAtUtc,
     QuotaResetDetectionKind? EndingResetKind,
     QuotaResetCause? EndingResetCause,
-    QuotaChangeEvidenceKind? EndingEvidenceKind);
+    QuotaChangeEvidenceKind? EndingEvidenceKind)
+{
+    public bool HasObservedStart { get; init; }
+}
 
 public static class QuotaResetCycleQuery
 {
@@ -101,29 +120,31 @@ public static class QuotaResetCycleQuery
         UtcTimestamp.Require(nowUtc, nameof(nowUtc));
 
         var cycles = new List<QuotaResetCycle>();
-        foreach (QuotaResetWindowState window in history.Windows
+        foreach (QuotaResetWindowState window in history.Windows.Concat(history.RetiredWindows)
                      .Where(item => string.Equals(
                          item.ProviderId,
                          providerId,
                          StringComparison.Ordinal))
                      .OrderBy(item => item.MetricId, StringComparer.Ordinal))
         {
-            DateTimeOffset currentEnd = nowUtc < window.CurrentCycleStartedAtUtc
+            bool active = history.Windows.Contains(window);
+            DateTimeOffset observedEnd = active ? nowUtc : window.ObservedAtUtc;
+            DateTimeOffset currentEnd = observedEnd < window.CurrentCycleStartedAtUtc
                 ? window.CurrentCycleStartedAtUtc
-                : nowUtc;
+                : observedEnd;
             cycles.Add(new QuotaResetCycle(
                 window.ProviderId,
                 window.MetricId,
                 window.CurrentCycleStartedAtUtc,
                 currentEnd,
-                IsCurrent: true,
+                IsCurrent: active,
                 window.WindowDurationMinutes,
                 window.UsedPercent,
                 window.ObservedAtUtc,
                 window.ExpectedResetAtUtc,
                 EndingResetKind: null,
                 EndingResetCause: null,
-                EndingEvidenceKind: null));
+                EndingEvidenceKind: null) { HasObservedStart = window.HasObservedStart });
         }
 
         cycles.AddRange(history.Resets
@@ -143,7 +164,7 @@ public static class QuotaResetCycleQuery
                 item.PreviousExpectedResetAtUtc,
                 item.DetectionKind,
                 item.Cause,
-                item.EvidenceKind)));
+                item.EvidenceKind) { HasObservedStart = item.HasObservedPreviousStart }));
 
         return cycles;
     }
@@ -201,7 +222,8 @@ public static class QuotaResetCountQuery
         string providerId,
         DateTimeOffset fromUtc,
         DateTimeOffset toUtcExclusive,
-        string? metricId = null)
+        string? metricId = null,
+        bool currentWindowsOnly = false)
     {
         ArgumentNullException.ThrowIfNull(history);
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
@@ -227,10 +249,9 @@ public static class QuotaResetCountQuery
 
         QuotaResetRecord[] matchingResets = history.Resets
             .Where(item => string.Equals(item.ProviderId, providerId, StringComparison.Ordinal)
-                && activeWindows.TryGetValue(item.MetricId, out QuotaResetWindowState? window)
-                && QuotaResetCycleQuery.SameWindowDuration(
-                    item.WindowDurationMinutes,
-                    window.WindowDurationMinutes)
+                && (metricId is null || item.MetricId == metricId)
+                && (!currentWindowsOnly || activeWindows.TryGetValue(item.MetricId, out QuotaResetWindowState? window)
+                    && QuotaResetCycleQuery.SameWindowDuration(item.WindowDurationMinutes, window.WindowDurationMinutes))
                 && item.OccurredAtUtc >= fromUtc
                 && item.OccurredAtUtc < toUtcExclusive)
             .ToArray();
@@ -260,7 +281,7 @@ public sealed class QuotaResetHistoryVersionException(int actualVersion, int sup
 
 public sealed class QuotaResetHistoryStore
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
     public const string DefaultFileName = "quota-resets.v2.json";
     public const string LegacyFileName = "quota-resets.v1.json";
 
@@ -281,6 +302,7 @@ public sealed class QuotaResetHistoryStore
     };
 
     private readonly VersionedDocumentFile _document;
+    private bool _requiresMigrationBackup;
     private readonly VersionedDocumentFile? _legacyDocument;
 
     public QuotaResetHistoryStore(string documentPath, TimeProvider? clock = null)
@@ -307,8 +329,26 @@ public sealed class QuotaResetHistoryStore
 
     public string DocumentPath => _document.DocumentPath;
 
+    public QuotaObservationJournal Journal => new(DocumentPath + ".observations.db");
+
     public Task<QuotaResetHistory> LoadAsync(CancellationToken cancellationToken = default) =>
         _document.RunLockedAsync(LoadCore, cancellationToken);
+
+    public async Task<QuotaHistoryReadResult> ReadAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            QuotaResetHistory history = await LoadAsync(cancellationToken).ConfigureAwait(false);
+            return new(_document.Exists || _legacyDocument?.Exists is true
+                ? QuotaHistoryAvailability.Available : QuotaHistoryAvailability.Missing, history);
+        }
+        catch (QuotaResetHistoryVersionException) { return new(QuotaHistoryAvailability.UnsupportedSchema, null); }
+        catch (UnauthorizedAccessException) { return new(QuotaHistoryAvailability.AccessDenied, null); }
+        catch (System.Security.SecurityException) { return new(QuotaHistoryAvailability.AccessDenied, null); }
+        catch (TimeoutException) { return new(QuotaHistoryAvailability.Busy, null); }
+        catch (InvalidDataException) { return new(QuotaHistoryAvailability.InvalidData, null); }
+        catch (IOException) { return new(QuotaHistoryAvailability.InvalidData, null); }
+    }
 
     public Task<QuotaResetHistory> ObserveAsync(
         ProviderSnapshot snapshot,
@@ -321,9 +361,21 @@ public sealed class QuotaResetHistoryStore
     private QuotaResetHistory ObserveCore(ProviderSnapshot snapshot)
     {
         QuotaResetHistory history = LoadCore();
+        DateTimeOffset watermark = history.ProviderWatermarks
+            .Where(item => item.ProviderId == snapshot.ProviderId.Value)
+            .Select(item => item.ObservedAtUtc)
+            .Concat(history.Windows.Where(item => item.ProviderId == snapshot.ProviderId.Value)
+                .Select(item => item.ObservedAtUtc))
+            .DefaultIfEmpty(DateTimeOffset.MinValue).Max();
+        if (snapshot.SourceObservedAtUtc <= watermark)
+        {
+            return history;
+        }
+
         var windows = history.Windows.ToDictionary(
             item => (item.ProviderId, item.MetricId),
             item => item);
+        var retired = history.RetiredWindows.ToList();
         var resets = history.Resets.ToList();
         var replenishments = history.Replenishments.ToList();
         IReadOnlyDictionary<string, decimal> durations = snapshot.Metrics
@@ -335,6 +387,7 @@ public sealed class QuotaResetHistoryStore
                 metric => metric.Id.Value[..^".window-minutes".Length],
                 metric => metric.Value,
                 StringComparer.Ordinal);
+        Journal.Append(snapshot, durations);
         ProgressMetricSnapshot[] progressMetrics = snapshot.Metrics
             .OfType<ProgressMetricSnapshot>()
             .Where(metric => metric.Id.Value.StartsWith("quota.", StringComparison.Ordinal))
@@ -352,6 +405,7 @@ public sealed class QuotaResetHistoryStore
                              && !currentMetricIds.Contains(key.MetricId))
                          .ToArray())
             {
+                retired.Add(windows[(providerId, metricId)]);
                 windows.Remove((providerId, metricId));
             }
         }
@@ -390,13 +444,15 @@ public sealed class QuotaResetHistoryStore
             bool sameWindowDuration = QuotaResetCycleQuery.SameWindowDuration(
                 previous.WindowDurationMinutes,
                 durationMinutes ?? previous.WindowDurationMinutes);
+            if (!sameWindowDuration) retired.Add(previous);
             QuotaChangeDetection? detection = sameWindowDuration
                 ? DetectChange(
                     previous,
                     usedPercent,
                     snapshot.SourceObservedAtUtc,
                     metric.ResetEvidence,
-                    metric.Provenance)
+                    metric.Provenance,
+                    metric.ResetsAtUtc)
                 : null;
             decimal? currentDuration = durationMinutes ?? previous.WindowDurationMinutes;
             DateTimeOffset cycleStart = sameWindowDuration
@@ -407,7 +463,12 @@ public sealed class QuotaResetHistoryStore
                     currentDuration);
             if (detection is ResetDetection reset)
             {
+                // Retain the one previously observed cycle; do not invent missed cycles.
                 cycleStart = reset.OccurredAtUtc;
+                if (reset.Kind == QuotaResetDetectionKind.Scheduled
+                    && TryInferCycleStart(snapshot.SourceObservedAtUtc, metric.ResetsAtUtc, currentDuration) is { } inferred
+                    && inferred > cycleStart)
+                    cycleStart = inferred;
                 resets.Add(new QuotaResetRecord(
                     providerId,
                     metricId,
@@ -422,7 +483,7 @@ public sealed class QuotaResetHistoryStore
                     previous.WindowDurationMinutes,
                     reset.Kind,
                     reset.Cause,
-                    reset.EvidenceKind));
+                    reset.EvidenceKind) { HasObservedPreviousStart = previous.HasObservedStart });
             }
             else if (detection is ReplenishmentDetection replenishment)
             {
@@ -447,6 +508,9 @@ public sealed class QuotaResetHistoryStore
                 CurrentCycleStartedAtUtc = cycleStart,
                 ExpectedResetAtUtc = metric.ResetsAtUtc,
                 WindowDurationMinutes = currentDuration,
+                HasObservedStart = detection is ResetDetection observedReset
+                    ? observedReset.EvidenceKind is QuotaChangeEvidenceKind.OfficialManualSignal or QuotaChangeEvidenceKind.OfficialResetCreditSignal
+                    : sameWindowDuration && previous.HasObservedStart,
             };
         }
 
@@ -465,7 +529,14 @@ public sealed class QuotaResetHistoryStore
                 .OrderByDescending(item => item.OccurredAtUtc)
                 .Take(MaximumReplenishmentRecords)
                 .OrderBy(item => item.OccurredAtUtc)
-                .ToArray());
+                .ToArray())
+        {
+            RetiredWindows = retired.OrderByDescending(item => item.ObservedAtUtc).Take(MaximumResetRecords).ToArray(),
+            ProviderWatermarks = history.ProviderWatermarks
+                .Where(item => item.ProviderId != snapshot.ProviderId.Value)
+                .Append(new QuotaProviderWatermark(snapshot.ProviderId.Value, snapshot.SourceObservedAtUtc))
+                .OrderByDescending(item => item.ObservedAtUtc).Take(MaximumWindows).ToArray(),
+        };
         Write(updated);
         return updated;
     }
@@ -492,7 +563,7 @@ public sealed class QuotaResetHistoryStore
             if (!parsed.RootElement.TryGetProperty("schemaVersion", out JsonElement versionElement)
                 || !versionElement.TryGetInt32(out int schemaVersion))
             {
-                return QuarantineInvalid(source);
+                return RejectInvalid();
             }
 
             if (schemaVersion > CurrentSchemaVersion)
@@ -502,6 +573,7 @@ public sealed class QuotaResetHistoryStore
                     CurrentSchemaVersion);
             }
 
+            _requiresMigrationBackup = schemaVersion < CurrentSchemaVersion && _document.Exists;
             if (schemaVersion == 1)
             {
                 DocumentV1? legacy = JsonSerializer.Deserialize<DocumentV1>(
@@ -509,7 +581,7 @@ public sealed class QuotaResetHistoryStore
                     SerializerOptions);
                 if (legacy is null)
                 {
-                    return QuarantineInvalid(source);
+                    return RejectInvalid();
                 }
 
                 QuotaResetHistory migrated = FromDocumentV1(legacy);
@@ -517,15 +589,15 @@ public sealed class QuotaResetHistoryStore
                 return migrated;
             }
 
-            if (schemaVersion != CurrentSchemaVersion)
+            if (schemaVersion is not (2 or CurrentSchemaVersion))
             {
-                return QuarantineInvalid(source);
+                return RejectInvalid();
             }
 
             DocumentV2? document = JsonSerializer.Deserialize<DocumentV2>(
                 json.Span,
                 SerializerOptions);
-            return document is null ? QuarantineInvalid(source) : FromDocumentV2(document);
+            return document is null ? RejectInvalid() : FromDocumentV2(document);
         }
         catch (QuotaResetHistoryVersionException)
         {
@@ -538,27 +610,35 @@ public sealed class QuotaResetHistoryStore
             or InvalidOperationException
             or OverflowException)
         {
-            return QuarantineInvalid(source);
+            return RejectInvalid();
         }
     }
 
     private void Write(QuotaResetHistory history)
     {
+        if (_requiresMigrationBackup && _document.Exists)
+        {
+            string backup = _document.DocumentPath + ".pre-v3";
+            if (!File.Exists(backup)) File.Copy(_document.DocumentPath, backup);
+            _requiresMigrationBackup = false;
+        }
         var document = new DocumentV2
         {
             SchemaVersion = CurrentSchemaVersion,
             Windows = history.Windows.ToList(),
             Resets = history.Resets.ToList(),
             Replenishments = history.Replenishments.ToList(),
+            ProviderWatermarks = history.ProviderWatermarks.ToList(),
+            RetiredWindows = history.RetiredWindows.ToList(),
         };
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(document, SerializerOptions);
         _document.WriteAtomically(bytes, MaximumDocumentBytes);
     }
 
-    private static QuotaResetHistory QuarantineInvalid(VersionedDocumentFile source)
+    private static QuotaResetHistory RejectInvalid()
     {
-        source.QuarantineCorrupt();
-        return QuotaResetHistory.Empty;
+        // Preserve the original document for explicit recovery; failed reads are not empty history.
+        throw new InvalidDataException("Quota history is invalid; the original document was preserved.");
     }
 
     private static QuotaResetHistory FromDocumentV2(DocumentV2 document)
@@ -580,7 +660,18 @@ public sealed class QuotaResetHistoryStore
             throw new InvalidDataException("Quota reset history contains invalid records.");
         }
 
-        return new QuotaResetHistory(windows, resets, replenishments);
+        QuotaProviderWatermark[] watermarks = document.ProviderWatermarks?.ToArray() ?? [];
+        if (watermarks.Length > MaximumWindows
+            || watermarks.Any(item => !IsValidId(item.ProviderId) || !IsUtc(item.ObservedAtUtc))
+            || watermarks.Select(item => item.ProviderId).Distinct(StringComparer.Ordinal).Count() != watermarks.Length)
+        {
+            throw new InvalidDataException("Quota history contains invalid provider watermarks.");
+        }
+
+        QuotaResetWindowState[] retired = document.RetiredWindows?.ToArray() ?? [];
+        if (retired.Length > MaximumResetRecords || retired.Any(item => !IsValid(item)))
+            throw new InvalidDataException("Retired quota history is invalid.");
+        return new QuotaResetHistory(windows, resets, replenishments) { ProviderWatermarks = watermarks, RetiredWindows = retired };
     }
 
     private static QuotaResetHistory FromDocumentV1(DocumentV1 document)
@@ -722,7 +813,8 @@ public sealed class QuotaResetHistoryStore
         decimal currentUsedPercent,
         DateTimeOffset observedAtUtc,
         ProviderResetEvidence? providerEvidence,
-        DataProvenance provenance)
+        DataProvenance provenance,
+        DateTimeOffset? currentExpectedResetAtUtc)
     {
         if (providerEvidence is not null
             && provenance.SourceKind == SourceKind.OfficialLocalApi
@@ -747,7 +839,8 @@ public sealed class QuotaResetHistoryStore
         bool crossedExpectedReset = previous.ExpectedResetAtUtc is not null
             && previous.ObservedAtUtc < previous.ExpectedResetAtUtc.Value
             && observedAtUtc >= previous.ExpectedResetAtUtc.Value;
-        if (crossedExpectedReset)
+        if (crossedExpectedReset && currentExpectedResetAtUtc > observedAtUtc
+            && currentExpectedResetAtUtc != previous.ExpectedResetAtUtc)
         {
             return new ResetDetection(
                 previous.ExpectedResetAtUtc!.Value,
@@ -806,6 +899,9 @@ public sealed class QuotaResetHistoryStore
         public List<QuotaResetRecord>? Resets { get; set; }
 
         public List<QuotaReplenishmentRecord>? Replenishments { get; set; }
+
+        public List<QuotaProviderWatermark>? ProviderWatermarks { get; set; }
+        public List<QuotaResetWindowState>? RetiredWindows { get; set; }
     }
 
     private sealed record LegacyQuotaResetRecord(

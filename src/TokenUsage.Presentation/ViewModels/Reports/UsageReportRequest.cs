@@ -12,6 +12,7 @@ public enum UsageReportCompareAxis
     Providers,
     Periods,
     Cycles,
+    Models,
 }
 
 public sealed record UsageReportRequest

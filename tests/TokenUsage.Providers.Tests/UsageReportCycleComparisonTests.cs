@@ -1,4 +1,4 @@
-using TokenUsage.App.ViewModels.Reports;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.Providers.Tests;
 
@@ -13,12 +13,12 @@ public sealed class UsageReportCycleComparisonTests
 
         Assert.True(comparison.IsCompatible);
         Assert.False(comparison.HasIncompleteCycle);
-        Assert.Equal(25m, comparison.QuotaUsedPercent.Delta);
-        Assert.Equal(1_500m, comparison.Tokens.Delta);
-        Assert.Equal(3m, comparison.CostUsd.Delta);
-        Assert.Equal(5m, comparison.EventCount.Delta);
-        Assert.Equal(20m, comparison.TokensPerQuotaPoint.Delta);
-        Assert.Equal(2_000m, comparison.CostPerMillionTokens.Delta);
+        Assert.Equal(-25m, comparison.QuotaUsedPercent.Delta);
+        Assert.Equal(-1_500m, comparison.Tokens.Delta);
+        Assert.Equal(-3m, comparison.CostUsd.Delta);
+        Assert.Equal(-5m, comparison.EventCount.Delta);
+        Assert.Null(comparison.TokensPerQuotaPoint.Delta); // Final levels do not establish consumption.
+        Assert.Equal(-2_000m, comparison.CostPerMillionTokens.Delta);
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public sealed class UsageReportCycleComparisonTests
 
         Assert.False(comparison.IsCompatible);
         Assert.True(comparison.HasIncompleteCycle);
-        Assert.Equal(100m, comparison.Tokens.Delta);
-        Assert.Equal(1m, comparison.CostUsd.Delta);
+        Assert.Equal(-100m, comparison.Tokens.Delta);
+        Assert.Equal(-1m, comparison.CostUsd.Delta);
     }
 
     private static UsageReportCycleObservation Observation(

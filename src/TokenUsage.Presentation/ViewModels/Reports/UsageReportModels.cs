@@ -50,7 +50,11 @@ public sealed record UsageReportResetCycleOption(
     decimal? ProjectedUsagePercent,
     string PaceText)
 {
-    public string AutomationName => $"{DisplayName}. {DurationText}. {RangeText}. {DetailText}";
+    public string ProviderId { get; init; } = string.Empty;
+    public string ProviderName { get; init; } = string.Empty;
+    public string CompactDisplayName => $"{ProviderName} · {FromDate:d MMM} · {GroupName}";
+    public string ProviderDisplayName => $"{ProviderName} · {DisplayName}";
+    public string AutomationName => $"{ProviderDisplayName}. {DurationText}. {RangeText}. {DetailText}";
 
     public bool HasPace => ProjectedUsagePercent is not null
         && !string.IsNullOrWhiteSpace(PaceText);
@@ -131,6 +135,8 @@ public sealed record UsageReportTrendSeries(
     string? ModelId = null)
 {
     public IReadOnlyList<double> TimeValues { get; init; } = [];
+
+    public string? LegendName { get; init; }
 
     public bool IsReserve => ModelId == "gpt-reserve";
 }

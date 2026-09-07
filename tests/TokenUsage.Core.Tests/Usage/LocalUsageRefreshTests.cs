@@ -337,6 +337,27 @@ public sealed class LocalUsageRefreshTests
     }
 
     [Fact]
+    public async Task EmptyOrPartialNewParserCannotEraseOrDuplicateThePreviousBaseline()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        UsageEvent original = CreateEvent("codex", "old", Now.AddMinutes(-1), 600, 0, CostObservation.Unavailable());
+        var originalSource = new ScriptedWindowedSource(new AgentId("codex"), "test/1", 35,
+            new UsageSourceReadResult([original], UsageSourceReadStatus.Complete));
+        await new LocalUsageRefresh(folder.DatabasePath, originalSource, clock).RefreshAsync();
+        var empty = new ScriptedWindowedSource(new AgentId("codex"), "test/2", 35,
+            new UsageSourceReadResult([], UsageSourceReadStatus.NoData, UsageSourceIssueKind.Empty));
+        var retained = await new LocalUsageRefresh(folder.DatabasePath, empty, clock).RefreshAsync();
+        Assert.Equal(600, retained.Rollups.Sum(row => row.Tokens.Total));
+        var partial = new ScriptedWindowedSource(new AgentId("codex"), "test/2", 35,
+            new UsageSourceReadResult([CreateEvent("codex", "new-key", Now.AddMinutes(-1), 600, 0,
+                CostObservation.Unavailable(), parserVersion: "test/2")], UsageSourceReadStatus.Partial));
+        var protectedBaseline = await new LocalUsageRefresh(folder.DatabasePath, partial, clock).RefreshAsync();
+        Assert.Equal(600, protectedBaseline.Rollups.Sum(row => row.Tokens.Total));
+        Assert.Equal(1, protectedBaseline.Rollups.Sum(row => row.EventCount));
+    }
+
+    [Fact]
     public async Task RefreshWindowedPartialUpsertsExistingEventCosts()
     {
         using var folder = new TemporaryFolder();

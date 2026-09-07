@@ -494,7 +494,7 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (5, '2026-07-22T12:00:00Z');
+                VALUES (6, '2026-07-22T12:00:00Z');
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -502,7 +502,7 @@ public sealed class UsageRepositoryTests
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(5, error.ActualVersion);
+        Assert.Equal(6, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -557,7 +557,7 @@ public sealed class UsageRepositoryTests
         {
             await setup.OpenAsync();
             await using SqliteCommand command = setup.CreateCommand();
-            command.CommandText = "DELETE FROM schema_migration WHERE version = 4;";
+            command.CommandText = "DELETE FROM schema_migration WHERE version IN (4, 5);";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -624,7 +624,16 @@ public sealed class UsageRepositoryTests
             await using SqliteCommand command = setup.CreateCommand();
             command.CommandText =
                 """
-                DELETE FROM schema_migration WHERE version IN (2, 3, 4);
+                DROP INDEX ix_usage_event_model_time;
+                ALTER TABLE usage_event DROP COLUMN time_precision;
+                ALTER TABLE usage_event DROP COLUMN interval_started_at_utc;
+                ALTER TABLE usage_event DROP COLUMN observed_model_id;
+                ALTER TABLE usage_event DROP COLUMN reasoning_effort;
+                ALTER TABLE usage_event DROP COLUMN service_tier;
+                DROP TABLE account_usage_daily;
+                DROP TABLE saved_usage_comparison;
+                DROP TABLE usage_collection_state;
+                DELETE FROM schema_migration WHERE version IN (2, 3, 4, 5);
                 DROP TABLE usage_event_tombstone;
                 """;
             await command.ExecuteNonQueryAsync();
@@ -663,7 +672,18 @@ public sealed class UsageRepositoryTests
         {
             await setup.OpenAsync();
             await using SqliteCommand command = setup.CreateCommand();
-            command.CommandText = "DELETE FROM schema_migration WHERE version IN (3, 4);";
+            command.CommandText = """
+                DROP INDEX ix_usage_event_model_time;
+                ALTER TABLE usage_event DROP COLUMN time_precision;
+                ALTER TABLE usage_event DROP COLUMN interval_started_at_utc;
+                ALTER TABLE usage_event DROP COLUMN observed_model_id;
+                ALTER TABLE usage_event DROP COLUMN reasoning_effort;
+                ALTER TABLE usage_event DROP COLUMN service_tier;
+                DROP TABLE account_usage_daily;
+                DROP TABLE saved_usage_comparison;
+                DROP TABLE usage_collection_state;
+                DELETE FROM schema_migration WHERE version IN (3, 4, 5);
+                """;
             await command.ExecuteNonQueryAsync();
         }
 
@@ -680,6 +700,10 @@ public sealed class UsageRepositoryTests
         Assert.Single(claude);
         Assert.Equal("claude", all[0].AgentId.Value);
         Assert.Equal(1, all[0].EventCount);
+        var migrated = Assert.Single(await repository.QueryUsageEventsAsync(
+            new DateTimeOffset(2026, 7, 22, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 7, 23, 0, 0, 0, TimeSpan.Zero)));
+        Assert.Equal(UsageTimePrecision.Unknown, migrated.TimePrecision);
+        Assert.Null(migrated.ObservedModelId);
     }
 
     [Fact]
@@ -710,7 +734,7 @@ public sealed class UsageRepositoryTests
             }
         }
 
-        Assert.Equal(4, UsageRepository.CurrentSchemaVersion);
+        Assert.Equal(5, UsageRepository.CurrentSchemaVersion);
         Assert.Contains("ix_usage_event_agent_civil_date", names);
         Assert.Contains("ix_usage_event_occurred_at_utc", names);
         Assert.Contains("ix_daily_usage_rollup_agent_civil_date", names);
@@ -785,7 +809,7 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
-    public async Task ParserSupersessionRetiresOnlyOldEventsFromSupersededParsers()
+    public async Task RetentionPreservesDailyHistoryRegardlessOfParserVersion()
     {
         using var folder = new TemporaryFolder();
         UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
@@ -807,25 +831,19 @@ public sealed class UsageRepositoryTests
                 agentId: "codex",
                 parserVersion: "codex-official/2"),
         ]);
-        var activeParsers = new Dictionary<AgentId, IReadOnlyCollection<string>>
-        {
-            [new AgentId("codex")] = ["codex-official/3", "codex-local/7"],
-        };
         var now = new DateTimeOffset(2026, 8, 28, 12, 0, 0, TimeSpan.Zero);
 
         int deleted = await repository.ApplyRetentionIfDueAsync(
             now,
-            TimeSpan.Zero,
-            activeParserVersionsByAgent: activeParsers,
-            parserSupersessionDays: 35);
+            TimeSpan.Zero, retentionDays: 35);
 
-        Assert.Equal(1, deleted);
+        Assert.Equal(2, deleted);
         IReadOnlyList<DailyUsageRollup> rollups = await repository
             .QueryDailyRollupsByAgentAsync(
                 new DateOnly(2025, 1, 1),
                 new DateOnly(2026, 12, 31),
                 new AgentId("codex"));
-        Assert.DoesNotContain(rollups, rollup => rollup.Date == new DateOnly(2025, 9, 17));
+        Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2025, 9, 17));
         Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2025, 9, 18));
         Assert.Contains(rollups, rollup => rollup.Date == new DateOnly(2026, 8, 27));
     }
@@ -991,7 +1009,8 @@ public sealed class UsageRepositoryTests
             tokens ?? new TokenBreakdown(100, 25, 5, 20, 0),
             cost ?? CostObservation.ProviderReported(0.25m),
             parserVersion,
-            CoverageKind.Complete);
+            CoverageKind.Complete,
+            UsageTimePrecision.Timestamp);
 
     private static async Task<string> ExplainAsync(SqliteConnection connection, string sql)
     {

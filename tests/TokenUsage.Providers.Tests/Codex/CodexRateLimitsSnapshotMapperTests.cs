@@ -44,7 +44,7 @@ public sealed class CodexRateLimitsSnapshotMapperTests
     {
         CodexRateLimitWindow sharedPrimary = Window(25, ObservedAt.AddHours(5), 300);
         var source = new CodexRateLimitsSnapshot(
-            new CodexRateLimitBucket("pro", sharedPrimary, null),
+            new CodexRateLimitBucket("pro", sharedPrimary, null) { LimitId = "codex" },
             new Dictionary<string, CodexRateLimitBucket>(StringComparer.Ordinal)
             {
                 ["Z_Model"] = new("pro", Window(75, ObservedAt.AddHours(2), 60), null),
@@ -163,13 +163,27 @@ public sealed class CodexRateLimitsSnapshotMapperTests
             .ToDictionary(metric => metric.Id.Value, StringComparer.Ordinal);
 
         Assert.Equal(2m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsReportedAvailableMetricId].Value);
-        Assert.Equal(1m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsAvailableMetricId].Value);
+        Assert.Equal(2m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsAvailableMetricId].Value);
         Assert.Equal(1m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsHasDetailsMetricId].Value);
         Assert.Equal(2m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsDetailCountMetricId].Value);
         Assert.Equal(1m, scalars[CodexRateLimitsSnapshotMapper.ResetCreditsExpiredMetricId].Value);
-        Assert.Equal(
-            ObservedAt.AddDays(5).ToUnixTimeSeconds(),
-            scalars[CodexRateLimitsSnapshotMapper.ResetCreditsNextExpiryMetricId].Value);
+        Assert.DoesNotContain(CodexRateLimitsSnapshotMapper.ResetCreditsNextExpiryMetricId, scalars.Keys);
+    }
+
+    [Fact]
+    public void EqualWindowsWithDifferentPoolIdsRemainDistinctAndCappedCreditsKeepAuthoritativeCount()
+    {
+        CodexRateLimitWindow window = Window(25, ObservedAt.AddHours(5), 300);
+        var source = new CodexRateLimitsSnapshot(
+            new CodexRateLimitBucket("pro", window, null) { LimitId = "default" },
+            new Dictionary<string, CodexRateLimitBucket> { ["other"] = new("pro", window, null) { LimitId = "other" } },
+            new CodexResetCreditInventory(12, [new("codexRateLimits", "available", ObservedAt, ObservedAt.AddDays(1))]));
+        var snapshot = Assert.IsType<CodexSnapshotMappingResult.Available>(
+            CodexRateLimitsSnapshotMapper.Map(source, ObservedAt, "UTC")).Snapshot;
+        Assert.Equal(2, snapshot.Metrics.OfType<ProgressMetricSnapshot>().Count());
+        Assert.Equal(12, snapshot.Metrics.OfType<ScalarMetricSnapshot>()
+            .Single(metric => metric.Id.Value == CodexRateLimitsSnapshotMapper.ResetCreditsAvailableMetricId).Value);
+        Assert.DoesNotContain(snapshot.Metrics, metric => metric.Id.Value == CodexRateLimitsSnapshotMapper.ResetCreditsNextExpiryMetricId);
     }
 
     [Fact]

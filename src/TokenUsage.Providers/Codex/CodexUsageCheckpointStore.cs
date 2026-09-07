@@ -7,8 +7,8 @@ namespace TokenUsage.Providers.Codex;
 
 internal sealed class CodexUsageCheckpointStore
 {
-    private const int SchemaVersion = 2;
-    private const int MaximumDocumentBytes = 8 * 1024 * 1024;
+    private const int SchemaVersion = 3;
+    private const int MaximumDocumentBytes = 32 * 1024 * 1024;
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -18,6 +18,7 @@ internal sealed class CodexUsageCheckpointStore
     };
 
     private readonly VersionedDocumentFile _document;
+    private bool _requiresMigrationBackup;
 
     public CodexUsageCheckpointStore(string path, TimeProvider clock)
     {
@@ -55,43 +56,43 @@ internal sealed class CodexUsageCheckpointStore
             DocumentV1? document = JsonSerializer.Deserialize<DocumentV1>(
                 VersionedDocumentFile.RemoveUtf8Preamble(bytes).Span,
                 SerializerOptions);
+            if (document?.SchemaVersion > SchemaVersion)
+                throw new NotSupportedException("Codex checkpoint schema is newer than supported; the original was preserved.");
             if (document is null
-                || document.SchemaVersion != SchemaVersion
+                || document.SchemaVersion is not (2 or SchemaVersion)
                 || document.Files is null)
             {
-                return QuarantineInvalid();
+                return RejectInvalid();
             }
 
+            _requiresMigrationBackup = document.SchemaVersion < SchemaVersion;
             var state = new CodexUsageCheckpointState();
             foreach (FileV1 file in document.Files)
             {
                 if (string.IsNullOrWhiteSpace(file.SessionIdentity)
                     || string.IsNullOrWhiteSpace(file.PathHash)
                     || file.Offset < 0
-                    || string.IsNullOrWhiteSpace(file.Model)
-                    || file.Daily is null)
+                    || string.IsNullOrWhiteSpace(file.Model))
                 {
-                    return QuarantineInvalid();
+                    return RejectInvalid();
                 }
 
                 var checkpoint = new CodexUsageFileCheckpoint(
                     file.PathHash,
-                    file.Offset,
+                    document.SchemaVersion == 2 ? 0 : file.Offset,
                     file.Model,
-                    ToTokens(file.Previous),
-                    file.SawSessionMeta,
-                    file.ChildReplayPending,
-                    file.ChildCreatedAtUnixSeconds);
-                foreach (DailyV1 daily in file.Daily)
-                {
-                    if (string.IsNullOrWhiteSpace(daily.Model))
-                    {
-                        return QuarantineInvalid();
-                    }
-
-                    checkpoint.Daily[(daily.Date, daily.Model)] = ToTokens(daily.Tokens)
-                        ?? throw new InvalidDataException("A daily token counter is missing.");
-                }
+                    document.SchemaVersion == 2 ? null : ToTokens(file.Previous),
+                    document.SchemaVersion != 2 && file.SawSessionMeta,
+                    document.SchemaVersion != 2 && file.ChildReplayPending,
+                    document.SchemaVersion == 2 ? null : file.ChildCreatedAtUnixSeconds);
+                checkpoint.PreviousTimestamp = document.SchemaVersion == 2 ? null : file.PreviousTimestamp;
+                checkpoint.ReplayThroughUtc = file.ReplayThroughUtc;
+                checkpoint.ObservedModel = file.ObservedModel;
+                checkpoint.Effort = file.Effort;
+                checkpoint.Tier = file.Tier;
+                if (document.SchemaVersion == SchemaVersion)
+                    checkpoint.Observations.AddRange(file.Observations.Select(item => new CodexNumericObservation(
+                        item.Key, item.Timestamp, item.Model, ToTokens(item.Tokens)!, item.Precision, item.IntervalStart, item.ObservedModel, item.Effort, item.Tier)));
 
                 state.Files[file.SessionIdentity] = checkpoint;
             }
@@ -105,12 +106,18 @@ internal sealed class CodexUsageCheckpointStore
             or InvalidOperationException
             or OverflowException)
         {
-            return QuarantineInvalid();
+            return RejectInvalid();
         }
     }
 
     private void Write(CodexUsageCheckpointState state)
     {
+        if (_requiresMigrationBackup && _document.Exists)
+        {
+            string backup = _document.DocumentPath + ".pre-v3";
+            if (!File.Exists(backup)) File.Copy(_document.DocumentPath, backup);
+            _requiresMigrationBackup = false;
+        }
         var document = new DocumentV1
         {
             SchemaVersion = SchemaVersion,
@@ -126,16 +133,15 @@ internal sealed class CodexUsageCheckpointStore
                     SawSessionMeta = item.Value.SawSessionMeta,
                     ChildReplayPending = item.Value.ChildReplayPending,
                     ChildCreatedAtUnixSeconds = item.Value.ChildCreatedAtUnixSeconds,
-                    Daily = item.Value.Daily
-                        .OrderBy(value => value.Key.Date)
-                        .ThenBy(value => value.Key.Model, StringComparer.Ordinal)
-                        .Select(value => new DailyV1
-                        {
-                            Date = value.Key.Date,
-                            Model = value.Key.Model,
-                            Tokens = FromTokens(value.Value)!,
-                        })
-                        .ToList(),
+                    PreviousTimestamp = item.Value.PreviousTimestamp,
+                    ReplayThroughUtc = item.Value.ReplayThroughUtc,
+                    ObservedModel = item.Value.ObservedModel, Effort = item.Value.Effort, Tier = item.Value.Tier,
+                    Observations = item.Value.Observations.Select(value => new ObservationV1
+                    {
+                        Key = value.Key, Timestamp = value.Timestamp, Model = value.Model,
+                        Tokens = FromTokens(value.Tokens), Precision = value.Precision, IntervalStart = value.IntervalStart,
+                        ObservedModel = value.ObservedModel, Effort = value.Effort, Tier = value.Tier,
+                    }).ToList(),
                 })
                 .ToList(),
         };
@@ -144,15 +150,8 @@ internal sealed class CodexUsageCheckpointStore
             MaximumDocumentBytes);
     }
 
-    private CodexUsageCheckpointState QuarantineInvalid()
-    {
-        if (_document.Exists)
-        {
-            _document.QuarantineCorrupt();
-        }
-
-        return new CodexUsageCheckpointState();
-    }
+    private static CodexUsageCheckpointState RejectInvalid() =>
+        throw new InvalidDataException("Codex checkpoint is invalid; the original was preserved.");
 
     private static TokenBreakdown? ToTokens(TokensV1? value)
     {
@@ -205,16 +204,27 @@ internal sealed class CodexUsageCheckpointStore
 
         public long? ChildCreatedAtUnixSeconds { get; init; }
 
-        public List<DailyV1> Daily { get; init; } = [];
+        public string? ObservedModel { get; init; }
+        public string? Effort { get; init; }
+        public string? Tier { get; init; }
+        public DateTimeOffset? PreviousTimestamp { get; init; }
+        public DateTimeOffset? ReplayThroughUtc { get; init; }
+
+        public List<ObservationV1> Observations { get; init; } = [];
+
     }
 
-    private sealed class DailyV1
+    private sealed class ObservationV1
     {
-        public DateOnly Date { get; init; }
-
-        public string Model { get; init; } = string.Empty;
-
+        public string Key { get; init; } = string.Empty;
+        public DateTimeOffset Timestamp { get; init; }
+        public string Model { get; init; } = "unknown";
         public TokensV1? Tokens { get; init; }
+        public string? ObservedModel { get; init; }
+        public string? Effort { get; init; }
+        public string? Tier { get; init; }
+        public UsageTimePrecision Precision { get; init; }
+        public DateTimeOffset? IntervalStart { get; init; }
     }
 
     private sealed class TokensV1
@@ -246,6 +256,15 @@ internal sealed class CodexUsageFileCheckpoint(
     bool childReplayPending = false,
     long? childCreatedAtUnixSeconds = null)
 {
+    public string ObservationIdentity { get; set; } = string.Empty;
+    public string? ObservedModel { get; set; }
+    public string? Effort { get; set; }
+    public string? Tier { get; set; }
+    public DateTimeOffset? PreviousTimestamp { get; set; }
+    public DateTimeOffset? ReplayThroughUtc { get; set; }
+
+    public List<CodexNumericObservation> Observations { get; } = [];
+
     public string PathHash { get; set; } = pathHash;
 
     public long Offset { get; set; } = offset;
@@ -260,5 +279,7 @@ internal sealed class CodexUsageFileCheckpoint(
 
     public long? ChildCreatedAtUnixSeconds { get; set; } = childCreatedAtUnixSeconds;
 
-    public Dictionary<(DateOnly Date, string Model), TokenBreakdown> Daily { get; } = [];
 }
+
+internal sealed record CodexNumericObservation(string Key, DateTimeOffset Timestamp,
+    string Model, TokenBreakdown Tokens, UsageTimePrecision Precision, DateTimeOffset? IntervalStart, string? ObservedModel, string? Effort, string? Tier);

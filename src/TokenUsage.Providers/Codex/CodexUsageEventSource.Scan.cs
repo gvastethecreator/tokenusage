@@ -15,9 +15,6 @@ public sealed partial class CodexUsageEventSource
         if (roots.Length == 0)
         {
             return new ScanResult(
-                [],
-                [],
-                UsesCheckpoints: checkpoints is not null,
                 UsageSourceReadStatus.NoData,
                 UsageSourceIssueKind.RootUnavailable);
         }
@@ -30,9 +27,6 @@ public sealed partial class CodexUsageEventSource
         IEnumerable<SessionFile> orderedFiles = checkpoints is null
             ? files
             : files.OrderByDescending(TryGetLastWriteTimeUtc);
-        HashSet<string> activeSessionIdentities = files
-            .Select(file => file.SessionIdentity)
-            .ToHashSet(StringComparer.Ordinal);
         foreach (SessionFile file in orderedFiles)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -66,13 +60,7 @@ public sealed partial class CodexUsageEventSource
 
         if (checkpoints is not null)
         {
-            foreach (string staleIdentity in checkpoints.Files.Keys
-                         .Where(identity => !activeSessionIdentities.Contains(identity))
-                         .ToArray())
-            {
-                checkpoints.Files.Remove(staleIdentity);
-            }
-
+            // Missing source files do not retire numeric observations; the retention horizon does.
             PruneCheckpointDays(checkpoints, recentFrom);
         }
 
@@ -106,7 +94,7 @@ public sealed partial class CodexUsageEventSource
             {
                 if (info.LastWriteTimeUtc < StartOfDayUtc(recentFrom))
                 {
-                    checkpoints.Files.Remove(file.SessionIdentity);
+                    // Keep earlier numeric observations even if the source was moved or trimmed.
                     return;
                 }
 
@@ -117,14 +105,18 @@ public sealed partial class CodexUsageEventSource
                 }
 
                 initialBytesRemaining -= info.Length;
-                checkpoint = new CodexUsageFileCheckpoint(
-                    pathHash,
-                    offset: 0,
-                    NormalizeModel(file.Model) ?? "unknown",
-                    previous: null);
+                if (checkpoint is null)
+                    checkpoint = new CodexUsageFileCheckpoint(pathHash, offset: 0, "unknown", previous: null);
+                else
+                {
+                    checkpoint.PathHash = pathHash;
+                    checkpoint.Offset = 0;
+                    checkpoint.ReplayThroughUtc = checkpoint.PreviousTimestamp;
+                }
                 checkpoints.Files[file.SessionIdentity] = checkpoint;
             }
 
+            checkpoint.ObservationIdentity = file.SessionIdentity;
             if (checkpoint.Offset == info.Length)
             {
                 return;
@@ -286,8 +278,13 @@ public sealed partial class CodexUsageEventSource
                 if (TryGetString(payload, "model", out string? model))
                 {
                     checkpoint.Model = NormalizeModel(model) ?? "unknown";
+                    checkpoint.ObservedModel = TokenUsage.Providers.Pricing.ModelIdentity.Sanitize(model);
                 }
 
+                checkpoint.Effort = TryGetString(payload, "effort", out string? effort)
+                    && effort is "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max" or "ultra" ? effort : null;
+                checkpoint.Tier = TryGetString(payload, "service_tier", out string? tier)
+                    && tier is "standard" or "fast" or "batch" or "flex" or "priority" ? tier : null;
                 return;
             }
 
@@ -317,6 +314,8 @@ public sealed partial class CodexUsageEventSource
                 state.MarkPartial();
                 return;
             }
+
+            if (checkpoint.ReplayThroughUtc is { } replayThrough && timestamp <= replayThrough) return;
 
             bool hasCumulative = info.TryGetProperty(
                                      "total_token_usage",
@@ -352,6 +351,7 @@ public sealed partial class CodexUsageEventSource
                 return;
             }
 
+            DateTimeOffset? previousTimestamp = checkpoint.PreviousTimestamp;
             TokenBreakdown delta;
             if (cumulativeIsValid)
             {
@@ -369,6 +369,7 @@ public sealed partial class CodexUsageEventSource
                 state.MarkPartial();
             }
 
+            checkpoint.PreviousTimestamp = timestamp;
             if (delta.Total == 0)
             {
                 return;
@@ -382,10 +383,17 @@ public sealed partial class CodexUsageEventSource
                 return;
             }
 
-            var key = (date, checkpoint.Model);
-            checkpoint.Daily[key] = checkpoint.Daily.TryGetValue(key, out TokenBreakdown? existing)
-                ? AddTokens(existing, delta)
-                : delta;
+            bool isTurnObservation = lastIsValid && delta == last;
+            UsageTimePrecision precision = isTurnObservation ? UsageTimePrecision.Timestamp
+                : previousTimestamp is { } previousTime && previousTime <= timestamp
+                    ? UsageTimePrecision.Interval : UsageTimePrecision.Unknown;
+            string observedModel = isTurnObservation ? checkpoint.Model : "unknown";
+            string observationKey = Hash($"codex-observation\0{checkpoint.ObservationIdentity}\0{timestamp:O}\0{checkpoint.Offset}");
+            checkpoint.Observations.Add(new CodexNumericObservation(observationKey, timestamp,
+                observedModel, delta, precision, precision == UsageTimePrecision.Interval ? previousTimestamp : null,
+                isTurnObservation ? checkpoint.ObservedModel : null,
+                isTurnObservation ? checkpoint.Effort : null, isTurnObservation ? checkpoint.Tier : null));
+
         }
         catch (Exception exception) when (exception is JsonException
                                            or ArgumentException
@@ -581,25 +589,14 @@ public sealed partial class CodexUsageEventSource
     private static long TotalOutput(TokenBreakdown value) => checked(
         value.Output + value.Reasoning);
 
-    private static TokenBreakdown AddTokens(TokenBreakdown left, TokenBreakdown right) => new(
-        checked(left.Input + right.Input),
-        checked(left.Output + right.Output),
-        checked(left.Reasoning + right.Reasoning),
-        checked(left.CacheRead + right.CacheRead),
-        checked(left.CacheWrite + right.CacheWrite));
-
-    private static void PruneCheckpointDays(
+    private void PruneCheckpointDays(
         CodexUsageCheckpointState checkpoints,
         DateOnly recentFrom)
     {
         foreach (CodexUsageFileCheckpoint checkpoint in checkpoints.Files.Values)
         {
-            foreach ((DateOnly Date, string Model) key in checkpoint.Daily.Keys
-                         .Where(key => key.Date < recentFrom)
-                         .ToArray())
-            {
-                checkpoint.Daily.Remove(key);
-            }
+            checkpoint.Observations.RemoveAll(item => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(
+                item.Timestamp, TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId)).DateTime) < recentFrom);
         }
     }
 
@@ -729,22 +726,12 @@ public sealed partial class CodexUsageEventSource
             UsageSourceReadStatus.NoData => UsageSourceIssueKind.Empty,
             _ => null,
         };
-        DatedModelSample[] recentSamples = checkpoints is null
-            ? []
-            : checkpoints.Files.Values
-                .SelectMany(checkpoint => checkpoint.Daily)
-                .GroupBy(item => item.Key)
-                .Select(group => new DatedModelSample(
-                    group.Key.Date,
-                    CreateModelSample(group.Key.Model, SumTokens(group.Select(item => item.Value)), group.Key.Date)))
-                .OrderBy(sample => sample.Date)
-                .ThenBy(sample => sample.Sample.Model, StringComparer.Ordinal)
-                .ToArray();
         return new ScanResult(
-            sessions,
-            recentSamples,
-            UsesCheckpoints: checkpoints is not null,
             status,
-            issue ?? UsageSourceIssueKind.None);
+            issue ?? UsageSourceIssueKind.None)
+        {
+            Observations = checkpoints is null ? [] : checkpoints.Files.Values.SelectMany(item => item.Observations)
+                .Select(CreateObservationEvent).DistinctBy(item => item.EventKey).OrderBy(item => item.OccurredAtUtc).ToArray(),
+        };
     }
 }

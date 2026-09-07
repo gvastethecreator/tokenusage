@@ -1,4 +1,4 @@
-namespace TokenUsage.App.ViewModels.Reports;
+namespace TokenUsage.Core.Usage;
 
 public sealed record UsageReportCycleObservation(
     string GroupId,
@@ -7,7 +7,9 @@ public sealed record UsageReportCycleObservation(
     long? Tokens,
     decimal? CostUsd,
     int? EventCount,
-    long? PricedTokens);
+    long? PricedTokens,
+    decimal? ConsumedQuotaPoints = null,
+    bool HasMatchingPoolUsage = false);
 
 public sealed record UsageReportNumericComparison(
     decimal? Left,
@@ -33,21 +35,23 @@ public static class UsageReportCycleComparisonCalculator
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
 
+        bool compatible = string.Equals(left.GroupId, right.GroupId, StringComparison.Ordinal);
         return new UsageReportCycleComparison(
-            string.Equals(left.GroupId, right.GroupId, StringComparison.Ordinal),
+            compatible,
             !left.IsComplete || !right.IsComplete,
             Difference(left.QuotaUsedPercent, right.QuotaUsedPercent),
             Difference(ToDecimal(left.Tokens), ToDecimal(right.Tokens)),
             Difference(left.CostUsd, right.CostUsd),
             Difference(ToDecimal(left.EventCount), ToDecimal(right.EventCount)),
-            Difference(TokensPerQuotaPoint(left), TokensPerQuotaPoint(right)),
+            compatible ? Difference(TokensPerQuotaPoint(left), TokensPerQuotaPoint(right)) : Difference(null, null),
             Difference(CostPerMillionTokens(left), CostPerMillionTokens(right)));
     }
 
     private static decimal? TokensPerQuotaPoint(UsageReportCycleObservation observation) =>
-        observation.Tokens is long tokens
-        && observation.QuotaUsedPercent is > 0m
-            ? tokens / observation.QuotaUsedPercent.Value
+        observation.IsComplete && observation.HasMatchingPoolUsage
+        && observation.Tokens is long tokens
+        && observation.ConsumedQuotaPoints is > 0m
+            ? tokens / observation.ConsumedQuotaPoints.Value
             : null;
 
     private static decimal? CostPerMillionTokens(UsageReportCycleObservation observation) =>
@@ -64,6 +68,6 @@ public static class UsageReportCycleComparisonCalculator
         left,
         right,
         left is decimal leftValue && right is decimal rightValue
-            ? leftValue - rightValue
+            ? rightValue - leftValue
             : null);
 }

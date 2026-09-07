@@ -71,6 +71,7 @@ public sealed class UsageEventContractTests
             "Cost",
             "ParserVersion",
             "Coverage",
+            "TimePrecision", "IntervalStartedAtUtc", "ObservedModelId", "ReasoningEffort", "ServiceTier",
         ];
         string[] forbiddenTerms =
         [

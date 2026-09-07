@@ -532,6 +532,8 @@ public sealed class LiveDashboardSession : IDisposable
             await _quotaResetHistory.ObserveAsync(snapshot).ConfigureAwait(true);
         }
         catch (Exception exception) when (exception is IOException
+            or InvalidDataException
+            or Microsoft.Data.Sqlite.SqliteException
             or UnauthorizedAccessException
             or TimeoutException
             or InvalidOperationException

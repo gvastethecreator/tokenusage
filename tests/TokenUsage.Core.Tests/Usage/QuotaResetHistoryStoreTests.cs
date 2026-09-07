@@ -367,7 +367,7 @@ public sealed class QuotaResetHistoryStoreTests
         Assert.Equal(QuotaResetCause.Scheduled, reset.Cause);
         Assert.Empty(migrated.Replenishments);
         using JsonDocument v2 = JsonDocument.Parse(await File.ReadAllTextAsync(folder.DocumentPath));
-        Assert.Equal(2, v2.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(QuotaResetHistoryStore.CurrentSchemaVersion, v2.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.True(v2.RootElement.TryGetProperty("replenishments", out _));
 
         await File.WriteAllTextAsync(legacyPath, "invalid legacy data");
@@ -377,7 +377,7 @@ public sealed class QuotaResetHistoryStoreTests
     }
 
     [Fact]
-    public async Task InconsistentSchemaTwoEvidenceIsQuarantined()
+    public async Task InvalidEvidenceIsReportedWithoutReplacingTheOriginal()
     {
         using var folder = new TemporaryFolder();
         var store = new QuotaResetHistoryStore(folder.DocumentPath);
@@ -401,12 +401,11 @@ public sealed class QuotaResetHistoryStoreTests
                 "\"cause\": \"manual\"",
                 StringComparison.Ordinal));
 
-        QuotaResetHistory loaded = await new QuotaResetHistoryStore(folder.DocumentPath)
-            .LoadAsync();
-
-        Assert.Equal(QuotaResetHistory.Empty, loaded);
-        Assert.False(File.Exists(folder.DocumentPath));
-        Assert.NotEmpty(Directory.GetFiles(folder.Root, "*.corrupt-*"));
+        string invalid = await File.ReadAllTextAsync(folder.DocumentPath);
+        QuotaHistoryReadResult result = await new QuotaResetHistoryStore(folder.DocumentPath).ReadAsync();
+        Assert.Equal(QuotaHistoryAvailability.InvalidData, result.Availability);
+        Assert.Null(result.History);
+        Assert.Equal(invalid, await File.ReadAllTextAsync(folder.DocumentPath));
     }
 
     [Fact]
@@ -472,16 +471,18 @@ public sealed class QuotaResetHistoryStoreTests
             history,
             "codex",
             firstReset.AddHours(2)).ToArray();
-        Assert.Equal(2, cycles.Length);
+        Assert.Equal(3, cycles.Length);
         Assert.True(cycles[0].IsCurrent);
         Assert.Equal(10_080m, cycles[0].WindowDurationMinutes);
         Assert.False(cycles[1].IsCurrent);
         Assert.Equal(300m, cycles[1].WindowDurationMinutes);
-        Assert.Equal(0, QuotaResetCountQuery.Count(
+        Assert.Equal(1, QuotaResetCountQuery.Count(
             history,
             "codex",
             InitialObservation,
             firstReset.AddDays(1)));
+        Assert.Equal(0, QuotaResetCountQuery.Summarize(history, "codex", InitialObservation,
+            firstReset.AddDays(1), currentWindowsOnly: true).Total);
     }
 
     [Fact]
@@ -602,6 +603,38 @@ public sealed class QuotaResetHistoryStoreTests
         Assert.Equal(QuotaResetDetectionKind.Scheduled, cycles[1].EndingResetKind);
         Assert.Equal(QuotaResetCause.Scheduled, cycles[1].EndingResetCause);
         Assert.Equal(expectedReset, cycles[1].ToUtc);
+    }
+
+    [Fact]
+    public async Task StaleCompleteTopologyCannotRemoveOrResurrectPoolsAndJournalIsIdempotent()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        ProviderSnapshot old = CreateSnapshot(InitialObservation, 20, InitialObservation.AddHours(5), 300, "quota.old");
+        await store.ObserveAsync(old);
+        ProviderSnapshot current = CreateSnapshot(InitialObservation.AddMinutes(5), 30, InitialObservation.AddHours(5), 300, "quota.new");
+        await store.ObserveAsync(current);
+        await store.ObserveAsync(current);
+        QuotaResetHistory history = await store.ObserveAsync(old);
+        Assert.Equal("quota.new", Assert.Single(history.Windows).MetricId);
+        Assert.Equal("quota.old", Assert.Single(history.RetiredWindows).MetricId);
+        Assert.Contains(QuotaResetCycleQuery.Build(history, "codex", InitialObservation.AddHours(1)),
+            cycle => cycle.MetricId == "quota.old" && !cycle.IsCurrent);
+        var readings = await store.Journal.ReadAsync("codex", "quota.new", InitialObservation, InitialObservation.AddHours(1));
+        Assert.Single(readings.Observations);
+        Assert.False(readings.Truncated);
+        Assert.Equal(QuotaWindowSemantics.Unknown, readings.Observations[0].Semantics);
+    }
+
+    [Fact]
+    public async Task ExpiredUnchangedScheduleDoesNotInventScheduledResetAcrossGap()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset boundary = InitialObservation.AddHours(1);
+        await store.ObserveAsync(CreateSnapshot(InitialObservation, 20, boundary, 300));
+        QuotaResetHistory history = await store.ObserveAsync(CreateSnapshot(InitialObservation.AddDays(2), 30, boundary, 300));
+        Assert.Empty(history.Resets);
     }
 
     private static ProviderSnapshot CreateSnapshot(

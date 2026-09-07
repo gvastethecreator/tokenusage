@@ -64,6 +64,8 @@ public sealed record UsageSourceReadResult
         Issue = resolvedIssue;
     }
 
+    public IReadOnlyList<AccountUsageAggregate> AccountAggregates { get; init; } = [];
+
     public IReadOnlyList<UsageEvent> Events { get; }
 
     public UsageSourceReadStatus Status { get; }

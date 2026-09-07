@@ -11,6 +11,37 @@ Parity upstreams:
 
 Cost catalogs are checked against the official [OpenAI model pages](https://developers.openai.com/api/docs/models), [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), [Google Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), [xAI model pages](https://docs.x.ai/developers/models), [Cursor model pricing](https://cursor.com/docs/models-and-pricing), [Z.ai pricing](https://docs.z.ai/guides/overview/pricing), and [Kimi pricing](https://platform.kimi.ai/docs/pricing/chat).
 
+## Measurement support (local implementation, 2026-09-07)
+
+- Weekly and model comparisons reuse admitted local collectors. They show known
+  usage cost, unpriced tokens, price coverage, active days, collection status,
+  and available configuration. These are descriptive comparisons, not quality rankings.
+- Codex is currently the only reset-cycle provider. Compare 2–4 distinct cycles
+  against A with one shared elapsed duration. Provider, pool, range, gaps, and
+  exact cutoffs remain visible in live and saved results.
+- New Codex numeric records preserve timestamp/interval precision and observed
+  model, effort, and tier when available. Older rows and other collectors do not
+  gain invented precision. Exact charts exclude daily/unknown timing.
+- Official Codex account-day totals are separate from local model totals.
+  The provider does not establish their timezone or matching local scope, so
+  TokenUsage does not add them or present a fabricated reconciliation percentage.
+- Quota readings are sampled levels, not a complete consumption ledger. Current
+  sources do not establish model-to-pool attribution. Normalized quota ratios
+  therefore remain unavailable.
+
+App-owned local storage now includes schema-5 numeric metadata, separate account
+daily totals, last collection status, and up to 100 immutable comparisons (4 MiB
+per comparison). Raw event retention remains 400 days; durable daily rollups do
+not become exact-time evidence after raw retention. Codex checkpoints retain a
+35-day reconciliation horizon with a 32 MiB document limit. Migration preserves
+the prior checkpoint/history file as `.pre-v3` before replacement.
+
+The quota journal is a numeric-only SQLite sidecar to reset history. It retains
+at most 90 days and 250,000 observations, and each interval read is capped at
+32,768 rows with an explicit truncation flag. It does not store prompts,
+conversation identifiers, credentials, or transcript contents. First-time
+collection cannot reconstruct quota history that was never observed.
+
 ## States
 
 - `MVP`: chosen technical and product path.

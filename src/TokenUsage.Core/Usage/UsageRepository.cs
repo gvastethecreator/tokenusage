@@ -25,9 +25,9 @@ public sealed class UsageSchemaTooOldException(int actualVersion, int supportedV
     public int SupportedVersion { get; } = supportedVersion;
 }
 
-public sealed class UsageRepository
+public sealed partial class UsageRepository
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
     public const string RetentionCursorId = "usage-retention/v1";
     private const int SqliteVariableChunkSize = 400;
     private const decimal MicrosPerUsd = 1_000_000m;
@@ -414,6 +414,7 @@ public sealed class UsageRepository
         DateTimeOffset fromInclusiveUtc,
         DateTimeOffset toExclusiveUtc,
         AgentId? agentId = null,
+        bool includeOverlappingIntervals = false,
         CancellationToken cancellationToken = default)
     {
         UtcTimestamp.Require(fromInclusiveUtc, nameof(fromInclusiveUtc));
@@ -434,7 +435,7 @@ public sealed class UsageRepository
                      grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
                      cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
                      estimated_cost_micros, catalog_version, exact_price_match, parser_version,
-                     coverage_kind
+                     coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier
               FROM usage_event
               WHERE occurred_at_utc >= $from AND occurred_at_utc < $to
               ORDER BY occurred_at_utc, agent_id, model_id, event_key;
@@ -444,12 +445,17 @@ public sealed class UsageRepository
                      grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
                      cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
                      estimated_cost_micros, catalog_version, exact_price_match, parser_version,
-                     coverage_kind
+                     coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier
               FROM usage_event
               WHERE agent_id = $agentId
                 AND occurred_at_utc >= $from AND occurred_at_utc < $to
               ORDER BY occurred_at_utc, agent_id, model_id, event_key;
               """;
+        if (includeOverlappingIntervals)
+            command.CommandText = command.CommandText.Replace(
+                "occurred_at_utc >= $from AND occurred_at_utc < $to",
+                "((occurred_at_utc >= $from AND occurred_at_utc < $to) OR (time_precision = 2 AND interval_started_at_utc < $to AND occurred_at_utc >= $from))",
+                StringComparison.Ordinal);
         command.Parameters.AddWithValue(
             "$from",
             fromInclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
@@ -501,6 +507,7 @@ public sealed class UsageRepository
             FROM usage_event
             WHERE civil_date >= $from AND civil_date <= $to
               AND ($agent IS NULL OR agent_id = $agent)
+              AND time_precision = 1
             GROUP BY civil_date, grouping_time_zone_id, agent_id, COALESCE(model_provider_id, ''), model_id, bucket_hour
             ORDER BY civil_date, bucket_hour, agent_id, model_id;
             """;
@@ -541,7 +548,8 @@ public sealed class UsageRepository
                    COALESCE(SUM(cache_write_tokens), 0)
             FROM usage_event
             WHERE agent_id = $agentId
-              AND occurred_at_utc >= $from AND occurred_at_utc < $to;
+              AND occurred_at_utc >= $from AND occurred_at_utc < $to
+              AND (time_precision = 1 OR (time_precision = 2 AND interval_started_at_utc >= $from));
             """;
         command.Parameters.AddWithValue("$agentId", agentId.Value);
         command.Parameters.AddWithValue(
@@ -691,8 +699,6 @@ public sealed class UsageRepository
         TimeSpan minInterval,
         int retentionDays = 400,
         int batchSize = 500,
-        IReadOnlyDictionary<AgentId, IReadOnlyCollection<string>>? activeParserVersionsByAgent = null,
-        int parserSupersessionDays = 0,
         CancellationToken cancellationToken = default)
     {
         EnsureWritable();
@@ -716,111 +722,9 @@ public sealed class UsageRepository
                 batchSize,
                 cancellationToken)
             .ConfigureAwait(false);
-        if (activeParserVersionsByAgent is { Count: > 0 } && parserSupersessionDays > 0)
-        {
-            deleted = checked(deleted + await ApplyParserSupersessionAsync(
-                    nowUtc,
-                    activeParserVersionsByAgent,
-                    parserSupersessionDays,
-                    batchSize,
-                    cancellationToken)
-                .ConfigureAwait(false));
-        }
-
         await WriteRetentionCursorAsync(connection, nowUtc, cancellationToken)
             .ConfigureAwait(false);
         return deleted;
-    }
-
-    /// <summary>
-    /// Retires stored events older than the reconciliation window that a source no
-    /// longer emits under its current parser version. Those rows are fossils of a
-    /// superseded reader — for example a synthetic account aggregate an old parser
-    /// produced — and reconcile never covers their dates again.
-    /// </summary>
-    private async Task<int> ApplyParserSupersessionAsync(
-        DateTimeOffset nowUtc,
-        IReadOnlyDictionary<AgentId, IReadOnlyCollection<string>> activeParserVersionsByAgent,
-        int supersessionDays,
-        int batchSize,
-        CancellationToken cancellationToken)
-    {
-        string cutoff = nowUtc.AddDays(-supersessionDays)
-            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        string retiredAt = nowUtc.ToString("O", CultureInfo.InvariantCulture);
-        var cutoffDate = DateOnly.Parse(cutoff, CultureInfo.InvariantCulture);
-        int totalDeleted = 0;
-        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
-            .ConfigureAwait(false);
-        foreach ((AgentId agentId, IReadOnlyCollection<string> versions) in
-                 activeParserVersionsByAgent)
-        {
-            if (versions.Count == 0)
-            {
-                continue;
-            }
-
-            string versionsJson = JsonSerializer.Serialize(versions.ToArray());
-            while (true)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await using SqliteTransaction transaction =
-                    (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken)
-                        .ConfigureAwait(false);
-                await using SqliteCommand command = connection.CreateCommand();
-                command.Transaction = transaction;
-                command.CommandText =
-                    """
-                    INSERT OR IGNORE INTO usage_event_tombstone(event_key, retired_at_utc)
-                    SELECT event_key, $retiredAt
-                    FROM usage_event
-                    WHERE civil_date < $cutoff
-                      AND agent_id = $agentId
-                      AND parser_version NOT IN (SELECT value FROM json_each($versions))
-                    ORDER BY civil_date, event_key
-                    LIMIT $batchSize;
-                    """;
-                command.Parameters.AddWithValue("$cutoff", cutoff);
-                command.Parameters.AddWithValue("$retiredAt", retiredAt);
-                command.Parameters.AddWithValue("$agentId", agentId.Value);
-                command.Parameters.AddWithValue("$versions", versionsJson);
-                command.Parameters.AddWithValue("$batchSize", batchSize);
-                await command.ExecuteNonQueryAsync(cancellationToken)
-                    .ConfigureAwait(false);
-
-                command.CommandText =
-                    """
-                    DELETE FROM usage_event
-                    WHERE event_key IN (
-                        SELECT event_key
-                        FROM usage_event
-                        WHERE civil_date < $cutoff
-                          AND agent_id = $agentId
-                          AND parser_version NOT IN (SELECT value FROM json_each($versions))
-                        ORDER BY civil_date, event_key
-                        LIMIT $batchSize
-                    );
-                    """;
-                int deleted = await command.ExecuteNonQueryAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                await RebuildAgentRollupsInRangeAsync(
-                        connection,
-                        transaction,
-                        agentId,
-                        DateOnly.MinValue,
-                        cutoffDate,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-                totalDeleted = checked(totalDeleted + deleted);
-                if (deleted < batchSize)
-                {
-                    break;
-                }
-            }
-        }
-
-        return totalDeleted;
     }
 
     public async Task DeleteAllUsageDataAsync(
@@ -841,6 +745,9 @@ public sealed class UsageRepository
             DELETE FROM daily_usage_rollup;
             DELETE FROM source_cursor;
             DELETE FROM pricing_catalog;
+            DELETE FROM account_usage_daily;
+            DELETE FROM saved_usage_comparison;
+            DELETE FROM usage_collection_state;
             """,
             cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -899,6 +806,12 @@ public sealed class UsageRepository
         {
             await ApplyVersionFourAsync(connection, transaction, cancellationToken)
                 .ConfigureAwait(false);
+            currentVersion = 4;
+        }
+
+        if (currentVersion == 4)
+        {
+            await ApplyMeasurementSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -1356,12 +1269,12 @@ public sealed class UsageRepository
             grouping_time_zone_id, civil_date, input_tokens, output_tokens,
             reasoning_tokens, cache_read_tokens, cache_write_tokens, cost_kind,
             reported_cost_micros, estimated_cost_micros, catalog_version,
-            exact_price_match, parser_version, coverage_kind)
+            exact_price_match, parser_version, coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier)
         VALUES (
             $eventKey, $agentId, $modelProviderId, $modelId, $occurredAt,
             $timeZone, $civilDate, $input, $output, $reasoning, $cacheRead,
             $cacheWrite, $costKind, $reported, $estimated, $catalogVersion,
-            $priceMatch, $parserVersion, $coverage)
+            $priceMatch, $parserVersion, $coverage, $precision, $intervalStart, $observedModel, $effort, $tier)
         ON CONFLICT(event_key) DO NOTHING;
         """;
 
@@ -1372,12 +1285,12 @@ public sealed class UsageRepository
             grouping_time_zone_id, civil_date, input_tokens, output_tokens,
             reasoning_tokens, cache_read_tokens, cache_write_tokens, cost_kind,
             reported_cost_micros, estimated_cost_micros, catalog_version,
-            exact_price_match, parser_version, coverage_kind)
+            exact_price_match, parser_version, coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier)
         VALUES (
             $eventKey, $agentId, $modelProviderId, $modelId, $occurredAt,
             $timeZone, $civilDate, $input, $output, $reasoning, $cacheRead,
             $cacheWrite, $costKind, $reported, $estimated, $catalogVersion,
-            $priceMatch, $parserVersion, $coverage)
+            $priceMatch, $parserVersion, $coverage, $precision, $intervalStart, $observedModel, $effort, $tier)
         ON CONFLICT(event_key) DO UPDATE SET
             agent_id = excluded.agent_id,
             model_provider_id = excluded.model_provider_id,
@@ -1396,7 +1309,12 @@ public sealed class UsageRepository
             catalog_version = excluded.catalog_version,
             exact_price_match = excluded.exact_price_match,
             parser_version = excluded.parser_version,
-            coverage_kind = excluded.coverage_kind;
+            coverage_kind = excluded.coverage_kind,
+            time_precision = excluded.time_precision,
+            interval_started_at_utc = excluded.interval_started_at_utc,
+            observed_model_id = excluded.observed_model_id,
+            reasoning_effort = excluded.reasoning_effort,
+            service_tier = excluded.service_tier;
         """;
 
     private static async Task<UsageEvent[]> WriteEventsAsync(
@@ -1550,6 +1468,11 @@ public sealed class UsageRepository
             (object?)usageEvent.Cost.ExactPriceMatch ?? DBNull.Value;
         command.Parameters["$parserVersion"].Value = usageEvent.ParserVersion;
         command.Parameters["$coverage"].Value = (int)usageEvent.Coverage;
+        command.Parameters["$observedModel"].Value = (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value;
+        command.Parameters["$effort"].Value = (object?)usageEvent.ReasoningEffort ?? DBNull.Value;
+        command.Parameters["$tier"].Value = (object?)usageEvent.ServiceTier ?? DBNull.Value;
+        command.Parameters["$precision"].Value = (int)usageEvent.TimePrecision;
+        command.Parameters["$intervalStart"].Value = (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value;
     }
 
     private static void AddUsageEventParameters(
@@ -1588,6 +1511,11 @@ public sealed class UsageRepository
             (object?)usageEvent.Cost.ExactPriceMatch ?? DBNull.Value);
         command.Parameters.AddWithValue("$parserVersion", usageEvent.ParserVersion);
         command.Parameters.AddWithValue("$coverage", (int)usageEvent.Coverage);
+        command.Parameters.AddWithValue("$observedModel", (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value);
+        command.Parameters.AddWithValue("$effort", (object?)usageEvent.ReasoningEffort ?? DBNull.Value);
+        command.Parameters.AddWithValue("$tier", (object?)usageEvent.ServiceTier ?? DBNull.Value);
+        command.Parameters.AddWithValue("$precision", (int)usageEvent.TimePrecision);
+        command.Parameters.AddWithValue("$intervalStart", (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value);
     }
 
     private static async Task<DateTimeOffset?> ReadRetentionCursorAsync(
@@ -1836,7 +1764,11 @@ public sealed class UsageRepository
                 reader.GetInt64(10)),
             cost,
             reader.GetString(16),
-            (CoverageKind)reader.GetInt32(17));
+            (CoverageKind)reader.GetInt32(17),
+            (UsageTimePrecision)reader.GetInt32(18),
+            reader.IsDBNull(19) ? null : DateTimeOffset.Parse(reader.GetString(19), CultureInfo.InvariantCulture),
+            reader.IsDBNull(20) ? null : new ModelId(reader.GetString(20)),
+            reader.IsDBNull(21) ? null : reader.GetString(21), reader.IsDBNull(22) ? null : reader.GetString(22));
     }
 
     private static object ToDatabaseValue(decimal? amountUsd) =>

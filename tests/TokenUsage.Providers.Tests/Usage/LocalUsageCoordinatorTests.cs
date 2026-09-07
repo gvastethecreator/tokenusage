@@ -443,7 +443,7 @@ public sealed class LocalUsageCoordinatorTests
             ]);
         var coordinator = new LocalUsageCoordinator(
             folder.DatabasePath,
-            new CodexUsageEventSource("UTC", codexHomeOverride: codexRoot),
+            new CodexUsageEventSource("UTC", codexHomeOverride: codexRoot, clock: new FixedTimeProvider(Now)),
             new FixedTimeProvider(Now));
 
         LocalUsageCard card = await coordinator.RefreshAsync(Strings);
@@ -493,7 +493,7 @@ public sealed class LocalUsageCoordinatorTests
     }
 
     [Fact]
-    public async Task EmptyCompleteClaudeWindowDropsLegacyParserTotals()
+    public async Task EmptyCompleteClaudeWindowPreservesThePriorBaseline()
     {
         using var folder = new TemporaryFolder();
         string configRoot = Path.Combine(folder.Path, "claude");
@@ -522,10 +522,10 @@ public sealed class LocalUsageCoordinatorTests
 
         _ = await coordinator.RefreshAsync(Strings);
 
-        Assert.Empty(await repository.QueryDailyRollupsByAgentAsync(
+        Assert.Equal(120, Assert.Single(await repository.QueryDailyRollupsByAgentAsync(
             new DateOnly(2026, 7, 1),
             new DateOnly(2026, 7, 31),
-            new AgentId("claude")));
+            new AgentId("claude"))).Tokens.Total);
     }
 
     [Fact]
