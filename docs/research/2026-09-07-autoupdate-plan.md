@@ -120,6 +120,16 @@ that already contains assets. Six simulated GitHub cases passed, including
 fresh creation and empty-draft completion. These checks did not upload files.
 All four workflow PowerShell blocks and `scripts/release.ps1` parsed successfully.
 
+The first four grouped commits were pushed through `4324e66`. An empty GitHub
+draft for v0.0.1 was created with release ID `384337345`. A remote check confirmed
+that REST lookup by published tag returned 404 for this pending tag. The workflow
+now resolves a draft through GraphQL and reads it by release ID; its final asset
+check uses `gh release view`, which supports pending tags. No release tag or
+installer was published. Signing and final install checks remain blocked.
+The corrected lookup passed the same six simulated cases plus a rejected remote
+digest mismatch. Live read-only checks found the draft through GraphQL and its
+release ID. The seven existing packaging contract tests also passed.
+
 ## References
 - [GitHub releases API](https://docs.github.com/en/rest/releases/releases)
 - [GitHub asset digests](https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/)

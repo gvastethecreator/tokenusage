@@ -97,13 +97,19 @@ jobs:
           }
           $assets = @(Get-ChildItem artifacts/release -File | Select-Object -ExpandProperty FullName)
           $notes = "docs/releases/$($env:TOKENUSAGE_RELEASE_VERSION).md"
-          $releasePages = & gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/releases?per_page=100"
+          $repositoryName = $env:GITHUB_REPOSITORY.Split('/')[1]
+          $releaseLookup = & gh api graphql -f 'query=query($owner: String!, $name: String!, $tag: String!) { repository(owner: $owner, name: $name) { release(tagName: $tag) { databaseId } } }' `
+            -f "owner=$env:GITHUB_REPOSITORY_OWNER" -f "name=$repositoryName" -f "tag=$env:GITHUB_REF_NAME"
           if ($LASTEXITCODE -ne 0) {
             throw 'Existing releases could not be read.'
           }
-          $existing = @($releasePages | ConvertFrom-Json | ForEach-Object { $_ } |
-            Where-Object { $_.tag_name -ceq $env:GITHUB_REF_NAME })
-          if ($existing.Count -gt 1) { throw 'More than one matching release was returned.' }
+          $existing = @()
+          $releaseId = ($releaseLookup | ConvertFrom-Json).data.repository.release.databaseId
+          if ($null -ne $releaseId) {
+            $existingJson = & gh api "repos/$env:GITHUB_REPOSITORY/releases/$releaseId"
+            if ($LASTEXITCODE -ne 0) { throw 'The existing draft could not be read.' }
+            $existing = @($existingJson | ConvertFrom-Json)
+          }
           if ($existing.Count -eq 1) {
             if (-not $existing[0].draft -or $existing[0].prerelease -or
                 $existing[0].target_commitish -cne $env:GITHUB_SHA -or $existing[0].assets.Count -ne 0) {
@@ -133,12 +139,13 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Draft asset upload failed. Keep the release unpublished.' }
           }
 
-          $releaseJson = & gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:GITHUB_REF_NAME"
+          $releaseJson = & gh release view $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY `
+            --json isDraft,isPrerelease,tagName,assets
           if ($LASTEXITCODE -ne 0) {
             throw 'The draft asset digests could not be read. Do not publish this draft.'
           }
           $release = $releaseJson | ConvertFrom-Json
-          if (-not $release.draft -or $release.prerelease -or $release.tag_name -cne $env:GITHUB_REF_NAME) {
+          if (-not $release.isDraft -or $release.isPrerelease -or $release.tagName -cne $env:GITHUB_REF_NAME) {
             throw 'The uploaded release must remain a stable draft for manual review.'
           }
           foreach ($assetPath in $assets) {
