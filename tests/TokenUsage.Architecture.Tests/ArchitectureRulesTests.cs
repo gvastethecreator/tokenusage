@@ -590,8 +590,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(233, matches.Count);
-        Assert.Equal(218, distinctIds.Length);
+        Assert.Equal(239, matches.Count);
+        Assert.Equal(224, distinctIds.Length);
         Assert.Contains("CompactThemeLogoButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ReportThemeLogoButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AutomaticUpdatesToggle", distinctIds, StringComparer.Ordinal);
@@ -632,6 +632,12 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportNextResetCycleButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportCompareCycleWarning", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportCompareRatesButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportMarkBest", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageComparisonRateBaselineDate", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetLog", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetLogQuota", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetLogClass", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportPeriodSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("NotificationsSection", distinctIds, StringComparer.Ordinal);
@@ -985,10 +991,30 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("tab.Width = _providerTabItemWidth", reportCode, StringComparison.Ordinal);
 
         string trendChartCode = ReadCsharpSources(Path.Combine(appRoot, "Controls"), "UsageTrendChart");
+        Assert.Contains("private Polygon CreateResetSymbol", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("new Polygon { Points = [new(0, 1), new(10, 1), new(5, 9)] }", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("UsageTrendLayouts.EmptyDayStubs", trendChartCode, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1)",
+            trendChartCode,
+            StringComparison.Ordinal);
         Assert.Contains("UsageTrendLayouts.Bars", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("if (data.Days.Count == 2)", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("if (data.Days.Count == 1)", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("MiddleDayLabel.Text = data.Days[0].Label", trendChartCode, StringComparison.Ordinal);
+
+        string compareCode = ReadCsharpSources(
+            Path.Combine(appRoot, "ViewModels", "Reports"),
+            "UsageReportViewModel");
+        Assert.Contains("UsageComparison.ReloadsForCatalogDate(UseReferencePrices, IsCompareRatesAxis)", compareCode, StringComparison.Ordinal);
+        Assert.Contains("UsageComparison.OverlaysSingleReferencePrice(", compareCode, StringComparison.Ordinal);
+        Assert.Contains("UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_rateBaselineUtc", compareCode, StringComparison.Ordinal);
+        Assert.Contains("UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_priceReferenceUtc", compareCode, StringComparison.Ordinal);
+        Assert.Contains("SplitRow(GetString(\"UsageComparisonVolumeChange\"), split.Volume)", compareCode, StringComparison.Ordinal);
+        Assert.Contains("string delta = FormatOptionalUsd(amount);", compareCode, StringComparison.Ordinal);
+        Assert.Contains("return MetricRow(metric, side, side, delta);", compareCode, StringComparison.Ordinal);
+        Assert.Contains("OrderByDescending(item => item.EffectiveFromUtc)", compareCode, StringComparison.Ordinal);
+        Assert.Contains("RateBaselineUtc = IsCompareRatesAxis ? _rateBaselineUtc : null", compareCode, StringComparison.Ordinal);
     }
 
     [Fact]

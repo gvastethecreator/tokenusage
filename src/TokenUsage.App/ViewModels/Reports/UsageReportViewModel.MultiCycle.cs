@@ -9,7 +9,7 @@ public sealed record UsageCycleSummary(string Label, string Cost, string Tokens,
     public string Dates { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
 }
-public sealed record UsageCycleCompareCell(string Value, string Change);
+public sealed record UsageCycleCompareCell(string Value, string Change, bool IsBest = false);
 public sealed record UsageCycleCompareRow(string Metric, IReadOnlyList<UsageCycleCompareCell> Cells);
 
 public sealed partial class UsageReportViewModel
@@ -126,12 +126,18 @@ public sealed partial class UsageReportViewModel
         string unavailable = GetString("UsageReportCompareUnavailable");
         CycleRows = pairs.SelectMany(rows => rows.Keys).Distinct(StringComparer.Ordinal).Select(metric =>
         {
+            UsageReportCompareRow[] present = pairs
+                .Select(rows => rows.GetValueOrDefault(metric))
+                .OfType<UsageReportCompareRow>()
+                .ToArray();
+            if (present.Length == 0)
+                return new UsageCycleCompareRow(metric, []);
             var cells = new List<UsageCycleCompareCell>
             {
-                new(pairs.Select(rows => rows.GetValueOrDefault(metric)).OfType<UsageReportCompareRow>().First().LeftText, string.Empty),
+                new(present[0].LeftText, string.Empty, present.All(row => row.LeftIsBest)),
             };
             cells.AddRange(pairs.Select(rows => rows.TryGetValue(metric, out UsageReportCompareRow? row)
-                ? new UsageCycleCompareCell(row.RightText, row.DeltaText)
+                ? new UsageCycleCompareCell(row.RightText, row.DeltaText, row.RightIsBest)
                 : new UsageCycleCompareCell(unavailable, unavailable)));
             return new UsageCycleCompareRow(metric, cells);
         }).ToArray();

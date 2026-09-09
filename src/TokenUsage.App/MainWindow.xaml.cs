@@ -642,7 +642,8 @@ public sealed partial class MainWindow : Window, IDisposable
                     var appearance = RootPage.ViewModel.Options.Appearance;
                     if (appearance.CanChangeTheme)
                         appearance.SelectedTheme = appearance.ThemeOptions.Single(option => option.Value == theme);
-                });
+                },
+                marked => RootPage.ViewModel.Options.Appearance.SetMarkReportBestValues(marked));
             _reportWindow.Closed += OnUsageReportWindowClosed;
         }
         else
