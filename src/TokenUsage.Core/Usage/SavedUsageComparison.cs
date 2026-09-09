@@ -13,6 +13,7 @@ public sealed record UsageComparisonDefinition(string Axis, string Preset,
     public string BaselineLabel { get; init; } = string.Empty;
     public string CurrentLabel { get; init; } = string.Empty;
     public UsageReportCycleComparison? CycleComparison { get; init; }
+    public DateTimeOffset? RateBaselineUtc { get; init; }
 }
 
 public sealed record SavedUsageComparisonInfo(string RevisionId, DateTimeOffset CreatedAtUtc, string Axis);

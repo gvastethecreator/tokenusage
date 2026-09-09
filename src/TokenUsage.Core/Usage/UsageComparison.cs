@@ -33,8 +33,47 @@ public sealed record UsageNumericChange(decimal? Baseline, decimal? Current, dec
 public sealed record UsageModelContribution(string AgentId, string ModelId,
     UsageNumericChange Tokens, UsageNumericChange Cost);
 
+public enum UsageBestDirection { None, Lower, Higher }
+
+public sealed record UsageCostChangeSplit(decimal? Volume, decimal? Mix, decimal? Rate);
+
 public static class UsageComparison
 {
+    public static int? Winner(decimal? left, decimal? right, UsageBestDirection direction)
+    {
+        if (direction == UsageBestDirection.None || left is not { } a || right is not { } b || a == b)
+            return null;
+        bool rightWins = direction == UsageBestDirection.Lower ? b < a : b > a;
+        return rightWins ? 1 : -1;
+    }
+
+    public static UsageCostChangeSplit SplitKnownCost(UsageReport baseline, UsageReport current)
+    {
+        ArgumentNullException.ThrowIfNull(baseline);
+        ArgumentNullException.ThrowIfNull(current);
+        decimal? costA = KnownCost(baseline.Totals);
+        decimal? costB = KnownCost(current.Totals);
+        long pricedA = baseline.Totals.Tokens.Total - baseline.Totals.UnpricedTokens;
+        long pricedB = current.Totals.Tokens.Total - current.Totals.UnpricedTokens;
+        if (costA is not { } a || costB is not { } b || pricedA <= 0)
+            return new(null, null, null);
+        decimal volume = a * ((decimal)pricedB / pricedA - 1m);
+        if (pricedB <= 0)
+            return new(volume, null, null);
+        decimal rate = (b / pricedB - a / pricedA) * pricedB;
+        return new(volume, b - a - volume - rate, rate);
+    }
+
+    public static bool ReloadsForCatalogDate(bool useReferencePrices, bool isRatesAxis) =>
+        useReferencePrices || isRatesAxis;
+
+    public static bool OverlaysSingleReferencePrice(
+        bool useReferencePrices, bool isCyclesAxis, bool isRatesAxis) =>
+        useReferencePrices && !isCyclesAxis && !isRatesAxis;
+
+    public static string CatalogDateLabel(DateTimeOffset utc, IFormatProvider culture) =>
+        utc.UtcDateTime.ToString("d", culture) + " UTC";
+
     public static decimal? KnownCost(UsageReportMetrics metrics) =>
         metrics.ReportedCostUsd is null && metrics.EstimatedCostUsd is null && metrics.Tokens.Total > 0
             ? null : metrics.TotalCostUsd;
