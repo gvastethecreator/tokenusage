@@ -66,6 +66,8 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(5, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal(serializedStyle, json.RootElement.GetProperty("reportChartStyle").GetString());
         Assert.Equal("model", json.RootElement.GetProperty("reportChartGrouping").GetString());
+        Assert.True(json.RootElement.GetProperty("markReportBestValues").GetBoolean());
+        Assert.True(expected.MarkReportBestValues);
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
         Assert.Equal(
             "heatmap",

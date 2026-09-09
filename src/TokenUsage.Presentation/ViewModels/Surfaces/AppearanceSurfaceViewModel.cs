@@ -329,7 +329,25 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
                 ShowTrayPopoverProviderName,
                 ShowTrayPopover),
             SelectedReportChartStyle.Value,
-            SelectedReportChartGrouping);
+            SelectedReportChartGrouping,
+            Settings.MarkReportBestValues);
+        Settings = settings;
+        SettingsChanged?.Invoke(this, settings);
+        IsBusy = true;
+        int version = ++_saveVersion;
+        lock (_saveSync)
+        {
+            _pendingSave = SaveAfterAsync(_pendingSave, settings, version);
+        }
+    }
+
+    public void SetMarkReportBestValues(bool value)
+    {
+        if (Settings.MarkReportBestValues == value || _session.IsReadOnly) return;
+        var settings = new AppearanceSettings(
+            Settings.Theme, Settings.Density, Settings.IncreaseTransparency,
+            Settings.UsageDisplay, Settings.ResetTimeDisplay, Settings.DashboardVisualization,
+            Settings.TrayPopover, Settings.ReportChartStyle, Settings.ReportChartGrouping, value);
         Settings = settings;
         SettingsChanged?.Invoke(this, settings);
         IsBusy = true;

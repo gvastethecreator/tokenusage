@@ -148,7 +148,8 @@ public sealed class AppearanceSettingsStore
             previous.IncreaseTransparency, previous.UsageDisplay, previous.ResetTimeDisplay,
             previous.DashboardVisualization, previous.TrayPopover,
             ReadRequiredEnum<ReportChartStyle>(root, "reportChartStyle"),
-            ReadRequiredEnum<ReportChartGrouping>(root, "reportChartGrouping"));
+            ReadRequiredEnum<ReportChartGrouping>(root, "reportChartGrouping"),
+            ReadOptionalBoolean(root, "markReportBestValues", true));
     }
 
     private static AppearanceSettings ReadTrayPopoverDocument(
@@ -322,6 +323,7 @@ public sealed class AppearanceSettingsStore
             writer.WriteString("resetTimeDisplay", ToStorageValue(settings.ResetTimeDisplay));
             writer.WriteString("reportChartStyle", ToStorageValue(settings.ReportChartStyle));
             writer.WriteString("reportChartGrouping", ToStorageValue(settings.ReportChartGrouping));
+            writer.WriteBoolean("markReportBestValues", settings.MarkReportBestValues);
             writer.WriteString(
                 "dashboardVisualization",
                 ToStorageValue(settings.DashboardVisualization));

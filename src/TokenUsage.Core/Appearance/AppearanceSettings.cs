@@ -90,7 +90,8 @@ public sealed record AppearanceSettings
         DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List,
         TrayPopoverSettings? trayPopover = null,
         ReportChartStyle reportChartStyle = ReportChartStyle.Bars,
-        ReportChartGrouping reportChartGrouping = ReportChartGrouping.Provider)
+        ReportChartGrouping reportChartGrouping = ReportChartGrouping.Provider,
+        bool markReportBestValues = true)
     {
         if (!Enum.IsDefined(theme))
         {
@@ -131,6 +132,7 @@ public sealed record AppearanceSettings
         Theme = theme;
         ReportChartStyle = reportChartStyle;
         ReportChartGrouping = reportChartGrouping;
+        MarkReportBestValues = markReportBestValues;
         Density = density;
         IncreaseTransparency = increaseTransparency;
         UsageDisplay = usageDisplay;
@@ -156,4 +158,6 @@ public sealed record AppearanceSettings
     public ReportChartStyle ReportChartStyle { get; }
 
     public ReportChartGrouping ReportChartGrouping { get; }
+
+    public bool MarkReportBestValues { get; }
 }
