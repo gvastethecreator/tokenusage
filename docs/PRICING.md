@@ -41,6 +41,11 @@ raw history remain excluded and visible. Cost per million uses priced tokens,
 not the full partially priced population. Saved comparisons freeze the selected
 reference, catalog versions, exclusions, data revision, and displayed results.
 
+The Rates axis reprices the same stored cohort at two catalog dates and splits
+known-cost change into token volume, model mix, and list-rate. A part that
+cannot be computed is unavailable, never zero. Catalog effective dates are
+list rates, not spend over time.
+
 Known usage cost is not an invoice, subscription charge, or USD-per-quota value.
 Quota efficiency remains unavailable without evidenced consumption and matching
 pool attribution, even when a cycle has ended.
