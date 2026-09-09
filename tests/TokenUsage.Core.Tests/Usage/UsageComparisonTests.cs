@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using TokenUsage.Core.Automation;
@@ -8,6 +9,74 @@ namespace TokenUsage.Core.Tests.Usage;
 
 public sealed class UsageComparisonTests
 {
+    [Fact]
+    public void RatesCatalogDatesReloadWithoutReferenceOverlayAndKeepZeroSplitsAvailable()
+    {
+        Assert.True(UsageComparison.ReloadsForCatalogDate(useReferencePrices: false, isRatesAxis: true));
+        Assert.False(UsageComparison.ReloadsForCatalogDate(useReferencePrices: false, isRatesAxis: false));
+        Assert.True(UsageComparison.ReloadsForCatalogDate(useReferencePrices: true, isRatesAxis: false));
+        Assert.False(UsageComparison.OverlaysSingleReferencePrice(
+            useReferencePrices: true, isCyclesAxis: false, isRatesAxis: true));
+        Assert.True(UsageComparison.OverlaysSingleReferencePrice(
+            useReferencePrices: true, isCyclesAxis: false, isRatesAxis: false));
+        Assert.False(UsageComparison.OverlaysSingleReferencePrice(
+            useReferencePrices: true, isCyclesAxis: true, isRatesAxis: false));
+        var utc = new DateTimeOffset(2026, 3, 15, 0, 0, 0, TimeSpan.Zero);
+        var later = utc.AddDays(30);
+        string left = UsageComparison.CatalogDateLabel(utc, CultureInfo.InvariantCulture);
+        string right = UsageComparison.CatalogDateLabel(later, CultureInfo.InvariantCulture);
+        Assert.EndsWith(" UTC", left);
+        Assert.EndsWith(" UTC", right);
+        Assert.Contains("2026", left, StringComparison.Ordinal);
+        Assert.NotEqual(left, right);
+        UsageReport baseline = UsageReportQuery.Build(UsageRollupAggregator.Aggregate([Event("a", 1_000, cost: 10)]));
+        UsageReport doubled = UsageReportQuery.Build(UsageRollupAggregator.Aggregate(
+            [Event("b", 1_000, cost: 10), Event("c", 1_000, cost: 10, day: 1)]));
+        UsageCostChangeSplit split = UsageComparison.SplitKnownCost(baseline, doubled);
+        Assert.NotNull(split.Volume);
+        Assert.NotNull(split.Mix);
+        Assert.Equal(0, split.Mix);
+        Assert.False(split.Mix is null);
+        Assert.NotEqual(split.Volume, split.Mix);
+    }
+
+    [Fact]
+    public void WinnerMarksOnlyDirectedMetricsAndNeverTiesOrMissingValues()
+    {
+        Assert.Null(UsageComparison.Winner(4, 1, UsageBestDirection.None));
+        Assert.Null(UsageComparison.Winner(4, 4, UsageBestDirection.Lower));
+        Assert.Null(UsageComparison.Winner(null, 1, UsageBestDirection.Lower));
+        Assert.Equal(1, UsageComparison.Winner(4, 1, UsageBestDirection.Lower));
+        Assert.Equal(-1, UsageComparison.Winner(4, 9, UsageBestDirection.Lower));
+        Assert.Equal(1, UsageComparison.Winner(10, 90, UsageBestDirection.Higher));
+        Assert.Equal(-1, UsageComparison.Winner(90, 10, UsageBestDirection.Higher));
+        Assert.Null(UsageComparison.Winner(100, 50, UsageBestDirection.None));
+    }
+
+    [Fact]
+    public void KnownCostSplitKeepsVolumeMixAndRateDistinctAndLeavesGapsUnavailable()
+    {
+        UsageReport doubledVolume = UsageReportQuery.Build(UsageRollupAggregator.Aggregate(
+            [Event("a", 1_000, cost: 10), Event("a", 1_000, cost: 10, day: 1)]));
+        UsageReport baseline = UsageReportQuery.Build(UsageRollupAggregator.Aggregate([Event("a", 1_000, cost: 10)]));
+        UsageCostChangeSplit volume = UsageComparison.SplitKnownCost(baseline, doubledVolume);
+        Assert.Equal(10, volume.Volume);
+        Assert.Equal(0, volume.Mix);
+        Assert.Equal(0, volume.Rate);
+
+        UsageReport doubledRate = UsageReportQuery.Build(UsageRollupAggregator.Aggregate([Event("a", 1_000, cost: 20)]));
+        UsageCostChangeSplit rate = UsageComparison.SplitKnownCost(baseline, doubledRate);
+        Assert.Equal(0, rate.Volume);
+        Assert.Equal(0, rate.Mix);
+        Assert.Equal(10, rate.Rate);
+
+        UsageReport unpriced = UsageReportQuery.Build(UsageRollupAggregator.Aggregate([Event("a", 1_000)]));
+        UsageCostChangeSplit missing = UsageComparison.SplitKnownCost(baseline, unpriced);
+        Assert.Null(missing.Volume);
+        Assert.Null(missing.Mix);
+        Assert.Null(missing.Rate);
+    }
+
     [Fact]
     public void WeeksUseTheSameCompletedWeekdaysAndDoNotInventAnElapsedMonday()
     {
@@ -118,7 +187,7 @@ public sealed class UsageComparisonTests
             var date = DateOnly.FromDateTime(At.Date);
             var definition = new UsageComparisonDefinition("Periods", "LastCompleteWeek", date, date, date, date,
                 "UTC", At, null, null, "Partial local evidence", UsageRepository.ComparisonDataRevision(report, report))
-                { BaselineLabel = "A", CurrentLabel = "B" };
+                { BaselineLabel = "A", CurrentLabel = "B", RateBaselineUtc = At.AddDays(-30) };
             var cycles = Enumerable.Range(0, 4).Select(index => new UsageCycleComparisonEntry(
                 "cycle-" + index, "codex", "Codex", ((char)('A' + index)).ToString(), At.AddDays(-index * 7),
                 At.AddDays(-index * 7).AddHours(2), report, new("primary", false, null, 600, null, 1, 0))).ToArray();
@@ -159,8 +228,11 @@ public sealed class UsageComparisonTests
     private static readonly DateTimeOffset At = new(2026, 9, 7, 9, 0, 0, TimeSpan.Zero);
 
     private static UsageEvent Event(string id, long tokens, UsageTimePrecision precision = UsageTimePrecision.Timestamp,
-        string host = "openai") => new(new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id))).ToLowerInvariant()),
-            new AgentId("codex"), new ModelProviderId(host), new ModelId("gpt-5.6-sol"), At, "UTC",
-            new TokenBreakdown(tokens, 0, 0, 0, 0), CostObservation.Unavailable(), "measurement-test/1",
-            CoverageKind.Unpriced, precision);
+        string host = "openai", decimal? cost = null, int day = 0) => new(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id))).ToLowerInvariant()),
+            new AgentId("codex"), new ModelProviderId(host), new ModelId("gpt-5.6-sol"), At.AddDays(day), "UTC",
+            new TokenBreakdown(tokens, 0, 0, 0, 0),
+            cost is { } value ? CostObservation.CatalogEstimated(value, "test-catalog", "gpt-5.6-sol") : CostObservation.Unavailable(),
+            "measurement-test/1",
+            cost is null ? CoverageKind.Unpriced : CoverageKind.Partial, precision);
 }
