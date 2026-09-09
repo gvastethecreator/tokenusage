@@ -265,6 +265,19 @@ public sealed class QuotaResetHistoryStoreTests
         Assert.Equal(QuotaResetCause.Manual, reset.Cause);
         Assert.Equal(QuotaChangeEvidenceKind.OfficialManualSignal, reset.EvidenceKind);
 
+        using var creditFolder = new TemporaryFolder();
+        var creditStore = new QuotaResetHistoryStore(creditFolder.DocumentPath);
+        await creditStore.ObserveAsync(CreateSnapshot(
+            InitialObservation, 80m, expectedReset, 10_080m, creditsAvailable: 2m));
+        QuotaResetHistory manualWithCredits = await creditStore.ObserveAsync(CreateSnapshot(
+            InitialObservation.AddHours(2),
+            70m,
+            expectedReset,
+            10_080m,
+            resetEvidence: new ProviderResetEvidence(ProviderReportedResetCause.Manual, resetAt),
+            creditsAvailable: 2m));
+        Assert.Equal(QuotaResetCause.Manual, Assert.Single(manualWithCredits.Resets).Cause);
+
         using var syntheticFolder = new TemporaryFolder();
         var syntheticStore = new QuotaResetHistoryStore(syntheticFolder.DocumentPath);
         await syntheticStore.ObserveAsync(CreateSnapshot(
@@ -637,6 +650,87 @@ public sealed class QuotaResetHistoryStoreTests
         Assert.Empty(history.Resets);
     }
 
+    [Fact]
+    public async Task EarlyResetWithCreditDropIsBankedAndExpiryAloneIsNot()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset expectedReset = InitialObservation.AddDays(3);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation, 80m, expectedReset, 10_080m, creditsAvailable: 3m));
+        DateTimeOffset detectedAt = InitialObservation.AddHours(4);
+
+        QuotaResetHistory banked = await store.ObserveAsync(CreateSnapshot(
+            detectedAt, 0m, expectedReset, 10_080m, creditsAvailable: 2m));
+        QuotaResetRecord reset = Assert.Single(banked.Resets);
+        Assert.Equal(QuotaResetDetectionKind.Early, reset.DetectionKind);
+        Assert.Equal(QuotaResetCause.Manual, reset.Cause);
+        Assert.Equal(QuotaChangeEvidenceKind.InferredCreditDrop, reset.EvidenceKind);
+        Assert.Equal(2m, Assert.Single(banked.CreditInventories).ReportedAvailable);
+
+        using var expiryFolder = new TemporaryFolder();
+        var expiryStore = new QuotaResetHistoryStore(expiryFolder.DocumentPath);
+        await expiryStore.ObserveAsync(CreateSnapshot(
+            InitialObservation, 80m, expectedReset, 10_080m, creditsAvailable: 3m));
+        QuotaResetHistory grant = await expiryStore.ObserveAsync(CreateSnapshot(
+            detectedAt, 0m, expectedReset, 10_080m, creditsAvailable: 3m));
+        QuotaResetRecord extra = Assert.Single(grant.Resets);
+        Assert.Equal(QuotaResetCause.ResetCredit, extra.Cause);
+        Assert.Equal(QuotaChangeEvidenceKind.InferredNoCreditDrop, extra.EvidenceKind);
+    }
+
+    [Fact]
+    public async Task OfficialResetCreditUsesInventoryToDistinguishBankedFromGrant()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset expectedReset = InitialObservation.AddDays(3);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation, 80m, expectedReset, 10_080m, creditsAvailable: 2m));
+        DateTimeOffset resetAt = InitialObservation.AddHours(1);
+
+        QuotaResetHistory banked = await store.ObserveAsync(CreateSnapshot(
+            InitialObservation.AddHours(2),
+            70m,
+            expectedReset,
+            10_080m,
+            resetEvidence: new ProviderResetEvidence(ProviderReportedResetCause.ResetCredit, resetAt),
+            creditsAvailable: 1m));
+        QuotaResetRecord spent = Assert.Single(banked.Resets);
+        Assert.Equal(QuotaResetCause.Manual, spent.Cause);
+        Assert.Equal(QuotaChangeEvidenceKind.OfficialResetCreditSignal, spent.EvidenceKind);
+
+        using var grantFolder = new TemporaryFolder();
+        var grantStore = new QuotaResetHistoryStore(grantFolder.DocumentPath);
+        await grantStore.ObserveAsync(CreateSnapshot(
+            InitialObservation, 80m, expectedReset, 10_080m, creditsAvailable: 2m));
+        QuotaResetHistory grant = await grantStore.ObserveAsync(CreateSnapshot(
+            InitialObservation.AddHours(2),
+            70m,
+            expectedReset,
+            10_080m,
+            resetEvidence: new ProviderResetEvidence(ProviderReportedResetCause.ResetCredit, resetAt),
+            creditsAvailable: 2m));
+        QuotaResetRecord extra = Assert.Single(grant.Resets);
+        Assert.Equal(QuotaResetCause.ResetCredit, extra.Cause);
+        Assert.Equal(QuotaChangeEvidenceKind.OfficialResetCreditSignal, extra.EvidenceKind);
+    }
+
+    [Fact]
+    public async Task CreditDropWithoutResetStaysAReplenishment()
+    {
+        using var folder = new TemporaryFolder();
+        var store = new QuotaResetHistoryStore(folder.DocumentPath);
+        DateTimeOffset expectedReset = InitialObservation.AddDays(3);
+        await store.ObserveAsync(CreateSnapshot(
+            InitialObservation, 80m, expectedReset, 10_080m, creditsAvailable: 3m));
+        QuotaResetHistory history = await store.ObserveAsync(CreateSnapshot(
+            InitialObservation.AddHours(1), 50m, expectedReset, 10_080m, creditsAvailable: 2m));
+        Assert.Empty(history.Resets);
+        Assert.Single(history.Replenishments);
+        Assert.Equal(2m, Assert.Single(history.CreditInventories).ReportedAvailable);
+    }
+
     private static ProviderSnapshot CreateSnapshot(
         DateTimeOffset observedAtUtc,
         decimal usedPercent,
@@ -644,12 +738,37 @@ public sealed class QuotaResetHistoryStoreTests
         decimal windowMinutes,
         string metricId = "quota.primary",
         ProviderResetEvidence? resetEvidence = null,
-        SourceKind sourceKind = SourceKind.OfficialLocalApi)
+        SourceKind sourceKind = SourceKind.OfficialLocalApi,
+        decimal? creditsAvailable = null)
     {
         var provenance = new DataProvenance(
             sourceKind,
             MeasurementKind.ProviderReported,
             "test/1");
+        var metrics = new List<MetricSnapshot>
+        {
+            new ProgressMetricSnapshot(
+                new MetricId(metricId),
+                usedPercent,
+                100m,
+                resetAtUtc,
+                provenance,
+                resetEvidence: resetEvidence),
+            new ScalarMetricSnapshot(
+                new MetricId($"{metricId}.window-minutes"),
+                windowMinutes,
+                "minutes",
+                provenance),
+        };
+        if (creditsAvailable is { } credits)
+        {
+            metrics.Add(new ScalarMetricSnapshot(
+                new MetricId(QuotaResetHistoryStore.ResetCreditsReportedAvailableMetricId),
+                credits,
+                "credits",
+                provenance));
+        }
+
         return new ProviderSnapshot(
             new ProviderId("codex"),
             "Codex",
@@ -657,20 +776,7 @@ public sealed class QuotaResetHistoryStoreTests
             observedAtUtc,
             observedAtUtc,
             "UTC",
-            [
-                new ProgressMetricSnapshot(
-                    new MetricId(metricId),
-                    usedPercent,
-                    100m,
-                    resetAtUtc,
-                    provenance,
-                    resetEvidence: resetEvidence),
-                new ScalarMetricSnapshot(
-                    new MetricId($"{metricId}.window-minutes"),
-                    windowMinutes,
-                    "minutes",
-                    provenance),
-            ],
+            metrics,
             CoverageKind.Complete,
             adapterContractVersion: 1);
     }
