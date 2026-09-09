@@ -100,6 +100,15 @@ public sealed class UsageTrendGeometryTests
         var timed = UsageTrendLayouts.Bars([Enumerable.Repeat(1d, 12).ToArray()], 12, 240, 100, 1);
         Assert.Equal(12, timed.Count);
         Assert.True(timed[^1].X + timed[^1].Width <= 240);
+        var stubs = UsageTrendLayouts.EmptyDayStubs([new double[] { 10, 0, double.NaN }], 3, 300, 200, top: 8, bottom: 10);
+        UsageTrendBaselineStub stub = Assert.Single(stubs);
+        Assert.Equal(1, stub.DayIndex);
+        Assert.Equal(2, stub.Height);
+        Assert.Equal(188, stub.Y);
+        Assert.Empty(UsageTrendLayouts.EmptyDayStubs([new double[] { 10, double.NaN }], 2, 200, 100));
+        Assert.Empty(UsageTrendLayouts.EmptyDayStubs([new double[] { 4, 5 }], 2, 200, 100));
+        Assert.Equal(12, UsageTrendLayouts.EmptyDayStubs([Enumerable.Repeat(0d, 12).ToArray()], 12, 240, 100).Count);
+        Assert.Single(UsageTrendLayouts.EmptyDayStubs([new double[] { 0 }], 1, 240, 100));
     }
 
     [Fact]

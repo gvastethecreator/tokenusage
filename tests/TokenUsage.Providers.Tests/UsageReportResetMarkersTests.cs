@@ -48,6 +48,27 @@ public sealed class UsageReportResetMarkersTests
         Assert.Empty(UsageReportResetMarkers.Elapsed([], "codex", start, start.AddDays(2)));
     }
 
+    [Fact]
+    public void PackPutsASingleClassOnTheSharedRailAndStacksOnlyThatDay()
+    {
+        var weekly = Reset(DateTimeOffset.UnixEpoch) with { WindowDurationMinutes = 10_080m };
+        var session = Reset(DateTimeOffset.UnixEpoch.AddDays(1)) with { WindowDurationMinutes = 300m };
+        var banked = Reset(DateTimeOffset.UnixEpoch.AddDays(1)) with { Cause = QuotaResetCause.Manual };
+        var packed = UsageReportResetMarkers.Pack(
+        [
+            new(0, weekly),
+            new(1, session),
+            new(1, banked),
+        ]);
+        Assert.Equal(0, packed.Single(mark => mark.DayIndex == 0).StackIndex);
+        Assert.Equal(2, UsageReportResetMarkers.RailTop(0));
+        Assert.Equal(2, packed.Count(mark => mark.DayIndex == 1));
+        Assert.Contains(packed, mark => mark.DayIndex == 1 && mark.StackIndex == 0);
+        Assert.Contains(packed, mark => mark.DayIndex == 1 && mark.StackIndex == 1);
+        Assert.Equal(2, UsageReportResetMarkers.MaxStack(packed));
+        Assert.Equal(32, UsageReportResetMarkers.TopPaddingFor(packed));
+    }
+
     private static QuotaResetRecord Reset(DateTimeOffset instant) => new(
         "codex", "quota.primary", instant, instant, instant.AddDays(-1), instant.AddMinutes(-1),
         50, 0, instant, instant.AddDays(1), 1440, QuotaResetDetectionKind.Scheduled,
