@@ -126,7 +126,8 @@ public sealed record UsageReportTrendDay(
     string Label,
     string? HoverText = null)
 {
-    public string ResetText { get; init; } = string.Empty;
+    public IReadOnlyList<UsageReportTrendReset> Resets { get; init; } = [];
+    public string ResetText => string.Join("\n", Resets.Select(reset => reset.Text));
 }
 
 public sealed record UsageReportTrendSeries(

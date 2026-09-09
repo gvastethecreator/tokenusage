@@ -31,6 +31,7 @@ public sealed partial class UsageReportPage : Page
     private bool _isTransitionCommit;
     private bool _loadedOnce;
     private int _shareStatusToken;
+    private bool _isCapturing;
     private readonly ObservableCollection<UsageReportProviderOption> _visibleProviderTabs = [];
     private Storyboard? _providerTabsStoryboard;
     private int _providerTabsTransitionToken;
@@ -70,6 +71,11 @@ public sealed partial class UsageReportPage : Page
     public UsageReportViewModel ViewModel { get; }
 
     public UIElement DragRegion => ReportDragRegion;
+    private readonly ThemeSwitchTransition _themeSwitch = new();
+    public event EventHandler<AppThemeMode>? ThemeChangeRequested;
+
+    private void OnThemeLogoClick(object sender, RoutedEventArgs e) =>
+        ThemeChangeRequested?.Invoke(this, ActualTheme == ElementTheme.Light ? AppThemeMode.Dark : AppThemeMode.Light);
     public event EventHandler<ReportChartGrouping>? ChartGroupingChanged;
     public event EventHandler<ReportChartStyle>? ChartStyleChanged;
     public void SetCaptionInset(double width) => ReportCaptionInset.Width = new GridLength(width);
@@ -80,12 +86,12 @@ public sealed partial class UsageReportPage : Page
     {
         ArgumentNullException.ThrowIfNull(settings);
         ViewModel.SetChartAppearance(settings.ReportChartStyle, settings.ReportChartGrouping);
-        RequestedTheme = settings.Theme switch
+        _themeSwitch.Apply(this, ReportHeaderLogo, settings.Theme switch
         {
             AppThemeMode.Light => ElementTheme.Light,
             AppThemeMode.Dark => ElementTheme.Dark,
             _ => ElementTheme.Default,
-        };
+        });
     }
 
     private void OnCycleChartStyleClick(object sender, RoutedEventArgs e)
@@ -107,9 +113,9 @@ public sealed partial class UsageReportPage : Page
         }
 
         _loadedOnce = true;
-        // The report must not open on a stale scanner database. A live refresh also discovers
-        // Codex sessions created since the tray dashboard was last opened.
-        await ViewModel.LoadAsync(refreshSource: true);
+        // Opening a report reads the last collected data. Collection is a separate, explicit
+        // action: a slow or unavailable provider must not block access to stored reports.
+        await ViewModel.LoadAsync();
         SynchronizeProviderTabs();
         UpdateSortHeaders();
         _ = DispatcherQueue.TryEnqueue(() =>
@@ -232,9 +238,26 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
+    private void OnCopyMeasurementDetailsClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            package.SetText(ViewModel.MeasurementCopyText);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+            ShowShareStatus(GetString("UsageMeasurementCopied"), isError: false);
+        }
+        catch (Exception exception) when (exception is System.Runtime.InteropServices.COMException
+            or UnauthorizedAccessException)
+        {
+            ShowShareStatus(GetString("UsageMeasurementCopyFailed"), isError: true);
+        }
+    }
+
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
-        if (!ViewModel.CanCaptureReport) return;
+        if (!ViewModel.CanCaptureReport || _isCapturing) return;
+        _isCapturing = true;
         Control? source = sender as Control;
         var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
             .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
@@ -253,6 +276,10 @@ public sealed partial class UsageReportPage : Page
         Visibility measurementDetailsVisibility = MeasurementDetails.Visibility;
         Visibility measurementCaptureVisibility = MeasurementCaptureDetails.Visibility;
         Visibility windowBrandVisibility = ReportWindowBrandRoot.Visibility;
+        double originalScrollOffset = ReportScrollViewer.VerticalOffset;
+        var captureLayouts = Descendants(ReportCaptureRoot).OfType<ItemsRepeater>()
+            .Where(repeater => repeater.Layout is null or StackLayout)
+            .Select(repeater => (Repeater: repeater, repeater.Layout)).ToArray();
         var captureCharts = Descendants(ReportCaptureRoot).OfType<UsageTrendChart>()
             .Select(chart => (Chart: chart, chart.IsHitTestVisible, chart.IsCaptureMode)).ToArray();
         try
@@ -263,6 +290,12 @@ public sealed partial class UsageReportPage : Page
             }
 
             ReportCaptureFocusSink.Focus(FocusState.Programmatic);
+            // Capture needs exact row heights. Virtualized estimates otherwise change the
+            // extent and anchor position while the image is being stitched together.
+            foreach (var item in captureLayouts)
+                item.Repeater.Layout = new ReportCaptureStackLayout(
+                    (item.Layout as StackLayout)?.Orientation ?? Orientation.Vertical,
+                    (item.Layout as StackLayout)?.Spacing ?? 0);
             ReportCoverageHintButton.Flyout.Hide();
             foreach (var item in captureActions)
             {
@@ -352,13 +385,16 @@ public sealed partial class UsageReportPage : Page
             ReportCaptureBrand.Opacity = captureBrandOpacity;
             ReportCaptureBrand.Visibility = captureBrandVisibility;
             ReportCaptureRoot.Padding = capturePadding;
+            foreach (var item in captureLayouts) item.Repeater.Layout = item.Layout;
             ReportHeaderRoot.UpdateLayout();
             ReportCaptureRoot.UpdateLayout();
+            ReportScrollViewer.ChangeView(null, originalScrollOffset, null, disableAnimation: true);
             if (source is not null)
             {
                 source.IsEnabled = ViewModel.CanCaptureReport;
                 source.Focus(FocusState.Programmatic);
             }
+            _isCapturing = false;
         }
     }
 
@@ -393,6 +429,16 @@ public sealed partial class UsageReportPage : Page
     }
 
     private void OnCycleTableSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCycleTableColumns();
+
+    private void OnProviderLimitsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is not ItemsRepeater { Layout: UniformGridLayout layout }) return;
+        // Give the template a finite width without scaling its height with ItemsStretch.Fill.
+        int columns = Math.Clamp((int)((e.NewSize.Width + 14) / 254), 1, 4);
+        double width = Math.Floor((e.NewSize.Width - (columns - 1) * 14) / columns);
+        if (width > 0 && Math.Abs(layout.MinItemWidth - width) >= 0.5)
+            layout.MinItemWidth = width;
+    }
 
     private void OnCycleTableCellPrepared(ItemsRepeater sender, ItemsRepeaterElementPreparedEventArgs args)
     {
@@ -515,6 +561,7 @@ public sealed partial class UsageReportPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _themeSwitch.Stop();
         _rowMotions.Clear();
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _reportDataTransitionToken++;

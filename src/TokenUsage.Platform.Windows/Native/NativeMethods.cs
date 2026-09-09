@@ -48,6 +48,9 @@ internal static class NativeMethods
 
     internal const uint MfString = 0x00000000;
     internal const uint MfSeparator = 0x00000800;
+    internal const uint MfChecked = 0x00000008;
+    internal const uint MfGrayed = 0x00000001;
+    internal const uint MfPopup = 0x00000010;
     internal const uint TpmRightButton = 0x0002;
     internal const uint TpmReturnCmd = 0x0100;
 

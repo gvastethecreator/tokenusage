@@ -73,7 +73,9 @@ public sealed partial class LocalizationContractTests
         Assert.NotEmpty(referencedKeys);
         foreach (string key in referencedKeys)
         {
-            Assert.True(english.Values.ContainsKey(key), $"Missing en-US resource: {key}");
+            // PRI property resources use paths (Uid/Property), not RESW names (Uid.Property).
+            Assert.DoesNotContain(".", key, StringComparison.Ordinal);
+            Assert.True(english.Values.ContainsKey(key.Replace('/', '.')), $"Missing en-US resource: {key}");
         }
     }
 
@@ -130,12 +132,12 @@ public sealed partial class LocalizationContractTests
     [GeneratedRegex("\\{(?<index>[0-9]+)(?:[^}]*)\\}", RegexOptions.CultureInvariant)]
     private static partial Regex PlaceholderPattern();
 
-    [GeneratedRegex("(?:GetString|text)\\s*\\(\\s*\\\"(?<key>[A-Za-z][A-Za-z0-9.]*)\\\"|Format\\s*\\(\\s*(?:text|getString)\\s*,\\s*\\\"(?<key>[A-Za-z][A-Za-z0-9.]*)\\\"", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("(?:GetString|text)\\s*\\(\\s*\\\"(?<key>[A-Za-z][A-Za-z0-9./]*)\\\"|Format\\s*\\(\\s*(?:text|getString)\\s*,\\s*\\\"(?<key>[A-Za-z][A-Za-z0-9./]*)\\\"", RegexOptions.CultureInvariant)]
     private static partial Regex DirectResourceCallPattern();
 
     [GeneratedRegex("GetString\\s*\\((?<body>[^;]{1,4000}?)\\)", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex GetStringExpressionPattern();
 
-    [GeneratedRegex("\\\"(?<key>[A-Za-z][A-Za-z0-9.]*)\\\"", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("\\\"(?<key>[A-Za-z][A-Za-z0-9./]*)\\\"", RegexOptions.CultureInvariant)]
     private static partial Regex StringLiteralPattern();
 }

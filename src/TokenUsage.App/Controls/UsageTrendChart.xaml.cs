@@ -18,7 +18,7 @@ namespace TokenUsage.App.Controls;
 
 public sealed partial class UsageTrendChart : UserControl
 {
-    private const double TopPadding = 8;
+    private double TopPadding => 8 + ResetKinds(Data).Length * 14;
     private const double BottomPadding = 10;
     private readonly ResourceLoader _resources = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
@@ -154,6 +154,7 @@ public sealed partial class UsageTrendChart : UserControl
         HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(220, ActualWidth)) : 220;
         UpdateDateLabels(data);
         BuildLegend(data);
+        BuildResetLegend(data);
         if (!hasSeries)
         {
             return;
@@ -182,6 +183,8 @@ public sealed partial class UsageTrendChart : UserControl
                 Y2 = y,
                 Stroke = gridBrush,
                 StrokeThickness = 1,
+                StrokeDashArray = tick == 0 || IsPreview ? null : [3, 5],
+                Opacity = tick == 0 || _accessibilitySettings.HighContrast ? 1 : 0.65,
                 IsHitTestVisible = false,
             });
 

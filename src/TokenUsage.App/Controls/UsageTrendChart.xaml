@@ -10,6 +10,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid Canvas.ZIndex="1" x:Name="PlotRegion" Height="{x:Bind PlotHeight, Mode=OneWay}">
@@ -47,7 +48,7 @@
                 VerticalAlignment="Top"
                 Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
                 BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
-                BorderThickness="2"
+                BorderThickness="1"
                 CornerRadius="{ThemeResource ControlCornerRadius}"
                 IsHitTestVisible="False"
                 Visibility="Collapsed">
@@ -88,6 +89,17 @@
                     MinColumnSpacing="16" MinRowSpacing="4" />
             </ItemsRepeater.Layout>
         </ItemsRepeater>
+
+        <ItemsRepeater x:Name="ResetLegend" Grid.Row="3" Margin="62,2,0,0" Visibility="Collapsed">
+            <ItemsRepeater.Layout>
+                <UniformGridLayout Orientation="Horizontal" MinItemWidth="154" MinItemHeight="24" MinColumnSpacing="12" MinRowSpacing="4" />
+            </ItemsRepeater.Layout>
+        </ItemsRepeater>
+
+        <Border x:Name="WeeklyResetBrushProxy" Background="{ThemeResource ReportWeeklyResetBrush}" Visibility="Collapsed" />
+        <Border x:Name="SessionResetBrushProxy" Background="{ThemeResource ReportSessionResetBrush}" Visibility="Collapsed" />
+        <Border x:Name="ManualResetBrushProxy" Background="{ThemeResource ReportManualResetBrush}" Visibility="Collapsed" />
+        <Border x:Name="ResetCreditBrushProxy" Background="{ThemeResource ReportResetCreditBrush}" Visibility="Collapsed" />
 
         <Border
             x:Name="GridBrushProxy"

@@ -302,6 +302,8 @@ public sealed partial class UsageReportViewModel
             _compareRightStart = snapshot.Definition.CurrentStart;
             _compareRightEnd = snapshot.Definition.CurrentEnd;
             _measurementEvidence = GetString("UsageComparisonSavedEvidence") + " " + snapshot.Definition.Evidence;
+            MeasurementSections = [new(GetString("UsageMeasurementMethod"), _measurementEvidence)];
+            OnPropertyChanged(nameof(MeasurementSections));
             _hasCurrentReport = true;
             StatusText = string.Empty;
             RebuildProjection();

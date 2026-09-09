@@ -204,6 +204,10 @@
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="ReportWeeklyResetBrush" Color="#1967B8" />
+                    <SolidColorBrush x:Key="ReportSessionResetBrush" Color="#7843BB" />
+                    <SolidColorBrush x:Key="ReportManualResetBrush" Color="#986000" />
+                    <SolidColorBrush x:Key="ReportResetCreditBrush" Color="#A93471" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconDark.png" />
                     <SolidColorBrush x:Key="TokenUsageShellBrush" Color="#FFF5F5F5" />
                     <SolidColorBrush x:Key="TokenUsageCardBrush" Color="#FFFFFFFF" />
@@ -249,6 +253,10 @@
                     <StaticResource x:Key="ProviderFallbackBrush" ResourceKey="TextFillColorSecondaryBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="ReportWeeklyResetBrush" Color="#71B7FF" />
+                    <SolidColorBrush x:Key="ReportSessionResetBrush" Color="#BA98FF" />
+                    <SolidColorBrush x:Key="ReportManualResetBrush" Color="#FFC66D" />
+                    <SolidColorBrush x:Key="ReportResetCreditBrush" Color="#F898C4" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <SolidColorBrush x:Key="TokenUsageShellBrush" Color="#FF050505" />
                     <SolidColorBrush x:Key="TokenUsageCardBrush" Color="#FF0A0A0A" />
@@ -294,6 +302,10 @@
                     <StaticResource x:Key="ProviderFallbackBrush" ResourceKey="TextFillColorSecondaryBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
+                    <StaticResource x:Key="ReportWeeklyResetBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportSessionResetBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportManualResetBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportResetCreditBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <StaticResource x:Key="TokenUsageShellBrush" ResourceKey="SystemColorWindowColorBrush" />
                     <StaticResource x:Key="TokenUsageCardBrush" ResourceKey="SystemColorWindowColorBrush" />

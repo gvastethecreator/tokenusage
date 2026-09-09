@@ -439,12 +439,14 @@ public sealed class LocalUsageRefresh
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             return new UsageSourceReadResult(
                 [],
                 UsageSourceReadStatus.NoData,
-                UsageSourceIssueKind.AccessBlocked);
+                exception is UnauthorizedAccessException or System.Security.SecurityException or IOException
+                    ? UsageSourceIssueKind.AccessBlocked
+                    : UsageSourceIssueKind.ReadFailed);
         }
     }
 }

@@ -18,6 +18,15 @@ public enum TrayActivationKind
 
 public sealed record TrayMenuLabels(string Update, string Settings, string Exit);
 
+public sealed record TrayMenuOption(
+    string Id, string Label, bool IsChecked = false, bool IsEnabled = true,
+    IReadOnlyList<TrayMenuOption>? Children = null);
+
+public sealed class TrayOptionInvokedEventArgs(string id) : EventArgs
+{
+    public string Id { get; } = id;
+}
+
 public sealed class TrayActivatedEventArgs(TrayActivationKind kind) : EventArgs
 {
     public TrayActivationKind Kind { get; } = kind;

@@ -6,8 +6,21 @@
     xmlns:controls="using:TokenUsage.App.Controls"
     xmlns:dashboard="using:TokenUsage.App.ViewModels.Dashboard"
     xmlns:reports="using:TokenUsage.App.ViewModels.Reports"
-    Background="{ThemeResource TokenUsageShellBrush}">
+    Background="{ThemeResource TokenUsageShellBrush}"
+    Foreground="{ThemeResource TextFillColorPrimaryBrush}">
     <Page.Resources>
+        <DataTemplate x:Key="MeasurementSectionTemplate" x:DataType="reports:UsageMeasurementSection">
+            <Grid ColumnSpacing="12" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="112" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{x:Bind Title}" FontSize="12" LineHeight="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="1" Text="{x:Bind DisplayText}" FontSize="12" LineHeight="16"
+                    IsTextSelectionEnabled="True" TextWrapping="Wrap"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Grid>
+        </DataTemplate>
         <Style x:Key="ReportTableRowStyle" TargetType="ContentControl">
             <Setter Property="IsTabStop" Value="True" />
             <Setter Property="UseSystemFocusVisuals" Value="True" />
@@ -106,6 +119,7 @@
         <DataTemplate x:Key="ReportQuotaPillTemplate" x:DataType="dashboard:QuotaWindow">
             <Grid
                 Padding="0,5,0,6"
+                VerticalAlignment="Top"
                 AutomationProperties.Name="{x:Bind DisplayAutomationName}"
                 RowSpacing="5">
                 <Grid.RowDefinitions>
@@ -119,15 +133,9 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock
-                            FontSize="10"
-                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                            Text="{x:Bind LabelEvidenceText}"
-                            TextTrimming="CharacterEllipsis"
-                            Visibility="{x:Bind HasLabelEvidence}" />
-                    </StackPanel>
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}"
+                        MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                        ToolTipService.ToolTip="{x:Bind DisplayAutomationName}" />
                     <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="12" FontWeight="SemiBold" Text="{x:Bind RemainingText}" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
                 </Grid>
                 <controls:AnimatedProgressBar
@@ -147,11 +155,16 @@
                             <ToolTip MaxWidth="332" Content="{x:Bind ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
                         </ToolTipService.ToolTip>
                     </TextBlock>
-                    <TextBlock Grid.Column="1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind UsedText}" TextAlignment="Right" TextTrimming="CharacterEllipsis">
+                    <Button Grid.Column="1" MinWidth="24" MinHeight="24" Padding="4"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        AutomationProperties.Name="{x:Bind UsedText}"
+                        AutomationProperties.HelpText="{x:Bind UsedText}"
+                        Visibility="{x:Bind HasUsedText}">
                         <ToolTipService.ToolTip>
                             <ToolTip MaxWidth="332" Content="{x:Bind UsedText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
                         </ToolTipService.ToolTip>
-                    </TextBlock>
+                        <FontIcon FontSize="11" Glyph="&#xE946;" />
+                    </Button>
                 </Grid>
                 <TextBlock
                     Grid.Row="3"
@@ -194,19 +207,27 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid x:Name="ReportWindowBrandRoot" Grid.ColumnSpan="2" ColumnSpacing="16" MinHeight="48">
+                <Grid x:Name="ReportWindowBrandRoot" Grid.ColumnSpan="2" ColumnSpacing="16" MinHeight="60">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition x:Name="ReportCaptionInset" Width="144" />
                     </Grid.ColumnDefinitions>
-                    <Grid x:Name="ReportDragRegion" Background="Transparent" VerticalAlignment="Stretch">
+                    <Grid VerticalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Image x:Name="ReportHeaderLogo" Width="28" Height="28" Margin="0,0,8,0"
-                            Source="{ThemeResource TokenUsageAppIconSource}" />
-                        <TextBlock Grid.Column="1" Text="TokenUsage" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <controls:ThemeLogoButton x:Uid="ThemeLogoButton" AutomationProperties.AutomationId="ReportThemeLogoButton"
+                            Click="OnThemeLogoClick" Style="{StaticResource SubtleButtonStyle}"
+                            Width="48" Height="48" MinWidth="48" MinHeight="48" Padding="4" Margin="-4,0,8,0"
+                            BorderThickness="0" CornerRadius="24" VerticalAlignment="Center">
+                            <Image x:Name="ReportHeaderLogo" Width="40" Height="40"
+                                Source="{ThemeResource TokenUsageAppIconSource}" />
+                        </controls:ThemeLogoButton>
+                        <Grid x:Name="ReportDragRegion" Grid.Column="1" Background="Transparent">
+                            <TextBlock Text="TokenUsage" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center"
+                                LineHeight="36" LineStackingStrategy="BlockLineHeight" />
+                        </Grid>
                     </Grid>
                 </Grid>
 
@@ -1025,11 +1046,11 @@
                                 <TextBlock x:Uid="UsageReportLimitsTitle" FontWeight="SemiBold" />
                                 <ItemsRepeater
                                     x:Name="ReportProviderLimitsContentRoot"
+                                    SizeChanged="OnProviderLimitsSizeChanged"
                                     ItemTemplate="{StaticResource ReportQuotaPillTemplate}"
                                     ItemsSource="{x:Bind ViewModel.ProviderLimits, Mode=OneWay}">
                                     <ItemsRepeater.Layout>
                                         <UniformGridLayout
-                                            ItemsStretch="Fill"
                                             MaximumRowsOrColumns="4"
                                             MinColumnSpacing="14"
                                             MinItemWidth="240"
@@ -1449,19 +1470,28 @@
                 </StackPanel>
                     <Expander x:Name="MeasurementDetails" x:Uid="UsageMeasurementDetails"
                         AutomationProperties.AutomationId="UsageMeasurementDetails"
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                        <StackPanel Spacing="12">
-                        <TextBlock Text="{x:Bind ViewModel.CycleAvailabilityText}" Visibility="{x:Bind ViewModel.IsCompareCyclesAxis, Mode=OneWay}" TextWrapping="Wrap" />
-                        <TextBlock AutomationProperties.AutomationId="UsageComparisonEvidence" Text="{x:Bind ViewModel.MeasurementEvidence, Mode=OneWay}"
-                            IsTextSelectionEnabled="True" TextWrapping="Wrap"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
-                        </StackPanel>
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,8">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ItemsRepeater AutomationProperties.AutomationId="UsageComparisonEvidence"
+                                ItemsSource="{x:Bind ViewModel.MeasurementSections, Mode=OneWay}"
+                                ItemTemplate="{StaticResource MeasurementSectionTemplate}" />
+                            <Button x:Uid="UsageMeasurementCopyButton" Grid.Column="1" VerticalAlignment="Top"
+                                AutomationProperties.AutomationId="UsageMeasurementCopyButton"
+                                Click="OnCopyMeasurementDetailsClick" Style="{StaticResource SubtleButtonStyle}"
+                                Width="32" Height="32" Padding="7">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="16" />
+                            </Button>
+                        </Grid>
                     </Expander>
                     <Border x:Name="MeasurementCaptureDetails" Visibility="Collapsed" Padding="14,10" Style="{StaticResource ReportCardStyle}">
                         <StackPanel Spacing="8">
                             <TextBlock Text="{Binding Header, ElementName=MeasurementDetails}" FontWeight="SemiBold" />
-                            <TextBlock Text="{x:Bind ViewModel.MeasurementEvidence, Mode=OneWay}" TextWrapping="Wrap"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.MeasurementSections, Mode=OneWay}"
+                                ItemTemplate="{StaticResource MeasurementSectionTemplate}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

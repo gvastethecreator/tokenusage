@@ -22,7 +22,8 @@ public static class ProviderStatusPolicy
             UsageSourceIssueKind.RootUnavailable => ProviderStatusKind.Missing,
             UsageSourceIssueKind.UnsupportedSchema
                 or UsageSourceIssueKind.PartialScan
-                or UsageSourceIssueKind.AccessBlocked => ProviderStatusKind.Partial,
+                or UsageSourceIssueKind.AccessBlocked
+                or UsageSourceIssueKind.ReadFailed => ProviderStatusKind.Partial,
             _ => status switch
             {
                 UsageSourceReadStatus.Complete => ProviderStatusKind.Available,

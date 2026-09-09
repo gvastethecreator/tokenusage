@@ -10,7 +10,7 @@ public sealed partial class CodexUsageEventSource :
 {
     // Version 9 retains numeric observations and separates official account totals.
     public const string ParserVersion = "codex-jsonl/9";
-    private const int DefaultTailBytes = 64 * 1024;
+    private const int DefaultLineBytes = 64 * 1024;
     private const int RecentLocalWindowDays = UsagePeriodPolicy.ReconciliationDays;
     private const long MaximumInitialRecentScanBytes = 16L * 1024 * 1024 * 1024;
     private readonly string _codexHome;
@@ -25,15 +25,13 @@ public sealed partial class CodexUsageEventSource :
         string? homeDirectory = null,
         string? codexHomeOverride = null,
         int maximumFiles = 10_000,
-        long maximumTailBytes = DefaultTailBytes,
-        int maximumLineCharacters = DefaultTailBytes,
+        int maximumLineCharacters = DefaultLineBytes,
         ICodexQuotaClientFactory? clientFactory = null,
         string? checkpointPath = null,
         TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(maximumTailBytes, int.MaxValue);
 
         string userHome = homeDirectory
             ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -41,7 +39,7 @@ public sealed partial class CodexUsageEventSource :
             ?? Environment.GetEnvironmentVariable("CODEX_HOME");
         _codexHome = ResolveHome(configured, userHome);
         _groupingTimeZoneId = groupingTimeZoneId;
-        _budget = new LocalScanBudget(maximumFiles, maximumTailBytes, maximumLineCharacters);
+        _budget = new LocalScanBudget(maximumFiles, maximumLineBytes: maximumLineCharacters);
         _clientFactory = clientFactory;
         _clock = clock ?? TimeProvider.System;
         _checkpointStore = checkpointPath is null
@@ -87,11 +85,4 @@ public sealed partial class CodexUsageEventSource :
         public IReadOnlyList<UsageEvent> Observations { get; init; } = [];
     }
 
-    private sealed record ScannedSession(string SessionIdentity, Candidate Candidate);
-
-    private sealed record Candidate(
-        DateTimeOffset Timestamp,
-        string Model,
-        TokenBreakdown TotalTokens,
-        TokenBreakdown SampleTokens);
 }

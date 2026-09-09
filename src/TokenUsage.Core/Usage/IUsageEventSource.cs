@@ -17,6 +17,7 @@ public enum UsageSourceIssueKind
     PartialScan,
     AccessBlocked,
     UnsupportedSchema,
+    ReadFailed,
 }
 
 public sealed record UsageSourceReadResult
@@ -48,11 +49,13 @@ public sealed record UsageSourceReadResult
             UsageSourceReadStatus.Complete => resolvedIssue == UsageSourceIssueKind.None,
             UsageSourceReadStatus.Partial => resolvedIssue is UsageSourceIssueKind.PartialScan
                 or UsageSourceIssueKind.AccessBlocked
-                or UsageSourceIssueKind.UnsupportedSchema,
+                or UsageSourceIssueKind.UnsupportedSchema
+                or UsageSourceIssueKind.ReadFailed,
             UsageSourceReadStatus.NoData => resolvedIssue is UsageSourceIssueKind.RootUnavailable
                 or UsageSourceIssueKind.Empty
                 or UsageSourceIssueKind.AccessBlocked
-                or UsageSourceIssueKind.UnsupportedSchema,
+                or UsageSourceIssueKind.UnsupportedSchema
+                or UsageSourceIssueKind.ReadFailed,
             _ => false,
         };
         if (!validIssue)

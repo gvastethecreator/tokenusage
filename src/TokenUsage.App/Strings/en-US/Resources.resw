@@ -17,6 +17,11 @@
   <data name="TrayMenuUpdate" xml:space="preserve"><value>Update</value></data>
   <data name="TrayMenuSettings" xml:space="preserve"><value>Options</value></data>
   <data name="TrayMenuExit" xml:space="preserve"><value>Exit</value></data>
+  <data name="TrayOptionVisible" xml:space="preserve"><value>Visible</value></data>
+  <data name="TrayOptionTaskbarPreview" xml:space="preserve"><value>Show in taskbar preview</value></data>
+  <data name="TrayOptionHighlighted" xml:space="preserve"><value>Highlighted</value></data>
+  <data name="ThemeLogoButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Switch light or dark theme</value></data>
+  <data name="ThemeLogoButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Switch light or dark theme</value></data>
   <data name="TraySummaryUnavailableValue" xml:space="preserve"><value>—</value></data>
   <data name="TraySummarySessionLabel" xml:space="preserve"><value>Session</value></data>
   <data name="TraySummaryWeeklyLabel" xml:space="preserve"><value>Weekly</value></data>
@@ -916,6 +921,11 @@
   <data name="UsageComparisonCycleCountLabel.Text" xml:space="preserve"><value>Cycles</value></data>
   <data name="UsageComparisonTokensFormat" xml:space="preserve"><value>{0} tokens</value></data>
   <data name="UsageReportChartResetFormat" xml:space="preserve"><value>Recorded reset · {0} · {1} · {2}</value></data>
+  <data name="UsageReportResetKindWeekly" xml:space="preserve"><value>Weekly reset</value></data>
+  <data name="UsageReportResetKindSession" xml:space="preserve"><value>Session reset</value></data>
+  <data name="UsageReportResetKindManual" xml:space="preserve"><value>Manual reset</value></data>
+  <data name="UsageReportResetKindResetCredit" xml:space="preserve"><value>Reset credit</value></data>
+  <data name="UsageReportResetKindObserved" xml:space="preserve"><value>Other / unknown reset</value></data>
   <data name="UpdateSectionTitle.Text" xml:space="preserve"><value>App updates</value></data>
   <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>v{0}</value></data>
   <data name="UpdateAutomaticLabel.Text" xml:space="preserve"><value>Automatic updates</value></data>
@@ -949,4 +959,22 @@
   <data name="UpdateInitializationFailed" xml:space="preserve"><value>Update settings or recovery files could not be read. Check access to the app data folder.</value></data>
   <data name="UpdateRestartFailed" xml:space="preserve"><value>TokenUsage could not finish closing for the update. Try again when active work has finished.</value></data>
   <data name="UpdateLastCheckFormat" xml:space="preserve"><value>Last check: {0}</value></data>
+  <data name="UsageMeasurementCopyButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Copy measurement details</value></data>
+  <data name="UsageMeasurementCopyButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Copy measurement details</value></data>
+  <data name="UsageMeasurementCopied" xml:space="preserve"><value>Measurement details copied.</value></data>
+  <data name="UsageMeasurementCopyFailed" xml:space="preserve"><value>Could not copy the details. Try again when the clipboard is available.</value></data>
+  <data name="UsageMeasurementScope" xml:space="preserve"><value>Providers</value></data>
+  <data name="UsageMeasurementMethod" xml:space="preserve"><value>Method</value></data>
+  <data name="UsageMeasurementCost" xml:space="preserve"><value>Cost</value></data>
+  <data name="UsageMeasurementCollection" xml:space="preserve"><value>Data collection</value></data>
+  <data name="UsageMeasurementStoredData" xml:space="preserve"><value>This report uses the last collected data. Use Refresh to collect new usage. A complete scan does not mean complete account coverage.</value></data>
+  <data name="UsageMeasurementCollectionFormat" xml:space="preserve"><value>Last collection attempt: {0}
+Status: {1} · Issue: {2}</value></data>
+  <data name="UsageMeasurementTiming" xml:space="preserve"><value>Timing coverage</value></data>
+  <data name="UsageMeasurementPricing" xml:space="preserve"><value>Excluded from reference pricing</value></data>
+  <data name="UsageMeasurementTimeZones" xml:space="preserve"><value>Time zones</value></data>
+  <data name="UsageMeasurementAccount" xml:space="preserve"><value>Account totals</value></data>
+  <data name="UsageMeasurementAccountFormat" xml:space="preserve"><value>Official account-day tokens: {0}. The provider does not supply the day time zone. These totals overlap local usage and are not added or assigned to models.</value></data>
+  <data name="UsageMeasurementCycles" xml:space="preserve"><value>Reset cycles and quota</value></data>
+  <data name="UsageMeasurementHistory" xml:space="preserve"><value>Reset history</value></data>
 </root>

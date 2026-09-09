@@ -189,6 +189,7 @@ public static class RefreshCommand
         UsageSourceIssueKind.PartialScan => "partial-scan",
         UsageSourceIssueKind.AccessBlocked => "access-blocked",
         UsageSourceIssueKind.UnsupportedSchema => "unsupported-schema",
+        UsageSourceIssueKind.ReadFailed => "read-failed",
         _ => throw new ArgumentOutOfRangeException(nameof(issue)),
     };
 

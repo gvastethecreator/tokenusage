@@ -8,7 +8,6 @@ namespace TokenUsage.Providers.Codex;
 internal sealed class CodexUsageCheckpointStore
 {
     private const int SchemaVersion = 3;
-    private const int MaximumDocumentBytes = 32 * 1024 * 1024;
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -52,10 +51,10 @@ internal sealed class CodexUsageCheckpointStore
 
         try
         {
-            byte[] bytes = _document.ReadBoundedBytes(MaximumDocumentBytes);
-            DocumentV1? document = JsonSerializer.Deserialize<DocumentV1>(
-                VersionedDocumentFile.RemoveUtf8Preamble(bytes).Span,
-                SerializerOptions);
+            // Observation replay grows with usage, unlike a bounded preferences document.
+            // Stream the existing schema rather than imposing a total-history byte limit.
+            using var stream = File.OpenRead(_document.DocumentPath);
+            DocumentV1? document = JsonSerializer.Deserialize<DocumentV1>(stream, SerializerOptions);
             if (document?.SchemaVersion > SchemaVersion)
                 throw new NotSupportedException("Codex checkpoint schema is newer than supported; the original was preserved.");
             if (document is null
@@ -145,9 +144,7 @@ internal sealed class CodexUsageCheckpointStore
                 })
                 .ToList(),
         };
-        _document.WriteAtomically(
-            JsonSerializer.SerializeToUtf8Bytes(document, SerializerOptions),
-            MaximumDocumentBytes);
+        _document.WriteAtomically(stream => JsonSerializer.Serialize(stream, document, SerializerOptions));
     }
 
     private static CodexUsageCheckpointState RejectInvalid() =>

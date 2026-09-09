@@ -144,8 +144,7 @@ public sealed class CodexUsageEventSourceTests
             Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
         corpus.WriteStateIndex((path, "gpt-5.4-mini"));
 
-        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource(
-            maximumTailBytes: 2 * 1024).ReadAsync()).Events);
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
 
         Assert.Equal("unknown", usageEvent.ModelId.Value);
         Assert.Equal(CostKind.Unavailable, usageEvent.Cost.Kind);
@@ -539,14 +538,16 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(UsageSourceIssueKind.UnsupportedSchema, result.Issue);
     }
 
-    [Fact]
-    public async Task OversizedContentThatMentionsTokenCountDoesNotClaimSchemaFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OversizedMessageContentDoesNotPreventAuthoritativeUsageCollection(bool eventMessage)
     {
         using var corpus = new CodexCorpus();
         string oversizedContent = JsonSerializer.Serialize(new
         {
-            type = "response_item",
-            payload = new { text = "token_count " + new string('x', 70 * 1024) },
+            type = eventMessage ? "event_msg" : "response_item",
+            payload = new { type = "agent_message", text = "token_count " + new string('x', 70 * 1024) },
         });
         corpus.WriteSession(
             "session-large-content",
@@ -554,7 +555,6 @@ public sealed class CodexUsageEventSourceTests
             Context("gpt-5.6-sol"),
             Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
         CodexUsageEventSource source = corpus.CreateSource(
-            maximumTailBytes: 256 * 1024,
             checkpointPath: Path.Combine(corpus.Root, "codex-usage.v1.json"),
             clock: new FixedTimeProvider(
                 new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
@@ -562,8 +562,8 @@ public sealed class CodexUsageEventSourceTests
         UsageSourceReadResult result = await source.ReadAsync();
 
         Assert.Single(result.Events);
-        Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
-        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(UsageSourceIssueKind.None, result.Issue);
     }
 
     [Fact]
@@ -579,8 +579,11 @@ public sealed class CodexUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single(result.Events);
 
         Assert.Equal(new TokenBreakdown(80, 18, 2, 20, 0), usageEvent.Tokens);
-        Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
-        Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
+        // Every cumulative token is counted; only attribution/precision is incomplete.
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(UsageSourceIssueKind.None, result.Issue);
+        Assert.Equal(UsageTimePrecision.Unknown, usageEvent.TimePrecision);
+        Assert.Equal("unknown", usageEvent.ModelId.Value);
     }
 
     [Fact]
@@ -722,6 +725,26 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
+    public async Task LargeObservationCheckpointSurvivesRestartWithoutDroppingOrDuplicatingUsage()
+    {
+        using var corpus = new CodexCorpus();
+        const int count = 150_000;
+        var start = new DateTimeOffset(2026, 7, 26, 0, 0, 0, TimeSpan.Zero);
+        string session = corpus.WriteSession("large", Context("gpt-5.6-sol"));
+        using (var writer = File.AppendText(session))
+            for (int index = 0; index < count; index++)
+                writer.WriteLine(Usage(start.AddSeconds(index).ToString("O"), 1, 0, 0, 0, totalInput: index + 1));
+
+        string checkpoint = Path.Combine(corpus.Root, "large-checkpoint.json");
+        var first = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
+        Assert.Equal(count, first.Events.Count);
+        Assert.True(new FileInfo(checkpoint).Length > 32 * 1024 * 1024);
+        var replay = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
+        Assert.Equal(first.Events, replay.Events);
+        Assert.Equal(count, replay.Events.Sum(item => item.Tokens.Total));
+    }
+
+    [Fact]
     public async Task LegacyCheckpointMigrationReplaysObservationsAndPreservesOriginalBytes()
     {
         using var corpus = new CodexCorpus();
@@ -860,14 +883,12 @@ public sealed class CodexUsageEventSourceTests
 
         public CodexUsageEventSource CreateSource(
             int maximumFiles = 100,
-            long maximumTailBytes = 64 * 1024,
             ICodexQuotaClientFactory? clientFactory = null,
             string? checkpointPath = null,
             TimeProvider? clock = null) => new(
             "UTC",
             codexHomeOverride: _path,
             maximumFiles: maximumFiles,
-            maximumTailBytes: maximumTailBytes,
             clientFactory: clientFactory,
             checkpointPath: checkpointPath,
             clock: clock ?? new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));

@@ -320,13 +320,15 @@ internal static class ShareCaptureService
             }
 
             Task timeout = Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
-            Task finished = await Task.WhenAny(completion.Task, timeout);
+            await Task.WhenAny(completion.Task, timeout);
             cancellationToken.ThrowIfCancellationRequested();
             scrollViewer.UpdateLayout();
-            if (finished != completion.Task
-                || Math.Abs(scrollViewer.VerticalOffset - target) > 0.75)
+            // A layout pass can reach the target without a final ViewChanged notification.
+            // The actual position, not which task completed, determines capture readiness.
+            if (Math.Abs(scrollViewer.VerticalOffset - target) > 0.75)
             {
-                throw new InvalidOperationException("The report did not finish scrolling for capture.");
+                throw new InvalidOperationException(
+                    $"The report did not finish scrolling for capture (target {target:F1}, actual {scrollViewer.VerticalOffset:F1}).");
             }
         }
         finally

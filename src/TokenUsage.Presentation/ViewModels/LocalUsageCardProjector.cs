@@ -391,7 +391,7 @@ public static class LocalUsageCardProjector
                 {
                     UsageSourceIssueKind.RootUnavailable => getString("ProviderStatusRecoveryOpenTool"),
                     UsageSourceIssueKind.UnsupportedSchema => getString("ProviderStatusRecoveryUpdate"),
-                    UsageSourceIssueKind.PartialScan or UsageSourceIssueKind.AccessBlocked =>
+                    UsageSourceIssueKind.PartialScan or UsageSourceIssueKind.AccessBlocked or UsageSourceIssueKind.ReadFailed =>
                         getString("ProviderStatusRecoveryRetry"),
                     _ => getString("ProviderStatusRecoveryRefresh"),
                 };

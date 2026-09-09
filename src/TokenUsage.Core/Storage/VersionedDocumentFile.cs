@@ -152,7 +152,7 @@ public sealed class VersionedDocumentFile
         return quarantineFileName;
     }
 
-    public void WriteAtomically(ReadOnlySpan<byte> bytes, int maximumDocumentBytes)
+    public void WriteAtomically(ReadOnlyMemory<byte> bytes, int maximumDocumentBytes)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumDocumentBytes, 1);
         if (bytes.Length is <= 0 || bytes.Length > maximumDocumentBytes)
@@ -161,6 +161,13 @@ public sealed class VersionedDocumentFile
                 $"The document must be between 1 and {maximumDocumentBytes} bytes.");
         }
 
+        WriteAtomically(stream => stream.Write(bytes.Span));
+    }
+
+    /// <summary>Streams a growing document without buffering its serialized form in memory.</summary>
+    public void WriteAtomically(Action<Stream> write)
+    {
+        ArgumentNullException.ThrowIfNull(write);
         string directory = DocumentDirectory;
         Directory.CreateDirectory(directory);
         string temporaryPath = Path.Combine(
@@ -180,7 +187,8 @@ public sealed class VersionedDocumentFile
                     Options = FileOptions.WriteThrough,
                 }))
             {
-                stream.Write(bytes);
+                write(stream);
+                if (stream.Length == 0) throw new InvalidOperationException("The document must not be empty.");
                 stream.Flush(flushToDisk: true);
             }
 

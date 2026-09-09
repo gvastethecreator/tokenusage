@@ -5,6 +5,20 @@ namespace TokenUsage.Providers.Tests;
 
 public sealed class UsageReportResetMarkersTests
 {
+    [Theory]
+    [InlineData(QuotaResetCause.Scheduled, 10080, UsageReportResetKind.Weekly)]
+    [InlineData(QuotaResetCause.Scheduled, 300, UsageReportResetKind.Session)]
+    [InlineData(QuotaResetCause.Manual, 10080, UsageReportResetKind.Manual)]
+    [InlineData(QuotaResetCause.ResetCredit, 300, UsageReportResetKind.ResetCredit)]
+    [InlineData(QuotaResetCause.Unknown, 10080, UsageReportResetKind.Observed)]
+    [InlineData(QuotaResetCause.Scheduled, 43200, UsageReportResetKind.Observed)]
+    [InlineData(QuotaResetCause.Scheduled, 0, UsageReportResetKind.Observed)]
+    public void MarkerKindUsesTheReportedCauseAndDuration(QuotaResetCause cause, int minutes, UsageReportResetKind expected)
+    {
+        var reset = Reset(DateTimeOffset.UnixEpoch) with { Cause = cause, WindowDurationMinutes = minutes };
+        Assert.Equal(expected, UsageReportResetMarkers.Classify(reset));
+    }
+
     [Fact]
     public void CalendarUsesDisplayZoneAndKeepsMultipleResetsWithoutIncludingOtherProviders()
     {

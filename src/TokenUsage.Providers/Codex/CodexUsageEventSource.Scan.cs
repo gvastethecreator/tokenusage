@@ -8,63 +8,27 @@ namespace TokenUsage.Providers.Codex;
 public sealed partial class CodexUsageEventSource
 {
     private ScanResult ScanCore(
-        CodexUsageCheckpointState? checkpoints,
+        CodexUsageCheckpointState checkpoints,
         CancellationToken cancellationToken)
     {
         string[] roots = SessionRoots().Where(Directory.Exists).ToArray();
         if (roots.Length == 0)
-        {
-            return new ScanResult(
-                UsageSourceReadStatus.NoData,
-                UsageSourceIssueKind.RootUnavailable);
-        }
+            return new ScanResult(UsageSourceReadStatus.NoData, UsageSourceIssueKind.RootUnavailable);
 
         var state = new LocalScanState(_budget);
         SessionFile[] files = FindSessionFiles(roots, state, cancellationToken);
-        var sessions = new List<ScannedSession>(files.Length);
         DateOnly recentFrom = RecentFrom();
         long initialBytesRemaining = MaximumInitialRecentScanBytes;
-        IEnumerable<SessionFile> orderedFiles = checkpoints is null
-            ? files
-            : files.OrderByDescending(TryGetLastWriteTimeUtc);
-        foreach (SessionFile file in orderedFiles)
+        foreach (SessionFile file in files.OrderByDescending(TryGetLastWriteTimeUtc))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!state.TryConsumeFile())
-            {
-                break;
-            }
-
-            bool tailComplete = ReadTail(file, state, cancellationToken, out Candidate? candidate);
-            if (!tailComplete)
-            {
-                state.MarkPartial();
-            }
-
-            if (candidate is not null)
-            {
-                sessions.Add(new ScannedSession(file.SessionIdentity, candidate));
-            }
-
-            if (checkpoints is not null)
-            {
-                ScanRecentUsage(
-                    file,
-                    checkpoints,
-                    recentFrom,
-                    ref initialBytesRemaining,
-                    state,
-                    cancellationToken);
-            }
+            if (!state.TryConsumeFile()) break;
+            ScanRecentUsage(file, checkpoints, recentFrom, ref initialBytesRemaining, state, cancellationToken);
         }
 
-        if (checkpoints is not null)
-        {
-            // Missing source files do not retire numeric observations; the retention horizon does.
-            PruneCheckpointDays(checkpoints, recentFrom);
-        }
-
-        return CreateScanResult(sessions, checkpoints, state);
+        // Missing source files do not retire numeric observations; the retention horizon does.
+        PruneCheckpointDays(checkpoints, recentFrom);
+        return CreateScanResult(checkpoints, state);
     }
 
     private void ScanRecentUsage(
@@ -197,7 +161,7 @@ public sealed partial class CodexUsageEventSource
 
                     ProcessRecentLine(utf8, checkpoint, recentFrom, state);
                 }
-                else
+                else if (!IsNonUsageRecord(line.GetBuffer().AsSpan(0, checked((int)line.Length))))
                 {
                     state.MarkPartial();
                 }
@@ -210,6 +174,34 @@ public sealed partial class CodexUsageEventSource
 
             absoluteOffset = checked(absoluteOffset + bytesRead);
         }
+    }
+
+    private static bool IsNonUsageRecord(ReadOnlySpan<byte> prefix)
+    {
+        // Read only the envelope, not message text which can itself mention token_count.
+        // A truncated or unrecognized envelope is not evidence that a line is irrelevant.
+        try
+        {
+            var reader = new Utf8JsonReader(prefix, isFinalBlock: false, state: default);
+            bool eventMessage = false;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.PropertyName && reader.CurrentDepth == 1
+                    && reader.ValueTextEquals("type") && reader.Read())
+                {
+                    if (reader.TokenType != JsonTokenType.String) return false;
+                    if (reader.ValueTextEquals("turn_context") || reader.ValueTextEquals("session_meta")) return false;
+                    eventMessage = reader.ValueTextEquals("event_msg");
+                    if (!eventMessage) return true;
+                }
+                if (eventMessage && reader.TokenType == JsonTokenType.PropertyName && reader.CurrentDepth == 2
+                    && reader.ValueTextEquals("type") && reader.Read())
+                    return reader.TokenType == JsonTokenType.String
+                        && !reader.ValueTextEquals("token_count") && !reader.ValueTextEquals("task_started");
+            }
+        }
+        catch (JsonException) { }
+        return false;
     }
 
     private static void AppendRecentLineSegment(
@@ -600,122 +592,13 @@ public sealed partial class CodexUsageEventSource
         }
     }
 
-    private bool ReadTail(
-        SessionFile file,
-        LocalScanState state,
-        CancellationToken cancellationToken,
-        out Candidate? candidate)
-    {
-        candidate = null;
-        try
-        {
-            var info = new FileInfo(file.Path);
-            if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0)
-            {
-                return false;
-            }
-
-            using var stream = new FileStream(
-                file.Path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete,
-                64 * 1024,
-                FileOptions.RandomAccess);
-            int tailLength = checked((int)Math.Min(stream.Length, _budget.MaximumFileBytes));
-            if (tailLength == 0)
-            {
-                return true;
-            }
-
-            long startPosition = stream.Length - tailLength;
-            stream.Seek(startPosition, SeekOrigin.Begin);
-            byte[] bytes = new byte[tailLength];
-            int bytesRead = 0;
-            while (bytesRead < bytes.Length)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                int read = stream.Read(bytes, bytesRead, bytes.Length - bytesRead);
-                if (read == 0)
-                {
-                    break;
-                }
-
-                bytesRead += read;
-            }
-
-            int offset = 0;
-            if (startPosition > 0)
-            {
-                int firstNewline = Array.IndexOf(bytes, (byte)'\n', 0, bytesRead);
-                if (firstNewline < 0)
-                {
-                    return false;
-                }
-
-                offset = firstNewline + 1;
-            }
-
-            bool complete = true;
-            string? currentModel = file.Model;
-            bool captureResumeCarry = startPosition == 0;
-            TokenBreakdown? resumeCarry = null;
-            while (offset < bytesRead)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                int newline = Array.IndexOf(bytes, (byte)'\n', offset, bytesRead - offset);
-                bool hasNewline = newline >= 0;
-                int end = hasNewline ? newline : bytesRead;
-                int length = end - offset;
-                if (length > 0 && bytes[end - 1] == (byte)'\r')
-                {
-                    length--;
-                }
-
-                bool lineIsValid = ProcessLine(
-                    bytes.AsMemory(offset, length),
-                    ref currentModel,
-                    ref candidate,
-                    state,
-                    markSchemaFailures: hasNewline,
-                    captureResumeCarry,
-                    ref resumeCarry);
-                if (hasNewline)
-                {
-                    complete &= lineIsValid;
-                }
-
-                if (!hasNewline)
-                {
-                    break;
-                }
-
-                offset = newline + 1;
-            }
-
-            return complete;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException
-                                           or NotSupportedException
-                                           or System.Security.SecurityException)
-        {
-            return false;
-        }
-    }
-
     private ScanResult CreateScanResult(
-        List<ScannedSession> sessions,
-        CodexUsageCheckpointState? checkpoints,
+        CodexUsageCheckpointState checkpoints,
         LocalScanState state)
     {
         UsageSourceReadStatus status = state.IsPartial
             ? UsageSourceReadStatus.Partial
-            : sessions.Count == 0
+            : !checkpoints.Files.Values.Any(file => file.Observations.Count > 0)
                 ? UsageSourceReadStatus.NoData
                 : UsageSourceReadStatus.Complete;
         UsageSourceIssueKind? issue = status switch
@@ -730,7 +613,7 @@ public sealed partial class CodexUsageEventSource
             status,
             issue ?? UsageSourceIssueKind.None)
         {
-            Observations = checkpoints is null ? [] : checkpoints.Files.Values.SelectMany(item => item.Observations)
+            Observations = checkpoints.Files.Values.SelectMany(item => item.Observations)
                 .Select(CreateObservationEvent).DistinctBy(item => item.EventKey).OrderBy(item => item.OccurredAtUtc).ToArray(),
         };
     }

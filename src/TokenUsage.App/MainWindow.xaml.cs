@@ -150,6 +150,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _trayIcon.Activated += OnTrayActivated;
         _trayIcon.Hovered += OnTrayHovered;
         _trayIcon.ContextMenuOpening += OnTrayContextMenuOpening;
+        _trayIcon.OptionInvoked += OnTrayOptionInvoked;
         _trayIcon.UpdateRequested += OnTrayUpdateRequested;
         _trayIcon.SettingsRequested += OnTraySettingsRequested;
         _trayIcon.ExitRequested += OnTrayExitRequested;
@@ -186,8 +187,12 @@ public sealed partial class MainWindow : Window, IDisposable
         });
     }
 
-    private void OnTrayContextMenuOpening(object? sender, EventArgs e) =>
-        _ = DispatcherQueue.TryEnqueue(() => HideTraySummary(force: true));
+    private void OnTrayContextMenuOpening(object? sender, EventArgs e)
+    {
+        // The native menu opens synchronously on this window's UI thread.
+        HideTraySummary(force: true);
+        if (_trayIcon is not null) _trayIcon.Options = BuildTrayOptions();
+    }
 
     private void OnTrayUpdateRequested(object? sender, EventArgs e)
     {
@@ -631,7 +636,13 @@ public sealed partial class MainWindow : Window, IDisposable
                 reportDpi,
                 grouping => RootPage.ViewModel.Options.Appearance.SelectedReportChartGrouping = grouping,
                 style => RootPage.ViewModel.Options.Appearance.SelectedReportChartStyle =
-                    RootPage.ViewModel.Options.Appearance.ReportChartStyleOptions.Single(option => option.Value == style));
+                    RootPage.ViewModel.Options.Appearance.ReportChartStyleOptions.Single(option => option.Value == style),
+                theme =>
+                {
+                    var appearance = RootPage.ViewModel.Options.Appearance;
+                    if (appearance.CanChangeTheme)
+                        appearance.SelectedTheme = appearance.ThemeOptions.Single(option => option.Value == theme);
+                });
             _reportWindow.Closed += OnUsageReportWindowClosed;
         }
         else
@@ -831,6 +842,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _trayIcon.Activated -= OnTrayActivated;
         _trayIcon.Hovered -= OnTrayHovered;
         _trayIcon.ContextMenuOpening -= OnTrayContextMenuOpening;
+        _trayIcon.OptionInvoked -= OnTrayOptionInvoked;
         _trayIcon.UpdateRequested -= OnTrayUpdateRequested;
         _trayIcon.SettingsRequested -= OnTraySettingsRequested;
         _trayIcon.ExitRequested -= OnTrayExitRequested;

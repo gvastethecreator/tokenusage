@@ -58,6 +58,9 @@ public sealed class SessionModuleTests
         await surface.Initialization;
 
         surface.SelectedTheme = surface.ThemeOptions.Single(option =>
+            option.Value == AppThemeMode.Light);
+        Assert.True(surface.CanChangeTheme);
+        surface.SelectedTheme = surface.ThemeOptions.Single(option =>
             option.Value == AppThemeMode.Dark);
         surface.SelectedDensity = surface.DensityOptions.Single(option =>
             option.Value == AppDensityMode.Compact);

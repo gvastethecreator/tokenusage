@@ -4,162 +4,12 @@ using System.Text;
 using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
-using TokenUsage.Providers.LocalScan;
 using TokenUsage.Providers.Pricing;
 
 namespace TokenUsage.Providers.Codex;
 
 public sealed partial class CodexUsageEventSource
 {
-    private static bool ProcessLine(
-        ReadOnlyMemory<byte> utf8,
-        ref string? currentModel,
-        ref Candidate? latest,
-        LocalScanState state,
-        bool markSchemaFailures,
-        bool captureResumeCarry,
-        ref TokenBreakdown? resumeCarry)
-    {
-        if (utf8.Length == 0)
-        {
-            return true;
-        }
-
-        if (utf8.Length > state.MaximumLineBytes)
-        {
-            state.MarkPartial();
-            return false;
-        }
-
-        ReadOnlySpan<byte> bytes = utf8.Span;
-        if (bytes.Length >= 3
-            && bytes[0] == 0xEF
-            && bytes[1] == 0xBB
-            && bytes[2] == 0xBF)
-        {
-            utf8 = utf8[3..];
-            bytes = utf8.Span;
-        }
-
-        bool mightBeContext = bytes.IndexOf("turn_context"u8) >= 0;
-        bool mightBeUsage = bytes.IndexOf("token_count"u8) >= 0;
-        if (!mightBeContext && !mightBeUsage)
-        {
-            return true;
-        }
-
-        try
-        {
-            using JsonDocument document = JsonDocument.Parse(utf8);
-            JsonElement root = document.RootElement;
-            if (!TryGetString(root, "type", out string? recordType)
-                || !root.TryGetProperty("payload", out JsonElement payload)
-                || payload.ValueKind != JsonValueKind.Object)
-            {
-                return MarkSchemaFailure(state, markSchemaFailures);
-            }
-
-            if (string.Equals(recordType, "turn_context", StringComparison.Ordinal))
-            {
-                if (!TryGetString(payload, "model", out string? model))
-                {
-                    return MarkSchemaFailure(state, markSchemaFailures);
-                }
-
-                currentModel = NormalizeModel(model);
-                return true;
-            }
-
-            if (!string.Equals(recordType, "event_msg", StringComparison.Ordinal)
-                || !TryGetString(payload, "type", out string? eventType)
-                || !string.Equals(eventType, "token_count", StringComparison.Ordinal))
-            {
-                return true;
-            }
-
-            if (!payload.TryGetProperty("info", out JsonElement info)
-                || info.ValueKind is JsonValueKind.Null)
-            {
-                return true;
-            }
-
-            if (info.ValueKind != JsonValueKind.Object)
-            {
-                return MarkSchemaFailure(state, markSchemaFailures);
-            }
-
-            bool hasCumulative = info.TryGetProperty(
-                                     "total_token_usage",
-                                     out JsonElement cumulativeElement)
-                                 && cumulativeElement.ValueKind == JsonValueKind.Object;
-            bool hasLast = info.TryGetProperty(
-                               "last_token_usage",
-                               out JsonElement lastElement)
-                           && lastElement.ValueKind == JsonValueKind.Object;
-            if (!hasCumulative && !hasLast)
-            {
-                return info.TryGetProperty("total_token_usage", out _)
-                       || info.TryGetProperty("last_token_usage", out _)
-                    ? MarkSchemaFailure(state, markSchemaFailures)
-                    : true;
-            }
-
-            if (!TryGetUtcTimestamp(root, "timestamp", out DateTimeOffset timestamp))
-            {
-                return MarkSchemaFailure(state, markSchemaFailures);
-            }
-
-            TokenBreakdown? cumulative = null;
-            TokenBreakdown? last = null;
-            bool cumulativeIsValid = hasCumulative
-                && TryReadTokenBreakdown(cumulativeElement, out cumulative);
-            bool lastIsValid = hasLast
-                && TryReadTokenBreakdown(lastElement, out last);
-            if (!cumulativeIsValid && !lastIsValid)
-            {
-                return MarkSchemaFailure(state, markSchemaFailures);
-            }
-
-            if ((hasCumulative && !cumulativeIsValid)
-                || (hasLast && !lastIsValid))
-            {
-                state.MarkPartial();
-            }
-
-            TokenBreakdown current = cumulative ?? last!;
-            if (captureResumeCarry && resumeCarry is null && cumulativeIsValid && lastIsValid)
-            {
-                resumeCarry = CanSubtract(cumulative!, last!)
-                    ? Difference(cumulative!, last!)
-                    : new TokenBreakdown(0, 0, 0, 0, 0);
-            }
-
-            TokenBreakdown total = resumeCarry is not null && CanSubtract(current, resumeCarry)
-                ? Difference(current, resumeCarry)
-                : current;
-            TokenBreakdown sample = last ?? total;
-
-            latest = new Candidate(
-                timestamp,
-                NormalizeModel(currentModel) ?? "unknown",
-                total,
-                sample);
-            if (!hasCumulative)
-            {
-                state.MarkPartial();
-            }
-
-            return true;
-        }
-        catch (Exception exception) when (exception is JsonException
-                                           or ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            return MarkSchemaFailure(state, markSchemaFailures);
-        }
-    }
-
     private static bool TryReadTokenBreakdown(
         JsonElement usage,
         out TokenBreakdown? tokens)
@@ -263,16 +113,6 @@ public sealed partial class CodexUsageEventSource
             cost.Kind == CostKind.Unavailable ? CoverageKind.Unpriced : CoverageKind.Partial,
             observation.Precision, observation.IntervalStart,
             observation.ObservedModel is null ? null : new ModelId(observation.ObservedModel), observation.Effort, observation.Tier);
-    }
-
-    private static bool MarkSchemaFailure(LocalScanState state, bool mark)
-    {
-        if (mark)
-        {
-            state.UnsupportedSchema = true;
-        }
-
-        return false;
     }
 
     private static bool TryGetString(

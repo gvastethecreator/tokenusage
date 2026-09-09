@@ -32,7 +32,8 @@ public sealed class UsageReportWindow : Window, IDisposable
         PlatformRect workArea,
         uint dpi,
         Action<ReportChartGrouping>? saveChartGrouping = null,
-        Action<ReportChartStyle>? saveChartStyle = null)
+        Action<ReportChartStyle>? saveChartStyle = null,
+        Action<AppThemeMode>? saveTheme = null)
     {
         _viewModel = new UsageReportViewModel(
             databasePath,
@@ -50,6 +51,7 @@ public sealed class UsageReportWindow : Window, IDisposable
         _page.SizeChanged += (_, _) => UpdateCaptionInset();
         _page.ChartGroupingChanged += (_, grouping) => saveChartGrouping?.Invoke(grouping);
         _page.ChartStyleChanged += (_, style) => saveChartStyle?.Invoke(style);
+        _page.ThemeChangeRequested += (_, theme) => saveTheme?.Invoke(theme);
         Title = GetString("UsageReportWindowTitle");
         AppWindow.Title = Title;
         AppWindow.SetIcon(MainWindow.GetIconPath());

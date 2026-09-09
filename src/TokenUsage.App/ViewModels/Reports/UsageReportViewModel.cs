@@ -658,7 +658,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_savedComparison is not null) return;
-        _measurementEvidence = string.Empty;
+        string previousEvidence = _measurementEvidence;
         _loadCancellation?.Cancel();
         var cancellation = new CancellationTokenSource();
         CancellationToken token = cancellation.Token;
@@ -679,6 +679,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 await _refreshSourceAsync();
                 token.ThrowIfCancellationRequested();
             }
+
+            _measurementEvidence = string.Empty;
 
             await LoadResetCyclesAsync(token).ConfigureAwait(true);
             token.ThrowIfCancellationRequested();
@@ -770,30 +772,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            _measurementEvidence += " " + GetString("UsageComparisonCostEvidence");
-            UsageCollectionState[] collection = _report.CollectionState.Concat(_compareRightReport.CollectionState)
-                .DistinctBy(row => row.AgentId).ToArray();
-            _measurementEvidence += " " + (collection.Length == 0 ? GetString("UsageComparisonFreshnessUnknown")
-                : string.Join("; ", collection.Select(row => string.Format(CultureInfo.CurrentCulture,
-                    GetString("UsageComparisonFreshnessFormat"), ProviderName(row.AgentId),
-                    row.AttemptedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture), row.Status, row.Issue))));
-            if (_report.HasTimingGaps || _compareRightReport.HasTimingGaps || IsCompareCyclesAxis && _cycleReports.Any(entry => entry.Report.HasTimingGaps))
-                _measurementEvidence += " " + GetString("UsageComparisonTimingGaps");
-            if (UseReferencePrices && IsCompareScope && !IsCompareCyclesAxis)
-                _measurementEvidence += " " + string.Format(CultureInfo.CurrentCulture,
-                    GetString("UsageComparisonPricingExclusions"), FormatTokens(_report.PriceReferenceExcludedTokens),
-                    FormatTokens(_compareRightReport.PriceReferenceExcludedTokens));
-            string[] zones = _report.GroupingTimeZoneIds.Concat(_compareRightReport.GroupingTimeZoneIds).Distinct().ToArray();
-            if (zones.Length > 1) _measurementEvidence += " " + GetString("UsageComparisonMixedZones");
-            if (_report.AccountUsage.Count > 0 || _compareRightReport.AccountUsage.Count > 0)
-                _measurementEvidence += " " + string.Format(CultureInfo.CurrentCulture, GetString("UsageComparisonAccountEvidence"),
-                    FormatTokens(_report.AccountUsage.Sum(item => item.Tokens)),
-                    FormatTokens(_compareRightReport.AccountUsage.Sum(item => item.Tokens)));
-            if (IsCompareCyclesAxis)
-                _measurementEvidence += " " + GetString("UsageComparisonQuotaEvidence") + " " + CycleEvidenceText();
-            if (ResetHistoryAvailability is not (QuotaHistoryAvailability.Available or QuotaHistoryAvailability.Missing))
-                _measurementEvidence += " " + GetString("UsageComparisonHistoryUnavailable") + " (" + ResetHistoryAvailability + ")";
-            OnPropertyChanged(nameof(MeasurementEvidence));
+            BuildMeasurementDetails();
             StatusText = string.Empty;
             _hasCurrentReport = true;
             RebuildProjection();
@@ -801,14 +780,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             if (ReferenceEquals(_loadCancellation, cancellation))
             {
+                _measurementEvidence = previousEvidence;
                 HasError = true;
                 StatusText = GetString(HasData
                     ? "UsageReportRefreshFailed"
-                    : "UsageReportReadFailed");
+                    : "UsageReportReadFailed") + Environment.NewLine
+                    + exception.GetType().Name + ": " + exception.Message;
             }
         }
         finally

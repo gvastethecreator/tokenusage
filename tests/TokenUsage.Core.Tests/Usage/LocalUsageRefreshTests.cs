@@ -451,8 +451,10 @@ public sealed class LocalUsageRefreshTests
         Assert.Equal(0.75m, second.Rollups.Sum(r => r.EstimatedCostUsd ?? 0m));
     }
 
-    [Fact]
-    public async Task OneBrokenSourceDoesNotDiscardOtherLocalUsage()
+    [Theory]
+    [InlineData(false, UsageSourceIssueKind.AccessBlocked)]
+    [InlineData(true, UsageSourceIssueKind.ReadFailed)]
+    public async Task OneBrokenSourceDoesNotDiscardOtherLocalUsage(bool checkpointFailure, UsageSourceIssueKind expectedIssue)
     {
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(Now);
@@ -470,7 +472,7 @@ public sealed class LocalUsageRefreshTests
                         CostObservation.ProviderReported(0.25m)),
                 ],
                 UsageSourceReadStatus.Complete));
-        var broken = new ThrowingUsageEventSource(new AgentId("broken"));
+        var broken = new ThrowingUsageEventSource(new AgentId("broken"), checkpointFailure);
 
         var refresh = new LocalUsageRefresh(folder.DatabasePath, [broken, healthy], clock);
         LocalUsageRefreshResult result = await refresh.RefreshAsync();
@@ -483,7 +485,7 @@ public sealed class LocalUsageRefreshTests
             result.SourceDiagnostics,
             item => item.AgentId.Value == "broken");
         Assert.Equal(UsageSourceReadStatus.NoData, diagnostic.Status);
-        Assert.Equal(UsageSourceIssueKind.AccessBlocked, diagnostic.Issue);
+        Assert.Equal(expectedIssue, diagnostic.Issue);
     }
 
     private static UsageEvent CreateEvent(
@@ -618,7 +620,7 @@ public sealed class LocalUsageRefreshTests
             Task.FromResult(_result);
     }
 
-    private sealed class ThrowingUsageEventSource(AgentId agentId) : IUsageEventSource
+    private sealed class ThrowingUsageEventSource(AgentId agentId, bool checkpointFailure) : IUsageEventSource
     {
         public AgentId AgentId { get; } = agentId;
 
@@ -626,6 +628,8 @@ public sealed class LocalUsageRefreshTests
 
         public Task<UsageSourceReadResult> ReadAsync(
             CancellationToken cancellationToken = default) =>
-            throw new IOException("Synthetic provider failure.");
+            throw (checkpointFailure
+                ? new InvalidOperationException("Synthetic checkpoint write failure.")
+                : new IOException("Synthetic provider failure."));
     }
 }

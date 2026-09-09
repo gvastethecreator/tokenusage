@@ -23,7 +23,7 @@ public sealed partial class UsageTrendChart
                 var bar = new Border
                 {
                     Width = item.Width, Height = item.Height,
-                    Background = SeriesBrush(data.Series[item.SeriesIndex]),
+                    Background = IsPreview ? SeriesBrush(data.Series[item.SeriesIndex]) : BarBrush(data.Series[item.SeriesIndex]),
                     CornerRadius = IsPreview ? new CornerRadius(1, 1, 0, 0) : new CornerRadius(4, 4, 0, 0),
                     BorderBrush = _accessibilitySettings.HighContrast ? TextBrushProxy.Background : null,
                     BorderThickness = new Thickness(_accessibilitySettings.HighContrast ? 1 : 0),
@@ -72,30 +72,90 @@ public sealed partial class UsageTrendChart
         }
 
         for (int index = 0; index < data.Series.Count; index++)
-            AddLine(Path(values[index], data.Style), data.Series[index], index);
+            AddLine(Path(values[index], data.Style), data.Series[index], index,
+                fillToBaseline: !IsPreview && data.Series.Count == 1 ? height - BottomPadding : null);
 
         UsageTrendPath Path(IReadOnlyList<double> source, ReportChartStyle style) =>
             UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, IsPreview ? 2 : TopPadding, IsPreview ? 2 : BottomPadding, style, scale.EmphasizeSmallValues);
     }
 
+    private static UsageReportResetKind[] ResetKinds(UsageReportTrendDataset data) =>
+        data.Days.SelectMany(day => day.Resets).Select(reset => reset.Kind).Distinct().Order().ToArray();
+
     private void RenderResetMarkers(UsageReportTrendDataset data, double width)
     {
+        var kinds = ResetKinds(data);
         for (int index = 0; index < data.Days.Count; index++)
         {
-            if (string.IsNullOrEmpty(data.Days[index].ResetText)) continue;
+            if (data.Days[index].Resets.Count == 0) continue;
             double x = data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1
                 ? (index + 0.5) * width / data.Days.Count
                 : index * width / (data.Days.Count - 1);
-            var marker = new Polygon
+            foreach (var kind in data.Days[index].Resets.Select(reset => reset.Kind).Distinct())
             {
-                Points = new PointCollection { new(0, 0), new(8, 0), new(4, 6) },
-                Fill = TextBrushProxy.Background,
-                IsHitTestVisible = false,
-            };
-            Canvas.SetLeft(marker, Math.Clamp(x - 4, 0, Math.Max(0, width - 8)));
-            Canvas.SetTop(marker, 1);
-            PlotCanvas.Children.Add(marker);
+                Shape marker = CreateResetSymbol(kind);
+                Canvas.SetLeft(marker, Math.Clamp(x - 5, 0, Math.Max(0, width - 10)));
+                Canvas.SetTop(marker, 2 + Array.IndexOf(kinds, kind) * 14);
+                PlotCanvas.Children.Add(marker);
+            }
         }
+    }
+
+    private Brush ResetBrush(UsageReportResetKind kind) => kind switch
+    {
+        UsageReportResetKind.Weekly => WeeklyResetBrushProxy.Background,
+        UsageReportResetKind.Session => SessionResetBrushProxy.Background,
+        UsageReportResetKind.Manual => ManualResetBrushProxy.Background,
+        UsageReportResetKind.ResetCredit => ResetCreditBrushProxy.Background,
+        _ => TextBrushProxy.Background,
+    };
+
+    private Shape CreateResetSymbol(UsageReportResetKind kind)
+    {
+        Shape symbol = kind switch
+        {
+            UsageReportResetKind.Weekly => new Polygon { Points = [new(0, 1), new(10, 1), new(5, 9)] },
+            UsageReportResetKind.Session => new Ellipse(),
+            UsageReportResetKind.Manual => new Polygon { Points = [new(5, 0), new(10, 5), new(5, 10), new(0, 5)] },
+            UsageReportResetKind.ResetCredit => new Rectangle { RadiusX = 1, RadiusY = 1 },
+            _ => new Ellipse { Stroke = ResetBrush(kind), StrokeThickness = 1.5 },
+        };
+        symbol.Width = 10;
+        symbol.Height = 10;
+        if (kind != UsageReportResetKind.Observed) symbol.Fill = ResetBrush(kind);
+        symbol.IsHitTestVisible = false;
+        return symbol;
+    }
+
+    private void BuildResetLegend(UsageReportTrendDataset data)
+    {
+        var kinds = IsPreview ? [] : ResetKinds(data);
+        ResetLegend.Visibility = kinds.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ResetLegend.ItemsSource = kinds.Select(kind =>
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            Shape symbol = CreateResetSymbol(kind);
+            symbol.VerticalAlignment = VerticalAlignment.Center;
+            row.Children.Add(symbol);
+            row.Children.Add(new TextBlock { Text = GetString(UsageReportResetMarkers.LabelResourceKey(kind)),
+                Foreground = TextBrushProxy.Background, FontSize = 11, VerticalAlignment = VerticalAlignment.Center });
+            return row;
+        }).ToArray();
+    }
+
+    private Brush BarBrush(UsageReportTrendSeries series)
+    {
+        if (_accessibilitySettings.HighContrast) return SeriesBrush(series);
+        Color color = ProviderColorPalette.Parse(series.ColorHex);
+        return new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0), EndPoint = new Point(0, 1),
+            GradientStops =
+            {
+                new GradientStop { Color = color, Offset = 0 },
+                new GradientStop { Color = Color.FromArgb(255, (byte)(color.R * 0.78), (byte)(color.G * 0.78), (byte)(color.B * 0.78)), Offset = 1 },
+            },
+        };
     }
 
     private Brush AreaBrush(UsageReportTrendSeries series)
@@ -116,7 +176,7 @@ public sealed partial class UsageTrendChart
     private Brush SeriesBrush(UsageReportTrendSeries series) => _accessibilitySettings.HighContrast
         ? TextBrushProxy.Background : new SolidColorBrush(ProviderColorPalette.Parse(series.ColorHex));
 
-    private void AddLine(UsageTrendPath path, UsageReportTrendSeries series, int seriesIndex)
+    private void AddLine(UsageTrendPath path, UsageReportTrendSeries series, int seriesIndex, double? fillToBaseline = null)
     {
         var geometry = new PathGeometry();
         PathFigure? figure = null;
@@ -141,9 +201,27 @@ public sealed partial class UsageTrendChart
             last = segment.To;
         }
 
+        if (fillToBaseline is double baseline && !_accessibilitySettings.HighContrast)
+        {
+            // Copy the exact curve into the fill: preserve gaps and never invent samples.
+            var fillGeometry = new PathGeometry();
+            foreach (var source in geometry.Figures)
+            {
+                var fill = new PathFigure { StartPoint = source.StartPoint, IsClosed = true, IsFilled = true };
+                foreach (BezierSegment segment in source.Segments)
+                    fill.Segments.Add(new BezierSegment { Point1 = segment.Point1, Point2 = segment.Point2, Point3 = segment.Point3 });
+                var end = ((BezierSegment)source.Segments[^1]).Point3;
+                fill.Segments.Add(new LineSegment { Point = new Point(end.X, baseline) });
+                fill.Segments.Add(new LineSegment { Point = new Point(source.StartPoint.X, baseline) });
+                fillGeometry.Figures.Add(fill);
+            }
+            _seriesCanvas.Children.Add(new XamlPath { Data = fillGeometry, Fill = AreaBrush(series), Opacity = 0.18,
+                UseLayoutRounding = false, IsHitTestVisible = false });
+        }
+
         var line = new XamlPath
         {
-            Data = geometry, Stroke = SeriesBrush(series), StrokeThickness = 2,
+            Data = geometry, Stroke = SeriesBrush(series), StrokeThickness = IsPreview ? 2 : 2.25,
             StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round, UseLayoutRounding = false, IsHitTestVisible = false,
         };

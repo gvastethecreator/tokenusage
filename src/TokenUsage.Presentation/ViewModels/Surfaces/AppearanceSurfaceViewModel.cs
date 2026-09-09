@@ -157,6 +157,9 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     public bool IsEditable => _session.IsEditable && !IsBusy;
 
+    // Theme changes can supersede an in-flight save; the existing save queue preserves order.
+    public bool CanChangeTheme => Initialization.IsCompletedSuccessfully && !_session.IsReadOnly;
+
     public bool IsStatusVisible => !string.IsNullOrWhiteSpace(StatusText);
 
     public Task WaitForPendingSaveAsync()

@@ -95,6 +95,10 @@ public sealed class TrayIconHost : IDisposable
 
     public event EventHandler? ContextMenuOpening;
 
+    public IReadOnlyList<TrayMenuOption> Options { get; set; } = [];
+
+    public event EventHandler<TrayOptionInvokedEventArgs>? OptionInvoked;
+
     public event EventHandler? UpdateRequested;
 
     public event EventHandler? SettingsRequested;
@@ -341,6 +345,12 @@ public sealed class TrayIconHost : IDisposable
         {
             AppendMenuItem(menu, TrayMenuCommand.Update, _menuLabels.Update);
             AppendMenuItem(menu, TrayMenuCommand.Settings, _menuLabels.Settings);
+            var optionsByCommand = new Dictionary<uint, TrayMenuOption>();
+            if (Options.Count > 0)
+            {
+                AppendSeparator(menu);
+                AppendOptions(menu, Options, optionsByCommand);
+            }
             if (!NativeMethods.AppendMenu(menu, NativeMethods.MfSeparator, 0, null))
             {
                 throw CreateWin32Exception("The tray menu separator could not be added.");
@@ -357,7 +367,15 @@ public sealed class TrayIconHost : IDisposable
                 _windowHandle,
                 0);
 
-            DispatchMenuCommand(selected);
+            if (optionsByCommand.TryGetValue((uint)selected, out var option))
+            {
+                if (option.IsEnabled)
+                    OptionInvoked?.Invoke(this, new TrayOptionInvokedEventArgs(option.Id));
+            }
+            else
+            {
+                DispatchMenuCommand(selected);
+            }
             _ = NativeMethods.PostMessage(_windowHandle, NativeMethods.WmNull, 0, 0);
         }
         finally
@@ -371,6 +389,49 @@ public sealed class TrayIconHost : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(labels.Update);
         ArgumentException.ThrowIfNullOrWhiteSpace(labels.Settings);
         ArgumentException.ThrowIfNullOrWhiteSpace(labels.Exit);
+    }
+
+    private static void AppendSeparator(nint menu)
+    {
+        if (!NativeMethods.AppendMenu(menu, NativeMethods.MfSeparator, 0, null))
+            throw CreateWin32Exception("The tray menu separator could not be added.");
+    }
+
+    private static void AppendOptions(nint menu, IReadOnlyList<TrayMenuOption> options,
+        Dictionary<uint, TrayMenuOption> optionsByCommand)
+    {
+        foreach (var option in options)
+        {
+            // Provider/model names can contain ampersands; do not turn those into access keys.
+            string label = option.Label.Replace("&", "&&", StringComparison.Ordinal);
+            uint flags = option.IsEnabled ? NativeMethods.MfString : NativeMethods.MfGrayed;
+            if (option.Children is { } children)
+            {
+                nint submenu = NativeMethods.CreatePopupMenu();
+                if (submenu == 0) throw CreateWin32Exception("The tray submenu could not be created.");
+                bool attached = false;
+                try
+                {
+                    AppendOptions(submenu, children, optionsByCommand);
+                    attached = NativeMethods.AppendMenu(menu, flags | NativeMethods.MfPopup,
+                        (nuint)submenu, label);
+                    if (!attached) throw CreateWin32Exception("The tray submenu could not be added.");
+                }
+                finally
+                {
+                    // Attached submenus belong to the root and are destroyed with it.
+                    if (!attached) _ = NativeMethods.DestroyMenu(submenu);
+                }
+            }
+            else
+            {
+                uint command = checked((uint)optionsByCommand.Count + 100);
+                optionsByCommand.Add(command, option);
+                if (option.IsChecked) flags |= NativeMethods.MfChecked;
+                if (!NativeMethods.AppendMenu(menu, flags, command, label))
+                    throw CreateWin32Exception("The tray option could not be added.");
+            }
+        }
     }
 
     private static void AppendMenuItem(nint menu, TrayMenuCommand command, string label)

@@ -67,6 +67,16 @@ public sealed partial class MainPage : Page, IDisposable
 
     public event EventHandler? HideRequested;
 
+    private readonly TokenUsage.App.Controls.ThemeSwitchTransition _themeSwitch = new();
+
+    private void OnThemeLogoClick(object sender, RoutedEventArgs e)
+    {
+        var appearance = ViewModel.Options.Appearance;
+        if (!appearance.CanChangeTheme) return;
+        var theme = ActualTheme == ElementTheme.Light ? AppThemeMode.Dark : AppThemeMode.Light;
+        appearance.SelectedTheme = appearance.ThemeOptions.Single(option => option.Value == theme);
+    }
+
     public event EventHandler<UsageReportRequestedEventArgs>? UsageReportRequested;
 
     public event EventHandler? LayoutAnimationProgressed;
@@ -85,6 +95,7 @@ public sealed partial class MainPage : Page, IDisposable
         }
 
         _disposed = true;
+        _themeSwitch.Stop();
         _relativeTimeTimer.Stop();
         _relativeTimeTimer.Tick -= OnRelativeTimeTimerElapsed;
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
@@ -170,12 +181,12 @@ public sealed partial class MainPage : Page, IDisposable
         bool transparencyActive)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        RequestedTheme = settings.Theme switch
+        _themeSwitch.Apply(this, HeaderThemeLogo, settings.Theme switch
         {
             AppThemeMode.Light => ElementTheme.Light,
             AppThemeMode.Dark => ElementTheme.Dark,
             _ => ElementTheme.Default,
-        };
+        });
         OpaqueSurface.Visibility = transparencyActive
             ? Visibility.Collapsed
             : Visibility.Visible;

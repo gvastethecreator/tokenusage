@@ -40,5 +40,7 @@ internal static class MotionSettings
 
     public static readonly TimeSpan ChartHoverDuration = TimeSpan.FromMilliseconds(220);
 
+    public static readonly TimeSpan ThemeSwitchDuration = TimeSpan.FromMilliseconds(480);
+
     public static bool AreAnimationsEnabled() => Settings.AnimationsEnabled;
 }

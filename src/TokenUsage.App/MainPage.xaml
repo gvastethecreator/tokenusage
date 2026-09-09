@@ -13,6 +13,7 @@
     xmlns:optionViews="using:TokenUsage.App.Views.Options"
     xmlns:dashboardViews="using:TokenUsage.App.Views.Dashboard"
     Background="Transparent"
+    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
     mc:Ignorable="d">
 
     <Grid x:Name="CaptureSurface">
@@ -65,16 +66,21 @@
                 <StackPanel
                     Grid.Column="0"
                     Orientation="Horizontal"
-                    Spacing="9"
+                    Spacing="8"
                     VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
-                    <Image
-                        Height="32"
-                        Source="{ThemeResource TokenUsageAppIconSource}"
-                        Width="32" />
+                    <controls:ThemeLogoButton x:Uid="ThemeLogoButton" AutomationProperties.AutomationId="CompactThemeLogoButton"
+                        Click="OnThemeLogoClick" Style="{StaticResource SubtleButtonStyle}"
+                        Padding="4" BorderThickness="0" CornerRadius="20"
+                        MinWidth="40" MinHeight="40" Width="40" Height="40">
+                        <Image x:Name="HeaderThemeLogo" Height="32" Width="32"
+                            Source="{ThemeResource TokenUsageAppIconSource}" />
+                    </controls:ThemeLogoButton>
                     <TextBlock
                         x:Uid="ProviderHeader"
-                        FontSize="17"
+                        FontSize="16"
+                        LineHeight="20"
+                        LineStackingStrategy="BlockLineHeight"
                         FontWeight="SemiBold"
                         VerticalAlignment="Center" />
                     <Border
