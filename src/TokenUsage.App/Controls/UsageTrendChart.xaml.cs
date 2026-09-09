@@ -18,7 +18,9 @@ namespace TokenUsage.App.Controls;
 
 public sealed partial class UsageTrendChart : UserControl
 {
-    private double TopPadding => 8 + ResetKinds(Data).Length * 14;
+    private double TopPadding => IsPreview || Data is null
+        ? 8
+        : UsageReportResetMarkers.TopPaddingFor(UsageReportResetMarkers.PackDays(Data.Days));
     private const double BottomPadding = 10;
     private readonly ResourceLoader _resources = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();

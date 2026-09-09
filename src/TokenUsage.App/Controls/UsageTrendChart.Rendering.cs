@@ -34,6 +34,27 @@ public sealed partial class UsageTrendChart
                 Canvas.SetTop(bar, item.Y);
                 _seriesCanvas.Children.Add(bar);
             }
+            if (!IsPreview)
+            {
+                IReadOnlyList<double>[] stubSeries = data.Style == ReportChartStyle.TwoHourBars
+                    ? data.Series.Select(series => series.Values).ToArray()
+                    : values;
+                foreach (UsageTrendBaselineStub stub in UsageTrendLayouts.EmptyDayStubs(
+                    stubSeries, data.Days.Count, width, height, top: TopPadding, bottom: BottomPadding))
+                {
+                    var hairline = new Border
+                    {
+                        Width = stub.Width,
+                        Height = stub.Height,
+                        Background = TextBrushProxy.Background,
+                        Opacity = 0.35,
+                        IsHitTestVisible = false,
+                    };
+                    Canvas.SetLeft(hairline, stub.X);
+                    Canvas.SetTop(hairline, stub.Y);
+                    _seriesCanvas.Children.Add(hairline);
+                }
+            }
             return;
         }
 
@@ -84,20 +105,16 @@ public sealed partial class UsageTrendChart
 
     private void RenderResetMarkers(UsageReportTrendDataset data, double width)
     {
-        var kinds = ResetKinds(data);
-        for (int index = 0; index < data.Days.Count; index++)
+        var packed = UsageReportResetMarkers.PackDays(data.Days);
+        foreach (UsageReportResetMark mark in packed)
         {
-            if (data.Days[index].Resets.Count == 0) continue;
             double x = data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1
-                ? (index + 0.5) * width / data.Days.Count
-                : index * width / (data.Days.Count - 1);
-            foreach (var kind in data.Days[index].Resets.Select(reset => reset.Kind).Distinct())
-            {
-                Shape marker = CreateResetSymbol(kind);
-                Canvas.SetLeft(marker, Math.Clamp(x - 5, 0, Math.Max(0, width - 10)));
-                Canvas.SetTop(marker, 2 + Array.IndexOf(kinds, kind) * 14);
-                PlotCanvas.Children.Add(marker);
-            }
+                ? (mark.DayIndex + 0.5) * width / data.Days.Count
+                : mark.DayIndex * width / Math.Max(1, data.Days.Count - 1);
+            Shape marker = CreateResetSymbol(mark.Kind);
+            Canvas.SetLeft(marker, Math.Clamp(x - 5, 0, Math.Max(0, width - 10)));
+            Canvas.SetTop(marker, UsageReportResetMarkers.RailTop(mark.StackIndex));
+            PlotCanvas.Children.Add(marker);
         }
     }
 
@@ -110,19 +127,12 @@ public sealed partial class UsageTrendChart
         _ => TextBrushProxy.Background,
     };
 
-    private Shape CreateResetSymbol(UsageReportResetKind kind)
+    private Polygon CreateResetSymbol(UsageReportResetKind kind)
     {
-        Shape symbol = kind switch
-        {
-            UsageReportResetKind.Weekly => new Polygon { Points = [new(0, 1), new(10, 1), new(5, 9)] },
-            UsageReportResetKind.Session => new Ellipse(),
-            UsageReportResetKind.Manual => new Polygon { Points = [new(5, 0), new(10, 5), new(5, 10), new(0, 5)] },
-            UsageReportResetKind.ResetCredit => new Rectangle { RadiusX = 1, RadiusY = 1 },
-            _ => new Ellipse { Stroke = ResetBrush(kind), StrokeThickness = 1.5 },
-        };
+        var symbol = new Polygon { Points = [new(0, 1), new(10, 1), new(5, 9)] };
         symbol.Width = 10;
         symbol.Height = 10;
-        if (kind != UsageReportResetKind.Observed) symbol.Fill = ResetBrush(kind);
+        symbol.Fill = ResetBrush(kind);
         symbol.IsHitTestVisible = false;
         return symbol;
     }

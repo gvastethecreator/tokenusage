@@ -1,6 +1,7 @@
 namespace TokenUsage.App.Controls;
 
 public readonly record struct UsageTrendBar(int SeriesIndex, int DayIndex, double X, double Y, double Width, double Height);
+public readonly record struct UsageTrendBaselineStub(int DayIndex, double X, double Y, double Width, double Height);
 public sealed record UsageTrendBand(IReadOnlyList<double> Lower, IReadOnlyList<double> Upper);
 
 public static class UsageTrendLayouts
@@ -37,6 +38,34 @@ public static class UsageTrendLayouts
                 baseline - barHeight, barWidth, barHeight));
         }
         return bars;
+    }
+
+    public static IReadOnlyList<UsageTrendBaselineStub> EmptyDayStubs(
+        IReadOnlyList<IReadOnlyList<double>> series, int days, double width, double height,
+        double top = 8, double bottom = 10)
+    {
+        if (days <= 0 || series.Count == 0 || width <= 0 || height <= 0) return [];
+        double dayWidth = width / days;
+        double barWidth = dayWidth * 0.8 * 0.88;
+        double baseline = height - bottom;
+        var stubs = new List<UsageTrendBaselineStub>();
+        for (int day = 0; day < days; day++)
+        {
+            bool hasBar = false;
+            bool hasZero = false;
+            bool hasUnknown = false;
+            foreach (IReadOnlyList<double> values in series)
+            {
+                if (day >= values.Count) continue;
+                double value = values[day];
+                if (!double.IsFinite(value)) hasUnknown = true;
+                else if (value > 0) hasBar = true;
+                else hasZero = true;
+            }
+            if (hasBar || (!hasZero && hasUnknown)) continue;
+            stubs.Add(new(day, day * dayWidth + dayWidth * 0.1, baseline - 2, barWidth, 2));
+        }
+        return stubs;
     }
 
     public static IReadOnlyList<UsageTrendBand> Bands(IReadOnlyList<IReadOnlyList<double>> series, bool independent)
