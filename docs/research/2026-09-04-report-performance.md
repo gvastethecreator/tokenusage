@@ -374,3 +374,165 @@ confirmation. No real refresh, historical repricing, or installed-build correcti
 is claimed yet. Other themes, DPI settings, increased text sizes, Narrator speech,
 and ARM64 were not exercised. Busy/error behavior was unchanged and retains the
 earlier evidence above; the empty state also rendered in the diagnostic host.
+
+## September 7 follow-up: reset markers and provider limits
+
+The Codex report no longer stretches quota tiles vertically. The repeater sets a
+finite tile width without `ItemsStretch.Fill`, and the tile keeps its natural
+height. Long observed-token explanations are available through an information
+button's tooltip and accessible name. Reset time, remaining allowance, and pace
+stay visible. Provider-label evidence remains in the accessible description.
+
+Reset markers now retain a typed category through calendar and cycle projection.
+Weekly resets use blue triangles, session resets use violet circles, and explicit
+manual resets use amber diamonds. Reset credits have a separate square symbol.
+Other or unknown resets use outlined circles; an unexplained drop in usage is not
+called manual. Types that share a day occupy separate lanes at the same day
+position. The legend, daily tooltip, and chart accessibility text identify them.
+Light and dark palettes are separate. Contrast themes use system brushes and
+keep the distinct shapes.
+
+Single-series lines now have a subtle fill that follows the original curve and
+preserves missing-value gaps. Bars use an opaque vertical gradient so overlapping
+series do not show through each other. Nonzero grid lines are lighter and dashed.
+Values, scale preferences, stacking rules, hover timing, and entrance motion did
+not change.
+
+Verification completed on September 8 UTC:
+
+- Nine reset-marker tests passed, including cause classification and calendar
+  boundaries. All 106 architecture checks passed after a resource-key lookup fix;
+  only the failed localization check was repeated. This suite includes the
+  existing chart geometry tests.
+- The x64 Release portable app and existing native diagnostic host built. The
+  final app assembly SHA-256 is
+  `4F2BD9A9C5D5E30BCA22966D67C2FC1776A39232B3D697F15CB566ADAB6E5906`.
+- The real report page rendered in the isolated, unpackaged diagnostic host at
+  1280 by 900 and 760 by 900, 96 DPI, text scale 1, English, light and dark themes.
+  Synthetic Codex data includes coincident weekly/session/manual resets and four
+  quota windows with long token explanations. Each quota tile measured 85 DIP
+  high; narrow mode used two columns. UI Automation exposed the complete token
+  explanation on each information button.
+- Inspected captures are under `.scratch/tokenusage-measurement/`:
+  `report-polish-final-dark.png`, `report-polish-final-light-bars.png`, and
+  `report-polish-final-narrow-limits.png`. The user screenshot contains different,
+  real data; these are not pixel-matched before/after captures.
+
+The installed desktop app and user data were not changed in this follow-up. A new
+MSIX, another DPI, increased text scale, and a Windows contrast theme were not
+tested. UIA focus worked, but the keyboard-input check was blocked because the
+target lost foreground ownership; no keyboard or Narrator pass is claimed.
+
+### Local installation replacement
+
+At the user's request, the desktop installation was updated on September 7 at
+22:29 local time (September 8 UTC). The x64 Release MSIX build passed. This remains
+an unsigned local development package, version `0.0.1.0`, not a public release.
+Its SHA-256 is `496EF5928922E96C118442CF07E44E373B00A9D25CA3B11859013CC42162124C`.
+
+The registered `.scratch/local-brand-header` installation was backed up to
+`.scratch/local-brand-header-before-report-polish-20260908`, replaced, and
+registered again with the same package identity. All 504 installed files matched
+the extracted package. The three top-level LocalState settings files kept their
+hashes. The installed app assembly hash is
+`DCA1A40E0C42A1176FADBD6F581142B7BB5AC2500470C59A9A3574D89608775E`.
+The provider assembly still matches the verified Codex repair:
+`5514586B91F7F6255777A0F87C4B4727FA25C5CD000B2E907A6C2B700BB77959`.
+
+Windows reported package status OK. Activation started PID 52976 from the
+registered desktop path, and the process remained responsive. Read-only database
+checks before and after replacement returned `Integrity=ok`, the same 70 Codex
+rollup rows and 32,300,330,647 tokens, and the same complete/no-issue collection
+record. No user data was replaced with diagnostic data. Native visual evidence
+remains the isolated-host captures above; no additional installed UI capture,
+commit, push, or release publication was performed.
+
+## September 7 follow-up: report loading and compact measurement details
+
+Opening the report now reads collected data without first refreshing every
+provider. Refresh remains an explicit action. Collection timestamps and coverage
+limits remain in Measurement details. Read and refresh errors now include the
+exception type and message; a failed refresh retains the last loaded evidence.
+The copied database loaded without a read error, so this does not establish that
+every error seen in the installed app had the same cause.
+
+The report wordmark is 28 DIP with a 40-DIP logo. The visible logo edge aligns with
+the Usage report heading. Measurement details uses 12-DIP text, narrow label
+columns, and grouped collection states. Its content measured 132 DIP high in the
+1280-by-900 global report fixture, excluding the expander header and padding.
+The copy button exports the full explanation, including individual collection
+records. Display and capture use the same compact section template.
+
+Native capture testing reproduced an extent change during table recycling:
+the requested offset was 1636 DIP but the final position was 1622 DIP. Full-report
+capture now temporarily uses a non-virtualizing stack layout, including repeaters
+whose default layout property is null. It restores the original layouts and
+scroll position in `finally` and rejects concurrent captures of the same page.
+The implementation follows the WinUI
+[attached-layout contract](https://learn.microsoft.com/en-us/windows/apps/design/layout/attached-layouts).
+
+Verification on September 8 UTC:
+
+- The x64 Release portable app and existing native probe built. Final app assembly
+  SHA-256: `ABD4E7B74D4F7B9302C2C805D57D75D5210B3A0D580CD3AEEEBAE2923642753F`.
+- All 106 architecture/presentation checks passed. The four localization checks
+  passed again after extending the existing resource lookup case to check PRI
+  property paths. The check now rejects the dot-form lookup that caused the copy
+  heading's native resource error.
+- A copied usage database and reset history opened in about 2.4 seconds. The
+  baseline took about 6.5 seconds with an injected four-second refresh delay.
+  These are diagnostic observations, not a production performance benchmark.
+  Provider switching and the default provider comparison loaded without errors.
+- An injected refresh failure preserved `HasData=true` and showed its cause.
+  Clipboard verification matched all 1818 characters of the full details text.
+- The inspected 1284-by-3378 shared PNG includes every model row and the compact
+  details while the original expander was closed. After capture, the expander
+  remained closed, the capture-only panel was hidden, and scroll offset was zero,
+  matching its initial state.
+- Native visual checks used 1280-by-900 and 760-by-900 windows, 96 DPI and text
+  scale 1, in light and dark themes. Evidence is in
+  `.scratch/tokenusage-measurement/report-details-shared-complete.png`,
+  `report-details-compact.png`, `report-details-narrow.png`, and
+  `report-details-compact-wide-light.png`.
+
+The installed app and original database were not changed. This follow-up did not
+build an MSIX, reinstall, commit, push, or publish. Other DPI/text scales, contrast
+themes, keyboard/Narrator use, and every comparison axis were not tested. The
+narrow provider table still clips some cost currency suffixes; that pre-existing
+table layout is outside this header/details change. The light-theme probe sets
+the page theme directly, so it does not verify caption-button theme updates.
+
+### Installed verification: September 8, 2026
+
+With user approval, the x64 Release MSIX was rebuilt without signing and installed
+over the registered development package at `.scratch/local-brand-header`. The
+package identity and version remain unchanged. Windows reports package status OK.
+This is a local development installation, not a signed release or a clean-machine
+installation test.
+
+All 504 installed files match the extracted package; three files changed. The
+three top-level settings files and scanner database retained their hashes before
+the app was restarted. The provider assembly still matches the verified Codex
+repair. A full recovery copy remains at
+`.scratch/local-brand-header-before-report-details-20260908`.
+
+- MSIX SHA-256: `64613790A1F229724122981461F57B8C9FE5FDBFE84FC85D2D1921241FE18108`.
+- Installed app SHA-256: `9DEF99A6F9A29DDE8A3E696863C63AFFF174986A37399AEB49DFD511AF637F1B`.
+- Provider SHA-256: `5514586B91F7F6255777A0F87C4B4727FA25C5CD000B2E907A6C2B700BB77959`.
+- Installation receipt: `.scratch/tokenusage-measurement/report-details-install.json`.
+
+The installed process, PID 21820, opened the report with the original local data.
+Native inspection showed the capture action enabled, which requires loaded data
+and no active load. After closing and reopening the report, the same ready state
+was observed in 1431 ms, including command and UI Automation overhead. Both
+1280-by-900 window captures show populated summaries and charts without a visible
+load error. This is one repeat-opening observation, not a performance benchmark.
+Evidence: `.scratch/tokenusage-measurement/installed-report-details.png` and
+`installed-report-reopened.png`.
+
+The report window was no longer available for an additional bottom-of-page check.
+The installed process remained responsive. Compact-details and complete-capture
+proof therefore remains the isolated native verification above; those checks
+were not repeated in the installed app. Product source did not change during
+installation, so the passed tests above were reused. No commit, push, or release
+publication was performed.
