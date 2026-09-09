@@ -849,6 +849,31 @@
   <data name="UsageReportTwoHourTitle" xml:space="preserve"><value>2-hour usage · 12 bars per day</value></data>
   <data name="DashboardLayoutCardsTitle.Text" xml:space="preserve"><value>Provider cards</value></data>
   <data name="UsageReportCompareModelsButton.Content" xml:space="preserve"><value>Models</value></data>
+  <data name="UsageReportCompareRatesButton.Content" xml:space="preserve"><value>Rates</value></data>
+  <data name="UsageReportCompareRatesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Compare list rates</value></data>
+  <data name="UsageReportMarkBest.Content" xml:space="preserve"><value>Mark best values</value></data>
+  <data name="UsageReportMarkBest.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Mark best values</value></data>
+  <data name="UsageReportMarkBest.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Marks the better number in each comparable row. Tokens are not scored.</value></data>
+  <data name="UsageReportBestLabel.Text" xml:space="preserve"><value>Best</value></data>
+  <data name="UsageComparisonRateBaselineDate.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline catalog date</value></data>
+  <data name="UsageComparisonRateStepsTitle.Text" xml:space="preserve"><value>Catalog list rates</value></data>
+  <data name="UsageComparisonVolumeChange" xml:space="preserve"><value>Token volume</value></data>
+  <data name="UsageComparisonMixChange" xml:space="preserve"><value>Model mix</value></data>
+  <data name="UsageComparisonRateChange" xml:space="preserve"><value>List-rate change</value></data>
+  <data name="UsageReportResetLogTitle.Text" xml:space="preserve"><value>Recorded resets</value></data>
+  <data name="UsageReportResetLogEmpty.Text" xml:space="preserve"><value>No recorded resets in this range.</value></data>
+  <data name="UsageReportResetLogAllQuotas" xml:space="preserve"><value>All quotas</value></data>
+  <data name="UsageReportResetLogAllClasses" xml:space="preserve"><value>All classes</value></data>
+  <data name="UsageReportResetLogQuota.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset quota</value></data>
+  <data name="UsageReportResetLogClass.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset class</value></data>
+  <data name="UsageReportResetLogWhen.Text" xml:space="preserve"><value>When</value></data>
+  <data name="UsageReportResetLogQuotaColumn.Text" xml:space="preserve"><value>Quota</value></data>
+  <data name="UsageReportResetLogExpected.Text" xml:space="preserve"><value>Expected</value></data>
+  <data name="UsageReportResetLogClassColumn.Text" xml:space="preserve"><value>Class</value></data>
+  <data name="UsageReportResetLogEvidence.Text" xml:space="preserve"><value>Evidence</value></data>
+  <data name="UsageReportResetEvidenceInferredBanked" xml:space="preserve"><value>Banked reset · inferred from a credit drop</value></data>
+  <data name="UsageReportResetEvidenceInferredGrant" xml:space="preserve"><value>Extra reset · no credit drop</value></data>
+  <data name="UsageReportResetEvidenceScheduled" xml:space="preserve"><value>Scheduled reset</value></data>
   <data name="UsageComparisonPresetSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Comparison period</value></data>
   <data name="UsageComparisonBaselineModel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline model A</value></data>
   <data name="UsageComparisonBaselineModel.PlaceholderText" xml:space="preserve"><value>Baseline model A</value></data>
@@ -921,11 +946,11 @@
   <data name="UsageComparisonCycleCountLabel.Text" xml:space="preserve"><value>Cycles</value></data>
   <data name="UsageComparisonTokensFormat" xml:space="preserve"><value>{0} tokens</value></data>
   <data name="UsageReportChartResetFormat" xml:space="preserve"><value>Recorded reset · {0} · {1} · {2}</value></data>
-  <data name="UsageReportResetKindWeekly" xml:space="preserve"><value>Weekly reset</value></data>
-  <data name="UsageReportResetKindSession" xml:space="preserve"><value>Session reset</value></data>
-  <data name="UsageReportResetKindManual" xml:space="preserve"><value>Manual reset</value></data>
-  <data name="UsageReportResetKindResetCredit" xml:space="preserve"><value>Reset credit</value></data>
-  <data name="UsageReportResetKindObserved" xml:space="preserve"><value>Other / unknown reset</value></data>
+  <data name="UsageReportResetKindWeekly" xml:space="preserve"><value>Scheduled weekly reset</value></data>
+  <data name="UsageReportResetKindSession" xml:space="preserve"><value>Scheduled session reset</value></data>
+  <data name="UsageReportResetKindManual" xml:space="preserve"><value>Banked reset</value></data>
+  <data name="UsageReportResetKindResetCredit" xml:space="preserve"><value>Extra reset</value></data>
+  <data name="UsageReportResetKindObserved" xml:space="preserve"><value>Unknown reset</value></data>
   <data name="UpdateSectionTitle.Text" xml:space="preserve"><value>App updates</value></data>
   <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>v{0}</value></data>
   <data name="UpdateAutomaticLabel.Text" xml:space="preserve"><value>Automatic updates</value></data>

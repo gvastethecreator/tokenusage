@@ -27,10 +27,36 @@ public sealed partial class UsageReportViewModel
     public IReadOnlyList<UsageComparisonModelOption> ComparisonModels { get; private set; } = [];
     public IReadOnlyList<UsageSavedComparisonOption> SavedComparisons { get; private set; } = [];
     public bool IsCompareModelsAxis => CompareAxis == UsageReportCompareAxis.Models;
-    public bool HasPeriodComparisonOptions => IsComparePeriodsAxis || IsCompareModelsAxis && CompareModelPeriods;
+    public bool IsCompareRatesAxis => CompareAxis == UsageReportCompareAxis.Rates;
+    public bool HasPeriodComparisonOptions => IsComparePeriodsAxis
+        || IsCompareModelsAxis && CompareModelPeriods;
     public bool CanChangeComparison => _savedComparison is null && !IsLoading && !_savingComparison;
     public bool HasSavedComparison => _savedComparison is not null;
     public bool CanUseReferencePrices => CanChangeComparison && !IsCompareCyclesAxis;
+    private bool _markBestValues = true;
+    public bool MarkBestValues
+    {
+        get => _markBestValues;
+        set
+        {
+            if (value == _markBestValues) return;
+            _markBestValues = value;
+            OnPropertyChanged();
+            RebuildProjection();
+        }
+    }
+    public DateTimeOffset? RateBaselineDate
+    {
+        get => _rateBaselineUtc;
+        set
+        {
+            if (value is null || !CanUseReferencePrices) return;
+            _rateBaselineUtc = new DateTimeOffset(value.Value.Date, TimeSpan.Zero);
+            OnPropertyChanged();
+            if (IsCompareRatesAxis) _ = LoadAsync();
+        }
+    }
+    private DateTimeOffset _rateBaselineUtc;
     public DateTimeOffset? PriceReferenceDate
     {
         get => _priceReferenceUtc;
@@ -39,7 +65,7 @@ public sealed partial class UsageReportViewModel
             if (value is null || !CanUseReferencePrices) return;
             _priceReferenceUtc = new DateTimeOffset(value.Value.Date, TimeSpan.Zero);
             OnPropertyChanged(); OnPropertyChanged(nameof(PriceReferenceLabel));
-            if (UseReferencePrices) _ = LoadAsync();
+            if (UsageComparison.ReloadsForCatalogDate(UseReferencePrices, IsCompareRatesAxis)) _ = LoadAsync();
         }
     }
     public string MeasurementEvidence => _measurementEvidence;
@@ -73,12 +99,24 @@ public sealed partial class UsageReportViewModel
     public bool UseReferencePrices
     {
         get => _useReferencePrices;
-        set { if (value == _useReferencePrices) return; _useReferencePrices = value; OnPropertyChanged(); _ = LoadAsync(); }
+        set
+        {
+            if (value == _useReferencePrices) return;
+            _useReferencePrices = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsCatalogDatePickerVisible));
+            _ = LoadAsync();
+        }
     }
+
+    public bool IsReferencePriceOverlayVisible => IsPairComparison && !IsCompareRatesAxis;
+
+    public bool IsCatalogDatePickerVisible => IsCompareRatesAxis || UseReferencePrices;
 
     private void InitializeComparisons()
     {
         _priceReferenceUtc = _clock.GetUtcNow().ToUniversalTime();
+        _rateBaselineUtc = _priceReferenceUtc.AddDays(-30);
         ComparisonPresets = Enum.GetValues<UsageComparisonPreset>()
             .Select(preset => new UsageComparisonOption(preset, GetString(preset switch
             {
@@ -161,31 +199,90 @@ public sealed partial class UsageReportViewModel
             };
         }, token);
 
-    private async Task<UsageReport> RepriceAsync(UsageReport original, DateOnly from, DateOnly to, CancellationToken token)
+    private Task<UsageReport> RepriceAsync(UsageReport original, DateOnly from, DateOnly to, CancellationToken token) =>
+        RepriceAtAsync(original, from, to, _priceReferenceUtc, token);
+
+    private static CostObservation ResolveCatalogCost(UsageEvent row, DateTimeOffset atUtc) =>
+        row.AgentId.Value == "cursor" ? CursorPricingCatalog.Resolve(row.ModelId.Value, atUtc, row.Tokens)
+        : row.AgentId.Value == "codex" ? CodexPricingCatalog.Resolve(row.ModelId.Value, row.Tokens, atUtc)
+        : CostObservation.Unavailable();
+
+    private async Task ApplyRatesComparisonAsync(DateOnly start, DateOnly end, CancellationToken token)
+    {
+        _compareLeftStart = start;
+        _compareLeftEnd = end;
+        _compareRightStart = start;
+        _compareRightEnd = end;
+        UsageReport cohort = _globalReport;
+        _report = await RepriceAtAsync(cohort, start, end, _rateBaselineUtc, token);
+        _compareRightReport = await RepriceAtAsync(cohort, start, end, _priceReferenceUtc, token);
+        _measurementEvidence = GetString("UsageComparisonRepricedEvidence");
+        RebuildRateSteps();
+    }
+
+    public IReadOnlyList<UsageReportRateStep> RateSteps { get; private set; } = [];
+
+    private void RebuildRateSteps()
+    {
+        RateSteps = IsCompareRatesAxis
+            ? PricingEvidenceCatalog.AllRates
+                .OrderByDescending(item => item.EffectiveFromUtc)
+                .Select(item => new UsageReportRateStep(
+                    item.ExactPriceMatch,
+                    item.CatalogVersion,
+                    item.EffectiveFromUtc.UtcDateTime.ToString("d", CultureInfo.CurrentCulture)
+                        + (item.EffectiveUntilUtc is { } until
+                            ? " – " + until.UtcDateTime.ToString("d", CultureInfo.CurrentCulture)
+                            : "")))
+                .Take(24)
+                .ToArray()
+            : [];
+        OnPropertyChanged(nameof(RateSteps));
+    }
+
+    private async Task<UsageReport> RepriceAtAsync(
+        UsageReport original, DateOnly from, DateOnly to, DateTimeOffset atUtc, CancellationToken token)
     {
         if (to < from) return original;
         return await Task.Run(async () =>
         {
             UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(_databasePath, token);
-            DateTimeOffset fromUtc = new(from.AddDays(-1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-            DateTimeOffset toUtc = new(to.AddDays(2).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-            IReadOnlyList<UsageEvent> events = await repository.QueryUsageEventsAsync(fromUtc, toUtc, cancellationToken: token);
-            return UsageReferencePricing.Apply(original, events, row =>
-                row.AgentId.Value == "cursor" ? CursorPricingCatalog.Resolve(row.ModelId.Value, _priceReferenceUtc, row.Tokens)
-                : row.AgentId.Value == "codex" ? CodexPricingCatalog.Resolve(row.ModelId.Value, row.Tokens, _priceReferenceUtc)
-                : CostObservation.Unavailable());
+            IReadOnlyList<UsageEvent> events = await repository.QueryUsageEventsAsync(
+                new DateTimeOffset(from.AddDays(-1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
+                new DateTimeOffset(to.AddDays(2).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
+                cancellationToken: token);
+            return UsageReferencePricing.Apply(original, events, row => ResolveCatalogCost(row, atUtc));
         }, token);
+    }
+
+    private UsageReportCompareRow SplitRow(string metric, decimal? amount)
+    {
+        // Volume/mix/rate are parts of the cost change, not A or B totals.
+        string delta = FormatOptionalUsd(amount);
+        string side = GetString("UsageReportCompareUnavailable");
+        return MetricRow(metric, side, side, delta);
+    }
+
+    private UsageReportCompareRow MetricRow(
+        string metric, string left, string right, string delta,
+        decimal? leftValue = null, decimal? rightValue = null,
+        UsageBestDirection direction = UsageBestDirection.None)
+    {
+        int? winner = _markBestValues ? UsageComparison.Winner(leftValue, rightValue, direction) : null;
+        return new(metric, left, right, delta, winner < 0, winner > 0);
     }
 
     private IEnumerable<UsageReportCompareRow> CreateMeasurementRows(UsageReport currentReport)
     {
-        yield return new(GetString("UsageComparisonActiveDays"), UsageComparison.ActiveDays(_report).ToString(CultureInfo.CurrentCulture), UsageComparison.ActiveDays(currentReport).ToString(CultureInfo.CurrentCulture),
+        yield return MetricRow(GetString("UsageComparisonActiveDays"), UsageComparison.ActiveDays(_report).ToString(CultureInfo.CurrentCulture), UsageComparison.ActiveDays(currentReport).ToString(CultureInfo.CurrentCulture),
             FormatSignedCount(UsageComparison.ActiveDays(currentReport) - UsageComparison.ActiveDays(_report)));
-        yield return new(GetString("UsageComparisonPriceCoverage"), FormatOptionalPercent(_report.Totals.PriceCoveragePercent), FormatOptionalPercent(currentReport.Totals.PriceCoveragePercent),
-            FormatSignedPercentagePoints(currentReport.Totals.PriceCoveragePercent - _report.Totals.PriceCoveragePercent));
-        yield return new(GetString("UsageComparisonCostPerMillion"), FormatOptionalUsd(UsageComparison.CostPerMillionPricedTokens(_report.Totals)),
+        yield return MetricRow(GetString("UsageComparisonPriceCoverage"), FormatOptionalPercent(_report.Totals.PriceCoveragePercent), FormatOptionalPercent(currentReport.Totals.PriceCoveragePercent),
+            FormatSignedPercentagePoints(currentReport.Totals.PriceCoveragePercent - _report.Totals.PriceCoveragePercent),
+            _report.Totals.PriceCoveragePercent, currentReport.Totals.PriceCoveragePercent, UsageBestDirection.Higher);
+        yield return MetricRow(GetString("UsageComparisonCostPerMillion"), FormatOptionalUsd(UsageComparison.CostPerMillionPricedTokens(_report.Totals)),
             FormatOptionalUsd(UsageComparison.CostPerMillionPricedTokens(currentReport.Totals)),
-            FormatOptionalSignedUsd(UsageComparison.CostPerMillionPricedTokens(_report.Totals), UsageComparison.CostPerMillionPricedTokens(currentReport.Totals)));
+            FormatOptionalSignedUsd(UsageComparison.CostPerMillionPricedTokens(_report.Totals), UsageComparison.CostPerMillionPricedTokens(currentReport.Totals)),
+            UsageComparison.CostPerMillionPricedTokens(_report.Totals), UsageComparison.CostPerMillionPricedTokens(currentReport.Totals), UsageBestDirection.Lower);
         foreach ((string name, long a, long b) in new[]
         {
             ("UsageComparisonCachedInput", _report.Totals.Tokens.CacheRead, currentReport.Totals.Tokens.CacheRead),
@@ -207,6 +304,13 @@ public sealed partial class UsageReportViewModel
                     IsCostMetric ? FormatOptionalUsd(row.Cost.Baseline) : FormatOptionalTokens(row.Tokens.Baseline),
                     IsCostMetric ? FormatOptionalUsd(row.Cost.Current) : FormatOptionalTokens(row.Tokens.Current),
                     IsCostMetric ? FormatOptionalSignedUsd(row.Cost.Baseline, row.Cost.Current) : FormatOptionalSignedTokens(row.Tokens.Baseline, row.Tokens.Current));
+        if (IsCompareRatesAxis)
+        {
+            UsageCostChangeSplit split = UsageComparison.SplitKnownCost(_report, currentReport);
+            yield return SplitRow(GetString("UsageComparisonVolumeChange"), split.Volume);
+            yield return SplitRow(GetString("UsageComparisonMixChange"), split.Mix);
+            yield return SplitRow(GetString("UsageComparisonRateChange"), split.Rate);
+        }
     }
 
     private string FormatChangeWithPercent(string absolute, decimal? baseline, decimal? current)
@@ -248,12 +352,13 @@ public sealed partial class UsageReportViewModel
         {
             var definition = new UsageComparisonDefinition(CompareAxis.ToString(), ComparisonPreset?.Preset.ToString() ?? "",
                 _compareLeftStart, _compareLeftEnd, _compareRightStart, _compareRightEnd, TimeZoneInfo.Local.Id,
-                UseReferencePrices ? _priceReferenceUtc : null, BaselineModel?.Name, CurrentModel?.Name,
+                UseReferencePrices || IsCompareRatesAxis ? _priceReferenceUtc : null, BaselineModel?.Name, CurrentModel?.Name,
                 MeasurementEvidence, UsageRepository.ComparisonDataRevision(IsCompareCyclesAxis ? _cycleReports.Select(entry => entry.Report).ToArray() : [_report, _compareRightReport]))
             {
                 BaselineLabel = CompareLeftLabel,
                 CurrentLabel = CompareRightLabel,
                 CycleComparison = CreateCycleComparison(),
+                RateBaselineUtc = IsCompareRatesAxis ? _rateBaselineUtc : null,
             };
             var snapshot = new SavedUsageComparison(Guid.NewGuid().ToString("N"), _clock.GetUtcNow(), definition, _report, _compareRightReport)
             { Cycles = IsCompareCyclesAxis ? _cycleReports : [] };
@@ -287,8 +392,9 @@ public sealed partial class UsageReportViewModel
             if (!ReferenceEquals(_loadCancellation, cancellation)) return;
             _savedComparison = snapshot;
             _cycleReports = snapshot.Cycles;
-            _useReferencePrices = snapshot.Definition.PriceReferenceUtc.HasValue;
+            _useReferencePrices = snapshot.Definition.PriceReferenceUtc.HasValue && snapshot.Definition.Axis != nameof(UsageReportCompareAxis.Rates);
             if (snapshot.Definition.PriceReferenceUtc is { } reference) _priceReferenceUtc = reference;
+            if (snapshot.Definition.RateBaselineUtc is { } baseline) _rateBaselineUtc = baseline;
             _comparisonPreset = ComparisonPresets.FirstOrDefault(option => option.Preset.ToString() == snapshot.Definition.Preset);
             _baselineModel = ComparisonModels.FirstOrDefault(option => option.Name == snapshot.Definition.BaselineModel);
             _currentModel = ComparisonModels.FirstOrDefault(option => option.Name == snapshot.Definition.CurrentModel);
@@ -316,6 +422,10 @@ public sealed partial class UsageReportViewModel
             OnPropertyChanged(nameof(IsCompareProvidersAxis));
             OnPropertyChanged(nameof(IsCompareCyclesAxis));
             OnPropertyChanged(nameof(IsCompareModelsAxis));
+            OnPropertyChanged(nameof(IsCompareRatesAxis));
+            OnPropertyChanged(nameof(RateBaselineDate));
+            OnPropertyChanged(nameof(IsCatalogDatePickerVisible));
+            OnPropertyChanged(nameof(IsReferencePriceOverlayVisible));
             OnPropertyChanged(nameof(HasPeriodComparisonOptions));
             OnPropertyChanged(nameof(HasSavedComparison));
             OnPropertyChanged(nameof(IsCompareCyclePickersVisible));

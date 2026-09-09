@@ -69,4 +69,17 @@ public sealed record UsageReportCompareRow(
     string Metric,
     string LeftText,
     string RightText,
-    string DeltaText);
+    string DeltaText,
+    bool LeftIsBest = false,
+    bool RightIsBest = false);
+
+public sealed record UsageReportResetLogRow(
+    string WhenText,
+    string QuotaText,
+    string ExpectedText,
+    string ClassText,
+    string EvidenceText);
+
+public sealed record UsageReportResetLogFilter(string Id, string Name);
+
+public sealed record UsageReportRateStep(string Model, string CatalogVersion, string RangeText);

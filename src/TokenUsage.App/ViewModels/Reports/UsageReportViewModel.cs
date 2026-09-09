@@ -734,7 +734,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                         startDate,
                         endDate, token)
                         .ConfigureAwait(true);
-                    if (UseReferencePrices && !IsCompareCyclesAxis)
+                    if (UsageComparison.OverlaysSingleReferencePrice(
+                        UseReferencePrices, IsCompareCyclesAxis, IsCompareRatesAxis))
                     {
                         UsageReport repricedA = await RepriceAsync(_report, _compareLeftStart, _compareLeftEnd, token);
                         token.ThrowIfCancellationRequested();
@@ -992,6 +993,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     {
         _savedComparison = null;
         OnPropertyChanged(nameof(IsCompareModelsAxis));
+        OnPropertyChanged(nameof(IsCompareRatesAxis));
+        OnPropertyChanged(nameof(IsPairComparison));
+        OnPropertyChanged(nameof(IsReferencePriceOverlayVisible));
+        OnPropertyChanged(nameof(IsCatalogDatePickerVisible));
         OnPropertyChanged(nameof(HasPeriodComparisonOptions));
         OnPropertyChanged(nameof(CanChangeComparison));
         OnPropertyChanged(nameof(CanUseReferencePrices));
@@ -1652,6 +1657,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             Trend = CreateTrend();
         }
 
+        RebuildResetLog();
+        RebuildRateSteps();
+
         HasCoverageHint = _report.Totals.Coverage != CoverageKind.Complete
             || _report.Totals.UnpricedTokens > 0
             || _report.Totals.UnavailableCostEventCount > 0
@@ -1732,6 +1740,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 break;
             case UsageReportCompareAxis.Cycles:
                 await ApplyCycleSetAsync(readResetCycleAsync, startDate, endDate, token);
+                break;
+            case UsageReportCompareAxis.Rates:
+                await ApplyRatesComparisonAsync(startDate, endDate, token);
                 break;
             default:
                 _report = _globalReport;
@@ -1986,6 +1997,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 _compareLeftStart,
                 _compareLeftEnd),
             UsageReportCompareAxis.Cycles => _cycleReports.Count > 0 ? _cycleReports[0].Label : string.Empty,
+            UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_rateBaselineUtc, CultureInfo.CurrentCulture),
             _ => string.Empty,
         });
         CompareRightLabel = _savedComparison?.Definition.CurrentLabel ?? (CompareAxis switch
@@ -1997,6 +2009,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 _compareRightStart,
                 _compareRightEnd),
             UsageReportCompareAxis.Cycles => _cycleReports.Count > 1 ? _cycleReports[1].Label : string.Empty,
+            UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_priceReferenceUtc, CultureInfo.CurrentCulture),
             _ => string.Empty,
         });
 
@@ -2039,11 +2052,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         {
             List<UsageReportCompareRow> cycleRows =
             [
-                new(
+                MetricRow(
                     GetString("UsageReportCompareQuotaUsedMetric"),
                     FormatOptionalPercent(cycleComparison.QuotaUsedPercent.Left),
                     FormatOptionalPercent(cycleComparison.QuotaUsedPercent.Right),
-                    FormatOptionalSignedPercentagePoints(cycleComparison.QuotaUsedPercent)),
+                    FormatOptionalSignedPercentagePoints(cycleComparison.QuotaUsedPercent),
+                    cycleComparison.QuotaUsedPercent.Left, cycleComparison.QuotaUsedPercent.Right, UsageBestDirection.Lower),
                 new(
                     GetString("UsageReportCompareTokensMetric"),
                     FormatOptionalTokens(cycleComparison.Tokens.Left),
@@ -2051,13 +2065,14 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     FormatChangeWithPercent(FormatOptionalSignedTokens(
                         cycleComparison.Tokens.Left,
                         cycleComparison.Tokens.Right), cycleComparison.Tokens.Left, cycleComparison.Tokens.Right)),
-                new(
+                MetricRow(
                     GetString("UsageReportCompareCostMetric"),
                     FormatOptionalUsd(cycleComparison.CostUsd.Left),
                     FormatOptionalUsd(cycleComparison.CostUsd.Right),
                     FormatChangeWithPercent(FormatOptionalSignedUsd(
                         cycleComparison.CostUsd.Left,
-                        cycleComparison.CostUsd.Right), cycleComparison.CostUsd.Left, cycleComparison.CostUsd.Right)),
+                        cycleComparison.CostUsd.Right), cycleComparison.CostUsd.Left, cycleComparison.CostUsd.Right),
+                    cycleComparison.CostUsd.Left, cycleComparison.CostUsd.Right, UsageBestDirection.Lower),
                 new(
                     GetString("UsageReportCompareEventsMetric"),
                     FormatOptionalCount(cycleComparison.EventCount.Left),
@@ -2086,28 +2101,32 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 FormatTokens(_report.Totals.Tokens.Total),
                 FormatTokens(currentReport.Totals.Tokens.Total),
                 FormatChangeWithPercent(FormatSignedTokens(delta.Tokens), _report.Totals.Tokens.Total, currentReport.Totals.Tokens.Total)),
-            new(
+            MetricRow(
                 GetString("UsageReportCompareCostMetric"),
                 FormatKnownCost(_report.Totals),
                 FormatKnownCost(currentReport.Totals),
                 FormatChangeWithPercent(FormatOptionalSignedUsd(
                     ComparableCost(_report.Totals), ComparableCost(currentReport.Totals)),
-                    ComparableCost(_report.Totals), ComparableCost(currentReport.Totals))),
-            new(
+                    ComparableCost(_report.Totals), ComparableCost(currentReport.Totals)),
+                ComparableCost(_report.Totals), ComparableCost(currentReport.Totals), UsageBestDirection.Lower),
+            MetricRow(
                 GetString("UsageReportCompareReportedCostMetric"),
                 FormatOptionalUsd(_report.Totals.ReportedCostUsd),
                 FormatOptionalUsd(currentReport.Totals.ReportedCostUsd),
-                FormatOptionalSignedUsd(_report.Totals.ReportedCostUsd, currentReport.Totals.ReportedCostUsd)),
-            new(
+                FormatOptionalSignedUsd(_report.Totals.ReportedCostUsd, currentReport.Totals.ReportedCostUsd),
+                _report.Totals.ReportedCostUsd, currentReport.Totals.ReportedCostUsd, UsageBestDirection.Lower),
+            MetricRow(
                 GetString("UsageReportCompareEstimatedCostMetric"),
                 FormatOptionalUsd(_report.Totals.EstimatedCostUsd),
                 FormatOptionalUsd(currentReport.Totals.EstimatedCostUsd),
-                FormatOptionalSignedUsd(_report.Totals.EstimatedCostUsd, currentReport.Totals.EstimatedCostUsd)),
-            new(
+                FormatOptionalSignedUsd(_report.Totals.EstimatedCostUsd, currentReport.Totals.EstimatedCostUsd),
+                _report.Totals.EstimatedCostUsd, currentReport.Totals.EstimatedCostUsd, UsageBestDirection.Lower),
+            MetricRow(
                 GetString("UsageReportCompareUnpricedMetric"),
                 FormatTokens(_report.Totals.UnpricedTokens),
                 FormatTokens(currentReport.Totals.UnpricedTokens),
-                FormatSignedTokens(delta.UnpricedTokens)),
+                FormatSignedTokens(delta.UnpricedTokens),
+                _report.Totals.UnpricedTokens, currentReport.Totals.UnpricedTokens, UsageBestDirection.Lower),
             new(
                 GetString("UsageReportCompareEventsMetric"),
                 UsageValueFormatter.Count(_report.Totals.EventCount),

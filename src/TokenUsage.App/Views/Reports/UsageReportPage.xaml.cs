@@ -78,6 +78,7 @@ public sealed partial class UsageReportPage : Page
         ThemeChangeRequested?.Invoke(this, ActualTheme == ElementTheme.Light ? AppThemeMode.Dark : AppThemeMode.Light);
     public event EventHandler<ReportChartGrouping>? ChartGroupingChanged;
     public event EventHandler<ReportChartStyle>? ChartStyleChanged;
+    public event EventHandler<bool>? MarkBestChanged;
     public void SetCaptionInset(double width) => ReportCaptionInset.Width = new GridLength(width);
 
     public object VisibleProviderTabs => _visibleProviderTabs;
@@ -86,6 +87,7 @@ public sealed partial class UsageReportPage : Page
     {
         ArgumentNullException.ThrowIfNull(settings);
         ViewModel.SetChartAppearance(settings.ReportChartStyle, settings.ReportChartGrouping);
+        ViewModel.MarkBestValues = settings.MarkReportBestValues;
         _themeSwitch.Apply(this, ReportHeaderLogo, settings.Theme switch
         {
             AppThemeMode.Light => ElementTheme.Light,
@@ -104,6 +106,12 @@ public sealed partial class UsageReportPage : Page
 
     private void OnSmallValuesClick(object sender, RoutedEventArgs e) =>
         ViewModel.SetSmallValueScale(sender is Microsoft.UI.Xaml.Controls.Primitives.ToggleButton { IsChecked: true });
+
+    private void OnMarkBestClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Microsoft.UI.Xaml.Controls.Primitives.ToggleButton { IsChecked: bool marked })
+            MarkBestChanged?.Invoke(this, marked);
+    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {

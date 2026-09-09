@@ -13,6 +13,7 @@ public enum UsageReportCompareAxis
     Periods,
     Cycles,
     Models,
+    Rates,
 }
 
 public sealed record UsageReportRequest
