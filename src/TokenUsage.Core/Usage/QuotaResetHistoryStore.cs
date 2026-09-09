@@ -27,6 +27,8 @@ public enum QuotaChangeEvidenceKind
     PartialReplenishment,
     OfficialManualSignal,
     OfficialResetCreditSignal,
+    InferredCreditDrop,
+    InferredNoCreditDrop,
 }
 
 public sealed record QuotaResetWindowState(
@@ -83,9 +85,16 @@ public sealed record QuotaResetHistory(
     public IReadOnlyList<QuotaProviderWatermark> ProviderWatermarks { get; init; } = [];
 
     public IReadOnlyList<QuotaResetWindowState> RetiredWindows { get; init; } = [];
+
+    public IReadOnlyList<QuotaCreditInventory> CreditInventories { get; init; } = [];
 }
 
 public sealed record QuotaProviderWatermark(string ProviderId, DateTimeOffset ObservedAtUtc);
+
+public sealed record QuotaCreditInventory(
+    string ProviderId,
+    decimal? ReportedAvailable,
+    DateTimeOffset ObservedAtUtc);
 
 public enum QuotaHistoryAvailability { Available, Missing, AccessDenied, Busy, UnsupportedSchema, InvalidData }
 
@@ -284,6 +293,7 @@ public sealed class QuotaResetHistoryStore
     public const int CurrentSchemaVersion = 3;
     public const string DefaultFileName = "quota-resets.v2.json";
     public const string LegacyFileName = "quota-resets.v1.json";
+    public const string ResetCreditsReportedAvailableMetricId = "quota.reset-credits.reported-available";
 
     private const int MaximumDocumentBytes = 2 * 1024 * 1024;
     private const int MaximumWindows = 128;
@@ -388,6 +398,14 @@ public sealed class QuotaResetHistoryStore
                 metric => metric.Value,
                 StringComparer.Ordinal);
         Journal.Append(snapshot, durations);
+        decimal? previousCredits = history.CreditInventories
+            .FirstOrDefault(item => item.ProviderId == snapshot.ProviderId.Value)
+            ?.ReportedAvailable;
+        decimal? currentCredits = ReadReportedCredits(snapshot);
+        bool? creditDropped = previousCredits is { } previousAvailable
+            && currentCredits is { } currentAvailable
+            ? currentAvailable < previousAvailable
+            : null;
         ProgressMetricSnapshot[] progressMetrics = snapshot.Metrics
             .OfType<ProgressMetricSnapshot>()
             .Where(metric => metric.Id.Value.StartsWith("quota.", StringComparison.Ordinal))
@@ -452,7 +470,8 @@ public sealed class QuotaResetHistoryStore
                     snapshot.SourceObservedAtUtc,
                     metric.ResetEvidence,
                     metric.Provenance,
-                    metric.ResetsAtUtc)
+                    metric.ResetsAtUtc,
+                    creditDropped)
                 : null;
             decimal? currentDuration = durationMinutes ?? previous.WindowDurationMinutes;
             DateTimeOffset cycleStart = sameWindowDuration
@@ -536,6 +555,11 @@ public sealed class QuotaResetHistoryStore
                 .Where(item => item.ProviderId != snapshot.ProviderId.Value)
                 .Append(new QuotaProviderWatermark(snapshot.ProviderId.Value, snapshot.SourceObservedAtUtc))
                 .OrderByDescending(item => item.ObservedAtUtc).Take(MaximumWindows).ToArray(),
+            CreditInventories = ReplaceCreditInventory(
+                history.CreditInventories,
+                snapshot.ProviderId.Value,
+                currentCredits,
+                snapshot.SourceObservedAtUtc),
         };
         Write(updated);
         return updated;
@@ -630,6 +654,7 @@ public sealed class QuotaResetHistoryStore
             Replenishments = history.Replenishments.ToList(),
             ProviderWatermarks = history.ProviderWatermarks.ToList(),
             RetiredWindows = history.RetiredWindows.ToList(),
+            CreditInventories = history.CreditInventories.ToList(),
         };
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(document, SerializerOptions);
         _document.WriteAtomically(bytes, MaximumDocumentBytes);
@@ -671,7 +696,20 @@ public sealed class QuotaResetHistoryStore
         QuotaResetWindowState[] retired = document.RetiredWindows?.ToArray() ?? [];
         if (retired.Length > MaximumResetRecords || retired.Any(item => !IsValid(item)))
             throw new InvalidDataException("Retired quota history is invalid.");
-        return new QuotaResetHistory(windows, resets, replenishments) { ProviderWatermarks = watermarks, RetiredWindows = retired };
+        QuotaCreditInventory[] credits = document.CreditInventories?.ToArray() ?? [];
+        if (credits.Length > MaximumWindows
+            || credits.Any(item => !IsValid(item))
+            || credits.Select(item => item.ProviderId).Distinct(StringComparer.Ordinal).Count() != credits.Length)
+        {
+            throw new InvalidDataException("Quota history contains invalid credit inventories.");
+        }
+
+        return new QuotaResetHistory(windows, resets, replenishments)
+        {
+            ProviderWatermarks = watermarks,
+            RetiredWindows = retired,
+            CreditInventories = credits,
+        };
     }
 
     private static QuotaResetHistory FromDocumentV1(DocumentV1 document)
@@ -768,13 +806,21 @@ public sealed class QuotaResetHistoryStore
             item.DetectionKind == QuotaResetDetectionKind.Scheduled
             && item.EvidenceKind == QuotaChangeEvidenceKind.ExpectedBoundaryCrossed,
         QuotaResetCause.Manual =>
-            item.EvidenceKind == QuotaChangeEvidenceKind.OfficialManualSignal,
+            item.EvidenceKind is QuotaChangeEvidenceKind.OfficialManualSignal
+                or QuotaChangeEvidenceKind.OfficialResetCreditSignal
+                or QuotaChangeEvidenceKind.InferredCreditDrop,
         QuotaResetCause.ResetCredit =>
-            item.EvidenceKind == QuotaChangeEvidenceKind.OfficialResetCreditSignal,
+            item.EvidenceKind is QuotaChangeEvidenceKind.OfficialResetCreditSignal
+                or QuotaChangeEvidenceKind.InferredNoCreditDrop,
         QuotaResetCause.Unknown =>
             item.EvidenceKind == QuotaChangeEvidenceKind.ReturnedToFull,
         _ => false,
     };
+
+    private static bool IsValid(QuotaCreditInventory item) =>
+        IsValidId(item.ProviderId)
+        && IsUtc(item.ObservedAtUtc)
+        && item.ReportedAvailable is null or >= 0m;
 
     private static bool IsValidId(string value) =>
         !string.IsNullOrWhiteSpace(value)
@@ -814,13 +860,16 @@ public sealed class QuotaResetHistoryStore
         DateTimeOffset observedAtUtc,
         ProviderResetEvidence? providerEvidence,
         DataProvenance provenance,
-        DateTimeOffset? currentExpectedResetAtUtc)
+        DateTimeOffset? currentExpectedResetAtUtc,
+        bool? creditDropped)
     {
         if (providerEvidence is not null
             && provenance.SourceKind == SourceKind.OfficialLocalApi
             && providerEvidence.OccurredAtUtc > previous.ObservedAtUtc
             && providerEvidence.OccurredAtUtc <= observedAtUtc)
         {
+            bool banked = providerEvidence.Cause == ProviderReportedResetCause.Manual
+                || creditDropped == true;
             return new ResetDetection(
                 providerEvidence.OccurredAtUtc,
                 previous.ExpectedResetAtUtc is not null
@@ -828,9 +877,7 @@ public sealed class QuotaResetHistoryStore
                         < previous.ExpectedResetAtUtc.Value
                         ? QuotaResetDetectionKind.Early
                         : QuotaResetDetectionKind.Observed,
-                providerEvidence.Cause == ProviderReportedResetCause.Manual
-                    ? QuotaResetCause.Manual
-                    : QuotaResetCause.ResetCredit,
+                banked ? QuotaResetCause.Manual : QuotaResetCause.ResetCredit,
                 providerEvidence.Cause == ProviderReportedResetCause.Manual
                     ? QuotaChangeEvidenceKind.OfficialManualSignal
                     : QuotaChangeEvidenceKind.OfficialResetCreditSignal);
@@ -861,6 +908,24 @@ public sealed class QuotaResetHistoryStore
 
         bool happenedBeforeSchedule = previous.ExpectedResetAtUtc is not null
             && observedAtUtc + ScheduleTolerance < previous.ExpectedResetAtUtc.Value;
+        if (happenedBeforeSchedule && creditDropped == true)
+        {
+            return new ResetDetection(
+                observedAtUtc,
+                QuotaResetDetectionKind.Early,
+                QuotaResetCause.Manual,
+                QuotaChangeEvidenceKind.InferredCreditDrop);
+        }
+
+        if (happenedBeforeSchedule && creditDropped == false)
+        {
+            return new ResetDetection(
+                observedAtUtc,
+                QuotaResetDetectionKind.Early,
+                QuotaResetCause.ResetCredit,
+                QuotaChangeEvidenceKind.InferredNoCreditDrop);
+        }
+
         return new ResetDetection(
             observedAtUtc,
             happenedBeforeSchedule
@@ -868,6 +933,35 @@ public sealed class QuotaResetHistoryStore
                 : QuotaResetDetectionKind.Observed,
             QuotaResetCause.Unknown,
             QuotaChangeEvidenceKind.ReturnedToFull);
+    }
+
+    private static decimal? ReadReportedCredits(ProviderSnapshot snapshot)
+    {
+        ScalarMetricSnapshot? metric = snapshot.Metrics.OfType<ScalarMetricSnapshot>()
+            .FirstOrDefault(item => item.Id.Value == ResetCreditsReportedAvailableMetricId);
+        return metric is { Value: >= 0m } ? metric.Value : null;
+    }
+
+    private static QuotaCreditInventory[] ReplaceCreditInventory(
+        IReadOnlyList<QuotaCreditInventory> inventories,
+        string providerId,
+        decimal? reportedAvailable,
+        DateTimeOffset observedAtUtc)
+    {
+        IEnumerable<QuotaCreditInventory> kept = inventories
+            .Where(item => item.ProviderId != providerId);
+        if (reportedAvailable is null)
+        {
+            QuotaCreditInventory? previous = inventories
+                .FirstOrDefault(item => item.ProviderId == providerId);
+            return previous is null
+                ? kept.ToArray()
+                : kept.Append(previous).ToArray();
+        }
+
+        return kept
+            .Append(new QuotaCreditInventory(providerId, reportedAvailable, observedAtUtc))
+            .ToArray();
     }
 
     private abstract record QuotaChangeDetection(DateTimeOffset OccurredAtUtc);
@@ -902,6 +996,7 @@ public sealed class QuotaResetHistoryStore
 
         public List<QuotaProviderWatermark>? ProviderWatermarks { get; set; }
         public List<QuotaResetWindowState>? RetiredWindows { get; set; }
+        public List<QuotaCreditInventory>? CreditInventories { get; set; }
     }
 
     private sealed record LegacyQuotaResetRecord(
