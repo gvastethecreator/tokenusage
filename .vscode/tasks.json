@@ -2,62 +2,146 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "📦 Restore",
-      "type": "shell",
-      "command": "dotnet restore src/TokenUsage.App/TokenUsage.App.csproj",
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "🔎 Deps",
-      "type": "shell",
-      "command": "powershell -ExecutionPolicy Bypass -File ./scripts/deps-check.ps1",
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "🛡️ Audit",
-      "type": "shell",
-      "command": "powershell -ExecutionPolicy Bypass -File ./scripts/audit.ps1",
-      "problemMatcher": "$msCompile"
-    },
-    {
       "label": "🚀 Run",
-      "type": "shell",
-      "command": "powershell -ExecutionPolicy Bypass -File ./BuildAndRun.ps1",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "🔨 Build",
-      "type": "shell",
-      "command": "powershell -ExecutionPolicy Bypass -File ./BuildAndRun.ps1 -SkipRun",
-      "group": "build",
-      "problemMatcher": "$msCompile"
+      "type": "process",
+      "command": "powershell",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "./BuildAndRun.ps1",
+        "src/TokenUsage.App/TokenUsage.App.csproj",
+        "-Detach",
+        "/p:Platform=x64"
+      ]
     },
     {
       "label": "🧪 Test",
-      "type": "shell",
-      "command": "dotnet test TokenUsage.slnx -p:Platform=x64",
+      "type": "process",
+      "command": "dotnet",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "test",
+        "tests/${input:testProject}/${input:testProject}.csproj",
+        "--configuration",
+        "Release",
+        "-p:Platform=x64",
+        "--verbosity",
+        "minimal"
+      ],
       "group": {
         "kind": "test",
         "isDefault": true
-      },
-      "problemMatcher": "$msCompile"
+      }
+    },
+    {
+      "label": "🔨 Build",
+      "type": "process",
+      "command": "powershell",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "./BuildAndRun.ps1",
+        "src/TokenUsage.App/TokenUsage.App.csproj",
+        "-SkipRun",
+        "/p:Platform=x64",
+        "/p:Configuration=Release"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     },
     {
       "label": "✅ Check",
-      "type": "shell",
-      "command": "powershell -ExecutionPolicy Bypass -File ./scripts/check.ps1",
-      "group": "test",
-      "problemMatcher": "$msCompile"
+      "type": "process",
+      "command": "powershell",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "./scripts/check.ps1",
+        "-Platform",
+        "x64",
+        "-Configuration",
+        "Release"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "🛡️ Audit",
+      "type": "process",
+      "command": "powershell",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "./scripts/audit.ps1"
+      ]
+    },
+    {
+      "label": "🔎 Deps",
+      "type": "process",
+      "command": "powershell",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "./scripts/deps-check.ps1"
+      ]
+    },
+    {
+      "label": "📦 Restore",
+      "type": "process",
+      "command": "dotnet",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "restore",
+        "src/TokenUsage.App/TokenUsage.App.csproj",
+        "-p:Platform=x64"
+      ]
     },
     {
       "label": "🧹 Clean",
-      "type": "shell",
-      "command": "dotnet clean TokenUsage.slnx",
-      "problemMatcher": "$msCompile"
+      "type": "process",
+      "command": "dotnet",
+      "problemMatcher": "$msCompile",
+      "args": [
+        "clean",
+        "src/TokenUsage.App/TokenUsage.App.csproj",
+        "-p:Platform=x64",
+        "--configuration",
+        "Release"
+      ]
+    }
+  ],
+  "options": {
+    "cwd": "${workspaceFolder}"
+  },
+  "inputs": [
+    {
+      "id": "testProject",
+      "type": "pickString",
+      "description": "Choose the test project for the changed behavior.",
+      "default": "TokenUsage.Core.Tests",
+      "options": [
+        "TokenUsage.Core.Tests",
+        "TokenUsage.Providers.Tests",
+        "TokenUsage.Cli.Tests",
+        "TokenUsage.Platform.Windows.Tests",
+        "TokenUsage.Architecture.Tests"
+      ]
     }
   ]
 }

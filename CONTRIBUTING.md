@@ -35,7 +35,7 @@ Do not add Playwright or another browser runner to the product, solution, packag
 1. Create a branch from the current `main` branch.
 2. Keep the diff tied to one issue.
 3. Use existing public seams and project patterns.
-4. Add the smallest test that proves the changed behavior.
+4. Reuse existing coverage. Extend a focused test when a meaningful failure is not covered.
 5. Update public docs when behavior, provider coverage, or a contract changes.
 6. Keep unrelated formatting and refactors out of the pull request.
 

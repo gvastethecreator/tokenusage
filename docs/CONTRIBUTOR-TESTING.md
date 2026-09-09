@@ -8,6 +8,21 @@ Prove the changed behavior at the cheapest reliable seam. Add evidence for risks
 
 Do not treat a build, mock, screenshot, or test count as universal proof.
 
+Reuse existing tests when they cover the failure. Extend a nearby case only
+when the change exposes a meaningful gap. Do not add a test that repeats a
+type, constant, or an existing assertion without protecting distinct behavior.
+
+For a local iteration, use the VS Code **Test** task to choose one test project,
+or run that project directly. For example:
+
+```powershell
+dotnet test tests/TokenUsage.Core.Tests/TokenUsage.Core.Tests.csproj --configuration Release -p:Platform=x64 --verbosity minimal
+```
+
+The **Check** task runs the complete gate below. Run the aggregate or its
+selected parts at a given verification boundary; do not repeat passed checks
+while their code and environment remain unchanged.
+
 ## Evidence by change type
 
 | Change | Required evidence |
@@ -78,7 +93,7 @@ Check:
 
 - empty, loading, success, stale, unavailable, and error states
 - light and dark themes
-- long provider names and translated text
+- long provider names and English text at increased text scale
 - keyboard focus and tooltips
 - text scaling and narrow layouts
 - reduced motion when animation changes

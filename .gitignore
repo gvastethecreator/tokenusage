@@ -37,3 +37,9 @@ __pycache__/
 # User-specific project state.
 *.user
 *.suo
+
+# Code map publication scratch; the four published artifacts stay tracked.
+docs/codemap/.staging/
+docs/codemap/.review/
+docs/codemap/.publication/
+docs/codemap/.publisher.lock

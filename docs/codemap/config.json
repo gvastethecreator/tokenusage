@@ -1,0 +1,4 @@
+{
+  "scope": ["src", "tests", "scripts", "BuildAndRun.ps1", "Directory.Build.props", "TokenUsage.slnx"],
+  "inventory": "working-tree"
+}
