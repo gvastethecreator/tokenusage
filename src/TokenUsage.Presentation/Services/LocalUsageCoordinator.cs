@@ -19,17 +19,19 @@ public sealed class LocalUsageCoordinator
     public LocalUsageCoordinator(
         string databasePath,
         IUsageEventSource source,
-        TimeProvider clock)
-        : this(databasePath, [source], clock)
+        TimeProvider clock,
+        IAttributionConsentSource? attributionConsent = null)
+        : this(databasePath, [source], clock, attributionConsent)
     {
     }
 
     public LocalUsageCoordinator(
         string databasePath,
         IReadOnlyList<IUsageEventSource> sources,
-        TimeProvider clock)
+        TimeProvider clock,
+        IAttributionConsentSource? attributionConsent = null)
     {
-        _refresh = new LocalUsageRefresh(databasePath, sources, clock);
+        _refresh = new LocalUsageRefresh(databasePath, sources, clock, attributionConsent);
     }
 
     public LocalUsageCoordinator(LocalUsageRefresh refresh)

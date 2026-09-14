@@ -6,7 +6,10 @@ using TokenUsage.Core.Cache;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Codex;
+using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.VercelAiGateway;
+using TokenUsage.Runtime.Windows.Attribution;
 using TokenUsage.Runtime.Windows.Credentials;
 using TokenUsage.Runtime.Windows.Providers;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
@@ -83,12 +86,30 @@ public static class AppComposition
                 EnableVercelGateway: true);
         }
 #endif
+        var attributionConsent = new AttributionConsentStore(
+            GetAttributionConsentPath(localFolderPath),
+            resolvedClock);
+        IOpaqueKeyDeriver? attributionKeys = new WindowsAttributionSecretStore().TryCreateDeriver();
+        providerOptions = (providerOptions ?? new WindowsProviderCompositionOptions()) with
+        {
+            AttributionConsent = attributionConsent,
+            AttributionKeys = attributionKeys,
+        };
 
         WindowsProviderComposition providers = WindowsProviderCatalog.CreateComposition(
             localFolderPath,
             resolvedClock,
             vercelHttpClient: null,
             providerOptions);
+        var attributionAliases = new AttributionAliasStore(
+            GetAttributionAliasPath(localFolderPath),
+            resolvedClock);
+        Task.Run(() => ResumeAttributionPurgeAsync(
+            attributionConsent,
+            usageDatabasePath,
+            providers.LocalUsageSources.OfType<CodexUsageEventSource>().ToArray(),
+            attributionAliases,
+            cancellationToken: default)).GetAwaiter().GetResult();
         var dataCollectionSettings = new DataCollectionSettingsStore(
             Path.Combine(localFolderPath, DataCollectionSettingsStore.DefaultFileName),
             resolvedClock);
@@ -108,13 +129,15 @@ public static class AppComposition
                 alertSettings),
             resolvedClock);
 
+        var coordinator = new LocalUsageCoordinator(
+            usageDatabasePath,
+            providers.LocalUsageSources,
+            resolvedClock,
+            attributionConsent);
         return new FlyoutViewModel(
             new SampleRefreshCoordinator(sampleCacheDirectory, resolvedClock),
             sessionHost,
-            new LocalUsageCoordinator(
-                usageDatabasePath,
-                providers.LocalUsageSources,
-                resolvedClock),
+            coordinator,
             new DashboardLayoutStore(dashboardLayoutPath, resolvedClock),
             new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock),
             quotaResetHistory,
@@ -122,7 +145,104 @@ public static class AppComposition
             dataCollectionSettings,
             alertSettings,
             alertNotifications ?? NullAlertNotificationSink.Instance,
-            CreateUpdateOptions(localFolderPath, resolvedClock));
+            CreateUpdateOptions(localFolderPath, resolvedClock),
+            attributionConsent,
+            usageDatabasePath,
+            async (capability, token) =>
+            {
+                foreach (CodexUsageEventSource source in providers.LocalUsageSources.OfType<CodexUsageEventSource>())
+                {
+                    if (capability.Value == AttributionCapability.CodexSession.Value)
+                    {
+                        source.ClearStoredSessionAttribution();
+                    }
+                    else if (capability.Value == AttributionCapability.CodexProject.Value)
+                    {
+                        source.ClearStoredProjectAttribution();
+                    }
+                    else if (capability.Value is "codex-mcp" or "codex-skills" or "codex-commands" or "codex-files")
+                    {
+                        source.ClearStoredOperationAttribution(capability);
+                    }
+                }
+
+                await Task.CompletedTask.ConfigureAwait(false);
+            },
+            attributionAliases,
+            async (from, to, capability, token) =>
+            {
+                foreach (CodexUsageEventSource source in providers.LocalUsageSources.OfType<CodexUsageEventSource>())
+                {
+                    if (capability.Value == AttributionCapability.CodexSession.Value)
+                    {
+                        source.SessionAttributionBackfillFrom = from;
+                        source.SessionAttributionBackfillTo = to;
+                    }
+                    else if (capability.Value == AttributionCapability.CodexProject.Value)
+                    {
+                        source.ProjectAttributionBackfillFrom = from;
+                        source.ProjectAttributionBackfillTo = to;
+                    }
+                    else if (capability.Value == AttributionCapability.CodexMcp.Value)
+                    {
+                        source.McpAttributionBackfillFrom = from;
+                        source.McpAttributionBackfillTo = to;
+                    }
+                    else if (capability.Value == AttributionCapability.CodexSkills.Value)
+                    {
+                        source.SkillsAttributionBackfillFrom = from;
+                        source.SkillsAttributionBackfillTo = to;
+                    }
+                    else if (capability.Value == AttributionCapability.CodexCommands.Value)
+                    {
+                        source.CommandsAttributionBackfillFrom = from;
+                        source.CommandsAttributionBackfillTo = to;
+                    }
+                    else if (capability.Value == AttributionCapability.CodexFiles.Value)
+                    {
+                        source.FilesAttributionBackfillFrom = from;
+                        source.FilesAttributionBackfillTo = to;
+                    }
+                }
+
+                foreach (CursorUsageEventSource source in providers.LocalUsageSources.OfType<CursorUsageEventSource>())
+                {
+                    if (capability.Value == AttributionCapability.CursorSession.Value)
+                    {
+                        source.AttributionBackfillFrom = from;
+                        source.AttributionBackfillTo = to;
+                    }
+                }
+
+                try
+                {
+                    await coordinator.RefreshDashboardAsync(_ => string.Empty, token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    foreach (CodexUsageEventSource source in providers.LocalUsageSources.OfType<CodexUsageEventSource>())
+                    {
+                        source.SessionAttributionBackfillFrom = null;
+                        source.SessionAttributionBackfillTo = null;
+                        source.ProjectAttributionBackfillFrom = null;
+                        source.ProjectAttributionBackfillTo = null;
+                        source.McpAttributionBackfillFrom = null;
+                        source.McpAttributionBackfillTo = null;
+                        source.SkillsAttributionBackfillFrom = null;
+                        source.SkillsAttributionBackfillTo = null;
+                        source.CommandsAttributionBackfillFrom = null;
+                        source.CommandsAttributionBackfillTo = null;
+                        source.FilesAttributionBackfillFrom = null;
+                        source.FilesAttributionBackfillTo = null;
+                    }
+
+                    foreach (CursorUsageEventSource source in providers.LocalUsageSources.OfType<CursorUsageEventSource>())
+                    {
+                        source.AttributionBackfillFrom = null;
+                        source.AttributionBackfillTo = null;
+                    }
+                }
+            });
     }
 
     private static UpdateOptionsViewModel CreateUpdateOptions(string localFolderPath, TimeProvider clock)
@@ -142,6 +262,136 @@ public static class AppComposition
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(localFolderPath);
         return Path.Combine(Path.GetFullPath(localFolderPath), "scanner", "usage.v1.db");
+    }
+
+    public static string GetAttributionConsentPath(string localFolderPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localFolderPath);
+        return Path.Combine(Path.GetFullPath(localFolderPath), AttributionConsentStore.DefaultFileName);
+    }
+
+    public static string GetAttributionAliasPath(string localFolderPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localFolderPath);
+        return Path.Combine(Path.GetFullPath(localFolderPath), AttributionAliasStore.DefaultFileName);
+    }
+
+    public static async Task ResumeAttributionPurgeAsync(
+        AttributionConsentStore consent,
+        string usageDatabasePath,
+        IReadOnlyList<CodexUsageEventSource>? sources = null,
+        AttributionAliasStore? aliases = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ResumeCapabilityPurgeAsync(
+            consent,
+            AttributionCapability.CodexSession,
+            usageDatabasePath,
+            async (repository, token) =>
+            {
+                await repository.PurgeSessionLinksAsync(AttributionCapability.CodexSession, token)
+                    .ConfigureAwait(false);
+                if (sources is null)
+                {
+                    return;
+                }
+
+                foreach (CodexUsageEventSource source in sources)
+                {
+                    source.ClearStoredSessionAttribution();
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+        await ResumeCapabilityPurgeAsync(
+            consent,
+            AttributionCapability.CodexProject,
+            usageDatabasePath,
+            async (repository, token) =>
+            {
+                await repository.PurgeProjectLinksAsync(token).ConfigureAwait(false);
+                if (aliases is not null)
+                {
+                    await aliases.ClearAsync(token).ConfigureAwait(false);
+                }
+
+                if (sources is null)
+                {
+                    return;
+                }
+
+                foreach (CodexUsageEventSource source in sources)
+                {
+                    source.ClearStoredProjectAttribution();
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+        await ResumeCapabilityPurgeAsync(
+            consent,
+            AttributionCapability.CursorSession,
+            usageDatabasePath,
+            (repository, token) => repository.PurgeSessionLinksAsync(AttributionCapability.CursorSession, token),
+            cancellationToken).ConfigureAwait(false);
+        await ResumeOperationPurgeAsync(
+            consent, AttributionCapability.CodexMcp, usageDatabasePath, sources, cancellationToken)
+            .ConfigureAwait(false);
+        await ResumeOperationPurgeAsync(
+            consent, AttributionCapability.CodexSkills, usageDatabasePath, sources, cancellationToken)
+            .ConfigureAwait(false);
+        await ResumeOperationPurgeAsync(
+            consent, AttributionCapability.CodexCommands, usageDatabasePath, sources, cancellationToken)
+            .ConfigureAwait(false);
+        await ResumeOperationPurgeAsync(
+            consent, AttributionCapability.CodexFiles, usageDatabasePath, sources, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static async Task ResumeOperationPurgeAsync(
+        AttributionConsentStore consent,
+        AttributionCapability capability,
+        string usageDatabasePath,
+        IReadOnlyList<CodexUsageEventSource>? sources,
+        CancellationToken cancellationToken) =>
+        await ResumeCapabilityPurgeAsync(
+            consent,
+            capability,
+            usageDatabasePath,
+            async (repository, token) =>
+            {
+                await repository.PurgeOperationFactsAsync(capability, token).ConfigureAwait(false);
+                if (sources is null)
+                {
+                    return;
+                }
+
+                foreach (CodexUsageEventSource source in sources)
+                {
+                    source.ClearStoredOperationAttribution(capability);
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+
+    private static async Task ResumeCapabilityPurgeAsync(
+        AttributionConsentStore consent,
+        AttributionCapability capability,
+        string usageDatabasePath,
+        Func<UsageRepository, CancellationToken, Task> purge,
+        CancellationToken cancellationToken)
+    {
+        AttributionConsent state = await consent.LoadAsync(capability, cancellationToken)
+            .ConfigureAwait(false);
+        if (state.State != AttributionConsentState.PurgePending)
+        {
+            return;
+        }
+
+        if (File.Exists(usageDatabasePath))
+        {
+            UsageRepository repository = await UsageRepository.OpenAsync(usageDatabasePath, cancellationToken)
+                .ConfigureAwait(false);
+            await purge(repository, cancellationToken).ConfigureAwait(false);
+        }
+
+        await consent.CompletePurgeAsync(capability, cancellationToken).ConfigureAwait(false);
     }
 
     public static string GetQuotaResetHistoryPath(string localFolderPath)

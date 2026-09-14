@@ -1,4 +1,5 @@
 using System.Globalization;
+using TokenUsage.App.Controls;
 using TokenUsage.Core.Automation;
 using TokenUsage.Core.Usage;
 
@@ -163,6 +164,16 @@ public sealed partial class UsageReportViewModel
                 {
                     TimeValues = values,
                     LegendName = $"{(char)('A' + index)} · {entry.ProviderName} · {entry.FromUtc.ToLocalTime():d MMM}",
+                    PointKinds = Enumerable.Range(0, dayCount).Select(day =>
+                    {
+                        bool hasBucket = Enumerable.Range(day * 12, 12).Any(slot => buckets.ContainsKey(slot));
+                        if (!hasBucket) return UsageTrendPointKind.Unobserved;
+                        double daily = Enumerable.Range(day * 12, 12)
+                            .Select(slot => buckets.GetValueOrDefault(slot)).Sum();
+                        return double.IsFinite(daily)
+                            ? UsageTrendPointKind.Measured
+                            : UsageTrendPointKind.Unavailable;
+                    }).ToArray(),
                 };
         }).ToArray();
         for (int index = 0; index < _cycleReports.Count; index++)
@@ -171,6 +182,7 @@ public sealed partial class UsageReportViewModel
             AddResetMarkers(days, UsageReportResetMarkers.Elapsed(_resetHistory.Resets,
                 entry.ProviderId, entry.FromUtc, entry.ToUtc), ((char)('A' + index)).ToString());
         }
-        return new(Metric, days, series, ChartStyle, IsComparison: true, EmphasizeSmallValues: EmphasizeSmallValues);
+        return new(Metric, days, series, ChartStyle, IsComparison: true, EmphasizeSmallValues: EmphasizeSmallValues)
+            { UnavailableText = HourlyUnavailableText(_cycleReports.Select(entry => entry.Report).ToArray()) };
     }
 }

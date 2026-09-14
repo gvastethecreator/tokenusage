@@ -26,6 +26,7 @@ public sealed partial class UsageReportPage
         {
             UsageReportBreakdown.Source => SourceBreakdownRows,
             UsageReportBreakdown.Day => DayBreakdownRows,
+            UsageReportBreakdown.Project => ProjectBreakdownRows,
             _ => ModelBreakdownRows,
         };
         bool animate = MotionSettings.AreAnimationsEnabled();

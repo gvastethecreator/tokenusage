@@ -9,6 +9,22 @@
     Background="{ThemeResource TokenUsageShellBrush}"
     Foreground="{ThemeResource TextFillColorPrimaryBrush}">
     <Page.Resources>
+        <DataTemplate x:Key="ActivityRowTemplate" x:DataType="reports:UsageActivityRow">
+            <ContentControl IsTabStop="True" HorizontalContentAlignment="Stretch"
+                AutomationProperties.Name="{x:Bind AccessibleText}" Padding="0,5">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="110" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind Records}" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="2" Text="{x:Bind Tokens}" HorizontalAlignment="Right" />
+                </Grid>
+            </ContentControl>
+        </DataTemplate>
+        <DataTemplate x:Key="ConfigurationFilterTemplate" x:DataType="reports:UsageConfigurationOption">
+            <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Name}">
+                <TextBlock Text="{x:Bind Name}" TextWrapping="Wrap" />
+            </CheckBox>
+        </DataTemplate>
         <DataTemplate x:Key="MeasurementSectionTemplate" x:DataType="reports:UsageMeasurementSection">
             <Grid ColumnSpacing="12" Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
@@ -296,7 +312,7 @@
                         </Button>
                         <StackPanel x:Name="ReportTitleActions" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
                             <Button x:Uid="UsageReportRefreshButton" AutomationProperties.AutomationId="UsageReportRefreshButton" Command="{x:Bind ViewModel.RefreshCommand}" Padding="7" Style="{StaticResource ReportToolbarButtonStyle}">
-                                <controls:TablerIcon Kind="refresh" />
+                                <controls:TablerIcon Kind="refresh" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                             </Button>
                             <Button
                                 x:Uid="UsageReportCaptureButton"
@@ -305,7 +321,16 @@
                                 Click="OnShareCaptureClick"
                                 Padding="7"
                                 Style="{StaticResource ReportToolbarButtonStyle}">
-                                <controls:TablerIcon Kind="share" />
+                                <controls:TablerIcon Kind="share" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                            </Button>
+                            <Button
+                                x:Uid="UsageReportExportButton"
+                                AutomationProperties.AutomationId="UsageReportExportButton"
+                                IsEnabled="{x:Bind ViewModel.CanCaptureReport, Mode=OneWay}"
+                                Click="OnExportSnapshotClick"
+                                Padding="7"
+                                Style="{StaticResource ReportToolbarButtonStyle}">
+                                <controls:TablerIcon Kind="file-analytics" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                             </Button>
                         </StackPanel>
                     </StackPanel>
@@ -431,6 +456,55 @@
                     Background="{ThemeResource TokenUsageShellBrush}"
                     HorizontalAlignment="Stretch"
                     Spacing="12">
+                <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.HasExplorerReturn, Mode=OneWay}">
+                    <Button x:Name="ExplorerReturnButton" x:Uid="UsageExplorerReturn" AutomationProperties.AutomationId="UsageExplorerReturn"
+                        HorizontalAlignment="Left" Click="OnReturnToExplorerClick" />
+                    <TextBlock x:Uid="UsageExplorerComparisonHint" TextWrapping="Wrap" />
+                </StackPanel>
+                <Border Padding="14" Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}">
+                    <ContentControl IsEnabled="{x:Bind ViewModel.CanFilterExplorer, Mode=OneWay}" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="8">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <ComboBox x:Uid="UsageExplorerTool" AutomationProperties.AutomationId="UsageExplorerTool"
+                                ItemsSource="{x:Bind ViewModel.ExplorerTools, Mode=OneWay}" DisplayMemberPath="Name"
+                                SelectedItem="{x:Bind ViewModel.ExplorerTool, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                                Visibility="{x:Bind ViewModel.IsExplorerToolVisible, Mode=OneWay}" />
+                            <ComboBox Grid.Column="1" x:Uid="UsageExplorerHost" AutomationProperties.AutomationId="UsageExplorerHost"
+                                ItemsSource="{x:Bind ViewModel.ExplorerHosts, Mode=OneWay}" DisplayMemberPath="Name"
+                                SelectedItem="{x:Bind ViewModel.ExplorerHost, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+                            <ComboBox Grid.Column="2" x:Uid="UsageExplorerModel" AutomationProperties.AutomationId="UsageExplorerModel"
+                                ItemsSource="{x:Bind ViewModel.ExplorerModels, Mode=OneWay}" DisplayMemberPath="Name"
+                                SelectedItem="{x:Bind ViewModel.ExplorerModel, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+                            <Button Grid.Column="3" x:Uid="UsageExplorerClear" AutomationProperties.AutomationId="UsageExplorerClear"
+                                VerticalAlignment="Bottom" Click="OnClearExplorerClick" />
+                        </Grid>
+                        <TextBox x:Name="ExplorerSearchBox" x:Uid="UsageExplorerSearch" AutomationProperties.AutomationId="UsageExplorerSearch"
+                            Text="{x:Bind ViewModel.ModelSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock x:Uid="UsageExplorerSearchHint" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <Button x:Uid="UsageConfigurationLoad" AutomationProperties.AutomationId="UsageConfigurationLoad"
+                            IsEnabled="{x:Bind ViewModel.CanLoadConfigurations, Mode=OneWay}" Click="OnLoadConfigurationsClick" />
+                        <Grid ColumnSpacing="8" Visibility="{x:Bind ViewModel.HasConfigurationOptions, Mode=OneWay}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <ListView x:Uid="UsageConfigurationObserved" AutomationProperties.AutomationId="UsageConfigurationObserved"
+                                ItemsSource="{x:Bind ViewModel.ExplorerObservedModels, Mode=OneWay}" SelectionMode="None"
+                                ItemTemplate="{StaticResource ConfigurationFilterTemplate}" MaxHeight="180" />
+                            <ListView Grid.Column="1" x:Uid="UsageConfigurationEffort" AutomationProperties.AutomationId="UsageConfigurationEffort"
+                                ItemsSource="{x:Bind ViewModel.ExplorerEfforts, Mode=OneWay}" SelectionMode="None"
+                                ItemTemplate="{StaticResource ConfigurationFilterTemplate}" MaxHeight="180" />
+                            <ListView Grid.Column="2" x:Uid="UsageConfigurationTier" AutomationProperties.AutomationId="UsageConfigurationTier"
+                                ItemsSource="{x:Bind ViewModel.ExplorerTiers, Mode=OneWay}" SelectionMode="None"
+                                ItemTemplate="{StaticResource ConfigurationFilterTemplate}" MaxHeight="180" />
+                        </Grid>
+                        <TextBlock x:Uid="UsageConfigurationMultiHint" Visibility="{x:Bind ViewModel.HasConfigurationOptions, Mode=OneWay}"
+                            TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock Text="{x:Bind ViewModel.ConfigurationCoverageText, Mode=OneWay}" TextWrapping="Wrap"
+                            AutomationProperties.AutomationId="UsageConfigurationCoverage" />
+                        <TextBlock Text="{x:Bind ViewModel.ExplorerNotice, Mode=OneWay}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                        <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsFilteringModels, Mode=OneWay}" />
+                    </StackPanel>
+                    </ContentControl>
+                </Border>
                 <Grid
                     x:Name="ReportProviderCarousel"
                     Height="40"
@@ -621,7 +695,7 @@
                             Grid.Row="1"
                             Date="{x:Bind ViewModel.RateBaselineDate, Mode=TwoWay}"
                             HorizontalAlignment="Stretch"
-                            Visibility="{x:Bind ViewModel.IsCompareRatesAxis, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.IsBaselineCatalogDateVisible, Mode=OneWay}"
                             IsEnabled="{x:Bind ViewModel.CanUseReferencePrices, Mode=OneWay}" />
                         <CalendarDatePicker x:Uid="UsageComparisonReferenceDate" AutomationProperties.AutomationId="UsageComparisonReferenceDate"
                             Grid.Row="1" Grid.Column="1"
@@ -630,6 +704,11 @@
                             Visibility="{x:Bind ViewModel.IsCatalogDatePickerVisible, Mode=OneWay}"
                             IsEnabled="{x:Bind ViewModel.CanUseReferencePrices, Mode=OneWay}" />
                     </Grid>
+
+                    <CheckBox x:Uid="UsageLinearScenarioChoice" AutomationProperties.AutomationId="UsageLinearScenarioChoice"
+                        IsChecked="{x:Bind ViewModel.UseLinearPriceScenario, Mode=TwoWay}"
+                        IsEnabled="{x:Bind ViewModel.CanChangeComparison, Mode=OneWay}"
+                        Visibility="{x:Bind ViewModel.IsComparePeriodsAxis, Mode=OneWay}" />
 
                     <StackPanel
                         Orientation="Horizontal"
@@ -848,6 +927,9 @@
                     </StackPanel>
                 </Border>
 
+                <TextBlock Text="{x:Bind ViewModel.ExplorerCollectionSummary, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}" TextWrapping="Wrap"
+                    Style="{StaticResource CaptionTextBlockStyle}" />
                 <StackPanel HorizontalAlignment="Center" Margin="0,72" Spacing="12" Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
                     <FontIcon FontSize="28" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE9D9;" />
                     <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.EmptyTitleText, Mode=OneWay}" />
@@ -860,8 +942,245 @@
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
 
                 </StackPanel>
+                <Border x:Name="ModelDetailCard" Padding="14" Style="{StaticResource ReportCardStyle}"
+                    Visibility="{x:Bind ViewModel.HasModelDetail, Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind ViewModel.ModelDetailTitle, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <Button x:Name="CloseModelDetailButton" Grid.Column="1" x:Uid="UsageExplorerCloseDetail"
+                                AutomationProperties.AutomationId="UsageExplorerCloseDetail" Click="OnCloseModelDetailClick" />
+                        </Grid>
+                        <TextBlock Text="{x:Bind ViewModel.ModelDetailValues, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <TextBlock Text="{x:Bind ViewModel.ModelDetailConfigurations, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <controls:UsageTrendChart PlotHeight="230" AutomationProperties.AutomationId="UsageExplorerDetailChart"
+                            Data="{x:Bind ViewModel.ModelDetailTrend, Mode=OneWay}" />
+                        <Button x:Uid="UsageExplorerEvidence" AutomationProperties.AutomationId="UsageExplorerEvidence"
+                            HorizontalAlignment="Left" Click="OnExplorerEvidenceClick" />
+                        <Button x:Uid="UsageExplorerCompare" AutomationProperties.AutomationId="UsageExplorerCompare"
+                            HorizontalAlignment="Left" Click="OnModelCompareClick" />
+                        <TextBlock x:Name="UsageDistributionSummary" Text="{x:Bind ViewModel.DistributionSummary, Mode=OneWay}" TextWrapping="Wrap"
+                            AutomationProperties.AutomationId="UsageDistributionSummary"
+                            Style="{StaticResource CaptionTextBlockStyle}" />
+                        <Button x:Name="UsageExplorerOpenOutlier" x:Uid="UsageExplorerOpenOutlier"
+                            AutomationProperties.AutomationId="UsageExplorerOpenOutlier"
+                            HorizontalAlignment="Left" Click="OnOpenDistributionOutlierClick"
+                            Visibility="{x:Bind ViewModel.CanOpenDistributionOutlier, Mode=OneWay}" />
+                        <Button x:Name="UsageExplorerOpenProjects" x:Uid="UsageExplorerOpenProjects"
+                            AutomationProperties.AutomationId="UsageExplorerOpenProjects"
+                            HorizontalAlignment="Left" Click="OnOpenProjectsClick"
+                            Visibility="{x:Bind ViewModel.CanOpenProjects, Mode=OneWay}" />
+                        <Button x:Name="UsageExplorerOpenSessions" x:Uid="UsageExplorerOpenSessions"
+                            AutomationProperties.AutomationId="UsageExplorerOpenSessions"
+                            HorizontalAlignment="Left" Click="OnOpenSessionsClick"
+                            Visibility="{x:Bind ViewModel.CanOpenSessions, Mode=OneWay}" />
+                        <Button x:Name="UsageExplorerOpenOperations" x:Uid="UsageExplorerOpenOperations"
+                            AutomationProperties.AutomationId="UsageExplorerOpenOperations"
+                            HorizontalAlignment="Left" Click="OnOpenOperationsClick"
+                            Visibility="{x:Bind ViewModel.CanOpenOperations, Mode=OneWay}" />
+                        <TextBlock x:Name="UsageExplorerOperationsAvailability"
+                            AutomationProperties.AutomationId="UsageExplorerOperationsAvailability"
+                            Text="{x:Bind ViewModel.OperationsAvailabilityText, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Visibility="{x:Bind ViewModel.HasOperationsAvailabilityNotice, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="ProjectListCard" Padding="14" Style="{StaticResource ReportCardStyle}"
+                    Visibility="{x:Bind ViewModel.HasProjects, Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Uid="UsageExplorerProjectsHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <Button x:Name="CloseProjectsButton" Grid.Column="1" x:Uid="UsageExplorerCloseProjects"
+                                AutomationProperties.AutomationId="UsageExplorerCloseProjects" Click="OnCloseProjectsClick" />
+                        </Grid>
+                        <ItemsRepeater x:Name="UsageExplorerProjects" AutomationProperties.AutomationId="UsageExplorerProjects"
+                            ItemsSource="{x:Bind ViewModel.ProjectRows, Mode=OneWay}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageExplorerProjectRow">
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,8"
+                                        Tag="{x:Bind ProjectKey}" AutomationProperties.Name="{x:Bind Label}"
+                                        Style="{StaticResource SubtleButtonStyle}" Click="OnProjectDetailClick">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{x:Bind MappingText}" TextWrapping="Wrap"
+                                                Style="{StaticResource CaptionTextBlockStyle}" />
+                                            <TextBlock Text="{x:Bind ContributionText}" TextWrapping="Wrap"
+                                                Style="{StaticResource CaptionTextBlockStyle}" />
+                                            <TextBlock Text="{x:Bind ProjectTotalText}" TextWrapping="Wrap"
+                                                Style="{StaticResource CaptionTextBlockStyle}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <TextBlock Text="{x:Bind ViewModel.ProjectDetailValues, Mode=OneWay}" TextWrapping="Wrap"
+                            IsTextSelectionEnabled="True"
+                            Visibility="{x:Bind ViewModel.HasProjectDetail, Mode=OneWay}" />
+                        <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.HasProjectDetail, Mode=OneWay}">
+                            <TextBox x:Name="UsageExplorerProjectAlias"
+                                x:Uid="UsageExplorerProjectAlias"
+                                AutomationProperties.AutomationId="UsageExplorerProjectAlias"
+                                Text="{x:Bind ViewModel.ProjectAliasDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button x:Name="UsageExplorerSaveProjectAlias"
+                                x:Uid="UsageExplorerSaveProjectAlias"
+                                AutomationProperties.AutomationId="UsageExplorerSaveProjectAlias"
+                                HorizontalAlignment="Left" Click="OnSaveProjectAliasClick"
+                                IsEnabled="{x:Bind ViewModel.CanSaveProjectAlias, Mode=OneWay}" />
+                            <Button x:Name="UsageExplorerRemapProject"
+                                x:Uid="UsageExplorerRemapProject"
+                                AutomationProperties.AutomationId="UsageExplorerRemapProject"
+                                HorizontalAlignment="Left" Click="OnRemapProjectClick" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Border x:Name="OperationListCard" Padding="14" Style="{StaticResource ReportCardStyle}"
+                    Visibility="{x:Bind ViewModel.HasOperations, Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Uid="UsageExplorerOperationsHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <Button x:Name="CloseOperationsButton" Grid.Column="1" x:Uid="UsageExplorerCloseOperations"
+                                AutomationProperties.AutomationId="UsageExplorerCloseOperations" Click="OnCloseOperationsClick" />
+                        </Grid>
+                        <ItemsRepeater x:Name="UsageExplorerOperations" AutomationProperties.AutomationId="UsageExplorerOperations"
+                            ItemsSource="{x:Bind ViewModel.OperationRows, Mode=OneWay}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageExplorerOperationRow">
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,8"
+                                        Tag="{x:Bind Id}" AutomationProperties.Name="{x:Bind Label}"
+                                        Style="{StaticResource SubtleButtonStyle}" Click="OnOperationDetailClick">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{x:Bind CountText}" TextWrapping="Wrap"
+                                                Style="{StaticResource CaptionTextBlockStyle}" />
+                                            <TextBlock Text="{x:Bind OutcomeText}" TextWrapping="Wrap"
+                                                Style="{StaticResource CaptionTextBlockStyle}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <TextBlock Text="{x:Bind ViewModel.OperationDetailValues, Mode=OneWay}" TextWrapping="Wrap"
+                            IsTextSelectionEnabled="True"
+                            Visibility="{x:Bind ViewModel.HasOperationDetail, Mode=OneWay}" />
+                        <Button x:Name="UsageExplorerOpenOperationSession" x:Uid="UsageExplorerOpenOperationSession"
+                            AutomationProperties.AutomationId="UsageExplorerOpenOperationSession"
+                            HorizontalAlignment="Left" Click="OnOpenOperationSessionClick"
+                            Visibility="{x:Bind ViewModel.CanOpenOperationSession, Mode=OneWay}" />
+                        <TextBlock x:Name="UsageExplorerSkillsAvailability"
+                            AutomationProperties.AutomationId="UsageExplorerSkillsAvailability"
+                            Text="{x:Bind ViewModel.SkillsAvailabilityText, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Visibility="{x:Bind ViewModel.HasSkillsAvailabilityNotice, Mode=OneWay}" />
+                        <TextBlock x:Name="UsageExplorerOperationsDerivedNote"
+                            AutomationProperties.AutomationId="UsageExplorerOperationsDerivedNote"
+                            Text="{x:Bind ViewModel.OperationsDerivedNote, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Visibility="{x:Bind ViewModel.HasOperationsDerivedNote, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="SessionListCard" Padding="14" Style="{StaticResource ReportCardStyle}"
+                    Visibility="{x:Bind ViewModel.HasSessions, Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Uid="UsageExplorerSessionsHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <Button x:Name="CloseSessionsButton" Grid.Column="1" x:Uid="UsageExplorerCloseSessions"
+                                AutomationProperties.AutomationId="UsageExplorerCloseSessions" Click="OnCloseSessionsClick" />
+                        </Grid>
+                        <ItemsRepeater x:Name="UsageExplorerSessions" AutomationProperties.AutomationId="UsageExplorerSessions"
+                            ItemsSource="{x:Bind ViewModel.SessionRows, Mode=OneWay}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageExplorerSessionRow">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button HorizontalAlignment="Left" Padding="8,4"
+                                            Tag="{x:Bind SessionKey}" Click="OnSessionExpandClick"
+                                            AutomationProperties.AutomationId="UsageExplorerExpandSession"
+                                            Visibility="{x:Bind CanExpand, Mode=OneWay}">
+                                            <TextBlock Text="{x:Bind ExpandGlyph, Mode=OneWay}" />
+                                        </Button>
+                                        <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,8"
+                                            Tag="{x:Bind SessionKey}" AutomationProperties.Name="{x:Bind Label}"
+                                            Style="{StaticResource SubtleButtonStyle}" Click="OnSessionDetailClick">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{x:Bind ContributionText}" TextWrapping="Wrap"
+                                                    Style="{StaticResource CaptionTextBlockStyle}" />
+                                                <TextBlock Text="{x:Bind SessionTotalText}" TextWrapping="Wrap"
+                                                    Style="{StaticResource CaptionTextBlockStyle}" />
+                                                <TextBlock Text="{x:Bind InclusiveText}" TextWrapping="Wrap"
+                                                    Style="{StaticResource CaptionTextBlockStyle}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <TextBlock Text="{x:Bind ViewModel.SessionDetailValues, Mode=OneWay}" TextWrapping="Wrap"
+                            IsTextSelectionEnabled="True"
+                            Visibility="{x:Bind ViewModel.HasSessionDetail, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+                <Expander x:Name="ActivityDetails" x:Uid="UsageActivity" AutomationProperties.AutomationId="UsageActivity"
+                    Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch" Padding="12,8">
+                    <StackPanel Spacing="10">
+                        <TextBlock x:Uid="UsageActivityScope" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <Button x:Uid="UsageActivityLoad" AutomationProperties.AutomationId="UsageActivityLoad"
+                            Visibility="{x:Bind ViewModel.NeedsActivityDetail, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.CanLoadConfigurations, Mode=OneWay}"
+                            HorizontalAlignment="Left" Click="OnLoadConfigurationsClick" />
+                        <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.HasActivityDetail, Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.ActivityBoundaryText, Mode=OneWay}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind ViewModel.ConfigurationCoverageText, Mode=OneWay}" TextWrapping="Wrap"
+                                Style="{StaticResource CaptionTextBlockStyle}" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="110" /><ColumnDefinition Width="130" /></Grid.ColumnDefinitions>
+                                <TextBlock x:Uid="UsageActivitySupport" FontWeight="SemiBold" />
+                                <TextBlock x:Uid="UsageActivityRecords" Grid.Column="1" HorizontalAlignment="Right" FontWeight="SemiBold" />
+                                <TextBlock x:Uid="UsageActivityTokens" Grid.Column="2" HorizontalAlignment="Right" FontWeight="SemiBold" />
+                            </Grid>
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.ActivityCoverageRows, Mode=OneWay}" ItemTemplate="{StaticResource ActivityRowTemplate}" />
+                            <TextBlock x:Uid="UsageActivityClockHint" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock AutomationProperties.AutomationId="UsageActivityWindowCount"
+                                Text="{x:Bind ViewModel.ActivityWindowCountText, Mode=OneWay}" />
+                            <TextBlock x:Uid="UsageActivityNoWindows" TextWrapping="Wrap" Visibility="{x:Bind ViewModel.HasNoActivityWindows, Mode=OneWay}" />
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.ActivityWindowRows, Mode=OneWay}" ItemTemplate="{StaticResource ActivityRowTemplate}" />
+                            <Button x:Uid="UsageActivityMore" AutomationProperties.AutomationId="UsageActivityMore"
+                                Visibility="{x:Bind ViewModel.HasMoreActivityWindows, Mode=OneWay}"
+                                HorizontalAlignment="Left" Click="OnMoreActivityClick" />
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+                <Border x:Name="ExplanationCard" Padding="14" Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.HasExplanations, Mode=OneWay}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="UsageExplanationTitleText" FontWeight="SemiBold" />
+                        <TextBlock AutomationProperties.AutomationId="UsageExplanationSummary" Text="{x:Bind ViewModel.ExplanationSummaryText, Mode=OneWay}" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Uid="UsageExplanationLoad" AutomationProperties.AutomationId="UsageExplanationLoad"
+                                Visibility="{x:Bind ViewModel.CanLoadExplanationDetail, Mode=OneWay}" Click="OnLoadExplanationDetailClick" />
+                            <Button x:Name="ExplanationEvidenceButton" x:Uid="UsageExplanationEvidence" AutomationProperties.AutomationId="UsageExplanationEvidence"
+                                IsEnabled="{x:Bind ViewModel.HasData, Mode=OneWay}" Click="OnExplanationEvidenceClick" />
+                            <Button x:Uid="UsageExplanationBreakdown" AutomationProperties.AutomationId="UsageExplanationBreakdown"
+                                Visibility="{x:Bind ViewModel.IsPairComparison, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.HasData, Mode=OneWay}"
+                                Click="OnExplanationBreakdownClick" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
                 <StackPanel x:Name="ReportDataContent" Spacing="12" Visibility="{x:Bind ViewModel.HasData, Mode=OneWay}">
                     <StackPanel x:Name="ReportStandardContent" Spacing="12" Visibility="{x:Bind ViewModel.IsStandardReportVisible, Mode=OneWay}">
+                    <TextBlock AutomationProperties.AutomationId="UsageExplorerValues"
+                        Text="{x:Bind ViewModel.ExplorerValueComponents, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock x:Uid="UsageExplorerTopModelsHint" Visibility="{x:Bind ViewModel.IsModelChart, Mode=OneWay}"
+                        TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
                     <Border Style="{StaticResource ReportCardStyle}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -888,6 +1207,30 @@
                         </Grid>
                     </Border>
 
+                    <TextBlock AutomationProperties.AutomationId="UsageOverviewNotice"
+                        Text="{x:Bind ViewModel.OverviewNoticeText, Mode=OneWay}" TextWrapping="Wrap"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Visibility="{x:Bind ViewModel.HasOverviewNotice, Mode=OneWay}" />
+                    <ItemsRepeater AutomationProperties.AutomationId="UsageOverviewCards"
+                        ItemsSource="{x:Bind ViewModel.OverviewCards, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinColumnSpacing="10" MinItemHeight="72" MinItemWidth="168" MinRowSpacing="10" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="reports:UsageReportMetricCard">
+                                <Border Padding="12,10" Style="{StaticResource ReportCardStyle}"
+                                    AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                    AutomationProperties.Name="{x:Bind Label}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Style="{StaticResource ReportSectionLabelStyle}" Text="{x:Bind Label}" />
+                                        <TextBlock FontFamily="Consolas" FontSize="18" Text="{x:Bind Value}" TextWrapping="Wrap" />
+                                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="{x:Bind Detail}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
                     <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
                         <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
                             <StackPanel Spacing="7">
@@ -901,7 +1244,7 @@
                                                     ToolTipService.ToolTip="{x:Bind ViewModel.ChartStyleTooltip, Mode=OneWay}"
                                                     AutomationProperties.ItemStatus="{x:Bind ViewModel.ChartStyleName, Mode=OneWay}"
                                                     Click="OnCycleChartStyleClick" Padding="7" Style="{StaticResource ReportToolbarButtonStyle}">
-                                                    <controls:TablerIcon Kind="{x:Bind ViewModel.ChartStyleIcon, Mode=OneWay}" />
+                                                    <controls:TablerIcon Kind="{x:Bind ViewModel.ChartStyleIcon, Mode=OneWay}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                                 </Button>
                                                 <ToggleButton x:Name="ReportSmallValuesToggle" x:Uid="ReportSmallValuesButton" AutomationProperties.AutomationId="ReportSmallValuesButton"
                                                     IsChecked="{x:Bind ViewModel.EmphasizeSmallValues, Mode=OneWay}"
@@ -1128,6 +1471,7 @@
                                 <TextBlock x:Uid="UsageReportBreakdownTitle" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="2">
                                     <RadioButton x:Uid="UsageReportModelButton" AutomationProperties.AutomationId="UsageReportModelButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsModelBreakdown, Mode=OneWay}" Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Model" Click="OnBreakdownClick" />
+                                    <RadioButton x:Uid="UsageReportProjectButton" AutomationProperties.AutomationId="UsageReportProjectButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsProjectBreakdown, Mode=OneWay}" Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Project" Click="OnBreakdownClick" />
                                     <RadioButton x:Uid="UsageReportSourceButton" AutomationProperties.AutomationId="UsageReportSourceButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsSourceBreakdown, Mode=OneWay}" Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Source" Click="OnBreakdownClick" />
                                     <RadioButton x:Uid="UsageReportDayButton" AutomationProperties.AutomationId="UsageReportDayButton" GroupName="UsageReportBreakdownTabs" IsChecked="{x:Bind ViewModel.IsDayBreakdown, Mode=OneWay}" Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Day" Click="OnBreakdownClick" />
                                 </StackPanel>
@@ -1185,21 +1529,41 @@
                                         </StackPanel>
                                     </Button>
                                 </Grid>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Button Tag="Model:ReportedCost" Click="OnSortClick" AutomationProperties.AutomationId="ReportSortModelReportedCost"
+                                        HorizontalAlignment="Left" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4"><TextBlock x:Uid="UsageReportReportedColumn" FontSize="12" /><TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" /></StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1" Tag="Model:EstimatedCost" Click="OnSortClick" AutomationProperties.AutomationId="ReportSortModelEstimatedCost"
+                                        HorizontalAlignment="Left" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4"><TextBlock x:Uid="UsageReportEstimatedColumn" FontSize="12" /><TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" /></StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="2" Tag="Model:UnpricedTokens" Click="OnSortClick" AutomationProperties.AutomationId="ReportSortModelUnpricedTokens"
+                                        HorizontalAlignment="Left" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4"><TextBlock x:Uid="UsageExplorerUnpricedColumn" FontSize="12" /><TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" /></StackPanel>
+                                    </Button>
+                                </Grid>
                                 <ItemsRepeater x:Name="ModelBreakdownRows" ItemsSource="{x:Bind ViewModel.ModelRows, Mode=OneWay}">
                                     <ItemsRepeater.RenderTransform>
                                         <CompositeTransform x:Name="ModelBreakdownRowsTransform" />
                                     </ItemsRepeater.RenderTransform>
                                     <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="reports:UsageReportModelRow">
-                                        <ContentControl Style="{StaticResource ReportTableRowStyle}" Tag="{x:Bind Id}"
+                                        <ContentControl Style="{StaticResource ReportTableRowStyle}" Tag="{x:Bind Id}" IsTabStop="False"
                                             AutomationProperties.Name="{x:Bind AutomationName}"
                                             PointerEntered="OnTableRowPointerEntered" PointerExited="OnTableRowPointerExited">
-                                        <Grid Padding="0,9" MinHeight="38" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
+                                        <StackPanel><Grid Padding="0,9" MinHeight="38" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="2.2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="1.4*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                             <Grid ColumnSpacing="8">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                 <controls:ProviderMarkImage Height="15" ProviderId="{x:Bind ProviderId}" Width="15" />
-                                                <controls:TablerIcon Grid.Column="1" Kind="moon" Width="15" Height="15" Visibility="{x:Bind IsReserve}" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind ModelName}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ModelName}" />
+                                                <controls:TablerIcon Grid.Column="1" Kind="moon" Width="15" Height="15" Visibility="{x:Bind IsReserve}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                <StackPanel Grid.Column="2">
+                                                    <Button Content="{x:Bind ModelName}" Tag="{x:Bind Id}" Padding="0"
+                                                        AutomationProperties.Name="{x:Bind AutomationName}"
+                                                        Style="{StaticResource SubtleButtonStyle}" Click="OnModelDetailClick" />
+                                                    <TextBlock Text="{x:Bind IdentityText}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind IdentityText}" />
+                                                </StackPanel>
                                             </Grid>
                                             <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind CostText}" TextAlignment="Right" />
                                             <TextBlock Grid.Column="2" Text="{x:Bind ShareText}" TextAlignment="Right" />
@@ -1207,7 +1571,14 @@
                                             <TextBlock Grid.Column="4" Text="{x:Bind CoverageText}" TextAlignment="Right" />
                                             <TextBlock Grid.Column="5" Text="{x:Bind ActiveDays}" TextAlignment="Right" />
                                         </Grid>
-                                    </ContentControl>
+                                                                            <Grid ColumnSpacing="8" Padding="0,0,0,8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind ReportedValueText}" FontSize="11" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind EstimatedValueText}" FontSize="11" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind UnpricedValueText}" FontSize="11" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <TextBlock Text="{x:Bind SessionCountText}" FontSize="11" TextWrapping="Wrap" />
+                                        </StackPanel></ContentControl>
                                     </DataTemplate></ItemsRepeater.ItemTemplate>
                                 </ItemsRepeater>
                             </StackPanel>
@@ -1354,6 +1725,78 @@
                                     </DataTemplate></ItemsRepeater.ItemTemplate>
                                 </ItemsRepeater>
                             </StackPanel>
+
+                            <StackPanel Visibility="{x:Bind ViewModel.IsProjectBreakdown, Mode=OneWay}">
+                                <Grid Padding="0,7" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2.2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Tag="Project:Name" Click="OnSortClick"
+                                        AutomationProperties.AutomationId="ReportSortProjectName"
+                                        HorizontalAlignment="Left" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock x:Uid="UsageReportProjectColumn" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1" Tag="Project:Tokens" Click="OnSortClick"
+                                        AutomationProperties.AutomationId="ReportSortProjectTokens"
+                                        HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock x:Uid="UsageReportTokensColumn" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="2" Tag="Project:Share" Click="OnSortClick"
+                                        AutomationProperties.AutomationId="ReportSortProjectShare"
+                                        HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock FontSize="12" Text="{x:Bind ViewModel.ModelShareLabel, Mode=OneWay}" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="3" Tag="Project:Sessions" Click="OnSortClick"
+                                        AutomationProperties.AutomationId="ReportSortProjectSessions"
+                                        HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock x:Uid="UsageReportSessionsColumn" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="4" Tag="Project:ReportedCost" Click="OnSortClick"
+                                        AutomationProperties.AutomationId="ReportSortProjectReportedCost"
+                                        HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Padding="3,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock x:Uid="UsageReportReportedColumn" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="11" AutomationProperties.AccessibilityView="Raw" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <ItemsRepeater x:Name="ProjectBreakdownRows" ItemsSource="{x:Bind ViewModel.ProjectOverviewRows, Mode=OneWay}">
+                                    <ItemsRepeater.RenderTransform>
+                                        <CompositeTransform x:Name="ProjectBreakdownRowsTransform" />
+                                    </ItemsRepeater.RenderTransform>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="reports:UsageReportProjectOverviewRow">
+                                            <ContentControl Style="{StaticResource ReportTableRowStyle}" Tag="{x:Bind Id}"
+                                                AutomationProperties.Name="{x:Bind AutomationName}"
+                                                PointerEntered="OnTableRowPointerEntered" PointerExited="OnTableRowPointerExited">
+                                                <StackPanel>
+                                                    <Grid Padding="0,9" MinHeight="38" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="2.2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                        <Button Content="{x:Bind Name}" Tag="{x:Bind Id}" Padding="0"
+                                                            AutomationProperties.Name="{x:Bind AutomationName}"
+                                                            Style="{StaticResource SubtleButtonStyle}" Click="OnOverviewProjectClick" />
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind TokensText}" TextAlignment="Right" />
+                                                        <TextBlock Grid.Column="2" Text="{x:Bind ShareText}" TextAlignment="Right" />
+                                                        <TextBlock Grid.Column="3" Text="{x:Bind SessionCountText}" TextAlignment="Right" />
+                                                        <TextBlock Grid.Column="4" FontSize="11" Text="{x:Bind ReportedValueText}" TextAlignment="Right" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                    <TextBlock FontSize="11" Padding="0,0,0,8" Text="{x:Bind EstimatedValueText}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </ContentControl>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     </StackPanel>
@@ -1430,6 +1873,8 @@
                         </Border>
                         <Border Padding="14,10" Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.IsPairComparison, Mode=OneWay}">
                             <StackPanel Spacing="7">
+                                <Button x:Name="ExplanationBreakdownReturnButton" x:Uid="UsageExplanationReturn"
+                                    AutomationProperties.AutomationId="UsageExplanationBreakdownReturn" Visibility="Collapsed" Click="OnExplanationReturnClick" />
                                 <Grid Padding="0,7" ColumnSpacing="12">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -1586,6 +2031,9 @@
                     <Expander x:Name="MeasurementDetails" x:Uid="UsageMeasurementDetails"
                         AutomationProperties.AutomationId="UsageMeasurementDetails"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,8">
+                        <StackPanel Spacing="8">
+                        <Button x:Name="ExplanationReturnButton" x:Uid="UsageExplanationReturn" AutomationProperties.AutomationId="UsageExplanationReturn"
+                            Visibility="Collapsed" Click="OnExplanationReturnClick" />
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -1601,7 +2049,10 @@
                                 <FontIcon Glyph="&#xE8C8;" FontSize="16" />
                             </Button>
                         </Grid>
+                        </StackPanel>
                     </Expander>
+                    <Button x:Uid="UsageExplorerBackToModel" AutomationProperties.AutomationId="UsageExplorerBackToModel"
+                        Visibility="{x:Bind ViewModel.HasModelDetail, Mode=OneWay}" HorizontalAlignment="Left" Click="OnBackToModelClick" />
                     <Border x:Name="MeasurementCaptureDetails" Visibility="Collapsed" Padding="14,10" Style="{StaticResource ReportCardStyle}">
                         <StackPanel Spacing="8">
                             <TextBlock Text="{Binding Header, ElementName=MeasurementDetails}" FontWeight="SemiBold" />
@@ -1642,6 +2093,7 @@
             x:Name="ShareStatusInfoBar"
             AutomationProperties.AutomationId="UsageReportShareStatusInfoBar"
             AutomationProperties.LiveSetting="Polite"
+            IsTabStop="True"
             Margin="20"
             MaxWidth="620"
             HorizontalAlignment="Center"

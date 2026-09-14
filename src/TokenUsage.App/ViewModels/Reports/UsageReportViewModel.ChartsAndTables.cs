@@ -17,6 +17,7 @@ public sealed partial class UsageReportViewModel
         [UsageReportBreakdown.Model] = new(ReportSortColumn.Cost, true),
         [UsageReportBreakdown.Source] = new(ReportSortColumn.Tokens, true),
         [UsageReportBreakdown.Day] = new(ReportSortColumn.Date, true),
+        [UsageReportBreakdown.Project] = new(ReportSortColumn.Tokens, true),
     };
 
     private bool _emphasizeSmallValues = true;
@@ -59,6 +60,8 @@ public sealed partial class UsageReportViewModel
     public void SetChartAppearance(ReportChartStyle style, ReportChartGrouping grouping)
     {
         if (_chartStyle == style && _chartGrouping == grouping) return;
+        bool changesTiming = _chartStyle != style
+            && (_chartStyle == ReportChartStyle.TwoHourBars || style == ReportChartStyle.TwoHourBars);
         _chartStyle = style;
         OnPropertyChanged(nameof(ChartStyleName));
         OnPropertyChanged(nameof(ChartStyleIcon));
@@ -66,27 +69,52 @@ public sealed partial class UsageReportViewModel
         _chartGrouping = grouping;
         OnPropertyChanged(nameof(ChartGrouping));
         OnPropertyChanged(nameof(IsProviderChart));
-        RebuildProjection();
+        bool needsTiming = style == ReportChartStyle.TwoHourBars && (!IsCompareScope || !IsCompareRatesAxis && !UseReferencePrices)
+            && (NeedsTimeDetails(_report) || IsPairComparison && NeedsTimeDetails(_compareRightReport));
+        if (changesTiming && !HasSavedComparison && (IsLoading || needsTiming))
+            _ = LoadAsync();
+        else RebuildProjection();
     }
 
-    private UsageReportTrendDataset CreateReportTrend(string? providerId, bool byModel)
+    private static bool NeedsTimeDetails(UsageReport report) =>
+        !report.HasTimeBucketDetails && report.TimeBuckets.Count == 0 && !report.IsExactInterval;
+
+    private string? HourlyUnavailableText(params UsageReport[] reports)
     {
+        if (ChartStyle != ReportChartStyle.TwoHourBars) return null;
+        if (reports.Any(NeedsTimeDetails))
+            return GetString("UsageReportTimeDetailsUnavailable");
+        if (reports.All(report => report.TimeBuckets.Count == 0 && report.ElapsedTwoHourBuckets.Count == 0))
+            return GetString("UsageReportNoTimestampedUsage");
+        return null;
+    }
+
+    private UsageReportTrendDataset CreateReportTrend(string? providerId, bool byModel, UsageReport? selectedReport = null)
+    {
+        UsageReport source = selectedReport ?? _report;
         UsageReportTrendDay[] days = Enumerable.Range(0, RangeDayCount)
             .Select(offset => StartDate.AddDays(offset))
             .Select(date => new UsageReportTrendDay(date, date.ToString("d MMM", CultureInfo.CurrentCulture)))
             .ToArray();
-        bool percentage = IsGlobalScope && IsShareValueMode;
-        var totals = _report.Days.ToDictionary(day => day.Date, day => MetricValue(day.Metrics));
-        double Value(DateOnly date, UsageReportMetrics? metrics)
+        bool percentage = selectedReport is null && IsGlobalScope && IsShareValueMode;
+        var totals = source.Days.ToDictionary(day => day.Date, day => MetricValue(day.Metrics));
+        (double Value, UsageTrendPointKind Kind) Point(DateOnly date, UsageReportMetrics? metrics)
         {
-            double value = metrics is null ? 0 : MetricValue(metrics);
-            if (!percentage || !double.IsFinite(value)) return value;
-            double total = totals.GetValueOrDefault(date);
-            return total > 0 ? 100 * value / total : 0;
+            if (metrics is null) return (0, UsageTrendPointKind.Unobserved);
+            double value = MetricValue(metrics);
+            if (!double.IsFinite(value)) return (value, UsageTrendPointKind.Unavailable);
+            if (percentage)
+            {
+                double total = totals.GetValueOrDefault(date);
+                value = total > 0 ? 100 * value / total : 0;
+            }
+
+            return (value, UsageTrendPointKind.Measured);
         }
 
         var series = new List<UsageReportTrendSeries>();
-        foreach (UsageAgentReport agent in _report.Agents
+        var modelGroups = new Dictionary<string, UsageReport>(StringComparer.Ordinal);
+        foreach (UsageAgentReport agent in source.Agents
             .Where(agent => providerId is null || agent.AgentId.Value == providerId)
             .ByCuratedRank(agent => agent.AgentId.Value))
         {
@@ -94,43 +122,48 @@ public sealed partial class UsageReportViewModel
             string color = ProviderColorPalette.GetEffectiveHex(id, null);
             if (!byModel)
             {
-                var daily = _report.AgentDays.Where(day => day.AgentId == agent.AgentId)
+                var daily = source.AgentDays.Where(day => day.AgentId == agent.AgentId)
                     .ToDictionary(day => day.Date, day => day.Metrics);
+                (double Value, UsageTrendPointKind Kind)[] points = days
+                    .Select(day => Point(day.Date, daily.GetValueOrDefault(day.Date))).ToArray();
                 series.Add(new(id, id, ProviderName(id), color,
-                    days.Select(day => Value(day.Date, daily.GetValueOrDefault(day.Date))).ToArray()));
+                    points.Select(item => item.Value).ToArray())
+                {
+                    PointKinds = points.Select(item => item.Kind).ToArray(),
+                });
                 continue;
             }
 
-            var models = _report.Models.Where(model => model.AgentId == agent.AgentId
-                && model.ModelId.Value != "codex-account").ToArray();
-            string Key(UsageModelReport model) => ReportDataProjection.ModelKey(
-                id, model.ModelProviderId?.Value, model.ModelId.Value);
-            var shades = ReportDataProjection.ModelShades(color,
-                models.Select(model => (Key(model), IsCostMetric
-                    ? ReportDataProjection.KnownCost(model.Metrics) : (decimal?)model.Metrics.Tokens.Total)));
-            var modelDays = _report.ModelDays.Where(day => day.AgentId == agent.AgentId)
-                .ToDictionary(day => (day.Date, ReportDataProjection.ModelKey(
-                    id, day.ModelProviderId?.Value, day.ModelId.Value)), day => day.Metrics);
-            foreach (UsageModelReport model in models.OrderBy(model => IsCostMetric ? ReportDataProjection.KnownCost(model.Metrics) is null : false)
-                .ThenByDescending(model => IsCostMetric ? ReportDataProjection.KnownCost(model.Metrics) : model.Metrics.Tokens.Total)
-                .ThenBy(Key, StringComparer.Ordinal))
+            IReadOnlyList<UsageModelChartGroup> groups = UsageReportQuery.TopModels(source, agent.AgentId, 5, IsCostMetric);
+            string Key(UsageModelChartGroup group) => group.Model is { } model
+                ? ReportDataProjection.ModelKey(id, model.ModelProviderId?.Value, model.ModelId.Value) : id + "/@other";
+            var shades = ReportDataProjection.ModelShades(color, groups.Select(group =>
+                (Key(group), IsCostMetric ? ReportDataProjection.KnownCost(group.Report.Totals) : (decimal?)group.Report.Totals.Tokens.Total)));
+            foreach (UsageModelChartGroup group in groups)
             {
-                string key = Key(model);
-                series.Add(new(key, id, ReportDataProjection.ModelName(model.ModelId.Value), shades[key],
-                    days.Select(day => Value(day.Date, modelDays.GetValueOrDefault((day.Date, key)))).ToArray(),
-                    model.ModelId.Value));
+                string key = Key(group);
+                modelGroups[key] = group.Report;
+                var modelDays = group.Report.Days.ToDictionary(day => day.Date, day => day.Metrics);
+                var points = days.Select(day => Point(day.Date, modelDays.GetValueOrDefault(day.Date))).ToArray();
+                string name = group.Model is { } model
+                    ? ReportDataProjection.ModelName(model.ModelId.Value) + " · "
+                        + (model.ModelProviderId?.Value ?? GetString("UsageReportUnknownHost"))
+                    : string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerOtherModelsFormat"), group.ModelCount);
+                series.Add(new(key, id, name, shades[key], points.Select(item => item.Value).ToArray(), group.Model?.ModelId.Value)
+                {
+                    PointKinds = points.Select(item => item.Kind).ToArray(),
+                });
             }
         }
         if (ChartStyle == ReportChartStyle.TwoHourBars)
         {
-            var timeTotals = _report.TimeBuckets.GroupBy(item => (item.Usage.Date, item.Hour))
+            var timeTotals = source.TimeBuckets.GroupBy(item => (item.Usage.Date, item.Hour))
                 .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
             for (int index = 0; index < series.Count; index++)
             {
                 UsageReportTrendSeries current = series[index];
-                var buckets = _report.TimeBuckets.Where(item => item.Usage.AgentId.Value == current.ProviderId
-                    && (!byModel || ReportDataProjection.ModelKey(current.ProviderId,
-                        item.Usage.ModelProviderId?.Value, item.Usage.ModelId.Value) == current.Id))
+                var buckets = (byModel ? modelGroups[current.Id].TimeBuckets : source.TimeBuckets)
+                    .Where(item => item.Usage.AgentId.Value == current.ProviderId)
                     .GroupBy(item => (item.Usage.Date, item.Hour))
                     .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
                 series[index] = current with
@@ -148,7 +181,8 @@ public sealed partial class UsageReportViewModel
         AddResetMarkers(days, UsageReportResetMarkers.Calendar(_resetHistory.Resets,
             series.Select(item => item.ProviderId), StartDate, days.Length, TimeZoneInfo.Local));
         return new(percentage ? UsageReportMetric.Share : Metric, days, series, ChartStyle,
-            EmphasizeSmallValues: EmphasizeSmallValues && !percentage);
+            EmphasizeSmallValues: EmphasizeSmallValues && !percentage)
+            { UnavailableText = HourlyUnavailableText(source) };
     }
 
     private double MetricValue(UsageReportMetrics metrics) => IsCostMetric
@@ -173,6 +207,12 @@ public sealed partial class UsageReportViewModel
             case UsageReportBreakdown.Day:
                 ReconcileRows(DayRows, OrderDayRows(DayRows).ToArray(), row => row.Id);
                 break;
+            case UsageReportBreakdown.Project:
+                ReconcileRows(
+                    ProjectOverviewRows,
+                    OrderProjectOverviewRows(ProjectOverviewRows).ToArray(),
+                    row => row.Id);
+                break;
         }
     }
 
@@ -195,11 +235,13 @@ public sealed partial class UsageReportViewModel
             ReportSortColumn.ReportedCost => metrics.ReportedCostUsd,
             ReportSortColumn.EstimatedCost => metrics.EstimatedCostUsd,
             ReportSortColumn.Tokens => metrics.Tokens.Total,
+            ReportSortColumn.UnpricedTokens => metrics.UnpricedTokens,
             ReportSortColumn.Share => IsCostMetric ? ReportDataProjection.KnownCost(metrics) : metrics.Tokens.Total,
             ReportSortColumn.Coverage => metrics.PriceCoveragePercent,
             ReportSortColumn.Events => metrics.EventCount,
             ReportSortColumn.ActiveDays => activeDays,
             ReportSortColumn.Date => date?.DayNumber,
+            ReportSortColumn.Sessions => null,
             _ => null,
         };
 

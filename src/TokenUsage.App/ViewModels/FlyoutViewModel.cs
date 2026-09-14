@@ -33,7 +33,12 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         DataCollectionSettingsStore? dataCollectionSettings = null,
         AlertSettingsStore? alertSettings = null,
         IAlertNotificationSink? alertNotifications = null,
-        UpdateOptionsViewModel? updates = null)
+        UpdateOptionsViewModel? updates = null,
+        AttributionConsentStore? attributionConsent = null,
+        string? usageDatabasePath = null,
+        Func<AttributionCapability, CancellationToken, Task>? clearAttributionDerivedStores = null,
+        AttributionAliasStore? attributionAliases = null,
+        Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
@@ -54,7 +59,12 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AppearanceOptions.SettingsChanged += OnAppearanceSettingsChanged;
         GeneralOptions = new GeneralOptionsViewModel(
             GetString,
-            dataCollectionSettings);
+            dataCollectionSettings,
+            attributionConsent,
+            usageDatabasePath,
+            clearAttributionDerivedStores,
+            attributionAliases,
+            runAttributionBackfill);
         GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
         ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
@@ -267,76 +277,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         object? sender,
         AppearanceSettings settings) =>
         OnPropertyChanged(nameof(Appearance));
-
-    private void OnDashboardPropertyChanged(
-        object? sender,
-        PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(Dashboard.Scope)
-            or nameof(Dashboard.ProviderSummaries)
-            or nameof(Dashboard.GlobalHeatmap)
-            or nameof(Dashboard.SelectedProviderLimits))
-        {
-            LayoutRevision++;
-        }
-
-        if (string.Equals(
-                e.PropertyName,
-                nameof(Dashboard.ResultSurface),
-                StringComparison.Ordinal))
-        {
-            _resultSurface = Dashboard.ResultSurface;
-            if (!IsOptions)
-            {
-                SurfaceState = _resultSurface;
-            }
-        }
-
-        if (string.Equals(e.PropertyName, nameof(Dashboard.IsRefreshing), StringComparison.Ordinal)
-            || string.Equals(
-                e.PropertyName,
-                nameof(Dashboard.IsSessionRefreshing),
-                StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(IsRefreshing));
-        }
-
-        if (string.Equals(e.PropertyName, nameof(Dashboard.RevealToken), StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(SampleRevealToken));
-        }
-
-        if (string.Equals(
-                e.PropertyName,
-                nameof(Dashboard.IsSampleModeEnabled),
-                StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(IsSampleModeEnabled));
-            OnPropertyChanged(nameof(IsSampleContext));
-            OnPropertyChanged(nameof(IsLiveLoading));
-            OnPropertyChanged(nameof(IsSampleLoading));
-        }
-
-        if (string.Equals(e.PropertyName, nameof(Dashboard.UnavailableTitle), StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(UnavailableTitle));
-        }
-
-        if (string.Equals(e.PropertyName, nameof(Dashboard.UnavailableBody), StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(UnavailableBody));
-        }
-
-        if (string.Equals(e.PropertyName, nameof(Dashboard.RetryButtonText), StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(RetryButtonText));
-        }
-
-        if (string.Equals(e.PropertyName, nameof(Dashboard.RetryAutomationName), StringComparison.Ordinal))
-        {
-            OnPropertyChanged(nameof(RetryAutomationName));
-        }
-    }
 
     private string GetString(string key)
     {

@@ -75,4 +75,14 @@ public sealed partial class GeneralOptionsView : UserControl
     private async void OnShareCaptureFolderResetClicked(object sender, RoutedEventArgs e) =>
         ShareCaptureFolderPath.Text = await ShareCaptureService.ResetDestinationAsync();
 
+    private async void OnAttributionBackfillRunClicked(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+        {
+            return;
+        }
+
+        await ViewModel.RunAttributionBackfillAsync();
+    }
+
 }

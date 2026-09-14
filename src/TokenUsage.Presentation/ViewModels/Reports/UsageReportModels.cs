@@ -1,5 +1,6 @@
-using TokenUsage.Core.Usage;
+using TokenUsage.App.Controls;
 using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
@@ -15,6 +16,7 @@ public enum UsageReportBreakdown
     Model,
     Source,
     Day,
+    Project,
 }
 
 public enum UsageReportValueMode
@@ -140,6 +142,8 @@ public sealed record UsageReportTrendSeries(
 {
     public IReadOnlyList<double> TimeValues { get; init; } = [];
 
+    public IReadOnlyList<UsageTrendPointKind> PointKinds { get; init; } = [];
+
     public string? LegendName { get; init; }
 
     public bool IsReserve => ModelId == "gpt-reserve";
@@ -153,6 +157,7 @@ public sealed record UsageReportTrendDataset(
     bool IsComparison = false,
     bool EmphasizeSmallValues = false)
 {
+    public string? UnavailableText { get; init; }
     public static UsageReportTrendDataset Empty { get; } = new(
         UsageReportMetric.Cost,
         [],
