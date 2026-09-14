@@ -1,0 +1,6 @@
+{
+  "scope": "documentation tooling negative checks only",
+  "readerDrift": "passed: an altered source caused --check to return 1; source restored",
+  "phaseDocuments": "unchanged",
+  "productTests": "not_run"
+}

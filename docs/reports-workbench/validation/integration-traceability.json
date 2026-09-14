@@ -1,0 +1,114 @@
+{
+  "requirements": [
+    {
+      "requirement": "REQ-INT-01",
+      "phase": "P1",
+      "planned_test": "TEST-INT-01",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-02",
+      "phase": "P0",
+      "planned_test": "TEST-INT-02",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-03",
+      "phase": "P2",
+      "planned_test": "TEST-INT-03",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-04",
+      "phase": "P2",
+      "planned_test": "TEST-INT-04",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-05",
+      "phase": "P2",
+      "planned_test": "TEST-INT-05",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-06",
+      "phase": "P3",
+      "planned_test": "TEST-INT-06",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-07",
+      "phase": "P3",
+      "planned_test": "TEST-INT-07",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-08",
+      "phase": "P4",
+      "planned_test": "TEST-INT-08",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-09",
+      "phase": "P4",
+      "planned_test": "TEST-INT-09",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-10",
+      "phase": "P2",
+      "planned_test": "TEST-INT-10",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-11",
+      "phase": "P4",
+      "planned_test": "TEST-INT-11",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    },
+    {
+      "requirement": "REQ-INT-12",
+      "phase": "P1",
+      "planned_test": "TEST-INT-12",
+      "status": "planned_not_executed_in_product",
+      "document": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+    }
+  ],
+  "native_sqlite_tests": [
+    {
+      "test": "TEST-SQLITE-01",
+      "status": "planned_not_executed_in_product"
+    },
+    {
+      "test": "TEST-SQLITE-02",
+      "status": "planned_not_executed_in_product"
+    },
+    {
+      "test": "TEST-SQLITE-03",
+      "status": "planned_not_executed_in_product"
+    },
+    {
+      "test": "TEST-SQLITE-04",
+      "status": "planned_not_executed_in_product"
+    },
+    {
+      "test": "TEST-SQLITE-05",
+      "status": "planned_not_executed_in_product"
+    },
+    {
+      "test": "TEST-SQLITE-06",
+      "status": "planned_not_executed_in_product"
+    }
+  ]
+}

@@ -53,6 +53,8 @@ Local records may include:
 - language, appearance, and application settings;
 - diagnostic state that does not intentionally contain credentials or customer content.
 
+Optional attribution is off until the user enables it in Settings. When enabled, TokenUsage may store app-owned opaque session or project keys derived from approved structured fields. Native session IDs, working directories, full paths, prompts, and aliases are not written to the usage database. Separate optional switches count Codex tools/MCP, agent spawns, command families, and opaque file operations. Those switches store opaque call or file IDs and bounded names only. They do not store prompts, command text, arguments, URIs, paths, or tool-call contents. Enablement links only newly admitted observations; a separate Settings backfill can cover a retained date range. Turning the option off removes those links and any local aliases. Restoring an old usage database cannot revive permission or expose restored links in the app. It does not delete numeric usage, daily totals, prices, or event keys. Shared reports omit aliases and persistent attribution keys by default; session, project, and operation rows use file-local IDs.
+
 TokenUsage data remains on the user's device unless the user explicitly enables a documented integration that communicates with an external service.
 
 ## 4. Credentials
@@ -171,6 +173,8 @@ Los registros locales pueden incluir:
 - observaciones de cuota e historial de reinicios;
 - idioma, apariencia y configuración de la aplicación;
 - estado de diagnóstico que no debe contener credenciales ni contenido del usuario.
+
+La atribución opcional permanece desactivada hasta que el usuario la habilite en Configuración. Si se habilita, TokenUsage puede guardar claves opacas de sesión o proyecto derivadas de campos estructurados aprobados. No guarda identificadores nativos, directorios de trabajo, rutas completas, prompts ni alias en la base de uso. Desactivar la opción elimina esos vínculos y los alias locales. No borra el uso numérico, los totales diarios, los precios ni las claves de evento.
 
 Los datos permanecen en el dispositivo salvo que el usuario habilite explícitamente una integración documentada que se comunique con un servicio externo.
 

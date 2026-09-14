@@ -1,0 +1,199 @@
+{
+  "title": "TokenUsage Reports Engineering Pack",
+  "document_version": "2.0",
+  "baseline_commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+  "created_at_utc": "2026-09-12T22:08:11.467728+00:00",
+  "status": "design_proposal_not_product_implementation",
+  "stats": {
+    "core_markdown_documents": 17,
+    "phase_documents": 5,
+    "phase_requirements": 36,
+    "cross_cutting_requirements": 12,
+    "implementation_tasks": 27,
+    "planned_phase_test_cases": 56,
+    "planned_cross_cutting_test_families": 12,
+    "metric_definitions": 20,
+    "draft_schemas": 3,
+    "approximate_words": 22974
+  },
+  "validation": {
+    "documentation_and_oracles": {
+      "passed": 50,
+      "failed": 0,
+      "not_run": 0
+    },
+    "documentation_reader": {
+      "passed": 27,
+      "failed": 0
+    },
+    "product_checks": "not_run"
+  },
+  "integrity_notice": "SHA-256 records detect accidental file changes; this manifest is not a digital signature or proof of authenticity.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 5492,
+      "sha256": "fd53b9b3ac490ea6137e5c2c246168876a3f6715ca4425b4b425833cca4f86c9"
+    },
+    {
+      "path": "archive/RFC-original-2026-09-12.md",
+      "bytes": 28358,
+      "sha256": "8a700fd868c86317ce7678e199f423b534a909c03f5a355c2dd1c6edaead8e9e"
+    },
+    {
+      "path": "docs/00-MASTER-PLAN.md",
+      "bytes": 9495,
+      "sha256": "d485c56784da6612c9692a86ae0a0ee1719e8f3409949e91c74ba7180e6e287c"
+    },
+    {
+      "path": "docs/01-BASELINE-AND-FINDINGS.md",
+      "bytes": 8020,
+      "sha256": "455c96d87711daa374dc8e775e9f9805bd30f1449f0cd7e13f3583eb513d41e3"
+    },
+    {
+      "path": "docs/architecture/02-CONTRACTS-AND-DATA-FLOW.md",
+      "bytes": 8768,
+      "sha256": "81959d6bcf9c64c0ffeb521ec14795151d04436946a9c029e3dc172a79ba6820"
+    },
+    {
+      "path": "docs/architecture/03-METRIC-SEMANTICS.md",
+      "bytes": 8993,
+      "sha256": "11a7577eb65b1a8892e27216c178136177234a7c5aa50cac327e1ab8feaa11f0"
+    },
+    {
+      "path": "docs/operations/07-PRIVACY-AND-THREATS.md",
+      "bytes": 8172,
+      "sha256": "0536502f8a3e07032978b77135d76ad31c5235c78c397855d9672d1ca2175584"
+    },
+    {
+      "path": "docs/operations/08-MIGRATIONS-AND-RECOVERY.md",
+      "bytes": 8067,
+      "sha256": "dbe06474d2940187969a78f123de97ee11650ad79e00ed11c22960ecf017daf1"
+    },
+    {
+      "path": "docs/operations/09-AGENT-HANDOFF.md",
+      "bytes": 8278,
+      "sha256": "7e6833794b69a2e5f1cd8799002439f6ece5ec30d0ae7aa335e8597d8e8cb0fc"
+    },
+    {
+      "path": "docs/phases/P0-CORRECTNESS.md",
+      "bytes": 12272,
+      "sha256": "3ff70259601598f9f5a6a8b862b903ed73d06fd4fc79a76e22cd48d56d7dda1f"
+    },
+    {
+      "path": "docs/phases/P1-MODEL-EXPLORER.md",
+      "bytes": 12298,
+      "sha256": "97b6142338bc1736139a3d6550186b22c67158c9af98c6e1db88d6b336918ea0"
+    },
+    {
+      "path": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "bytes": 13654,
+      "sha256": "19c2bdf132425112cb80c0930dfa516c25b17120b16b0bbcc14ae9aea2a42a19"
+    },
+    {
+      "path": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "bytes": 12254,
+      "sha256": "f9b5cd9a98dd0c2a016bfaf7a52f1926f085c9d481f6c3372eff473a35d51c48"
+    },
+    {
+      "path": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "bytes": 15590,
+      "sha256": "0e6cc07866dad0be684b802632e9e0340ff9ff5a73a15359a9a70380f8042107"
+    },
+    {
+      "path": "docs/quality/04-QUALITY-GATES.md",
+      "bytes": 9060,
+      "sha256": "9d285789a4ba419d622762211542d76fe834411c14540454a55265dd85f44dad"
+    },
+    {
+      "path": "docs/quality/05-UX-AND-ACCESSIBILITY.md",
+      "bytes": 7137,
+      "sha256": "830110923f5441b2fff6367990a318604f22ce3c2e7875ecf7d52535d38d8746"
+    },
+    {
+      "path": "docs/quality/06-PERFORMANCE-PROTOCOL.md",
+      "bytes": 6721,
+      "sha256": "59cfee73493a8947e5c05e7a6ef847700350630bc9eb8cd766d93962d7ac8b2f"
+    },
+    {
+      "path": "docs/references/10-SOURCES.md",
+      "bytes": 9478,
+      "sha256": "4ae52e24fc2552f89c2638895da0d942e9a7f68a7bb6652aea2f09f40b010f2f"
+    },
+    {
+      "path": "docs/references/sources.json",
+      "bytes": 9394,
+      "sha256": "5cc40e610c1097980423f5072df98564ff7bd414670521e9df3a051d9058e8eb"
+    },
+    {
+      "path": "fixtures/design-oracles.json",
+      "bytes": 2162,
+      "sha256": "42251e1e211affe8ee84c06cfb434a092ca0977b925c03dbd3810f3b6a1dd435"
+    },
+    {
+      "path": "fixtures/metadata.example.json",
+      "bytes": 599,
+      "sha256": "9ac9a8f6c8229eb2bf393bfdba65a6490f7b9c70e5607cc4fd4d7c08f1b6062c"
+    },
+    {
+      "path": "fixtures/metric.example.json",
+      "bytes": 386,
+      "sha256": "3341e5e1a190273e63080a913110685b07c8bae4f15a58e12b3c61c5c7270864"
+    },
+    {
+      "path": "fixtures/selection.example.json",
+      "bytes": 652,
+      "sha256": "980a2cc4351a0f65201dae911af83fdfa33d1431c41c7eb28bc6beeb7340e4a8"
+    },
+    {
+      "path": "index.html",
+      "bytes": 681473,
+      "sha256": "f0d1024732b1510b861aaa4490b6135031ca55484f609ee072f40879c0a8e638"
+    },
+    {
+      "path": "schemas/metric.draft.v2.schema.json",
+      "bytes": 3496,
+      "sha256": "d2c96b272ad2a3e3ddf7e4fcf7cd7a8323a5b07c13b5a47d5681075fd233a0f5"
+    },
+    {
+      "path": "schemas/record-metadata.draft.v2.schema.json",
+      "bytes": 2542,
+      "sha256": "65d0538666fa9f869436c009f4e0e3e0fcb19e6f8aaee00180f1c1975ac9248a"
+    },
+    {
+      "path": "schemas/report-selection.draft.v2.schema.json",
+      "bytes": 5599,
+      "sha256": "7c329989bba2a78ca287c8fac4805ffbaef4f16fd8a9f73a9c3f03fadfa81981"
+    },
+    {
+      "path": "tools/validate_pack.py",
+      "bytes": 14730,
+      "sha256": "41b7b8d03bcc69fecfd129a560ded101db7d9354ac1d719ec96be21a60a8dfee"
+    },
+    {
+      "path": "validation/pack-validation.json",
+      "bytes": 6887,
+      "sha256": "d0e8879d8146ce4aa142a67b586f6e70ffdf53492a62536ca774f03c5ee9d2e0"
+    },
+    {
+      "path": "validation/reader-desktop.png",
+      "bytes": 228839,
+      "sha256": "b0856aa122b7fd55e70f372b63a4a27f31ebec53e747f00b3c5a7bd54f95b972"
+    },
+    {
+      "path": "validation/reader-mobile.png",
+      "bytes": 79211,
+      "sha256": "8cc97c9d021fbad7472b956266fcfec907cd3572f43b3bd9e472cc7ede8672cd"
+    },
+    {
+      "path": "validation/reader-validation.json",
+      "bytes": 2809,
+      "sha256": "dd99bb38f54b5508c0788a66ded302a0ad2bda98c5c38905694003cb5f64352b"
+    },
+    {
+      "path": "validation/traceability.json",
+      "bytes": 14988,
+      "sha256": "07f8b6b9b214a6aea814aa4dfdf96559ffde1886601b8c8600f8a2813960c641"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TokenUsage P2 metadata — DESIGN ONLY; excludes P3 attribution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "eventKey",
+    "sourceInstanceKey",
+    "recordRevision",
+    "recordKind",
+    "timePrecision",
+    "observedAtUtc",
+    "normalizationVersion",
+    "componentAvailability"
+  ],
+  "properties": {
+    "contract": {
+      "const": "tokenusage.record-metadata.draft.v2"
+    },
+    "eventKey": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceInstanceKey": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "recordRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "recordKind": {
+      "enum": [
+        "request-final",
+        "interval-delta",
+        "snapshot",
+        "daily-aggregate",
+        "unknown"
+      ]
+    },
+    "timePrecision": {
+      "enum": [
+        "unknown",
+        "timestamp",
+        "interval",
+        "daily"
+      ]
+    },
+    "observedAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "normalizationVersion": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1
+    },
+    "componentAvailability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "output",
+        "reasoning",
+        "cacheRead",
+        "cacheWrite"
+      ],
+      "properties": {
+        "input": {
+          "enum": [
+            "observed",
+            "not-exposed",
+            "not-applicable",
+            "partial",
+            "legacy-unknown"
+          ]
+        },
+        "output": {
+          "enum": [
+            "observed",
+            "not-exposed",
+            "not-applicable",
+            "partial",
+            "legacy-unknown"
+          ]
+        },
+        "reasoning": {
+          "enum": [
+            "observed",
+            "not-exposed",
+            "not-applicable",
+            "partial",
+            "legacy-unknown"
+          ]
+        },
+        "cacheRead": {
+          "enum": [
+            "observed",
+            "not-exposed",
+            "not-applicable",
+            "partial",
+            "legacy-unknown"
+          ]
+        },
+        "cacheWrite": {
+          "enum": [
+            "observed",
+            "not-exposed",
+            "not-applicable",
+            "partial",
+            "legacy-unknown"
+          ]
+        }
+      }
+    }
+  }
+}

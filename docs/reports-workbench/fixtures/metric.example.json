@@ -1,0 +1,15 @@
+{
+  "contract": "tokenusage.metric.draft.v2",
+  "metricId": "M-01",
+  "definitionVersion": "disjoint-tokens/v1",
+  "state": "available",
+  "value": "9007199254740993",
+  "unit": "tokens",
+  "evidenceKind": "observed",
+  "eligibleRecords": "1",
+  "eligibleTokens": "9007199254740993",
+  "denominator": null,
+  "denominatorUnit": null,
+  "methodId": "sum-canonical/v1",
+  "reasons": []
+}

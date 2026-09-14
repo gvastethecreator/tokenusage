@@ -1,0 +1,206 @@
+{
+  "baseline_commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+  "review_date": "2026-09-12",
+  "method": "static_read_only",
+  "sources": [
+    {
+      "id": "TU-01",
+      "title": "README y estructura pública",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/README.md",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura previa; commit revalidado."
+    },
+    {
+      "id": "TU-02",
+      "title": "Dominio de eventos y tokens",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Usage/UsageEvent.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura completa previa en el mismo commit."
+    },
+    {
+      "id": "TU-03",
+      "title": "Contratos de fuente/snapshot",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Usage/IUsageEventSource.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura completa previa en el mismo commit."
+    },
+    {
+      "id": "TU-04",
+      "title": "Comparación y fórmula SplitKnownCost",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Usage/UsageComparison.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura completa previa; álgebra revisada, C# no ejecutado."
+    },
+    {
+      "id": "TU-05",
+      "title": "ViewModel de comparación, Rates y snapshots",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.Comparison.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura ampliada de líneas 1–440, no de todas las clases parciales."
+    },
+    {
+      "id": "TU-06",
+      "title": "Presentación de evidencia",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.MeasurementDetails.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura completa previa en el mismo commit."
+    },
+    {
+      "id": "TU-07",
+      "title": "Consulta de informes y población temporal",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Automation/UsageReportQuery.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura de líneas 1–250; no auditoría exhaustiva de todos los métodos."
+    },
+    {
+      "id": "TU-08",
+      "title": "Repositorio y schema 5",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Usage/UsageRepository.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura de líneas 1–215; cuerpo completo de reconciliación queda como gate de implementación."
+    },
+    {
+      "id": "TU-09",
+      "title": "Repricing y elegibilidad",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Usage/UsageReferencePricing.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura completa."
+    },
+    {
+      "id": "TU-10",
+      "title": "Fuentes activas, límites y retención",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/docs/PROVIDER-MATRIX.md",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura de secciones pertinentes en revisión inicial; commit revalidado."
+    },
+    {
+      "id": "TU-11",
+      "title": "Política de privacidad",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/PRIVACY.md",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura de política y alcance en revisión inicial; commit revalidado."
+    },
+    {
+      "id": "TU-12",
+      "title": "Guía de pruebas y evidencias",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/docs/CONTRIBUTOR-TESTING.md",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura completa."
+    },
+    {
+      "id": "TU-13",
+      "title": "Metadata de medición y colección",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/Usage/UsageRepository.Measurement.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Lectura completa previa en mismo commit."
+    },
+    {
+      "id": "TU-14",
+      "title": "Entrada del colector Codex",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Providers/Codex/CodexUsageEventSource.cs",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura del archivo; no de todas las clases parciales ni instalación real."
+    },
+    {
+      "id": "TU-15",
+      "title": "Pricing y semántica del eje Rates",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/docs/PRICING.md",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura completa; no se revalidaron tarifas comerciales en este paquete."
+    },
+    {
+      "id": "TU-16",
+      "title": "Contribución, issue previa y exclusión de browser runners",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/CONTRIBUTING.md",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Relectura de líneas 1–130, que contienen las normas citadas."
+    },
+    {
+      "id": "TU-17",
+      "title": "Proyecto Presentation existente",
+      "url": "https://github.com/gvastethecreator/tokenusage/tree/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Presentation",
+      "commit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+      "scope": "Existencia/estructura del árbol verificada en revisión inicial; roles nuevos son propuesta."
+    },
+    {
+      "id": "CB-01",
+      "title": "CodeBurn · clasificador",
+      "url": "https://github.com/getagentseal/codeburn/blob/main/src/classifier.ts",
+      "scope": "Lectura en revisión inicial. Blob observado 44582db8d99a5736637f049cea6d09e862e2df3b. URL main mutable; fijar commit antes de adoptar código."
+    },
+    {
+      "id": "AS-01",
+      "title": "AIStack · CLI",
+      "url": "https://github.com/alp82/aistack/blob/main/packages/cli/README.md",
+      "scope": "Lectura inicial. Blob observado 936015446b7bf317229a7efc97622f5439a05f2a. Referencia comparativa, sin ejecución ni nueva integración."
+    },
+    {
+      "id": "AS-02",
+      "title": "AIStack · agregados combinables",
+      "url": "https://github.com/alp82/aistack/blob/main/packages/cli/src/usage/days.ts",
+      "scope": "Lectura inicial. Blob observado 74e4ffda6ea70d2f0be9aebcaa2bd4db0a18bef0. No se copió su implementación."
+    },
+    {
+      "id": "EXT-01",
+      "title": "Microsoft.Data.Sqlite · limitaciones Async",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/async",
+      "scope": "Consultada el 12/09/2026; uso acotado para diseño del executor."
+    },
+    {
+      "id": "EXT-02",
+      "title": "SQLite · Online Backup API",
+      "url": "https://www.sqlite.org/backup.html",
+      "scope": "Consultada el 12/09/2026; no se ejecutó backup del producto."
+    },
+    {
+      "id": "EXT-03",
+      "title": "Microsoft.Data.Sqlite · backup",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/backup",
+      "scope": "Consultada el 12/09/2026."
+    },
+    {
+      "id": "EXT-04",
+      "title": "SQLite · WAL",
+      "url": "https://www.sqlite.org/wal.html",
+      "scope": "Consultada el 12/09/2026; consistencia, lectores/escritor y restricciones de filesystem."
+    },
+    {
+      "id": "EXT-05",
+      "title": "Microsoft.Data.Sqlite · database errors",
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/database-errors",
+      "scope": "Consultada el 12/09/2026; contención y timeouts, no benchmark."
+    },
+    {
+      "id": "EXT-06",
+      "title": "Windows · accesibilidad",
+      "url": "https://learn.microsoft.com/en-us/windows/apps/design/accessibility/accessibility-overview",
+      "scope": "Consultada el 12/09/2026. Requisitos de teclado, UI Automation y temas; sin validación WinUI en este entorno."
+    },
+    {
+      "id": "EXT-07",
+      "title": "OWASP · CSV Injection",
+      "url": "https://community.owasp.org/attacks/CSV_Injection",
+      "scope": "Consultada el 12/09/2026. No existe sanitización universal; prueba por consumidor/flujos de reapertura."
+    },
+    {
+      "id": "EXT-08",
+      "title": "JSON Schema · draft 2020-12",
+      "url": "https://json-schema.org/draft/2020-12/json-schema-core",
+      "scope": "Consultada el 12/09/2026. Los schemas incluidos son borradores locales de diseño."
+    },
+    {
+      "id": "TU-18",
+      "title": "Versiones declaradas del proveedor SQLite en Core",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/src/TokenUsage.Core/TokenUsage.Core.csproj",
+      "evidence": "Read through GitHub connector; static inspection only.",
+      "accessed": "2026-09-12"
+    },
+    {
+      "id": "TU-19",
+      "title": "Publicación Pages del directorio docs completo",
+      "url": "https://github.com/gvastethecreator/tokenusage/blob/df50c367b083e5624bf09213eddc7013d8299aa4/.github/workflows/pages.yml",
+      "evidence": "Read through GitHub connector; static inspection only.",
+      "accessed": "2026-09-12"
+    }
+  ]
+}

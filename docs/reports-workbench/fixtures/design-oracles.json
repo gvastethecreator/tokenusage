@@ -1,0 +1,161 @@
+{
+  "notice": "ALL VALUES ARE SYNTHETIC. These are design oracles, not provider formats or measured usage.",
+  "normalization": {
+    "inputTotal": 1000,
+    "cacheRead": 400,
+    "outputTotal": 250,
+    "reasoning": 50,
+    "expectedTotal": 1250,
+    "expectedComponents": [
+      600,
+      200,
+      50,
+      400,
+      0
+    ]
+  },
+  "weightedRatio": {
+    "numerators": [
+      900,
+      0
+    ],
+    "denominators": [
+      1000,
+      10
+    ],
+    "expectedFraction": [
+      "90",
+      "101"
+    ]
+  },
+  "fixedCohort": [
+    {
+      "id": "e1",
+      "revision": 1,
+      "tokens": 100,
+      "a": "0.100000",
+      "b": "0.200000"
+    },
+    {
+      "id": "e2",
+      "revision": 1,
+      "tokens": 200,
+      "a": "0.050000",
+      "b": null
+    }
+  ],
+  "disjointCohort": [
+    {
+      "id": "x",
+      "revision": 1,
+      "tokens": 100,
+      "a": "0.100000",
+      "b": null
+    },
+    {
+      "id": "y",
+      "revision": 1,
+      "tokens": 100,
+      "a": null,
+      "b": "0.200000"
+    }
+  ],
+  "linearScenarios": [
+    {
+      "name": "volume",
+      "q0": [
+        50,
+        50
+      ],
+      "q1": [
+        100,
+        100
+      ],
+      "r0": [
+        1,
+        2
+      ],
+      "r1": [
+        1,
+        2
+      ],
+      "expected": [
+        150,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "mix",
+      "q0": [
+        50,
+        50
+      ],
+      "q1": [
+        25,
+        75
+      ],
+      "r0": [
+        1,
+        2
+      ],
+      "r1": [
+        1,
+        2
+      ],
+      "expected": [
+        0,
+        25,
+        0
+      ]
+    },
+    {
+      "name": "rate",
+      "q0": [
+        50,
+        50
+      ],
+      "q1": [
+        50,
+        50
+      ],
+      "r0": [
+        1,
+        2
+      ],
+      "r1": [
+        1,
+        3
+      ],
+      "expected": [
+        0,
+        0,
+        50
+      ]
+    },
+    {
+      "name": "combined",
+      "q0": [
+        50,
+        50
+      ],
+      "q1": [
+        50,
+        150
+      ],
+      "r0": [
+        1,
+        2
+      ],
+      "r1": [
+        1,
+        3
+      ],
+      "expected": [
+        150,
+        50,
+        150
+      ]
+    }
+  ]
+}

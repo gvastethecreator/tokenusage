@@ -1,0 +1,8 @@
+# Hashed documentation text stays LF even when core.autocrlf=true.
+* text=auto eol=lf
+*.zip -text -eol binary
+*.png -text -eol binary
+*.jpg -text -eol binary
+*.jpeg -text -eol binary
+*.gif -text -eol binary
+*.webp -text -eol binary
