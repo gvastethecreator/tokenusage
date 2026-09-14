@@ -10,7 +10,6 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Foundation;
 using Windows.System;
 using Windows.UI;
-using Windows.UI.ViewManagement;
 using TokenUsage.App.ViewModels.Reports;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -23,7 +22,8 @@ public sealed partial class UsageTrendChart : UserControl
         : UsageReportResetMarkers.TopPaddingFor(UsageReportResetMarkers.PackDays(Data.Days));
     private const double BottomPadding = 10;
     private readonly ResourceLoader _resources = new();
-    private readonly AccessibilitySettings _accessibilitySettings = new();
+    private Microsoft.UI.System.ThemeSettings? _themeSettings;
+    private bool IsHighContrast => _themeSettings?.HighContrast == true;
     private Line? _crosshair;
     private Canvas _seriesCanvas = new();
     private Microsoft.UI.Composition.InsetClip? _entranceClip;
@@ -70,7 +70,7 @@ public sealed partial class UsageTrendChart : UserControl
         Loaded += OnLoaded;
         ActualThemeChanged += OnActualThemeChanged;
         GotFocus += OnGotFocus;
-        Unloaded += (_, _) => { HideHover(); FinishEntrance(); };
+        Unloaded += OnUnloaded;
         AutomationProperties.SetName(this, GetString("UsageReportChartAutomationName"));
     }
 
@@ -115,7 +115,29 @@ public sealed partial class UsageTrendChart : UserControl
         ((UsageTrendChart)dependencyObject).Rebuild();
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e) => Rebuild();
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (_themeSettings is null && XamlRoot is not null)
+        {
+            _themeSettings = Microsoft.UI.System.ThemeSettings.CreateForWindowId(XamlRoot.ContentIslandEnvironment.AppWindowId);
+            _themeSettings.Changed += OnSystemThemeChanged;
+        }
+        Rebuild();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_themeSettings is not null)
+        {
+            _themeSettings.Changed -= OnSystemThemeChanged;
+            _themeSettings = null;
+        }
+        HideHover();
+        FinishEntrance();
+    }
+
+    private void OnSystemThemeChanged(Microsoft.UI.System.ThemeSettings sender, object args) =>
+        _ = DispatcherQueue.TryEnqueue(() => { if (IsLoaded) Rebuild(); });
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => Rebuild();
 
@@ -151,7 +173,9 @@ public sealed partial class UsageTrendChart : UserControl
         HoverCard.Visibility = Visibility.Collapsed;
 
         UsageReportTrendDataset data = Data ?? UsageReportTrendDataset.Empty;
-        bool hasSeries = data.Days.Count > 0 && data.Series.Count > 0;
+        bool hasSeries = data.UnavailableText is null && data.Days.Count > 0 && data.Series.Count > 0;
+        EmptyText.Text = data.UnavailableText ?? GetString("UsageTrendEmptyText");
+        AutomationProperties.SetHelpText(this, data.UnavailableText ?? string.Empty);
         EmptyText.Visibility = hasSeries ? Visibility.Collapsed : Visibility.Visible;
         HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(220, ActualWidth)) : 220;
         UpdateDateLabels(data);
@@ -162,11 +186,17 @@ public sealed partial class UsageTrendChart : UserControl
             return;
         }
 
+        IReadOnlyList<double>[] scaleValues = [.. data.Series.Select(series =>
+            data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values)];
+        bool stackedArea = data.Style == ReportChartStyle.Area && data.Days.Count > 1 && !data.IsComparison;
         UsageTrendScale scale = data.Metric == UsageReportMetric.Share
             ? new UsageTrendScale(100, [0, 25, 50, 75, 100])
             : UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(
-                data.Series.Select(series => data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values).ToArray(),
-                data.Style == ReportChartStyle.Area && data.Days.Count > 1 && !data.IsComparison),
+                scaleValues,
+                stackedArea,
+                stackedArea
+                    ? [.. data.Series.Select(series => (IReadOnlyList<UsageTrendPointKind>?)series.PointKinds)]
+                    : null),
                 emphasizeSmallValues: data.EmphasizeSmallValues);
         Brush gridBrush = GridBrushProxy.Background;
         Brush textBrush = TextBrushProxy.Background;
@@ -186,7 +216,7 @@ public sealed partial class UsageTrendChart : UserControl
                 Stroke = gridBrush,
                 StrokeThickness = 1,
                 StrokeDashArray = tick == 0 || IsPreview ? null : [3, 5],
-                Opacity = tick == 0 || _accessibilitySettings.HighContrast ? 1 : 0.65,
+                Opacity = tick == 0 || IsHighContrast ? 1 : 0.65,
                 IsHitTestVisible = false,
             });
 
@@ -281,10 +311,12 @@ public sealed partial class UsageTrendChart : UserControl
         LastDayLabel.Text = data.Days[^1].Label;
     }
 
-    private string FormatValue(double value, UsageReportMetric metric) =>
-        metric switch
+    private string FormatValue(double value, UsageReportMetric metric, UsageTrendPointKind? kind = null) =>
+        kind == UsageTrendPointKind.Unobserved
+            ? GetString("UsageReportChartUnobserved")
+            : metric switch
         {
-            _ when !double.IsFinite(value) => GetString("UsageReportUnpricedLabel"),
+            _ when kind == UsageTrendPointKind.Unavailable || !double.IsFinite(value) => GetString("UsageReportUnpricedLabel"),
             UsageReportMetric.Cost => UsageReportViewModel.FormatCompactUsd(value),
             UsageReportMetric.Share => string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,

@@ -28,7 +28,7 @@ public sealed partial class UsageTrendChart
 
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
     {
-        if (Data.Days.Count == 0 || PlotCanvas.ActualWidth <= 0) return;
+        if (Data.UnavailableText is not null || Data.Days.Count == 0 || PlotCanvas.ActualWidth <= 0) return;
         double x = e.GetCurrentPoint(PlotCanvas).Position.X;
         double fraction = Math.Clamp(x / PlotCanvas.ActualWidth, 0, 1);
         int index = Data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars
@@ -71,7 +71,7 @@ public sealed partial class UsageTrendChart
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == VirtualKey.Escape) { HideHover(); e.Handled = true; return; }
-        if (Data.Days.Count == 0) return;
+        if (Data.UnavailableText is not null || Data.Days.Count == 0) return;
         int current = _hoverIndex ?? Data.Days.Count - 1;
         int next = e.Key switch
         {
@@ -91,7 +91,7 @@ public sealed partial class UsageTrendChart
 
     private void ShowHover(int index, bool animate)
     {
-        if (IsCaptureMode || index < 0 || index >= Data.Days.Count || PlotCanvas.ActualWidth <= 0) return;
+        if (Data.UnavailableText is not null || IsCaptureMode || index < 0 || index >= Data.Days.Count || PlotCanvas.ActualWidth <= 0) return;
         _hoverIndex = index;
         if (!UsageTrendGeometry.ShouldRefreshHover(_displayedHoverIndex, index,
             HoverCard.Visibility == Visibility.Visible)) return;
@@ -173,18 +173,34 @@ public sealed partial class UsageTrendChart
         _hoverResets.Visibility = string.IsNullOrEmpty(_hoverResets.Text) ? Visibility.Collapsed : Visibility.Visible;
         double total = 0;
         bool hasUnknown = false;
+        bool hasMeasured = false;
+        bool hasUnobserved = false;
         for (int i = 0; i < Data.Series.Count; i++)
         {
-            double value = index < Data.Series[i].Values.Count ? Data.Series[i].Values[index] : 0;
-            if (double.IsFinite(value)) total += value; else hasUnknown = true;
-            if (i < _hoverAmounts.Count) _hoverAmounts[i].Text = FormatValue(value, Data.Metric);
+            UsageReportTrendSeries series = Data.Series[i];
+            double value = index < series.Values.Count ? series.Values[index] : 0;
+            UsageTrendPointKind kind = UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index);
+            if (kind == UsageTrendPointKind.Unobserved) hasUnobserved = true;
+            else if (kind == UsageTrendPointKind.Unavailable || !double.IsFinite(value)) hasUnknown = true;
+            else hasMeasured = true;
+            if (kind == UsageTrendPointKind.Measured && double.IsFinite(value)) total += value;
+            if (i < _hoverAmounts.Count)
+                _hoverAmounts[i].Text = FormatValue(value, Data.Metric, kind);
         }
         if (_hoverTotal is not null)
-            _hoverTotal.Text = GetString("UsageReportChartTotal") + "  " + FormatValue(total, Data.Metric)
-                + (hasUnknown ? " · " + GetString("UsageReportKnownOnly") : "");
+        {
+            _hoverTotal.Text = GetString("UsageReportChartTotal") + "  "
+                + (!hasMeasured && hasUnobserved
+                    ? GetString("UsageReportChartUnobserved")
+                    : FormatValue(total, Data.Metric)
+                        + (hasUnknown ? " · " + GetString("UsageReportKnownOnly") : ""));
+        }
         AutomationProperties.SetHelpText(this, _hoverDate.Text + ". " + _hoverResets.Text + ". " + string.Join(". ",
             Data.Series.Select((series, i) => series.Name + ": "
-                + FormatValue(index < series.Values.Count ? series.Values[index] : 0, Data.Metric))));
+                + FormatValue(
+                    index < series.Values.Count ? series.Values[index] : 0,
+                    Data.Metric,
+                    UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index)))));
     }
 
     private Grid CreateHoverRow(UsageReportTrendSeries series, string value)

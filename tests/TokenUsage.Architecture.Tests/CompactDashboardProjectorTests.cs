@@ -1,5 +1,7 @@
+using TokenUsage.App.Controls;
 using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 
@@ -209,6 +211,44 @@ public sealed class CompactDashboardProjectorTests
             getProviderLimits: _ => []);
 
         Assert.Null(projection.GlobalCostBreakdownText);
+    }
+
+    [Fact]
+    public void MeasuredZeroStaysMeasuredAndDoesNotCarryThePreviousValue()
+    {
+        var today = new DateOnly(2026, 9, 13);
+        CompactDashboardProjection projection = CompactDashboardProjector.Create(
+            today,
+            [
+                Rollup("codex", today.AddDays(-1), tokens: 600),
+                Rollup("codex", today, tokens: 0),
+            ],
+            ["codex"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: "codex",
+            getString: key => key,
+            getProviderLimits: _ => []);
+
+        UsageReportTrendSeries series = Assert.Single(projection.SelectedProviderTrend.Series);
+        Assert.Equal(30, series.Values.Count);
+        Assert.Equal(600, series.Values[28]);
+        Assert.Equal(0, series.Values[29]);
+        Assert.Equal(UsageTrendPointKind.Unobserved, series.PointKinds[0]);
+        Assert.Equal(UsageTrendPointKind.Measured, series.PointKinds[28]);
+        Assert.Equal(UsageTrendPointKind.Measured, series.PointKinds[29]);
+
+        UsageTrendPath path = UsageTrendGeometry.CreatePath(
+            series.Values,
+            400,
+            200,
+            600,
+            style: TokenUsage.Core.Appearance.ReportChartStyle.Smooth,
+            pointKinds: series.PointKinds);
+        Assert.Equal(path.Points[29], path.Segments[^1].To);
+        Assert.False(path.Segments[^1].IsTrailingContinuation);
+        Assert.Equal(UsageTrendSpanKind.Observed, path.Segments[^1].SpanKind);
     }
 
     private static LocalUsageCard EmptyLocalUsage() => new(
