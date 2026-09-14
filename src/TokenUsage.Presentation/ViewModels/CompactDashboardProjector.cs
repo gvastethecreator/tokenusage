@@ -1,4 +1,5 @@
 using System.Globalization;
+using TokenUsage.App.Controls;
 using TokenUsage.App.Localization;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Reports;
@@ -206,6 +207,11 @@ public static class CompactDashboardProjector
         var dailyTokens = providerRollups
             .GroupBy(rollup => rollup.Date)
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Tokens.Total));
+        (double Value, UsageTrendPointKind Kind)[] points = days
+            .Select(day => dailyTokens.TryGetValue(day.Date, out long tokens)
+                ? ((double)tokens, UsageTrendPointKind.Measured)
+                : (0d, UsageTrendPointKind.Unobserved))
+            .ToArray();
         return new CompactSelectedProviderProjection(
             providerRollups.Length == 0
                 ? UsageHeatmapModel.Empty
@@ -225,8 +231,10 @@ public static class CompactDashboardProjector
                             providerId,
                             ProviderDisplayName.Resolve(providerId, getString),
                             ProviderColorPreference.Resolve(providerId, customColorHex: null),
-                            days.Select(day => (double)dailyTokens.GetValueOrDefault(day.Date, 0))
-                                .ToArray()),
+                            points.Select(item => item.Value).ToArray())
+                        {
+                            PointKinds = points.Select(item => item.Kind).ToArray(),
+                        },
                     ], TokenUsage.Core.Appearance.ReportChartStyle.Smooth),
             getProviderLimits(providerId));
     }

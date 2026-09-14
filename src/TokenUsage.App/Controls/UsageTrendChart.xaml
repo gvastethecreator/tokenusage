@@ -32,7 +32,7 @@
 
             <TextBlock
                 x:Name="EmptyText"
-                x:Uid="UsageTrendEmpty"
+                TextWrapping="Wrap" TextAlignment="Center" Margin="12,0"
                 Grid.Column="2"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 HorizontalAlignment="Center"

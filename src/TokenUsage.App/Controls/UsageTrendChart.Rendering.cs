@@ -17,7 +17,7 @@ public sealed partial class UsageTrendChart
         IReadOnlyList<double>[] values = data.Series.Select(series => data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values).ToArray();
         if (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
         {
-            foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1),
+            foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, UsageTrendLayouts.BarSlots(data.Style, data.Days.Count),
                 width, height, scale.Maximum, top: IsPreview ? 2 : TopPadding, bottom: IsPreview ? 2 : BottomPadding, emphasizeSmallValues: scale.EmphasizeSmallValues))
             {
                 var bar = new Border
@@ -25,8 +25,8 @@ public sealed partial class UsageTrendChart
                     Width = item.Width, Height = item.Height,
                     Background = IsPreview ? SeriesBrush(data.Series[item.SeriesIndex]) : BarBrush(data.Series[item.SeriesIndex]),
                     CornerRadius = IsPreview ? new CornerRadius(1, 1, 0, 0) : new CornerRadius(4, 4, 0, 0),
-                    BorderBrush = _accessibilitySettings.HighContrast ? TextBrushProxy.Background : null,
-                    BorderThickness = new Thickness(_accessibilitySettings.HighContrast ? 1 : 0),
+                    BorderBrush = IsHighContrast ? TextBrushProxy.Background : null,
+                    BorderThickness = new Thickness(IsHighContrast ? 1 : 0),
                     UseLayoutRounding = false,
                     IsHitTestVisible = false,
                 };
@@ -60,44 +60,74 @@ public sealed partial class UsageTrendChart
 
         if (data.Style == ReportChartStyle.Area)
         {
-            var bands = UsageTrendLayouts.Bands(values, data.IsComparison);
+            bool stacked = !data.IsComparison;
+            IReadOnlyList<UsageTrendPointKind>?[]? kinds = stacked
+                ? [.. data.Series.Select(series => (IReadOnlyList<UsageTrendPointKind>?)series.PointKinds)]
+                : null;
+            var bands = UsageTrendLayouts.Bands(values, data.IsComparison, kinds,
+                percentage: data.Metric == UsageReportMetric.Share);
             for (int index = 0; index < bands.Count; index++)
             {
-                UsageTrendPath upper = Path(bands[index].Upper, ReportChartStyle.Line);
-                UsageTrendPath lower = Path(bands[index].Lower, ReportChartStyle.Line);
-                var geometry = new PathGeometry();
-                // A missing price leaves a gap, never a fabricated zero-cost area.
-                int from = 0;
-                while (from < upper.Points.Count)
+                UsageTrendPath upper = Path(bands[index].Upper, ReportChartStyle.Line, data.Series[index], stacked);
+                UsageTrendPath lower = Path(bands[index].Lower, ReportChartStyle.Line, data.Series[index], stacked);
+                if (upper.Segments.Count > 0)
                 {
-                    while (from < upper.Points.Count && !double.IsFinite(upper.Points[from].Y)) from++;
-                    int to = from;
-                    while (to + 1 < upper.Points.Count && double.IsFinite(upper.Points[to + 1].Y)) to++;
-                    if (from >= upper.Points.Count) break;
-                    var figure = new PathFigure { StartPoint = ToPoint(upper.Points[from]), IsClosed = true, IsFilled = true };
-                    for (int point = from + 1; point <= to; point++)
-                        figure.Segments.Add(new LineSegment { Point = ToPoint(upper.Points[point]) });
-                    for (int point = to; point >= from; point--)
-                        figure.Segments.Add(new LineSegment { Point = ToPoint(lower.Points[point]) });
-                    geometry.Figures.Add(figure);
-                    from = to + 1;
+                    int start = 0;
+                    while (start < upper.Segments.Count)
+                    {
+                        UsageTrendSpanKind kind = upper.Segments[start].SpanKind;
+                        int end = start;
+                        while (end + 1 < upper.Segments.Count
+                            && upper.Segments[end + 1].SpanKind == kind
+                            && upper.Segments[end + 1].Fade == upper.Segments[start].Fade)
+                        {
+                            end++;
+                        }
+
+                        var top = new List<UsageTrendPoint> { upper.Segments[start].From };
+                        for (int vertex = start; vertex <= end; vertex++)
+                            top.Add(upper.Segments[vertex].To);
+                        var figure = new PathFigure
+                        {
+                            StartPoint = ToPoint(top[0]),
+                            IsClosed = true,
+                            IsFilled = true,
+                        };
+                        for (int vertex = 1; vertex < top.Count; vertex++)
+                            figure.Segments.Add(new LineSegment { Point = ToPoint(top[vertex]) });
+                        for (int vertex = top.Count - 1; vertex >= 0; vertex--)
+                            figure.Segments.Add(new LineSegment { Point = ToPoint(LowerAt(lower, top[vertex].X)) });
+                        var spanGeometry = new PathGeometry();
+                        spanGeometry.Figures.Add(figure);
+                        if (!IsHighContrast) _seriesCanvas.Children.Add(new XamlPath
+                        {
+                            Data = spanGeometry,
+                            Fill = upper.Segments[start].Fade is null ? AreaBrush(data.Series[index])
+                                : FadeBrush(data.Series[index], upper.Segments[start].Fade, top[0].X, top[^1].X),
+                            UseLayoutRounding = false,
+                            Opacity = data.IsComparison ? 0.25 : 0.72,
+                            IsHitTestVisible = false,
+                        });
+                        start = end + 1;
+                    }
                 }
-                _seriesCanvas.Children.Add(new XamlPath
-                {
-                    Data = geometry, Fill = AreaBrush(data.Series[index]), UseLayoutRounding = false,
-                    Opacity = data.IsComparison ? 0.25 : 0.72, IsHitTestVisible = false,
-                });
                 AddLine(upper, data.Series[index], index);
             }
             return;
         }
 
         for (int index = 0; index < data.Series.Count; index++)
-            AddLine(Path(values[index], data.Style), data.Series[index], index,
+            AddLine(Path(values[index], data.Style, data.Series[index]), data.Series[index], index,
                 fillToBaseline: !IsPreview && data.Series.Count == 1 ? height - BottomPadding : null);
 
-        UsageTrendPath Path(IReadOnlyList<double> source, ReportChartStyle style) =>
-            UsageTrendGeometry.CreatePath(source, width, height, scale.Maximum, IsPreview ? 2 : TopPadding, IsPreview ? 2 : BottomPadding, style, scale.EmphasizeSmallValues);
+        UsageTrendPath Path(
+            IReadOnlyList<double> source,
+            ReportChartStyle style,
+            UsageReportTrendSeries series,
+            bool includeCarriedVertices = false) =>
+            UsageTrendGeometry.CreatePath(
+                source, width, height, scale.Maximum, IsPreview ? 2 : TopPadding, IsPreview ? 2 : BottomPadding,
+                style, scale.EmphasizeSmallValues, series.PointKinds, includeCarriedVertices);
     }
 
     private static UsageReportResetKind[] ResetKinds(UsageReportTrendDataset data) =>
@@ -155,7 +185,7 @@ public sealed partial class UsageTrendChart
 
     private Brush BarBrush(UsageReportTrendSeries series)
     {
-        if (_accessibilitySettings.HighContrast) return SeriesBrush(series);
+        if (IsHighContrast) return SeriesBrush(series);
         Color color = ProviderColorPalette.Parse(series.ColorHex);
         return new LinearGradientBrush
         {
@@ -170,7 +200,7 @@ public sealed partial class UsageTrendChart
 
     private Brush AreaBrush(UsageReportTrendSeries series)
     {
-        if (_accessibilitySettings.HighContrast) return SeriesBrush(series);
+        if (IsHighContrast) return SeriesBrush(series);
         Color color = ProviderColorPalette.Parse(series.ColorHex);
         return new LinearGradientBrush
         {
@@ -183,67 +213,99 @@ public sealed partial class UsageTrendChart
         };
     }
 
-    private Brush SeriesBrush(UsageReportTrendSeries series) => _accessibilitySettings.HighContrast
+    private Brush SeriesBrush(UsageReportTrendSeries series) => IsHighContrast
         ? TextBrushProxy.Background : new SolidColorBrush(ProviderColorPalette.Parse(series.ColorHex));
 
     private void AddLine(UsageTrendPath path, UsageReportTrendSeries series, int seriesIndex, double? fillToBaseline = null)
     {
-        var geometry = new PathGeometry();
-        PathFigure? figure = null;
-        UsageTrendPoint? last = null;
+        if (fillToBaseline is double baseline && !IsHighContrast)
+        {
+            foreach (IGrouping<(UsageTrendSpanKind Kind, UsageTrendFade? Fade), UsageTrendSegment> group in path.Segments
+                .Where(segment => double.IsFinite(segment.From.Y) && double.IsFinite(segment.To.Y))
+                .GroupBy(segment => (segment.SpanKind, segment.Fade)))
+            {
+                var fillGeometry = new PathGeometry();
+                PathFigure? fill = null;
+                UsageTrendPoint? last = null;
+                foreach (UsageTrendSegment segment in group)
+                {
+                    if (fill is null || last != segment.From)
+                    {
+                        fill = new PathFigure { StartPoint = ToPoint(segment.From), IsClosed = true, IsFilled = true };
+                        fillGeometry.Figures.Add(fill);
+                    }
+                    fill.Segments.Add(new BezierSegment
+                    {
+                        Point1 = ToPoint(segment.Control1),
+                        Point2 = ToPoint(segment.Control2),
+                        Point3 = ToPoint(segment.To),
+                    });
+                    last = segment.To;
+                }
+
+                foreach (PathFigure figure in fillGeometry.Figures)
+                {
+                    if (figure.Segments.Count == 0) continue;
+                    var end = ((BezierSegment)figure.Segments[^1]).Point3;
+                    figure.Segments.Add(new LineSegment { Point = new Point(end.X, baseline) });
+                    figure.Segments.Add(new LineSegment { Point = new Point(figure.StartPoint.X, baseline) });
+                }
+
+                _seriesCanvas.Children.Add(new XamlPath
+                {
+                    Data = fillGeometry,
+                    Fill = group.Key.Fade is null ? AreaBrush(series)
+                        : FadeBrush(series, group.Key.Fade, group.Min(segment => segment.From.X), group.Max(segment => segment.To.X)),
+                    Opacity = 0.18,
+                    UseLayoutRounding = false,
+                    IsHitTestVisible = false,
+                });
+            }
+        }
+
         foreach (UsageTrendSegment segment in path.Segments)
         {
-            if (!double.IsFinite(segment.From.Y) || !double.IsFinite(segment.To.Y))
-            {
-                figure = null;
-                last = null;
-                continue;
-            }
-            if (figure is null || last != segment.From)
-            {
-                figure = new PathFigure { StartPoint = ToPoint(segment.From), IsClosed = false, IsFilled = false };
-                geometry.Figures.Add(figure);
-            }
+            if (!double.IsFinite(segment.From.Y) || !double.IsFinite(segment.To.Y)) continue;
+            var figure = new PathFigure { StartPoint = ToPoint(segment.From), IsClosed = false, IsFilled = false };
             figure.Segments.Add(new BezierSegment
             {
-                Point1 = ToPoint(segment.Control1), Point2 = ToPoint(segment.Control2), Point3 = ToPoint(segment.To),
+                Point1 = ToPoint(segment.Control1),
+                Point2 = ToPoint(segment.Control2),
+                Point3 = ToPoint(segment.To),
             });
-            last = segment.To;
-        }
-
-        if (fillToBaseline is double baseline && !_accessibilitySettings.HighContrast)
-        {
-            // Copy the exact curve into the fill: preserve gaps and never invent samples.
-            var fillGeometry = new PathGeometry();
-            foreach (var source in geometry.Figures)
+            var line = new XamlPath
             {
-                var fill = new PathFigure { StartPoint = source.StartPoint, IsClosed = true, IsFilled = true };
-                foreach (BezierSegment segment in source.Segments)
-                    fill.Segments.Add(new BezierSegment { Point1 = segment.Point1, Point2 = segment.Point2, Point3 = segment.Point3 });
-                var end = ((BezierSegment)source.Segments[^1]).Point3;
-                fill.Segments.Add(new LineSegment { Point = new Point(end.X, baseline) });
-                fill.Segments.Add(new LineSegment { Point = new Point(source.StartPoint.X, baseline) });
-                fillGeometry.Figures.Add(fill);
+                Data = new PathGeometry { Figures = { figure } },
+                Stroke = FadeBrush(series, segment.Fade, segment.From.X, segment.To.X),
+                StrokeThickness = IsPreview ? 2 : 2.25,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                UseLayoutRounding = false,
+                IsHitTestVisible = false,
+            };
+            if (IsHighContrast && (segment.SpanKind != UsageTrendSpanKind.Observed || seriesIndex > 0))
+            {
+                line.StrokeDashArray = segment.SpanKind == UsageTrendSpanKind.Observed
+                    ? (seriesIndex % 2 == 0 ? [2, 3] : [6, 3])
+                    : [4, 4];
             }
-            _seriesCanvas.Children.Add(new XamlPath { Data = fillGeometry, Fill = AreaBrush(series), Opacity = 0.18,
-                UseLayoutRounding = false, IsHitTestVisible = false });
+            _seriesCanvas.Children.Add(line);
         }
 
-        var line = new XamlPath
-        {
-            Data = geometry, Stroke = SeriesBrush(series), StrokeThickness = IsPreview ? 2 : 2.25,
-            StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round,
-            StrokeEndLineCap = PenLineCap.Round, UseLayoutRounding = false, IsHitTestVisible = false,
-        };
-        if (_accessibilitySettings.HighContrast && seriesIndex > 0)
-            line.StrokeDashArray = seriesIndex % 2 == 0 ? [2, 3] : [6, 3];
-        _seriesCanvas.Children.Add(line);
         for (int index = 0; index < path.Points.Count; index++)
         {
             UsageTrendPoint point = path.Points[index];
             if (!double.IsFinite(point.Y)) continue;
-            bool isolated = (index == 0 || !double.IsFinite(path.Points[index - 1].Y))
-                && (index == path.Points.Count - 1 || !double.IsFinite(path.Points[index + 1].Y));
+            if (UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index)
+                != UsageTrendPointKind.Measured)
+            {
+                continue;
+            }
+            bool isolated = (index == 0 || UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index - 1)
+                    != UsageTrendPointKind.Measured)
+                && (index == path.Points.Count - 1 || UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index + 1)
+                    != UsageTrendPointKind.Measured);
             if (!isolated) continue;
             var marker = new Ellipse { Width = 4, Height = 4, Fill = SeriesBrush(series), IsHitTestVisible = false };
             Canvas.SetLeft(marker, point.X - 2);
@@ -252,15 +314,68 @@ public sealed partial class UsageTrendChart
         }
     }
 
+    private Brush FadeBrush(UsageReportTrendSeries series, UsageTrendFade? fade, double fromX, double toX)
+    {
+        Brush solid = SeriesBrush(series);
+        if (fade is not UsageTrendFade run || IsHighContrast)
+            return solid;
+        Color color = ProviderColorPalette.Parse(series.ColorHex);
+        Color At(double x) => Color.FromArgb((byte)Math.Round(color.A * run.OpacityAt(x)), color.R, color.G, color.B);
+        if (toX <= fromX) return new SolidColorBrush(At(fromX));
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(1, 0),
+        };
+        foreach (double x in new[] { fromX, run.DimStartX, run.DimEndX, toX }
+            .Where(x => x >= fromX && x <= toX).Distinct().Order())
+            brush.GradientStops.Add(new GradientStop { Color = At(x), Offset = (x - fromX) / (toX - fromX) });
+
+        return brush;
+    }
+
     private static Point ToPoint(UsageTrendPoint point) => new(point.X, point.Y);
+
+    private static UsageTrendPoint LowerAt(UsageTrendPath lower, double x)
+    {
+        if (lower.Points.Count == 0)
+        {
+            return new(x, 0);
+        }
+
+        UsageTrendPoint best = lower.Points[0];
+        double bestDelta = Math.Abs(best.X - x);
+        double baseline = best.Y;
+        foreach (UsageTrendPoint point in lower.Points)
+        {
+            double delta = Math.Abs(point.X - x);
+            if (delta < bestDelta)
+            {
+                best = point;
+                bestDelta = delta;
+            }
+
+            if (double.IsFinite(point.Y) && (!double.IsFinite(baseline) || point.Y > baseline))
+            {
+                baseline = point.Y;
+            }
+        }
+
+        return double.IsFinite(best.Y) ? best : new(x, baseline);
+    }
 
     private void BuildLegend(UsageReportTrendDataset data)
     {
         var items = new List<Grid>();
         LegendContent.ItemsSource = items;
         LegendContent.Visibility = data.IsComparison || data.Series.Any(series => series.ModelId is not null)
+            || HasUnobservedSpans(data)
             ? Visibility.Visible : Visibility.Collapsed;
         if (LegendContent.Visibility != Visibility.Visible) return;
+        if (HasUnobservedSpans(data))
+        {
+            items.Add(CreateSpanLegendRow());
+        }
         foreach (var series in data.Series)
         {
             double total = series.Values.Any(double.IsFinite)
@@ -274,5 +389,25 @@ public sealed partial class UsageTrendChart
             items.Add(row);
         }
         LegendContent.ItemsSource = items.ToArray();
+    }
+
+    private static bool HasUnobservedSpans(UsageReportTrendDataset data) =>
+        data.Style is not ReportChartStyle.Bars and not ReportChartStyle.TwoHourBars
+        && data.Series.Any(series => series.PointKinds.Any(kind => kind == UsageTrendPointKind.Unobserved)
+            || (series.PointKinds.Count == 0 && series.Values.Any(value => UsageTrendGeometry.ClassifyValue(value) == UsageTrendPointKind.Unobserved)));
+
+    private Grid CreateSpanLegendRow()
+    {
+        var row = new Grid { ColumnSpacing = 7 };
+        row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+        var note = new TextBlock
+        {
+            Text = GetString("UsageReportChartUnobservedLegend"),
+            FontSize = 11,
+            TextWrapping = TextWrapping.WrapWholeWords,
+            Foreground = TextBrushProxy.Background,
+        };
+        row.Children.Add(note);
+        return row;
     }
 }
