@@ -14,6 +14,7 @@ public sealed record UsageComparisonDefinition(string Axis, string Preset,
     public string CurrentLabel { get; init; } = string.Empty;
     public UsageReportCycleComparison? CycleComparison { get; init; }
     public DateTimeOffset? RateBaselineUtc { get; init; }
+    public string MethodId { get; init; } = "";
 }
 
 public sealed record SavedUsageComparisonInfo(string RevisionId, DateTimeOffset CreatedAtUtc, string Axis);
@@ -22,6 +23,8 @@ public sealed record SavedUsageComparison(string RevisionId, DateTimeOffset Crea
     UsageComparisonDefinition Definition, UsageReport Baseline, UsageReport Current)
 {
     public IReadOnlyList<UsageCycleComparisonEntry> Cycles { get; init; } = [];
+    public UsageExplanationResult? Explanation { get; init; }
+    public UsageLinearPriceResult? PriceScenario { get; init; }
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

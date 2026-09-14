@@ -35,7 +35,18 @@ public sealed record UsageModelContribution(string AgentId, string ModelId,
 
 public enum UsageBestDirection { None, Lower, Higher }
 
-public sealed record UsageCostChangeSplit(decimal? Volume, decimal? Mix, decimal? Rate);
+
+
+public sealed record UsageRateScenarioComparison(
+    string MethodId,
+    string PricingPolicyId,
+    UsageReport Baseline,
+    UsageReport Current,
+    int ComparableEvents,
+    long ComparableTokens,
+    decimal? CostA,
+    decimal? CostB,
+    decimal? Delta);
 
 public static class UsageComparison
 {
@@ -47,23 +58,6 @@ public static class UsageComparison
         return rightWins ? 1 : -1;
     }
 
-    public static UsageCostChangeSplit SplitKnownCost(UsageReport baseline, UsageReport current)
-    {
-        ArgumentNullException.ThrowIfNull(baseline);
-        ArgumentNullException.ThrowIfNull(current);
-        decimal? costA = KnownCost(baseline.Totals);
-        decimal? costB = KnownCost(current.Totals);
-        long pricedA = baseline.Totals.Tokens.Total - baseline.Totals.UnpricedTokens;
-        long pricedB = current.Totals.Tokens.Total - current.Totals.UnpricedTokens;
-        if (costA is not { } a || costB is not { } b || pricedA <= 0)
-            return new(null, null, null);
-        decimal volume = a * ((decimal)pricedB / pricedA - 1m);
-        if (pricedB <= 0)
-            return new(volume, null, null);
-        decimal rate = (b / pricedB - a / pricedA) * pricedB;
-        return new(volume, b - a - volume - rate, rate);
-    }
-
     public static bool ReloadsForCatalogDate(bool useReferencePrices, bool isRatesAxis) =>
         useReferencePrices || isRatesAxis;
 
@@ -72,7 +66,10 @@ public static class UsageComparison
         useReferencePrices && !isCyclesAxis && !isRatesAxis;
 
     public static string CatalogDateLabel(DateTimeOffset utc, IFormatProvider culture) =>
-        utc.UtcDateTime.ToString("d", culture) + " UTC";
+        "Catalog value at " + utc.UtcDateTime.ToString("d", culture) + " UTC";
+
+    public static bool UsesFixedCohortRows(string? methodId) =>
+        methodId == UsageReferencePricing.FixedCohortMethodId;
 
     public static decimal? KnownCost(UsageReportMetrics metrics) =>
         metrics.ReportedCostUsd is null && metrics.EstimatedCostUsd is null && metrics.Tokens.Total > 0

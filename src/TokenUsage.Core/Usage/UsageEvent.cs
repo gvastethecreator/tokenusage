@@ -195,7 +195,8 @@ public sealed record UsageEvent
         DateTimeOffset? intervalStartedAtUtc = null,
         ModelId? observedModelId = null,
         string? reasoningEffort = null,
-        string? serviceTier = null)
+        string? serviceTier = null,
+        UsageDetailMetadata? detailMetadata = null)
     {
         UtcTimestamp.Require(occurredAtUtc, nameof(occurredAtUtc));
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
@@ -231,6 +232,7 @@ public sealed record UsageEvent
         ObservedModelId = observedModelId;
         ReasoningEffort = reasoningEffort;
         ServiceTier = serviceTier;
+        DetailMetadata = detailMetadata ?? UsageDetailMetadata.Unknown;
         TimePrecision = timePrecision;
         IntervalStartedAtUtc = intervalStartedAtUtc;
         EventKey = eventKey ?? throw new ArgumentNullException(nameof(eventKey));
@@ -250,6 +252,8 @@ public sealed record UsageEvent
     public string? ReasoningEffort { get; }
 
     public string? ServiceTier { get; }
+
+    public UsageDetailMetadata DetailMetadata { get; }
 
     public UsageTimePrecision TimePrecision { get; }
 

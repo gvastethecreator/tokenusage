@@ -25,9 +25,21 @@ public sealed class UsageSchemaTooOldException(int actualVersion, int supportedV
     public int SupportedVersion { get; } = supportedVersion;
 }
 
+public sealed record UsageReportReadSnapshot(
+    IReadOnlyList<DailyUsageRollup> Rollups,
+    IReadOnlyList<UsageEvent> Events,
+    string[] PricingVersions,
+    string[] ParserVersions,
+    IReadOnlyList<AccountUsageAggregate> AccountUsage,
+    IReadOnlyList<UsageCollectionState> CollectionState)
+{
+    public IReadOnlyList<UsageTimeRollup> TimeBuckets { get; init; } = [];
+    public UsageDataRevision? DataRevision { get; init; }
+}
+
 public sealed partial class UsageRepository
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 11;
     public const string RetentionCursorId = "usage-retention/v1";
     private const int SqliteVariableChunkSize = 400;
     private const decimal MicrosPerUsd = 1_000_000m;
@@ -145,6 +157,17 @@ public sealed partial class UsageRepository
         DateOnly? replaceFrom = batch.Length == 0
             ? null
             : batch.Select(usageEvent => AssertSingleRollup(usageEvent).Date).Min();
+        if (batch.Any(row => row.DetailMetadata.SourceInstance is not null))
+            throw new ArgumentException("Attributed events require source-scoped reconciliation.", nameof(events));
+        await VerifyEventOwnershipAsync(connection, transaction, batch, cancellationToken).ConfigureAwait(false);
+        await using (SqliteCommand scope = connection.CreateCommand())
+        {
+            scope.Transaction = transaction;
+            scope.CommandText = "SELECT EXISTS(SELECT 1 FROM usage_event WHERE agent_id = $agent AND source_instance_id IS NOT NULL);";
+            scope.Parameters.AddWithValue("$agent", agentId.Value);
+            if ((long)(await scope.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))! != 0)
+                throw new InvalidDataException("Whole-agent replacement cannot replace attributed source history.");
+        }
         await using (SqliteCommand minimum = connection.CreateCommand())
         {
             minimum.Transaction = transaction;
@@ -166,6 +189,8 @@ public sealed partial class UsageRepository
 
         if (replaceFrom is not null)
         {
+            await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
+                replaceFrom.Value, DateOnly.MaxValue, cancellationToken).ConfigureAwait(false);
             await using SqliteCommand deleteRollups = connection.CreateCommand();
             deleteRollups.Transaction = transaction;
             deleteRollups.CommandText =
@@ -203,15 +228,30 @@ public sealed partial class UsageRepository
         return new UsageIngestResult(inserted.Length, batch.Length - inserted.Length);
     }
 
-    public async Task<UsageIngestResult> ReconcileAgentEventRangeAsync(
+    public Task<UsageIngestResult> ReconcileAgentEventRangeAsync(
         AgentId agentId,
         string parserVersion,
         DateOnly fromInclusive,
         DateOnly toInclusive,
         IEnumerable<UsageEvent> events,
         CancellationToken cancellationToken = default)
+        => ReconcileEventRangeCoreAsync(agentId, null, parserVersion, fromInclusive, toInclusive, events, cancellationToken);
+
+    public Task<UsageIngestResult> ReconcileSourceEventRangeAsync(AgentId agentId,
+        UsageSourceInstanceId sourceInstance, string parserVersion, DateOnly fromInclusive,
+        DateOnly toInclusive, IEnumerable<UsageEvent> events, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sourceInstance);
+        return ReconcileEventRangeCoreAsync(agentId, sourceInstance, parserVersion, fromInclusive, toInclusive, events, cancellationToken);
+    }
+
+    private async Task<UsageIngestResult> ReconcileEventRangeCoreAsync(AgentId agentId,
+        UsageSourceInstanceId? sourceInstance, string parserVersion, DateOnly fromInclusive,
+        DateOnly toInclusive, IEnumerable<UsageEvent> events, CancellationToken cancellationToken)
     {
         UsageEvent[] batch = ValidateAgentBatch(agentId, events, "Range replacement");
+        if (batch.Any(row => row.DetailMetadata.SourceInstance != sourceInstance))
+            throw new ArgumentException("Reconciliation events must belong to the selected source instance.", nameof(events));
         ArgumentException.ThrowIfNullOrWhiteSpace(parserVersion);
         if (fromInclusive > toInclusive)
         {
@@ -253,6 +293,12 @@ public sealed partial class UsageRepository
                 batch,
                 cancellationToken)
             .ConfigureAwait(false);
+        await VerifyEventOwnershipAsync(connection, transaction, batch, cancellationToken).ConfigureAwait(false);
+        await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
+            fromInclusive, toInclusive, cancellationToken).ConfigureAwait(false);
+        foreach (DateOnly date in previousDates.Where(date => date < fromInclusive || date > toInclusive))
+            await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
+                date, date, cancellationToken).ConfigureAwait(false);
         await using (SqliteCommand delete = connection.CreateCommand())
         {
             delete.Transaction = transaction;
@@ -260,22 +306,25 @@ public sealed partial class UsageRepository
                 """
                 DELETE FROM usage_event
                 WHERE agent_id = $agentId
+                  AND source_instance_id IS $sourceInstance
                   AND civil_date BETWEEN $from AND $to;
                 """;
             delete.Parameters.AddWithValue("$agentId", agentId.Value);
+            delete.Parameters.AddWithValue("$sourceInstance", (object?)sourceInstance?.Value ?? DBNull.Value);
             delete.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
             delete.Parameters.AddWithValue("$to", FormatDate(toInclusive));
             await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        await DeleteTombstonesAsync(connection, transaction, batch, cancellationToken)
-            .ConfigureAwait(false);
+        if (sourceInstance is null)
+            await DeleteTombstonesAsync(connection, transaction, batch, cancellationToken)
+                .ConfigureAwait(false);
         UsageEvent[] written = await WriteEventsAsync(
                 connection,
                 transaction,
                 batch,
                 EventWriteKind.Upsert,
-                respectTombstones: false,
+                respectTombstones: sourceInstance is not null,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -324,6 +373,13 @@ public sealed partial class UsageRepository
                 batch,
                 cancellationToken)
             .ConfigureAwait(false);
+        HashSet<string> retiredKeys = await LoadTombstonedKeysAsync(connection, transaction, batch, cancellationToken)
+            .ConfigureAwait(false);
+        foreach (DateOnly date in previousDates.Concat(batch
+                     .Where(row => !retiredKeys.Contains(row.EventKey.Value))
+                     .Select(row => AssertSingleRollup(row).Date)).Distinct())
+            await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
+                date, date, cancellationToken).ConfigureAwait(false);
         UsageEvent[] written = await WriteEventsAsync(
                 connection,
                 transaction,
@@ -428,54 +484,85 @@ public sealed partial class UsageRepository
 
         await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
             .ConfigureAwait(false);
-        await using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = agentId is null
-            ? """
-              SELECT event_key, agent_id, model_provider_id, model_id, occurred_at_utc,
-                     grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
-                     cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
-                     estimated_cost_micros, catalog_version, exact_price_match, parser_version,
-                     coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier
-              FROM usage_event
-              WHERE occurred_at_utc >= $from AND occurred_at_utc < $to
-              ORDER BY occurred_at_utc, agent_id, model_id, event_key;
-              """
-            : """
-              SELECT event_key, agent_id, model_provider_id, model_id, occurred_at_utc,
-                     grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
-                     cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
-                     estimated_cost_micros, catalog_version, exact_price_match, parser_version,
-                     coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier
-              FROM usage_event
-              WHERE agent_id = $agentId
-                AND occurred_at_utc >= $from AND occurred_at_utc < $to
-              ORDER BY occurred_at_utc, agent_id, model_id, event_key;
-              """;
-        if (includeOverlappingIntervals)
-            command.CommandText = command.CommandText.Replace(
-                "occurred_at_utc >= $from AND occurred_at_utc < $to",
-                "((occurred_at_utc >= $from AND occurred_at_utc < $to) OR (time_precision = 2 AND interval_started_at_utc < $to AND occurred_at_utc >= $from))",
-                StringComparison.Ordinal);
-        command.Parameters.AddWithValue(
-            "$from",
-            fromInclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
-        command.Parameters.AddWithValue(
-            "$to",
-            toExclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
-        if (agentId is not null)
+        return await QueryUsageEventsOnAsync(
+            connection,
+            transaction: null,
+            fromInclusiveUtc,
+            toExclusiveUtc,
+            agentId,
+            includeOverlappingIntervals,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<UsageReportReadSnapshot> ReadReportSnapshotAsync(
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        DateTimeOffset eventsFromInclusiveUtc,
+        DateTimeOffset eventsToExclusiveUtc,
+        AgentId? agentId = null,
+        bool includeOverlappingIntervals = false,
+        bool includeTimeBuckets = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (toInclusive < fromInclusive)
         {
-            command.Parameters.AddWithValue("$agentId", agentId.Value);
+            throw new ArgumentOutOfRangeException(
+                nameof(toInclusive),
+                "The end date cannot precede the start date.");
         }
 
-        var events = new List<UsageEvent>();
-        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+        UtcTimestamp.Require(eventsFromInclusiveUtc, nameof(eventsFromInclusiveUtc));
+        UtcTimestamp.Require(eventsToExclusiveUtc, nameof(eventsToExclusiveUtc));
+        if (eventsToExclusiveUtc <= eventsFromInclusiveUtc)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(eventsToExclusiveUtc),
+                "The exclusive end of an event range must follow its start.");
+        }
+
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
             .ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-        {
-            events.Add(ReadUsageEvent(reader));
-        }
+        await using SqliteTransaction transaction = connection.BeginTransaction(deferred: true);
+        UsageReportReadSnapshot snapshot = await ReadDailyReportSnapshotOnAsync(
+            connection, transaction, fromInclusive, toInclusive, agentId, includeTimeBuckets, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<UsageEvent> events = await QueryUsageEventsOnAsync(
+            connection, transaction, eventsFromInclusiveUtc, eventsToExclusiveUtc, agentId,
+            includeOverlappingIntervals, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return snapshot with { Events = events };
+    }
 
-        return events;
+    public async Task<UsageReportReadSnapshot> ReadDailyReportSnapshotAsync(
+        DateOnly fromInclusive, DateOnly toInclusive, AgentId? agentId = null,
+        bool includeTimeBuckets = false, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(toInclusive, fromInclusive);
+        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteTransaction transaction = connection.BeginTransaction(deferred: true);
+        return await ReadDailyReportSnapshotOnAsync(connection, transaction, fromInclusive,
+            toInclusive, agentId, includeTimeBuckets, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<UsageReportReadSnapshot> ReadDailyReportSnapshotOnAsync(
+        SqliteConnection connection, SqliteTransaction transaction,
+        DateOnly fromInclusive, DateOnly toInclusive, AgentId? agentId,
+        bool includeTimeBuckets, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<DailyUsageRollup> rollups = await QueryDailyRollupsOnAsync(
+            connection, transaction, fromInclusive, toInclusive, agentId, cancellationToken).ConfigureAwait(false);
+        (string[] pricing, string[] parsers) = await ReadReportVersionsOnAsync(
+            connection, transaction, fromInclusive, toInclusive, agentId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<AccountUsageAggregate> account = await ReadAccountUsageOnAsync(
+            connection, transaction, fromInclusive, toInclusive, agentId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<UsageCollectionState> collection = await ReadCollectionStateOnAsync(
+            connection, transaction, cancellationToken).ConfigureAwait(false);
+        return new(rollups, [], pricing, parsers, account, collection)
+        {
+            DataRevision = await ReadDataRevisionOnAsync(connection, transaction, cancellationToken).ConfigureAwait(false),
+            TimeBuckets = includeTimeBuckets ? await QueryTwoHourRollupsOnAsync(connection,
+                transaction, fromInclusive, toInclusive, agentId, cancellationToken).ConfigureAwait(false) : [],
+        };
     }
 
     public async Task<IReadOnlyList<UsageTimeRollup>> QueryTwoHourRollupsAsync(
@@ -484,6 +571,14 @@ public sealed partial class UsageRepository
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(toInclusive, fromInclusive);
         await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        return await QueryTwoHourRollupsOnAsync(connection, null, fromInclusive, toInclusive,
+            agentId, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<IReadOnlyList<UsageTimeRollup>> QueryTwoHourRollupsOnAsync(
+        SqliteConnection connection, SqliteTransaction? transaction,
+        DateOnly fromInclusive, DateOnly toInclusive, AgentId? agentId, CancellationToken cancellationToken)
+    {
         var zones = new Dictionary<string, TimeZoneInfo>(StringComparer.Ordinal);
         connection.CreateFunction<string, string, int>("two_hour_bucket", (timestamp, zoneId) =>
         {
@@ -492,6 +587,7 @@ public sealed partial class UsageRepository
             return TimeZoneInfo.ConvertTime(DateTimeOffset.Parse(timestamp, CultureInfo.InvariantCulture), zone).Hour / 2 * 2;
         }, isDeterministic: true);
         await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT civil_date, grouping_time_zone_id, agent_id, COALESCE(model_provider_id, ''), model_id,
                    SUM(input_tokens), SUM(output_tokens), SUM(reasoning_tokens),
@@ -508,8 +604,9 @@ public sealed partial class UsageRepository
             WHERE civil_date >= $from AND civil_date <= $to
               AND ($agent IS NULL OR agent_id = $agent)
               AND time_precision = 1
-            GROUP BY civil_date, grouping_time_zone_id, agent_id, COALESCE(model_provider_id, ''), model_id, bucket_hour
-            ORDER BY civil_date, bucket_hour, agent_id, model_id;
+              AND record_kind NOT IN (3, 4)
+            GROUP BY civil_date, bucket_hour, agent_id, model_id, grouping_time_zone_id, COALESCE(model_provider_id, '')
+            ORDER BY civil_date, bucket_hour, agent_id, model_id, grouping_time_zone_id, COALESCE(model_provider_id, '');
             """;
         command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
         command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
@@ -549,6 +646,7 @@ public sealed partial class UsageRepository
             FROM usage_event
             WHERE agent_id = $agentId
               AND occurred_at_utc >= $from AND occurred_at_utc < $to
+              AND record_kind NOT IN (3, 4)
               AND (time_precision = 1 OR (time_precision = 2 AND interval_started_at_utc >= $from));
             """;
         command.Parameters.AddWithValue("$agentId", agentId.Value);
@@ -593,42 +691,9 @@ public sealed partial class UsageRepository
 
         await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken)
             .ConfigureAwait(false);
-        await using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = agentId is null
-            ? """
-              SELECT civil_date, grouping_time_zone_id, agent_id, model_provider_id, model_id,
-                     input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
-                     cache_write_tokens, reported_cost_micros, estimated_cost_micros,
-                     unpriced_tokens, unavailable_cost_event_count, event_count, coverage_kind
-              FROM daily_usage_rollup
-              WHERE civil_date >= $from AND civil_date <= $to
-              ORDER BY civil_date, agent_id, model_id;
-              """
-            : """
-              SELECT civil_date, grouping_time_zone_id, agent_id, model_provider_id, model_id,
-                     input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
-                     cache_write_tokens, reported_cost_micros, estimated_cost_micros,
-                     unpriced_tokens, unavailable_cost_event_count, event_count, coverage_kind
-              FROM daily_usage_rollup
-              WHERE agent_id = $agentId AND civil_date >= $from AND civil_date <= $to
-              ORDER BY civil_date, agent_id, model_id;
-              """;
-        command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
-        command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
-        if (agentId is not null)
-        {
-            command.Parameters.AddWithValue("$agentId", agentId.Value);
-        }
-
-        var rollups = new List<DailyUsageRollup>();
-        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+        return await QueryDailyRollupsOnAsync(
+            connection, transaction: null, fromInclusive, toInclusive, agentId, cancellationToken)
             .ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-        {
-            rollups.Add(ReadRollup(reader));
-        }
-
-        return rollups;
     }
 
     public async Task<int> ApplyRetentionAsync(
@@ -740,6 +805,8 @@ public sealed partial class UsageRepository
             connection,
             transaction,
             """
+            DELETE FROM project_attribution;
+            DELETE FROM session_attribution;
             DELETE FROM usage_event;
             DELETE FROM usage_event_tombstone;
             DELETE FROM daily_usage_rollup;
@@ -781,6 +848,9 @@ public sealed partial class UsageRepository
             throw new UsageSchemaTooNewException(currentVersion, CurrentSchemaVersion);
         }
 
+        if (currentVersion > 0 && currentVersion < CurrentSchemaVersion)
+            await CreateMigrationBackupAsync(currentVersion, cancellationToken).ConfigureAwait(false);
+
         if (currentVersion == 0)
         {
             await ApplyVersionOneAsync(connection, transaction, cancellationToken)
@@ -812,7 +882,38 @@ public sealed partial class UsageRepository
         if (currentVersion == 4)
         {
             await ApplyMeasurementSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 5;
         }
+
+        if (currentVersion == 5)
+        {
+            await ApplyRevisionSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 6;
+        }
+        if (currentVersion == 6)
+        {
+            await ApplyDetailSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 7;
+        }
+        if (currentVersion == 7)
+        {
+            await ApplyCollectionFreshnessSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 8;
+        }
+        if (currentVersion == 8)
+        {
+            await ApplyAttributionSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 9;
+        }
+        if (currentVersion == 9)
+        {
+            await ApplyProjectAttributionSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 10;
+        }
+        if (currentVersion == 10)
+            await ApplyOperationFactSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+        if (await ReadSchemaVersionAsync(connection, transaction, cancellationToken).ConfigureAwait(false) != CurrentSchemaVersion)
+            throw new InvalidDataException("The usage migration did not reach the required schema version.");
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -869,6 +970,7 @@ public sealed partial class UsageRepository
         try
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            connection.CreateFunction("tokenusage_writer_schema", () => CurrentSchemaVersion);
             await ExecuteAsync(connection, null, "PRAGMA busy_timeout = 5000;", cancellationToken)
                 .ConfigureAwait(false);
             if (_isReadOnly)
@@ -979,7 +1081,7 @@ public sealed partial class UsageRepository
 
     private static async Task<int> ReadSchemaVersionAsync(
         SqliteConnection connection,
-        SqliteTransaction transaction,
+        SqliteTransaction? transaction,
         CancellationToken cancellationToken)
     {
         await using SqliteCommand command = connection.CreateCommand();
@@ -1269,12 +1371,12 @@ public sealed partial class UsageRepository
             grouping_time_zone_id, civil_date, input_tokens, output_tokens,
             reasoning_tokens, cache_read_tokens, cache_write_tokens, cost_kind,
             reported_cost_micros, estimated_cost_micros, catalog_version,
-            exact_price_match, parser_version, coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier)
+            exact_price_match, parser_version, coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier, source_instance_id, record_kind, representation_revision, input_availability, output_availability, reasoning_availability, cache_read_availability, cache_write_availability)
         VALUES (
             $eventKey, $agentId, $modelProviderId, $modelId, $occurredAt,
             $timeZone, $civilDate, $input, $output, $reasoning, $cacheRead,
             $cacheWrite, $costKind, $reported, $estimated, $catalogVersion,
-            $priceMatch, $parserVersion, $coverage, $precision, $intervalStart, $observedModel, $effort, $tier)
+            $priceMatch, $parserVersion, $coverage, $precision, $intervalStart, $observedModel, $effort, $tier, $sourceInstance, $recordKind, $representationRevision, $inputAvailability, $outputAvailability, $reasoningAvailability, $cacheReadAvailability, $cacheWriteAvailability)
         ON CONFLICT(event_key) DO NOTHING;
         """;
 
@@ -1285,12 +1387,12 @@ public sealed partial class UsageRepository
             grouping_time_zone_id, civil_date, input_tokens, output_tokens,
             reasoning_tokens, cache_read_tokens, cache_write_tokens, cost_kind,
             reported_cost_micros, estimated_cost_micros, catalog_version,
-            exact_price_match, parser_version, coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier)
+            exact_price_match, parser_version, coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier, source_instance_id, record_kind, representation_revision, input_availability, output_availability, reasoning_availability, cache_read_availability, cache_write_availability)
         VALUES (
             $eventKey, $agentId, $modelProviderId, $modelId, $occurredAt,
             $timeZone, $civilDate, $input, $output, $reasoning, $cacheRead,
             $cacheWrite, $costKind, $reported, $estimated, $catalogVersion,
-            $priceMatch, $parserVersion, $coverage, $precision, $intervalStart, $observedModel, $effort, $tier)
+            $priceMatch, $parserVersion, $coverage, $precision, $intervalStart, $observedModel, $effort, $tier, $sourceInstance, $recordKind, $representationRevision, $inputAvailability, $outputAvailability, $reasoningAvailability, $cacheReadAvailability, $cacheWriteAvailability)
         ON CONFLICT(event_key) DO UPDATE SET
             agent_id = excluded.agent_id,
             model_provider_id = excluded.model_provider_id,
@@ -1314,7 +1416,15 @@ public sealed partial class UsageRepository
             interval_started_at_utc = excluded.interval_started_at_utc,
             observed_model_id = excluded.observed_model_id,
             reasoning_effort = excluded.reasoning_effort,
-            service_tier = excluded.service_tier;
+            service_tier = excluded.service_tier,
+            source_instance_id = excluded.source_instance_id,
+            record_kind = excluded.record_kind,
+            representation_revision = excluded.representation_revision,
+            input_availability = excluded.input_availability,
+            output_availability = excluded.output_availability,
+            reasoning_availability = excluded.reasoning_availability,
+            cache_read_availability = excluded.cache_read_availability,
+            cache_write_availability = excluded.cache_write_availability;
         """;
 
     private static async Task<UsageEvent[]> WriteEventsAsync(
@@ -1330,10 +1440,19 @@ public sealed partial class UsageRepository
             return [];
         }
 
+        await VerifyEventOwnershipAsync(connection, transaction, batch, cancellationToken).ConfigureAwait(false);
+
         HashSet<string> tombstoned = respectTombstones
             ? await LoadTombstonedKeysAsync(connection, transaction, batch, cancellationToken)
                 .ConfigureAwait(false)
             : new HashSet<string>(StringComparer.Ordinal);
+
+        if (kind == EventWriteKind.Insert)
+            foreach (var day in batch.Where(row => row.DetailMetadata.SourceInstance is not null
+                         && !tombstoned.Contains(row.EventKey.Value))
+                         .Select(row => (row.AgentId, AssertSingleRollup(row).Date)).Distinct())
+                await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, day.AgentId,
+                    day.Date, day.Date, cancellationToken).ConfigureAwait(false);
 
         await using SqliteCommand command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -1471,6 +1590,14 @@ public sealed partial class UsageRepository
         command.Parameters["$observedModel"].Value = (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value;
         command.Parameters["$effort"].Value = (object?)usageEvent.ReasoningEffort ?? DBNull.Value;
         command.Parameters["$tier"].Value = (object?)usageEvent.ServiceTier ?? DBNull.Value;
+        command.Parameters["$sourceInstance"].Value = (object?)usageEvent.DetailMetadata.SourceInstance?.Value ?? DBNull.Value;
+        command.Parameters["$recordKind"].Value = (int)usageEvent.DetailMetadata.RecordKind;
+        command.Parameters["$representationRevision"].Value = (object?)usageEvent.DetailMetadata.RepresentationRevision ?? DBNull.Value;
+        command.Parameters["$inputAvailability"].Value = (int)usageEvent.DetailMetadata.Input;
+        command.Parameters["$outputAvailability"].Value = (int)usageEvent.DetailMetadata.Output;
+        command.Parameters["$reasoningAvailability"].Value = (int)usageEvent.DetailMetadata.Reasoning;
+        command.Parameters["$cacheReadAvailability"].Value = (int)usageEvent.DetailMetadata.CacheRead;
+        command.Parameters["$cacheWriteAvailability"].Value = (int)usageEvent.DetailMetadata.CacheWrite;
         command.Parameters["$precision"].Value = (int)usageEvent.TimePrecision;
         command.Parameters["$intervalStart"].Value = (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value;
     }
@@ -1514,6 +1641,14 @@ public sealed partial class UsageRepository
         command.Parameters.AddWithValue("$observedModel", (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value);
         command.Parameters.AddWithValue("$effort", (object?)usageEvent.ReasoningEffort ?? DBNull.Value);
         command.Parameters.AddWithValue("$tier", (object?)usageEvent.ServiceTier ?? DBNull.Value);
+        command.Parameters.AddWithValue("$sourceInstance", (object?)usageEvent.DetailMetadata.SourceInstance?.Value ?? DBNull.Value);
+        command.Parameters.AddWithValue("$recordKind", (int)usageEvent.DetailMetadata.RecordKind);
+        command.Parameters.AddWithValue("$representationRevision", (object?)usageEvent.DetailMetadata.RepresentationRevision ?? DBNull.Value);
+        command.Parameters.AddWithValue("$inputAvailability", (int)usageEvent.DetailMetadata.Input);
+        command.Parameters.AddWithValue("$outputAvailability", (int)usageEvent.DetailMetadata.Output);
+        command.Parameters.AddWithValue("$reasoningAvailability", (int)usageEvent.DetailMetadata.Reasoning);
+        command.Parameters.AddWithValue("$cacheReadAvailability", (int)usageEvent.DetailMetadata.CacheRead);
+        command.Parameters.AddWithValue("$cacheWriteAvailability", (int)usageEvent.DetailMetadata.CacheWrite);
         command.Parameters.AddWithValue("$precision", (int)usageEvent.TimePrecision);
         command.Parameters.AddWithValue("$intervalStart", (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value);
     }
@@ -1706,6 +1841,217 @@ public sealed partial class UsageRepository
         command.Parameters.AddWithValue("$modelId", rollup.ModelId.Value);
     }
 
+    private static async Task<IReadOnlyList<DailyUsageRollup>> QueryDailyRollupsOnAsync(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        AgentId? agentId,
+        CancellationToken cancellationToken)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = agentId is null
+            ? """
+              SELECT civil_date, grouping_time_zone_id, agent_id, model_provider_id, model_id,
+                     input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
+                     cache_write_tokens, reported_cost_micros, estimated_cost_micros,
+                     unpriced_tokens, unavailable_cost_event_count, event_count, coverage_kind
+              FROM daily_usage_rollup
+              WHERE civil_date >= $from AND civil_date <= $to
+              ORDER BY civil_date, agent_id, model_id;
+              """
+            : """
+              SELECT civil_date, grouping_time_zone_id, agent_id, model_provider_id, model_id,
+                     input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
+                     cache_write_tokens, reported_cost_micros, estimated_cost_micros,
+                     unpriced_tokens, unavailable_cost_event_count, event_count, coverage_kind
+              FROM daily_usage_rollup
+              WHERE agent_id = $agentId AND civil_date >= $from AND civil_date <= $to
+              ORDER BY civil_date, agent_id, model_id;
+              """;
+        command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
+        command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
+        if (agentId is not null)
+        {
+            command.Parameters.AddWithValue("$agentId", agentId.Value);
+        }
+
+        var rollups = new List<DailyUsageRollup>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            rollups.Add(ReadRollup(reader));
+        }
+
+        return rollups;
+    }
+
+    private static async Task<IReadOnlyList<UsageEvent>> QueryUsageEventsOnAsync(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        DateTimeOffset fromInclusiveUtc,
+        DateTimeOffset toExclusiveUtc,
+        AgentId? agentId,
+        bool includeOverlappingIntervals,
+        int? pageSize = null,
+        UsageEventPageCursor? cursor = null,
+        CancellationToken cancellationToken = default)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = agentId is null
+            ? """
+              SELECT event_key, agent_id, model_provider_id, model_id, occurred_at_utc,
+                     grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
+                     cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
+                     estimated_cost_micros, catalog_version, exact_price_match, parser_version,
+                     coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier, source_instance_id, record_kind, representation_revision, input_availability, output_availability, reasoning_availability, cache_read_availability, cache_write_availability
+              FROM usage_event
+              WHERE occurred_at_utc >= $from AND occurred_at_utc < $to
+              ORDER BY occurred_at_utc, agent_id, model_id, event_key;
+              """
+            : """
+              SELECT event_key, agent_id, model_provider_id, model_id, occurred_at_utc,
+                     grouping_time_zone_id, input_tokens, output_tokens, reasoning_tokens,
+                     cache_read_tokens, cache_write_tokens, cost_kind, reported_cost_micros,
+                     estimated_cost_micros, catalog_version, exact_price_match, parser_version,
+                     coverage_kind, time_precision, interval_started_at_utc, observed_model_id, reasoning_effort, service_tier, source_instance_id, record_kind, representation_revision, input_availability, output_availability, reasoning_availability, cache_read_availability, cache_write_availability
+              FROM usage_event
+              WHERE agent_id = $agentId
+                AND occurred_at_utc >= $from AND occurred_at_utc < $to
+              ORDER BY occurred_at_utc, agent_id, model_id, event_key;
+              """;
+        if (includeOverlappingIntervals)
+            command.CommandText = command.CommandText.Replace(
+                "occurred_at_utc >= $from AND occurred_at_utc < $to",
+                "((occurred_at_utc >= $from AND occurred_at_utc < $to) OR (time_precision = 2 AND interval_started_at_utc < $to AND occurred_at_utc >= $from))",
+                StringComparison.Ordinal);
+        if (cursor is not null)
+        {
+            command.CommandText = command.CommandText.Replace("ORDER BY occurred_at_utc",
+                "AND (occurred_at_utc, agent_id, model_id, event_key) > ($afterUtc, $afterAgent, $afterModel, $afterKey) ORDER BY occurred_at_utc",
+                StringComparison.Ordinal);
+            command.Parameters.AddWithValue("$afterUtc", cursor.AfterUtc.ToString("O", CultureInfo.InvariantCulture));
+            command.Parameters.AddWithValue("$afterAgent", cursor.AfterAgent.Value);
+            command.Parameters.AddWithValue("$afterModel", cursor.AfterModel.Value);
+            command.Parameters.AddWithValue("$afterKey", cursor.AfterKey.Value);
+        }
+        if (pageSize is { } limit)
+        {
+            command.CommandText = command.CommandText.TrimEnd().TrimEnd(';') + " LIMIT $limit;";
+            command.Parameters.AddWithValue("$limit", limit);
+        }
+        command.Parameters.AddWithValue(
+            "$from",
+            fromInclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue(
+            "$to",
+            toExclusiveUtc.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        if (agentId is not null)
+        {
+            command.Parameters.AddWithValue("$agentId", agentId.Value);
+        }
+
+        var events = new List<UsageEvent>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            events.Add(ReadUsageEvent(reader));
+        }
+
+        return events;
+    }
+
+    private static async Task<(string[] Pricing, string[] Parsers)> ReadReportVersionsOnAsync(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        AgentId? agentId,
+        CancellationToken cancellationToken)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            SELECT DISTINCT catalog_version, parser_version FROM usage_event
+            WHERE civil_date BETWEEN $from AND $to AND ($agent IS NULL OR agent_id = $agent);
+            """;
+        command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
+        command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
+        command.Parameters.AddWithValue("$agent", (object?)agentId?.Value ?? DBNull.Value);
+        var pricing = new HashSet<string>(StringComparer.Ordinal);
+        var parsers = new HashSet<string>(StringComparer.Ordinal);
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (!reader.IsDBNull(0)) pricing.Add(reader.GetString(0));
+            parsers.Add(reader.GetString(1));
+        }
+
+        return (pricing.Order().ToArray(), parsers.Order().ToArray());
+    }
+
+    private static async Task<IReadOnlyList<AccountUsageAggregate>> ReadAccountUsageOnAsync(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        AgentId? agentId,
+        CancellationToken cancellationToken)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            SELECT agent_id, provider_date, tokens, observed_at_utc FROM account_usage_daily
+            WHERE provider_date BETWEEN $from AND $to AND ($agent IS NULL OR agent_id = $agent)
+            ORDER BY provider_date, agent_id;
+            """;
+        command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
+        command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
+        command.Parameters.AddWithValue("$agent", (object?)agentId?.Value ?? DBNull.Value);
+        var result = new List<AccountUsageAggregate>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add(new(
+                new AgentId(reader.GetString(0)),
+                DateOnly.ParseExact(reader.GetString(1), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                reader.GetInt64(2),
+                DateTimeOffset.Parse(reader.GetString(3), CultureInfo.InvariantCulture)));
+        }
+
+        return result;
+    }
+
+    private static async Task<IReadOnlyList<UsageCollectionState>> ReadCollectionStateOnAsync(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        CancellationToken cancellationToken)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT agent_id, attempted_at_utc, status, issue, last_successful_at_utc FROM usage_collection_state ORDER BY agent_id;";
+        var result = new List<UsageCollectionState>();
+        await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add(new(
+                reader.GetString(0),
+                DateTimeOffset.Parse(reader.GetString(1), CultureInfo.InvariantCulture),
+                (UsageSourceReadStatus)reader.GetInt32(2),
+                (UsageSourceIssueKind)reader.GetInt32(3),
+                reader.IsDBNull(4) ? null : DateTimeOffset.Parse(reader.GetString(4), CultureInfo.InvariantCulture)));
+        }
+
+        return result;
+    }
+
     private static DailyUsageRollup ReadRollup(SqliteDataReader reader) =>
         new(
             DateOnly.ParseExact(reader.GetString(0), "yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -1768,7 +2114,12 @@ public sealed partial class UsageRepository
             (UsageTimePrecision)reader.GetInt32(18),
             reader.IsDBNull(19) ? null : DateTimeOffset.Parse(reader.GetString(19), CultureInfo.InvariantCulture),
             reader.IsDBNull(20) ? null : new ModelId(reader.GetString(20)),
-            reader.IsDBNull(21) ? null : reader.GetString(21), reader.IsDBNull(22) ? null : reader.GetString(22));
+            reader.IsDBNull(21) ? null : reader.GetString(21), reader.IsDBNull(22) ? null : reader.GetString(22),
+            new UsageDetailMetadata(reader.IsDBNull(23) ? null : new UsageSourceInstanceId(reader.GetString(23)),
+                (UsageRecordKind)reader.GetInt32(24), reader.IsDBNull(25) ? null : reader.GetInt64(25),
+                (UsageComponentAvailability)reader.GetInt32(26), (UsageComponentAvailability)reader.GetInt32(27),
+                (UsageComponentAvailability)reader.GetInt32(28), (UsageComponentAvailability)reader.GetInt32(29),
+                (UsageComponentAvailability)reader.GetInt32(30)));
     }
 
     private static object ToDatabaseValue(decimal? amountUsd) =>
