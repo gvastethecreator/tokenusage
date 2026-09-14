@@ -1,0 +1,30 @@
+{
+  "contract": "tokenusage.report-selection.draft.v2",
+  "baselineCommit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+  "range": {
+    "fromInclusiveUtc": "2026-09-01T03:00:00Z",
+    "toExclusiveUtc": "2026-09-08T03:00:00Z",
+    "displayZone": "America/Argentina/Buenos_Aires",
+    "kind": "civil-calendar"
+  },
+  "filters": {
+    "agentIds": [
+      "codex"
+    ],
+    "modelIds": [
+      "model-alpha"
+    ],
+    "effort": {
+      "mode": "any",
+      "values": []
+    },
+    "tier": {
+      "mode": "any",
+      "values": []
+    }
+  },
+  "priceMode": "as-recorded",
+  "referenceAtUtc": null,
+  "requestedResolution": "day",
+  "groupBy": "model"
+}

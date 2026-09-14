@@ -1,0 +1,17 @@
+{
+  "contract": "tokenusage.record-metadata.draft.v2",
+  "eventKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "sourceInstanceKey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "recordRevision": 1,
+  "recordKind": "snapshot",
+  "timePrecision": "timestamp",
+  "observedAtUtc": "2026-09-12T18:00:00Z",
+  "normalizationVersion": "synthetic/v1",
+  "componentAvailability": {
+    "input": "legacy-unknown",
+    "output": "legacy-unknown",
+    "reasoning": "legacy-unknown",
+    "cacheRead": "legacy-unknown",
+    "cacheWrite": "legacy-unknown"
+  }
+}

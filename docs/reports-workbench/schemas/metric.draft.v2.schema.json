@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TokenUsage metric result — DESIGN ONLY",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "metricId",
+    "definitionVersion",
+    "state",
+    "value",
+    "unit",
+    "evidenceKind",
+    "eligibleRecords",
+    "eligibleTokens",
+    "denominator",
+    "denominatorUnit",
+    "methodId",
+    "reasons"
+  ],
+  "properties": {
+    "contract": {
+      "const": "tokenusage.metric.draft.v2"
+    },
+    "metricId": {
+      "enum": [
+        "M-01",
+        "M-02",
+        "M-03",
+        "M-04",
+        "M-05",
+        "M-06",
+        "M-07",
+        "M-08",
+        "M-09",
+        "M-10",
+        "M-11",
+        "M-12",
+        "M-13",
+        "M-14",
+        "M-15",
+        "M-16",
+        "M-17",
+        "M-18",
+        "M-19",
+        "M-20"
+      ]
+    },
+    "definitionVersion": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1
+    },
+    "state": {
+      "enum": [
+        "available",
+        "partial",
+        "unavailable",
+        "not-applicable",
+        "invalid"
+      ]
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "maxLength": 64
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unit": {
+      "enum": [
+        "tokens",
+        "usd",
+        "fraction",
+        "requests",
+        "tokens/request",
+        "usd/request",
+        "tokens/s",
+        "days",
+        "usd/million-tokens"
+      ]
+    },
+    "evidenceKind": {
+      "enum": [
+        "observed",
+        "derived",
+        "catalog-estimated",
+        "mixed",
+        "legacy-unknown"
+      ]
+    },
+    "eligibleRecords": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 19
+    },
+    "eligibleTokens": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 19
+    },
+    "denominator": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "maxLength": 64
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "denominatorUnit": {
+      "enum": [
+        "tokens",
+        "requests",
+        "seconds",
+        null
+      ]
+    },
+    "methodId": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1
+    },
+    "reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$",
+        "maxLength": 64
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "available",
+              "partial"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "maxLength": 64
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "value": {
+            "type": "null"
+          },
+          "reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "partial"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

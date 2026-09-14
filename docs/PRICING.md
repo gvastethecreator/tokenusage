@@ -41,12 +41,43 @@ raw history remain excluded and visible. Cost per million uses priced tokens,
 not the full partially priced population. Saved comparisons freeze the selected
 reference, catalog versions, exclusions, data revision, and displayed results.
 
-The Rates axis reprices the same stored cohort at two catalog dates and splits
-known-cost change into token volume, model mix, and list-rate. A part that
-cannot be computed is unavailable, never zero. Catalog effective dates are
-list rates, not spend over time.
+The Rates axis prices the same retained observations at two catalog dates.
+Only observations that are priceable under both dates and the same policy
+enter the comparison. Volume and mix are not applicable to this fixed-cohort
+experiment. Equal token totals with disjoint priced identities make the
+comparison unavailable; they are not a tariff delta. A legitimate catalog
+price of zero is distinct from an unavailable cost. Catalog dates are list-rate
+scenarios, not a bill or a historical cause of spend.
 
 Known usage cost is not an invoice, subscription charge, or USD-per-quota value.
+
+Periods also offers a historical linear reference scenario. It keeps recorded
+tables unchanged and explains eligible catalog value in the order volume, mix
+of models and token components, then price (`sequential-vmp-linear/v1`). Both
+periods and their retained observations come from one SQLite snapshot. Each
+cell needs rates at both reference dates, an explicit standard tier, measured
+disjoint components, and compatible measurement and pricing regimes. Missing
+detail and unsupported cells are counted outside the calculation; missing
+configuration membership is not inferred for retired detail.
+Timestamped records and intervals wholly inside the selected civil-day period
+can enter the scenario. Unknown timing, cumulative snapshots, daily aggregates,
+and intervals crossing the period boundary remain outside it.
+
+Codex and Cursor OpenAI models reuse published linear catalog entries. Models
+with long-context thresholds remain excluded even below the threshold. Claude
+and Cursor Anthropic rows are eligible only without cache-write or separate
+reasoning tokens, because the retained generic record does not preserve the
+cache-write duration split. Eligible Cursor first-party entries reuse their
+existing catalog; an unknown host still excludes the row. No rates, discounts,
+or billing charges are inferred from daily averages.
+
+Amounts and effects round separately to six USD decimal places, away from zero;
+a separate residual reconciles those rounded effects with the scenario delta.
+Zero eligible volume leaves effects unavailable. Saved scenarios retain cells,
+rates, dates, policy, exclusions, precision, and method instead of repricing on
+open. These order-dependent calculations do not establish causes, invoice
+savings, or model quality. The fixed-cohort Rates method remains available.
+
 Quota efficiency remains unavailable without evidenced consumption and matching
 pool attribution, even when a cycle has ended.
 

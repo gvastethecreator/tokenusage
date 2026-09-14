@@ -1,0 +1,642 @@
+{
+  "notice": "Coverage plan; no product test is marked as passed. Review exact assertions while implementing.",
+  "requirements": [
+    {
+      "requirement": "REQ-P0-01",
+      "document": "docs/phases/P0-CORRECTNESS.md",
+      "planned_tests": [
+        "TEST-P0-02",
+        "TEST-P0-03",
+        "TEST-P0-04",
+        "TEST-P0-05"
+      ],
+      "phase_tasks": [
+        "TASK-P0-01",
+        "TASK-P0-02",
+        "TASK-P0-03",
+        "TASK-P0-04"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P0-A"
+    },
+    {
+      "requirement": "REQ-P0-02",
+      "document": "docs/phases/P0-CORRECTNESS.md",
+      "planned_tests": [
+        "TEST-P0-04",
+        "TEST-P0-05",
+        "TEST-P0-06"
+      ],
+      "phase_tasks": [
+        "TASK-P0-01",
+        "TASK-P0-02",
+        "TASK-P0-03",
+        "TASK-P0-04"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P0-A"
+    },
+    {
+      "requirement": "REQ-P0-03",
+      "document": "docs/phases/P0-CORRECTNESS.md",
+      "planned_tests": [
+        "TEST-P0-01",
+        "TEST-P0-02",
+        "TEST-P0-03"
+      ],
+      "phase_tasks": [
+        "TASK-P0-01",
+        "TASK-P0-02",
+        "TASK-P0-03",
+        "TASK-P0-04"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P0-A"
+    },
+    {
+      "requirement": "REQ-P0-04",
+      "document": "docs/phases/P0-CORRECTNESS.md",
+      "planned_tests": [
+        "TEST-P0-02",
+        "TEST-P0-08"
+      ],
+      "phase_tasks": [
+        "TASK-P0-01",
+        "TASK-P0-02",
+        "TASK-P0-03",
+        "TASK-P0-04"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P0-A"
+    },
+    {
+      "requirement": "REQ-P0-05",
+      "document": "docs/phases/P0-CORRECTNESS.md",
+      "planned_tests": [
+        "TEST-P0-09",
+        "TEST-P0-10"
+      ],
+      "phase_tasks": [
+        "TASK-P0-01",
+        "TASK-P0-02",
+        "TASK-P0-03",
+        "TASK-P0-04"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P0-A"
+    },
+    {
+      "requirement": "REQ-P0-06",
+      "document": "docs/phases/P0-CORRECTNESS.md",
+      "planned_tests": [
+        "TEST-P0-08",
+        "TEST-P0-11"
+      ],
+      "phase_tasks": [
+        "TASK-P0-01",
+        "TASK-P0-02",
+        "TASK-P0-03",
+        "TASK-P0-04"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P0-A"
+    },
+    {
+      "requirement": "REQ-P1-01",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-01",
+        "TEST-P1-05",
+        "TEST-P1-09",
+        "TEST-P1-10"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P1-02",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-02"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P1-03",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-03",
+        "TEST-P1-04"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P1-04",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-05",
+        "TEST-P1-10"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P1-05",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-02",
+        "TEST-P1-07"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P1-06",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-04",
+        "TEST-P1-06"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P1-07",
+      "document": "docs/phases/P1-MODEL-EXPLORER.md",
+      "planned_tests": [
+        "TEST-P1-06",
+        "TEST-P1-08"
+      ],
+      "phase_tasks": [
+        "TASK-P1-01",
+        "TASK-P1-02",
+        "TASK-P1-03",
+        "TASK-P1-04",
+        "TASK-P1-05",
+        "TASK-P1-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P1-A"
+    },
+    {
+      "requirement": "REQ-P2-01",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-01",
+        "TEST-P2-02",
+        "TEST-P2-12"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-02",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-08",
+        "TEST-P2-09"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-03",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-03",
+        "TEST-P2-04"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-04",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-05",
+        "TEST-P2-06",
+        "TEST-P2-07"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-05",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-08",
+        "TEST-P2-09"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-06",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-05",
+        "TEST-P2-11"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-07",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-10",
+        "TEST-P2-12"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P2-08",
+      "document": "docs/phases/P2-VERIFIABLE-DETAIL.md",
+      "planned_tests": [
+        "TEST-P2-13"
+      ],
+      "phase_tasks": [
+        "TASK-P2-01",
+        "TASK-P2-02",
+        "TASK-P2-03",
+        "TASK-P2-04",
+        "TASK-P2-05",
+        "TASK-P2-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P2-A"
+    },
+    {
+      "requirement": "REQ-P3-01",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-01",
+        "TEST-P3-02"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-02",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-05",
+        "TEST-P3-10"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-03",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-07",
+        "TEST-P3-09"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-04",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-05",
+        "TEST-P3-10"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-05",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-06"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-06",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-02",
+        "TEST-P3-03",
+        "TEST-P3-08",
+        "TEST-P3-09"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-07",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-04"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P3-08",
+      "document": "docs/phases/P3-SESSIONS-PROJECTS.md",
+      "planned_tests": [
+        "TEST-P3-07",
+        "TEST-P3-08"
+      ],
+      "phase_tasks": [
+        "TASK-P3-01",
+        "TASK-P3-02",
+        "TASK-P3-03",
+        "TASK-P3-04",
+        "TASK-P3-05"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P3-A"
+    },
+    {
+      "requirement": "REQ-P4-01",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-01",
+        "TEST-P4-02"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    },
+    {
+      "requirement": "REQ-P4-02",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-02",
+        "TEST-P4-06",
+        "TEST-P4-07"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    },
+    {
+      "requirement": "REQ-P4-03",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-03",
+        "TEST-P4-04",
+        "TEST-P4-05"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    },
+    {
+      "requirement": "REQ-P4-04",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-06",
+        "TEST-P4-07"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    },
+    {
+      "requirement": "REQ-P4-05",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-08",
+        "TEST-P4-11",
+        "TEST-P4-12"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    },
+    {
+      "requirement": "REQ-P4-06",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-09",
+        "TEST-P4-10"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    },
+    {
+      "requirement": "REQ-P4-07",
+      "document": "docs/phases/P4-INSIGHTS-EXPORTS.md",
+      "planned_tests": [
+        "TEST-P4-10",
+        "TEST-P4-11"
+      ],
+      "phase_tasks": [
+        "TASK-P4-01",
+        "TASK-P4-02",
+        "TASK-P4-03",
+        "TASK-P4-04",
+        "TASK-P4-05",
+        "TASK-P4-06"
+      ],
+      "status": "planned_not_executed_in_product",
+      "gate": "GATE-P4-A"
+    }
+  ]
+}

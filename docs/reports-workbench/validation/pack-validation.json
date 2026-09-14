@@ -1,0 +1,280 @@
+{
+  "scope": "documentation, draft schemas and synthetic design oracles ONLY",
+  "createdAtUtc": "2026-09-13T05:29:46.679953+00:00",
+  "status": "passed",
+  "baselineCommit": "df50c367b083e5624bf09213eddc7013d8299aa4",
+  "summary": {
+    "passed": 51,
+    "failed": 0,
+    "not_run": 0
+  },
+  "currentDocuments": 20,
+  "wordCountApprox": 26371,
+  "checks": [
+    {
+      "name": "Current Markdown inventory matches reader registry",
+      "category": "structure",
+      "status": "passed"
+    },
+    {
+      "name": "All current Markdown links resolve locally",
+      "category": "structure",
+      "status": "passed"
+    },
+    {
+      "name": "Balanced fenced code blocks",
+      "category": "structure",
+      "status": "passed"
+    },
+    {
+      "name": "Baseline commit recorded in README",
+      "category": "structure",
+      "status": "passed"
+    },
+    {
+      "name": "36 requirements mapped to existing planned tests and tasks",
+      "category": "traceability",
+      "status": "passed"
+    },
+    {
+      "name": "20 distinct metric definitions",
+      "category": "traceability",
+      "status": "passed"
+    },
+    {
+      "name": "Nonempty unique source registry",
+      "category": "sources",
+      "status": "passed"
+    },
+    {
+      "name": "TokenUsage source links pinned to baseline",
+      "category": "sources",
+      "status": "passed"
+    },
+    {
+      "name": "JSON Schema date-time format checking",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Valid schema: report-selection",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Example satisfies draft schema: selection",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Unknown content field rejected: selection",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Valid schema: metric",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Example satisfies draft schema: metric",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Unknown content field rejected: metric",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Valid schema: record-metadata",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Example satisfies draft schema: metadata",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Unknown content field rejected: metadata",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Reference date required",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Invalid calendar date rejected",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Unknown filter cannot also name a value",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Known filter requires values",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Unavailable does not carry numeric zero or subtotal",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Available metric requires value",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Exact large counts encoded as strings",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "P2 sample does not smuggle in P3 attribution",
+      "category": "schema",
+      "status": "passed"
+    },
+    {
+      "name": "Valid half-open range",
+      "category": "semantic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Empty range rejected by semantic layer",
+      "category": "semantic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Large token integer remains exact",
+      "category": "semantic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Int64 overflow rejected by semantic layer",
+      "category": "semantic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Disjoint component normalization conserves 1250 tokens",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Ratio of totals, not mean of percentages",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Fixed cohort uses common eligible records only",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Disjoint identities with equal token sums are not comparable",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Empty cohort is unavailable, not zero",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Valid zero-cost cohort is available",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Cohort identity includes revision",
+      "category": "semantic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Linear V/M/P example: volume",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Linear V/M/P example: mix",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Linear V/M/P example: rate",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Linear V/M/P example: combined",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "200 seeded linear conservation cases",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Zero-volume linear decomposition rejected",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Previous aggregate formula has zero mix algebraically",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Median odd sample",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Median even sample retains fraction",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Median sample-size gate",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "P95 nearest rank",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "P95 sample-size gate",
+      "category": "arithmetic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Adjacent half-open windows do not double count",
+      "category": "semantic_oracle",
+      "status": "passed"
+    },
+    {
+      "name": "Timestamped snapshot is not a request-final",
+      "category": "semantic_oracle",
+      "status": "passed"
+    }
+  ],
+  "notValidated": [
+    "C# compilation and tests",
+    "WinUI packaged app",
+    "real providers and PC usage",
+    "Windows/ARM64 runtime",
+    "product performance",
+    "actual schema migrations",
+    "secure physical erasure",
+    "concurrent consent revocation"
+  ]
+}

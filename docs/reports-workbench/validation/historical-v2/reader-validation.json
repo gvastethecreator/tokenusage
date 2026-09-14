@@ -1,0 +1,126 @@
+{
+  "scope": "standalone DOCUMENTATION HTML only; not TokenUsage WinUI",
+  "createdAtUtc": "2026-09-12T22:07:54.944663+00:00",
+  "checks": [
+    {
+      "name": "17 current documents in navigation",
+      "status": "passed"
+    },
+    {
+      "name": "18 embedded documents including archive",
+      "status": "passed"
+    },
+    {
+      "name": "Initial document rendered",
+      "status": "passed"
+    },
+    {
+      "name": "Phase route p0",
+      "status": "passed"
+    },
+    {
+      "name": "All content loaded for p0",
+      "status": "passed"
+    },
+    {
+      "name": "Phase route p1",
+      "status": "passed"
+    },
+    {
+      "name": "All content loaded for p1",
+      "status": "passed"
+    },
+    {
+      "name": "Phase route p2",
+      "status": "passed"
+    },
+    {
+      "name": "All content loaded for p2",
+      "status": "passed"
+    },
+    {
+      "name": "Phase route p3",
+      "status": "passed"
+    },
+    {
+      "name": "All content loaded for p3",
+      "status": "passed"
+    },
+    {
+      "name": "Phase route p4",
+      "status": "passed"
+    },
+    {
+      "name": "All content loaded for p4",
+      "status": "passed"
+    },
+    {
+      "name": "No desktop body overflow",
+      "status": "passed"
+    },
+    {
+      "name": "TOC navigates to a real section",
+      "status": "passed"
+    },
+    {
+      "name": "Requirement ID search finds P3",
+      "status": "passed"
+    },
+    {
+      "name": "Search selection opens document and closes dialog",
+      "status": "passed"
+    },
+    {
+      "name": "Dark theme toggle",
+      "status": "passed"
+    },
+    {
+      "name": "Markdown download names selected document",
+      "status": "passed"
+    },
+    {
+      "name": "No body overflow on all 17 mobile routes",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile navigation opens",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile navigation closes after selection",
+      "status": "passed"
+    },
+    {
+      "name": "Keyboard shortcut opens search",
+      "status": "passed"
+    },
+    {
+      "name": "Escape closes search",
+      "status": "passed"
+    },
+    {
+      "name": "Reduced motion disables smooth scroll",
+      "status": "passed"
+    },
+    {
+      "name": "No JavaScript errors",
+      "status": "passed"
+    },
+    {
+      "name": "No remote network requests",
+      "status": "passed"
+    }
+  ],
+  "summary": {
+    "passed": 27,
+    "failed": 0
+  },
+  "notValidated": [
+    "Direct file:// launch blocked by sandbox browser policy; tested via in-memory document loading",
+    "Native WinUI UX",
+    "Narrator or screen reader on Windows",
+    "Product rendering/performance",
+    "Production accessibility conformance"
+  ],
+  "runner": "External sandbox Chromium smoke test; no browser runner added to TokenUsage or its CI."
+}

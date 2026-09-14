@@ -1,0 +1,6 @@
+# Optional documentation-only environment; not product/runtime/CI dependencies.
+# Versions available and used for this package's checks.
+markdown-it-py==4.2.0
+jsonschema==4.26.0
+# Required for JSON Schema format: date-time. jsonschema ignores that format without it.
+rfc3339-validator==0.1.4

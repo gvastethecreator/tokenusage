@@ -1,0 +1,209 @@
+{
+  "scope": "external Chromium smoke for documentation HTML and synthetic lab only; no browser runner integrated in repository",
+  "createdAtUtc": "2026-09-13T02:48:50.680343+00:00",
+  "checks": [
+    {
+      "name": "20 current documents in navigation",
+      "status": "passed"
+    },
+    {
+      "name": "21 embedded documents including archive",
+      "status": "passed"
+    },
+    {
+      "name": "Initial current README renders",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route p0",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route p1",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route p2",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route p3",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route p4",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route integracion",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route revision",
+      "status": "passed"
+    },
+    {
+      "name": "Complete route sqlite",
+      "status": "passed"
+    },
+    {
+      "name": "No desktop body overflow",
+      "status": "passed"
+    },
+    {
+      "name": "TOC resolves heading",
+      "status": "passed"
+    },
+    {
+      "name": "New requirement is searchable",
+      "status": "passed"
+    },
+    {
+      "name": "Search opens additional review",
+      "status": "passed"
+    },
+    {
+      "name": "Search closes after result selection",
+      "status": "passed"
+    },
+    {
+      "name": "Dark theme toggles",
+      "status": "passed"
+    },
+    {
+      "name": "Markdown download uses active file",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: inicio",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: plan",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: base",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: p0",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: p1",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: p2",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: p3",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: p4",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: arquitectura",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: metricas",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: calidad",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: experiencia",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: rendimiento",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: privacidad",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: migraciones",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: agentes",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: fuentes",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: integracion",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: revision",
+      "status": "passed"
+    },
+    {
+      "name": "No narrow-body overflow: sqlite",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile menu opens",
+      "status": "passed"
+    },
+    {
+      "name": "Mobile menu closes on navigation",
+      "status": "passed"
+    },
+    {
+      "name": "Keyboard search opens",
+      "status": "passed"
+    },
+    {
+      "name": "Escape closes search",
+      "status": "passed"
+    },
+    {
+      "name": "Reduced motion honored",
+      "status": "passed"
+    },
+    {
+      "name": "No JavaScript exceptions",
+      "status": "passed"
+    },
+    {
+      "name": "No remote requests",
+      "status": "passed"
+    },
+    {
+      "name": "Original lab renders",
+      "status": "passed"
+    },
+    {
+      "name": "Original lab has no JavaScript exceptions on load",
+      "status": "passed"
+    }
+  ],
+  "summary": {
+    "passed": 47,
+    "failed": 0
+  },
+  "notValidated": [
+    "Native WinUI",
+    "Narrator",
+    "Windows packaged runtime",
+    "provider integrations",
+    "file:// launch (in-memory loading used)",
+    "product performance"
+  ],
+  "errors": [],
+  "readerSha256": "576c1a5b45dd75c1adcc199e8966b6bc837bd2297d9e09ecb5ad1d8df405266b",
+  "prototypeSha256": "77e7c021ff1a806c1b1c4148666d1af9c1e2371f0f16c6800f2617010bcbb3bf"
+}

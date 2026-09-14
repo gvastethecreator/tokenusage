@@ -28,6 +28,13 @@ Cost catalogs are checked against the official [OpenAI model pages](https://deve
 - Quota readings are sampled levels, not a complete consumption ledger. Current
   sources do not establish model-to-pool attribution. Normalized quota ratios
   therefore remain unavailable.
+- Optional Codex operation facts (`codex-mcp`, `codex-skills`, `codex-commands`,
+  `codex-files`) are independent Settings choices, off by default. They store
+  opaque call or file IDs and bounded names only. DynamicToolCall is allowlisted
+  to `Read` and `Edit`. Command families are derived from the executable name
+  (never argv). File rows keep an HMAC of a normalized path. Prompt-derived
+  categories and Claude operational rows are not admitted. RequestFinal / Calls
+  remain unavailable: `token_count` is not a finalized request.
 
 App-owned local storage now includes schema-5 numeric metadata, separate account
 daily totals, last collection status, and up to 100 immutable comparisons (4 MiB
@@ -223,6 +230,20 @@ otherwise.
 - the method can deliver new additional limits
 - multiple accounts require one `CODEX_HOME` and process per instance
 - consuming a reset credit stays outside the MVP because it is an irreversible action
+- optional session links are off by default. With consent, TokenUsage stores only
+  opaque keys derived from `session_meta.payload.id` and, when present,
+  `parent_thread_id` or `forked_from_id`. Native IDs, `cwd`, paths, and prompts
+  are not stored. Parent references use the same session identity domain so a
+  child can join its parent. Enablement does not backfill already-known
+  observations; Settings can backfill a retained date range. Revoke removes
+  Codex links only; numeric totals stay. A restored backup cannot re-enable a
+  disabled reader.
+- optional project links are a separate consent. Working directories stay
+  transient in the reader; persisted project identity is an opaque key, not a path
+- RequestFinal is still unproved for Codex. Reports distribution statistics stay
+  unavailable for this source; that empty result is correct. Attributed session
+  outliers can still appear when session consent is on and 30 comparable sessions
+  exist.
 
 ### Result
 
@@ -261,6 +282,11 @@ public interface or permission exists. The app does not write that credential.
 - measured cost if the log includes it
 - estimated cost with price coverage
 - omitted models and the reason
+
+Optional session, parent, and project links stay blocked. Candidate JSON
+fields `sessionId`, `parentUuid`, and `cwd` are not persisted. `message.id`
+is not a session identity. `isSidechain` is not a parent edge. Empty
+association lists are the current contract.
 
 ### Result
 
@@ -689,7 +715,13 @@ The local gate is resolved as `integrated-local-estimate`. Tests confirm stable
 identity, snapshot replacement, and reads of the allowlist fields. The Admin
 API keeps its separate manual gate.
 
-
+Optional Cursor session links are off by default. With consent, TokenUsage
+stores an opaque key derived from the bounded composer fragment and a hash of
+the local database path. The same composer fragment in two databases produces
+two keys. Parent and workspace inference stay blocked. A session link does not
+upgrade a context estimate into a request. Already-scanned composer rows stay
+unlinked after enable unless the user backfills that retained range. Revoke
+removes Cursor links only; Codex links and numeric totals stay.
 
 Upstream comparison source: [Cursor provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
 
@@ -814,4 +846,5 @@ before the public build is enabled.
 
 
 
-Upstream comparison source: [Devin provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
+Upstream comparison source: [Devin provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
+

@@ -1,0 +1,76 @@
+{
+  "scope": "local documentation integration only",
+  "createdAtUtc": "2026-09-13T05:29:47.398535+00:00",
+  "summary": {
+    "passed": 14,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "Complete original archive: archive/engineering-v2-original.zip",
+      "status": "passed"
+    },
+    {
+      "name": "Complete original archive: archive/initial-plan-original.zip",
+      "status": "passed"
+    },
+    {
+      "name": "All five phase documents preserved byte-for-byte",
+      "status": "passed"
+    },
+    {
+      "name": "Generated reader matches source",
+      "status": "passed"
+    },
+    {
+      "name": "Reader generation is deterministic",
+      "status": "passed"
+    },
+    {
+      "name": "Registry contains all current specifications",
+      "status": "passed"
+    },
+    {
+      "name": "Additional requirements and SQLite tests remain planned",
+      "status": "passed"
+    },
+    {
+      "name": "Embedded Markdown and section anchors match source",
+      "status": "passed"
+    },
+    {
+      "name": "Raw script examples are escaped by Markdown renderer",
+      "status": "passed"
+    },
+    {
+      "name": "No active browser runner dependency",
+      "status": "passed"
+    },
+    {
+      "name": "No sandbox or local execution paths in active specs",
+      "status": "passed"
+    },
+    {
+      "name": "Historical validations preserved separately",
+      "status": "passed"
+    },
+    {
+      "name": "Prototype is explicitly synthetic",
+      "status": "passed"
+    },
+    {
+      "name": "Current file manifest covers exact bytes",
+      "status": "passed"
+    }
+  ],
+  "remotePublication": "local_complete_pr62_partial_pending_authorization",
+  "notValidated": [
+    "updating issue #61 or PR #62",
+    "C# tests or build",
+    "WinUI runtime",
+    "native SQLite binaries in TokenUsage",
+    "providers",
+    "product CI",
+    "product migrations and concurrency"
+  ]
+}

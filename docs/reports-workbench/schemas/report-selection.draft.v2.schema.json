@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TokenUsage report selection — DESIGN ONLY",
+  "description": "Illustrative proposed contract. No CLI flag or published API is implied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "baselineCommit",
+    "range",
+    "filters",
+    "priceMode",
+    "referenceAtUtc",
+    "requestedResolution",
+    "groupBy"
+  ],
+  "properties": {
+    "contract": {
+      "const": "tokenusage.report-selection.draft.v2"
+    },
+    "baselineCommit": {
+      "const": "df50c367b083e5624bf09213eddc7013d8299aa4"
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fromInclusiveUtc",
+        "toExclusiveUtc",
+        "displayZone",
+        "kind"
+      ],
+      "properties": {
+        "fromInclusiveUtc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "toExclusiveUtc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "displayZone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "enum": [
+            "exact-utc",
+            "civil-calendar"
+          ]
+        }
+      }
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentIds",
+        "modelIds",
+        "effort",
+        "tier"
+      ],
+      "properties": {
+        "agentIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+            "maxLength": 128
+          }
+        },
+        "modelIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+            "maxLength": 128
+          }
+        },
+        "effort": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "values"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "any",
+                "known-values",
+                "unknown"
+              ]
+            },
+            "values": {
+              "type": "array",
+              "uniqueItems": true,
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+                "maxLength": 128
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "known-values"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "values": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "values": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "tier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "values"
+          ],
+          "properties": {
+            "mode": {
+              "enum": [
+                "any",
+                "known-values",
+                "unknown"
+              ]
+            },
+            "values": {
+              "type": "array",
+              "uniqueItems": true,
+              "maxItems": 128,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+                "maxLength": 128
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "known-values"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "values": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "values": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "priceMode": {
+      "enum": [
+        "as-recorded",
+        "reference"
+      ]
+    },
+    "referenceAtUtc": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requestedResolution": {
+      "enum": [
+        "day",
+        "two-hour-exact",
+        "records"
+      ]
+    },
+    "groupBy": {
+      "enum": [
+        "model",
+        "agent",
+        "day"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "priceMode": {
+            "const": "reference"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "referenceAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "referenceAtUtc": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

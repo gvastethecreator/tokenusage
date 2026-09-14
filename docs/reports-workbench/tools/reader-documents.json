@@ -1,0 +1,128 @@
+[
+  {
+    "id": "inicio",
+    "label": "Índice del paquete",
+    "group": "Orientación",
+    "path": "README.md"
+  },
+  {
+    "id": "plan",
+    "label": "Plan maestro",
+    "group": "Orientación",
+    "path": "docs/00-MASTER-PLAN.md"
+  },
+  {
+    "id": "base",
+    "label": "Base y hallazgos",
+    "group": "Orientación",
+    "path": "docs/01-BASELINE-AND-FINDINGS.md"
+  },
+  {
+    "id": "p0",
+    "label": "P0 · Exactitud",
+    "group": "Las cinco fases",
+    "path": "docs/phases/P0-CORRECTNESS.md"
+  },
+  {
+    "id": "p1",
+    "label": "P1 · Model Explorer",
+    "group": "Las cinco fases",
+    "path": "docs/phases/P1-MODEL-EXPLORER.md"
+  },
+  {
+    "id": "p2",
+    "label": "P2 · Detalle verificable",
+    "group": "Las cinco fases",
+    "path": "docs/phases/P2-VERIFIABLE-DETAIL.md"
+  },
+  {
+    "id": "p3",
+    "label": "P3 · Sesiones y proyectos",
+    "group": "Las cinco fases",
+    "path": "docs/phases/P3-SESSIONS-PROJECTS.md"
+  },
+  {
+    "id": "p4",
+    "label": "P4 · Insights y exportación",
+    "group": "Las cinco fases",
+    "path": "docs/phases/P4-INSIGHTS-EXPORTS.md"
+  },
+  {
+    "id": "arquitectura",
+    "label": "Arquitectura y contratos",
+    "group": "Arquitectura",
+    "path": "docs/architecture/02-CONTRACTS-AND-DATA-FLOW.md"
+  },
+  {
+    "id": "metricas",
+    "label": "Diccionario de métricas",
+    "group": "Arquitectura",
+    "path": "docs/architecture/03-METRIC-SEMANTICS.md"
+  },
+  {
+    "id": "calidad",
+    "label": "Gates y pruebas",
+    "group": "Calidad",
+    "path": "docs/quality/04-QUALITY-GATES.md"
+  },
+  {
+    "id": "experiencia",
+    "label": "Experiencia y accesibilidad",
+    "group": "Calidad",
+    "path": "docs/quality/05-UX-AND-ACCESSIBILITY.md"
+  },
+  {
+    "id": "rendimiento",
+    "label": "Rendimiento",
+    "group": "Calidad",
+    "path": "docs/quality/06-PERFORMANCE-PROTOCOL.md"
+  },
+  {
+    "id": "privacidad",
+    "label": "Privacidad y amenazas",
+    "group": "Operación",
+    "path": "docs/operations/07-PRIVACY-AND-THREATS.md"
+  },
+  {
+    "id": "migraciones",
+    "label": "Migración y recuperación",
+    "group": "Operación",
+    "path": "docs/operations/08-MIGRATIONS-AND-RECOVERY.md"
+  },
+  {
+    "id": "agentes",
+    "label": "Entrega a agentes",
+    "group": "Operación",
+    "path": "docs/operations/09-AGENT-HANDOFF.md"
+  },
+  {
+    "id": "fuentes",
+    "label": "Fuentes y trazabilidad",
+    "group": "Referencias",
+    "path": "docs/references/10-SOURCES.md"
+  },
+  {
+    "id": "integracion",
+    "label": "Integración al repositorio",
+    "group": "Integración y revisión",
+    "path": "docs/operations/11-REPOSITORY-INTEGRATION.md"
+  },
+  {
+    "id": "revision",
+    "label": "Revisión adversarial",
+    "group": "Integración y revisión",
+    "path": "docs/operations/12-REVIEW-AND-ACCEPTANCE.md"
+  },
+  {
+    "id": "sqlite",
+    "label": "SQLite nativo y recuperación",
+    "group": "Integración y revisión",
+    "path": "docs/operations/13-NATIVE-SQLITE-GATE.md"
+  },
+  {
+    "id": "rfc-original",
+    "label": "RFC inicial · archivo",
+    "group": "Archivo",
+    "path": "archive/RFC-original-2026-09-12.md"
+  }
+]
