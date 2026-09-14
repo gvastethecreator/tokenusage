@@ -14,11 +14,11 @@ Generated from bounded projections of allowlisted official pricing pages. No fet
 | openai-astra-pricing | directProviderApi | current (7/7 markers) | `7fbd2f696250` |
 | openai-model-pricing | directProviderApi | current (5/5 markers) | `26c97fe41d42` |
 | xai-model-pricing | directProviderApi | current (4/4 markers) | `23c7b84042a5` |
-| zai-model-pricing | directProviderApi | current (5/5 markers) | `9d023ff00026` |
+| zai-model-pricing | directProviderApi | review required (2/5 markers) | `a1c4eae92ce6` |
 
 ## Catalog candidates
 
-No catalog price change was detected by the supported projections.
+Unstructured source projections changed. Review the official pages and prepare catalog edits manually; this refresh did not edit a price.
 
 ## Evidence candidates
 
@@ -26,8 +26,8 @@ No source review date needs an update.
 
 ## Scheduled transitions
 
-- `glm-5.3-flash` switches at 2026-09-09T16:00:00.0000000+00:00; the successor rate is already versioned.
+No promotion ends within 30 days.
 
 ## Result
 
-Current. No pull request is needed.
+Review required. The workflow may update one draft pull request; a human must edit, approve, and merge it.
