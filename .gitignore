@@ -43,3 +43,6 @@ docs/codemap/.staging/
 docs/codemap/.review/
 docs/codemap/.publication/
 docs/codemap/.publisher.lock
+
+# Windows SDK packages and generated files
+.winapp
