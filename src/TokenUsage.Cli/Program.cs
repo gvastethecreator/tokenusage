@@ -22,6 +22,9 @@ if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal
     return await CursorCommand.RunAsync(args.Skip(1).ToArray(), Console.Out, Console.Error);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "recover-usage", StringComparison.Ordinal))
+    return await RecoverUsageCommand.RunAsync(args.Skip(1).ToArray(), Console.Out, Console.Error);
+
 // Pricing evidence and refresh checks only read repository or public catalog data.
 // Keep them usable from an unpackaged CLI build without application storage.
 if (args.Length > 0 && string.Equals(args[0], "pricing", StringComparison.Ordinal))
