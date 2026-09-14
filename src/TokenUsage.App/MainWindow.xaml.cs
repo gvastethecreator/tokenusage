@@ -643,7 +643,10 @@ public sealed partial class MainWindow : Window, IDisposable
                     if (appearance.CanChangeTheme)
                         appearance.SelectedTheme = appearance.ThemeOptions.Single(option => option.Value == theme);
                 },
-                marked => RootPage.ViewModel.Options.Appearance.SetMarkReportBestValues(marked));
+                marked => RootPage.ViewModel.Options.Appearance.SetMarkReportBestValues(marked),
+                attributionConsent: RootPage.ViewModel.GeneralOptions.AttributionConsent,
+                attributionAliases: RootPage.ViewModel.GeneralOptions.AttributionAliases,
+                attributionOptions: RootPage.ViewModel.GeneralOptions);
             _reportWindow.Closed += OnUsageReportWindowClosed;
         }
         else

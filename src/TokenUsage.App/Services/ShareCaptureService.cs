@@ -63,9 +63,10 @@ internal static class ShareCaptureService
     {
         ArgumentNullException.ThrowIfNull(captureRoot);
         return CaptureAsync(
-            [captureRoot],
+            new FrameworkElement[] { captureRoot },
             captureKind,
             backgroundColor,
+            snapshotJson: null,
             cancellationToken);
     }
 
@@ -73,6 +74,7 @@ internal static class ShareCaptureService
         IReadOnlyList<FrameworkElement> captureRoots,
         string captureKind,
         Windows.UI.Color backgroundColor,
+        string? snapshotJson = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(captureRoots);
@@ -113,6 +115,7 @@ internal static class ShareCaptureService
                 renderedSurfaces,
                 captureKind,
                 backgroundColor,
+                snapshotJson,
                 cancellationToken);
         }
         finally
@@ -127,6 +130,7 @@ internal static class ShareCaptureService
         FrameworkElement contentRoot,
         string captureKind,
         Windows.UI.Color backgroundColor,
+        string? snapshotJson = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(headerRoot);
@@ -232,6 +236,7 @@ internal static class ShareCaptureService
                 renderedSurfaces,
                 captureKind,
                 backgroundColor,
+                snapshotJson,
                 cancellationToken);
         }
         finally
@@ -361,6 +366,7 @@ internal static class ShareCaptureService
         IReadOnlyList<RenderedCaptureSurface> renderedSurfaces,
         string captureKind,
         Windows.UI.Color backgroundColor,
+        string? snapshotJson,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -409,7 +415,17 @@ internal static class ShareCaptureService
         package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
         Clipboard.SetContent(package);
         Clipboard.Flush();
-        return new ShareCaptureResult(file.Path, outputWidth, outputHeight);
+        string? snapshotPath = null;
+        if (!string.IsNullOrWhiteSpace(snapshotJson))
+        {
+            StorageFile snapshot = await destination.CreateFileAsync(
+                System.IO.Path.ChangeExtension(file.Name, ".json"),
+                CreationCollisionOption.FailIfExists);
+            await FileIO.WriteTextAsync(snapshot, snapshotJson);
+            snapshotPath = snapshot.Path;
+        }
+
+        return new ShareCaptureResult(file.Path, outputWidth, outputHeight, snapshotPath);
     }
 
     private static byte[] StackVertically(
@@ -548,4 +564,8 @@ internal static class ShareCaptureService
 
 internal sealed record RenderedCaptureSurface(byte[] Pixels, int Width, int Height);
 
-internal sealed record ShareCaptureResult(string FilePath, int PixelWidth, int PixelHeight);
+internal sealed record ShareCaptureResult(
+    string FilePath,
+    int PixelWidth,
+    int PixelHeight,
+    string? SnapshotPath = null);

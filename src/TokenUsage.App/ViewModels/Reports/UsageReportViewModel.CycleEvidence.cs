@@ -28,13 +28,14 @@ public sealed partial class UsageReportViewModel
         if (duration <= TimeSpan.Zero)
         {
             _cycleReadingCounts[option.Id] = 0;
-            return UsageReportQuery.Build([]) with { IsExactInterval = true };
+            return UsageReportQuery.Build([]) with { IsExactInterval = true, HasConfigurationDetails = _loadConfigurations };
         }
         if (QuotaResetCycleQuery.Build(_resetHistory, option.ProviderId, _clock.GetUtcNow())
             .FirstOrDefault(item => item.MetricId == option.MetricId && item.FromUtc == option.FromUtc)?.HasObservedStart != true)
             AppendCycleEvidence("UsageComparisonInferredBoundary");
         DateTimeOffset end = option.FromUtc + duration;
-        UsageReport report = await Task.Run(() => query.ReadExactAsync(option.FromUtc, end, new AgentId(option.ProviderId), token), token);
+        UsageReport report = await Task.Run(() => query.ReadExactAsync(option.FromUtc, end, new AgentId(option.ProviderId),
+            includeConfigurations: _loadConfigurations, cancellationToken: token), token);
         if (_resetHistoryStore is not null)
         {
             try

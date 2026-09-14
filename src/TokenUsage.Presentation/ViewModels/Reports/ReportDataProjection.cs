@@ -3,7 +3,7 @@ using TokenUsage.Core.Automation;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
-public enum ReportSortColumn { Name, Date, Cost, ReportedCost, EstimatedCost, Tokens, Share, Coverage, Events, ActiveDays }
+public enum ReportSortColumn { Name, Date, Cost, ReportedCost, EstimatedCost, Tokens, Share, Coverage, Events, ActiveDays, UnpricedTokens, Sessions }
 
 public readonly record struct ReportSortState(ReportSortColumn Column, bool Descending)
 {

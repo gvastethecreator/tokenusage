@@ -10,6 +10,8 @@ using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.Core.Appearance;
+using TokenUsage.Core.Storage;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.Views.Reports;
 
@@ -262,9 +264,96 @@ public sealed partial class UsageReportPage : Page
         }
     }
 
+    private async void OnExportSnapshotClick(object sender, RoutedEventArgs e)
+    {
+        if (!ViewModel.CanCaptureReport)
+        {
+            return;
+        }
+
+        try
+        {
+            UsageReportSnapshotV2.Document snapshot = await ViewModel.FreezeCanonicalSnapshotAsync();
+            var picker = new Windows.Storage.Pickers.FileSavePicker
+            {
+                SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Downloads,
+                SuggestedFileName = "tokenusage-report",
+            };
+            picker.FileTypeChoices.Add("JSON", [".json"]);
+            picker.FileTypeChoices.Add("CSV", [".csv"]);
+            picker.FileTypeChoices.Add("HTML", [".html"]);
+            nint hwnd = Microsoft.UI.Win32Interop.GetWindowFromWindowId(
+                XamlRoot.ContentIslandEnvironment.AppWindowId);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            Windows.Storage.StorageFile? file = await picker.PickSaveFileAsync();
+            if (file is null)
+            {
+                return;
+            }
+
+            await WriteExportedSnapshotAsync(file.Path, snapshot);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or System.Runtime.InteropServices.COMException)
+        {
+            ShowShareStatus(GetString("UsageReportExportError"), isError: true);
+        }
+    }
+
+    public async Task<bool> WriteExportedSnapshotAsync(
+        string path,
+        UsageReportSnapshotV2.Document snapshot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(snapshot);
+        try
+        {
+            snapshot = await ViewModel.FinalizeExportSnapshotAsync(snapshot);
+            string format = ExportFormatFromPath(path);
+            await AtomicTextFile.WriteAsync(path, UsageReportSnapshotV2.Render(snapshot, format));
+            ShowShareStatus(
+                string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    GetString("UsageReportExportSuccessFormat"),
+                    path),
+                isError: false);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or System.Runtime.InteropServices.COMException)
+        {
+            ShowShareStatus(GetString("UsageReportExportError"), isError: true);
+            return false;
+        }
+    }
+
+    private static string ExportFormatFromPath(string path)
+    {
+        string extension = Path.GetExtension(path);
+        if (extension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            return "csv";
+        }
+
+        if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".htm", StringComparison.OrdinalIgnoreCase))
+        {
+            return "html";
+        }
+
+        return "json";
+    }
+
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
         if (!ViewModel.CanCaptureReport || _isCapturing) return;
+        string snapshotJson = UsageReportSnapshotV2.Render(
+            await ViewModel.FreezeCanonicalSnapshotAsync(),
+            "json");
         _isCapturing = true;
         Control? source = sender as Control;
         var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
@@ -348,7 +437,8 @@ public sealed partial class UsageReportPage : Page
                 "report",
                 ReportCaptureSurface.ActualTheme == ElementTheme.Light
                     ? Microsoft.UI.Colors.White
-                    : Microsoft.UI.Colors.Black);
+                    : Microsoft.UI.Colors.Black,
+                snapshotJson);
             ShowShareStatus(
                 string.Format(
                     System.Globalization.CultureInfo.CurrentCulture,
@@ -509,6 +599,7 @@ public sealed partial class UsageReportPage : Page
         {
             UsageReportBreakdown.Source => (SourceBreakdownRows, SourceBreakdownRowsTransform),
             UsageReportBreakdown.Day => (DayBreakdownRows, DayBreakdownRowsTransform),
+            UsageReportBreakdown.Project => (ProjectBreakdownRows, ProjectBreakdownRowsTransform),
             _ => (ModelBreakdownRows, ModelBreakdownRowsTransform),
         };
 
@@ -598,6 +689,8 @@ public sealed partial class UsageReportPage : Page
             ? InfoBarSeverity.Error
             : InfoBarSeverity.Success;
         ShareStatusInfoBar.IsOpen = true;
+        ShareStatusInfoBar.UpdateLayout();
+        _ = ShareStatusInfoBar.Focus(FocusState.Programmatic);
         await Task.Delay(TimeSpan.FromSeconds(5));
         if (token == _shareStatusToken)
         {

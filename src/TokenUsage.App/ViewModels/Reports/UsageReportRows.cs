@@ -17,7 +17,8 @@ public sealed record UsageReportProviderRow(
 public sealed record UsageReportMetricCard(
     string Label,
     string Value,
-    string Detail);
+    string Detail,
+    string AutomationId = "");
 
 public sealed record UsageReportModelRow(
     string Id,
@@ -33,7 +34,14 @@ public sealed record UsageReportModelRow(
     string CoverageText)
 {
     public bool IsReserve => ModelId == "gpt-reserve";
-    public string AutomationName => $"{ModelName}, {ProviderName}, {CostText}, {TokensText}, {ActiveDays} active days";
+    public string? ModelProviderId { get; init; }
+    public string HostName { get; init; } = string.Empty;
+    public string ReportedValueText { get; init; } = string.Empty;
+    public string EstimatedValueText { get; init; } = string.Empty;
+    public string UnpricedValueText { get; init; } = string.Empty;
+    public string SessionCountText { get; init; } = string.Empty;
+    public string IdentityText => ProviderName + " · " + HostName;
+    public string AutomationName => $"{ModelName}, {ProviderName}, {HostName}, {CostText}, {Metrics.Tokens.Total:N0} tokens, {ReportedValueText}, {EstimatedValueText}, {UnpricedValueText}, {SessionCountText}, {ActiveDays} active days";
 }
 
 public sealed record UsageReportDayRow(
@@ -63,6 +71,22 @@ public sealed record UsageReportSourceRow(
     string CoverageText)
 {
     public string AutomationName => $"{Name}, {ReportedCostText}, {EstimatedCostText}, {TokensText}, {ActiveDays} active days";
+}
+
+public sealed record UsageReportProjectOverviewRow(
+    string Id,
+    string Name,
+    UsageReportMetrics Metrics,
+    string TokensText,
+    string ShareText,
+    string SessionCountText,
+    string ReportedValueText,
+    string EstimatedValueText,
+    bool IsUnassigned,
+    bool IsOther,
+    string? ProjectKey)
+{
+    public string AutomationName => $"{Name}, {TokensText}, {ShareText}, {SessionCountText}, {ReportedValueText}, {EstimatedValueText}";
 }
 
 public sealed record UsageReportCompareRow(

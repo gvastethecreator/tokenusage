@@ -452,6 +452,13 @@ public sealed class ArchitectureRulesTests
         string[] requiredAutomationIds =
         [
             "CloseWhenInactiveToggle",
+            "CodexSessionAttributionToggle",
+            "CodexProjectAttributionToggle",
+            "CursorSessionAttributionToggle",
+            "CodexMcpAttributionToggle",
+            "CodexSkillsAttributionToggle",
+            "CodexCommandsAttributionToggle",
+            "CodexFilesAttributionToggle",
             "AlertsMasterToggle",
             "QuotaThresholdAlertToggle",
             "ExhaustionForecastAlertToggle",
@@ -590,8 +597,46 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(239, matches.Count);
-        Assert.Equal(224, distinctIds.Length);
+        Assert.Equal(311, matches.Count);
+        Assert.Equal(295, distinctIds.Length);
+        Assert.Contains("UsageOverviewNotice", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportProjectButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortProjectName", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortProjectTokens", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortProjectShare", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortProjectSessions", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportSortProjectReportedCost", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerOpenOutlier", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageLinearScenarioChoice", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplanationBreakdown", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplanationBreakdownReturn", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplanationSummary", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplanationLoad", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplanationEvidence", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplanationReturn", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageActivity", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageActivityLoad", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageActivityWindowCount", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageActivityMore", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageConfigurationTier", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerHost", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerSearch", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerDetailChart", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerBackToModel", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerOpenProjects", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerCloseProjects", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerOpenOperations", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerCloseOperations", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerOperations", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerOpenOperationSession", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CodexMcpAttributionToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CodexSkillsAttributionToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CodexCommandsAttributionToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CodexFilesAttributionToggle", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerProjects", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerExpandSession", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageDistributionSummary", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CompactThemeLogoButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ReportThemeLogoButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AutomaticUpdatesToggle", distinctIds, StringComparer.Ordinal);
@@ -606,6 +651,11 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportRetryButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AttributionBackfillSource", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AttributionBackfillFrom", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AttributionBackfillTo", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AttributionBackfillRun", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("AttributionBackfillStatus", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AlertsMasterToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("QuotaAlertThresholdNumberBox", distinctIds, StringComparer.Ordinal);
         Assert.Contains("QuotaThresholdAlertToggle", distinctIds, StringComparer.Ordinal);
@@ -624,6 +674,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UnifiedOptionsView", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportCaptureButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportExportButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportPreviousProviderButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportNextProviderButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetCycleButton", distinctIds, StringComparer.Ordinal);
@@ -994,6 +1045,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("private Polygon CreateResetSymbol", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("new Polygon { Points = [new(0, 1), new(10, 1), new(5, 9)] }", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("UsageTrendLayouts.EmptyDayStubs", trendChartCode, StringComparison.Ordinal);
+        Assert.Contains("UsageTrendLayouts.BarSlots(data.Style, data.Days.Count)", trendChartCode, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1)",
             trendChartCode,
@@ -1010,11 +1062,17 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageComparison.OverlaysSingleReferencePrice(", compareCode, StringComparison.Ordinal);
         Assert.Contains("UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_rateBaselineUtc", compareCode, StringComparison.Ordinal);
         Assert.Contains("UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_priceReferenceUtc", compareCode, StringComparison.Ordinal);
-        Assert.Contains("SplitRow(GetString(\"UsageComparisonVolumeChange\"), split.Volume)", compareCode, StringComparison.Ordinal);
-        Assert.Contains("string delta = FormatOptionalUsd(amount);", compareCode, StringComparison.Ordinal);
-        Assert.Contains("return MetricRow(metric, side, side, delta);", compareCode, StringComparison.Ordinal);
+        Assert.Contains("CompareCatalogDatesAsync", compareCode, StringComparison.Ordinal);
+        Assert.Contains("NotApplicableFixedCohortRow(GetString(\"UsageComparisonVolumeChange\"))", compareCode, StringComparison.Ordinal);
+        Assert.Contains("NotApplicableFixedCohortRow(GetString(\"UsageComparisonMixChange\"))", compareCode, StringComparison.Ordinal);
+        Assert.Contains("GetString(\"UsageComparisonFixedCohortNotApplicable\")", compareCode, StringComparison.Ordinal);
+        Assert.Contains("MethodId = IsCompareRatesAxis ? UsageReferencePricing.FixedCohortMethodId", compareCode, StringComparison.Ordinal);
+        Assert.Contains(
+            "UsageComparison.UsesFixedCohortRows(ActiveRateMethodId) ? GetString(\"UsageComparisonCatalogValue\")",
+            compareCode,
+            StringComparison.Ordinal);
         Assert.Contains("OrderByDescending(item => item.EffectiveFromUtc)", compareCode, StringComparison.Ordinal);
-        Assert.Contains("RateBaselineUtc = IsCompareRatesAxis ? _rateBaselineUtc : null", compareCode, StringComparison.Ordinal);
+        Assert.Contains("RateBaselineUtc = IsCompareRatesAxis || IsLinearPriceScenario ? _rateBaselineUtc : null", compareCode, StringComparison.Ordinal);
     }
 
     [Fact]

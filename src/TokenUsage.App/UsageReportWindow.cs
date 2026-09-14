@@ -34,7 +34,10 @@ public sealed class UsageReportWindow : Window, IDisposable
         Action<ReportChartGrouping>? saveChartGrouping = null,
         Action<ReportChartStyle>? saveChartStyle = null,
         Action<AppThemeMode>? saveTheme = null,
-        Action<bool>? saveMarkBest = null)
+        Action<bool>? saveMarkBest = null,
+        TokenUsage.Core.Usage.AttributionConsentStore? attributionConsent = null,
+        TokenUsage.Core.Usage.AttributionAliasStore? attributionAliases = null,
+        TokenUsage.App.ViewModels.Surfaces.GeneralOptionsViewModel? attributionOptions = null)
     {
         _viewModel = new UsageReportViewModel(
             databasePath,
@@ -42,7 +45,13 @@ public sealed class UsageReportWindow : Window, IDisposable
             request,
             getProviderLimits,
             new TokenUsage.Core.Usage.QuotaResetHistoryStore(resetHistoryPath),
-            getProviderCreditSummary: getProviderCreditSummary);
+            getProviderCreditSummary: getProviderCreditSummary,
+            attributionConsent: attributionConsent,
+            attributionAliases: attributionAliases);
+        if (attributionOptions is not null)
+        {
+            _viewModel.ObserveAttribution(attributionOptions);
+        }
         _page = new UsageReportPage(_viewModel);
         Content = _page;
         ExtendsContentIntoTitleBar = true;
