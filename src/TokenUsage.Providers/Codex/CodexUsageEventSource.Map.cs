@@ -10,6 +10,19 @@ namespace TokenUsage.Providers.Codex;
 
 public sealed partial class CodexUsageEventSource
 {
+    // Called only after numeric validation. Exclusive input/output require all
+    // subtracted components to be present; an absent optional counter is unknown.
+    private static CodexMeasuredComponents ReadMeasuredComponents(JsonElement usage)
+    {
+        CodexMeasuredComponents result = CodexMeasuredComponents.None;
+        if (usage.TryGetProperty("cached_input_tokens", out _)) result |= CodexMeasuredComponents.CacheRead;
+        if (usage.TryGetProperty("cache_write_input_tokens", out _)) result |= CodexMeasuredComponents.CacheWrite;
+        if (usage.TryGetProperty("reasoning_output_tokens", out _)) result |= CodexMeasuredComponents.Reasoning | CodexMeasuredComponents.Output;
+        if ((result & (CodexMeasuredComponents.CacheRead | CodexMeasuredComponents.CacheWrite))
+            == (CodexMeasuredComponents.CacheRead | CodexMeasuredComponents.CacheWrite)) result |= CodexMeasuredComponents.Input;
+        return result;
+    }
+
     private static bool TryReadTokenBreakdown(
         JsonElement usage,
         out TokenBreakdown? tokens)
@@ -100,10 +113,18 @@ public sealed partial class CodexUsageEventSource
         new(
             scan.Observations,
             scan.Status,
-            scan.Issue);
+            scan.Issue)
+        {
+            SourceInstance = scan.SourceInstance,
+            SessionLinks = scan.SessionLinks,
+            ProjectLinks = scan.ProjectLinks,
+            OperationFacts = scan.Operations,
+        };
 
-    private UsageEvent CreateObservationEvent(CodexNumericObservation observation)
+    private UsageEvent CreateObservationEvent(CodexNumericObservation observation, UsageSourceInstanceId? sourceInstance)
     {
+        UsageComponentAvailability Availability(CodexMeasuredComponents component) =>
+            (observation.Measured & component) != 0 ? UsageComponentAvailability.Measured : UsageComponentAvailability.Unknown;
         CostObservation cost = observation.Precision == UsageTimePrecision.Timestamp && observation.Tier is null or "standard"
             ? CodexPricingCatalog.Resolve(observation.Model, observation.Tokens, observation.Timestamp)
             : CostObservation.Unavailable();
@@ -112,13 +133,18 @@ public sealed partial class CodexUsageEventSource
             observation.Tokens, cost, ParserVersion,
             cost.Kind == CostKind.Unavailable ? CoverageKind.Unpriced : CoverageKind.Partial,
             observation.Precision, observation.IntervalStart,
-            observation.ObservedModel is null ? null : new ModelId(observation.ObservedModel), observation.Effort, observation.Tier);
+            observation.ObservedModel is null ? null : new ModelId(observation.ObservedModel), observation.Effort, observation.Tier,
+            new UsageDetailMetadata(sourceInstance, recordKind: observation.RecordKind,
+                representationRevision: observation.RepresentationRevision,
+                input: Availability(CodexMeasuredComponents.Input), output: Availability(CodexMeasuredComponents.Output),
+                reasoning: Availability(CodexMeasuredComponents.Reasoning), cacheRead: Availability(CodexMeasuredComponents.CacheRead),
+                cacheWrite: Availability(CodexMeasuredComponents.CacheWrite)));
     }
 
     private static bool TryGetString(
         JsonElement element,
         string propertyName,
-        out string? value)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value)
     {
         value = null;
         return element.ValueKind == JsonValueKind.Object

@@ -96,6 +96,8 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(CursorPricingCatalog.Version, usageEvent.Cost.CatalogVersion);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(CursorUsageEventSource.ParserVersion, usageEvent.ParserVersion);
+        Assert.Equal(UsageRecordKind.Snapshot, usageEvent.DetailMetadata.RecordKind);
+        Assert.Equal(UsageComponentAvailability.Unknown, usageEvent.DetailMetadata.Input);
     }
 
     [Fact]
@@ -148,12 +150,133 @@ public sealed class CursorUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single(result.Events);
 
         Assert.Equal(new TokenBreakdown(1_000_000, 100_000, 0, 0, 0), usageEvent.Tokens);
+        Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.Input);
+        Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.Output);
+        Assert.Equal(UsageComponentAvailability.Unavailable, usageEvent.DetailMetadata.CacheRead);
+        Assert.Equal(UsageRecordKind.Unknown, usageEvent.DetailMetadata.RecordKind);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
         Assert.Equal(2.25m, usageEvent.Cost.EstimatedCostUsd);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
         Assert.Equal(UsageSourceIssueKind.None, result.Issue);
+        Assert.Empty(result.SessionLinks);
+    }
+
+    [Fact]
+    public async Task ConsentOffLeavesComposerIdentityUnassigned()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+
+        UsageSourceReadResult result = await corpus.CreateSource(
+            attributionConsent: new StaticConsent(DisabledConsent()),
+            attributionKeys: TestKeys()).ReadAsync();
+
+        Assert.Single(result.Events);
+        Assert.Empty(result.SessionLinks);
+    }
+
+    [Fact]
+    public async Task ConsentOnPersistsOpaqueComposerKeysPerDatabaseWithoutParentOrPath()
+    {
+        using var first = new CursorCorpus();
+        using var second = new CursorCorpus();
+        first.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        first.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+        second.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        second.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+        var keys = TestKeys();
+        UsageSessionLink firstLink = Assert.Single((await first.CreateSource(
+            attributionConsent: new StaticConsent(EnabledConsent()),
+            attributionKeys: keys).ReadAsync()).SessionLinks);
+        UsageSessionLink secondLink = Assert.Single((await second.CreateSource(
+            attributionConsent: new StaticConsent(EnabledConsent()),
+            attributionKeys: keys).ReadAsync()).SessionLinks);
+
+        Assert.NotEqual(firstLink.SessionKey, secondLink.SessionKey);
+        Assert.Null(firstLink.ParentSessionKey);
+        Assert.Null(secondLink.ParentSessionKey);
+        Assert.Equal(AttributionCapability.CursorSession, firstLink.Capability);
+        Assert.DoesNotContain("conversation-1", firstLink.SessionKey.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("private prompt", firstLink.SessionKey.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(first.DatabasePath, firstLink.SessionKey.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EnablementDoesNotLinkHistoricalComposerRows()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+        AttributionConsent recent = new(
+            AttributionCapability.CursorSession,
+            AttributionConsentState.Enabled,
+            Epoch: 1,
+            UpdatedAtUtc: new DateTimeOffset(2026, 9, 13, 16, 0, 0, TimeSpan.Zero),
+            EnabledAtUtc: new DateTimeOffset(2026, 9, 13, 16, 0, 0, TimeSpan.Zero));
+        UsageSourceReadResult result = await corpus.CreateSource(
+            attributionConsent: new StaticConsent(recent),
+            attributionKeys: TestKeys()).ReadAsync();
+        Assert.Single(result.Events);
+        Assert.Empty(result.SessionLinks);
+    }
+
+    [Fact]
+    public async Task EnableAfterDisabledScanDoesNotBackfillComposerRows()
+    {
+        using var corpus = new CursorCorpus();
+        corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
+        corpus.WriteBubble(
+            "conversation-1",
+            "bubble-1",
+            "2026-08-12T10:00:00.000Z",
+            "gpt-5",
+            inputTokens: 1_000_000,
+            outputTokens: 100_000,
+            privateText: "private prompt and response");
+        var clock = new FixedTimeProvider(DateTimeOffset.UnixEpoch);
+        var consent = new AttributionConsentStore(Path.Combine(corpus.Root, "consent.json"), clock);
+        UsageSourceReadResult before = await corpus.CreateSource(
+            attributionConsent: consent,
+            attributionKeys: TestKeys()).ReadAsync();
+        Assert.Single(before.Events);
+        Assert.Empty(before.SessionLinks);
+        await consent.EnableAsync(AttributionCapability.CursorSession);
+        UsageSourceReadResult after = await corpus.CreateSource(
+            attributionConsent: consent,
+            attributionKeys: TestKeys()).ReadAsync();
+        Assert.Single(after.Events);
+        Assert.Empty(after.SessionLinks);
     }
 
     [Fact]
@@ -401,11 +524,15 @@ public sealed class CursorUsageEventSourceTests
 
         public string DatabasePath { get; }
 
-        public CursorUsageEventSource CreateSource() => new(
+        public CursorUsageEventSource CreateSource(
+            IAttributionConsentSource? attributionConsent = null,
+            IOpaqueKeyDeriver? attributionKeys = null) => new(
             "UTC",
             Home,
             Roaming,
-            clock: new FixedTimeProvider(Now));
+            clock: new FixedTimeProvider(Now),
+            attributionConsent: attributionConsent,
+            attributionKeys: attributionKeys);
 
         public void WriteComposer(
             string composerId,
@@ -551,6 +678,23 @@ public sealed class CursorUsageEventSourceTests
                 // best effort
             }
         }
+    }
+
+    private static AttributionConsent EnabledConsent(long epoch = 1) =>
+        new(AttributionCapability.CursorSession, AttributionConsentState.Enabled, epoch, DateTimeOffset.UnixEpoch);
+
+    private static AttributionConsent DisabledConsent() =>
+        new(AttributionCapability.CursorSession, AttributionConsentState.Disabled, 0, DateTimeOffset.UnixEpoch);
+
+    private static HmacOpaqueKeyDeriver TestKeys() =>
+        new(Enumerable.Repeat((byte)0x4C, 32).ToArray());
+
+    private sealed class StaticConsent(AttributionConsent consent) : IAttributionConsentSource
+    {
+        public Task<AttributionConsent> LoadAsync(
+            AttributionCapability capability,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(consent);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider

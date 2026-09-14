@@ -34,6 +34,20 @@ public static class ClaudePricingCatalog
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
         BuildEvidence();
 
+    public static UsageLinearTariffResolution ResolveLinearTariff(string model, TokenBreakdown tokens, DateTimeOffset atUtc)
+    {
+        ArgumentNullException.ThrowIfNull(tokens);
+        if (atUtc.Offset != TimeSpan.Zero) throw new ArgumentException("Catalog dates must use UTC.", nameof(atUtc));
+        if (!TryResolveRates(model, false, out Rates rates, out string match)
+            || !EvidenceEntries.Any(item => item.ExactPriceMatch == match && item.IsEffectiveAt(atUtc)))
+            return new(null, UsagePriceExclusion.MissingTariff);
+        // The retained generic event has no 5-minute/1-hour cache-write split.
+        if (tokens.CacheWrite > 0 || tokens.Reasoning > 0)
+            return new(null, UsagePriceExclusion.UnknownComponents);
+        return new(new(Version, match, "anthropic-standard-no-cache-write/v1",
+            rates.Input, rates.Output, 0, rates.CacheRead, 0), null);
+    }
+
     public static CostObservation Resolve(
         string model,
         DateTimeOffset occurredAtUtc,
