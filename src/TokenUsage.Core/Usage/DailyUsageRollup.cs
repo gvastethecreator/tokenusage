@@ -95,12 +95,8 @@ public static class UsageRollupAggregator
         foreach (UsageEvent usageEvent in events)
         {
             ArgumentNullException.ThrowIfNull(usageEvent);
-            TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(
-                usageEvent.GroupingTimeZoneId);
-            DateOnly date = DateOnly.FromDateTime(
-                TimeZoneInfo.ConvertTime(usageEvent.OccurredAtUtc, zone).DateTime);
             var key = new RollupKey(
-                date,
+                CivilDate(usageEvent),
                 usageEvent.GroupingTimeZoneId,
                 usageEvent.AgentId,
                 usageEvent.ModelProviderId,
@@ -121,6 +117,13 @@ public static class UsageRollupAggregator
             .ThenBy(pair => pair.Key.ModelId.Value, StringComparer.Ordinal)
             .Select(pair => pair.Value.ToRollup(pair.Key))
             .ToArray();
+    }
+
+    public static DateOnly CivilDate(UsageEvent usageEvent)
+    {
+        ArgumentNullException.ThrowIfNull(usageEvent);
+        TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(usageEvent.GroupingTimeZoneId);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(usageEvent.OccurredAtUtc, zone).DateTime);
     }
 
     private sealed record RollupKey(

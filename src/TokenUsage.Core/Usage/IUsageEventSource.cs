@@ -18,10 +18,15 @@ public enum UsageSourceIssueKind
     AccessBlocked,
     UnsupportedSchema,
     ReadFailed,
+    UnresolvedHistory,
 }
 
 public sealed record UsageSourceReadResult
 {
+    /// <summary>The profile binding proved for this read, rather than merely the configured root.</summary>
+    public UsageSourceInstanceId? SourceInstance { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IUsageReadCheckpoint? Checkpoint { get; init; }
     public UsageSourceReadResult(
         IReadOnlyList<UsageEvent> events,
         UsageSourceReadStatus status,
@@ -50,6 +55,7 @@ public sealed record UsageSourceReadResult
             UsageSourceReadStatus.Partial => resolvedIssue is UsageSourceIssueKind.PartialScan
                 or UsageSourceIssueKind.AccessBlocked
                 or UsageSourceIssueKind.UnsupportedSchema
+                or UsageSourceIssueKind.UnresolvedHistory
                 or UsageSourceIssueKind.ReadFailed,
             UsageSourceReadStatus.NoData => resolvedIssue is UsageSourceIssueKind.RootUnavailable
                 or UsageSourceIssueKind.Empty
@@ -69,11 +75,25 @@ public sealed record UsageSourceReadResult
 
     public IReadOnlyList<AccountUsageAggregate> AccountAggregates { get; init; } = [];
 
+    public IReadOnlyList<UsageSessionLink> SessionLinks { get; init; } = [];
+
+    public IReadOnlyList<UsageProjectLink> ProjectLinks { get; init; } = [];
+
+    public IReadOnlyList<UsageOperationFact> OperationFacts { get; init; } = [];
+
     public IReadOnlyList<UsageEvent> Events { get; }
 
     public UsageSourceReadStatus Status { get; }
 
     public UsageSourceIssueKind Issue { get; }
+}
+
+public interface IUsageReadCheckpoint
+{
+    /// <summary>Reject stale reads before running persistence under the source progress lock.
+    /// The callback returns true only when all admitted numeric records are durable and
+    /// source progress may advance. False preserves the cursor, but invalidates older reads.</summary>
+    Task PersistAsync(Func<Task<bool>> persist, CancellationToken cancellationToken = default);
 }
 
 public sealed record UsageSourceDiagnostic(
@@ -111,4 +131,9 @@ public interface IWindowedSnapshotUsageEventSource : IUsageEventSource
     string EventParserVersion { get; }
 
     int ReconciliationWindowDays { get; }
+}
+
+public interface ISourceScopedUsageEventSource : IWindowedSnapshotUsageEventSource
+{
+    UsageSourceInstanceId SourceInstance { get; }
 }

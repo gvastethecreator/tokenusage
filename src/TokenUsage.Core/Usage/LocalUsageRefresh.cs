@@ -66,19 +66,22 @@ public sealed class LocalUsageRefresh
     private readonly string _databasePath;
     private readonly IReadOnlyList<IUsageEventSource> _sources;
     private readonly TimeProvider _clock;
+    private readonly IAttributionConsentSource? _attributionConsent;
 
     public LocalUsageRefresh(
         string databasePath,
         IUsageEventSource source,
-        TimeProvider clock)
-        : this(databasePath, [source], clock)
+        TimeProvider clock,
+        IAttributionConsentSource? attributionConsent = null)
+        : this(databasePath, [source], clock, attributionConsent)
     {
     }
 
     public LocalUsageRefresh(
         string databasePath,
         IReadOnlyList<IUsageEventSource> sources,
-        TimeProvider clock)
+        TimeProvider clock,
+        IAttributionConsentSource? attributionConsent = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         ArgumentNullException.ThrowIfNull(sources);
@@ -90,6 +93,7 @@ public sealed class LocalUsageRefresh
         _databasePath = databasePath;
         _sources = sources;
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _attributionConsent = attributionConsent;
     }
 
     public SourceKind SourceKind => HasMultipleRealSources
@@ -259,74 +263,129 @@ public sealed class LocalUsageRefresh
         {
             IUsageEventSource source = _sources[index];
             UsageSourceReadResult result = readResults[index];
-            await repository.UpsertAccountUsageAsync(result.AccountAggregates, cancellationToken).ConfigureAwait(false);
-            if (source is ISnapshotUsageEventSource snapshotSource)
+            async Task<bool> PersistSourceAsync()
             {
-                if (result.Status == UsageSourceReadStatus.Complete && result.Events.Count > 0)
+                bool canCommitCheckpoint = true;
+                UsageSourceInstanceId? sourceInstance = result.SourceInstance;
+                if (sourceInstance is not null && (source is not ISourceScopedUsageEventSource scoped
+                    || scoped.SourceInstance != sourceInstance))
+                    throw new InvalidDataException("Read authority does not match the configured source.");
+                if (result.Events.Any(row => row.DetailMetadata.SourceInstance != sourceInstance))
+                    throw new InvalidDataException("Read events do not belong to the source's declared authority.");
+                await repository.UpsertAccountUsageAsync(result.AccountAggregates, cancellationToken).ConfigureAwait(false);
+                if (source is ISourceScopedUsageEventSource scopedSource)
                 {
-                    await repository.ReplaceAgentEventsAsync(
-                        snapshotSource.AgentId,
-                        result.Events,
-                        cancellationToken).ConfigureAwait(false);
+                    if (sourceInstance is null)
+                    {
+                        canCommitCheckpoint = false;
+                        if (result.Events.Count > 0)
+                            readResults[index] = UnresolvedSourceRead(result);
+                    }
+                    else if (result.Status != UsageSourceReadStatus.NoData)
+                    {
+                        DateOnly from = UsagePeriodPolicy.ReconciliationStart(today, scopedSource.ReconciliationWindowDays);
+                        UsageEvent[] admittedWindow = result.Events.Where(row =>
+                        {
+                            DateOnly date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(row.OccurredAtUtc, groupingTimeZone).DateTime);
+                            return date >= from && date <= today;
+                        }).ToArray();
+                        bool allInWindow = admittedWindow.Length == result.Events.Count;
+                        UsageSourceStoreResult stored = await repository.StoreSourceObservationsAsync(source.AgentId,
+                            sourceInstance, scopedSource.EventParserVersion, from, today, admittedWindow,
+                            complete: result.Status == UsageSourceReadStatus.Complete && allInWindow,
+                            sessionLinks: await FilterLiveSessionLinksAsync(result.SessionLinks, cancellationToken).ConfigureAwait(false),
+                            projectLinks: await FilterLiveProjectLinksAsync(result.ProjectLinks, cancellationToken).ConfigureAwait(false),
+                            operations: await FilterLiveOperationsAsync(result.OperationFacts, cancellationToken).ConfigureAwait(false),
+                            token: cancellationToken).ConfigureAwait(false);
+                        canCommitCheckpoint = allInWindow && stored.WithheldCount == 0;
+                        if (stored.HasUnresolvedHistory || !allInWindow)
+                            readResults[index] = UnresolvedSourceRead(result);
+                    }
                 }
-            }
-            else if (source is IWindowedSnapshotUsageEventSource windowedSource)
-            {
-                DateOnly reconcileFrom = UsagePeriodPolicy.ReconciliationStart(
-                    today,
-                    windowedSource.ReconciliationWindowDays);
-                DateOnly EventDate(UsageEvent usageEvent) =>
-                    DateOnly.FromDateTime(
-                        TimeZoneInfo.ConvertTime(
-                            usageEvent.OccurredAtUtc,
-                            groupingTimeZone).DateTime);
-                UsageEvent[] eventsInWindow = result.Events
-                    .Where(usageEvent =>
-                    {
-                        DateOnly eventDate = EventDate(usageEvent);
-                        return eventDate >= reconcileFrom && eventDate <= today;
-                    })
-                    .ToArray();
-                UsageEvent[] olderEvents = result.Events
-                    .Where(usageEvent =>
-                    {
-                        DateOnly eventDate = EventDate(usageEvent);
-                        return eventDate < reconcileFrom && eventDate <= today;
-                    })
-                    .ToArray();
-                bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete && eventsInWindow.Length > 0;
-                if (isAuthoritative)
+                else if (source is ISnapshotUsageEventSource snapshotSource)
                 {
-                    await repository.ReconcileAgentEventRangeAsync(
-                        windowedSource.AgentId,
-                        windowedSource.EventParserVersion,
-                        reconcileFrom,
+                    if (result.Status == UsageSourceReadStatus.Complete && result.Events.Count > 0)
+                    {
+                        await repository.ReplaceAgentEventsAsync(
+                            snapshotSource.AgentId,
+                            result.Events,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    else canCommitCheckpoint = result.Events.Count == 0;
+                }
+                else if (source is IWindowedSnapshotUsageEventSource windowedSource)
+                {
+                    DateOnly reconcileFrom = UsagePeriodPolicy.ReconciliationStart(
                         today,
-                        eventsInWindow,
-                        cancellationToken).ConfigureAwait(false);
-                    if (olderEvents.Length > 0)
+                        windowedSource.ReconciliationWindowDays);
+                    DateOnly EventDate(UsageEvent usageEvent) =>
+                        DateOnly.FromDateTime(
+                            TimeZoneInfo.ConvertTime(
+                                usageEvent.OccurredAtUtc,
+                                groupingTimeZone).DateTime);
+                    UsageEvent[] eventsInWindow = result.Events
+                        .Where(usageEvent =>
+                        {
+                            DateOnly eventDate = EventDate(usageEvent);
+                            return eventDate >= reconcileFrom && eventDate <= today;
+                        })
+                        .ToArray();
+                    UsageEvent[] olderEvents = result.Events
+                        .Where(usageEvent =>
+                        {
+                            DateOnly eventDate = EventDate(usageEvent);
+                            return eventDate < reconcileFrom && eventDate <= today;
+                        })
+                        .ToArray();
+                    bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete
+                        && eventsInWindow.Length > 0;
+                    canCommitCheckpoint = eventsInWindow.Length + olderEvents.Length == result.Events.Count;
+                    if (isAuthoritative)
+                    {
+                        await repository.ReconcileAgentEventRangeAsync(windowedSource.AgentId,
+                            windowedSource.EventParserVersion, reconcileFrom, today, eventsInWindow, cancellationToken).ConfigureAwait(false);
+                        if (olderEvents.Length > 0)
+                        {
+                            await repository.UpsertAgentEventsAsync(
+                                windowedSource.AgentId,
+                                olderEvents,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    else if ((eventsInWindow.Length > 0 || olderEvents.Length > 0)
+                        && (result.Status == UsageSourceReadStatus.Complete || !await repository.HasDifferentParserInRangeAsync(windowedSource.AgentId,
+                            windowedSource.EventParserVersion, reconcileFrom, today, cancellationToken).ConfigureAwait(false)))
                     {
                         await repository.UpsertAgentEventsAsync(
                             windowedSource.AgentId,
-                            olderEvents,
+                            eventsInWindow.Concat(olderEvents).ToArray(),
                             cancellationToken).ConfigureAwait(false);
                     }
+                    else canCommitCheckpoint = result.Events.Count == 0;
                 }
-                else if ((eventsInWindow.Length > 0 || olderEvents.Length > 0)
-                    && (result.Status == UsageSourceReadStatus.Complete || !await repository.HasDifferentParserInRangeAsync(
-                        windowedSource.AgentId, windowedSource.EventParserVersion, reconcileFrom, today, cancellationToken).ConfigureAwait(false)))
+                else
                 {
-                    await repository.UpsertAgentEventsAsync(
-                        windowedSource.AgentId,
-                        eventsInWindow.Concat(olderEvents).ToArray(),
+                    await repository.IngestAsync(result.Events, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                if (source is not ISourceScopedUsageEventSource && result.Events.Count > 0)
+                {
+                    await repository.ReplaceAttributionLinksForEventsAsync(
+                        await FilterLiveSessionLinksAsync(result.SessionLinks, cancellationToken)
+                            .ConfigureAwait(false),
+                        await FilterLiveProjectLinksAsync(result.ProjectLinks, cancellationToken)
+                            .ConfigureAwait(false),
+                        result.Events.Select(row => row.EventKey.Value).ToHashSet(StringComparer.Ordinal),
                         cancellationToken).ConfigureAwait(false);
                 }
+
+                return canCommitCheckpoint;
             }
+            if (result.Checkpoint is { } checkpoint)
+                await checkpoint.PersistAsync(PersistSourceAsync, cancellationToken).ConfigureAwait(false);
             else
-            {
-                await repository.IngestAsync(result.Events, cancellationToken)
-                    .ConfigureAwait(false);
-            }
+                await PersistSourceAsync().ConfigureAwait(false);
         }
 
         UsageSourceReadStatus readStatus = readResults.Any(
@@ -373,6 +432,10 @@ public sealed class LocalUsageRefresh
             diagnostics,
             hasMultipleRealSources: HasMultipleRealSources);
     }
+
+    private static UsageSourceReadResult UnresolvedSourceRead(UsageSourceReadResult result) =>
+        new(result.Events, UsageSourceReadStatus.Partial, UsageSourceIssueKind.UnresolvedHistory)
+        { SourceInstance = result.SourceInstance, AccountAggregates = result.AccountAggregates, Checkpoint = result.Checkpoint };
 
     /// <summary>
     /// Cached rollups prove past usage, not current presence. The root probe keeps an
@@ -425,6 +488,85 @@ public sealed class LocalUsageRefresh
         {
             return UsageSourceIssueKind.AccessBlocked;
         }
+    }
+
+    private async Task<IReadOnlyList<UsageSessionLink>> FilterLiveSessionLinksAsync(
+        IReadOnlyList<UsageSessionLink> links,
+        CancellationToken cancellationToken)
+    {
+        if (links.Count == 0 || _attributionConsent is null)
+        {
+            return [];
+        }
+
+        AttributionConsent[] consents =
+        [
+            await _attributionConsent.LoadAsync(AttributionCapability.CodexSession, cancellationToken)
+                .ConfigureAwait(false),
+            await _attributionConsent.LoadAsync(AttributionCapability.CursorSession, cancellationToken)
+                .ConfigureAwait(false),
+        ];
+        IReadOnlyList<UsageSessionLink> admitted = AttributionAdmission.FilterByLiveConsent(links, consents);
+        consents =
+        [
+            await _attributionConsent.LoadAsync(AttributionCapability.CodexSession, cancellationToken)
+                .ConfigureAwait(false),
+            await _attributionConsent.LoadAsync(AttributionCapability.CursorSession, cancellationToken)
+                .ConfigureAwait(false),
+        ];
+        return AttributionAdmission.FilterByLiveConsent(admitted, consents);
+    }
+
+    private async Task<IReadOnlyList<UsageProjectLink>> FilterLiveProjectLinksAsync(
+        IReadOnlyList<UsageProjectLink> links,
+        CancellationToken cancellationToken)
+    {
+        if (links.Count == 0 || _attributionConsent is null)
+        {
+            return [];
+        }
+
+        AttributionConsent consent = await _attributionConsent
+            .LoadAsync(AttributionCapability.CodexProject, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<UsageProjectLink> admitted = AttributionAdmission.FilterProjectByLiveConsent(links, consent);
+        consent = await _attributionConsent
+            .LoadAsync(AttributionCapability.CodexProject, cancellationToken)
+            .ConfigureAwait(false);
+        return AttributionAdmission.FilterProjectByLiveConsent(admitted, consent);
+    }
+
+    private async Task<IReadOnlyList<UsageOperationFact>> FilterLiveOperationsAsync(
+        IReadOnlyList<UsageOperationFact> facts,
+        CancellationToken cancellationToken)
+    {
+        if (facts.Count == 0 || _attributionConsent is null)
+        {
+            return [];
+        }
+
+        AttributionCapability[] capabilities =
+        [
+            AttributionCapability.CodexMcp,
+            AttributionCapability.CodexSkills,
+            AttributionCapability.CodexCommands,
+            AttributionCapability.CodexFiles,
+        ];
+        var admitted = new List<UsageOperationFact>();
+        foreach (AttributionCapability capability in capabilities)
+        {
+            AttributionConsent consent = await _attributionConsent
+                .LoadAsync(capability, cancellationToken)
+                .ConfigureAwait(false);
+            IReadOnlyList<UsageOperationFact> subset =
+                AttributionAdmission.FilterOperationsByLiveConsent(facts, consent);
+            consent = await _attributionConsent
+                .LoadAsync(capability, cancellationToken)
+                .ConfigureAwait(false);
+            admitted.AddRange(AttributionAdmission.FilterOperationsByLiveConsent(subset, consent));
+        }
+
+        return admitted;
     }
 
     private static async Task<UsageSourceReadResult> ReadSourceSafelyAsync(

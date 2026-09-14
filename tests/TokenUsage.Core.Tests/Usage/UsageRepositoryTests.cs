@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.Sqlite;
+using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 
@@ -170,6 +171,21 @@ public sealed class UsageRepositoryTests
         await repository.ApplyRetentionAsync(
             new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
 
+        var retiredDay = new DateOnly(2025, 6, 16);
+        DailyUsageRollup retained = Assert.Single(await repository.QueryDailyRollupsAsync(retiredDay, retiredDay));
+        UsageDataRevision retainedRevision = await repository.ReadDataRevisionAsync();
+        var source = new UsageSourceInstanceId(new string('a', 64));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.ReconcileSourceEventRangeAsync(
+            new AgentId("grok"), source, "grok-local/1", retiredDay, retiredDay, []));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.ReconcileSourceEventRangeAsync(
+            new AgentId("grok"), source, "grok-local/1", retiredDay, retiredDay,
+            [CreateEvent("changed-parser-identity", new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero),
+                parserVersion: "grok-local/1", detailMetadata: new(source))]));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.ReconcileAgentEventRangeAsync(
+            new AgentId("grok"), "grok-local/1", retiredDay, retiredDay, []));
+        Assert.Equal(retained, Assert.Single(await repository.QueryDailyRollupsAsync(retiredDay, retiredDay)));
+        Assert.Equal(retainedRevision, await repository.ReadDataRevisionAsync());
+
         UsageIngestResult result = await repository.ReconcileAgentEventRangeAsync(
             new AgentId("grok"),
             "grok-local/1",
@@ -206,6 +222,24 @@ public sealed class UsageRepositoryTests
         ]);
         await repository.ApplyRetentionAsync(
             new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero));
+
+        var retiredDay = new DateOnly(2025, 6, 16);
+        DailyUsageRollup retained = Assert.Single(await repository.QueryDailyRollupsAsync(retiredDay, retiredDay));
+        UsageDataRevision before = await repository.ReadDataRevisionAsync();
+        var source = new UsageSourceInstanceId(new string('a', 64));
+        UsageEvent replay = CreateEvent("long-lived-grok-session",
+            new DateTimeOffset(2025, 6, 16, 12, 0, 0, TimeSpan.Zero),
+            parserVersion: "grok-local/1", detailMetadata: new(source));
+        Assert.Equal(new UsageIngestResult(0, 1), await repository.UpsertAgentEventsAsync(replay.AgentId, [replay]));
+        Assert.Equal(new UsageIngestResult(0, 1), await repository.IngestAsync([replay]));
+        UsageEvent changedKey = CreateEvent("new-key-old-usage", replay.OccurredAtUtc,
+            parserVersion: "grok-local/2", detailMetadata: new(source));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.UpsertAgentEventsAsync(replay.AgentId, [changedKey]));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.IngestAsync([changedKey]));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.ReplaceAgentEventsAsync(replay.AgentId,
+            [CreateEvent("legacy-new-key", replay.OccurredAtUtc)]));
+        Assert.Equal(before, await repository.ReadDataRevisionAsync());
+        Assert.Equal(retained, Assert.Single(await repository.QueryDailyRollupsAsync(retiredDay, retiredDay)));
 
         UsageIngestResult result = await repository.UpsertAgentEventsAsync(
             new AgentId("grok"),
@@ -494,7 +528,7 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (6, '2026-07-22T12:00:00Z');
+                VALUES (12, '2026-07-22T12:00:00Z');
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -502,7 +536,7 @@ public sealed class UsageRepositoryTests
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(6, error.ActualVersion);
+        Assert.Equal(12, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -557,6 +591,7 @@ public sealed class UsageRepositoryTests
         {
             await setup.OpenAsync();
             await using SqliteCommand command = setup.CreateCommand();
+            await RemoveRevisionSchemaAsync(setup);
             command.CommandText = "DELETE FROM schema_migration WHERE version IN (4, 5);";
             await command.ExecuteNonQueryAsync();
         }
@@ -636,6 +671,7 @@ public sealed class UsageRepositoryTests
                 DELETE FROM schema_migration WHERE version IN (2, 3, 4, 5);
                 DROP TABLE usage_event_tombstone;
                 """;
+            await RemoveRevisionSchemaAsync(setup);
             await command.ExecuteNonQueryAsync();
         }
 
@@ -684,6 +720,7 @@ public sealed class UsageRepositoryTests
                 DROP TABLE usage_collection_state;
                 DELETE FROM schema_migration WHERE version IN (3, 4, 5);
                 """;
+            await RemoveRevisionSchemaAsync(setup);
             await command.ExecuteNonQueryAsync();
         }
 
@@ -734,7 +771,7 @@ public sealed class UsageRepositoryTests
             }
         }
 
-        Assert.Equal(5, UsageRepository.CurrentSchemaVersion);
+        Assert.Equal(11, UsageRepository.CurrentSchemaVersion);
         Assert.Contains("ix_usage_event_agent_civil_date", names);
         Assert.Contains("ix_usage_event_occurred_at_utc", names);
         Assert.Contains("ix_daily_usage_rollup_agent_civil_date", names);
@@ -887,6 +924,13 @@ public sealed class UsageRepositoryTests
                 new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero)),
         ]);
 
+        var from = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var to = new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        UsageEventPage firstPage = await repository.ReadUsageEventPageAsync(from, to, pageSize: 1);
+        Assert.NotNull(firstPage.Next);
+        var query = new UsageReportQuery(folder.DatabasePath);
+        UsageReport before = await query.ReadAsync(new DateOnly(2025, 1, 1), new DateOnly(2026, 12, 31), includeConfigurations: true);
+
         int deleted = await repository.ApplyRetentionAsync(
             new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
             batchSize: 1);
@@ -896,6 +940,15 @@ public sealed class UsageRepositoryTests
 
         Assert.Equal(1, deleted);
         Assert.Equal(0, deletedAgain);
+        await Assert.ThrowsAsync<UsageDataChangedException>(() => repository.ReadUsageEventPageAsync(from, to, cursor: firstPage.Next));
+        UsageReport after = await query.ReadAsync(new DateOnly(2025, 1, 1), new DateOnly(2026, 12, 31), includeConfigurations: true);
+        Assert.Equal(before.Totals, after.Totals);
+        Assert.NotNull(before.ConfigurationCoverage);
+        Assert.NotNull(after.ConfigurationCoverage);
+        Assert.Equal(0, before.ConfigurationCoverage.MissingRecords);
+        Assert.Equal(1, after.ConfigurationCoverage.MissingRecords);
+        Assert.Equal(1, after.ConfigurationCoverage.AvailableRecords);
+        Assert.NotEqual(before.DataRevision, after.DataRevision);
         Assert.Equal(2, (await repository.QueryDailyRollupsAsync(
             new DateOnly(2025, 1, 1),
             new DateOnly(2026, 12, 31))).Count);
@@ -991,13 +1044,793 @@ public sealed class UsageRepositoryTests
             await repository.IngestAsync([usageEvent]));
     }
 
+    [Fact]
+    public async Task UpgradeFencesAnExistingLegacyConnectionAndRevisionCommitsWithFacts()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository initial = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await initial.IngestAsync([CreateEvent("legacy-fact")]);
+        await using var legacy = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False");
+        await legacy.OpenAsync();
+        await RemoveRevisionSchemaAsync(legacy);
+        UsageRepository upgraded = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageDataRevision baseline = await upgraded.ReadDataRevisionAsync();
+        Assert.Equal(1, baseline.Sequence); // Schema 7 invalidates existing report cursors.
+        await using SqliteCommand command = legacy.CreateCommand();
+        command.CommandText = "UPDATE usage_event SET parser_version = 'old-writer';";
+        SqliteException rejected = await Assert.ThrowsAsync<SqliteException>(() => command.ExecuteNonQueryAsync());
+        Assert.Contains("tokenusage_writer_schema", rejected.Message, StringComparison.Ordinal);
+        Assert.Equal(baseline, await upgraded.ReadDataRevisionAsync());
+        await upgraded.IngestAsync([CreateEvent("new-fact")]);
+        UsageDataRevision committed = await upgraded.ReadDataRevisionAsync();
+        Assert.Equal(baseline.DatabaseId, committed.DatabaseId);
+        Assert.True(committed.Sequence > baseline.Sequence);
+        var day = new DateOnly(2026, 7, 22);
+        UsageReportReadSnapshot snapshot = await upgraded.ReadDailyReportSnapshotAsync(day, day);
+        Assert.Equal(committed, snapshot.DataRevision);
+        Assert.Equal(2, snapshot.Rollups.Sum(row => row.EventCount));
+        command.CommandText = """
+            CREATE TRIGGER fail_rollup BEFORE INSERT ON daily_usage_rollup
+            BEGIN SELECT RAISE(ABORT, 'synthetic interrupted ingest'); END;
+            """;
+        await command.ExecuteNonQueryAsync();
+        await Assert.ThrowsAsync<SqliteException>(() => upgraded.IngestAsync([CreateEvent("rolled-back-fact")]));
+        Assert.Equal(committed, await upgraded.ReadDataRevisionAsync());
+        Assert.Equal(2, (await upgraded.QueryDailyRollupsAsync(day, day)).Sum(row => row.EventCount));
+        Assert.Equal(2, (await upgraded.QueryUsageEventsAsync(
+            new DateTimeOffset(2026, 7, 22, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 7, 23, 0, 0, 0, TimeSpan.Zero))).Count);
+    }
+
+    [Fact]
+    public async Task EventPagesKeepStableTiesAndRejectChangedDataOrSelection()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository writer = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent[] events = [CreateEvent("page-a"), CreateEvent("page-b"),
+            CreateEvent("page-c", agentId: "codex"), CreateEvent("page-d")];
+        await writer.IngestAsync(events);
+        UsageRepository reader = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
+        var from = new DateTimeOffset(2026, 7, 22, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddDays(1);
+        UsageEventPage first = await reader.ReadUsageEventPageAsync(from, to, pageSize: 2);
+        Assert.Equal(2, first.Events.Count);
+        Assert.NotNull(first.Next);
+        UsageEventPage second = await reader.ReadUsageEventPageAsync(from, to, pageSize: 2, cursor: first.Next);
+        Assert.Equal(2, second.Events.Count);
+        Assert.Null(second.Next);
+        Assert.Equal((await reader.QueryUsageEventsAsync(from, to)).Select(row => row.EventKey),
+            first.Events.Concat(second.Events).Select(row => row.EventKey));
+        Assert.Equal(first.Revision, second.Revision);
+        await Assert.ThrowsAsync<ArgumentException>(() => reader.ReadUsageEventPageAsync(from, to,
+            new AgentId("grok"), cursor: first.Next));
+        using var replacementFolder = new TemporaryFolder();
+        UsageRepository replacement = await UsageRepository.OpenAsync(replacementFolder.DatabasePath);
+        await replacement.IngestAsync(events);
+        Assert.Equal(first.Revision.Sequence, (await replacement.ReadDataRevisionAsync()).Sequence);
+        await Assert.ThrowsAsync<UsageDataChangedException>(() => replacement.ReadUsageEventPageAsync(from, to, cursor: first.Next));
+        await writer.IngestAsync([CreateEvent("page-later")]);
+        UsageDataChangedException changed = await Assert.ThrowsAsync<UsageDataChangedException>(() =>
+            reader.ReadUsageEventPageAsync(from, to, cursor: first.Next));
+        Assert.Equal(first.Revision, changed.Expected);
+        Assert.Equal(await writer.ReadDataRevisionAsync(), changed.Actual);
+        UsageEventPage restarted = await reader.ReadUsageEventPageAsync(from, to);
+        Assert.Equal(5, restarted.Events.Count);
+        Assert.Null(restarted.Next);
+    }
+
+    [Fact]
+    public async Task DetailUpgradeKeepsLegacyFactsAndRoundTripsTypedMetadata()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent original = CreateEvent("detail-legacy");
+        await repository.IngestAsync([original]);
+        UsageDataRevision before = await repository.ReadDataRevisionAsync();
+        await using (var setup = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            setup.CreateFunction("tokenusage_writer_schema", () => UsageRepository.CurrentSchemaVersion);
+            await using SqliteCommand command = setup.CreateCommand();
+            command.CommandText = """
+                ALTER TABLE usage_event DROP COLUMN source_instance_id;
+                ALTER TABLE usage_event DROP COLUMN record_kind;
+                ALTER TABLE usage_event DROP COLUMN representation_revision;
+                ALTER TABLE usage_event DROP COLUMN input_availability;
+                ALTER TABLE usage_event DROP COLUMN output_availability;
+                ALTER TABLE usage_event DROP COLUMN reasoning_availability;
+                ALTER TABLE usage_event DROP COLUMN cache_read_availability;
+                ALTER TABLE usage_event DROP COLUMN cache_write_availability;
+                ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc;
+                DROP TABLE IF EXISTS session_attribution;
+                DROP TABLE IF EXISTS project_attribution;
+                DROP TABLE IF EXISTS operation_fact;
+                DELETE FROM schema_migration WHERE version >= 7;
+                CREATE TRIGGER fail_detail_upgrade BEFORE UPDATE ON usage_data_revision
+                BEGIN SELECT RAISE(ABORT, 'synthetic migration failure'); END;
+                """;
+            await command.ExecuteNonQueryAsync();
+            command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name = 'fail_detail_upgrade';";
+            Assert.Equal(1L, await command.ExecuteScalarAsync());
+            command.CommandText = "UPDATE usage_data_revision SET sequence = sequence + 1;";
+            await Assert.ThrowsAsync<SqliteException>(() => command.ExecuteNonQueryAsync());
+        }
+        await using (var inspect = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await inspect.OpenAsync();
+            await using SqliteCommand check = inspect.CreateCommand();
+            check.CommandText = "SELECT MAX(version) FROM schema_migration;";
+            Assert.Equal(6L, await check.ExecuteScalarAsync());
+        }
+        await Assert.ThrowsAsync<SqliteException>(() => UsageRepository.OpenAsync(folder.DatabasePath));
+        string backup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v11-*.db"));
+        byte[] backupHash = SHA256.HashData(await File.ReadAllBytesAsync(backup));
+        await using (var verify = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await verify.OpenAsync();
+            await using SqliteCommand check = verify.CreateCommand();
+            check.CommandText = "SELECT MAX(version) FROM schema_migration;";
+            Assert.Equal(6L, await check.ExecuteScalarAsync());
+            check.CommandText = "SELECT COUNT(*) FROM pragma_table_info('usage_event') WHERE name = 'record_kind';";
+            Assert.Equal(0L, await check.ExecuteScalarAsync());
+            check.CommandText = "DROP TRIGGER fail_detail_upgrade;";
+            await check.ExecuteNonQueryAsync();
+        }
+        await using (var copy = new SqliteConnection($"Data Source={backup};Mode=ReadOnly;Pooling=False"))
+        {
+            await copy.OpenAsync();
+            await using SqliteCommand check = copy.CreateCommand();
+            check.CommandText = "SELECT MAX(version) FROM schema_migration;";
+            Assert.Equal(6L, await check.ExecuteScalarAsync());
+            check.CommandText = "SELECT event_key FROM usage_event;";
+            Assert.Equal(original.EventKey.Value, await check.ExecuteScalarAsync());
+        }
+        repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        DateTimeOffset from = original.OccurredAtUtc.AddHours(-1), to = original.OccurredAtUtc.AddHours(1);
+        Assert.Equal(original, Assert.Single(await repository.QueryUsageEventsAsync(from, to)));
+        UsageDataRevision after = await repository.ReadDataRevisionAsync();
+        Assert.Equal(before.DatabaseId, after.DatabaseId);
+        Assert.True(after.Sequence > before.Sequence);
+        var detail = new UsageDetailMetadata(null,
+            UsageRecordKind.IntervalDelta, 1, UsageComponentAvailability.Measured,
+            UsageComponentAvailability.Measured, UsageComponentAvailability.Unknown,
+            UsageComponentAvailability.Measured, UsageComponentAvailability.Unavailable);
+        UsageEvent enriched = CreateEvent("detail-legacy", detailMetadata: detail);
+        await repository.UpsertAgentEventsAsync(enriched.AgentId, [enriched]);
+        Assert.Equal(enriched, Assert.Single((await repository.ReadUsageEventPageAsync(from, to)).Events));
+        Assert.Equal(original.Tokens, enriched.Tokens);
+        Assert.Equal(original.Cost, enriched.Cost);
+        await using var invalid = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False");
+        await invalid.OpenAsync();
+        invalid.CreateFunction("tokenusage_writer_schema", () => UsageRepository.CurrentSchemaVersion);
+        await using SqliteCommand invalidCommand = invalid.CreateCommand();
+        invalidCommand.CommandText = "UPDATE usage_event SET input_availability = 9;";
+        await Assert.ThrowsAsync<SqliteException>(() => invalidCommand.ExecuteNonQueryAsync());
+        Assert.Equal(enriched, Assert.Single(await repository.QueryUsageEventsAsync(from, to)));
+        Assert.Equal(backupHash, SHA256.HashData(await File.ReadAllBytesAsync(backup)));
+        Assert.Equal(2, Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v11-*.db").Length);
+        string cleanBackup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v11-*.db"), path => path != backup);
+        string recoveredPath = Path.Combine(Path.GetDirectoryName(folder.DatabasePath)!, "recovered.db");
+        UsageRepository recovered = await UsageRepository.RecoverCopyAsync(cleanBackup, recoveredPath);
+        Assert.Equal(original, Assert.Single(await recovered.QueryUsageEventsAsync(from, to)));
+        Assert.NotEqual((await repository.ReadDataRevisionAsync()).DatabaseId, (await recovered.ReadDataRevisionAsync()).DatabaseId);
+        await Assert.ThrowsAsync<IOException>(() => UsageRepository.RecoverCopyAsync(cleanBackup, folder.DatabasePath));
+        Assert.Equal(enriched, Assert.Single(await repository.QueryUsageEventsAsync(from, to)));
+    }
+
+    private static async Task RemoveRevisionSchemaAsync(SqliteConnection connection)
+    {
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "SELECT name FROM sqlite_master WHERE type = 'trigger' AND (name LIKE 'guard_%' OR name LIKE 'revision_%');";
+        var names = new List<string>();
+        await using (SqliteDataReader reader = await command.ExecuteReaderAsync())
+            while (await reader.ReadAsync()) names.Add(reader.GetString(0));
+        foreach (string name in names)
+        {
+            command.CommandText = "DROP TRIGGER \"" + name.Replace("\"", "\"\"", StringComparison.Ordinal) + "\";";
+            await command.ExecuteNonQueryAsync();
+        }
+        command.CommandText = "DROP TABLE IF EXISTS operation_fact; DROP TABLE IF EXISTS project_attribution; DROP TABLE IF EXISTS session_attribution; DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
+        await command.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public async Task CollectionFreshnessMigrationAndOutOfOrderAttemptsPreserveLastSuccess()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var first = new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
+        await repository.RecordCollectionAsync(new("codex", first, UsageSourceReadStatus.Complete, UsageSourceIssueKind.None));
+        await repository.RecordCollectionAsync(new("claude", first, UsageSourceReadStatus.Partial, UsageSourceIssueKind.ReadFailed));
+        await using (var setup = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            setup.CreateFunction("tokenusage_writer_schema", () => UsageRepository.CurrentSchemaVersion);
+            await using var command = setup.CreateCommand();
+            command.CommandText = """
+                ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc;
+                DROP TABLE IF EXISTS session_attribution;
+                DROP TABLE IF EXISTS project_attribution;
+                DROP TABLE IF EXISTS operation_fact;
+                DELETE FROM schema_migration WHERE version >= 8;
+                CREATE TRIGGER fail_freshness BEFORE UPDATE ON usage_collection_state
+                BEGIN SELECT RAISE(ABORT, 'freshness migration failure'); END;
+                """;
+            await command.ExecuteNonQueryAsync();
+            await Assert.ThrowsAsync<SqliteException>(() => UsageRepository.OpenAsync(folder.DatabasePath));
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('usage_collection_state') WHERE name = 'last_successful_at_utc';";
+            Assert.Equal(0L, await command.ExecuteScalarAsync());
+            command.CommandText = "SELECT MAX(version) FROM schema_migration;";
+            Assert.Equal(7L, await command.ExecuteScalarAsync());
+            command.CommandText = "DROP TRIGGER fail_freshness;";
+            await command.ExecuteNonQueryAsync();
+        }
+        repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var migrated = await repository.ReadCollectionStateAsync();
+        Assert.Equal(first, Assert.Single(migrated, row => row.AgentId == "codex").LastSuccessfulAtUtc);
+        Assert.Null(Assert.Single(migrated, row => row.AgentId == "claude").LastSuccessfulAtUtc);
+        await repository.RecordCollectionAsync(new("codex", first.AddHours(3), UsageSourceReadStatus.Partial, UsageSourceIssueKind.ReadFailed));
+        await repository.RecordCollectionAsync(new("codex", first.AddHours(1), UsageSourceReadStatus.Complete, UsageSourceIssueKind.None));
+        UsageCollectionState latest = Assert.Single(await repository.ReadCollectionStateAsync(), row => row.AgentId == "codex");
+        Assert.Equal(first.AddHours(3), latest.AttemptedAtUtc);
+        Assert.Equal(first.AddHours(1), latest.LastSuccessfulAtUtc);
+        Assert.Equal(UsageSourceReadStatus.Partial, latest.Status);
+        Assert.Equal(UsageSourceIssueKind.ReadFailed, latest.Issue);
+        UsageDataRevision revision = await repository.ReadDataRevisionAsync();
+        await repository.RecordCollectionAsync(new("codex", first, UsageSourceReadStatus.Complete, UsageSourceIssueKind.None));
+        Assert.Equal(revision, await repository.ReadDataRevisionAsync());
+        await repository.RecordCollectionAsync(new("codex", first.AddHours(4), UsageSourceReadStatus.NoData, UsageSourceIssueKind.Empty));
+        latest = Assert.Single(await repository.ReadCollectionStateAsync(), row => row.AgentId == "codex");
+        Assert.Equal(first.AddHours(4), latest.LastSuccessfulAtUtc);
+        Assert.Equal(latest.AttemptedAtUtc, latest.LastSuccessfulAtUtc);
+    }
+
+    [Fact]
+    public async Task LegacyAssociationRequiresMatchingIdentityAndRepresentationAndKeepsTotals()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var source = new UsageSourceInstanceId(new string('c', 64));
+        UsageEvent original = CreateEvent("associate");
+        await repository.IngestAsync([original]);
+        var day = new DateOnly(2026, 7, 22);
+        DailyUsageRollup totals = Assert.Single(await repository.QueryDailyRollupsAsync(day, day));
+        UsageDataRevision revision = await repository.ReadDataRevisionAsync();
+        Assert.Equal(0, await repository.AssociateLegacyObservationsAsync(original.AgentId, source,
+            [CreateEvent("different-identity", detailMetadata: new(source)),
+             CreateEvent("associate", parserVersion: "different/2", detailMetadata: new(source)),
+             CreateEvent("associate", cost: CostObservation.ProviderReported(0.5m), detailMetadata: new(source)),
+             CreateEvent("associate", tokens: new TokenBreakdown(101, 25, 5, 20, 0), detailMetadata: new(source))]));
+        Assert.Equal(revision, await repository.ReadDataRevisionAsync());
+        UsageEvent observed = CreateEvent("associate", detailMetadata: new(source));
+        Assert.Equal(1, await repository.AssociateLegacyObservationsAsync(original.AgentId, source, [observed]));
+        Assert.Equal(0, await repository.AssociateLegacyObservationsAsync(original.AgentId, source, [observed]));
+        Assert.Equal(totals, Assert.Single(await repository.QueryDailyRollupsAsync(day, day)));
+        Assert.Equal(observed, Assert.Single(await repository.QueryUsageEventsAsync(original.OccurredAtUtc.AddHours(-1), original.OccurredAtUtc.AddHours(1))));
+        Assert.NotEqual(revision, await repository.ReadDataRevisionAsync());
+        var other = new UsageSourceInstanceId(new string('d', 64));
+        Assert.Equal(0, await repository.AssociateLegacyObservationsAsync(original.AgentId, other,
+            [CreateEvent("associate", detailMetadata: new(other))]));
+    }
+
+    [Fact]
+    public async Task SourceAdmissionAssociatesExactHistoryAndWithholdsOverlapAtomically()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var source = new UsageSourceInstanceId(new string('c', 64));
+        UsageEvent legacy = CreateEvent("admission-match");
+        UsageEvent ambiguous = CreateEvent("admission-unknown");
+        await repository.IngestAsync([legacy, ambiguous]);
+        UsageEvent matched = CreateEvent("admission-match", detailMetadata: new(source));
+        UsageEvent overlap = CreateEvent("admission-other-key", detailMetadata: new(source));
+        UsageEvent fresh = CreateEvent("admission-next-day", legacy.OccurredAtUtc.AddDays(1), detailMetadata: new(source));
+        var day = new DateOnly(2026, 7, 22);
+        UsageDataRevision before = await repository.ReadDataRevisionAsync();
+        await using var setup = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False");
+        await setup.OpenAsync();
+        await using var trigger = setup.CreateCommand();
+        trigger.CommandText = "CREATE TRIGGER fail_source_admission BEFORE INSERT ON usage_event BEGIN SELECT RAISE(ABORT, 'admission failure'); END;";
+        await trigger.ExecuteNonQueryAsync();
+        await Assert.ThrowsAsync<SqliteException>(() => repository.StoreSourceObservationsAsync(legacy.AgentId,
+            source, legacy.ParserVersion, day, day.AddDays(1), [matched, overlap, fresh], complete: true));
+        Assert.Equal(before, await repository.ReadDataRevisionAsync());
+        var from = legacy.OccurredAtUtc.AddHours(-12);
+        Assert.All(await repository.QueryUsageEventsAsync(from, from.AddDays(2)), row => Assert.Null(row.DetailMetadata.SourceInstance));
+        trigger.CommandText = "DROP TRIGGER fail_source_admission;";
+        await trigger.ExecuteNonQueryAsync();
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            UsageSourceStoreResult result = await repository.StoreSourceObservationsAsync(legacy.AgentId,
+                source, legacy.ParserVersion, day, day.AddDays(1), [matched, overlap, fresh], complete: true);
+            Assert.Equal(1, result.WithheldCount);
+            Assert.True(result.HasUnresolvedHistory);
+            var rows = await repository.QueryUsageEventsAsync(from, from.AddDays(2));
+            Assert.Equal(3, rows.Count);
+            Assert.Contains(ambiguous, rows);
+            Assert.Contains(matched, rows);
+            Assert.Contains(fresh, rows);
+            Assert.Equal(450, (await repository.QueryDailyRollupsAsync(day, day.AddDays(1))).Sum(row => row.Tokens.Total));
+        }
+        var empty = await repository.StoreSourceObservationsAsync(legacy.AgentId, source, legacy.ParserVersion,
+            day, day.AddDays(1), [], complete: true);
+        Assert.True(empty.HasUnresolvedHistory);
+        Assert.Equal(3, (await repository.QueryUsageEventsAsync(from, from.AddDays(2))).Count);
+        await repository.ReconcileAgentEventRangeAsync(legacy.AgentId, legacy.ParserVersion, day, day, []);
+        var resolved = await repository.StoreSourceObservationsAsync(legacy.AgentId, source, legacy.ParserVersion,
+            day, day.AddDays(1), [fresh], complete: true);
+        Assert.False(resolved.HasUnresolvedHistory);
+        Assert.Equal(fresh, Assert.Single(await repository.QueryUsageEventsAsync(from, from.AddDays(2))));
+    }
+
+    [Fact]
+    public async Task SourceReconciliationPreservesOtherSourcesAndRejectsKeyReassignment()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var sourceA = new UsageSourceInstanceId(new string('a', 64));
+        var sourceB = new UsageSourceInstanceId(new string('b', 64));
+        UsageEvent a = CreateEvent("scope-a", detailMetadata: new(sourceA));
+        UsageEvent b = CreateEvent("scope-b", detailMetadata: new(sourceB));
+        UsageEvent legacy = CreateEvent("scope-legacy");
+        await repository.IngestAsync([a, b, legacy]);
+        var day = new DateOnly(2026, 7, 22);
+        await repository.ReconcileSourceEventRangeAsync(a.AgentId, sourceA, a.ParserVersion, day, day, []);
+        var from = new DateTimeOffset(2026, 7, 22, 0, 0, 0, TimeSpan.Zero);
+        Assert.Equal(2, (await repository.QueryUsageEventsAsync(from, from.AddDays(1))).Count);
+        Assert.Equal(2, Assert.Single(await repository.QueryDailyRollupsAsync(day, day)).EventCount);
+        UsageDataRevision before = await repository.ReadDataRevisionAsync();
+        UsageEvent stolen = CreateEvent("scope-b", detailMetadata: new(sourceA));
+        UsageEvent claimedLegacy = CreateEvent("scope-legacy", detailMetadata: new(sourceA));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.UpsertAgentEventsAsync(a.AgentId, [claimedLegacy]));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.ReconcileSourceEventRangeAsync(
+            a.AgentId, sourceA, a.ParserVersion, day, day, [stolen]));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.UpsertAgentEventsAsync(a.AgentId, [stolen]));
+        await Assert.ThrowsAsync<InvalidDataException>(() => repository.ReplaceAgentEventsAsync(a.AgentId, [legacy]));
+        Assert.Equal(before, await repository.ReadDataRevisionAsync());
+        await repository.ReconcileAgentEventRangeAsync(a.AgentId, a.ParserVersion, day, day, []);
+        Assert.Equal(b, Assert.Single(await repository.QueryUsageEventsAsync(from, from.AddDays(1))));
+    }
+
+    [Fact]
+    public async Task SessionLinksStayOffUntilConsentAndPurgeKeepsRollupTotals()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent linked = CreateEvent("session-link", agentId: "codex");
+        UsageEvent unassigned = CreateEvent("session-unassigned", agentId: "codex");
+        await repository.IngestAsync([linked, unassigned]);
+        DailyUsageRollup before = Assert.Single(await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22)));
+        var sessionKey = DeriveKey(OpaqueKeyDomains.CodexSession, "alpha");
+        await repository.ReplaceSessionLinksAsync(
+        [
+            new UsageSessionLink(linked.EventKey, sessionKey, parentSessionKey: null, consentEpoch: 1),
+        ]);
+        Assert.Equal(1, await repository.CountSessionLinksAsync(1));
+        IReadOnlyList<UsageSessionContribution> rows = await repository.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("codex"));
+        Assert.Contains(rows, row => row.IsUnassigned && row.SelectedTokens.Total == unassigned.Tokens.Total);
+        UsageSessionContribution session = Assert.Single(rows, row => !row.IsUnassigned);
+        Assert.Equal(sessionKey, session.SessionKey);
+        Assert.Equal(linked.Tokens.Total, session.SelectedTokens.Total);
+        Assert.Equal(linked.Tokens.Total, session.SessionTokens.Total);
+        IReadOnlyList<UsageSessionContribution> staleEpoch = await repository.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            2,
+            new AgentId("codex"));
+        Assert.All(staleEpoch, row => Assert.True(row.IsUnassigned));
+        Assert.Equal(1, await repository.PurgeSessionLinksAsync());
+        Assert.Equal(0, await repository.CountSessionLinksAsync());
+        DailyUsageRollup after = Assert.Single(await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22)));
+        Assert.Equal(before.Tokens.Total, after.Tokens.Total);
+        Assert.Equal(before.EventCount, after.EventCount);
+        Assert.Equal(before.ReportedCostUsd, after.ReportedCostUsd);
+    }
+
+    [Fact]
+    public async Task RestoredBackupLinksStayHiddenFromANewConsentEpoch()
+    {
+        using var folder = new TemporaryFolder();
+        string recoveredPath = Path.Combine(Path.GetDirectoryName(folder.DatabasePath)!, "recovered.v1.db");
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent usageEvent = CreateEvent("restored-link", agentId: "codex");
+        await repository.IngestAsync([usageEvent]);
+        await repository.ReplaceSessionLinksAsync(
+        [
+            new UsageSessionLink(
+                usageEvent.EventKey,
+                DeriveKey(OpaqueKeyDomains.CodexSession, "restored"),
+                parentSessionKey: null,
+                consentEpoch: 1),
+        ]);
+        UsageRepository recovered = await UsageRepository.RecoverCopyAsync(folder.DatabasePath, recoveredPath);
+        Assert.Equal(1, await recovered.CountSessionLinksAsync(1));
+        await repository.PurgeSessionLinksAsync();
+        Assert.Equal(0, await repository.CountSessionLinksAsync());
+        IReadOnlyList<UsageSessionContribution> hidden = await recovered.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            3,
+            new AgentId("codex"));
+        Assert.All(hidden, row => Assert.True(row.IsUnassigned));
+        Assert.Equal(usageEvent.Tokens.Total, hidden.Sum(row => row.SelectedTokens.Total));
+        IReadOnlyList<UsageSessionContribution> disabled = await recovered.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            0,
+            new AgentId("codex"));
+        Assert.All(disabled, row => Assert.True(row.IsUnassigned));
+        Assert.Equal(usageEvent.Tokens.Total, disabled.Sum(row => row.SelectedTokens.Total));
+    }
+
+    [Fact]
+    public async Task PurgeCursorSessionLinksLeavesCodexLinksAndTotals()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent codex = CreateEvent("codex-keep", agentId: "codex");
+        UsageEvent cursor = CreateEvent("cursor-drop", agentId: "cursor");
+        await repository.IngestAsync([codex, cursor]);
+        await repository.ReplaceSessionLinksAsync(
+        [
+            new UsageSessionLink(
+                codex.EventKey,
+                DeriveKey(OpaqueKeyDomains.CodexSession, "codex-keep"),
+                parentSessionKey: null,
+                consentEpoch: 1,
+                AttributionCapability.CodexSession),
+            new UsageSessionLink(
+                cursor.EventKey,
+                DeriveKey(OpaqueKeyDomains.CursorSession, "cursor-drop"),
+                parentSessionKey: null,
+                consentEpoch: 1,
+                AttributionCapability.CursorSession),
+        ]);
+        Assert.Equal(2, await repository.CountSessionLinksAsync());
+        Assert.Equal(1, await repository.PurgeSessionLinksAsync(AttributionCapability.CursorSession));
+        Assert.Equal(1, await repository.CountSessionLinksAsync());
+        IReadOnlyList<UsageSessionContribution> codexRows = await repository.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("codex"),
+            capability: AttributionCapability.CodexSession);
+        Assert.Contains(codexRows, row => !row.IsUnassigned);
+        IReadOnlyList<UsageSessionContribution> cursorRows = await repository.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("cursor"),
+            capability: AttributionCapability.CursorSession);
+        Assert.All(cursorRows, row => Assert.True(row.IsUnassigned));
+        Assert.Equal(
+            codex.Tokens.Total + cursor.Tokens.Total,
+            (await repository.QueryDailyRollupsAsync(
+                new DateOnly(2026, 7, 22),
+                new DateOnly(2026, 7, 22))).Sum(row => row.Tokens.Total));
+    }
+
+    [Fact]
+    public async Task SessionContributionsHonorSelectedEffortWithoutChangingWholeSessionTotals()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent low = new(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("effort-low"))).ToLowerInvariant()),
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+            "UTC",
+            new TokenBreakdown(10, 0, 0, 0, 0),
+            CostObservation.ProviderReported(0.01m),
+            "fixture/1",
+            CoverageKind.Complete,
+            UsageTimePrecision.Timestamp,
+            reasoningEffort: "low");
+        UsageEvent high = new(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("effort-high"))).ToLowerInvariant()),
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new DateTimeOffset(2026, 7, 22, 13, 0, 0, TimeSpan.Zero),
+            "UTC",
+            new TokenBreakdown(90, 0, 0, 0, 0),
+            CostObservation.ProviderReported(0.09m),
+            "fixture/1",
+            CoverageKind.Complete,
+            UsageTimePrecision.Timestamp,
+            reasoningEffort: "high");
+        await repository.IngestAsync([low, high]);
+        var sessionKey = DeriveKey(OpaqueKeyDomains.CodexSession, "effort-session");
+        await repository.ReplaceSessionLinksAsync(
+        [
+            new UsageSessionLink(low.EventKey, sessionKey, parentSessionKey: null, 1),
+            new UsageSessionLink(high.EventKey, sessionKey, parentSessionKey: null, 1),
+        ]);
+        UsageSessionContribution selected = Assert.Single(
+            await repository.ReadSessionContributionsAsync(
+                new DateOnly(2026, 7, 22),
+                new DateOnly(2026, 7, 22),
+                1,
+                new AgentId("codex"),
+                detail: new UsageDetailSelection([], ["low"], [])));
+        Assert.Equal(10, selected.SelectedTokens.Total);
+        Assert.Equal(100, selected.SessionTokens.Total);
+    }
+
+    [Fact]
+    public async Task ProjectLinksKeepObservedAmbiguousAliasAndPurgeWithoutChangingTotals()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent first = CreateEvent("project-a", agentId: "codex", tokens: new TokenBreakdown(80, 20, 0, 0, 0));
+        UsageEvent second = CreateEvent("project-b", agentId: "codex", tokens: new TokenBreakdown(40, 10, 0, 0, 0));
+        UsageEvent unassigned = CreateEvent("project-unassigned", agentId: "codex");
+        UsageEvent ambiguous = CreateEvent("project-ambiguous", agentId: "codex", tokens: new TokenBreakdown(10, 0, 0, 0, 0));
+        await repository.IngestAsync([first, second, unassigned, ambiguous]);
+        DailyUsageRollup before = Assert.Single(await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22)));
+        var projectA = DeriveKey(OpaqueKeyDomains.CodexProject, "workspace-a");
+        var projectB = DeriveKey(OpaqueKeyDomains.CodexProject, "workspace-b");
+        await repository.ReplaceProjectLinksAsync(
+        [
+            new UsageProjectLink(first.EventKey, projectA, 1, ProjectMappingKind.Observed),
+            new UsageProjectLink(second.EventKey, projectB, 1, ProjectMappingKind.Observed),
+            new UsageProjectLink(ambiguous.EventKey, null, 1, ProjectMappingKind.Ambiguous),
+        ]);
+        IReadOnlyList<UsageProjectContribution> rows = await repository.ReadProjectContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("codex"));
+        Assert.Contains(rows, row => row.IsUnassigned && row.SelectedTokens.Total == unassigned.Tokens.Total);
+        Assert.Contains(rows, row => row.IsAmbiguous && row.SelectedTokens.Total == ambiguous.Tokens.Total);
+        Assert.Equal(first.Tokens.Total, Assert.Single(rows, row => row.ProjectKey == projectA).SelectedTokens.Total);
+        Assert.Equal(second.Tokens.Total, Assert.Single(rows, row => row.ProjectKey == projectB).SelectedTokens.Total);
+        await repository.MapEventsToProjectAsync([second.EventKey], projectA, 1);
+        UsageProjectContribution remapped = Assert.Single(
+            await repository.ReadProjectContributionsAsync(
+                new DateOnly(2026, 7, 22),
+                new DateOnly(2026, 7, 22),
+                1,
+                new AgentId("codex")),
+            row => row.ProjectKey == projectA && row.MappingKind == ProjectMappingKind.UserMapped);
+        Assert.Equal(second.Tokens.Total, remapped.SelectedTokens.Total);
+        int firstBackfill = await repository.BackfillProjectLinksAsync(
+        [
+            new UsageProjectLink(second.EventKey, projectB, 1, ProjectMappingKind.Observed),
+        ],
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1);
+        Assert.Equal(1, firstBackfill);
+        Assert.Equal(
+            ProjectMappingKind.UserMapped,
+            Assert.Single(
+                await repository.ReadProjectContributionsAsync(
+                    new DateOnly(2026, 7, 22),
+                    new DateOnly(2026, 7, 22),
+                    1,
+                    new AgentId("codex")),
+                row => row.ProjectKey == projectA && row.MappingKind == ProjectMappingKind.UserMapped).MappingKind);
+        int secondBackfill = await repository.BackfillProjectLinksAsync(
+        [
+            new UsageProjectLink(second.EventKey, projectB, 1, ProjectMappingKind.Observed),
+        ],
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1);
+        Assert.Equal(1, secondBackfill);
+        Assert.Equal(
+            second.Tokens.Total,
+            Assert.Single(
+                await repository.ReadProjectContributionsAsync(
+                    new DateOnly(2026, 7, 22),
+                    new DateOnly(2026, 7, 22),
+                    1,
+                    new AgentId("codex")),
+                row => row.ProjectKey == projectA && row.MappingKind == ProjectMappingKind.UserMapped).SelectedTokens.Total);
+        DailyUsageRollup afterLinks = Assert.Single(await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22)));
+        Assert.Equal(before.Tokens.Total, afterLinks.Tokens.Total);
+        Assert.Equal(3, await repository.PurgeProjectLinksAsync());
+        Assert.Equal(0, await repository.CountProjectLinksAsync());
+        DailyUsageRollup afterPurge = Assert.Single(await repository.QueryDailyRollupsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22)));
+        Assert.Equal(before.Tokens.Total, afterPurge.Tokens.Total);
+        Assert.Equal(before.EventCount, afterPurge.EventCount);
+        await using var connection = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False");
+        await connection.OpenAsync();
+        await using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "SELECT sql FROM sqlite_master WHERE sql LIKE '%cwd%' OR sql LIKE '%private-project-path%';";
+        Assert.Null(await command.ExecuteScalarAsync());
+    }
+
+    [Fact]
+    public async Task RemapUnassignedProjectEventsHonorsSelectedEffort()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent observed = new(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("remap-observed"))).ToLowerInvariant()),
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+            "UTC",
+            new TokenBreakdown(10, 0, 0, 0, 0),
+            CostObservation.ProviderReported(0.01m),
+            "fixture/1",
+            CoverageKind.Complete,
+            UsageTimePrecision.Timestamp,
+            reasoningEffort: "low");
+        UsageEvent unassignedLow = new(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("remap-low"))).ToLowerInvariant()),
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+            "UTC",
+            new TokenBreakdown(20, 0, 0, 0, 0),
+            CostObservation.ProviderReported(0.02m),
+            "fixture/1",
+            CoverageKind.Complete,
+            UsageTimePrecision.Timestamp,
+            reasoningEffort: "low");
+        UsageEvent unassignedHigh = new(
+            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("remap-high"))).ToLowerInvariant()),
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
+            "UTC",
+            new TokenBreakdown(90, 0, 0, 0, 0),
+            CostObservation.ProviderReported(0.09m),
+            "fixture/1",
+            CoverageKind.Complete,
+            UsageTimePrecision.Timestamp,
+            reasoningEffort: "high");
+        await repository.IngestAsync([observed, unassignedLow, unassignedHigh]);
+        var project = DeriveKey(OpaqueKeyDomains.CodexProject, "workspace-kept");
+        await repository.ReplaceProjectLinksAsync(
+        [
+            new UsageProjectLink(observed.EventKey, project, 1, ProjectMappingKind.Observed),
+        ]);
+        IReadOnlyList<UsageEventKey> selected = await repository.ReadUnassignedProjectEventKeysAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new UsageDetailSelection([], ["low"], []));
+        Assert.Equal(unassignedLow.EventKey, Assert.Single(selected));
+        await repository.MapEventsToProjectAsync(selected, project, 1);
+        IReadOnlyList<UsageProjectContribution> rows = await repository.ReadProjectContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("codex"));
+        Assert.Equal(
+            10,
+            Assert.Single(rows, row => row.ProjectKey == project && row.MappingKind == ProjectMappingKind.Observed)
+                .SelectedTokens.Total);
+        Assert.Equal(
+            20,
+            Assert.Single(rows, row => row.ProjectKey == project && row.MappingKind == ProjectMappingKind.UserMapped)
+                .SelectedTokens.Total);
+        Assert.Equal(90, Assert.Single(rows, row => row.IsUnassigned).SelectedTokens.Total);
+    }
+
+    [Fact]
+    public async Task RequestFinalDistributionsUseNearestRankThresholds()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageDistributionEligibility empty = await repository.ReadDistributionEligibilityAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("grok"));
+        Assert.Equal(UsageStatisticAvailability.Unavailable, empty.Availability);
+        UsageEvent[] finals = Enumerable.Range(1, 100)
+            .Select(index => CreateEvent(
+                $"final-{index}",
+                tokens: new TokenBreakdown(index, 0, 0, 0, 0),
+                detailMetadata: new UsageDetailMetadata(
+                    recordKind: UsageRecordKind.RequestFinal,
+                    input: UsageComponentAvailability.Measured)))
+            .ToArray();
+        await repository.IngestAsync(finals);
+        UsageDistributionEligibility measured = await repository.ReadDistributionEligibilityAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("grok"));
+        Assert.Equal(UsageStatisticAvailability.Measured, measured.Availability);
+        Assert.Equal(100, measured.EligibleFinalCount);
+        Assert.Equal(50, measured.MedianInputTokens);
+        Assert.Equal(95, measured.Percentile95InputTokens);
+    }
+
+    [Fact]
+    public async Task AttributedSessionOutliersDoNotRequireRequestFinal()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var events = new List<UsageEvent>();
+        var links = new List<UsageSessionLink>();
+        for (int index = 0; index < 15; index++)
+        {
+            UsageEvent usageEvent = CreateEvent($"lo-{index}", tokens: new TokenBreakdown(50, 0, 0, 0, 0), agentId: "codex");
+            events.Add(usageEvent);
+            links.Add(new UsageSessionLink(
+                usageEvent.EventKey,
+                DeriveKey(OpaqueKeyDomains.CodexSession, $"lo-{index}"),
+                parentSessionKey: null,
+                consentEpoch: 1));
+        }
+
+        for (int index = 0; index < 15; index++)
+        {
+            UsageEvent usageEvent = CreateEvent($"hi-{index}", tokens: new TokenBreakdown(150, 0, 0, 0, 0), agentId: "codex");
+            events.Add(usageEvent);
+            links.Add(new UsageSessionLink(
+                usageEvent.EventKey,
+                DeriveKey(OpaqueKeyDomains.CodexSession, $"hi-{index}"),
+                parentSessionKey: null,
+                consentEpoch: 1));
+        }
+
+        UsageEvent spike = CreateEvent("spike", tokens: new TokenBreakdown(10_000, 0, 0, 0, 0), agentId: "codex");
+        events.Add(spike);
+        links.Add(new UsageSessionLink(
+            spike.EventKey,
+            DeriveKey(OpaqueKeyDomains.CodexSession, "spike"),
+            parentSessionKey: null,
+            consentEpoch: 1));
+        await repository.IngestAsync(events);
+        await repository.ReplaceSessionLinksAsync(links);
+        UsageDistributionEligibility distribution = await repository.ReadDistributionEligibilityAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            new AgentId("codex"));
+        Assert.Equal(UsageStatisticAvailability.Unavailable, distribution.Availability);
+        IReadOnlyList<UsageSessionContribution> rows = await repository.ReadSessionContributionsAsync(
+            new DateOnly(2026, 7, 22),
+            new DateOnly(2026, 7, 22),
+            1,
+            new AgentId("codex"));
+        UsageSessionOutlier outlier = UsageSessionOutlier.Evaluate(rows
+            .Where(row => !row.IsUnassigned && row.SessionKey is not null)
+            .Select(row => (row.SessionKey!.Value, row.SelectedTokens.Total))
+            .ToArray());
+        Assert.Equal(UsageStatisticAvailability.Measured, outlier.Availability);
+        Assert.Equal(DeriveKey(OpaqueKeyDomains.CodexSession, "spike"), new OpaqueAttributionKey(outlier.SessionKey!));
+        Assert.Equal(10_000, outlier.SessionTokens);
+    }
+
+    private static OpaqueAttributionKey DeriveKey(string domain, string identifier) =>
+        new HmacOpaqueKeyDeriver(Enumerable.Repeat((byte)0x5A, 32).ToArray())
+            .Derive(domain, "codex", identifier);
+
     private static UsageEvent CreateEvent(
         string localIdentity,
         DateTimeOffset? occurredAtUtc = null,
         TokenBreakdown? tokens = null,
         string agentId = "grok",
         string parserVersion = "fixture/1",
-        CostObservation? cost = null) =>
+        CostObservation? cost = null, UsageDetailMetadata? detailMetadata = null) =>
         new(
             new UsageEventKey(Convert.ToHexString(SHA256.HashData(
                 Encoding.UTF8.GetBytes(localIdentity))).ToLowerInvariant()),
@@ -1010,7 +1843,7 @@ public sealed class UsageRepositoryTests
             cost ?? CostObservation.ProviderReported(0.25m),
             parserVersion,
             CoverageKind.Complete,
-            UsageTimePrecision.Timestamp);
+            UsageTimePrecision.Timestamp, detailMetadata: detailMetadata);
 
     private static async Task<string> ExplainAsync(SqliteConnection connection, string sql)
     {

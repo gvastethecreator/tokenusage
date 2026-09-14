@@ -71,6 +71,7 @@ public sealed class UsageEventContractTests
             "Cost",
             "ParserVersion",
             "Coverage",
+            "DetailMetadata",
             "TimePrecision", "IntervalStartedAtUtc", "ObservedModelId", "ReasoningEffort", "ServiceTier",
         ];
         string[] forbiddenTerms =
@@ -90,6 +91,13 @@ public sealed class UsageEventContractTests
             actualProperties,
             property => forbiddenTerms.Any(term =>
                 property.Contains(term, StringComparison.OrdinalIgnoreCase)));
+        string[] expectedDetail = ["CacheRead", "CacheWrite", "Input", "Output", "Reasoning",
+            "RecordKind", "RepresentationRevision", "SourceInstance"];
+        Assert.Equal(expectedDetail,
+            typeof(UsageDetailMetadata).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Select(property => property.Name).Order(StringComparer.Ordinal));
+        Assert.Throws<ArgumentException>(() => new UsageSourceInstanceId("C:/Users/person/history"));
+        Assert.Throws<ArgumentException>(() => new UsageSourceInstanceId("profile@example.com"));
     }
 
     private static UsageEvent CreateEvent(DateTimeOffset? occurredAtUtc = null) =>
