@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 
@@ -11,11 +12,26 @@ public delegate Task<UsageReport> UsageReportReader(
     AgentId? agentId,
     CancellationToken cancellationToken);
 
+public delegate Task<UsageReport> UsageReportExactReader(
+    DateTimeOffset fromInclusiveUtc,
+    DateTimeOffset toExclusiveUtc,
+    AgentId? agentId,
+    bool includeConfigurations,
+    CancellationToken cancellationToken);
+
+public delegate Task<(IReadOnlyList<UsageSessionContribution> Sessions, IReadOnlyList<UsageProjectContribution> Projects)>
+    UsageAttributionExportReader(
+        DateOnly fromInclusive,
+        DateOnly toInclusive,
+        AgentId? agentId,
+        UsageReportSelection? selection,
+        CancellationToken cancellationToken);
+
 public static class ReportCommand
 {
     public const string SchemaVersion = ReportJson.SchemaVersion;
     public const string UsageText =
-        "Usage: tokenusage report [--days 1-3650 | --from YYYY-MM-DD --to YYYY-MM-DD] [--agent id] [--format human|json]";
+        "Usage: tokenusage report [--days 1-3650 | --from YYYY-MM-DD --to YYYY-MM-DD] [--agent id] [--format human|json|json-v2|csv|html] [--selection-file PATH]";
 
     public const int SuccessExitCode = 0;
     public const int InvalidUsageExitCode = 2;
@@ -35,6 +51,8 @@ public static class ReportCommand
         TextWriter standardError,
         UsageReportReader readReport,
         TimeProvider clock,
+        UsageReportExactReader? readExact = null,
+        UsageAttributionExportReader? readAttribution = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(arguments);
@@ -62,11 +80,39 @@ public static class ReportCommand
         UsageReport report;
         try
         {
-            report = await readReport(
-                fromInclusive,
-                toInclusive,
-                options.AgentId,
-                cancellationToken).ConfigureAwait(false);
+            if (options.Selection?.Kind == "exact")
+            {
+                if (readExact is null
+                    || options.Selection.ExactFromInclusiveUtc is not { } exactFrom
+                    || options.Selection.ExactToExclusiveUtc is not { } exactTo)
+                {
+                    await standardError.WriteLineAsync("Exact selection files need UTC bounds and a usage store reader.")
+                        .ConfigureAwait(false);
+                    return InvalidUsageExitCode;
+                }
+
+                report = await readExact(
+                    exactFrom,
+                    exactTo,
+                    options.AgentId,
+                    includeConfigurations: options.Selection.Filters.HasConfigurationFilters,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                report = await readReport(
+                    fromInclusive,
+                    toInclusive,
+                    options.AgentId,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            if (options.Selection?.Filters is { } filters
+                && (filters.HasConfigurationFilters || filters.Models.Count > 0 || filters.ModelProviders.Count > 0))
+            {
+                report = UsageReportQuery.Select(report, filters);
+            }
+
             ValidateReport(report);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -91,6 +137,45 @@ public static class ReportCommand
                     report))
                 .ConfigureAwait(false);
         }
+        else if (options.Format is OutputFormat.JsonV2 or OutputFormat.Csv or OutputFormat.Html)
+        {
+            UsageReportSnapshotV2.Document snapshot = ReportJsonV2.Create(
+                generatedAt,
+                fromInclusive,
+                toInclusive,
+                days,
+                options.AgentId,
+                report,
+                selection: options.Selection?.Filters,
+                exactFromInclusiveUtc: options.Selection?.ExactFromInclusiveUtc,
+                exactToExclusiveUtc: options.Selection?.ExactToExclusiveUtc);
+            if (readAttribution is not null)
+            {
+                (IReadOnlyList<UsageSessionContribution> sessions, IReadOnlyList<UsageProjectContribution> projects) =
+                    await readAttribution(
+                        fromInclusive,
+                        toInclusive,
+                        options.AgentId,
+                        options.Selection?.Filters,
+                        cancellationToken).ConfigureAwait(false);
+                snapshot = snapshot with
+                {
+                    Sessions = UsageReportSnapshotV2.MapSessions(sessions),
+                    Projects = UsageReportSnapshotV2.MapProjects(projects),
+                };
+            }
+            string rendered = options.Format switch
+            {
+                OutputFormat.Csv => ReportJsonV2.WriteCsv(snapshot),
+                OutputFormat.Html => ReportJsonV2.WriteHtml(snapshot),
+                _ => UsageReportSnapshotV2.Render(snapshot, "json"),
+            };
+            await standardOutput.WriteAsync(rendered).ConfigureAwait(false);
+            if (!rendered.EndsWith('\n'))
+            {
+                await standardOutput.WriteLineAsync().ConfigureAwait(false);
+            }
+        }
         else
         {
             await WriteHumanAsync(
@@ -114,11 +199,14 @@ public static class ReportCommand
         DateOnly? to = null;
         AgentId? agentId = null;
         OutputFormat format = OutputFormat.Human;
+        string? selectionFile = null;
         bool hasDays = false;
         bool hasFrom = false;
         bool hasTo = false;
         bool hasAgent = false;
         bool hasFormat = false;
+        bool hasSelectionFile = false;
+        ParsedReportSelection? parsedSelection = null;
 
         for (int index = 0; index < arguments.Count; index++)
         {
@@ -209,7 +297,7 @@ public static class ReportCommand
                         || !TryParseFormat(arguments[index], out format))
                     {
                         return Invalid(
-                            "Option '--format' must be 'human' or 'json'.",
+                            "Option '--format' must be 'human', 'json', 'json-v2', 'csv', or 'html'.",
                             out options,
                             out error);
                     }
@@ -217,8 +305,61 @@ public static class ReportCommand
                     hasFormat = true;
                     break;
 
+                case "--selection-file":
+                    if (hasSelectionFile)
+                    {
+                        return Invalid("Option '--selection-file' can be set only once.", out options, out error);
+                    }
+
+                    if (++index >= arguments.Count || string.IsNullOrWhiteSpace(arguments[index]))
+                    {
+                        return Invalid(
+                            "Option '--selection-file' needs a local JSON path.",
+                            out options,
+                            out error);
+                    }
+
+                    selectionFile = arguments[index];
+                    hasSelectionFile = true;
+                    break;
+
                 default:
                     return Invalid("Unknown report argument.", out options, out error);
+            }
+        }
+
+        if (hasSelectionFile)
+        {
+            if (format is OutputFormat.Human or OutputFormat.Json)
+            {
+                return Invalid(
+                    "Option '--selection-file' requires '--format json-v2', 'csv', or 'html'.",
+                    out options,
+                    out error);
+            }
+
+            if (hasDays || hasFrom || hasTo || hasAgent)
+            {
+                return Invalid(
+                    "Option '--selection-file' cannot be combined with '--days', '--from', '--to', or '--agent'.",
+                    out options,
+                    out error);
+            }
+
+            if (!ReportSelectionFile.TryRead(selectionFile!, out ParsedReportSelection? parsed, out string selectionError)
+                || parsed is null)
+            {
+                return Invalid(selectionError, out options, out error);
+            }
+
+            from = parsed.From;
+            to = parsed.To;
+            hasFrom = true;
+            hasTo = true;
+            parsedSelection = parsed;
+            if (parsed.Agent is not null && !TryParseAgent(parsed.Agent, out agentId))
+            {
+                return Invalid("The selection file agent must be a valid local agent ID.", out options, out error);
             }
         }
 
@@ -250,7 +391,7 @@ public static class ReportCommand
             }
         }
 
-        options = new ReportOptions(days, from, to, agentId, format);
+        options = new ReportOptions(days, from, to, agentId, format, parsedSelection);
         error = string.Empty;
         return true;
     }
@@ -292,6 +433,24 @@ public static class ReportCommand
         if (string.Equals(value, "json", StringComparison.Ordinal))
         {
             format = OutputFormat.Json;
+            return true;
+        }
+
+        if (string.Equals(value, "json-v2", StringComparison.Ordinal))
+        {
+            format = OutputFormat.JsonV2;
+            return true;
+        }
+
+        if (string.Equals(value, "csv", StringComparison.Ordinal))
+        {
+            format = OutputFormat.Csv;
+            return true;
+        }
+
+        if (string.Equals(value, "html", StringComparison.Ordinal))
+        {
+            format = OutputFormat.Html;
             return true;
         }
 
@@ -520,11 +679,15 @@ public static class ReportCommand
         DateOnly? From,
         DateOnly? To,
         AgentId? AgentId,
-        OutputFormat Format);
+        OutputFormat Format,
+        ParsedReportSelection? Selection = null);
 
     private enum OutputFormat
     {
         Human,
         Json,
+        JsonV2,
+        Csv,
+        Html,
     }
 }

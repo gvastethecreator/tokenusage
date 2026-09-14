@@ -79,7 +79,7 @@ public sealed class ReportCommandTests
     [InlineData("--from|2026-07-22|--to|2026-07-20")]
     [InlineData("--days|30|--from|2026-07-20|--to|2026-07-22")]
     [InlineData("--agent|Customer Secret")]
-    [InlineData("--format|csv")]
+    [InlineData("--format|xml")]
     public async Task InvalidArgumentsDoNotReadLocalData(string argumentLine)
     {
         string[] arguments = argumentLine.Split('|');
@@ -125,6 +125,223 @@ public sealed class ReportCommandTests
             .GetProperty("events")
             .GetInt32());
     }
+
+    [Fact]
+    public async Task JsonV2KeepsInvariantStringsAndOmitsAttribution()
+    {
+        var output = new StringWriter(CultureInfo.InvariantCulture);
+
+        int exitCode = await ReportCommand.RunAsync(
+            ["--format", "json-v2"],
+            output,
+            TextWriter.Null,
+            (_, _, _, _) => Task.FromResult(CreateHugeReport()),
+            new FixedTimeProvider(Now));
+
+        Assert.Equal(0, exitCode);
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        Assert.Equal(
+            ReportJsonV2.SchemaVersion,
+            document.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal(
+            "9007199254740993",
+            document.RootElement.GetProperty("totals").GetProperty("tokens").GetProperty("total").GetString());
+        Assert.Equal(
+            "1.25",
+            document.RootElement.GetProperty("totals").GetProperty("reportedCost").GetProperty("amount").GetString());
+        Assert.Equal(JsonValueKind.Null, document.RootElement.GetProperty("requestCount").ValueKind);
+        Assert.Equal(
+            "finality-not-established",
+            document.RootElement.GetProperty("requestCountReason").GetString());
+        string json = output.ToString();
+        Assert.DoesNotContain("sessionKey", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("projectKey", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("alias", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SelectionFileDrivesJsonV2RangeAndRejectsLegacyCombinations()
+    {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
+        await File.WriteAllTextAsync(
+            path,
+            """{"schema":"tokenusage.selection.v1","from":"2026-07-20","to":"2026-07-22"}""");
+        try
+        {
+            DateOnly? seenFrom = null;
+            DateOnly? seenTo = null;
+            int exitCode = await ReportCommand.RunAsync(
+                ["--format", "json-v2", "--selection-file", path],
+                TextWriter.Null,
+                TextWriter.Null,
+                (from, to, _, _) =>
+                {
+                    seenFrom = from;
+                    seenTo = to;
+                    return Task.FromResult(CreateReport());
+                },
+                new FixedTimeProvider(Now));
+            Assert.Equal(0, exitCode);
+            Assert.Equal(new DateOnly(2026, 7, 20), seenFrom);
+            Assert.Equal(new DateOnly(2026, 7, 22), seenTo);
+
+            var error = new StringWriter(CultureInfo.InvariantCulture);
+            int rejected = await ReportCommand.RunAsync(
+                ["--format", "json-v2", "--selection-file", path, "--days", "7"],
+                TextWriter.Null,
+                error,
+                (_, _, _, _) => Task.FromResult(CreateReport()),
+                new FixedTimeProvider(Now));
+            Assert.Equal(2, rejected);
+            Assert.Contains("cannot be combined", error.ToString(), StringComparison.Ordinal);
+
+            var humanError = new StringWriter(CultureInfo.InvariantCulture);
+            int humanRejected = await ReportCommand.RunAsync(
+                ["--selection-file", path],
+                TextWriter.Null,
+                humanError,
+                (_, _, _, _) => Task.FromResult(CreateReport()),
+                new FixedTimeProvider(Now));
+            Assert.Equal(2, humanRejected);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task SelectionFileRejectsUnknownAndDuplicateProperties()
+    {
+        string unknown = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
+        string duplicate = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
+        await File.WriteAllTextAsync(
+            unknown,
+            """{"schema":"tokenusage.selection.v1","from":"2026-07-20","to":"2026-07-22","extra":true}""");
+        await File.WriteAllTextAsync(
+            duplicate,
+            """{"schema":"tokenusage.selection.v1","from":"2026-07-20","from":"2026-07-21","to":"2026-07-22"}""");
+        try
+        {
+            var unknownError = new StringWriter(CultureInfo.InvariantCulture);
+            Assert.Equal(
+                2,
+                await ReportCommand.RunAsync(
+                    ["--format", "json-v2", "--selection-file", unknown],
+                    TextWriter.Null,
+                    unknownError,
+                    (_, _, _, _) => Task.FromResult(CreateReport()),
+                    new FixedTimeProvider(Now)));
+            Assert.Contains("unsupported property", unknownError.ToString(), StringComparison.Ordinal);
+
+            var duplicateError = new StringWriter(CultureInfo.InvariantCulture);
+            Assert.Equal(
+                2,
+                await ReportCommand.RunAsync(
+                    ["--format", "json-v2", "--selection-file", duplicate],
+                    TextWriter.Null,
+                    duplicateError,
+                    (_, _, _, _) => Task.FromResult(CreateReport()),
+                    new FixedTimeProvider(Now)));
+            Assert.Contains("cannot repeat", duplicateError.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(unknown);
+            File.Delete(duplicate);
+        }
+    }
+
+    [Fact]
+    public async Task ExactSelectionFileReachesExactReaderAndKeepsCivilBounds()
+    {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {"schema":"tokenusage.selection.v1","kind":"exact","from":"2026-09-06","to":"2026-09-06","fromUtc":"2026-09-06T00:00:00Z","toExclusiveUtc":"2026-09-07T00:00:00Z"}
+            """);
+        try
+        {
+            DateTimeOffset? seenFrom = null;
+            DateTimeOffset? seenTo = null;
+            bool? includeConfigurations = null;
+            var output = new StringWriter(CultureInfo.InvariantCulture);
+            int exitCode = await ReportCommand.RunAsync(
+                ["--format", "json-v2", "--selection-file", path],
+                output,
+                TextWriter.Null,
+                (_, _, _, _) => Task.FromResult(CreateReport()),
+                new FixedTimeProvider(Now),
+                readExact: (fromUtc, toUtc, _, include, _) =>
+                {
+                    seenFrom = fromUtc;
+                    seenTo = toUtc;
+                    includeConfigurations = include;
+                    return Task.FromResult(CreateReport());
+                });
+            Assert.Equal(0, exitCode);
+            Assert.Equal(new DateTimeOffset(2026, 9, 6, 0, 0, 0, TimeSpan.Zero), seenFrom);
+            Assert.Equal(new DateTimeOffset(2026, 9, 7, 0, 0, 0, TimeSpan.Zero), seenTo);
+            Assert.False(includeConfigurations);
+            Assert.Contains("\"kind\": \"exact\"", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void CsvAndHtmlEscapeInjectionAndMarkup()
+    {
+        var metrics = new UsageReportSnapshotV2.Metrics(
+            "1",
+            new UsageReportSnapshotV2.Tokens("1", "0", "0", "0", "0", "1", "0"),
+            new UsageReportSnapshotV2.MoneyAmount("USD", "1.25"),
+            null,
+            "0",
+            "complete",
+            "100.0");
+        var snapshot = new UsageReportSnapshotV2.Document(
+            UsageReportSnapshotV2.SchemaVersion,
+            "2026-07-22T15:00:00Z",
+            new UsageReportSnapshotV2.Selection("calendar", "2026-07-20", "2026-07-22", "3", null),
+            null,
+            metrics,
+            [],
+            [new UsageReportSnapshotV2.ModelRow("=cmd", null, "<script>", metrics)],
+            [],
+            [],
+            [],
+            null,
+            "finality-not-established");
+
+        string csv = UsageReportSnapshotV2.WriteCsv(snapshot);
+        Assert.Contains("'=cmd", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain(",=cmd,", csv, StringComparison.Ordinal);
+
+        string html = UsageReportSnapshotV2.WriteHtml(snapshot);
+        Assert.Contains("&lt;script&gt;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script>", html, StringComparison.Ordinal);
+    }
+
+    private static UsageReport CreateHugeReport() => UsageReportQuery.Build(
+    [
+        new DailyUsageRollup(
+            new DateOnly(2026, 7, 22),
+            "UTC",
+            new AgentId("codex"),
+            new ModelProviderId("openai"),
+            new ModelId("gpt-5"),
+            new TokenBreakdown(9_007_199_254_740_993, 0, 0, 0, 0),
+            1.25m,
+            null,
+            0,
+            0,
+            1,
+            CoverageKind.Complete),
+    ]);
 
     private static UsageReport CreateReport() => UsageReportQuery.Build(
     [

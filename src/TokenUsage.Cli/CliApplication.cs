@@ -1,9 +1,12 @@
+using TokenUsage.Core.Automation;
+using TokenUsage.Core.Usage;
+
 namespace TokenUsage.Cli;
 
 public static class CliApplication
 {
     public const string UsageText =
-        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|pricing|cursor|zcode|grok|hook> [command options]";
+        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|pricing|cursor|zcode|grok|hook|recover-usage> [command options]";
 
     public static bool IsHelpRequest(IReadOnlyList<string> arguments) =>
         arguments.Count == 1
@@ -79,6 +82,35 @@ public static class CliApplication
                         "usage.v1.db"))
                     .ReadAsync(from, to, agentId, cancellationToken: token),
                 clock,
+                readExact: (fromUtc, toUtc, agentId, includeConfigurations, token) => new UsageReportQuery(Path.Combine(
+                        fullDataDirectory,
+                        "scanner",
+                        "usage.v1.db"))
+                    .ReadExactAsync(fromUtc, toUtc, agentId, includeConfigurations, token),
+                readAttribution: async (from, to, agentId, selection, token) =>
+                {
+                    string database = Path.Combine(fullDataDirectory, "scanner", "usage.v1.db");
+                    string consentPath = Path.Combine(fullDataDirectory, AttributionConsentStore.DefaultFileName);
+                    if (!File.Exists(database) || !File.Exists(consentPath))
+                    {
+                        return ([], []);
+                    }
+
+                    var consent = new AttributionConsentStore(consentPath, clock);
+                    return await UsageAttributionExport.ReadAsync(
+                        database,
+                        consent,
+                        from,
+                        to,
+                        agentId,
+                        selection is { } filters
+                            ? new UsageDetailSelection(
+                                filters.ObservedModels,
+                                filters.ReasoningEfforts,
+                                filters.ServiceTiers)
+                            : null,
+                        token).ConfigureAwait(false);
+                },
                 cancellationToken).ConfigureAwait(false),
             "limits" => await LimitsCommand.RunAsync(
                 commandArguments,
@@ -112,6 +144,8 @@ public static class CliApplication
                     token),
                 clock,
                 cancellationToken).ConfigureAwait(false),
+            "recover-usage" => await RecoverUsageCommand.RunAsync(commandArguments,
+                standardOutput, standardError, cancellationToken).ConfigureAwait(false),
             "pricing" => await PricingCommand.RunAsync(
                 commandArguments,
                 standardOutput,

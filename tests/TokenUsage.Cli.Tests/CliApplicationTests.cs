@@ -95,7 +95,7 @@ public sealed class CliApplicationTests
             var error = new StringWriter(CultureInfo.InvariantCulture);
 
             int exitCode = await CliApplication.RunAsync(
-                ["report", "--format", "csv"],
+                ["report", "--format", "not-a-format"],
                 TextWriter.Null,
                 error,
                 dataRoot,
