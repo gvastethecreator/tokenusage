@@ -75,10 +75,18 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(CostKind.ProviderReported, usageEvent.Cost.Kind);
         Assert.Equal(0.123457m, usageEvent.Cost.ReportedCostUsd);
         Assert.Equal(64, usageEvent.EventKey.Value.Length);
+        Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.Input);
+        Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.Output);
+        Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.CacheRead);
+        Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.CacheWrite);
+        Assert.Equal(UsageComponentAvailability.Unavailable, usageEvent.DetailMetadata.Reasoning);
+        Assert.Equal(UsageRecordKind.Unknown, usageEvent.DetailMetadata.RecordKind);
         Assert.DoesNotContain("message", usageEvent.EventKey.Value, StringComparison.Ordinal);
         Assert.DoesNotContain(
             typeof(UsageEvent).GetProperties().Select(property => property.Name),
             name => name.Contains("content", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(result.SessionLinks);
+        Assert.Empty(result.ProjectLinks);
     }
 
     [Fact]
@@ -314,6 +322,10 @@ public sealed class ClaudeUsageEventSourceTests
         corpus.WriteLines(
             UsageLine("message-negative", "request-negative", 10, 2, cacheRead: -50),
             UsageLine("message-valid", "request-valid", 20, 4),
+            UsageLine("message-split", "request-split", 25, 5).Replace(
+                "\"cache_creation_input_tokens\":0",
+                "\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":10}",
+                StringComparison.Ordinal),
             UsageLine("message-speed", "request-speed", 30, 6).Replace(
                 "\"cache_creation_input_tokens\":0",
                 "\"cache_creation_input_tokens\":0,\"speed\":\"turbo\"",
@@ -322,8 +334,14 @@ public sealed class ClaudeUsageEventSourceTests
         UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
         IReadOnlyList<UsageEvent> events = result.Events;
 
-        Assert.Equal(2, events.Count);
+        Assert.Equal(3, events.Count);
         Assert.Contains(events, usageEvent => usageEvent.Tokens.CacheRead == 0);
+        Assert.Equal(UsageComponentAvailability.Unknown,
+            Assert.Single(events, row => row.Tokens.Input == 10).DetailMetadata.CacheRead);
+        Assert.Equal(UsageComponentAvailability.Measured,
+            Assert.Single(events, row => row.Tokens.Input == 20).DetailMetadata.CacheRead);
+        Assert.Equal(UsageComponentAvailability.Unknown,
+            Assert.Single(events, row => row.Tokens.Input == 25).DetailMetadata.CacheWrite);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
     }
 

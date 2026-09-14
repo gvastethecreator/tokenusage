@@ -364,7 +364,7 @@ public sealed class ClaudeUsageEventSource :
                 candidate.Tokens,
                 cost,
                 ParserVersion,
-                coverage));
+                coverage, detailMetadata: candidate.DetailMetadata));
         }
 
         return events;
@@ -544,7 +544,8 @@ public sealed class ClaudeUsageEventSource :
                     && sidechain.ValueKind is JsonValueKind.True,
                 reportedCost,
                 isFast,
-                sourceOrdinal);
+                sourceOrdinal,
+                ReadComponentAvailability(usage));
             var parsed = new List<Candidate> { mainCandidate };
             AppendAdvisorCandidates(
                 parsed,
@@ -721,6 +722,25 @@ public sealed class ClaudeUsageEventSource :
         bool IsSidechain,
         decimal? ReportedCostUsd,
         bool IsFast,
-        string SourceOrdinal);
+        string SourceOrdinal,
+        UsageDetailMetadata? DetailMetadata = null);
+
+    private static UsageDetailMetadata ReadComponentAvailability(JsonElement usage)
+    {
+        bool legacyMeasured = TryGetNonNegativeInt64(usage, "cache_creation_input_tokens", out _);
+        bool cacheWriteMeasured = usage.TryGetProperty("cache_creation", out JsonElement split)
+            && split.ValueKind == JsonValueKind.Object
+            ? TryGetNonNegativeInt64(split, "ephemeral_5m_input_tokens", out _)
+                && TryGetNonNegativeInt64(split, "ephemeral_1h_input_tokens", out _)
+                && (legacyMeasured || !usage.TryGetProperty("cache_creation_input_tokens", out _))
+            : legacyMeasured;
+        return new UsageDetailMetadata(
+            input: UsageComponentAvailability.Measured,
+            output: UsageComponentAvailability.Measured,
+            reasoning: UsageComponentAvailability.Unavailable,
+            cacheRead: TryGetNonNegativeInt64(usage, "cache_read_input_tokens", out _)
+                ? UsageComponentAvailability.Measured : UsageComponentAvailability.Unknown,
+            cacheWrite: cacheWriteMeasured ? UsageComponentAvailability.Measured : UsageComponentAvailability.Unknown);
+    }
 
 }

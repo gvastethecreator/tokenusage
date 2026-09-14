@@ -49,6 +49,22 @@ public static class CodexPricingCatalog
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
         BuildEvidence();
 
+    public static UsageLinearTariffResolution ResolveLinearTariff(string model, DateTimeOffset atUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        if (atUtc.Offset != TimeSpan.Zero) throw new ArgumentException("Catalog dates must use UTC.", nameof(atUtc));
+        if (!TryResolveRates(model.Trim().ToLowerInvariant(), out Rates rates))
+            return new(null, UsagePriceExclusion.MissingTariff);
+        if (ListRatesFromUtc.TryGetValue(rates.PriceMatch, out DatedRates? dated)
+            && atUtc >= dated.ListEffectiveFromUtc) rates = dated.ListRates;
+        if (!EvidenceEntries.Any(item => item.ExactPriceMatch == rates.PriceMatch && item.IsEffectiveAt(atUtc)))
+            return new(null, UsagePriceExclusion.MissingTariff);
+        // Exclude the whole threshold-based regime, even if this observation is below its threshold.
+        if (rates.HasLongContext) return new(null, UsagePriceExclusion.NonLinearRegime);
+        return new(new(Version, rates.PriceMatch, "openai-standard-linear/v1",
+            rates.Input, rates.Output, rates.Output, rates.CachedInput, rates.CacheWrite), null);
+    }
+
     public static CostObservation Resolve(
         string model,
         TokenBreakdown tokens,

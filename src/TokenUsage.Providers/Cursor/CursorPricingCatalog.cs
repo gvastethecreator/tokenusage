@@ -28,6 +28,16 @@ public static class CursorPricingCatalog
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
         BuildEvidence();
 
+    public static UsageLinearTariffResolution ResolveFirstPartyLinearTariff(string model, DateTimeOffset atUtc)
+    {
+        string normalized = KnownModelPricingCatalog.Canonicalize(model);
+        if (!FirstPartyRatesByModel.TryGetValue(normalized, out Rates? rates)
+            || !EvidenceEntries.Any(item => item.ExactPriceMatch == normalized && item.IsEffectiveAt(atUtc)))
+            return new(null, UsagePriceExclusion.MissingTariff);
+        return new(new(Version, normalized, "cursor-published-linear/v1", rates.Input,
+            rates.Output, rates.Output, rates.CacheRead, rates.Input), null);
+    }
+
     public static CostObservation Resolve(
         string model,
         DateTimeOffset occurredAtUtc,

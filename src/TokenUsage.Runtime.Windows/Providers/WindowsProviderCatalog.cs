@@ -103,7 +103,9 @@ public sealed record WindowsProviderCompositionOptions(
     string? TimeZoneId = null,
     ICodexQuotaClientFactory? CodexClientFactory = null,
     VercelGatewayRefreshCoordinator? VercelCoordinator = null,
-    bool EnableVercelGateway = false);
+    bool EnableVercelGateway = false,
+    IAttributionConsentSource? AttributionConsent = null,
+    IOpaqueKeyDeriver? AttributionKeys = null);
 
 public sealed class WindowsProviderComposition
 {
@@ -161,7 +163,9 @@ public static class WindowsProviderCatalog
                             context.DataDirectory,
                             "scanner",
                             "codex-usage.v1.json"),
-                        clock: context.Clock)),
+                        clock: context.Clock,
+                        attributionConsent: context.AttributionConsent,
+                        attributionKeys: context.AttributionKeys)),
                 localUsageFactory: timeZoneId => new CodexUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("grok"),
@@ -198,6 +202,12 @@ public static class WindowsProviderCatalog
                 localUsageAgentId: "cursor",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-cursor",
+                compose: context => new ProviderBinding(
+                    LocalUsageSource: new CursorUsageEventSource(
+                        context.TimeZoneId,
+                        clock: context.Clock,
+                        attributionConsent: context.AttributionConsent,
+                        attributionKeys: context.AttributionKeys)),
                 localUsageFactory: timeZoneId => new CursorUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("zcode"),
@@ -311,7 +321,9 @@ public static class WindowsProviderCatalog
             clock,
             options.CodexClientFactory ?? new CodexAppServerQuotaClientFactory(clock),
             vercelHttpClient,
-            options.VercelCoordinator);
+            options.VercelCoordinator,
+            options.AttributionConsent,
+            options.AttributionKeys);
         ProviderBinding[] bindings = Catalog
             .Where(entry => entry.Stage == ProviderModuleStage.Active
                 || options.EnableVercelGateway && entry.Id.Value == "vercel-ai-gateway")
@@ -356,7 +368,9 @@ internal sealed record CompositionContext(
     TimeProvider Clock,
     ICodexQuotaClientFactory CodexClientFactory,
     HttpClient? VercelHttpClient,
-    VercelGatewayRefreshCoordinator? VercelCoordinator)
+    VercelGatewayRefreshCoordinator? VercelCoordinator,
+    IAttributionConsentSource? AttributionConsent = null,
+    IOpaqueKeyDeriver? AttributionKeys = null)
 {
     public string CacheDirectory(string name) => Path.Combine(
         DataDirectory,
