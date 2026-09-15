@@ -84,14 +84,27 @@ public static class UsageAttributionExport
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(frozen);
-        if (frozen.Sessions is null && frozen.Projects is null && frozen.Operations is null)
+        if (frozen.Sessions is null
+            && frozen.Projects is null
+            && frozen.Operations is null
+            && frozen.MixedOperations is null
+            && frozen.DerivedActivity is null
+            && frozen.Workflow is null)
         {
             return frozen;
         }
 
         if (consent is null)
         {
-            return frozen with { Sessions = null, Projects = null, Operations = null };
+            return frozen with
+            {
+                Sessions = null,
+                Projects = null,
+                Operations = null,
+                MixedOperations = null,
+                DerivedActivity = null,
+                Workflow = null,
+            };
         }
 
         AttributionConsent codex = await consent
@@ -115,13 +128,191 @@ public static class UsageAttributionExport
         AttributionConsent files = await consent
             .LoadAsync(AttributionCapability.CodexFiles, cancellationToken)
             .ConfigureAwait(false);
+        IReadOnlyList<UsageReportSnapshotV2.OperationPopulationRow>? operations =
+            RecheckOperations(frozen.Operations, mcp, skills, commands, files);
+        IReadOnlyList<UsageReportSnapshotV2.OperationPopulationRow>? mixedOperations =
+            RecheckOperations(frozen.MixedOperations, mcp, skills, commands, files);
         return frozen with
         {
-            Sessions = codex.AllowsLinks || cursor.AllowsLinks ? frozen.Sessions : null,
-            Projects = projects.AllowsLinks ? frozen.Projects : null,
-            Operations = mcp.AllowsLinks || skills.AllowsLinks || commands.AllowsLinks || files.AllowsLinks
-                ? frozen.Operations
-                : null,
+            Sessions = RecheckRows(frozen.Sessions, codex, cursor),
+            Projects = RecheckRows(frozen.Projects, projects),
+            Operations = operations,
+            MixedOperations = mixedOperations,
+            DerivedActivity = UsageReportSnapshotV2.MapDerivedActivity(operations),
+            Workflow = RecheckWorkflow(frozen.Workflow, files, commands),
+        };
+    }
+
+    private static List<UsageReportSnapshotV2.AttributionPopulationRow>? RecheckRows(
+        IReadOnlyList<UsageReportSnapshotV2.AttributionPopulationRow>? rows,
+        params AttributionConsent[] consents)
+    {
+        if (rows is null)
+        {
+            return null;
+        }
+
+        var kept = new List<UsageReportSnapshotV2.AttributionPopulationRow>(rows.Count);
+        foreach (UsageReportSnapshotV2.AttributionPopulationRow row in rows)
+        {
+            AttributionConsent? live = MatchConsent(row.Capability, consents);
+            if (live is null)
+            {
+                if (!consents.Any(item => item.AllowsLinks))
+                {
+                    continue;
+                }
+
+                if (consents.Length == 1)
+                {
+                    live = consents[0];
+                }
+                else
+                {
+                    kept.Add(row);
+                    continue;
+                }
+            }
+
+            if (!live.AllowsLinks)
+            {
+                continue;
+            }
+
+            if (row.ConsentEpoch is { } epoch and > 0 && !live.AcceptsEpoch(epoch))
+            {
+                continue;
+            }
+
+            kept.Add(row);
+        }
+
+        return kept.Count == 0 ? null : kept;
+    }
+
+    private static List<UsageReportSnapshotV2.OperationPopulationRow>? RecheckOperations(
+        IReadOnlyList<UsageReportSnapshotV2.OperationPopulationRow>? rows,
+        AttributionConsent mcp,
+        AttributionConsent skills,
+        AttributionConsent commands,
+        AttributionConsent files)
+    {
+        if (rows is null)
+        {
+            return null;
+        }
+
+        var kept = new List<UsageReportSnapshotV2.OperationPopulationRow>(rows.Count);
+        foreach (UsageReportSnapshotV2.OperationPopulationRow row in rows)
+        {
+            AttributionConsent live = ResolveOperationConsent(row, mcp, skills, commands, files);
+            if (!live.AllowsLinks)
+            {
+                continue;
+            }
+
+            if (row.ConsentEpoch is { } epoch and > 0 && !live.AcceptsEpoch(epoch))
+            {
+                continue;
+            }
+
+            kept.Add(row);
+        }
+
+        return kept.Count == 0 ? null : kept;
+    }
+
+    private static UsageReportSnapshotV2.WorkflowSnapshot? RecheckWorkflow(
+        UsageReportSnapshotV2.WorkflowSnapshot? workflow,
+        AttributionConsent files,
+        AttributionConsent commands)
+    {
+        if (workflow is null)
+        {
+            return null;
+        }
+
+        bool filesOk = AcceptsStampedEpoch(files, workflow.FilesConsentEpoch);
+        bool commandsOk = AcceptsStampedEpoch(commands, workflow.CommandsConsentEpoch);
+        if (filesOk && commandsOk)
+        {
+            return workflow;
+        }
+
+        int fileFile = workflow.ExcludedFileConcurrent ?? -1;
+        int editTest = workflow.ExcludedEditTestConcurrent ?? -1;
+        bool hasSplits = fileFile >= 0 || editTest >= 0;
+        string excluded = !hasSplits
+            ? "0"
+            : Integer(filesOk ? Math.Max(0, fileFile) : 0);
+
+        return workflow with
+        {
+            SameFileVerificationSeparated = "0",
+            ExcludedConcurrent = excluded,
+            EligibleFileEdits = filesOk ? workflow.EligibleFileEdits : "0",
+            EligibleVerifications = commandsOk ? workflow.EligibleVerifications : "0",
+            IncompleteUnproved = "0",
+            ExcludedFileConcurrent = filesOk ? workflow.ExcludedFileConcurrent : 0,
+            ExcludedEditTestConcurrent = 0,
+        };
+    }
+
+    private static string Integer(int value) =>
+        value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static bool AcceptsStampedEpoch(AttributionConsent live, long? epoch) =>
+        epoch is { } stamped and > 0 && live.AcceptsEpoch(stamped);
+
+    private static AttributionConsent? MatchConsent(
+        string? capability,
+        IReadOnlyList<AttributionConsent> consents)
+    {
+        if (string.IsNullOrWhiteSpace(capability))
+        {
+            return null;
+        }
+
+        return consents.FirstOrDefault(item => item.Capability.Value == capability);
+    }
+
+    private static AttributionConsent ResolveOperationConsent(
+        UsageReportSnapshotV2.OperationPopulationRow row,
+        AttributionConsent mcp,
+        AttributionConsent skills,
+        AttributionConsent commands,
+        AttributionConsent files)
+    {
+        if (!string.IsNullOrWhiteSpace(row.Capability))
+        {
+            if (row.Capability == AttributionCapability.CodexMcp.Value)
+            {
+                return mcp;
+            }
+
+            if (row.Capability == AttributionCapability.CodexSkills.Value)
+            {
+                return skills;
+            }
+
+            if (row.Capability == AttributionCapability.CodexCommands.Value)
+            {
+                return commands;
+            }
+
+            if (row.Capability == AttributionCapability.CodexFiles.Value)
+            {
+                return files;
+            }
+        }
+
+        return row.Kind switch
+        {
+            "mcp" or "tool" => mcp,
+            "spawn" or "skill" => skills,
+            "command" => commands,
+            "file" => files,
+            _ => mcp,
         };
     }
 }

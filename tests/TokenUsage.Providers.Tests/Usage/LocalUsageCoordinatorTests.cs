@@ -39,6 +39,7 @@ public sealed class LocalUsageCoordinatorTests
             "LocalUsageTotalTokens" => "Tokens",
             "LocalUsageCoverage" => "Cobertura de coste",
             "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdTinyFormat" => "{0} USD",
             "LocalUsageUsdCompactFormat" => "${0:0.00}",
             "CodexUsageMissing" => "Sin datos",
             _ => key,
@@ -87,6 +88,7 @@ public sealed class LocalUsageCoordinatorTests
             {
                 "CodexUsageMissing" => "Sin datos",
                 "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdTinyFormat" => "{0} USD",
                 "LocalUsageUsdCompactFormat" => "${0:0.00}",
                 _ => key,
             });
@@ -384,6 +386,7 @@ public sealed class LocalUsageCoordinatorTests
             "LocalUsageTotalTokens" => "Tokens",
             "LocalUsageCoverage" => "Cobertura de coste",
             "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdTinyFormat" => "{0} USD",
             "LocalUsageUsdCompactFormat" => "${0:0.00}",
             "CodexUsageMissing" => "Sin datos",
             _ => key,
@@ -479,6 +482,7 @@ public sealed class LocalUsageCoordinatorTests
             "LocalUsageTotalTokens" => "Tokens",
             "CodexUsageMissing" => "Sin datos",
             "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdTinyFormat" => "{0} USD",
             "LocalUsageUsdCompactFormat" => "${0:0.00}",
             _ => key,
         };
@@ -546,6 +550,7 @@ public sealed class LocalUsageCoordinatorTests
             "LocalUsageTotalTokens" => "Tokens",
             "CodexUsageMissing" => "Sin datos",
             "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdTinyFormat" => "{0} USD",
             "LocalUsageUsdCompactFormat" => "${0:0.00}",
             _ => key,
         };
@@ -575,6 +580,7 @@ public sealed class LocalUsageCoordinatorTests
             "LocalUsageTotalTokens" => "Tokens",
             "CodexUsageMissing" => "Sin datos",
             "LocalUsageUsdFormat" => "${0:0.00} USD",
+            "LocalUsageUsdTinyFormat" => "{0} USD",
             "LocalUsageUsdCompactFormat" => "${0:0.00}",
             _ => key,
         };
@@ -710,6 +716,7 @@ public sealed class LocalUsageCoordinatorTests
     {
         "CodexUsageMissing" => "Sin datos",
         "LocalUsageUsdFormat" => "${0:0.00} USD",
+        "LocalUsageUsdTinyFormat" => "{0} USD",
         "LocalUsageUsdCompactFormat" => "${0:0.00}",
         "LocalUsageUsdPerMillionFormat" => "${0:0.00}/1 M",
         "LocalUsageReportedShort" => "Inf.",

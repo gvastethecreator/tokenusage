@@ -9,6 +9,7 @@ public sealed partial class UsageReportPage
     private double _modelReturnOffset;
 
     private void OnClearExplorerClick(object sender, RoutedEventArgs e) => ViewModel.ClearExplorerFilters();
+    private void OnClearHiddenExplorerClick(object sender, RoutedEventArgs e) => ViewModel.ClearHiddenExplorerFilters();
     private async void OnLoadConfigurationsClick(object sender, RoutedEventArgs e) => await ViewModel.LoadConfigurationsAsync();
     private void OnMoreActivityClick(object sender, RoutedEventArgs e) => ViewModel.ShowMoreActivityWindows();
     private async void OnLoadExplanationDetailClick(object sender, RoutedEventArgs e) => await ViewModel.LoadExplanationDetailAsync();
@@ -22,6 +23,7 @@ public sealed partial class UsageReportPage
     {
         ExplanationReturnButton.Visibility = Visibility.Collapsed;
         ExplanationBreakdownReturnButton.Visibility = Visibility.Collapsed;
+        MeasurementDetails.IsExpanded = true;
         ExplanationCard.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });
         ExplanationEvidenceButton.Focus(FocusState.Programmatic);
     }
@@ -91,6 +93,8 @@ public sealed partial class UsageReportPage
         CloseSessionsButton.Focus(FocusState.Programmatic);
     }
 
+    private string? _overviewProjectReturnId;
+
     private async void OnOverviewProjectClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Control { Tag: string id })
@@ -98,6 +102,7 @@ public sealed partial class UsageReportPage
             return;
         }
 
+        _overviewProjectReturnId = id;
         await ViewModel.OpenOverviewProjectAsync(id);
         if (!ViewModel.HasProjects)
         {
@@ -127,9 +132,34 @@ public sealed partial class UsageReportPage
         CloseOperationsButton.Focus(FocusState.Programmatic);
     }
 
+    private async void OnOpenUnlinkedOperationsClick(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.OpenUnlinkedOperationsAsync();
+        if (!ViewModel.HasOperations) return;
+        OperationListCard.UpdateLayout();
+        OperationListCard.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        CloseOperationsButton.Focus(FocusState.Programmatic);
+    }
+
     private void OnCloseOperationsClick(object sender, RoutedEventArgs e)
     {
         ViewModel.CloseOperations();
+        if (ViewModel.HasSessions)
+        {
+            SessionListCard.UpdateLayout();
+            SessionListCard.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+            CloseSessionsButton.Focus(FocusState.Programmatic);
+            return;
+        }
+
+        if (ViewModel.HasProjects)
+        {
+            ProjectListCard.UpdateLayout();
+            ProjectListCard.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+            CloseProjectsButton.Focus(FocusState.Programmatic);
+            return;
+        }
+
         ShowModelDetail();
     }
 
@@ -152,10 +182,110 @@ public sealed partial class UsageReportPage
         ViewModel.OpenOperationDetail(id);
     }
 
+    private void OnDerivedActivityClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string category })
+        {
+            return;
+        }
+
+        ViewModel.SelectDerivedActivity(category);
+        if (ViewModel.HasDerivedActivityReturn)
+        {
+            UsageExplorerDerivedActivityReturn.Focus(FocusState.Programmatic);
+        }
+    }
+
+    private void OnWorkflowIndicatorClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string id })
+        {
+            return;
+        }
+
+        ViewModel.SelectWorkflowEvidence(id);
+        if (ViewModel.HasWorkflowReturn)
+        {
+            UsageExplorerWorkflowReturn.Focus(FocusState.Programmatic);
+        }
+    }
+
+    private void OnClearOperationEvidenceClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ClearOperationEvidenceFilter();
+        CloseOperationsButton.Focus(FocusState.Programmatic);
+    }
+
     private void OnCloseProjectsClick(object sender, RoutedEventArgs e)
     {
+        bool fromOverview = ViewModel.IsOverviewProjectNavigation;
+        string? returnId = ViewModel.OverviewProjectReturnId ?? _overviewProjectReturnId;
         ViewModel.CloseProjects();
+        if (fromOverview)
+        {
+            ViewModel.CloseModelDetail();
+            UpdateLayout();
+            RestoreOverviewProjectFocus(returnId);
+            return;
+        }
+
         ShowModelDetail();
+    }
+
+    private void RestoreOverviewProjectFocus(string? id)
+    {
+        ReportScrollViewer.UpdateLayout();
+        ProjectBreakdownRows.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        ProjectBreakdownRows.UpdateLayout();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            FocusOverviewProjectFallback();
+            return;
+        }
+
+        Button? button = RealizeOverviewProjectButton(id);
+        if (button is null)
+        {
+            FocusOverviewProjectFallback();
+            return;
+        }
+
+        button.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        button.Focus(FocusState.Programmatic);
+    }
+
+    public Button? RealizeOverviewProjectButton(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        ReportScrollViewer.UpdateLayout();
+        ProjectBreakdownRows.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        ProjectBreakdownRows.UpdateLayout();
+        int index = ViewModel.ProjectOverviewRows.ToList().FindIndex(row => row.Id == id);
+        if (index < 0)
+        {
+            return null;
+        }
+
+        UIElement? row = ProjectBreakdownRows.TryGetElement(index)
+            ?? ProjectBreakdownRows.GetOrCreateElement(index);
+        ProjectBreakdownRows.UpdateLayout();
+        return row is null
+            ? null
+            : Descendants(row).OfType<Button>().FirstOrDefault(item => Equals(item.Tag, id));
+    }
+
+    private void FocusOverviewProjectFallback()
+    {
+        RadioButton? tab = Descendants(this).OfType<RadioButton>().FirstOrDefault(item =>
+            string.Equals(
+                Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(item),
+                "UsageReportProjectButton",
+                StringComparison.Ordinal));
+        tab?.Focus(FocusState.Programmatic);
     }
 
     private async void OnProjectDetailClick(object sender, RoutedEventArgs e)

@@ -177,7 +177,9 @@ public sealed record UsageOperationFact
         DateTimeOffset startedAtUtc,
         DateTimeOffset? endedAtUtc,
         OpaqueAttributionKey? sessionKey,
-        int quantity = 1)
+        int quantity = 1,
+        UsageSourceInstanceId? sourceInstance = null,
+        OpaqueAttributionKey? legacyOperationKey = null)
     {
         ArgumentNullException.ThrowIfNull(operationKey);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(consentEpoch);
@@ -209,6 +211,8 @@ public sealed record UsageOperationFact
         EndedAtUtc = endedAtUtc;
         SessionKey = sessionKey;
         Quantity = quantity;
+        SourceInstance = sourceInstance;
+        LegacyOperationKey = legacyOperationKey;
     }
 
     public OpaqueAttributionKey OperationKey { get; init; }
@@ -222,6 +226,8 @@ public sealed record UsageOperationFact
     public DateTimeOffset? EndedAtUtc { get; init; }
     public OpaqueAttributionKey? SessionKey { get; init; }
     public int Quantity { get; init; }
+    public UsageSourceInstanceId? SourceInstance { get; init; }
+    public OpaqueAttributionKey? LegacyOperationKey { get; init; }
 }
 
 public sealed record UsageOperationRankedRow(
@@ -234,4 +240,6 @@ public sealed record UsageOperationRankedRow(
     int ErrorCount,
     int UnknownCount,
     bool OutcomesAvailable,
-    OpaqueAttributionKey? SessionKey = null);
+    OpaqueAttributionKey? SessionKey = null,
+    AttributionCapability? Capability = null,
+    long? ConsentEpoch = null);

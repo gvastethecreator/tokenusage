@@ -335,6 +335,7 @@
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
   <data name="LocalUsageAgentZcode" xml:space="preserve"><value>ZCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:N2} USD</value></data>
+  <data name="LocalUsageUsdTinyFormat" xml:space="preserve"><value>{0} USD</value></data>
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
   <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="ProviderStatusSectionDescription.Content" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
@@ -804,11 +805,21 @@
   <data name="UsageReportSummaryCostLabel.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Provider-reported cost plus catalog estimates. Unpriced usage is excluded. This is not a bill.</value></data>
   <data name="UsageReportSummaryCoverageLabel.Text" xml:space="preserve"><value>PRICED TOKENS</value></data>
   <data name="UsageReportSummaryCoverageLabel.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Tokens with a known or reported price. 0% means no price is available, not free usage.</value></data>
-  <data name="UsageOverviewReportedLabel" xml:space="preserve"><value>REPORTED VALUE</value></data>
-  <data name="UsageOverviewEstimatedLabel" xml:space="preserve"><value>ESTIMATED API VALUE</value></data>
-  <data name="UsageOverviewUnpricedLabel" xml:space="preserve"><value>UNPRICED TOKENS</value></data>
+  <data name="UsageOverviewReportedLabel.Text" xml:space="preserve"><value>REPORTED VALUE</value></data>
+  <data name="UsageOverviewEstimatedLabel.Text" xml:space="preserve"><value>ESTIMATED API VALUE</value></data>
+  <data name="UsageOverviewUnpricedLabel.Text" xml:space="preserve"><value>UNPRICED TOKENS</value></data>
   <data name="UsageOverviewUnpricedDetail" xml:space="preserve"><value>Tokens without a reported or estimated price. This is not free usage.</value></data>
+  <data name="UsageOverviewUnpricedCoverageFormat" xml:space="preserve"><value>{0} unpriced, not free</value></data>
   <data name="UsageOverviewPerSessionFormat" xml:space="preserve"><value>Attributed selected value / attributed sessions: {0}</value></data>
+  <data name="UsageOverviewAttributedReportedPerSessionFormat" xml:space="preserve"><value>Attributed reported value per attributed session: {0}</value></data>
+  <data name="UsageOverviewAttributedEstimatedPerSessionFormat" xml:space="preserve"><value>Attributed estimated value per attributed session: {0}</value></data>
+  <data name="UsageOverviewCostDetails.Content" xml:space="preserve"><value>Reported and estimated</value></data>
+  <data name="UsageOverviewCostDetailsLabel.Text" xml:space="preserve"><value>Reported and estimated</value></data>
+  <data name="UsageOverviewCostDetailsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reported and estimated</value></data>
+  <data name="UsageOverviewPartialWarningDetails.Content" xml:space="preserve"><value>Measurement details</value></data>
+  <data name="UsageOverviewNotLoaded" xml:space="preserve"><value>Not loaded</value></data>
+  <data name="UsageOverviewCacheNotLoadedDetail" xml:space="preserve"><value>Needs retained detail. This is not a request hit rate.</value></data>
+  <data name="UsageOverviewCacheUnavailable" xml:space="preserve"><value>No eligible input for measured-input cache share. This is not a request hit rate.</value></data>
   <data name="UsageOverviewSessionsLabel" xml:space="preserve"><value>KNOWN SESSIONS</value></data>
   <data name="UsageOverviewSessionsDisabled" xml:space="preserve"><value>Session attribution is off. This is not a measured count of zero sessions.</value></data>
   <data name="UsageOverviewSessionsNone" xml:space="preserve"><value>No attributed sessions in this selection. Unassigned usage stays outside that count.</value></data>
@@ -817,6 +828,7 @@
   <data name="UsageOverviewCacheUnknown" xml:space="preserve"><value>Load measurement details to compute measured-input cache share. This is not a request hit rate.</value></data>
   <data name="UsageOverviewCallsLabel" xml:space="preserve"><value>CALLS</value></data>
   <data name="UsageOverviewCallsUnavailable" xml:space="preserve"><value>Request counts are unavailable until request finality is established. Observation counts are not calls.</value></data>
+  <data name="UsageOverviewSkillsLabel" xml:space="preserve"><value>Skills</value></data>
   <data name="UsageOverviewNoticeDisabled" xml:space="preserve"><value>Session attribution is disabled. Known-session counts are unavailable rather than zero.</value></data>
   <data name="UsageOverviewOtherProjectsFormat" xml:space="preserve"><value>Other ({0} projects)</value></data>
   <data name="UsageOverviewUnassignedProject" xml:space="preserve"><value>Unassigned</value></data>
@@ -891,11 +903,41 @@
   <data name="AttributionBackfillFailed" xml:space="preserve"><value>The backfill could not finish. Numeric usage was not deleted.</value></data>
   <data name="UsageExplorerOpenSessions.Content" xml:space="preserve"><value>Open sessions</value></data>
   <data name="UsageExplorerOpenOperations.Content" xml:space="preserve"><value>Open tools and MCP</value></data>
+  <data name="UsageExplorerOpenOperationsLabel" xml:space="preserve"><value>Open tools and MCP</value></data>
   <data name="UsageExplorerCloseOperations.Content" xml:space="preserve"><value>Back to model</value></data>
   <data name="UsageExplorerOpenOperationSession.Content" xml:space="preserve"><value>Open linked session</value></data>
-  <data name="UsageExplorerOperationsHeading.Text" xml:space="preserve"><value>Operations for this model</value></data>
+  <data name="UsageExplorerOperationsForModelHeading" xml:space="preserve"><value>Operations for this model</value></data>
+  <data name="UsageExplorerOperationsForProjectHeading" xml:space="preserve"><value>Operations for this project</value></data>
+  <data name="UsageExplorerOperationsForSessionHeading" xml:space="preserve"><value>Operations for this session</value></data>
+  <data name="UsageExplorerOperationsUnlinkedHeading" xml:space="preserve"><value>Operations without a session link</value></data>
+  <data name="UsageExplorerOperationsUnprovedHeading" xml:space="preserve"><value>Operations in this selection</value></data>
+  <data name="UsageExplorerOperationsMixedHeading" xml:space="preserve"><value>Operations not proved for this model</value></data>
+  <data name="UsageExplorerOperationsMixedProjectHeading" xml:space="preserve"><value>Operations in mixed or incompletely attributed sessions</value></data>
+  <data name="UsageExplorerOperationsLegacyUnrecoveredHeading" xml:space="preserve"><value>Legacy operations with unrecovered identity</value></data>
+  <data name="UsageExplorerOperationsLegacyUnrecoveredNotice" xml:space="preserve"><value>Older operation rows without a recovered source identity are listed separately. They are not included in the exact combined invocation count until an explicit backfill matches them.</value></data>
+  <data name="UsageExplorerOpenUnlinkedOperations.Content" xml:space="preserve"><value>Open operations without a session link</value></data>
+  <data name="UsageExplorerProjectsForModelHeading" xml:space="preserve"><value>Projects for this model</value></data>
+  <data name="UsageExplorerProjectsUnprovedHeading" xml:space="preserve"><value>Projects in this selection</value></data>
   <data name="UsageExplorerOperations.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Operations for this model</value></data>
+  <data name="UsageExplorerFilesWorkflowNote" xml:space="preserve"><value>File rows are invocation counts by opaque file identity. First-edit latency is unavailable without a proved task start. Verification-separated repeats count an admitted test-family operation between ordered edits of the same opaque file. Concurrent or unorderable pairs are excluded. This is not a quality or success score.</value></data>
   <data name="UsageExplorerOperationsDerivedNote" xml:space="preserve"><value>Command families are derived from the executable name only. Arguments, paths, and command text are not stored. Unknown syntax stays Unknown. This is not a productivity score.</value></data>
+  <data name="UsageExplorerDerivedActivityHeading.Text" xml:space="preserve"><value>Derived activity</value></data>
+  <data name="UsageExplorerDerivedActivityNote" xml:space="preserve"><value>derived-activity/v1 partitions admitted operations into edit, read, test, delegate, or Unknown. Prompt text is not classified. Cost by category is unavailable. This is not a productivity score.</value></data>
+  <data name="UsageExplorerDerivedActivityEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="UsageExplorerDerivedActivityRead" xml:space="preserve"><value>Read / search</value></data>
+  <data name="UsageExplorerDerivedActivityTest" xml:space="preserve"><value>Test</value></data>
+  <data name="UsageExplorerDerivedActivityDelegate" xml:space="preserve"><value>Delegation</value></data>
+  <data name="UsageExplorerDerivedActivityUnknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="UsageExplorerDerivedActivityCountFormat" xml:space="preserve"><value>{0} operations</value></data>
+  <data name="UsageExplorerDerivedActivityReturn.Content" xml:space="preserve"><value>Show all operations</value></data>
+  <data name="UsageExplorerWorkflowHeading.Text" xml:space="preserve"><value>Workflow indicators</value></data>
+  <data name="UsageExplorerWorkflowFirstEdit" xml:space="preserve"><value>First-edit latency</value></data>
+  <data name="UsageExplorerWorkflowFirstEditUnavailable" xml:space="preserve"><value>Unavailable. No proved task start is retained. RequestFinal is not used as a substitute.</value></data>
+  <data name="UsageExplorerWorkflowSameFile" xml:space="preserve"><value>Same-file verification-separated edits</value></data>
+  <data name="UsageExplorerWorkflowExcluded" xml:space="preserve"><value>Excluded concurrent order</value></data>
+  <data name="UsageExplorerWorkflowIncomplete" xml:space="preserve"><value>Incomplete unproved order</value></data>
+  <data name="UsageExplorerWorkflowCountFormat" xml:space="preserve"><value>{0} observed</value></data>
+  <data name="UsageExplorerWorkflowReturn.Content" xml:space="preserve"><value>Show all operations</value></data>
   <data name="UsageExplorerOperationCountFormat" xml:space="preserve"><value>{0} invocations</value></data>
   <data name="UsageExplorerOperationOutcomeFormat" xml:space="preserve"><value>{0} succeeded · {1} failed · {2} unknown</value></data>
   <data name="UsageExplorerOperationOutcomeUnavailable" xml:space="preserve"><value>Outcomes are unavailable. Invocation count is still measured.</value></data>
@@ -975,6 +1017,7 @@
   <data name="UsageComparisonCatalogValue" xml:space="preserve"><value>Catalog value on comparable usage</value></data>
   <data name="UsageComparisonFixedCohortNotApplicable" xml:space="preserve"><value>Not applicable — fixed cohort</value></data>
   <data name="UsageReportResetLogTitle.Text" xml:space="preserve"><value>Recorded resets</value></data>
+  <data name="UsageReportResetLogExpander.Header" xml:space="preserve"><value>Recorded resets</value></data>
   <data name="UsageReportResetLogEmpty.Text" xml:space="preserve"><value>No recorded resets in this range.</value></data>
   <data name="UsageReportResetLogAllQuotas" xml:space="preserve"><value>All quotas</value></data>
   <data name="UsageReportResetLogAllClasses" xml:space="preserve"><value>All classes</value></data>
@@ -1037,7 +1080,7 @@
   <data name="UsageComparisonUnknownConfiguration" xml:space="preserve"><value>Unknown</value></data>
   <data name="UsageComparisonDescriptive" xml:space="preserve"><value>Descriptive; not a quality comparison</value></data>
   <data name="UsageComparisonInferredBoundary" xml:space="preserve"><value>Cycle start is inferred from the schedule or first reading, not an evidenced reset time.</value></data>
-  <data name="UsageComparisonFreshnessUnknown" xml:space="preserve"><value>Collection freshness was not recorded for this history.</value></data>
+  <data name="UsageComparisonFreshnessUnknown" xml:space="preserve"><value>Collection freshness unknown.</value></data>
   <data name="UsageComparisonFreshnessFormat" xml:space="preserve"><value>{0}: last collection attempt {1} · {2} ({3}). A complete scan is not complete account coverage.</value></data>
   <data name="UsageComparisonCycleProvider" xml:space="preserve"><value>Codex · Reset cycles</value></data>
   <data name="UsageComparisonCycleCount.PlaceholderText" xml:space="preserve"><value>Cycles</value></data>
@@ -1126,7 +1169,7 @@
   <data name="UsageMeasurementScope" xml:space="preserve"><value>Providers</value></data>
   <data name="UsageExplanationTitle" xml:space="preserve"><value>Report explanations</value></data>
   <data name="UsageExplanationTitleText.Text" xml:space="preserve"><value>Report explanations</value></data>
-  <data name="UsageExplanationLoad.Content" xml:space="preserve"><value>Load retained detail</value></data>
+  <data name="UsageExplanationLoad.Content" xml:space="preserve"><value>Load details</value></data>
   <data name="UsageExplanationEvidence.Content" xml:space="preserve"><value>Inspect evidence</value></data>
   <data name="UsageExplanationBreakdown.Content" xml:space="preserve"><value>Inspect model breakdown</value></data>
   <data name="UsageExplanationReturn.Content" xml:space="preserve"><value>Back to explanations</value></data>
@@ -1184,7 +1227,16 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerClear.Content" xml:space="preserve"><value>Clear filters</value></data>
   <data name="UsageExplorerSearch.PlaceholderText" xml:space="preserve"><value>Search tool, host or model ID</value></data>
   <data name="UsageExplorerSearch.AutomationProperties.Name" xml:space="preserve"><value>Search report models</value></data>
-  <data name="UsageExplorerSearchHint.Text" xml:space="preserve"><value>Filters and search update totals, charts and rows together. Search matches stored IDs, not conversations.</value></data>
+  <data name="UsageExplorerSearch.Description" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
+  <data name="UsageExplorerSearchHint.Text" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
+  <data name="UsageExplorerAdvancedFilters.Header" xml:space="preserve"><value>Advanced filters</value></data>
+  <data name="UsageExplorerClearHidden.Content" xml:space="preserve"><value>Clear hidden filters</value></data>
+  <data name="UsageExplorerSourceDetails.Content" xml:space="preserve"><value>Source details</value></data>
+  <data name="UsageExplorerSearchContextFormat" xml:space="preserve"><value>Search: {0}</value></data>
+  <data name="UsageExplorerHiddenHostFormat" xml:space="preserve"><value>Host: {0}</value></data>
+  <data name="UsageExplorerHiddenObservedFormat" xml:space="preserve"><value>Observed model: {0}</value></data>
+  <data name="UsageExplorerHiddenEffortFormat" xml:space="preserve"><value>Effort: {0}</value></data>
+  <data name="UsageExplorerHiddenTierFormat" xml:space="preserve"><value>Tier: {0}</value></data>
   <data name="UsageExplorerCloseDetail.Content" xml:space="preserve"><value>Close detail</value></data>
   <data name="UsageExplorerEvidence.Content" xml:space="preserve"><value>Selection evidence</value></data>
   <data name="UsageExplorerBackToModel.Content" xml:space="preserve"><value>Back to model</value></data>
@@ -1248,4 +1300,65 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageReportTimeDetailsUnavailable" xml:space="preserve"><value>Time-of-day detail is unavailable for this selection or saved snapshot. Choose a daily chart to view recorded usage.</value></data>
   <data name="UsageReportNoTimestampedUsage" xml:space="preserve"><value>No measured time-of-day usage is available in this selection.</value></data>
   <data name="UsageReportTimeDetailsNotLoaded" xml:space="preserve"><value>Time-of-day detail has not been loaded for this report. Timing coverage is unknown until supported detail is loaded. Live two-hour charts load this detail on demand.</value></data>
+  <data name="UsageExplorerEmptyClear.Content" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="UsageExplorerConfigurationLoading" xml:space="preserve"><value>Loading retained configurations…</value></data>
+  <data name="UsageExplorerConfigurationEmpty.Text" xml:space="preserve"><value>No observed configurations in this selection. Totals above are unchanged.</value></data>
+  <data name="UsageExplorerSourceWarning.Title" xml:space="preserve"><value>Source status needs attention</value></data>
+  <data name="UsageExplorerContextOverview" xml:space="preserve"><value>Overview</value></data>
+  <data name="UsageExplorerContextProjects" xml:space="preserve"><value>Projects</value></data>
+  <data name="UsageExplorerContextSessions" xml:space="preserve"><value>Sessions</value></data>
+  <data name="UsageExplorerContextOperations" xml:space="preserve"><value>Operations</value></data>
+  <data name="UsageExplorerContextPath.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Detail context</value></data>
+  <data name="UsageReportChartGroupingCombined" xml:space="preserve"><value>Combined</value></data>
+  <data name="UsageReportChartGroupingProvider" xml:space="preserve"><value>By provider</value></data>
+  <data name="UsageReportChartGroupingModel" xml:space="preserve"><value>By model</value></data>
+  <data name="UsageReportCostShareDenominator" xml:space="preserve"><value>Share of known usage cost in this selection. Unpriced rows stay unlabeled as $0.</value></data>
+  <data name="UsageReportTokenShareDenominator" xml:space="preserve"><value>Share of tokens in this selection.</value></data>
+  <data name="UsageReportOpenRowDetail" xml:space="preserve"><value>Open detail</value></data>
+  <data name="UsageExplorerDerivedActivityMethodFormat" xml:space="preserve"><value>Method {0}; unit {1}. Counts are invocations, not model requests.</value></data>
+  <data name="UsageExplorerWorkflowEvidenceHeading.Text" xml:space="preserve"><value>Contributing sequence</value></data>
+  <data name="UsageExplorerEvidenceTimeUnknown" xml:space="preserve"><value>Time unknown</value></data>
+  <data name="UsageExplorerEvidenceOutcomeSuccess" xml:space="preserve"><value>Completed</value></data>
+  <data name="UsageExplorerEvidenceOutcomeError" xml:space="preserve"><value>Failed</value></data>
+  <data name="UsageExplorerEvidenceOutcomeUnknown" xml:space="preserve"><value>Outcome unknown</value></data>
+  <data name="UsageExplorerEvidenceSessionUnknown" xml:space="preserve"><value>Session unknown</value></data>
+  <data name="UsageExplorerEvidenceLinkedSession" xml:space="preserve"><value>Linked session</value></data>
+  <data name="UsageExplorerEvidenceLinkedSessionFormat" xml:space="preserve"><value>Linked session {0}</value></data>
+  <data name="UsageExplorerEvidenceSequence.Text" xml:space="preserve"><value>Seq</value></data>
+  <data name="UsageExplorerEvidenceTime.Text" xml:space="preserve"><value>Time</value></data>
+  <data name="UsageExplorerEvidenceKind.Text" xml:space="preserve"><value>Type</value></data>
+  <data name="UsageExplorerEvidenceTool.Text" xml:space="preserve"><value>Tool</value></data>
+  <data name="UsageExplorerEvidenceOutcome.Text" xml:space="preserve"><value>Outcome</value></data>
+  <data name="UsageExplorerEvidenceSession.Text" xml:space="preserve"><value>Session</value></data>
+  <data name="UsageComparisonLiveState" xml:space="preserve"><value>Live data</value></data>
+  <data name="UsageComparisonSavedState" xml:space="preserve"><value>Saved revision. Refresh cannot change these values.</value></data>
+  <data name="UsageComparisonCoverageFormat" xml:space="preserve"><value>Priced coverage A {0} · B {1}</value></data>
+  <data name="UsageComparisonCatalogDatesFormat" xml:space="preserve"><value>Catalog dates: A {0}; B {1}. These are not usage dates.</value></data>
+  <data name="UsageComparisonAdvanced.Header" xml:space="preserve"><value>Pricing scenario and catalog dates</value></data>
+  <data name="UsageComparisonUsageDatesLabel.Text" xml:space="preserve"><value>Usage dates</value></data>
+  <data name="UsageComparisonUsageRangeFormat" xml:space="preserve"><value>{0} to {1}</value></data>
+  <data name="UsageComparisonUsageRangesFormat" xml:space="preserve"><value>A {0} · B {1}</value></data>
+  <data name="UsageComparisonResultCaptureFormat" xml:space="preserve"><value>{0}: {1}, {2}. {3}: {4}, {5}. {6}. {7}</value></data>
+  <data name="UsageReportCompactSortField.Header" xml:space="preserve"><value>Sort</value></data>
+  <data name="UsageReportCompactSortName" xml:space="preserve"><value>Name</value></data>
+  <data name="UsageReportCompactSortCost" xml:space="preserve"><value>Known usage cost</value></data>
+  <data name="UsageReportCompactSortTokens" xml:space="preserve"><value>Tokens</value></data>
+  <data name="UsageReportCompactSortShare" xml:space="preserve"><value>Share</value></data>
+  <data name="UsageReportCompactSortCoverage" xml:space="preserve"><value>Priced tokens</value></data>
+  <data name="UsageReportCompactSortEvents" xml:space="preserve"><value>Events</value></data>
+  <data name="UsageReportCompactSortDate" xml:space="preserve"><value>Day</value></data>
+  <data name="UsageReportCompactSortReported" xml:space="preserve"><value>Reported</value></data>
+  <data name="UsageReportCompactSortEstimated" xml:space="preserve"><value>Estimated</value></data>
+  <data name="UsageReportCompactSortSessions" xml:space="preserve"><value>Sessions</value></data>
+  <data name="UsageReportCompactSortActiveDays" xml:space="preserve"><value>Active days</value></data>
+  <data name="UsageReportCompactSortUnpriced" xml:space="preserve"><value>Unpriced tokens</value></data>
+  <data name="UsageReportCompactTokensFormat" xml:space="preserve"><value>Tokens {0}</value></data>
+  <data name="UsageReportCompactCostFormat" xml:space="preserve"><value>Known usage cost {0}</value></data>
+  <data name="UsageReportCompactTokenShareFormat" xml:space="preserve"><value>Token share {0}</value></data>
+  <data name="UsageReportCompactCostShareFormat" xml:space="preserve"><value>Known-cost share {0}</value></data>
+  <data name="UsageReportCompactCoverageFormat" xml:space="preserve"><value>Priced tokens {0}</value></data>
+  <data name="UsageReportCompactEventsFormat" xml:space="preserve"><value>Events {0}</value></data>
+  <data name="UsageReportCompactReportedFormat" xml:space="preserve"><value>Reported {0}</value></data>
+  <data name="UsageReportCompactEstimatedFormat" xml:space="preserve"><value>Estimated {0}</value></data>
+  <data name="UsageReportCompactSessionsFormat" xml:space="preserve"><value>Sessions {0}</value></data>
 </root>

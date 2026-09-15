@@ -52,7 +52,7 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             .Select(style => new ReportChartStyleOption(style, _getString("ReportChartStyle" + style)))
             .ToArray();
         SelectedReportChartStyle = ReportChartStyleOptions.Single(option => option.Value == ReportChartStyle.Bars);
-        SelectedReportChartGrouping = ReportChartGrouping.Provider;
+        SelectedReportChartGrouping = ReportChartGrouping.Combined;
         TrayPopoverPrimaryOptions = CreateTrayMetricOptions(includeNone: false);
         TrayPopoverSecondaryOptions = CreateTrayMetricOptions(includeNone: true);
         TrayPopoverProviderCountOptions = Enumerable

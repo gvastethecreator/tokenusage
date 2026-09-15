@@ -49,6 +49,15 @@ public sealed partial class UsageReportViewModel
                 : DescribeConfiguration(_report));
         Add("UsageMeasurementCost", GetString(IsCompareRatesAxis && UsageComparison.UsesFixedCohortRows(ActiveRateMethodId)
             ? "UsageComparisonRatesCostEvidence" : "UsageComparisonCostEvidence"));
+        if (Overview is not null)
+        {
+            Add("UsageOverviewCallsLabel", OverviewCallsUnavailableText);
+            Add("UsageOverviewSkillsLabel", GetString("UsageOverviewSkillsUnavailable"));
+            if (Overview.CacheShareAvailability == UsageOverviewFactKind.Measured)
+            {
+                Add("UsageOverviewCacheShareLabel", Overview.CacheShareMethod);
+            }
+        }
 
         UsageCollectionState[] collection = _report.CollectionState.Concat(_compareRightReport.CollectionState)
             .DistinctBy(row => row.AgentId).ToArray();
@@ -79,7 +88,18 @@ public sealed partial class UsageReportViewModel
                         group.Key.Success, group.Key.Attempt)));
         sections.Add(new(GetString("UsageMeasurementCollection"), collectionDetails, collectionSummary));
         ExplorerCollectionSummary = GetString("UsageMeasurementStoredData") + " " + collectionSummary;
+        ExplorerSourceStatus = collectionSummary;
+        HasExplorerSourceWarning = collection.Any(row =>
+            row.Status != UsageSourceReadStatus.Complete
+            || row.Issue is UsageSourceIssueKind.UnresolvedHistory
+                or UsageSourceIssueKind.ReadFailed
+                or UsageSourceIssueKind.PartialScan
+                or UsageSourceIssueKind.RootUnavailable
+                or UsageSourceIssueKind.AccessBlocked);
         OnPropertyChanged(nameof(ExplorerCollectionSummary));
+        OnPropertyChanged(nameof(ExplorerSourceStatus));
+        OnPropertyChanged(nameof(HasExplorerSourceWarning));
+        OnPropertyChanged(nameof(HasExplorerSourceOk));
         if (_report.HasTimingGaps || _compareRightReport.HasTimingGaps
             || IsCompareCyclesAxis && _cycleReports.Any(entry => entry.Report.HasTimingGaps))
             Add("UsageMeasurementTiming", GetString("UsageComparisonTimingGaps"));

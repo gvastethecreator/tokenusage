@@ -165,6 +165,48 @@ purged facts. Codex DynamicToolCall names are allowlisted to `Read` and `Edit`.
 Command families are derived transiently from argv and stored as a family label
 only. File rows store an HMAC of a normalized path, never the path.
 
+Schema 12 adds nullable `operation_fact.source_instance`. New opaque operation
+keys include the collector's source authority in HMAC material, so two homes
+with the same provider `call_id` stay distinct. Opening a schema-11 database
+adds the column as NULL and keeps admitted history. A later observation that
+carries the recovered unnamed-authority key deletes that NULL row in the same
+transaction before inserting the authority-scoped key, so one logical call
+stays one invocation. Two genuine source authorities still count two. When a
+NULL-authority row and a named-authority row coexist without that recovered
+key, Reports does not treat their sum as an exact combined count: named rows
+are the exact population, and the unrecovered legacy rows are listed separately
+until an explicit backfill matches them. Unique identity remains
+`operation_key`. Capability purge remains available when identity cannot be
+recovered.
+
+Reports derives `derived-activity/v1` at query time from admitted operation facts.
+The counting unit is ranking invocations after `GROUP BY kind, tool, server`, not
+distinct `operation_key` rows. The partition is exclusive: edit (file or
+allowlisted Edit), read/search (allowlisted Read or search family), test (test
+family), delegate (spawn), and Unknown. MCP, generic shell, and Skill (if it
+ever appeared) are Unknown. Prompt text is not classified. Cost by category is
+unavailable. Category evidence is the ranked rows whose `Classify` matches that
+bucket; mixed and proved ranking rows are disjoint and both are included.
+`workflow-indicators/v1` counts
+same-file verification-separated edits when a completed admitted test-family
+operation sits strictly between two completed ordered edits of the same opaque
+file identity. A missing end is incomplete, not a zero-duration completion.
+Failed verifications with a proved end still count. Concurrent completed pairs
+are excluded; file/file and edit/test exclusions are stored separately so a
+revoked commands permission cannot keep a joint count. Clicking that indicator
+opens the contributing event sequence (the two edits and the between test),
+not every test-family ranking row or every session that touched the file.
+Frozen workflow counts carry the files/commands consent epochs internally and
+drop joint fields when either epoch is revoked or replaced. First-edit latency
+stays unavailable: no proved task start is retained, and RequestFinal is not used as a
+substitute. Both method versions are
+written on frozen snapshots; they are not stored in SQLite. CSV and HTML export
+the same method, unit, category counts, eligible/excluded populations and
+unavailable reasons as JSON. Operation navigation reuses the opened
+project/session/model scope for ranking, timeline, derived activity, workflow
+and export. Explicit operational backfill replays the unchanged prefix even
+when the log has grown, then scans the new suffix; ordinary refresh does not.
+
 The retained-detail query also provides `measured-input-cache-share/v1`. Its
 numerator is measured cache-read tokens; its denominator is measured input plus
 cache-read plus cache-write tokens. All three components must be measured for a

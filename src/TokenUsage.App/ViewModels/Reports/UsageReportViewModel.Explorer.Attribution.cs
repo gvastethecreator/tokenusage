@@ -9,7 +9,12 @@ public sealed partial class UsageReportViewModel
 {
     public async Task OpenProjectsAsync()
     {
-        if (DetailModel is not { } row || _attributionConsent is null)
+        if (_attributionConsent is null)
+        {
+            return;
+        }
+
+        if (!_projectsFromOverview && DetailModel is null)
         {
             return;
         }
@@ -23,6 +28,12 @@ public sealed partial class UsageReportViewModel
         long consentGeneration = _consentGeneration;
         CancellationToken token = _selectionCancellation?.Token ?? CancellationToken.None;
         UsageDetailSelection detail = CurrentDetailSelection();
+        bool omitModel = _projectsFromOverview;
+        AgentId? agentId = omitModel
+            ? ExplorerSelection().Agents.Count == 1 ? ExplorerSelection().Agents[0] : new AgentId("codex")
+            : DetailModel is { } selected ? new AgentId(selected.ProviderId) : new AgentId("codex");
+        ModelProviderId? host = omitModel ? null : DetailModel?.ModelProviderId is { } hostId ? new ModelProviderId(hostId) : null;
+        ModelId? model = omitModel ? null : DetailModel is { } row ? new ModelId(row.ModelId) : null;
         IReadOnlyList<UsageProjectContribution> contributions = await RunReportWorkAsync(async () =>
         {
             AttributionConsent consent = await _attributionConsent
@@ -35,9 +46,9 @@ public sealed partial class UsageReportViewModel
                 StartDate,
                 EndDate,
                 epoch,
-                new AgentId(row.ProviderId),
-                row.ModelProviderId is { } host ? new ModelProviderId(host) : null,
-                new ModelId(row.ModelId),
+                agentId,
+                host,
+                model,
                 detail,
                 token).ConfigureAwait(false);
             AttributionConsent published = await _attributionConsent
@@ -56,6 +67,9 @@ public sealed partial class UsageReportViewModel
         HasOperations = false;
         DetailProject = null;
         ProjectDetailValues = string.Empty;
+        ProjectsHeading = omitModel
+            ? GetString("UsageExplorerProjectsUnprovedHeading")
+            : GetString("UsageExplorerProjectsForModelHeading");
         OnPropertyChanged(nameof(ProjectRows));
         OnPropertyChanged(nameof(HasProjects));
         OnPropertyChanged(nameof(HasSessions));
@@ -66,15 +80,21 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(DetailProject));
         OnPropertyChanged(nameof(ProjectDetailValues));
         OnPropertyChanged(nameof(CanOpenOperations));
+        OnPropertyChanged(nameof(ProjectsHeading));
+        OnPropertyChanged(nameof(IsOverviewProjectNavigation));
+        NotifyExplorerContextPath();
     }
 
     public void CloseProjects()
     {
         _returnToProjects = false;
+        _projectsFromOverview = false;
+        _overviewProjectReturnId = null;
         HasProjects = false;
         DetailProject = null;
         ProjectRows = [];
         ProjectDetailValues = string.Empty;
+        ProjectsHeading = string.Empty;
         OnPropertyChanged(nameof(ProjectRows));
         OnPropertyChanged(nameof(HasProjects));
         OnPropertyChanged(nameof(HasProjectDetail));
@@ -84,6 +104,10 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(CanOpenProjects));
         OnPropertyChanged(nameof(HasModelDetail));
         OnPropertyChanged(nameof(CanOpenOperations));
+        OnPropertyChanged(nameof(ProjectsHeading));
+        OnPropertyChanged(nameof(IsOverviewProjectNavigation));
+        OnPropertyChanged(nameof(OverviewProjectReturnId));
+        NotifyExplorerContextPath();
     }
 
     public void OpenProjectDetail(string? projectKey)
@@ -99,6 +123,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(CanOpenSessions));
         OnPropertyChanged(nameof(ProjectAliasDraft));
         OnPropertyChanged(nameof(CanSaveProjectAlias));
+        NotifyExplorerContextPath();
     }
 
     public async Task OpenProjectSessionsAsync(string? projectKey)
@@ -293,36 +318,90 @@ public sealed partial class UsageReportViewModel
             return snapshot;
         }
 
-        (IReadOnlyList<UsageSessionContribution> sessions, IReadOnlyList<UsageProjectContribution> projects) =
-            await RunReportWorkAsync(() => LoadExportPopulationsAsync(token), token).ConfigureAwait(true);
-        IReadOnlyList<UsageOperationRankedRow> operations = await RunReportWorkAsync(async () =>
+        long generation = _selectionGeneration;
+        AgentId? agentId = IsProviderScope && SelectedProvider is { } provider
+            ? new AgentId(provider.ProviderId)
+            : ExplorerSelection().Agents.Count == 1 ? ExplorerSelection().Agents[0] : null;
+        UsageReportSnapshotV2.Document? assembled = null;
+        UsageDataRevision? loadedRevision = _report.DataRevision;
+        for (int attempt = 0; attempt < 4; attempt++)
         {
-            var rows = new List<UsageOperationRankedRow>();
-            if (!File.Exists(_databasePath))
+            if (_disposed || generation != _selectionGeneration)
             {
-                return rows;
+                break;
             }
 
             UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(_databasePath, token)
                 .ConfigureAwait(false);
-            DateTimeOffset from = new(StartDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-            DateTimeOffset to = new(EndDate.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-            await AddCapabilityRankingAsync(repository, AttributionCapability.CodexMcp, from, to, rows, token)
-                .ConfigureAwait(false);
-            await AddCapabilityRankingAsync(repository, AttributionCapability.CodexSkills, from, to, rows, token)
-                .ConfigureAwait(false);
-            await AddCapabilityRankingAsync(repository, AttributionCapability.CodexCommands, from, to, rows, token)
-                .ConfigureAwait(false);
-            await AddCapabilityRankingAsync(repository, AttributionCapability.CodexFiles, from, to, rows, token)
-                .ConfigureAwait(false);
-            return rows;
-        }, token).ConfigureAwait(true);
-        return snapshot with
-        {
-            Sessions = UsageReportSnapshotV2.MapSessions(sessions),
-            Projects = UsageReportSnapshotV2.MapProjects(projects),
-            Operations = operations is { Count: > 0 } ? UsageReportSnapshotV2.MapOperations(operations) : null,
-        };
+            UsageDataRevision start = await repository.ReadDataRevisionAsync(token).ConfigureAwait(false);
+            if (loadedRevision is { } loaded && start != loaded)
+            {
+                continue;
+            }
+
+            (IReadOnlyList<UsageSessionContribution> sessions, IReadOnlyList<UsageProjectContribution> projects) =
+                await LoadExportPopulationsAsync(token).ConfigureAwait(false);
+            IReadOnlyList<UsageOperationRankedRow> operations = [];
+            IReadOnlyList<UsageOperationRankedRow> mixedOperations = [];
+            OperationCohort cohort = EmptyCohort(HasOperations ? _activeOperationScope : CurrentOperationScope());
+            AttributionConsent? filesConsent = null;
+            AttributionConsent? commandsConsent = null;
+            if (IncludesCodexOperationsForExport(agentId))
+            {
+                cohort = await LoadOperationCohortAsync(
+                    HasOperations ? _activeOperationScope : CurrentOperationScope(),
+                    token).ConfigureAwait(false);
+                if (cohort.Scope.Kind == OperationScopeKind.Project)
+                {
+                    operations = cohort.Proved;
+                    mixedOperations = cohort.Mixed;
+                }
+                else
+                {
+                    operations = cohort.Proved.Concat(cohort.Mixed).ToArray();
+                }
+
+                filesConsent = await _attributionConsent
+                    .LoadAsync(AttributionCapability.CodexFiles, token)
+                    .ConfigureAwait(false);
+                commandsConsent = await _attributionConsent
+                    .LoadAsync(AttributionCapability.CodexCommands, token)
+                    .ConfigureAwait(false);
+            }
+
+            UsageDataRevision end = await repository.ReadDataRevisionAsync(token).ConfigureAwait(false);
+            if (start == end
+                && generation == _selectionGeneration
+                && (loadedRevision is null || start == loadedRevision))
+            {
+                assembled = CreateCanonicalSnapshot() with
+                {
+                    DataRevision = new UsageReportSnapshotV2.Revision(
+                        start.Sequence.ToString(CultureInfo.InvariantCulture),
+                        start.DatabaseId),
+                    Sessions = UsageReportSnapshotV2.MapSessions(sessions),
+                    Projects = UsageReportSnapshotV2.MapProjects(projects),
+                    Operations = operations is { Count: > 0 } ? UsageReportSnapshotV2.MapOperations(operations) : null,
+                    MixedOperations = mixedOperations is { Count: > 0 }
+                        ? UsageReportSnapshotV2.MapOperations(mixedOperations, "m")
+                        : null,
+                    DerivedActivity = operations is { Count: > 0 }
+                        ? UsageReportSnapshotV2.MapDerivedActivity(operations)
+                        : null,
+                    Workflow = operations is { Count: > 0 }
+                        ? UsageReportSnapshotV2.MapWorkflow(
+                            UsageWorkflowIndicators.Evaluate(cohort.Timeline),
+                            filesConsent?.AllowsLinks == true ? filesConsent.Epoch : null,
+                            commandsConsent?.AllowsLinks == true ? commandsConsent.Epoch : null)
+                        : null,
+                };
+                break;
+            }
+        }
+
+        assembled ??= CreateCanonicalSnapshot();
+        return await UsageAttributionExport.RecheckConsentAsync(assembled, _attributionConsent, token)
+            .ConfigureAwait(false);
     }
 
     public Task<UsageReportSnapshotV2.Document> FinalizeExportSnapshotAsync(
@@ -561,6 +640,19 @@ public sealed partial class UsageReportViewModel
         SessionRows = [];
         ProjectRows = [];
         OperationRows = [];
+        MixedOperationRows = [];
+        _allOperationRows = [];
+        _allMixedOperationRows = [];
+        _operationEvidenceFilter = null;
+        DerivedActivityRows = [];
+        DerivedActivityNote = string.Empty;
+        HasDerivedActivityReturn = false;
+        WorkflowRows = [];
+        HasWorkflowReturn = false;
+        _workflowContributingEvents = [];
+        _hasUnlinkedOperations = false;
+        _legacyUnreconciled = false;
+        _activeOperationScope = OperationLoadScope.Global;
         _distributionOutlierSessionKey = null;
         SessionDetailValues = string.Empty;
         ProjectDetailValues = string.Empty;
@@ -573,6 +665,8 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(SessionRows));
         OnPropertyChanged(nameof(ProjectRows));
         OnPropertyChanged(nameof(OperationRows));
+        OnPropertyChanged(nameof(MixedOperationRows));
+        OnPropertyChanged(nameof(HasMixedOperations));
         OnPropertyChanged(nameof(HasSessionDetail));
         OnPropertyChanged(nameof(HasProjectDetail));
         OnPropertyChanged(nameof(HasOperationDetail));
@@ -581,6 +675,14 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasSkillsAvailabilityNotice));
         OnPropertyChanged(nameof(OperationsDerivedNote));
         OnPropertyChanged(nameof(HasOperationsDerivedNote));
+        OnPropertyChanged(nameof(DerivedActivityRows));
+        OnPropertyChanged(nameof(HasDerivedActivity));
+        OnPropertyChanged(nameof(DerivedActivityNote));
+        OnPropertyChanged(nameof(HasDerivedActivityNote));
+        OnPropertyChanged(nameof(HasDerivedActivityReturn));
+        OnPropertyChanged(nameof(WorkflowRows));
+        OnPropertyChanged(nameof(HasWorkflowIndicators));
+        OnPropertyChanged(nameof(HasWorkflowReturn));
         OnPropertyChanged(nameof(DetailSession));
         OnPropertyChanged(nameof(DetailProject));
         OnPropertyChanged(nameof(DetailOperation));

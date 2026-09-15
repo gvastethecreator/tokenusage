@@ -124,6 +124,7 @@ public sealed class CompactDashboardProjectorTests
             {
                 "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
                 "LocalUsageUsdFormat" => "${0:N2} USD",
+                "LocalUsageUsdTinyFormat" => "{0} USD",
                 _ => key,
             },
             getProviderLimits: _ => []);
@@ -158,6 +159,7 @@ public sealed class CompactDashboardProjectorTests
             {
                 "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
                 "LocalUsageUsdFormat" => "${0:N2} USD",
+                "LocalUsageUsdTinyFormat" => "{0} USD",
                 _ => key,
             },
             getProviderLimits: _ => []);
@@ -173,6 +175,7 @@ public sealed class CompactDashboardProjectorTests
             {
                 "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
                 "LocalUsageUsdFormat" => "${0:N2} USD",
+                "LocalUsageUsdTinyFormat" => "{0} USD",
                 _ => key,
             },
             getProviderLimits: _ => []);
@@ -206,6 +209,7 @@ public sealed class CompactDashboardProjectorTests
             {
                 "CompactGlobalCostBreakdownFormat" => "{0} reported · {1} estimated at API list",
                 "LocalUsageUsdFormat" => "${0:N2} USD",
+                "LocalUsageUsdTinyFormat" => "{0} USD",
                 _ => key,
             },
             getProviderLimits: _ => []);

@@ -10,7 +10,7 @@ namespace TokenUsage.App.ViewModels.Reports;
 public sealed partial class UsageReportViewModel
 {
     private ReportChartStyle _chartStyle = ReportChartStyle.Bars;
-    private ReportChartGrouping _chartGrouping = ReportChartGrouping.Provider;
+    private ReportChartGrouping _chartGrouping = ReportChartGrouping.Combined;
     private readonly HashSet<UsageReportBreakdown> _sortedTables = [];
     private readonly Dictionary<UsageReportBreakdown, ReportSortState> _sortStates = new()
     {
@@ -41,6 +41,14 @@ public sealed partial class UsageReportViewModel
     public string ChartStyleTooltip => string.Format(CultureInfo.CurrentCulture,
         GetString("ReportChartStyleTooltipFormat"), ChartStyleName);
 
+    public string ChartAppearanceSummary =>
+        ChartTitle + " · " + GetString(ChartGrouping switch
+        {
+            ReportChartGrouping.Provider => "UsageReportChartGroupingProvider",
+            ReportChartGrouping.Model => "UsageReportChartGroupingModel",
+            _ => "UsageReportChartGroupingCombined",
+        });
+
     public void SetSmallValueScale(bool enabled)
     {
         if (_emphasizeSmallValues == enabled) return;
@@ -69,6 +77,7 @@ public sealed partial class UsageReportViewModel
         _chartGrouping = grouping;
         OnPropertyChanged(nameof(ChartGrouping));
         OnPropertyChanged(nameof(IsProviderChart));
+        OnPropertyChanged(nameof(ChartAppearanceSummary));
         bool needsTiming = style == ReportChartStyle.TwoHourBars && (!IsCompareScope || !IsCompareRatesAxis && !UseReferencePrices)
             && (NeedsTimeDetails(_report) || IsPairComparison && NeedsTimeDetails(_compareRightReport));
         if (changesTiming && !HasSavedComparison && (IsLoading || needsTiming))
@@ -191,11 +200,27 @@ public sealed partial class UsageReportViewModel
 
     public ReportSortState GetSort(UsageReportBreakdown table) => _sortStates[table];
 
+    public IReadOnlyList<UsageReportCompactSortOption> CompactSortOptions { get; private set; } = [];
+
+    public UsageReportCompactSortOption? SelectedCompactSort { get; private set; }
+
+    public string CompactSortDirectionGlyph => GetSort(Breakdown).Descending ? "↓" : "↑";
+
+    public string CompactSortDirectionName => GetString(
+        GetSort(Breakdown).Descending ? "UsageReportSortDescending" : "UsageReportSortAscending");
+
     public void Sort(UsageReportBreakdown table, ReportSortColumn column)
     {
-        _sortStates[table] = _sortedTables.Add(table)
-            ? new ReportSortState(column, column != ReportSortColumn.Name)
-            : _sortStates[table].Toggle(column);
+        bool descending = _sortedTables.Contains(table) && _sortStates[table].Column == column
+            ? !_sortStates[table].Descending
+            : column != ReportSortColumn.Name;
+        ApplySort(table, column, descending);
+    }
+
+    public void ApplySort(UsageReportBreakdown table, ReportSortColumn column, bool descending)
+    {
+        _sortedTables.Add(table);
+        _sortStates[table] = new ReportSortState(column, descending);
         switch (table)
         {
             case UsageReportBreakdown.Model:
@@ -214,7 +239,93 @@ public sealed partial class UsageReportViewModel
                     row => row.Id);
                 break;
         }
+
+        SyncCompactSortSelection();
     }
+
+    public void SelectCompactSort(UsageReportCompactSortOption? option)
+    {
+        if (option is null || option.Column == GetSort(Breakdown).Column)
+        {
+            return;
+        }
+
+        ApplySort(Breakdown, option.Column, option.Column != ReportSortColumn.Name);
+    }
+
+    public void ToggleCompactSortDirection()
+    {
+        ReportSortState current = GetSort(Breakdown);
+        ApplySort(Breakdown, current.Column, !current.Descending);
+    }
+
+    private void RebuildCompactSortOptions()
+    {
+        CompactSortOptions = Breakdown switch
+        {
+            UsageReportBreakdown.Source =>
+            [
+                CompactSortOption(ReportSortColumn.Name, "UsageReportCompactSortName"),
+                CompactSortOption(ReportSortColumn.ReportedCost, "UsageReportCompactSortReported"),
+                CompactSortOption(ReportSortColumn.EstimatedCost, "UsageReportCompactSortEstimated"),
+                CompactSortOption(ReportSortColumn.Tokens, "UsageReportCompactSortTokens"),
+                CompactSortOption(ReportSortColumn.Coverage, "UsageReportCompactSortCoverage"),
+                CompactSortOption(ReportSortColumn.ActiveDays, "UsageReportCompactSortActiveDays"),
+            ],
+            UsageReportBreakdown.Day =>
+            [
+                CompactSortOption(ReportSortColumn.Date, "UsageReportCompactSortDate"),
+                CompactSortOption(ReportSortColumn.Cost, "UsageReportCompactSortCost"),
+                CompactSortOption(ReportSortColumn.Tokens, "UsageReportCompactSortTokens"),
+                CompactSortOption(ReportSortColumn.Events, "UsageReportCompactSortEvents"),
+                CompactSortOption(ReportSortColumn.Coverage, "UsageReportCompactSortCoverage"),
+            ],
+            UsageReportBreakdown.Project =>
+            [
+                CompactSortOption(ReportSortColumn.Name, "UsageReportCompactSortName"),
+                CompactSortOption(ReportSortColumn.Tokens, "UsageReportCompactSortTokens"),
+                CompactSortOption(ReportSortColumn.Share, "UsageReportCompactSortShare"),
+                CompactSortOption(ReportSortColumn.Sessions, "UsageReportCompactSortSessions"),
+                CompactSortOption(ReportSortColumn.ReportedCost, "UsageReportCompactSortReported"),
+            ],
+            _ =>
+            [
+                CompactSortOption(ReportSortColumn.Name, "UsageReportCompactSortName"),
+                CompactSortOption(ReportSortColumn.Cost, "UsageReportCompactSortCost"),
+                CompactSortOption(ReportSortColumn.Share, "UsageReportCompactSortShare"),
+                CompactSortOption(ReportSortColumn.Tokens, "UsageReportCompactSortTokens"),
+                CompactSortOption(ReportSortColumn.Coverage, "UsageReportCompactSortCoverage"),
+                CompactSortOption(ReportSortColumn.ActiveDays, "UsageReportCompactSortActiveDays"),
+                CompactSortOption(ReportSortColumn.ReportedCost, "UsageReportCompactSortReported"),
+                CompactSortOption(ReportSortColumn.EstimatedCost, "UsageReportCompactSortEstimated"),
+                CompactSortOption(ReportSortColumn.UnpricedTokens, "UsageReportCompactSortUnpriced"),
+            ],
+        };
+        OnPropertyChanged(nameof(CompactSortOptions));
+        SyncCompactSortSelection();
+    }
+
+    private void SyncCompactSortSelection()
+    {
+        ReportSortColumn column = GetSort(Breakdown).Column;
+        UsageReportCompactSortOption? selected = null;
+        for (int index = 0; index < CompactSortOptions.Count; index++)
+        {
+            if (CompactSortOptions[index].Column == column)
+            {
+                selected = CompactSortOptions[index];
+                break;
+            }
+        }
+
+        SelectedCompactSort = selected ?? (CompactSortOptions.Count > 0 ? CompactSortOptions[0] : null);
+        OnPropertyChanged(nameof(SelectedCompactSort));
+        OnPropertyChanged(nameof(CompactSortDirectionGlyph));
+        OnPropertyChanged(nameof(CompactSortDirectionName));
+    }
+
+    private UsageReportCompactSortOption CompactSortOption(ReportSortColumn column, string resourceKey) =>
+        new(column, GetString(resourceKey));
 
     private IEnumerable<UsageReportModelRow> OrderModelRows(IEnumerable<UsageReportModelRow> rows) =>
         ReportDataProjection.Order(rows, GetSort(UsageReportBreakdown.Model), row => row.ModelName,

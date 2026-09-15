@@ -12,13 +12,21 @@ public sealed record UsageReportProviderRow(
     string ShareText,
     Brush AccentBrush,
     double CompositionWidth,
-    UsageReportTrendDataset Trend);
+    UsageReportTrendDataset Trend,
+    bool ShowTrendPlot = true,
+    string UnavailableTrendText = "")
+{
+    public bool HideTrendPlot => !ShowTrendPlot;
+}
 
 public sealed record UsageReportMetricCard(
     string Label,
     string Value,
     string Detail,
-    string AutomationId = "");
+    string AutomationId = "")
+{
+    public bool HasDetail => !string.IsNullOrWhiteSpace(Detail);
+}
 
 public sealed record UsageReportModelRow(
     string Id,
@@ -33,6 +41,10 @@ public sealed record UsageReportModelRow(
     string TokensText,
     string CoverageText)
 {
+    public string CompactTokensText { get; init; } = string.Empty;
+    public string CompactCostText { get; init; } = string.Empty;
+    public string CompactShareText { get; init; } = string.Empty;
+    public string CompactCoverageText { get; init; } = string.Empty;
     public bool IsReserve => ModelId == "gpt-reserve";
     public string? ModelProviderId { get; init; }
     public string HostName { get; init; } = string.Empty;
@@ -54,6 +66,10 @@ public sealed record UsageReportDayRow(
     string EventsText,
     string CoverageText)
 {
+    public string CompactTokensText { get; init; } = string.Empty;
+    public string CompactCostText { get; init; } = string.Empty;
+    public string CompactEventsText { get; init; } = string.Empty;
+    public string CompactCoverageText { get; init; } = string.Empty;
     public string AutomationName => $"{DateText}, {CostText}, {TokensText}, {EventsText}";
 }
 
@@ -70,6 +86,10 @@ public sealed record UsageReportSourceRow(
     string TokensText,
     string CoverageText)
 {
+    public string CompactTokensText { get; init; } = string.Empty;
+    public string CompactReportedText { get; init; } = string.Empty;
+    public string CompactEstimatedText { get; init; } = string.Empty;
+    public string CompactCoverageText { get; init; } = string.Empty;
     public string AutomationName => $"{Name}, {ReportedCostText}, {EstimatedCostText}, {TokensText}, {ActiveDays} active days";
 }
 
@@ -86,8 +106,13 @@ public sealed record UsageReportProjectOverviewRow(
     bool IsOther,
     string? ProjectKey)
 {
+    public string CompactTokensText { get; init; } = string.Empty;
+    public string CompactShareText { get; init; } = string.Empty;
+    public string CompactSessionsText { get; init; } = string.Empty;
     public string AutomationName => $"{Name}, {TokensText}, {ShareText}, {SessionCountText}, {ReportedValueText}, {EstimatedValueText}";
 }
+
+public sealed record UsageReportCompactSortOption(ReportSortColumn Column, string Name);
 
 public sealed record UsageReportCompareRow(
     string Metric,

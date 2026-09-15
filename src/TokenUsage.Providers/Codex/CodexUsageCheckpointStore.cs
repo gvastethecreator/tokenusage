@@ -241,14 +241,21 @@ internal sealed class CodexUsageCheckpointStore
                 foreach (OperationV1 operation in file.Operations ?? [])
                 {
                     if (!OpaqueAttributionKey.IsHexSha256(operation.Key)
+                        || string.IsNullOrWhiteSpace(operation.Capability)
+                        || operation.Quantity < 1
                         || !UsageOperationKindCodec.TryParse(operation.Kind, out _)
-                        || !UsageOperationOutcomeCodec.TryParse(operation.Outcome, out _)
-                        || !BoundedOperationLabel.TryNormalize(operation.Tool, out _)
-                        || (operation.Server is not null
-                            && !BoundedOperationLabel.TryNormalize(operation.Server, out _))
-                        || (operation.SessionKey is not null
-                            && !OpaqueAttributionKey.IsHexSha256(operation.SessionKey))
-                        || operation.Quantity < 1)
+                        || !UsageOperationOutcomeCodec.TryParse(operation.Outcome, out _))
+                    {
+                        continue;
+                    }
+
+                    bool unlabeled = string.IsNullOrEmpty(operation.Tool);
+                    if (!unlabeled
+                        && (!BoundedOperationLabel.TryNormalize(operation.Tool, out _)
+                            || (operation.Server is not null
+                                && !BoundedOperationLabel.TryNormalize(operation.Server, out _))
+                            || (operation.SessionKey is not null
+                                && !OpaqueAttributionKey.IsHexSha256(operation.SessionKey))))
                     {
                         continue;
                     }
@@ -258,12 +265,13 @@ internal sealed class CodexUsageCheckpointStore
                         operation.StartedAt,
                         operation.EndedAt,
                         operation.Kind,
-                        operation.Tool,
-                        operation.Server,
+                        unlabeled ? string.Empty : operation.Tool,
+                        unlabeled ? null : operation.Server,
                         operation.Outcome,
                         operation.Capability,
-                        operation.SessionKey,
-                        operation.Quantity));
+                        unlabeled ? null : operation.SessionKey,
+                        operation.Quantity,
+                        operation.LegacyKey));
                 }
                 if ((checkpoint.PreviousMeasured & ~CodexMeasuredComponents.All) != 0
                     || checkpoint.Observations.Any(item => (item.Measured & ~CodexMeasuredComponents.All) != 0
@@ -372,6 +380,7 @@ internal sealed class CodexUsageCheckpointStore
                             Capability = value.Capability,
                             SessionKey = value.SessionKey,
                             Quantity = value.Quantity,
+                            LegacyKey = value.LegacyKey,
                         }).ToList(),
                 })
                 .ToList(),
@@ -394,6 +403,16 @@ internal sealed class CodexUsageCheckpointStore
                 checkpoint.SessionKey = null;
                 checkpoint.ParentSessionKey = null;
                 checkpoint.AttributionEpoch = null;
+                if (checkpoint.Operations.Count == 0)
+                {
+                    continue;
+                }
+
+                CodexOperationObservation[] stripped = checkpoint.Operations
+                    .Select(item => item with { SessionKey = null })
+                    .ToArray();
+                checkpoint.Operations.Clear();
+                checkpoint.Operations.AddRange(stripped);
             }
 
             Write(state);
@@ -444,12 +463,22 @@ internal sealed class CodexUsageCheckpointStore
             }
 
             CodexUsageCheckpointState state = Load();
-            if (state.OperationAdmissions.TryGetValue(capability, out CodexOperationAdmissionState? bucket))
+            CodexOperationAdmissionState bucket = state.AdmissionFor(capability);
+            foreach (CodexUsageFileCheckpoint checkpoint in state.Files.Values)
             {
-                bucket.Epoch = null;
-                bucket.Keys.Clear();
-                bucket.CommittedKeys.Clear();
+                foreach (CodexOperationObservation operation in checkpoint.Operations)
+                {
+                    if (operation.Capability == capability)
+                    {
+                        bucket.Keys.Add(operation.Key);
+                    }
+                }
+
+                checkpoint.Operations.RemoveAll(item => item.Capability == capability);
             }
+
+            bucket.CommittedKeys.Clear();
+            bucket.Epoch = null;
 
             Write(state);
             return true;
@@ -576,6 +605,7 @@ internal sealed class CodexUsageCheckpointStore
         public string Capability { get; init; } = string.Empty;
         public string? SessionKey { get; init; }
         public int Quantity { get; init; } = 1;
+        public string? LegacyKey { get; init; }
     }
 
     private sealed class TokensV1
@@ -685,7 +715,8 @@ internal sealed record CodexOperationObservation(
     string Outcome,
     string Capability,
     string? SessionKey,
-    int Quantity = 1);
+    int Quantity = 1,
+    string? LegacyKey = null);
 
 [Flags]
 internal enum CodexMeasuredComponents

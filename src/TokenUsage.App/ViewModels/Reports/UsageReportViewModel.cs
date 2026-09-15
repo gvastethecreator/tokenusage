@@ -152,7 +152,97 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public bool IsCompareScope => Scope == UsageReportScope.Compare;
 
-    public bool IsStandardReportVisible => !IsCompareScope;
+    public bool IsStandardReportVisible => !IsCompareScope && !HasExplorerAnalysisBody;
+
+    public bool IsEmptyNoMatches => IsEmpty && HasExplorerFilters;
+
+    public bool IsCompactRankings { get; private set; }
+
+    public bool IsWideRankings => !IsCompactRankings;
+
+    public string BreakdownShareCaption => GetString(IsCostMetric
+        ? "UsageReportCostShareDenominator"
+        : "UsageReportTokenShareDenominator");
+
+    public string ComparisonStateText => HasSavedComparison
+        ? GetString("UsageComparisonSavedState")
+        : GetString("UsageComparisonLiveState");
+
+    public string ComparisonUsageDatesText
+    {
+        get
+        {
+            if (!IsCompareScope)
+            {
+                return PeriodText;
+            }
+
+            string left = FormatUsagePeriod(_compareLeftStart, _compareLeftEnd);
+            string right = FormatUsagePeriod(_compareRightStart, _compareRightEnd);
+            return string.Equals(left, right, StringComparison.Ordinal)
+                ? left
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    GetString("UsageComparisonUsageRangesFormat"),
+                    left,
+                    right);
+        }
+    }
+
+    public string ComparisonResultCaptureText => IsCompareScope && IsPairComparison
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            GetString("UsageComparisonResultCaptureFormat"),
+            CompareLeftLabel,
+            CompareLeftCostText,
+            CompareLeftTokensText,
+            CompareRightLabel,
+            CompareRightCostText,
+            CompareRightTokensText,
+            CompareDeltaCostText,
+            CompareDeltaTokensText)
+        : string.Empty;
+
+    public string ComparisonCatalogDatesText => IsCompareRatesAxis
+        ? string.Format(
+            CultureInfo.CurrentCulture,
+            GetString("UsageComparisonCatalogDatesFormat"),
+            UsageComparison.CatalogDateLabel(_rateBaselineUtc, CultureInfo.CurrentCulture),
+            UsageComparison.CatalogDateLabel(_priceReferenceUtc, CultureInfo.CurrentCulture))
+        : string.Empty;
+
+    public bool HasComparisonCatalogDates => !string.IsNullOrEmpty(ComparisonCatalogDatesText);
+
+    public string ComparisonCoverageText
+    {
+        get
+        {
+            if (!IsCompareScope)
+            {
+                return string.Empty;
+            }
+
+            string left = FormatPercent(_report.Totals.PriceCoveragePercent / 100m);
+            string right = FormatPercent(_compareRightReport.Totals.PriceCoveragePercent / 100m);
+            return string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageComparisonCoverageFormat"),
+                left,
+                right);
+        }
+    }
+
+    public void SetCompactLayout(bool compact)
+    {
+        if (IsCompactRankings == compact)
+        {
+            return;
+        }
+
+        IsCompactRankings = compact;
+        OnPropertyChanged(nameof(IsCompactRankings));
+        OnPropertyChanged(nameof(IsWideRankings));
+    }
 
     public UsageReportCompareAxis CompareAxis => _compareAxis;
 
@@ -941,6 +1031,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsSourceBreakdown));
         OnPropertyChanged(nameof(IsDayBreakdown));
         OnPropertyChanged(nameof(IsProjectBreakdown));
+        RebuildCompactSortOptions();
     }
 
     public void SetScope(UsageReportScope scope)
@@ -1066,6 +1157,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsProviderScope));
         OnPropertyChanged(nameof(IsCompareScope));
         OnPropertyChanged(nameof(IsStandardReportVisible));
+        OnPropertyChanged(nameof(HasExplorerAnalysisBody));
+        OnPropertyChanged(nameof(ExplorerContextPath));
+        OnPropertyChanged(nameof(ComparisonStateText));
+        OnPropertyChanged(nameof(ComparisonUsageDatesText));
+        OnPropertyChanged(nameof(ComparisonCatalogDatesText));
+        OnPropertyChanged(nameof(HasComparisonCatalogDates));
+        OnPropertyChanged(nameof(ComparisonCoverageText));
         OnPropertyChanged(nameof(CompareAxis));
         OnPropertyChanged(nameof(IsCompareProvidersAxis));
         OnPropertyChanged(nameof(IsComparePeriodsAxis));
@@ -1101,6 +1199,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsProjectBreakdown));
         OnPropertyChanged(nameof(ScopeTitle));
         OnPropertyChanged(nameof(ChartTitle));
+        OnPropertyChanged(nameof(ChartAppearanceSummary));
     }
 
     private void RebuildProviderOptions()
@@ -1576,6 +1675,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(EmptyTitleText));
         OnPropertyChanged(nameof(EmptyBodyText));
         OnPropertyChanged(nameof(IsEmptyRefreshVisible));
+        OnPropertyChanged(nameof(IsEmptyNoMatches));
+        OnPropertyChanged(nameof(IsLoadingConfigurations));
+        OnPropertyChanged(nameof(HasConfigurationEmpty));
     }
 
     private void SynchronizeSelectedResetCycleGroup(UsageReportResetCycleOption cycle)
@@ -1724,14 +1826,20 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         RebuildResetLog();
         RebuildRateSteps();
         BuildMeasurementDetails();
+        RebuildCompactSortOptions();
 
-        HasCoverageHint = _report.Totals.Coverage != CoverageKind.Complete
-            || _report.Totals.UnpricedTokens > 0
-            || _report.Totals.UnavailableCostEventCount > 0
-            || (IsCompareScope
-                && (_compareRightReport.Totals.Coverage != CoverageKind.Complete
-                    || _compareRightReport.Totals.UnpricedTokens > 0
-                    || _compareRightReport.Totals.UnavailableCostEventCount > 0));
+        bool summaryOnly = _report.Totals.Coverage == CoverageKind.SummaryOnly
+            || (IsCompareScope && _compareRightReport.Totals.Coverage == CoverageKind.SummaryOnly);
+        bool unpricedAlreadyShown = HasUnpricedSummary;
+        bool otherIncomplete = !unpricedAlreadyShown
+            && (_report.Totals.Coverage != CoverageKind.Complete
+                || _report.Totals.UnpricedTokens > 0
+                || _report.Totals.UnavailableCostEventCount > 0
+                || (IsCompareScope
+                    && (_compareRightReport.Totals.Coverage != CoverageKind.Complete
+                        || _compareRightReport.Totals.UnpricedTokens > 0
+                        || _compareRightReport.Totals.UnavailableCostEventCount > 0)));
+        HasCoverageHint = summaryOnly || otherIncomplete;
         CoverageHintText = string.Format(
             CultureInfo.CurrentCulture,
             GetString("UsageReportCoverageHintFormat"),
@@ -1745,9 +1853,17 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HeadlineValue));
         OnPropertyChanged(nameof(HeadlineDetail));
         OnPropertyChanged(nameof(ChartTitle));
+        OnPropertyChanged(nameof(ChartAppearanceSummary));
         OnPropertyChanged(nameof(SummaryTokensText));
         OnPropertyChanged(nameof(SummaryCostText));
         OnPropertyChanged(nameof(ModelShareLabel));
+        OnPropertyChanged(nameof(BreakdownShareCaption));
+        OnPropertyChanged(nameof(ChartAppearanceSummary));
+        OnPropertyChanged(nameof(ComparisonStateText));
+        OnPropertyChanged(nameof(ComparisonUsageDatesText));
+        OnPropertyChanged(nameof(ComparisonCatalogDatesText));
+        OnPropertyChanged(nameof(HasComparisonCatalogDates));
+        OnPropertyChanged(nameof(ComparisonCoverageText));
         OnPropertyChanged(nameof(SummaryCoverageText));
         OnPropertyChanged(nameof(PriceCoveragePercent));
         OnPropertyChanged(nameof(CacheSummaryText));
@@ -1762,6 +1878,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CompareRightTokensText));
         OnPropertyChanged(nameof(CompareDeltaCostText));
         OnPropertyChanged(nameof(CompareDeltaTokensText));
+        OnPropertyChanged(nameof(ComparisonResultCaptureText));
         OnPropertyChanged(nameof(HasCompareCycleWarning));
         OnPropertyChanged(nameof(CompareCycleWarningText));
         OnPropertyChanged(nameof(PeriodText));
@@ -2049,6 +2166,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(EmptyTitleText));
         OnPropertyChanged(nameof(EmptyBodyText));
         OnPropertyChanged(nameof(IsEmptyRefreshVisible));
+        OnPropertyChanged(nameof(IsEmptyNoMatches));
+        OnPropertyChanged(nameof(IsLoadingConfigurations));
+        OnPropertyChanged(nameof(HasConfigurationEmpty));
     }
 
     private void AssignCompareLabels()
@@ -2106,6 +2226,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         string.Format(
             CultureInfo.CurrentCulture,
             GetString(resourceKey),
+            start.ToString("d MMM", CultureInfo.CurrentCulture),
+            end.ToString("d MMM", CultureInfo.CurrentCulture));
+
+    private string FormatUsagePeriod(DateOnly start, DateOnly end) =>
+        string.Format(
+            CultureInfo.CurrentCulture,
+            GetString("UsageComparisonUsageRangeFormat"),
             start.ToString("d MMM", CultureInfo.CurrentCulture),
             end.ToString("d MMM", CultureInfo.CurrentCulture));
 
@@ -2485,6 +2612,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     : totalTokens == 0 ? 0 : (decimal)agent.Metrics.Tokens.Total / totalTokens;
                 string providerId = agent.AgentId.Value;
                 string colorHex = ProviderColorPalette.GetEffectiveHex(providerId, null);
+                UsageReportTrendDataset trend = CreateProviderTrend(providerId);
+                bool showPlot = HasNumericTrend(trend);
                 return new UsageReportProviderRow(
                     providerId,
                     ProviderName(providerId),
@@ -2506,7 +2635,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     FormatMetricShare(agent.Metrics),
                     GetProviderBrush(colorHex),
                     Math.Max(2d, (double)(share * 1080m)),
-                    CreateProviderTrend(providerId));
+                    trend,
+                    showPlot,
+                    showPlot ? string.Empty : GetString("UsageReportUnpricedLabel"));
             })
             .ToArray();
     }
@@ -2598,6 +2729,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     EstimatedValueText = string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerEstimatedValueFormat"), ExactCost(model.Metrics.EstimatedCostUsd)),
                     UnpricedValueText = string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerUnpricedValueFormat"), model.Metrics.UnpricedTokens.ToString("N0", CultureInfo.CurrentCulture)),
                     SessionCountText = ModelSessionCountText(id),
+                    CompactTokensText = CompactMetricLabel("UsageReportCompactTokensFormat", FormatTokens(model.Metrics.Tokens.Total)),
+                    CompactCostText = CompactMetricLabel("UsageReportCompactCostFormat", FormatKnownCost(model.Metrics)),
+                    CompactShareText = CompactShareLabel(FormatMetricShare(model.Metrics)),
+                    CompactCoverageText = CompactMetricLabel(
+                        "UsageReportCompactCoverageFormat",
+                        FormatPercent(model.Metrics.PriceCoveragePercent / 100m)),
                 };
             }).ToArray();
     }
@@ -2612,7 +2749,19 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 agent.Metrics.ReportedCostUsd is decimal reported ? FormatUsd(reported) : "—",
                 agent.Metrics.EstimatedCostUsd is decimal estimated ? FormatUsd(estimated) : "—",
                 FormatTokens(agent.Metrics.Tokens.Total),
-                FormatPercent(agent.Metrics.PriceCoveragePercent / 100m))).ToArray();
+                FormatPercent(agent.Metrics.PriceCoveragePercent / 100m))
+            {
+                CompactTokensText = CompactMetricLabel("UsageReportCompactTokensFormat", FormatTokens(agent.Metrics.Tokens.Total)),
+                CompactReportedText = CompactMetricLabel(
+                    "UsageReportCompactReportedFormat",
+                    agent.Metrics.ReportedCostUsd is decimal reportedCost ? FormatUsd(reportedCost) : "—"),
+                CompactEstimatedText = CompactMetricLabel(
+                    "UsageReportCompactEstimatedFormat",
+                    agent.Metrics.EstimatedCostUsd is decimal estimatedCost ? FormatUsd(estimatedCost) : "—"),
+                CompactCoverageText = CompactMetricLabel(
+                    "UsageReportCompactCoverageFormat",
+                    FormatPercent(agent.Metrics.PriceCoveragePercent / 100m)),
+            }).ToArray();
     }
 
     private UsageReportDayRow[] CreateDayRows() => _report.Days.OrderBy(day => day.Date)
@@ -2620,7 +2769,17 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             day.Date, day.Metrics, day.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
             FormatKnownCost(day.Metrics), FormatTokens(day.Metrics.Tokens.Total),
             day.Metrics.EventCount.ToString("N0", CultureInfo.CurrentCulture),
-            FormatPercent(day.Metrics.PriceCoveragePercent / 100m))).ToArray();
+            FormatPercent(day.Metrics.PriceCoveragePercent / 100m))
+        {
+            CompactTokensText = CompactMetricLabel("UsageReportCompactTokensFormat", FormatTokens(day.Metrics.Tokens.Total)),
+            CompactCostText = CompactMetricLabel("UsageReportCompactCostFormat", FormatKnownCost(day.Metrics)),
+            CompactEventsText = CompactMetricLabel(
+                "UsageReportCompactEventsFormat",
+                day.Metrics.EventCount.ToString("N0", CultureInfo.CurrentCulture)),
+            CompactCoverageText = CompactMetricLabel(
+                "UsageReportCompactCoverageFormat",
+                FormatPercent(day.Metrics.PriceCoveragePercent / 100m)),
+        }).ToArray();
 
     private IReadOnlyList<UsageReportQualityRow> CreateQualityRows()
     {
@@ -2677,8 +2836,40 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private string FormatUsd(decimal amount) => UsageValueFormatter.Usd(amount, GetString);
 
+    private string CompactMetricLabel(string resourceKey, string value) =>
+        string.Format(CultureInfo.CurrentCulture, GetString(resourceKey), value);
+
+    private string CompactShareLabel(string share) =>
+        CompactMetricLabel(
+            IsCostMetric ? "UsageReportCompactCostShareFormat" : "UsageReportCompactTokenShareFormat",
+            share);
+
     internal static string FormatCompactUsd(double amount) =>
         UsageValueFormatter.CompactUsd(amount);
+
+    internal static string FormatAxisUsd(double amount) =>
+        UsageValueFormatter.AxisUsd(amount);
+
+    internal static string FormatDetailUsd(double amount) =>
+        UsageValueFormatter.DetailUsd(amount);
+
+    private static bool HasNumericTrend(UsageReportTrendDataset trend)
+    {
+        foreach (UsageReportTrendSeries series in trend.Series)
+        {
+            for (int index = 0; index < series.Values.Count; index++)
+            {
+                UsageTrendPointKind kind = UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index);
+                if (kind == UsageTrendPointKind.Measured && double.IsFinite(series.Values[index])
+                    || kind == UsageTrendPointKind.Unobserved)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     internal static string FormatCompactTokens(double value) =>
         UsageValueFormatter.CompactTokens(value);

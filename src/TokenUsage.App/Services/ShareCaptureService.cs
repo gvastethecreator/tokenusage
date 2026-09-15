@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -116,6 +117,7 @@ internal static class ShareCaptureService
                 captureKind,
                 backgroundColor,
                 snapshotJson,
+                destinationPath: null,
                 cancellationToken);
         }
         finally
@@ -124,13 +126,14 @@ internal static class ShareCaptureService
         }
     }
 
-    public static async Task<ShareCaptureResult> CaptureScrollableAsync(
+        public static async Task<ShareCaptureResult> CaptureScrollableAsync(
         FrameworkElement headerRoot,
         ScrollViewer scrollViewer,
         FrameworkElement contentRoot,
         string captureKind,
         Windows.UI.Color backgroundColor,
         string? snapshotJson = null,
+        string? destinationPath = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(headerRoot);
@@ -237,6 +240,7 @@ internal static class ShareCaptureService
                 captureKind,
                 backgroundColor,
                 snapshotJson,
+                destinationPath,
                 cancellationToken);
         }
         finally
@@ -367,6 +371,7 @@ internal static class ShareCaptureService
         string captureKind,
         Windows.UI.Color backgroundColor,
         string? snapshotJson,
+        string? destinationPath,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -385,7 +390,7 @@ internal static class ShareCaptureService
         int outputWidth = renderedWidth + (CapturePadding * 2);
         int outputHeight = renderedHeight + (CapturePadding * 2);
 
-        StorageFolder destination = await ResolveDestinationFolderAsync();
+        StorageFolder destination = await ResolveDestinationFolderAsync(destinationPath);
         string timestamp = DateTimeOffset.Now.ToString(
             "yyyy-MM-dd-HHmmss",
             System.Globalization.CultureInfo.InvariantCulture);
@@ -408,13 +413,20 @@ internal static class ShareCaptureService
             await encoder.FlushAsync();
         }
 
-        var package = new DataPackage
+        try
         {
-            RequestedOperation = DataPackageOperation.Copy,
-        };
-        package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
-        Clipboard.SetContent(package);
-        Clipboard.Flush();
+            var package = new DataPackage
+            {
+                RequestedOperation = DataPackageOperation.Copy,
+            };
+            package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
+            Clipboard.SetContent(package);
+            Clipboard.Flush();
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException
+            or System.Runtime.InteropServices.COMException)
+        {
+        }
         string? snapshotPath = null;
         if (!string.IsNullOrWhiteSpace(snapshotJson))
         {
@@ -532,8 +544,14 @@ internal static class ShareCaptureService
     private static byte Composite(byte foreground, byte background, int inverseAlpha) =>
         (byte)Math.Clamp(foreground + ((background * inverseAlpha + 127) / 255), 0, 255);
 
-    private static async Task<StorageFolder> ResolveDestinationFolderAsync()
+    private static async Task<StorageFolder> ResolveDestinationFolderAsync(string? destinationPath = null)
     {
+        if (!string.IsNullOrWhiteSpace(destinationPath))
+        {
+            Directory.CreateDirectory(destinationPath);
+            return await StorageFolder.GetFolderFromPathAsync(Path.GetFullPath(destinationPath));
+        }
+
         if (StorageApplicationPermissions.FutureAccessList.ContainsItem(DestinationToken))
         {
             try

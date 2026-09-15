@@ -128,9 +128,13 @@ public sealed partial class UsageReportPage : Page
         await ViewModel.LoadAsync();
         SynchronizeProviderTabs();
         UpdateSortHeaders();
+        SyncCompactSortCombo();
         _ = DispatcherQueue.TryEnqueue(() =>
             ReportScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
     }
+
+    private void OnReportPageSizeChanged(object sender, SizeChangedEventArgs e) =>
+        ViewModel.SetCompactLayout(e.NewSize.Width < 640);
 
     private void OnPeriodSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -348,14 +352,22 @@ public sealed partial class UsageReportPage : Page
         return "json";
     }
 
-    private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
+    private async void OnShareCaptureClick(object sender, RoutedEventArgs e) =>
+        await CaptureShareImageAsync(destinationPath: null, sender as Control);
+
+    public async Task<string?> CaptureShareImageAsync(
+        string? destinationPath = null,
+        Control? source = null)
     {
-        if (!ViewModel.CanCaptureReport || _isCapturing) return;
+        if (!ViewModel.CanCaptureReport || _isCapturing)
+        {
+            return null;
+        }
+
         string snapshotJson = UsageReportSnapshotV2.Render(
             await ViewModel.FreezeCanonicalSnapshotAsync(),
             "json");
         _isCapturing = true;
-        Control? source = sender as Control;
         var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
             .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
         var captureActions = new FrameworkElement[] { ReportTitleActions, ReportChartTools }
@@ -438,13 +450,15 @@ public sealed partial class UsageReportPage : Page
                 ReportCaptureSurface.ActualTheme == ElementTheme.Light
                     ? Microsoft.UI.Colors.White
                     : Microsoft.UI.Colors.Black,
-                snapshotJson);
+                snapshotJson,
+                destinationPath);
             ShowShareStatus(
                 string.Format(
                     System.Globalization.CultureInfo.CurrentCulture,
                     GetString("ShareCaptureSuccessFormat"),
                     result.FilePath),
                 isError: false);
+            return result.FilePath;
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
@@ -452,6 +466,7 @@ public sealed partial class UsageReportPage : Page
             or System.Runtime.InteropServices.COMException)
         {
             ShowShareStatus(GetString("ShareCaptureError"), isError: true);
+            return null;
         }
         finally
         {
@@ -635,6 +650,13 @@ public sealed partial class UsageReportPage : Page
 
         if (e.PropertyName == nameof(UsageReportViewModel.ModelShareLabel))
             _ = DispatcherQueue.TryEnqueue(UpdateSortHeaders);
+
+        if (e.PropertyName == nameof(UsageReportViewModel.CompactSortOptions)
+            || e.PropertyName == nameof(UsageReportViewModel.SelectedCompactSort))
+        {
+            _syncingCompactSort = true;
+            _ = DispatcherQueue.TryEnqueue(SyncCompactSortCombo);
+        }
 
         if (_isTransitionCommit)
         {

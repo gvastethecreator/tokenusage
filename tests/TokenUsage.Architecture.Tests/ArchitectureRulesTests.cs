@@ -597,10 +597,29 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(311, matches.Count);
-        Assert.Equal(295, distinctIds.Length);
+        Assert.Equal(341, matches.Count);
+        Assert.Equal(325, distinctIds.Length);
         Assert.Contains("UsageOverviewNotice", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageOverviewCalls", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageOverviewCostDetails", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageOverviewPartialWarning", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerClearHidden", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerAdvancedFilters", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerSourceDetails", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerEmptyClear", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerSourceWarning", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerContextPath", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportChartAppearance", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportBreakdownCaption", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportCompactSort", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportCompactSortDirection", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerWorkflowEvidence", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageComparisonState", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageComparisonAdvanced", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportResetLogExpander", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerValues", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageOverviewProject", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportProjectButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ReportSortProjectName", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ReportSortProjectTokens", distinctIds, StringComparer.Ordinal);
@@ -627,9 +646,16 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageExplorerOpenProjects", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerCloseProjects", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerOpenOperations", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerOpenUnlinkedOperations", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerCloseOperations", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerOperations", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerMixedOperationsHeading", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerMixedOperations", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerOpenOperationSession", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerDerivedActivity", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerDerivedActivityReturn", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerWorkflowIndicators", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageExplorerWorkflowReturn", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CodexMcpAttributionToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CodexSkillsAttributionToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CodexCommandsAttributionToggle", distinctIds, StringComparer.Ordinal);

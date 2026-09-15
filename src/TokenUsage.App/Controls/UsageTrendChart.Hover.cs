@@ -185,22 +185,24 @@ public sealed partial class UsageTrendChart
             else hasMeasured = true;
             if (kind == UsageTrendPointKind.Measured && double.IsFinite(value)) total += value;
             if (i < _hoverAmounts.Count)
-                _hoverAmounts[i].Text = FormatValue(value, Data.Metric, kind);
+                _hoverAmounts[i].Text = FormatValue(value, Data.Metric, kind, exact: true);
         }
         if (_hoverTotal is not null)
         {
             _hoverTotal.Text = GetString("UsageReportChartTotal") + "  "
                 + (!hasMeasured && hasUnobserved
                     ? GetString("UsageReportChartUnobserved")
-                    : FormatValue(total, Data.Metric)
+                    : FormatValue(total, Data.Metric, exact: true)
                         + (hasUnknown ? " · " + GetString("UsageReportKnownOnly") : ""));
         }
-        AutomationProperties.SetHelpText(this, _hoverDate.Text + ". " + _hoverResets.Text + ". " + string.Join(". ",
-            Data.Series.Select((series, i) => series.Name + ": "
-                + FormatValue(
-                    index < series.Values.Count ? series.Values[index] : 0,
-                    Data.Metric,
-                    UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index)))));
+        string hoverHelp = _hoverDate.Text + ". " + _hoverResets.Text + ". " + string.Join(". ",
+            Data.Series.Select(series =>
+            {
+                double value = index < series.Values.Count ? series.Values[index] : 0;
+                UsageTrendPointKind kind = UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index);
+                return series.Name + ": " + FormatValue(value, Data.Metric, kind, true);
+            }));
+        AutomationProperties.SetHelpText(this, hoverHelp);
     }
 
     private Grid CreateHoverRow(UsageReportTrendSeries series, string value)
