@@ -631,6 +631,7 @@ public sealed partial class UsageReportViewModel
     {
         _consentGeneration++;
         _selectionGeneration++;
+        _dashboardOperationsKey = string.Empty;
         HasSessions = false;
         HasProjects = false;
         HasOperations = false;
@@ -690,6 +691,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(CanOpenOperations));
         await RefreshAttributionAvailabilityAsync().ConfigureAwait(true);
         RebuildExplorerDetail();
+        QueueDashboardOperations();
     }
 
     public async Task SaveProjectAliasAsync()

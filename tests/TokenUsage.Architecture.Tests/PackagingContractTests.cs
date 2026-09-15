@@ -38,6 +38,51 @@ public sealed class PackagingContractTests
         Assert.Equal(
             "..\\TokenUsage.App\\TokenUsage.App.csproj",
             project.Descendants(MsBuild + "EntryPointProjectUniqueName").Single().Value);
+
+        XElement[] desktopBridgeImports = project
+            .Descendants(MsBuild + "Import")
+            .Where(element =>
+            {
+                string projectPath = (string?)element.Attribute("Project") ?? string.Empty;
+                return projectPath.Contains("_TokenUsageWapProps", StringComparison.Ordinal)
+                    || projectPath.Contains("_TokenUsageWapTargets", StringComparison.Ordinal);
+            })
+            .ToArray();
+        Assert.Equal(2, desktopBridgeImports.Length);
+        Assert.All(
+            desktopBridgeImports,
+            import => Assert.Equal(
+                "'$(_TokenUsageCanBuildWap)' == 'true'",
+                (string?)import.Attribute("Condition")));
+
+        XElement realTargets = Assert.Single(desktopBridgeImports,
+            import => ((string?)import.Attribute("Project"))?.Contains(
+                "_TokenUsageWapTargets", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(realTargets.ElementsAfterSelf(),
+            element => element.Name == MsBuild + "Target");
+    }
+
+    [Fact]
+    public void SolutionListsX64BeforeArm64ForLocalDotnetBuild()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string slnx = File.ReadAllText(Path.Combine(repoRoot, "TokenUsage.slnx"));
+        int namedX64 = slnx.IndexOf("<Platform Name=\"x64\"", StringComparison.Ordinal);
+        int namedArm64 = slnx.IndexOf("<Platform Name=\"ARM64\"", StringComparison.Ordinal);
+        int mappedX64 = slnx.IndexOf("Solution=\"*|x64\"", StringComparison.Ordinal);
+        int mappedArm64 = slnx.IndexOf("Solution=\"*|ARM64\"", StringComparison.Ordinal);
+        Assert.True(namedX64 >= 0 && namedArm64 >= 0, "TokenUsage.slnx must declare x64 and ARM64.");
+        Assert.True(namedX64 < namedArm64, "x64 must be the first solution platform.");
+        Assert.True(mappedX64 >= 0 && mappedArm64 >= 0, "TokenUsage.slnx must map x64 and ARM64.");
+        Assert.True(
+            mappedX64 < mappedArm64,
+            "x64 project mappings must come first so `dotnet build TokenUsage.slnx` does not pick ARM64.");
+
+        XDocument solutionProps = XDocument.Load(Path.Combine(repoRoot, "Directory.Solution.props"));
+        Assert.Contains(
+            solutionProps.Descendants("Platform"),
+            element => element.Value == "x64"
+                && (element.Attribute("Condition")?.Value.Contains("$(Platform)", StringComparison.Ordinal) ?? false));
     }
 
     [Fact]

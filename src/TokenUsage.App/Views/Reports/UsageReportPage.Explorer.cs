@@ -37,6 +37,7 @@ public sealed partial class UsageReportPage
 
     private void OnModelDetailClick(object sender, RoutedEventArgs e)
     {
+        if (sender is Button origin && Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(origin) != "UsageDashboardModelsBar") _dashboardReturnButton = null;
         if (sender is not Control { Tag: string id } row) return;
         _modelReturnId = id;
         _modelReturnOffset = ReportScrollViewer.VerticalOffset;
@@ -55,6 +56,7 @@ public sealed partial class UsageReportPage
     private void OnCloseModelDetailClick(object sender, RoutedEventArgs e)
     {
         ViewModel.CloseModelDetail();
+        if (RestoreDashboardOrigin()) return;
         ReportScrollViewer.UpdateLayout();
         ReportScrollViewer.ChangeView(null, _modelReturnOffset, null, disableAnimation: true);
         ReportScrollViewer.UpdateLayout();
@@ -62,7 +64,7 @@ public sealed partial class UsageReportPage
         if (index >= 0 && ModelBreakdownRows.TryGetElement(index) is DependencyObject row
             && Descendants(row).OfType<Button>().FirstOrDefault(button => Equals(button.Tag, _modelReturnId)) is { } button)
             button.Focus(FocusState.Programmatic);
-        else ExplorerSearchBox.Focus(FocusState.Programmatic);
+        else { ReportFilters.IsExpanded = true; ExplorerSearchBox.Focus(FocusState.Programmatic); }
     }
 
     private void OnExplorerEvidenceClick(object sender, RoutedEventArgs e)
@@ -97,6 +99,7 @@ public sealed partial class UsageReportPage
 
     private async void OnOverviewProjectClick(object sender, RoutedEventArgs e)
     {
+        if (sender is Button origin && Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(origin) != "UsageDashboardProjectsBar") _dashboardReturnButton = null;
         if (sender is not Control { Tag: string id })
         {
             return;
@@ -144,6 +147,11 @@ public sealed partial class UsageReportPage
     private void OnCloseOperationsClick(object sender, RoutedEventArgs e)
     {
         ViewModel.CloseOperations();
+        if (RestoreDashboardOrigin())
+        {
+            return;
+        }
+
         if (ViewModel.HasSessions)
         {
             SessionListCard.UpdateLayout();
@@ -180,6 +188,7 @@ public sealed partial class UsageReportPage
         }
 
         ViewModel.OpenOperationDetail(id);
+        DashboardOperationDetails.IsExpanded = true;
     }
 
     private void OnDerivedActivityClick(object sender, RoutedEventArgs e)
@@ -190,6 +199,7 @@ public sealed partial class UsageReportPage
         }
 
         ViewModel.SelectDerivedActivity(category);
+        DashboardOperationDetails.IsExpanded = true;
         if (ViewModel.HasDerivedActivityReturn)
         {
             UsageExplorerDerivedActivityReturn.Focus(FocusState.Programmatic);
@@ -204,6 +214,7 @@ public sealed partial class UsageReportPage
         }
 
         ViewModel.SelectWorkflowEvidence(id);
+        DashboardOperationDetails.IsExpanded = true;
         if (ViewModel.HasWorkflowReturn)
         {
             UsageExplorerWorkflowReturn.Focus(FocusState.Programmatic);
@@ -225,7 +236,7 @@ public sealed partial class UsageReportPage
         {
             ViewModel.CloseModelDetail();
             UpdateLayout();
-            RestoreOverviewProjectFocus(returnId);
+            if (!RestoreDashboardOrigin()) RestoreOverviewProjectFocus(returnId);
             return;
         }
 
@@ -234,6 +245,7 @@ public sealed partial class UsageReportPage
 
     private void RestoreOverviewProjectFocus(string? id)
     {
+        DashboardFullBreakdown.IsExpanded = true;
         ReportScrollViewer.UpdateLayout();
         ProjectBreakdownRows.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
         ProjectBreakdownRows.UpdateLayout();
@@ -261,6 +273,7 @@ public sealed partial class UsageReportPage
             return null;
         }
 
+        DashboardFullBreakdown.IsExpanded = true;
         ReportScrollViewer.UpdateLayout();
         ProjectBreakdownRows.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
         ProjectBreakdownRows.UpdateLayout();

@@ -1776,6 +1776,9 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         CancelExplorerSelection();
+        _dashboardOperationsCancellation?.Cancel();
+        _dashboardOperationsCancellation?.Dispose();
+        _dashboardOperationsCancellation = null;
         _loadCancellation?.Cancel();
         _loadCancellation = null;
         RefreshCommand.NotifyCanExecuteChanged();
@@ -1802,6 +1805,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         ReconcileRows(SourceRows, OrderSourceRows(CreateSourceRows()), row => row.Id);
         ReconcileRows(DayRows, OrderDayRows(CreateDayRows()), row => row.Id);
         QualityRows = CreateQualityRows();
+        RebuildDashboard();
         if (IsCompareScope)
         {
             AssignCompareLabels();
