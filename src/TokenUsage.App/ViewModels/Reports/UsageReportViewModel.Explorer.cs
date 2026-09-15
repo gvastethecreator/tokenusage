@@ -109,6 +109,12 @@ public sealed partial class UsageReportViewModel
     private bool _returnToProjects;
     private bool _returnToSessions;
     private bool _projectsFromOverview;
+    private bool _operationsFromDashboard;
+    private UsageExplorerOperationRow[] _dashboardExactRows = [];
+    private UsageExplorerOperationRow[] _dashboardMixedRows = [];
+    private UsageExplorerDerivedActivityRow[] _dashboardActivityRows = [];
+    private CancellationTokenSource? _dashboardOperationsCancellation;
+    private string _dashboardOperationsKey = string.Empty;
     private string? _overviewProjectReturnId;
     private IReadOnlyList<UsageSessionContribution> _sessionContributions = [];
     private IReadOnlyList<UsageSessionLineageNode> _sessionLineage = [];

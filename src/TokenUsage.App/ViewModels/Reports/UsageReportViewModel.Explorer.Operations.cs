@@ -55,7 +55,7 @@ public sealed partial class UsageReportViewModel
             return;
         }
 
-        if (!HasOperations && !CanOpenOperations && !scope.UnlinkedOnly)
+        if (!HasOperations && !CanOpenOperations && !_operationsFromDashboard && !scope.UnlinkedOnly)
         {
             return;
         }
@@ -69,6 +69,12 @@ public sealed partial class UsageReportViewModel
         {
             returnToSessions = _returnToSessions;
             returnToProjects = _returnToProjects;
+        }
+
+        if (_operationsFromDashboard)
+        {
+            returnToSessions = false;
+            returnToProjects = false;
         }
 
         OperationCohort cohort = await RunReportWorkAsync(
@@ -156,7 +162,14 @@ public sealed partial class UsageReportViewModel
         OperationDetailValues = string.Empty;
         SkillsAvailabilityText = string.Empty;
         OperationsDerivedNote = string.Empty;
-        if (_returnToSessions)
+        bool fromDashboard = _operationsFromDashboard;
+        _operationsFromDashboard = false;
+        if (fromDashboard)
+        {
+            _returnToSessions = false;
+            _returnToProjects = false;
+        }
+        else if (_returnToSessions)
         {
             _returnToSessions = false;
             HasSessions = true;
@@ -437,6 +450,10 @@ public sealed partial class UsageReportViewModel
 
     private void NotifyOperationSurface()
     {
+        OnPropertyChanged(nameof(DashboardOperationBars));
+        OnPropertyChanged(nameof(DashboardActivityBars));
+        OnPropertyChanged(nameof(DashboardOperationSummary));
+        OnPropertyChanged(nameof(DashboardActivitySummary));
         OnPropertyChanged(nameof(OperationRows));
         OnPropertyChanged(nameof(MixedOperationRows));
         OnPropertyChanged(nameof(HasMixedOperations));

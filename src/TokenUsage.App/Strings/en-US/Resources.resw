@@ -1361,4 +1361,37 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageReportCompactReportedFormat" xml:space="preserve"><value>Reported {0}</value></data>
   <data name="UsageReportCompactEstimatedFormat" xml:space="preserve"><value>Estimated {0}</value></data>
   <data name="UsageReportCompactSessionsFormat" xml:space="preserve"><value>Sessions {0}</value></data>
+  <data name="UsageDashboardModels.Text" xml:space="preserve"><value>Models</value></data>
+  <data name="UsageDashboardProjects.Text" xml:space="preserve"><value>Projects</value></data>
+  <data name="UsageDashboardComposition.Text" xml:space="preserve"><value>Token composition</value></data>
+  <data name="UsageDashboardViewAll.Content" xml:space="preserve"><value>View all →</value></data>
+  <data name="UsageDashboardAllDetails.Header" xml:space="preserve"><value>Full breakdown</value></data>
+  <data name="UsageDashboardKnownCostUnit" xml:space="preserve"><value>known cost · USD</value></data>
+  <data name="UsageDashboardTokensUnit" xml:space="preserve"><value>tokens</value></data>
+  <data name="UsageDashboardLeaderFormat" xml:space="preserve"><value>{0} accounts for {1} of {2}.</value></data>
+  <data name="UsageDashboardRemainderFormat" xml:space="preserve"><value>{0} of {1} · Remaining: {2}</value></data>
+  <data name="UsageDashboardPeakFormat" xml:space="preserve"><value>{0} accounts for {1} of {2}.</value></data>
+  <data name="UsageDashboardCacheSummaryFormat" xml:space="preserve"><value>{0} of measured input came from cache.</value></data>
+  <data name="UsageDashboardUnassignedFormat" xml:space="preserve"><value>Unassigned: {0} tokens</value></data>
+  <data name="UsageDashboardNoRankedValue" xml:space="preserve"><value>No nonzero value to rank.</value></data>
+  <data name="UsageDashboardInput" xml:space="preserve"><value>Input</value></data>
+  <data name="UsageDashboardCacheRead" xml:space="preserve"><value>Cached input</value></data>
+  <data name="UsageDashboardOutput" xml:space="preserve"><value>Output</value></data>
+  <data name="UsageDashboardReasoning" xml:space="preserve"><value>Reasoning</value></data>
+  <data name="UsageDashboardCacheWrite" xml:space="preserve"><value>Cache write</value></data>
+  <data name="UsageDashboardFilters.Text" xml:space="preserve"><value>Filters</value></data>
+  <data name="UsageDashboardOperationsSummaryFormat" xml:space="preserve"><value>{0} of {1} ranking rows · {2:N0} observed invocations.</value></data>
+  <data name="UsageDashboardMixedNoticeFormat" xml:space="preserve"><value>{0} broader mixed or incomplete-session rows are listed separately and are not in these exact invocation totals.</value></data>
+  <data name="UsageDashboardNoRankedOperations" xml:space="preserve"><value>No ranked tool or MCP invocations in this selection. This is not a measured count of zero.</value></data>
+  <data name="UsageDashboardCoreTools.Content" xml:space="preserve"><value>Core tools</value></data>
+  <data name="UsageDashboardMcpTools.Content" xml:space="preserve"><value>MCP</value></data>
+  <data name="UsageDashboardActivityPreview.Text" xml:space="preserve"><value>Observed activity</value></data>
+  <data name="UsageDashboardOperationsLoading.Text" xml:space="preserve"><value>Loading observed invocations…</value></data>
+  <data name="UsageComparisonRows.Header" xml:space="preserve"><value>Full comparison rows</value></data>
+  <data name="UsageDashboardOperationDetails.Header" xml:space="preserve"><value>All operations and scope details</value></data>
+  <data name="UsageDashboardExpandChart.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Expand original chart</value></data>
+  <data name="UsageDashboardExpandChart.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Expand or compact the original chart</value></data>
+  <data name="UsageDashboardActivitySummaryFormat" xml:space="preserve"><value>{0} accounts for {1} of observed invocations.</value></data>
+  <data name="UsageDashboardMethod.Header" xml:space="preserve"><value>How this is measured</value></data>
+  <data name="UsageDashboardOperationPreview.Text" xml:space="preserve"><value>Tools · observed invocations</value></data>
 </root>

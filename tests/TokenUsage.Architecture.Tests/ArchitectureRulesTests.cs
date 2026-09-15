@@ -597,8 +597,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(341, matches.Count);
-        Assert.Equal(325, distinctIds.Length);
+        Assert.Equal(358, matches.Count);
+        Assert.Equal(342, distinctIds.Length);
         Assert.Contains("UsageOverviewNotice", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCalls", distinctIds, StringComparer.Ordinal);
@@ -632,6 +632,9 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageExplanationBreakdownReturn", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplanationSummary", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplanationLoad", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageDashboardOperationsViewAll", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageDashboardActivityViewAll", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageComparisonRows", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplanationEvidence", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplanationReturn", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageActivity", distinctIds, StringComparer.Ordinal);
@@ -872,9 +875,10 @@ public sealed class ArchitectureRulesTests
             "ReportCompositionBar",
             "GlobalChartTransitionRoot",
             "ProviderChartContentRoot",
-            "ReportCachedInputValue",
-            "ReportUncachedInputValue",
-            "ReportOutputTokensValue",
+            "DashboardCompositionCard",
+            "DashboardModelsRows",
+            "DashboardProjectsRows",
+            "DashboardFullBreakdown",
             "ReportProviderLimitsContentRoot",
             "ModelBreakdownRows",
             "SourceBreakdownRows",

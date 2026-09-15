@@ -462,11 +462,11 @@
                         HorizontalAlignment="Left" Click="OnReturnToExplorerClick" />
                     <TextBlock x:Uid="UsageExplorerComparisonHint" TextWrapping="Wrap" />
                 </StackPanel>
-                <Border Padding="8,6" Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}">
+                <Expander x:Name="ReportFilters" AutomationProperties.AutomationId="UsageReportFilters" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}">
+                    <Expander.Header><StackPanel Spacing="2"><TextBlock x:Uid="UsageDashboardFilters" /><TextBlock Text="{x:Bind ViewModel.ExplorerSelectionContext, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" /></StackPanel></Expander.Header>
                     <ContentControl IsEnabled="{x:Bind ViewModel.CanFilterExplorer, Mode=OneWay}" HorizontalContentAlignment="Stretch">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="{x:Bind ViewModel.ExplorerSelectionContext, Mode=OneWay}" TextWrapping="Wrap"
-                            Style="{StaticResource CaptionTextBlockStyle}" />
+
                         <Grid ColumnSpacing="8" RowSpacing="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -541,6 +541,9 @@
                                     AutomationProperties.AutomationId="UsageConfigurationCoverage" />
                             </StackPanel>
                         </Expander>
+                    </StackPanel>
+                    </ContentControl>
+                </Expander>
                         <InfoBar
                             x:Uid="UsageExplorerSourceWarning"
                             AutomationProperties.AutomationId="UsageExplorerSourceWarning"
@@ -555,9 +558,6 @@
                         </InfoBar>
                         <TextBlock Text="{x:Bind ViewModel.ExplorerNotice, Mode=OneWay}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                         <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsFilteringModels, Mode=OneWay}" />
-                    </StackPanel>
-                    </ContentControl>
-                </Border>
                 <Grid
                     x:Name="ReportProviderCarousel"
                     Height="40"
@@ -1151,6 +1151,9 @@
                             AutomationProperties.AutomationId="UsageExplorerOpenUnlinkedOperations"
                             HorizontalAlignment="Left" Click="OnOpenUnlinkedOperationsClick"
                             Visibility="{x:Bind ViewModel.CanOpenUnlinkedOperations, Mode=OneWay}" />
+                        <Expander x:Name="DashboardOperationDetails" x:Uid="UsageDashboardOperationDetails"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <StackPanel Spacing="8">
                         <ItemsRepeater x:Name="UsageExplorerOperations" AutomationProperties.AutomationId="UsageExplorerOperations"
                             ItemsSource="{x:Bind ViewModel.OperationRows, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.HasRankedOperations, Mode=OneWay}">
@@ -1195,6 +1198,41 @@
                                 </DataTemplate>
                             </ItemsRepeater.ItemTemplate>
                         </ItemsRepeater>
+                        </StackPanel>
+                        </Expander>
+                        <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.HasDerivedActivity, Mode=OneWay}">
+                            <TextBlock x:Uid="UsageExplorerDerivedActivityHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <ItemsRepeater x:Name="UsageExplorerDerivedActivity"
+                                AutomationProperties.AutomationId="UsageExplorerDerivedActivity"
+                                ItemsSource="{x:Bind ViewModel.DerivedActivityRows, Mode=OneWay}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="reports:UsageExplorerDerivedActivityRow">
+                                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,8"
+                                            Tag="{x:Bind Category}" AutomationProperties.Name="{x:Bind Label}"
+                                            Style="{StaticResource SubtleButtonStyle}" Click="OnDerivedActivityClick">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{x:Bind CountText}" TextWrapping="Wrap"
+                                                    Style="{StaticResource CaptionTextBlockStyle}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                            <Expander x:Uid="UsageDashboardMethod" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="{x:Bind ViewModel.DerivedActivityMethodText, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}" />
+                                    <TextBlock Text="{x:Bind ViewModel.DerivedActivityNote, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.HasDerivedActivityNote, Mode=OneWay}" />
+                                </StackPanel>
+                            </Expander>
+                            <Button x:Name="UsageExplorerDerivedActivityReturn" x:Uid="UsageExplorerDerivedActivityReturn"
+                                AutomationProperties.AutomationId="UsageExplorerDerivedActivityReturn"
+                                HorizontalAlignment="Left" Click="OnClearOperationEvidenceClick"
+                                Visibility="{x:Bind ViewModel.HasDerivedActivityReturn, Mode=OneWay}" />
+                        </StackPanel>
                         <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.HasWorkflowEvidence, Mode=OneWay}">
                             <TextBlock x:Uid="UsageExplorerWorkflowEvidenceHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <Grid ColumnSpacing="8">
@@ -1246,35 +1284,6 @@
                             AutomationProperties.AutomationId="UsageExplorerOpenOperationSession"
                             HorizontalAlignment="Left" Click="OnOpenOperationSessionClick"
                             Visibility="{x:Bind ViewModel.CanOpenOperationSession, Mode=OneWay}" />
-                        <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.HasDerivedActivity, Mode=OneWay}">
-                            <TextBlock x:Uid="UsageExplorerDerivedActivityHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
-                            <TextBlock Text="{x:Bind ViewModel.DerivedActivityMethodText, Mode=OneWay}" TextWrapping="Wrap"
-                                Style="{StaticResource CaptionTextBlockStyle}" />
-                            <ItemsRepeater x:Name="UsageExplorerDerivedActivity"
-                                AutomationProperties.AutomationId="UsageExplorerDerivedActivity"
-                                ItemsSource="{x:Bind ViewModel.DerivedActivityRows, Mode=OneWay}">
-                                <ItemsRepeater.ItemTemplate>
-                                    <DataTemplate x:DataType="reports:UsageExplorerDerivedActivityRow">
-                                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,8"
-                                            Tag="{x:Bind Category}" AutomationProperties.Name="{x:Bind Label}"
-                                            Style="{StaticResource SubtleButtonStyle}" Click="OnDerivedActivityClick">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
-                                                <TextBlock Text="{x:Bind CountText}" TextWrapping="Wrap"
-                                                    Style="{StaticResource CaptionTextBlockStyle}" />
-                                            </StackPanel>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                            <TextBlock Text="{x:Bind ViewModel.DerivedActivityNote, Mode=OneWay}" TextWrapping="Wrap"
-                                Style="{StaticResource CaptionTextBlockStyle}"
-                                Visibility="{x:Bind ViewModel.HasDerivedActivityNote, Mode=OneWay}" />
-                            <Button x:Name="UsageExplorerDerivedActivityReturn" x:Uid="UsageExplorerDerivedActivityReturn"
-                                AutomationProperties.AutomationId="UsageExplorerDerivedActivityReturn"
-                                HorizontalAlignment="Left" Click="OnClearOperationEvidenceClick"
-                                Visibility="{x:Bind ViewModel.HasDerivedActivityReturn, Mode=OneWay}" />
-                        </StackPanel>
                         <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.HasWorkflowIndicators, Mode=OneWay}">
                             <TextBlock x:Uid="UsageExplorerWorkflowHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <ItemsRepeater x:Name="UsageExplorerWorkflowIndicators"
@@ -1383,8 +1392,7 @@
                                 <StackPanel Spacing="3">
                                     <TextBlock x:Uid="UsageReportSummaryCostLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" />
                                     <TextBlock x:Name="ReportSummaryCostValue" FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SummaryCostText, Mode=OneWay}" TextWrapping="Wrap" />
-                                    <TextBlock x:Uid="UsageMeasurementSummary" TextWrapping="Wrap"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
+
                                     <Button x:Name="UsageOverviewCostDetails" x:Uid="UsageOverviewCostDetailsButton"
                                         AutomationProperties.AutomationId="UsageOverviewCostDetails"
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,2"
@@ -1393,6 +1401,8 @@
                                         <Button.Flyout>
                                             <Flyout Placement="BottomEdgeAlignedLeft" ShouldConstrainToRootBounds="True">
                                                 <StackPanel Width="320" Spacing="8" AutomationProperties.AutomationId="UsageExplorerValues">
+                                    <TextBlock x:Uid="UsageMeasurementSummary" TextWrapping="Wrap"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
                                                     <TextBlock x:Uid="UsageOverviewReportedLabel" Style="{StaticResource ReportSectionLabelStyle}" />
                                                     <TextBlock AutomationProperties.AutomationId="UsageOverviewReported"
                                                         FontFamily="Consolas" IsTextSelectionEnabled="True"
@@ -1443,57 +1453,20 @@
                         </InfoBar.ActionButton>
                     </InfoBar>
 
-                    <TextBlock AutomationProperties.AutomationId="UsageOverviewNotice"
-                        Text="{x:Bind ViewModel.OverviewNoticeText, Mode=OneWay}" TextWrapping="Wrap"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Visibility="{x:Bind ViewModel.HasOverviewNotice, Mode=OneWay}" />
-                    <StackPanel Spacing="6">
-                        <Grid AutomationProperties.AutomationId="UsageOverviewCards"
-                            ColumnSpacing="12"
-                            Visibility="{x:Bind ViewModel.HasOverviewCards, Mode=OneWay}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Spacing="1"
-                                AutomationProperties.AutomationId="{x:Bind ViewModel.OverviewSessionsCard.AutomationId, Mode=OneWay, FallbackValue=''}"
-                                AutomationProperties.Name="{x:Bind ViewModel.OverviewSessionsCard.Label, Mode=OneWay, FallbackValue=''}">
-                                <TextBlock Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap"
-                                    Text="{x:Bind ViewModel.OverviewSessionsCard.Label, Mode=OneWay, FallbackValue=''}" />
-                                <TextBlock FontFamily="Consolas" FontSize="16" TextWrapping="Wrap"
-                                    Text="{x:Bind ViewModel.OverviewSessionsCard.Value, Mode=OneWay, FallbackValue=''}" />
-                                <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
-                                    Text="{x:Bind ViewModel.OverviewSessionsCard.Detail, Mode=OneWay, FallbackValue=''}"
-                                    Visibility="{x:Bind ViewModel.HasOverviewSessionsDetail, Mode=OneWay}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Spacing="1"
-                                AutomationProperties.AutomationId="{x:Bind ViewModel.OverviewCacheCard.AutomationId, Mode=OneWay, FallbackValue=''}"
-                                AutomationProperties.Name="{x:Bind ViewModel.OverviewCacheCard.Label, Mode=OneWay, FallbackValue=''}">
-                                <TextBlock Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap"
-                                    Text="{x:Bind ViewModel.OverviewCacheCard.Label, Mode=OneWay, FallbackValue=''}" />
-                                <TextBlock FontFamily="Consolas" FontSize="16" TextWrapping="Wrap"
-                                    Text="{x:Bind ViewModel.OverviewCacheCard.Value, Mode=OneWay, FallbackValue=''}" />
-                                <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
-                                    Text="{x:Bind ViewModel.OverviewCacheCard.Detail, Mode=OneWay, FallbackValue=''}"
-                                    Visibility="{x:Bind ViewModel.HasOverviewCacheDetail, Mode=OneWay}" />
-                            </StackPanel>
-                        </Grid>
-                        <Button x:Uid="UsageExplanationLoad" AutomationProperties.AutomationId="UsageExplanationLoad"
-                            HorizontalAlignment="Left"
-                            Visibility="{x:Bind ViewModel.CanLoadExplanationDetail, Mode=OneWay}"
-                            Click="OnLoadExplanationDetailClick" />
-                    </StackPanel>
                     <TextBlock x:Uid="UsageExplorerTopModelsHint" Visibility="{x:Bind ViewModel.IsModelChart, Mode=OneWay}"
                         TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
 
-                    <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
+                    <Grid x:Name="DashboardGrid" ColumnSpacing="12" RowSpacing="12" SizeChanged="OnDashboardSizeChanged">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <StackPanel x:Name="DashboardTrendCard" Spacing="10" Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
                         <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
                             <StackPanel Spacing="7">
                                 <Grid ColumnSpacing="12">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="2">
-                                        <ContentControl x:Name="GlobalChartToolsHost" IsTabStop="False" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <ContentControl x:Name="GlobalChartToolsHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" Margin="0,0,10,0">
                                             <StackPanel x:Name="ReportChartTools" Orientation="Horizontal" Spacing="8">
                                                 <Button x:Uid="ReportCycleChartStyleButton" AutomationProperties.AutomationId="ReportCycleChartStyleButton"
                                                     ToolTipService.ToolTip="{x:Bind ViewModel.ChartStyleTooltip, Mode=OneWay}"
@@ -1506,8 +1479,11 @@
                                                     Click="OnSmallValuesClick" Width="30" Height="30" MinHeight="30" Padding="7" VerticalAlignment="Center">
                                                     <controls:TablerIcon Kind="square-root" Foreground="{Binding Foreground, ElementName=ReportSmallValuesToggle}" />
                                                 </ToggleButton>
+                                                <ToggleButton x:Name="DashboardExpandChart" x:Uid="UsageDashboardExpandChart" AutomationProperties.AutomationId="UsageDashboardExpandChart" Click="OnDashboardExpandChartClick" Padding="7" MinWidth="30" MinHeight="30"><FontIcon Glyph="&#xE740;" FontSize="12" /></ToggleButton>
                                             </StackPanel>
                                         </ContentControl>
+                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" Orientation="Horizontal" Spacing="2" Margin="0,6,0,0">
+
                                         <RadioButton
                                             x:Name="GlobalCombinedChartButton"
                                             x:Uid="UsageReportCombinedChartButton"
@@ -1535,9 +1511,7 @@
                                             Tag="Model" Click="OnGlobalChartLayoutClick" />
                                     </StackPanel>
                                 </Grid>
-                                <TextBlock AutomationProperties.AutomationId="UsageReportChartAppearance"
-                                    Text="{x:Bind ViewModel.ChartAppearanceSummary, Mode=OneWay}"
-                                    TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+
                                 <Grid x:Name="GlobalChartTransitionRoot">
                                     <Grid.RenderTransform>
                                         <CompositeTransform x:Name="GlobalChartTransitionTransform" />
@@ -1547,7 +1521,7 @@
                                         Visibility="{x:Bind ViewModel.IsCombinedChart, Mode=OneWay}"
                                         AutomationProperties.AutomationId="UsageReportGlobalTrendChart"
                                         Data="{x:Bind ViewModel.Trend, Mode=OneWay}"
-                                        PlotHeight="310" />
+                                        PlotHeight="190" />
                                     <ItemsRepeater
                                         x:Name="GlobalSplitCharts"
                                         ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}"
@@ -1583,6 +1557,9 @@
                                     </ItemsRepeater.ItemTemplate>
                                     </ItemsRepeater>
                                 </Grid>
+                                <TextBlock AutomationProperties.AutomationId="UsageReportChartAppearance"
+                                    Text="{x:Bind ViewModel.DashboardTrendSummary, Mode=OneWay}"
+                                    TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
                                 <Border
                                     Margin="0,2,0,0"
                                     Padding="0,10,0,0"
@@ -1631,16 +1608,18 @@
                         </Border>
                     </StackPanel>
 
-                    <Border
+                    <Border x:Name="DashboardProviderTrendCard"
                         Padding="14,10"
                         Style="{StaticResource ReportCardStyle}"
                         Visibility="{x:Bind ViewModel.IsProviderScope, Mode=OneWay}">
                         <StackPanel Spacing="7">
                             <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontWeight="SemiBold" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <ContentControl x:Name="ProviderChartToolsHost" IsTabStop="False" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <ContentControl x:Name="ProviderChartToolsHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,6,0,0">
+
                                     <RadioButton x:Uid="UsageReportProviderTotalChartButton"
                                         AutomationProperties.AutomationId="UsageReportProviderTotalChartButton"
                                         GroupName="ProviderChartGrouping" IsChecked="{x:Bind ViewModel.IsProviderTotalChart, Mode=OneWay}"
@@ -1651,54 +1630,193 @@
                                         Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Model" Click="OnGlobalChartLayoutClick" />
                                 </StackPanel>
                             </Grid>
-                            <controls:UsageTrendChart x:Name="ProviderChartContentRoot" AutomationProperties.AutomationId="UsageReportTrendChart" Data="{x:Bind ViewModel.Trend, Mode=OneWay}" PlotHeight="250" />
+                            <controls:UsageTrendChart x:Name="ProviderChartContentRoot" AutomationProperties.AutomationId="UsageReportTrendChart" Data="{x:Bind ViewModel.Trend, Mode=OneWay}" PlotHeight="190" />
+                            <TextBlock Text="{x:Bind ViewModel.DashboardTrendSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
                         </StackPanel>
                     </Border>
 
-                        <Border Padding="12,8" Style="{StaticResource ReportCardStyle}">
-                            <Grid>
-                            <Grid Visibility="{x:Bind ViewModel.IsWideRankings, Mode=OneWay}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Grid Padding="8,2" ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripCachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                    <TextBlock x:Name="ReportCachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CachedInputText, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                </Grid>
-                                <Grid Grid.Column="1" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripUncachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                    <TextBlock x:Name="ReportUncachedInputValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.UncachedInputText, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                </Grid>
-                                <Grid Grid.Column="2" Padding="16,2" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0" ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripOutputLabel" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                    <TextBlock x:Name="ReportOutputTokensValue" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.OutputTokensText, Mode=OneWay}" VerticalAlignment="Center" />
-                                </Grid>
-                            </Grid>
-                            <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.IsCompactRankings, Mode=OneWay}">
-                                <Grid ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripCachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.CachedInputText, Mode=OneWay}" />
-                                </Grid>
-                                <Grid ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripUncachedInputLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.UncachedInputText, Mode=OneWay}" />
-                                </Grid>
-                                <Grid ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock x:Uid="UsageReportCacheStripOutputLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.OutputTokensText, Mode=OneWay}" />
-                                </Grid>
+                        <Border x:Name="DashboardCompositionCard" Grid.Column="1" Padding="16" Style="{StaticResource ReportCardStyle}" VerticalAlignment="Top">
+                            <StackPanel Spacing="14">
+                                <TextBlock x:Uid="UsageDashboardComposition" FontWeight="SemiBold" />
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.DashboardComponents, Mode=OneWay}"><ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="reports:UsageDashboardBar"><StackPanel Spacing="6" Padding="0,6">
+                                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind Name}" TextWrapping="Wrap" FontSize="12" /><TextBlock Grid.Column="1" Text="{x:Bind ValueText}" FontSize="12" />
+                                        </Grid><ProgressBar Foreground="{ThemeResource TextFillColorPrimaryBrush}" Background="{ThemeResource TokenUsageSelectedBrush}" Value="{x:Bind Percent}" Maximum="100" Height="8" AutomationProperties.AccessibilityView="Raw" />
+                                    </StackPanel></DataTemplate>
+                                </ItemsRepeater.ItemTemplate></ItemsRepeater>
+                                <TextBlock Text="{x:Bind ViewModel.DashboardCacheSummary, Mode=OneWay}" AutomationProperties.AutomationId="UsageDashboardCacheSummary" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <Button x:Uid="UsageExplanationLoad" AutomationProperties.AutomationId="UsageExplanationLoad"
+                            HorizontalAlignment="Left"
+                            Visibility="{x:Bind ViewModel.CanLoadExplanationDetail, Mode=OneWay}"
+                            Click="OnLoadExplanationDetailClick" />
                             </StackPanel>
-                            </Grid>
                         </Border>
-
+                        <Border x:Name="DashboardModelsCard" Grid.Row="1" Grid.Column="0" Padding="16" Style="{StaticResource ReportCardStyle}" VerticalAlignment="Top">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Uid="UsageDashboardModels" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" x:Uid="UsageDashboardViewAll" AutomationProperties.AutomationId="UsageDashboardModelsViewAll" Tag="Model" Click="OnDashboardViewAllClick" Style="{StaticResource SubtleButtonStyle}" />
+                                </Grid>
+                                <TextBlock Text="{x:Bind ViewModel.DashboardUnit, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" />
+                                <ItemsRepeater x:Name="DashboardModelsRows" ItemsSource="{x:Bind ViewModel.DashboardModels, Mode=OneWay}">
+                                    <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="reports:UsageDashboardBar">
+                                        <Button Tag="{x:Bind Id}" Click="OnDashboardModelClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,5" Style="{StaticResource SubtleButtonStyle}"
+                                            AutomationProperties.AutomationId="UsageDashboardModelsBar" AutomationProperties.Name="{x:Bind AutomationName}" ToolTipService.ToolTip="{x:Bind Name}">
+                                            <StackPanel Spacing="5"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" MaxLines="1" FontSize="12" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind ValueText}" FontSize="12" />
+                                            </Grid><ProgressBar Foreground="{ThemeResource TextFillColorPrimaryBrush}" Background="{ThemeResource TokenUsageSelectedBrush}" Value="{x:Bind Percent}" Maximum="100" Height="6" IsTabStop="False" AutomationProperties.AccessibilityView="Raw" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate></ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                                <TextBlock Text="{x:Bind ViewModel.DashboardModelRemainder, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                                <Border BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+                                    <TextBlock Text="{x:Bind ViewModel.DashboardModelSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <Border x:Name="DashboardProjectsCard" Grid.Row="1" Grid.Column="1" Padding="16" Style="{StaticResource ReportCardStyle}" VerticalAlignment="Top" Visibility="{x:Bind ViewModel.HasDashboardProjects, Mode=OneWay}">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Uid="UsageDashboardProjects" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" x:Uid="UsageDashboardViewAll" AutomationProperties.AutomationId="UsageDashboardProjectsViewAll" Tag="Project" Click="OnDashboardViewAllClick" Style="{StaticResource SubtleButtonStyle}" />
+                                </Grid>
+                                <TextBlock Text="{x:Bind ViewModel.DashboardUnit, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" />
+                                <ItemsRepeater x:Name="DashboardProjectsRows" ItemsSource="{x:Bind ViewModel.DashboardProjects, Mode=OneWay}">
+                                    <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="reports:UsageDashboardBar">
+                                        <Button Tag="{x:Bind Id}" Click="OnDashboardProjectClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,5" Style="{StaticResource SubtleButtonStyle}"
+                                            AutomationProperties.AutomationId="UsageDashboardProjectsBar" AutomationProperties.Name="{x:Bind AutomationName}" ToolTipService.ToolTip="{x:Bind Name}">
+                                            <StackPanel Spacing="5"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" MaxLines="1" FontSize="12" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind ValueText}" FontSize="12" />
+                                            </Grid><ProgressBar Foreground="{ThemeResource TextFillColorPrimaryBrush}" Background="{ThemeResource TokenUsageSelectedBrush}" Value="{x:Bind Percent}" Maximum="100" Height="6" IsTabStop="False" AutomationProperties.AccessibilityView="Raw" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate></ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                                <TextBlock Text="{x:Bind ViewModel.DashboardProjectRemainder, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                                <Border BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+                                    <TextBlock Text="{x:Bind ViewModel.DashboardProjectSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <Grid x:Name="DashboardOperationsGrid" Grid.Row="2" Grid.ColumnSpan="2" ColumnSpacing="12" RowSpacing="12"
+                            Visibility="{x:Bind ViewModel.HasDashboardOperationsCard, Mode=OneWay}"
+                            SizeChanged="OnDashboardOperationsSizeChanged">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Border x:Name="DashboardToolsPreview" Padding="16" Style="{StaticResource ReportCardStyle}" VerticalAlignment="Top">
+                                <StackPanel Spacing="12">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock x:Uid="UsageDashboardOperationPreview" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" x:Uid="UsageDashboardViewAll"
+                                            AutomationProperties.AutomationId="UsageDashboardOperationsViewAll"
+                                            Click="OnDashboardOperationsViewAllClick" Style="{StaticResource SubtleButtonStyle}"
+                                            IsEnabled="{x:Bind ViewModel.CanOpenDashboardOperations, Mode=OneWay}" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind ViewModel.HasDashboardOperationKindSwitch, Mode=OneWay}">
+                                        <RadioButton x:Name="DashboardCoreTools" x:Uid="UsageDashboardCoreTools"
+                                            AutomationProperties.AutomationId="UsageDashboardCoreTools"
+                                            GroupName="DashboardOperationKind" Tag="tool"
+                                            IsChecked="{x:Bind ViewModel.IsDashboardCoreToolsSelected, Mode=OneWay}"
+                                            Click="OnDashboardOperationKindClick"
+                                            Style="{StaticResource SectionTabRadioButtonStyle}" />
+                                        <RadioButton x:Name="DashboardMcpTools" x:Uid="UsageDashboardMcpTools"
+                                            AutomationProperties.AutomationId="UsageDashboardMcpTools"
+                                            GroupName="DashboardOperationKind" Tag="mcp"
+                                            IsChecked="{x:Bind ViewModel.DashboardShowsMcp, Mode=OneWay}"
+                                            Click="OnDashboardOperationKindClick"
+                                            Style="{StaticResource SectionTabRadioButtonStyle}" />
+                                    </StackPanel>
+                                    <TextBlock x:Uid="UsageDashboardOperationsLoading" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        AutomationProperties.AutomationId="UsageDashboardOperationsLoading"
+                                        Visibility="{x:Bind ViewModel.IsDashboardOperationsLoading, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind ViewModel.DashboardOperationStatus, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        AutomationProperties.AutomationId="UsageDashboardOperationsStatus"
+                                        Visibility="{x:Bind ViewModel.HasDashboardOperationStatus, Mode=OneWay}" />
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DashboardOperationBars, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.HasDashboardRankedOperations, Mode=OneWay}">
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="reports:UsageDashboardBar">
+                                                <Button Tag="{x:Bind Id}" Click="OnDashboardOperationClick"
+                                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,5"
+                                                    Style="{StaticResource SubtleButtonStyle}"
+                                                    AutomationProperties.AutomationId="UsageDashboardOperationsBar"
+                                                    AutomationProperties.Name="{x:Bind AutomationName}"
+                                                    ToolTipService.ToolTip="{x:Bind Name}">
+                                                    <StackPanel Spacing="5">
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" MaxLines="1" FontSize="12" />
+                                                            <TextBlock Grid.Column="1" Text="{x:Bind ValueText}" FontSize="12" />
+                                                        </Grid>
+                                                        <ProgressBar Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                                            Background="{ThemeResource TokenUsageSelectedBrush}"
+                                                            Value="{x:Bind Percent}" Maximum="100" Height="6" IsTabStop="False"
+                                                            AutomationProperties.AccessibilityView="Raw" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                    <TextBlock Text="{x:Bind ViewModel.DashboardOperationSummary, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.HasDashboardRankedOperations, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind ViewModel.DashboardMixedNotice, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Visibility="{x:Bind ViewModel.HasDashboardMixedNotice, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="DashboardActivityPreview" Grid.Column="1" Padding="16" Style="{StaticResource ReportCardStyle}"
+                                VerticalAlignment="Top" Visibility="{x:Bind ViewModel.HasDashboardActivity, Mode=OneWay}">
+                                <StackPanel Spacing="12">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock x:Uid="UsageDashboardActivityPreview" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" x:Uid="UsageDashboardViewAll"
+                                            AutomationProperties.AutomationId="UsageDashboardActivityViewAll"
+                                            Click="OnDashboardOperationsViewAllClick" Style="{StaticResource SubtleButtonStyle}"
+                                            IsEnabled="{x:Bind ViewModel.CanOpenDashboardOperations, Mode=OneWay}" />
+                                    </Grid>
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.DashboardActivityBars, Mode=OneWay}">
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="reports:UsageDashboardBar">
+                                                <Button Tag="{x:Bind Id}" Click="OnDashboardActivityClick"
+                                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,5"
+                                                    Style="{StaticResource SubtleButtonStyle}"
+                                                    AutomationProperties.AutomationId="UsageDashboardActivityBar"
+                                                    AutomationProperties.Name="{x:Bind AutomationName}">
+                                                    <StackPanel Spacing="5">
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{x:Bind Name}" TextWrapping="Wrap" FontSize="12" />
+                                                            <TextBlock Grid.Column="1" Text="{x:Bind ValueText}" FontSize="12" />
+                                                        </Grid>
+                                                        <ProgressBar Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                                            Background="{ThemeResource TokenUsageSelectedBrush}"
+                                                            Value="{x:Bind Percent}" Maximum="100" Height="6" IsTabStop="False"
+                                                            AutomationProperties.AccessibilityView="Raw" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                    <TextBlock Text="{x:Bind ViewModel.DashboardActivitySummary, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource CaptionTextBlockStyle}" />
+                                    <Expander x:Uid="UsageDashboardMethod" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                        <TextBlock Text="{x:Bind ViewModel.DashboardActivityMethodText, Mode=OneWay}" TextWrapping="Wrap"
+                                            Style="{StaticResource CaptionTextBlockStyle}" />
+                                    </Expander>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
                     <StackPanel Spacing="12">
 
                         <Border
@@ -1750,7 +1868,7 @@
                         </Border>
                     </StackPanel>
 
-                    <Border Padding="14,10" Style="{StaticResource ReportCardStyle}">
+                    <Expander x:Name="DashboardFullBreakdown" Collapsed="OnDashboardDetailsCollapsed" x:Uid="UsageDashboardAllDetails" AutomationProperties.AutomationId="UsageDashboardFullBreakdown" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                         <StackPanel Spacing="7">
                             <Grid>
                                 <TextBlock x:Uid="UsageReportBreakdownTitle" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -2180,7 +2298,7 @@
                                 </ItemsRepeater>
                             </StackPanel>
                         </StackPanel>
-                    </Border>
+                    </Expander>
                     </StackPanel>
                     <StackPanel
                         x:Name="ReportCompareContent"
@@ -2230,6 +2348,10 @@
                                     PlotHeight="250" />
                             </StackPanel>
                         </Border>
+                        <Expander x:Name="ComparisonRowsDetails" x:Uid="UsageComparisonRows"
+                            AutomationProperties.AutomationId="UsageComparisonRows"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <StackPanel Spacing="12">
                         <Border Padding="14,10" Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.IsPairComparison, Mode=OneWay}">
                             <StackPanel Spacing="7">
                                 <Button x:Name="ExplanationBreakdownReturnButton" x:Uid="UsageExplanationReturn"
@@ -2331,6 +2453,8 @@
                                 </ItemsRepeater>
                             </StackPanel>
                         </Border>
+                        </StackPanel>
+                        </Expander>
 
                     </StackPanel>
                 </StackPanel>
@@ -2425,6 +2549,43 @@
                         AutomationProperties.AutomationId="UsageMeasurementDetails"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12,8">
                         <StackPanel Spacing="8">
+                    <TextBlock AutomationProperties.AutomationId="UsageOverviewNotice"
+                        Text="{x:Bind ViewModel.OverviewNoticeText, Mode=OneWay}" TextWrapping="Wrap"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Visibility="{x:Bind ViewModel.HasOverviewNotice, Mode=OneWay}" />
+                    <StackPanel Spacing="6">
+                        <Grid AutomationProperties.AutomationId="UsageOverviewCards"
+                            ColumnSpacing="12"
+                            Visibility="{x:Bind ViewModel.HasOverviewCards, Mode=OneWay}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="1"
+                                AutomationProperties.AutomationId="{x:Bind ViewModel.OverviewSessionsCard.AutomationId, Mode=OneWay, FallbackValue=''}"
+                                AutomationProperties.Name="{x:Bind ViewModel.OverviewSessionsCard.Label, Mode=OneWay, FallbackValue=''}">
+                                <TextBlock Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap"
+                                    Text="{x:Bind ViewModel.OverviewSessionsCard.Label, Mode=OneWay, FallbackValue=''}" />
+                                <TextBlock FontFamily="Consolas" FontSize="16" TextWrapping="Wrap"
+                                    Text="{x:Bind ViewModel.OverviewSessionsCard.Value, Mode=OneWay, FallbackValue=''}" />
+                                <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
+                                    Text="{x:Bind ViewModel.OverviewSessionsCard.Detail, Mode=OneWay, FallbackValue=''}"
+                                    Visibility="{x:Bind ViewModel.HasOverviewSessionsDetail, Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="1"
+                                AutomationProperties.AutomationId="{x:Bind ViewModel.OverviewCacheCard.AutomationId, Mode=OneWay, FallbackValue=''}"
+                                AutomationProperties.Name="{x:Bind ViewModel.OverviewCacheCard.Label, Mode=OneWay, FallbackValue=''}">
+                                <TextBlock Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap"
+                                    Text="{x:Bind ViewModel.OverviewCacheCard.Label, Mode=OneWay, FallbackValue=''}" />
+                                <TextBlock FontFamily="Consolas" FontSize="16" TextWrapping="Wrap"
+                                    Text="{x:Bind ViewModel.OverviewCacheCard.Value, Mode=OneWay, FallbackValue=''}" />
+                                <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
+                                    Text="{x:Bind ViewModel.OverviewCacheCard.Detail, Mode=OneWay, FallbackValue=''}"
+                                    Visibility="{x:Bind ViewModel.HasOverviewCacheDetail, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+
+                    </StackPanel>
                         <StackPanel x:Name="ExplanationCard" Spacing="8" Visibility="{x:Bind ViewModel.HasExplanations, Mode=OneWay}">
                             <TextBlock x:Uid="UsageExplanationTitleText" FontWeight="SemiBold" />
                             <TextBlock AutomationProperties.AutomationId="UsageExplanationSummary" Text="{x:Bind ViewModel.ExplanationSummaryText, Mode=OneWay}" TextWrapping="Wrap" />

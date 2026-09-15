@@ -165,7 +165,8 @@ public sealed partial class UsageReportViewModel
         Overview = UsageReportOverview.Build(
             _report,
             selected,
-            new UsageReportOverviewRequest(attributionEnabled, _report.CacheComposition));
+            new UsageReportOverviewRequest(attributionEnabled, _report.CacheComposition),
+            rankedCount: int.MaxValue);
         OverviewCards = CreateOverviewCards(Overview);
         OverviewNoticeText = Overview.SessionAvailability == UsageOverviewFactKind.Disabled
             ? GetString("UsageOverviewNoticeDisabled")
@@ -255,7 +256,7 @@ public sealed partial class UsageReportViewModel
                     row.OtherCount)
                 : row.IsUnassigned
                     ? GetString("UsageOverviewUnassignedProject")
-                    : GetString("UsageOverviewAssignedProject");
+                    : string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerProjectLabelFormat"), row.ProjectKey!.ShortLabel);
             return new UsageReportProjectOverviewRow(
                 row.Id,
                 name,

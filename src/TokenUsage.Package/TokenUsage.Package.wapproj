@@ -25,9 +25,14 @@
 
   <PropertyGroup>
     <WapProjPath Condition="'$(WapProjPath)' == ''">$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\</WapProjPath>
+    <_TokenUsageWapProps>$(WapProjPath)Microsoft.DesktopBridge.props</_TokenUsageWapProps>
+    <_TokenUsageWapTargets>$(WapProjPath)Microsoft.DesktopBridge.targets</_TokenUsageWapTargets>
+    <_TokenUsageCanBuildWap Condition="Exists('$(_TokenUsageWapProps)') and Exists('$(_TokenUsageWapTargets)')">true</_TokenUsageCanBuildWap>
   </PropertyGroup>
 
-  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.props" />
+  <!-- DesktopBridge lives in Visual Studio MSBuild, not the .NET SDK. `dotnet build` of the
+       solution must skip this project; scripts/check.ps1 and BuildAndRun.ps1 still package it. -->
+  <Import Project="$(_TokenUsageWapProps)" Condition="'$(_TokenUsageCanBuildWap)' == 'true'" />
 
   <PropertyGroup>
     <ProjectGuid>{F61D6F12-1288-4F09-BA60-DB7F4C83E90A}</ProjectGuid>
@@ -37,7 +42,7 @@
     <Platforms>x64;ARM64</Platforms>
     <EntryPointProjectUniqueName>..\TokenUsage.App\TokenUsage.App.csproj</EntryPointProjectUniqueName>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
-    <NoWarn>$(NoWarn);NU1702</NoWarn>
+    <NoWarn>$(NoWarn);NU1702;NU1503</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -51,10 +56,20 @@
     <ProjectReference Include="..\TokenUsage.Cli\TokenUsage.Cli.csproj" />
   </ItemGroup>
 
-  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
-
-  <ItemGroup>
+  <ItemGroup Condition="'$(_TokenUsageCanBuildWap)' == 'true'">
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
   </ItemGroup>
+
+  <Target Name="Build" Condition="'$(_TokenUsageCanBuildWap)' != 'true'">
+    <Message Importance="high" Text="Skipping TokenUsage.Package: Windows Application Packaging requires Visual Studio MSBuild." />
+  </Target>
+  <Target Name="Rebuild" Condition="'$(_TokenUsageCanBuildWap)' != 'true'" />
+  <Target Name="Clean" Condition="'$(_TokenUsageCanBuildWap)' != 'true'" />
+  <Target Name="Restore" Condition="'$(_TokenUsageCanBuildWap)' != 'true'" />
+  <Target Name="GetTargetFrameworks" Condition="'$(_TokenUsageCanBuildWap)' != 'true'" Returns="$(TargetFrameworks)" />
+
+  <!-- MSBuild uses the last target definition even when its Condition is false.
+       Import the real targets last so these SDK-only stubs cannot replace them. -->
+  <Import Project="$(_TokenUsageWapTargets)" Condition="'$(_TokenUsageCanBuildWap)' == 'true'" />
 </Project>

@@ -127,9 +127,6 @@ public sealed partial class UsageReportPage
             ReportSummaryTokensValue,
             ReportSummaryCostValue,
             ReportSummaryCoverageValue,
-            ReportCachedInputValue,
-            ReportUncachedInputValue,
-            ReportOutputTokensValue,
             GetBreakdownTransitionTarget(ViewModel.Breakdown).Rows,
         };
         if (ViewModel.IsGlobalScope)
@@ -174,9 +171,6 @@ public sealed partial class UsageReportPage
             ReportCompositionBar,
             GlobalChartTransitionRoot,
             ProviderChartContentRoot,
-            ReportCachedInputValue,
-            ReportUncachedInputValue,
-            ReportOutputTokensValue,
             ReportProviderLimitsContentRoot,
             ModelBreakdownRows,
             SourceBreakdownRows,
