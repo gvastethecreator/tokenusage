@@ -55,6 +55,7 @@ public sealed class VercelGatewayCardProjectorTests
     private static string Strings(string key) => key switch
     {
         "LocalUsageUsdFormat" => "${0:0.00} USD",
+        "LocalUsageUsdTinyFormat" => "{0} USD",
         "LocalUsageUsdCompactFormat" => "${0:0.00}",
         _ => key,
     };

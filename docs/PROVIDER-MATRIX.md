@@ -30,11 +30,23 @@ Cost catalogs are checked against the official [OpenAI model pages](https://deve
   therefore remain unavailable.
 - Optional Codex operation facts (`codex-mcp`, `codex-skills`, `codex-commands`,
   `codex-files`) are independent Settings choices, off by default. They store
-  opaque call or file IDs and bounded names only. DynamicToolCall is allowlisted
+  opaque call or file IDs and bounded names only. Operation identity includes the
+  collector source authority (schema 12 `source_instance`); the same `call_id`
+  from two homes is two facts. A schema-11 unnamed row is reconciled to the new
+  key when an explicit backfill recovers that identity; it is not silently
+  assigned to a guessed source. DynamicToolCall is allowlisted
   to `Read` and `Edit`. Command families are derived from the executable name
   (never argv). File rows keep an HMAC of a normalized path. Prompt-derived
   categories and Claude operational rows are not admitted. RequestFinal / Calls
-  remain unavailable: `token_count` is not a finalized request.
+  remain unavailable: `token_count` is not a finalized request. Reports may show a
+  versioned derived-activity partition (`derived-activity/v1`) and workflow
+  indicators (`workflow-indicators/v1`) from those admitted facts. Spawn is not a
+  skill invocation. First-edit latency stays unavailable without a proved task
+  start. A missing operation end is incomplete, not a completed interval.
+  Workflow export counts that depend on both files and commands are dropped when
+  either consent epoch is revoked or replaced. Same-file evidence is the
+  contributing event sequence. Explicit backfill reads historical operational
+  lines even if the log grew after enablement.
 
 App-owned local storage now includes schema-5 numeric metadata, separate account
 daily totals, last collection status, and up to 100 immutable comparisons (4 MiB

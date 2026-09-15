@@ -440,6 +440,12 @@ public sealed partial class UsageReportViewModel
             OnPropertyChanged(nameof(IsReferencePriceOverlayVisible));
             OnPropertyChanged(nameof(HasPeriodComparisonOptions));
             OnPropertyChanged(nameof(HasSavedComparison));
+            OnPropertyChanged(nameof(ComparisonStateText));
+            OnPropertyChanged(nameof(ComparisonUsageDatesText));
+            OnPropertyChanged(nameof(ComparisonCatalogDatesText));
+            OnPropertyChanged(nameof(HasComparisonCatalogDates));
+            OnPropertyChanged(nameof(ComparisonCoverageText));
+            OnPropertyChanged(nameof(ComparisonResultCaptureText));
             OnPropertyChanged(nameof(IsCompareCyclePickersVisible));
             OnPropertyChanged(nameof(MeasurementEvidence));
         }
@@ -463,7 +469,9 @@ public sealed partial class UsageReportViewModel
     public void ReturnToLiveComparison()
     {
         _savedComparison = null;
-        OnPropertyChanged(nameof(CanChangeComparison)); OnPropertyChanged(nameof(HasSavedComparison));
+        OnPropertyChanged(nameof(CanChangeComparison));
+        OnPropertyChanged(nameof(HasSavedComparison));
+        OnPropertyChanged(nameof(ComparisonStateText));
         _ = LoadAsync();
     }
 }

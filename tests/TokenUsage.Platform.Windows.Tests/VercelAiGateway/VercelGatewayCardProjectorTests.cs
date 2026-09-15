@@ -246,6 +246,7 @@ public sealed class VercelGatewayCardProjectorTests
         "ProviderDetailsTooltipFormat" => "{0}; {1}",
         "ProviderDetailsAutomationNameFormat" => "Details for {0}",
         "LocalUsageUsdFormat" => "${0:N2}",
+        "LocalUsageUsdTinyFormat" => "{0}",
         _ => throw new KeyNotFoundException(key),
     };
 }

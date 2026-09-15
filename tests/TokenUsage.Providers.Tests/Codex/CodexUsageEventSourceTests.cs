@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Codex;
@@ -1213,6 +1214,7 @@ public sealed class CodexUsageEventSourceTests
         await disabled.Checkpoint!.PersistAsync(() => Task.FromResult(true));
         Assert.Empty(disabled.OperationFacts);
         Assert.Equal(640, disabled.Events.Sum(item => item.Tokens.Total));
+        Assert.DoesNotContain("example-server", await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
         await consent.EnableAsync(AttributionCapability.CodexMcp);
         UsageSourceReadResult enabled = await source.ReadAsync();
         Assert.Empty(enabled.OperationFacts);
@@ -1283,10 +1285,347 @@ public sealed class CodexUsageEventSourceTests
         await consent.RevokeAsync(AttributionCapability.CodexMcp);
         await consent.CompletePurgeAsync(AttributionCapability.CodexMcp);
         restarted.ClearStoredOperationAttribution(AttributionCapability.CodexMcp);
+        Assert.DoesNotContain("example-server", await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
         await consent.EnableAsync(AttributionCapability.CodexMcp);
         UsageSourceReadResult reenabled = await restarted.ReadAsync();
         Assert.Empty(reenabled.OperationFacts);
         Assert.Equal(640, reenabled.Events.Sum(item => item.Tokens.Total));
+    }
+
+    [Fact]
+    public async Task IndependentSourceAuthoritiesDoNotShareOperationKeys()
+    {
+        using var firstHome = new CodexCorpus();
+        using var secondHome = new CodexCorpus();
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var firstConsent = new AttributionConsentStore(Path.Combine(firstHome.Root, "consent.json"), clock);
+        var secondConsent = new AttributionConsentStore(Path.Combine(secondHome.Root, "consent.json"), clock);
+        await firstConsent.EnableAsync(AttributionCapability.CodexMcp);
+        await secondConsent.EnableAsync(AttributionCapability.CodexMcp);
+        firstHome.WriteSession(
+            "shared",
+            SessionMeta("ops-a"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-28T12:01:00Z", 10, 0, 0, 0),
+            McpBegin("shared-call-id", "example-server", "list_things"),
+            McpEnd("shared-call-id", "example-server", "list_things", ok: false));
+        secondHome.WriteSession(
+            "shared",
+            SessionMeta("ops-b"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-28T12:01:00Z", 10, 0, 0, 0),
+            McpBegin("shared-call-id", "example-server", "list_things"),
+            McpEnd("shared-call-id", "example-server", "list_things", ok: true));
+        CodexUsageEventSource firstSource = firstHome.CreateSource(
+            checkpointPath: Path.Combine(firstHome.Root, "checkpoint.json"),
+            clock: clock,
+            attributionConsent: firstConsent,
+            attributionKeys: TestKeys());
+        CodexUsageEventSource secondSource = secondHome.CreateSource(
+            checkpointPath: Path.Combine(secondHome.Root, "checkpoint.json"),
+            clock: clock,
+            attributionConsent: secondConsent,
+            attributionKeys: TestKeys());
+        firstSource.McpAttributionBackfillFrom = secondSource.McpAttributionBackfillFrom = new DateOnly(2026, 7, 27);
+        firstSource.McpAttributionBackfillTo = secondSource.McpAttributionBackfillTo = new DateOnly(2026, 7, 27);
+        UsageSourceReadResult first = await firstSource.ReadAsync();
+        UsageSourceReadResult second = await secondSource.ReadAsync();
+        UsageOperationFact firstFact = Assert.Single(first.OperationFacts);
+        UsageOperationFact secondFact = Assert.Single(second.OperationFacts);
+        Assert.NotEqual(first.SourceInstance, second.SourceInstance);
+        Assert.NotEqual(firstFact.OperationKey, secondFact.OperationKey);
+        Assert.Equal(UsageOperationOutcome.Error, firstFact.Outcome);
+        Assert.Equal(UsageOperationOutcome.Success, secondFact.Outcome);
+        UsageRepository repository = await UsageRepository.OpenAsync(Path.Combine(firstHome.Root, "ops.db"));
+        await repository.UpsertOperationFactsAsync(first.OperationFacts);
+        await repository.UpsertOperationFactsAsync(second.OperationFacts);
+        IReadOnlyList<UsageOperationRankedRow> ranking = await repository.ReadOperationRankingAsync(
+            new DateTimeOffset(2026, 7, 27, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 7, 29, 0, 0, 0, TimeSpan.Zero),
+            AttributionCapability.CodexMcp,
+            1);
+        Assert.Equal(2, ranking.Sum(row => row.InvocationCount));
+    }
+
+    [Fact]
+    public async Task ExplicitBackfillRecoversPrefixWhenTheLogGrew()
+    {
+        using var corpus = new CodexCorpus();
+        string checkpoint = Path.Combine(corpus.Root, "grown-backfill.json");
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var consent = new AttributionConsentStore(Path.Combine(corpus.Root, "grown-consent.json"), clock);
+        string sessionPath = corpus.WriteSession(
+            "grown",
+            SessionMeta("grown-session"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-27T12:01:00Z", 10, 0, 0, 0),
+            McpBegin("call-old", "example-server", "list_things"),
+            McpEnd("call-old", "example-server", "list_things", ok: true));
+        CodexUsageEventSource source = corpus.CreateSource(
+            checkpointPath: checkpoint,
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        UsageSourceReadResult disabled = await source.ReadAsync();
+        await disabled.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Empty(disabled.OperationFacts);
+        await consent.EnableAsync(AttributionCapability.CodexMcp);
+        UsageSourceReadResult enabled = await source.ReadAsync();
+        Assert.Empty(enabled.OperationFacts);
+        await File.AppendAllTextAsync(
+            sessionPath,
+            McpBegin("call-new", "example-server", "get_thing") + Environment.NewLine
+            + McpEnd("call-new", "example-server", "get_thing", ok: true) + Environment.NewLine);
+        source.McpAttributionBackfillFrom = new DateOnly(2026, 7, 27);
+        source.McpAttributionBackfillTo = new DateOnly(2026, 7, 27);
+        UsageSourceReadResult backfill = await source.ReadAsync();
+        Assert.Equal(2, backfill.OperationFacts.Count);
+        Assert.Equal(1, backfill.OperationFacts.Count(item => item.OperationKey.Value == TestKeys()
+            .Derive(OpaqueKeyDomains.CodexMcp, source.SourceAuthority.Value, "call-old").Value));
+        Assert.Equal(1, backfill.OperationFacts.Count(item => item.OperationKey.Value == TestKeys()
+            .Derive(OpaqueKeyDomains.CodexMcp, source.SourceAuthority.Value, "call-new").Value));
+        Assert.All(
+            backfill.OperationFacts,
+            item => Assert.Equal(
+                TestKeys().Derive(OpaqueKeyDomains.CodexMcp, OpaqueKeyDomains.LegacyUnnamedSource, item.Tool == "list_things" ? "call-old" : "call-new").Value,
+                item.LegacyOperationKey?.Value));
+        await backfill.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        source.McpAttributionBackfillFrom = null;
+        source.McpAttributionBackfillTo = null;
+        UsageSourceReadResult refresh = await source.ReadAsync();
+        Assert.Equal(2, refresh.OperationFacts.Count);
+        await refresh.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        CodexUsageEventSource restarted = corpus.CreateSource(
+            checkpointPath: checkpoint,
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        UsageSourceReadResult afterRestart = await restarted.ReadAsync();
+        Assert.Equal(2, afterRestart.OperationFacts.Count);
+        Assert.Equal(10, afterRestart.Events.Sum(item => item.Tokens.Total));
+    }
+
+    [Fact]
+    public async Task SourceCheckpointRepositorySnapshotKeepsWorkflowAndDerivedParity()
+    {
+        using var corpus = new CodexCorpus();
+        string checkpoint = Path.Combine(corpus.Root, "native-path.json");
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var consent = new AttributionConsentStore(Path.Combine(corpus.Root, "native-path-consent.json"), clock);
+        corpus.WriteSession(
+            "native-path",
+            SessionMeta("native-session"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-27T12:01:00Z", 120, 0, 0, 0),
+            PatchBeginAt("patch-a", "2026-07-27T12:02:00Z", "src/alpha.rs"),
+            PatchEndAt("patch-a", "2026-07-27T12:02:01Z", "src/alpha.rs"),
+            ExecBeginAt("cmd-test", "2026-07-27T12:03:00Z", ["dotnet", "test"]),
+            ExecEndAt("cmd-test", "2026-07-27T12:03:01Z", ["dotnet", "test"], exitCode: 0),
+            PatchBeginAt("patch-b", "2026-07-27T12:04:00Z", "src/alpha.rs"),
+            PatchEndAt("patch-b", "2026-07-27T12:04:01Z", "src/alpha.rs"));
+        CodexUsageEventSource source = corpus.CreateSource(
+            checkpointPath: checkpoint,
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        UsageSourceReadResult disabled = await source.ReadAsync();
+        await disabled.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Empty(disabled.OperationFacts);
+        await consent.EnableAsync(AttributionCapability.CodexSession);
+        await consent.EnableAsync(AttributionCapability.CodexFiles);
+        await consent.EnableAsync(AttributionCapability.CodexCommands);
+        UsageSourceReadResult enabled = await source.ReadAsync();
+        Assert.Empty(enabled.OperationFacts);
+        source.SessionAttributionBackfillFrom = source.FilesAttributionBackfillFrom = source.CommandsAttributionBackfillFrom = new DateOnly(2026, 7, 27);
+        source.SessionAttributionBackfillTo = source.FilesAttributionBackfillTo = source.CommandsAttributionBackfillTo = new DateOnly(2026, 7, 27);
+        UsageSourceReadResult backfill = await source.ReadAsync();
+        await backfill.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Equal(2, backfill.OperationFacts.Count(item => item.Kind == UsageOperationKind.File));
+        Assert.Equal(1, backfill.OperationFacts.Count(item => item.Kind == UsageOperationKind.Command && item.Tool == "test"));
+        Assert.All(backfill.OperationFacts, item => Assert.NotNull(item.SessionKey));
+        Assert.All(backfill.OperationFacts, item => Assert.DoesNotContain("src/alpha.rs", item.Server ?? "", StringComparison.Ordinal));
+        string database = Path.Combine(corpus.Root, "native-path.v1.db");
+        UsageRepository repository = await UsageRepository.OpenAsync(database);
+        DateOnly day = new(2026, 7, 27);
+        await repository.StoreSourceObservationsAsync(
+            source.AgentId,
+            backfill.SourceInstance ?? source.SourceInstance,
+            source.EventParserVersion,
+            day,
+            day,
+            backfill.Events,
+            complete: true,
+            sessionLinks: backfill.SessionLinks,
+            operations: backfill.OperationFacts);
+        Assert.Equal(120, (await repository.QueryDailyRollupsAsync(day, day)).Sum(row => row.Tokens.Total));
+        DateTimeOffset from = new(2026, 7, 27, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = new(2026, 7, 28, 0, 0, 0, TimeSpan.Zero);
+        IReadOnlyList<UsageOperationRankedRow> files = await repository.ReadOperationRankingAsync(
+            from,
+            to,
+            AttributionCapability.CodexFiles,
+            1);
+        IReadOnlyList<UsageOperationRankedRow> commands = await repository.ReadOperationRankingAsync(
+            from,
+            to,
+            AttributionCapability.CodexCommands,
+            1);
+        UsageDerivedActivitySummary derived = UsageDerivedActivity.Summarize(files.Concat(commands));
+        Assert.Equal(2, derived.Edit);
+        Assert.Equal(1, derived.Test);
+        IReadOnlyList<UsageOperationTimelineRow> timeline = (await repository.ReadOperationTimelineAsync(
+                from,
+                to,
+                AttributionCapability.CodexFiles,
+                1))
+            .Concat(await repository.ReadOperationTimelineAsync(
+                from,
+                to,
+                AttributionCapability.CodexCommands,
+                1))
+            .OrderBy(row => row.StartedAtUtc)
+            .ToArray();
+        UsageWorkflowSummary workflow = UsageWorkflowIndicators.Evaluate(timeline);
+        Assert.Equal(1, workflow.SameFileVerificationSeparated);
+        Assert.Equal(3, workflow.ContributingEvents.Count);
+        UsageReport report = UsageReportQuery.Build(await repository.QueryDailyRollupsAsync(day, day));
+        UsageReportSnapshotV2.Document snapshot = UsageReportSnapshotV2.Create(
+            new DateTimeOffset(2026, 7, 27, 15, 0, 0, TimeSpan.Zero),
+            day,
+            day,
+            1,
+            source.AgentId,
+            report,
+            operations: files.Concat(commands).ToArray(),
+            derivedActivity: derived,
+            workflow: workflow);
+        string json = UsageReportSnapshotV2.Render(snapshot, "json");
+        string csv = UsageReportSnapshotV2.Render(snapshot, "csv");
+        string html = UsageReportSnapshotV2.Render(snapshot, "html");
+        Assert.Contains("\"sameFileVerificationSeparated\": \"1\"", json, StringComparison.Ordinal);
+        Assert.Contains("derived-activity/v1", json, StringComparison.Ordinal);
+        Assert.Contains("workflow-indicators/v1", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("src/alpha.rs", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("src/alpha.rs", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("src/alpha.rs", html, StringComparison.Ordinal);
+        Assert.Contains("invocations", csv, StringComparison.Ordinal);
+        Assert.Contains("derived-activity", csv, StringComparison.Ordinal);
+        Assert.Contains("<td>edit</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>test</td>", html, StringComparison.Ordinal);
+        await repository.StoreSourceObservationsAsync(
+            source.AgentId,
+            backfill.SourceInstance ?? source.SourceInstance,
+            source.EventParserVersion,
+            day,
+            day,
+            backfill.Events,
+            complete: true,
+            sessionLinks: backfill.SessionLinks,
+            operations: backfill.OperationFacts);
+        Assert.Equal(2, await repository.CountOperationFactsAsync(AttributionCapability.CodexFiles));
+        Assert.Equal(1, await repository.CountOperationFactsAsync(AttributionCapability.CodexCommands));
+        Assert.Equal(120, (await repository.QueryDailyRollupsAsync(day, day)).Sum(row => row.Tokens.Total));
+        Assert.Equal(1, UsageWorkflowIndicators.Evaluate(
+            (await repository.ReadOperationTimelineAsync(from, to, AttributionCapability.CodexFiles, 1))
+                .Concat(await repository.ReadOperationTimelineAsync(from, to, AttributionCapability.CodexCommands, 1))
+                .OrderBy(row => row.StartedAtUtc)
+                .ToArray()).SameFileVerificationSeparated);
+    }
+
+    [Fact]
+    public async Task MissingStructuredMcpResultMapsToUnknown()
+    {
+        using var corpus = new CodexCorpus();
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var consent = new AttributionConsentStore(Path.Combine(corpus.Root, "unknown-consent.json"), clock);
+        await consent.EnableAsync(AttributionCapability.CodexMcp);
+        corpus.WriteSession(
+            "unknown",
+            SessionMeta("ops-unknown"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-28T12:01:00Z", 10, 0, 0, 0),
+            McpBegin("call-unknown", "example-server", "list_things"),
+            McpEndWithoutResult("call-unknown", "example-server", "list_things"));
+        CodexUsageEventSource source = corpus.CreateSource(
+            checkpointPath: Path.Combine(corpus.Root, "unknown.json"),
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        source.McpAttributionBackfillFrom = new DateOnly(2026, 7, 27);
+        source.McpAttributionBackfillTo = new DateOnly(2026, 7, 27);
+        UsageSourceReadResult result = await source.ReadAsync();
+        Assert.Equal(UsageOperationOutcome.Unknown, Assert.Single(result.OperationFacts).Outcome);
+    }
+
+    [Fact]
+    public async Task LatePersistAfterOperationClearThrowsAndDoesNotRestoreLabels()
+    {
+        using var corpus = new CodexCorpus();
+        string checkpoint = Path.Combine(corpus.Root, "late-persist.json");
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var consent = new AttributionConsentStore(Path.Combine(corpus.Root, "late-consent.json"), clock);
+        await consent.EnableAsync(AttributionCapability.CodexMcp);
+        corpus.WriteSession(
+            "late",
+            SessionMeta("late-session"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-28T12:01:00Z", 10, 0, 0, 0),
+            McpBegin("call-late", "example-server", "list_things"),
+            McpEnd("call-late", "example-server", "list_things", ok: true));
+        CodexUsageEventSource source = corpus.CreateSource(
+            checkpointPath: checkpoint,
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        UsageSourceReadResult first = await source.ReadAsync();
+        await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Contains("example-server", await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
+        UsageSourceReadResult prepared = await source.ReadAsync();
+        source.ClearStoredOperationAttribution(AttributionCapability.CodexMcp);
+        Assert.DoesNotContain("example-server", await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
+        await Assert.ThrowsAsync<IOException>(() =>
+            prepared.Checkpoint!.PersistAsync(() => Task.FromResult(true)));
+        Assert.DoesNotContain("example-server", await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
+        CodexUsageEventSource restarted = corpus.CreateSource(
+            checkpointPath: checkpoint,
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        UsageSourceReadResult reloaded = await restarted.ReadAsync();
+        Assert.Empty(reloaded.OperationFacts);
+        Assert.DoesNotContain("example-server", await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ClearSessionAttributionNullsCopiedOperationSessionKeys()
+    {
+        using var corpus = new CodexCorpus();
+        string checkpoint = Path.Combine(corpus.Root, "session-ops.json");
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var consent = new AttributionConsentStore(Path.Combine(corpus.Root, "session-ops-consent.json"), clock);
+        await consent.EnableAsync(AttributionCapability.CodexSession);
+        await consent.EnableAsync(AttributionCapability.CodexMcp);
+        corpus.WriteSession(
+            "linked",
+            SessionMeta("ops-session"),
+            Context("gpt-5.6-sol"),
+            Usage("2026-07-28T12:01:00Z", 10, 0, 0, 0),
+            McpBegin("call-linked", "example-server", "list_things"),
+            McpEnd("call-linked", "example-server", "list_things", ok: true));
+        CodexUsageEventSource source = corpus.CreateSource(
+            checkpointPath: checkpoint,
+            clock: clock,
+            attributionConsent: consent,
+            attributionKeys: TestKeys());
+        source.SessionAttributionBackfillFrom = source.McpAttributionBackfillFrom = new DateOnly(2026, 7, 27);
+        source.SessionAttributionBackfillTo = source.McpAttributionBackfillTo = new DateOnly(2026, 7, 27);
+        UsageSourceReadResult admitted = await source.ReadAsync();
+        await admitted.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        UsageOperationFact fact = Assert.Single(admitted.OperationFacts);
+        Assert.NotNull(fact.SessionKey);
+        Assert.Contains(fact.SessionKey.Value, await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
+        source.ClearStoredSessionAttribution();
+        Assert.DoesNotContain(fact.SessionKey.Value, await File.ReadAllTextAsync(checkpoint), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1628,7 +1967,19 @@ public sealed class CodexUsageEventSourceTests
             type = "mcp_tool_call_end",
             call_id = callId,
             invocation = new { server, tool },
-            result = ok ? new object() : new { Err = "tool failed" },
+            result = new { Ok = new { isError = !ok } },
+        },
+    });
+
+    private static string McpEndWithoutResult(string callId, string server, string tool) => JsonSerializer.Serialize(new
+    {
+        timestamp = "2026-07-27T12:02:01Z",
+        type = "event_msg",
+        payload = new
+        {
+            type = "mcp_tool_call_end",
+            call_id = callId,
+            invocation = new { server, tool },
         },
     });
 
@@ -1682,9 +2033,12 @@ public sealed class CodexUsageEventSourceTests
         },
     });
 
-    private static string ExecBegin(string callId, string[] command) => JsonSerializer.Serialize(new
+    private static string ExecBegin(string callId, string[] command) =>
+        ExecBeginAt(callId, "2026-07-27T12:05:00Z", command);
+
+    private static string ExecBeginAt(string callId, string timestamp, string[] command) => JsonSerializer.Serialize(new
     {
-        timestamp = "2026-07-27T12:05:00Z",
+        timestamp,
         type = "event_msg",
         payload = new
         {
@@ -1695,9 +2049,12 @@ public sealed class CodexUsageEventSourceTests
         },
     });
 
-    private static string ExecEnd(string callId, string[] command, int exitCode) => JsonSerializer.Serialize(new
+    private static string ExecEnd(string callId, string[] command, int exitCode) =>
+        ExecEndAt(callId, "2026-07-27T12:05:01Z", command, exitCode);
+
+    private static string ExecEndAt(string callId, string timestamp, string[] command, int exitCode) => JsonSerializer.Serialize(new
     {
-        timestamp = "2026-07-27T12:05:01Z",
+        timestamp,
         type = "event_msg",
         payload = new
         {
@@ -1709,9 +2066,12 @@ public sealed class CodexUsageEventSourceTests
         },
     });
 
-    private static string PatchBegin(string callId, params string[] paths) => JsonSerializer.Serialize(new
+    private static string PatchBegin(string callId, params string[] paths) =>
+        PatchBeginAt(callId, "2026-07-27T12:06:00Z", paths);
+
+    private static string PatchBeginAt(string callId, string timestamp, params string[] paths) => JsonSerializer.Serialize(new
     {
-        timestamp = "2026-07-27T12:06:00Z",
+        timestamp,
         type = "event_msg",
         payload = new
         {
@@ -1721,9 +2081,12 @@ public sealed class CodexUsageEventSourceTests
         },
     });
 
-    private static string PatchEnd(string callId, params string[] paths) => JsonSerializer.Serialize(new
+    private static string PatchEnd(string callId, params string[] paths) =>
+        PatchEndAt(callId, "2026-07-27T12:06:01Z", paths);
+
+    private static string PatchEndAt(string callId, string timestamp, params string[] paths) => JsonSerializer.Serialize(new
     {
-        timestamp = "2026-07-27T12:06:01Z",
+        timestamp,
         type = "event_msg",
         payload = new
         {

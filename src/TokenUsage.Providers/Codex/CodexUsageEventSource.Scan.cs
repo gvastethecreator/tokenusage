@@ -95,9 +95,34 @@ public sealed partial class CodexUsageEventSource
             ApplyScanConsentToCheckpoint(checkpoint);
             FillOpaqueSessionKeys(file.Path, checkpoint, cancellationToken);
             StampCheckpointedProjectObservations(checkpoint);
+            bool operationalReplay = ShouldReplayOperationalEvents();
             if (checkpoint.Offset == info.Length)
             {
+                if (operationalReplay)
+                {
+                    using var replay = new FileStream(
+                        file.Path,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete,
+                        1024 * 1024,
+                        FileOptions.SequentialScan);
+                    ReplayOperationalLines(replay, checkpoint, state, cancellationToken);
+                }
+
                 return;
+            }
+
+            if (operationalReplay)
+            {
+                using var historical = new FileStream(
+                    file.Path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete,
+                    1024 * 1024,
+                    FileOptions.SequentialScan);
+                ReplayOperationalLines(historical, checkpoint, state, cancellationToken, checkpoint.Offset);
             }
 
             using var stream = new FileStream(
@@ -187,6 +212,94 @@ public sealed partial class CodexUsageEventSource
             }
 
             absoluteOffset = checked(absoluteOffset + bytesRead);
+        }
+    }
+
+    private void ReplayOperationalLines(
+        FileStream stream,
+        CodexUsageFileCheckpoint checkpoint,
+        LocalScanState state,
+        CancellationToken cancellationToken,
+        long? stopExclusive = null)
+    {
+        byte[] buffer = new byte[1024 * 1024];
+        using var line = new MemoryStream(capacity: Math.Min(state.MaximumLineBytes, 64 * 1024));
+        bool oversized = false;
+        long absoluteOffset = stream.Position;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int bytesRead = stream.Read(buffer, 0, buffer.Length);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            int segmentStart = 0;
+            while (segmentStart < bytesRead)
+            {
+                int newline = Array.IndexOf(buffer, (byte)'\n', segmentStart, bytesRead - segmentStart);
+                int segmentEnd = newline >= 0 ? newline : bytesRead;
+                AppendRecentLineSegment(
+                    line,
+                    buffer.AsSpan(segmentStart, segmentEnd - segmentStart),
+                    state.MaximumLineBytes,
+                    ref oversized);
+                if (newline < 0)
+                {
+                    break;
+                }
+
+                long lineEnd = checked(absoluteOffset + newline + 1L);
+                if (stopExclusive is { } stop && lineEnd > stop)
+                {
+                    return;
+                }
+
+                if (!oversized)
+                {
+                    ReadOnlyMemory<byte> utf8 = line.GetBuffer().AsMemory(0, checked((int)line.Length));
+                    if (!utf8.IsEmpty && utf8.Span[^1] == (byte)'\r')
+                    {
+                        utf8 = utf8[..^1];
+                    }
+
+                    ProcessOperationalReplayLine(utf8, checkpoint);
+                }
+
+                line.SetLength(0);
+                oversized = false;
+                segmentStart = newline + 1;
+            }
+
+            absoluteOffset = checked(absoluteOffset + bytesRead);
+        }
+    }
+
+    private void ProcessOperationalReplayLine(ReadOnlyMemory<byte> utf8, CodexUsageFileCheckpoint checkpoint)
+    {
+        if (!MightBeOperational(utf8.Span))
+        {
+            return;
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(utf8);
+            JsonElement root = document.RootElement;
+            if (!TryGetString(root, "type", out string? recordType)
+                || !string.Equals(recordType, "event_msg", StringComparison.Ordinal)
+                || !root.TryGetProperty("payload", out JsonElement payload)
+                || payload.ValueKind != JsonValueKind.Object
+                || !TryGetString(payload, "type", out string? eventType))
+            {
+                return;
+            }
+
+            _ = TryObserveOperationalEvent(eventType!, root, payload, checkpoint);
+        }
+        catch (JsonException)
+        {
         }
     }
 
@@ -533,6 +646,7 @@ public sealed partial class CodexUsageEventSource
 
     private void ApplyScanConsentToCheckpoint(CodexUsageFileCheckpoint checkpoint)
     {
+        StripDisabledOperationLabels(checkpoint);
         if (_scanConsent is not { State: AttributionConsentState.Enabled })
         {
             checkpoint.SessionKey = null;

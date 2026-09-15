@@ -83,6 +83,35 @@ public sealed class ProviderPresentationTests
         Assert.Equal(Local("{0:0.##}B", 1.25), UsageValueFormatter.CompactTokens(1_250_000_000));
         Assert.Equal(Local("${0:0.##}", 12.34), UsageValueFormatter.CompactUsd(12.34));
         Assert.Equal(Local("${0:N0}", 1_200), UsageValueFormatter.CompactUsd(1_200));
+        Assert.Equal("<$0.01", UsageValueFormatter.CompactUsd(0.00000049));
+        Assert.Equal(Local("${0:0.##}", 0d), UsageValueFormatter.CompactUsd(0));
+        Assert.NotEqual(UsageValueFormatter.AxisUsd(0.0008), UsageValueFormatter.AxisUsd(0.0016));
+        Assert.Contains(
+            "0.00000049",
+            UsageValueFormatter.DetailUsd(0.00000049).Replace(',', '.'),
+            StringComparison.Ordinal);
+        string Usd(decimal amount) => UsageValueFormatter.Usd(
+            amount,
+            key => key switch
+            {
+                "LocalUsageUsdFormat" => "${0:N2} USD",
+                "LocalUsageUsdTinyFormat" => "{0} USD",
+                _ => key,
+            });
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "${0:N2} USD", 0m),
+            Usd(0m));
+        Assert.Equal(
+            "$" + 0.002m.ToString("0.############", CultureInfo.CurrentCulture) + " USD",
+            Usd(0.002m));
+        Assert.Equal(
+            "$" + 0.004049m.ToString("0.############", CultureInfo.CurrentCulture) + " USD",
+            Usd(0.004049m));
+        Assert.Equal(
+            "$" + 0.00000049m.ToString("0.############", CultureInfo.CurrentCulture) + " USD",
+            Usd(0.00000049m));
+        Assert.NotEqual(Usd(0m), Usd(0.00000049m));
+        Assert.NotEqual(Usd(0.002m), Usd(0.004049m));
     }
 
     [Theory]

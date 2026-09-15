@@ -90,7 +90,7 @@ public sealed record AppearanceSettings
         DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List,
         TrayPopoverSettings? trayPopover = null,
         ReportChartStyle reportChartStyle = ReportChartStyle.Bars,
-        ReportChartGrouping reportChartGrouping = ReportChartGrouping.Provider,
+        ReportChartGrouping reportChartGrouping = ReportChartGrouping.Combined,
         bool markReportBestValues = true)
     {
         if (!Enum.IsDefined(theme))

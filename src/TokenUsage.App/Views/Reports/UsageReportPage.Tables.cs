@@ -73,6 +73,44 @@ public sealed partial class UsageReportPage
         UpdateSortHeaders();
     }
 
+    private bool _syncingCompactSort;
+
+    private void OnCompactSortChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingCompactSort
+            || sender is not ComboBox { SelectedItem: UsageReportCompactSortOption option })
+        {
+            return;
+        }
+
+        ViewModel.SelectCompactSort(option);
+        UpdateSortHeaders();
+    }
+
+    private void OnCompactSortDirectionClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ToggleCompactSortDirection();
+        UpdateSortHeaders();
+    }
+
+    private void SyncCompactSortCombo()
+    {
+        if (UsageReportCompactSortCombo is null)
+        {
+            return;
+        }
+
+        _syncingCompactSort = true;
+        try
+        {
+            UsageReportCompactSortCombo.SelectedItem = ViewModel.SelectedCompactSort;
+        }
+        finally
+        {
+            _syncingCompactSort = false;
+        }
+    }
+
     private static IEnumerable<FrameworkElement> RealizedRows(ItemsRepeater repeater)
     {
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(repeater); i++)

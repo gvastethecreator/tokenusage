@@ -24,7 +24,9 @@ public sealed record UsageSessionContribution(
     int SessionEventCount,
     DateTimeOffset? FirstOccurredAtUtc,
     DateTimeOffset? LastOccurredAtUtc,
-    bool IsUnassigned);
+    bool IsUnassigned,
+    AttributionCapability? Capability = null,
+    long ConsentEpoch = 0);
 
 public sealed partial class UsageRepository
 {
@@ -320,7 +322,9 @@ public sealed partial class UsageRepository
                 sessionCount,
                 selectedRow.First,
                 selectedRow.Last,
-                IsUnassigned: false));
+                IsUnassigned: false,
+                capability,
+                consentEpoch));
         }
 
         if (unassignedCount > 0)
@@ -334,7 +338,9 @@ public sealed partial class UsageRepository
                 unassignedCount,
                 unassignedFirst,
                 unassignedLast,
-                IsUnassigned: true));
+                IsUnassigned: true,
+                capability,
+                consentEpoch));
         }
 
         return rows;

@@ -377,7 +377,9 @@ public sealed partial class UsageRepository
                 selectedRow.First,
                 selectedRow.Last,
                 IsUnassigned: false,
-                IsAmbiguous: ambiguous));
+                IsAmbiguous: ambiguous,
+                AttributionCapability.CodexProject,
+                consentEpoch));
         }
 
         if (unassignedCount > 0)
@@ -392,7 +394,9 @@ public sealed partial class UsageRepository
                 unassignedFirst,
                 unassignedLast,
                 IsUnassigned: true,
-                IsAmbiguous: false));
+                IsAmbiguous: false,
+                AttributionCapability.CodexProject,
+                consentEpoch));
         }
 
         return rows;

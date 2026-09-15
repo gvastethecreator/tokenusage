@@ -80,18 +80,19 @@ public sealed partial class CodexUsageEventSource
             return true;
         }
 
-        OpaqueAttributionKey key = _attributionKeys!.Derive(OpaqueKeyDomains.CodexMcp, "codex", callId);
+        (string key, string? legacy) = OperationKeyPair(OpaqueKeyDomains.CodexMcp, callId);
         UsageOperationOutcome outcome = begin ? UsageOperationOutcome.Unknown : ReadMcpOutcome(payload);
         UpsertOperation(
             checkpoint,
-            key.Value,
+            key,
             AttributionCapability.CodexMcp.Value,
             UsageOperationKindCodec.ToWire(UsageOperationKind.Mcp),
             boundedTool,
             boundedServer,
             UsageOperationOutcomeCodec.ToWire(outcome),
             timestamp,
-            begin ? null : timestamp);
+            begin ? null : timestamp,
+            legacy);
         return true;
     }
 
@@ -118,18 +119,19 @@ public sealed partial class CodexUsageEventSource
                 return true;
             }
 
-            OpaqueAttributionKey key = _attributionKeys!.Derive(OpaqueKeyDomains.CodexMcp, "codex", id);
+            (string key, string? legacy) = OperationKeyPair(OpaqueKeyDomains.CodexMcp, id);
             UsageOperationOutcome outcome = completed ? ReadItemOutcome(item) : UsageOperationOutcome.Unknown;
             UpsertOperation(
                 checkpoint,
-                key.Value,
+                key,
                 AttributionCapability.CodexMcp.Value,
                 UsageOperationKindCodec.ToWire(UsageOperationKind.Tool),
                 boundedTool,
                 server: null,
                 UsageOperationOutcomeCodec.ToWire(outcome),
                 timestamp,
-                completed ? timestamp : null);
+                completed ? timestamp : null,
+                legacy);
             return true;
         }
 
@@ -144,10 +146,10 @@ public sealed partial class CodexUsageEventSource
                 role = "spawn";
             }
 
-            OpaqueAttributionKey key = _attributionKeys!.Derive(OpaqueKeyDomains.CodexSkills, "codex", spawnId!);
+            (string key, string? legacy) = OperationKeyPair(OpaqueKeyDomains.CodexSkills, spawnId!);
             UpsertOperation(
                 checkpoint,
-                key.Value,
+                key,
                 AttributionCapability.CodexSkills.Value,
                 UsageOperationKindCodec.ToWire(UsageOperationKind.Spawn),
                 role,
@@ -155,7 +157,8 @@ public sealed partial class CodexUsageEventSource
                 UsageOperationOutcomeCodec.ToWire(
                     completed ? ReadItemOutcome(item) : UsageOperationOutcome.Unknown),
                 timestamp,
-                completed ? timestamp : null);
+                completed ? timestamp : null,
+                legacy);
             return true;
         }
 
@@ -164,10 +167,10 @@ public sealed partial class CodexUsageEventSource
             && item.TryGetProperty("command", out JsonElement commandElement))
         {
             string family = CodexCommandFamily.Classify(ReadStringList(commandElement));
-            OpaqueAttributionKey key = _attributionKeys!.Derive(OpaqueKeyDomains.CodexCommands, "codex", commandId);
+            (string key, string? legacy) = OperationKeyPair(OpaqueKeyDomains.CodexCommands, commandId);
             UpsertOperation(
                 checkpoint,
-                key.Value,
+                key,
                 AttributionCapability.CodexCommands.Value,
                 UsageOperationKindCodec.ToWire(UsageOperationKind.Command),
                 family,
@@ -175,7 +178,8 @@ public sealed partial class CodexUsageEventSource
                 UsageOperationOutcomeCodec.ToWire(
                     completed ? ReadItemOutcome(item) : UsageOperationOutcome.Unknown),
                 timestamp,
-                completed ? timestamp : null);
+                completed ? timestamp : null,
+                legacy);
             return true;
         }
 
@@ -184,7 +188,7 @@ public sealed partial class CodexUsageEventSource
             && item.TryGetProperty("changes", out JsonElement changes)
             && changes.ValueKind == JsonValueKind.Object)
         {
-            ObserveFileKeys(checkpoint, timestamp, fileItemId, changes, completed);
+            ObserveFileKeys(checkpoint, timestamp, fileItemId, changes, completed, completed ? ReadItemOutcome(item) : UsageOperationOutcome.Unknown);
             return true;
         }
 
@@ -209,17 +213,18 @@ public sealed partial class CodexUsageEventSource
             role = boundedRole;
         }
 
-        OpaqueAttributionKey key = _attributionKeys!.Derive(OpaqueKeyDomains.CodexSkills, "codex", callId);
+        (string key, string? legacy) = OperationKeyPair(OpaqueKeyDomains.CodexSkills, callId);
         UpsertOperation(
             checkpoint,
-            key.Value,
+            key,
             AttributionCapability.CodexSkills.Value,
             UsageOperationKindCodec.ToWire(UsageOperationKind.Spawn),
             role,
             server: null,
-            UsageOperationOutcomeCodec.ToWire(begin ? UsageOperationOutcome.Unknown : UsageOperationOutcome.Success),
+            UsageOperationOutcomeCodec.ToWire(begin ? UsageOperationOutcome.Unknown : ReadItemOutcome(payload)),
             timestamp,
-            begin ? null : timestamp);
+            begin ? null : timestamp,
+            legacy);
         return true;
     }
 
@@ -236,20 +241,21 @@ public sealed partial class CodexUsageEventSource
         }
 
         string family = CodexCommandFamily.Classify(ReadStringList(commandElement));
-        OpaqueAttributionKey key = _attributionKeys!.Derive(OpaqueKeyDomains.CodexCommands, "codex", callId);
+        (string key, string? legacy) = OperationKeyPair(OpaqueKeyDomains.CodexCommands, callId);
         UsageOperationOutcome outcome = begin
             ? UsageOperationOutcome.Unknown
             : ReadCommandOutcome(payload);
         UpsertOperation(
             checkpoint,
-            key.Value,
+            key,
             AttributionCapability.CodexCommands.Value,
             UsageOperationKindCodec.ToWire(UsageOperationKind.Command),
             family,
             server: null,
             UsageOperationOutcomeCodec.ToWire(outcome),
             timestamp,
-            begin ? null : timestamp);
+            begin ? null : timestamp,
+            legacy);
         return true;
     }
 
@@ -266,7 +272,13 @@ public sealed partial class CodexUsageEventSource
             return true;
         }
 
-        ObserveFileKeys(checkpoint, timestamp, callId, changes, completed: !begin);
+        ObserveFileKeys(
+            checkpoint,
+            timestamp,
+            callId,
+            changes,
+            completed: !begin,
+            !begin ? ReadItemOutcome(payload) : UsageOperationOutcome.Unknown);
         return true;
     }
 
@@ -275,7 +287,8 @@ public sealed partial class CodexUsageEventSource
         DateTimeOffset timestamp,
         string callId,
         JsonElement changes,
-        bool completed)
+        bool completed,
+        UsageOperationOutcome outcome)
     {
         foreach (JsonProperty change in changes.EnumerateObject())
         {
@@ -285,29 +298,40 @@ public sealed partial class CodexUsageEventSource
                 continue;
             }
 
-            OpaqueAttributionKey fileId = _attributionKeys!.Derive(
+            string namedFile = _attributionKeys!.Derive(
                 OpaqueKeyDomains.CodexFiles,
-                "codex",
-                normalized);
-            OpaqueAttributionKey key = _attributionKeys.Derive(
+                SourceAuthority.Value,
+                normalized).Value;
+            string unnamedFile = _attributionKeys.Derive(
                 OpaqueKeyDomains.CodexFiles,
-                "codex",
-                callId + "\u001f" + fileId.Value);
+                OpaqueKeyDomains.LegacyUnnamedSource,
+                normalized).Value;
+            (string key, string? legacy) = OperationKeyPair(
+                OpaqueKeyDomains.CodexFiles,
+                callId + "\u001f" + namedFile);
+            if (!string.Equals(namedFile, unnamedFile, StringComparison.Ordinal))
+            {
+                legacy = _attributionKeys.Derive(
+                    OpaqueKeyDomains.CodexFiles,
+                    OpaqueKeyDomains.LegacyUnnamedSource,
+                    callId + "\u001f" + unnamedFile).Value;
+            }
+
             UpsertOperation(
                 checkpoint,
-                key.Value,
+                key,
                 AttributionCapability.CodexFiles.Value,
                 UsageOperationKindCodec.ToWire(UsageOperationKind.File),
                 "patch",
-                fileId.Value,
-                UsageOperationOutcomeCodec.ToWire(
-                    completed ? UsageOperationOutcome.Success : UsageOperationOutcome.Unknown),
+                namedFile,
+                UsageOperationOutcomeCodec.ToWire(outcome),
                 timestamp,
-                completed ? timestamp : null);
+                completed ? timestamp : null,
+                legacy);
         }
     }
 
-        private static void UpsertOperation(
+    private void UpsertOperation(
         CodexUsageFileCheckpoint checkpoint,
         string key,
         string capability,
@@ -316,22 +340,27 @@ public sealed partial class CodexUsageEventSource
         string? server,
         string outcome,
         DateTimeOffset startedAt,
-        DateTimeOffset? endedAt)
+        DateTimeOffset? endedAt,
+        string? legacyKey = null)
     {
-        string? sessionKey = OpaqueAttributionKey.IsHexSha256(checkpoint.SessionKey ?? string.Empty)
-            ? checkpoint.SessionKey
-            : null;
+        bool retainLabels = AllowsOperationLabels(capability);
+        bool retainSession = _scanConsent is { State: AttributionConsentState.Enabled }
+            && OpaqueAttributionKey.IsHexSha256(checkpoint.SessionKey ?? string.Empty);
+        string storedTool = retainLabels ? tool : string.Empty;
+        string? storedServer = retainLabels ? server : null;
+        string? sessionKey = retainLabels && retainSession ? checkpoint.SessionKey : null;
         int index = checkpoint.Operations.FindIndex(item => item.Key == key);
         var observation = new CodexOperationObservation(
             key,
             startedAt,
             endedAt,
             kind,
-            tool,
-            server,
+            storedTool,
+            storedServer,
             outcome,
             capability,
-            sessionKey);
+            sessionKey,
+            LegacyKey: legacyKey);
         if (index < 0)
         {
             checkpoint.Operations.Add(observation);
@@ -345,12 +374,85 @@ public sealed partial class CodexUsageEventSource
             Outcome = outcome == UsageOperationOutcomeCodec.ToWire(UsageOperationOutcome.Unknown)
                 ? previous.Outcome
                 : outcome,
-            Tool = tool,
-            Server = server ?? previous.Server,
-            SessionKey = sessionKey ?? previous.SessionKey,
+            Tool = retainLabels
+                ? (string.IsNullOrEmpty(tool) ? previous.Tool : tool)
+                : string.Empty,
+            Server = retainLabels ? storedServer ?? previous.Server : null,
+            SessionKey = retainLabels && retainSession
+                ? sessionKey ?? previous.SessionKey
+                : null,
             StartedAt = previous.StartedAt == default ? startedAt : previous.StartedAt,
+            LegacyKey = legacyKey ?? previous.LegacyKey,
         };
     }
+
+    private (string Key, string? LegacyKey) OperationKeyPair(string domain, string identifier)
+    {
+        string key = _attributionKeys!.Derive(domain, SourceAuthority.Value, identifier).Value;
+        string unnamed = _attributionKeys.Derive(domain, OpaqueKeyDomains.LegacyUnnamedSource, identifier).Value;
+        return (key, string.Equals(key, unnamed, StringComparison.Ordinal) ? null : unnamed);
+    }
+
+    private bool AllowsOperationLabels(string capability) =>
+        ConsentFor(capability) is { State: AttributionConsentState.Enabled };
+
+    private AttributionConsent? ConsentFor(string capability)
+    {
+        if (capability == AttributionCapability.CodexMcp.Value)
+        {
+            return _scanMcpConsent;
+        }
+
+        if (capability == AttributionCapability.CodexSkills.Value)
+        {
+            return _scanSkillsConsent;
+        }
+
+        if (capability == AttributionCapability.CodexCommands.Value)
+        {
+            return _scanCommandsConsent;
+        }
+
+        if (capability == AttributionCapability.CodexFiles.Value)
+        {
+            return _scanFilesConsent;
+        }
+
+        return null;
+    }
+
+    internal void StripDisabledOperationLabels(CodexUsageFileCheckpoint checkpoint)
+    {
+        bool sessionAllowed = _scanConsent is { State: AttributionConsentState.Enabled };
+        for (int index = 0; index < checkpoint.Operations.Count; index++)
+        {
+            CodexOperationObservation operation = checkpoint.Operations[index];
+            bool labels = AllowsOperationLabels(operation.Capability);
+            if (labels && sessionAllowed)
+            {
+                continue;
+            }
+
+            checkpoint.Operations[index] = operation with
+            {
+                Tool = labels ? operation.Tool : string.Empty,
+                Server = labels ? operation.Server : null,
+                SessionKey = labels && sessionAllowed ? operation.SessionKey : null,
+            };
+        }
+    }
+
+    internal bool ShouldReplayOperationalEvents() =>
+        IsEnabledBackfill(_scanMcpConsent, McpAttributionBackfillFrom, McpAttributionBackfillTo)
+        || IsEnabledBackfill(_scanSkillsConsent, SkillsAttributionBackfillFrom, SkillsAttributionBackfillTo)
+        || IsEnabledBackfill(_scanCommandsConsent, CommandsAttributionBackfillFrom, CommandsAttributionBackfillTo)
+        || IsEnabledBackfill(_scanFilesConsent, FilesAttributionBackfillFrom, FilesAttributionBackfillTo);
+
+    private static bool IsEnabledBackfill(
+        AttributionConsent? consent,
+        DateOnly? from,
+        DateOnly? to) =>
+        consent is { State: AttributionConsentState.Enabled } && from is not null && to is not null;
 
     private static UsageOperationOutcome ReadMcpOutcome(JsonElement payload)
     {
@@ -360,18 +462,45 @@ public sealed partial class CodexUsageEventSource
             return UsageOperationOutcome.Error;
         }
 
-        if (!payload.TryGetProperty("result", out JsonElement result))
+        if (!payload.TryGetProperty("result", out JsonElement result)
+            || result.ValueKind != JsonValueKind.Object)
         {
-            return UsageOperationOutcome.Success;
+            return UsageOperationOutcome.Unknown;
         }
 
-        if (result.ValueKind == JsonValueKind.Object
-            && (result.TryGetProperty("Err", out _) || result.TryGetProperty("err", out _)))
+        if (result.TryGetProperty("Err", out _) || result.TryGetProperty("err", out _))
         {
             return UsageOperationOutcome.Error;
         }
 
-        return UsageOperationOutcome.Success;
+        if (TryReadStructuredIsError(result, out bool isError))
+        {
+            return isError ? UsageOperationOutcome.Error : UsageOperationOutcome.Success;
+        }
+
+        return UsageOperationOutcome.Unknown;
+    }
+
+    private static bool TryReadStructuredIsError(JsonElement result, out bool isError)
+    {
+        isError = false;
+        JsonElement ok;
+        if (result.TryGetProperty("Ok", out ok) || result.TryGetProperty("ok", out ok))
+        {
+            if (ok.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            if (ok.TryGetProperty("isError", out JsonElement flag)
+                && flag.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                isError = flag.GetBoolean();
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static UsageOperationOutcome ReadItemOutcome(JsonElement item)
@@ -382,19 +511,33 @@ public sealed partial class CodexUsageEventSource
             return UsageOperationOutcome.Error;
         }
 
-        if (item.TryGetProperty("success", out JsonElement success)
-            && success.ValueKind is JsonValueKind.False)
+        if (item.TryGetProperty("success", out JsonElement success))
         {
-            return UsageOperationOutcome.Error;
+            if (success.ValueKind is JsonValueKind.False)
+            {
+                return UsageOperationOutcome.Error;
+            }
+
+            if (success.ValueKind is JsonValueKind.True)
+            {
+                return UsageOperationOutcome.Success;
+            }
         }
 
-        if (TryGetString(item, "status", out string? status)
-            && status is "failed" or "Failed" or "declined" or "Declined")
+        if (TryGetString(item, "status", out string? status))
         {
-            return UsageOperationOutcome.Error;
+            if (status is "failed" or "Failed" or "declined" or "Declined")
+            {
+                return UsageOperationOutcome.Error;
+            }
+
+            if (status is "completed" or "Completed" or "success" or "Success")
+            {
+                return UsageOperationOutcome.Success;
+            }
         }
 
-        return UsageOperationOutcome.Success;
+        return UsageOperationOutcome.Unknown;
     }
 
     private static UsageOperationOutcome ReadCommandOutcome(JsonElement payload)
@@ -406,13 +549,12 @@ public sealed partial class CodexUsageEventSource
         }
 
         if (payload.TryGetProperty("exit_code", out JsonElement exit)
-            && exit.TryGetInt32(out int code)
-            && code != 0)
+            && exit.TryGetInt32(out int code))
         {
-            return UsageOperationOutcome.Error;
+            return code == 0 ? UsageOperationOutcome.Success : UsageOperationOutcome.Error;
         }
 
-        return UsageOperationOutcome.Success;
+        return UsageOperationOutcome.Unknown;
     }
 
     private static List<string> ReadStringList(JsonElement element)
@@ -457,6 +599,7 @@ public sealed partial class CodexUsageEventSource
             return;
         }
 
+        string[] preserved = [.. bucket.Keys];
         bucket.Keys.Clear();
         bucket.CommittedKeys.Clear();
         foreach (CodexUsageFileCheckpoint file in checkpoints.Files.Values)
@@ -468,6 +611,11 @@ public sealed partial class CodexUsageEventSource
                     bucket.Keys.Add(operation.Key);
                 }
             }
+        }
+
+        foreach (string key in preserved)
+        {
+            bucket.Keys.Add(key);
         }
 
         bucket.Epoch = consent.Epoch;
@@ -560,7 +708,11 @@ public sealed partial class CodexUsageEventSource
                     OpaqueAttributionKey.IsHexSha256(operation.SessionKey ?? string.Empty)
                         ? new OpaqueAttributionKey(operation.SessionKey!)
                         : null,
-                    operation.Quantity));
+                    operation.Quantity,
+                    checkpoints.SourceAuthority,
+                    OpaqueAttributionKey.IsHexSha256(operation.LegacyKey ?? string.Empty)
+                        ? new OpaqueAttributionKey(operation.LegacyKey!)
+                        : null));
                 bucket.CommittedKeys.Add(operation.Key);
             }
         }

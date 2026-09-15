@@ -39,7 +39,7 @@ public sealed record UsageReportReadSnapshot(
 
 public sealed partial class UsageRepository
 {
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 12;
     public const string RetentionCursorId = "usage-retention/v1";
     private const int SqliteVariableChunkSize = 400;
     private const decimal MicrosPerUsd = 1_000_000m;
@@ -911,7 +911,15 @@ public sealed partial class UsageRepository
             currentVersion = 10;
         }
         if (currentVersion == 10)
+        {
             await ApplyOperationFactSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 11;
+        }
+        if (currentVersion == 11)
+        {
+            await ApplyOperationSourceInstanceSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 12;
+        }
         if (await ReadSchemaVersionAsync(connection, transaction, cancellationToken).ConfigureAwait(false) != CurrentSchemaVersion)
             throw new InvalidDataException("The usage migration did not reach the required schema version.");
 

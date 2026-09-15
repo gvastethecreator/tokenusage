@@ -40,6 +40,27 @@ public sealed record UsageExplorerOperationRow(
     string? Server,
     string? SessionKey = null);
 
+public sealed record UsageExplorerDerivedActivityRow(
+    string Category,
+    string Label,
+    string CountText,
+    int Count);
+
+public sealed record UsageExplorerWorkflowRow(
+    string Id,
+    string Label,
+    string DetailText,
+    bool CanOpenEvidence);
+
+public sealed record UsageExplorerEvidenceRow(
+    string SequenceText,
+    string TimeText,
+    string KindText,
+    string ToolText,
+    string OutcomeText,
+    string SessionText,
+    string AutomationName);
+
 public sealed record UsageExplorerOption(string? Id, string Name, bool IsAll = false);
 
 public sealed class UsageConfigurationOption(string? id, string name, bool selected, Action changed) : INotifyPropertyChanged
@@ -86,8 +107,18 @@ public sealed partial class UsageReportViewModel
     private string _projectAliasDraft = string.Empty;
     private string? _distributionOutlierSessionKey;
     private bool _returnToProjects;
+    private bool _returnToSessions;
+    private bool _projectsFromOverview;
+    private string? _overviewProjectReturnId;
     private IReadOnlyList<UsageSessionContribution> _sessionContributions = [];
     private IReadOnlyList<UsageSessionLineageNode> _sessionLineage = [];
+    private IReadOnlyList<UsageExplorerOperationRow> _allOperationRows = [];
+    private IReadOnlyList<UsageExplorerOperationRow> _allMixedOperationRows = [];
+    private string? _operationEvidenceFilter;
+    private IReadOnlyList<UsageWorkflowEvidenceEvent> _workflowContributingEvents = [];
+    private bool _hasUnlinkedOperations;
+    private bool _legacyUnreconciled;
+    private OperationLoadScope _activeOperationScope = OperationLoadScope.Global;
     private readonly HashSet<string> _expandedSessions = new(StringComparer.Ordinal);
     private sealed record ExplorerReturnState(UsageReportRequest Request, UsageReportValueMode ValueMode,
         bool UsesResetCycle, UsageReportResetCycleOption? Cycle, string ModelId);
@@ -123,6 +154,14 @@ public sealed partial class UsageReportViewModel
             Dimension(selection.ServiceTiers, "UsageConfigurationAllTiers")) + " " + DescribeConfigurationCoverage(report);
     }
     public bool HasExplorer => !IsCompareScope;
+    public bool HasExplorerAnalysisBody =>
+        HasExplorer && (HasModelDetail || HasProjects || HasSessions || HasOperations);
+    public string ExplorerContextPath { get; private set; } = string.Empty;
+    public bool IsLoadingConfigurations => _loadConfigurations && IsLoading && !HasConfigurationOptions;
+    public bool HasConfigurationEmpty =>
+        _loadConfigurations && !IsLoading && !HasError && !HasConfigurationOptions;
+    public bool HasExplorerSourceWarning { get; private set; }
+    public bool HasExplorerSourceOk => !HasExplorerSourceWarning;
     private bool HasExplorerFilters => HasExplorer && (IsGlobalScope && _explorerTool is { IsAll: false }
         || _explorerHost is { IsAll: false } || _explorerModel is { IsAll: false }
         || ExplorerObservedModels.Any(option => option.IsSelected) || ExplorerEfforts.Any(option => option.IsSelected)
@@ -132,23 +171,36 @@ public sealed partial class UsageReportViewModel
     public bool IsExplorerToolVisible => IsGlobalScope;
     public bool IsFilteringModels { get; private set; }
     public string ExplorerNotice { get; private set; } = string.Empty;
+    public string ExplorerSelectionContext { get; private set; } = string.Empty;
+    public bool HasHiddenExplorerFilters { get; private set; }
+    public string HiddenExplorerFilterSummary { get; private set; } = string.Empty;
+    public string ExplorerSourceStatus { get; private set; } = string.Empty;
     public UsageReportModelRow? DetailModel { get; private set; }
     public bool HasModelDetail => HasExplorer && DetailModel is not null && !HasSessions && !HasProjects && !HasOperations;
     public bool CanOpenSessions => HasExplorer && !HasSessions
-        && (HasModelDetail || (HasProjects && DetailProject is not null))
-        && DetailModel is { } model
-        && SessionCapabilityAllowed(model.ProviderId);
-    public bool CanOpenProjects => HasModelDetail && _codexProjectsAllowed
-        && DetailModel is { ProviderId: "codex" };
-    public bool CanOpenOperations => HasModelDetail
-        && DetailModel is { ProviderId: "codex" }
-        && (_codexMcpAllowed || _codexSkillsAllowed || _codexCommandsAllowed || _codexFilesAllowed);
+        && (HasModelDetail
+            || (HasProjects && DetailProject is not null)
+            || (_projectsFromOverview && _codexSessionsAllowed))
+        && ((_projectsFromOverview && _codexSessionsAllowed)
+            || (DetailModel is { } model && SessionCapabilityAllowed(model.ProviderId)));
+    public bool CanOpenProjects => _codexProjectsAllowed
+        && ((HasModelDetail && DetailModel is { ProviderId: "codex" }) || _projectsFromOverview);
+    public bool CanOpenOperations =>
+        (_codexMcpAllowed || _codexSkillsAllowed || _codexCommandsAllowed || _codexFilesAllowed)
+        && ((HasModelDetail && DetailModel is { ProviderId: "codex" })
+            || HasProjectDetail
+            || HasSessionDetail
+            || _projectsFromOverview);
     public bool CanOpenDistributionOutlier => HasModelDetail
         && _distributionOutlierSessionKey is not null
         && DetailModel is { } outlierModel
         && SessionCapabilityAllowed(outlierModel.ProviderId);
     public bool HasSessions { get; private set; }
     public bool HasProjects { get; private set; }
+    public bool IsOverviewProjectNavigation => _projectsFromOverview;
+    public string? OverviewProjectReturnId => _overviewProjectReturnId;
+    public string ProjectsHeading { get; private set; } = string.Empty;
+    public string OpenOperationsLabel => GetString("UsageExplorerOpenOperationsLabel");
     public bool HasOperations { get; private set; }
     public IReadOnlyList<UsageExplorerSessionRow> SessionRows { get; private set; } = [];
     public IReadOnlyList<UsageExplorerProjectRow> ProjectRows { get; private set; } = [];
@@ -161,8 +213,8 @@ public sealed partial class UsageReportViewModel
     public bool HasOperationDetail => HasOperations && DetailOperation is not null;
     public bool CanOpenOperationSession => HasOperationDetail
         && DetailOperation?.SessionKey is { Length: > 0 }
-        && DetailModel is { } linkedModel
-        && SessionCapabilityAllowed(linkedModel.ProviderId);
+        && ((_projectsFromOverview && _codexSessionsAllowed)
+            || (DetailModel is { } linkedModel && SessionCapabilityAllowed(linkedModel.ProviderId)));
     public string SessionDetailValues { get; private set; } = string.Empty;
     public string ProjectDetailValues { get; private set; } = string.Empty;
     public string OperationDetailValues { get; private set; } = string.Empty;
@@ -173,6 +225,18 @@ public sealed partial class UsageReportViewModel
     public bool HasSkillsAvailabilityNotice => !string.IsNullOrEmpty(SkillsAvailabilityText);
     public string OperationsDerivedNote { get; private set; } = string.Empty;
     public bool HasOperationsDerivedNote => !string.IsNullOrEmpty(OperationsDerivedNote);
+    public IReadOnlyList<UsageExplorerDerivedActivityRow> DerivedActivityRows { get; private set; } = [];
+    public bool HasDerivedActivity => DerivedActivityRows.Count > 0;
+    public string DerivedActivityNote { get; private set; } = string.Empty;
+    public bool HasDerivedActivityNote => !string.IsNullOrEmpty(DerivedActivityNote);
+    public bool HasDerivedActivityReturn { get; private set; }
+    public IReadOnlyList<UsageExplorerWorkflowRow> WorkflowRows { get; private set; } = [];
+    public bool HasWorkflowIndicators => WorkflowRows.Count > 0;
+    public bool HasWorkflowReturn { get; private set; }
+    public IReadOnlyList<UsageExplorerEvidenceRow> WorkflowEvidenceRows { get; private set; } = [];
+    public bool HasWorkflowEvidence => WorkflowEvidenceRows.Count > 0;
+    public bool HasRankedOperations => HasOperations && !HasWorkflowEvidence;
+    public string DerivedActivityMethodText { get; private set; } = string.Empty;
     public string ProjectAliasDraft
     {
         get => _projectAliasDraft;
@@ -205,25 +269,25 @@ public sealed partial class UsageReportViewModel
     public string ModelSearch
     {
         get => _modelSearch;
-        set { if (_modelSearch == value) return; _modelSearch = value; OnPropertyChanged(); QueueExplorerSelection(); }
+        set { if (_modelSearch == value) return; _modelSearch = value; OnPropertyChanged(); NotifyExplorerFilterContext(); QueueExplorerSelection(); }
     }
 
     public UsageExplorerOption? ExplorerTool
     {
         get => _explorerTool;
-        set { if (value is null || value == _explorerTool) return; _explorerTool = value; OnPropertyChanged(); QueueExplorerSelection(); }
+        set { if (value is null || value == _explorerTool) return; _explorerTool = value; OnPropertyChanged(); NotifyExplorerFilterContext(); QueueExplorerSelection(); }
     }
 
     public UsageExplorerOption? ExplorerHost
     {
         get => _explorerHost;
-        set { if (value is null || value == _explorerHost) return; _explorerHost = value; OnPropertyChanged(); QueueExplorerSelection(); }
+        set { if (value is null || value == _explorerHost) return; _explorerHost = value; OnPropertyChanged(); NotifyExplorerFilterContext(); QueueExplorerSelection(); }
     }
 
     public UsageExplorerOption? ExplorerModel
     {
         get => _explorerModel;
-        set { if (value is null || value == _explorerModel) return; _explorerModel = value; OnPropertyChanged(); QueueExplorerSelection(); }
+        set { if (value is null || value == _explorerModel) return; _explorerModel = value; OnPropertyChanged(); NotifyExplorerFilterContext(); QueueExplorerSelection(); }
     }
 
     public async Task LoadConfigurationsAsync()
@@ -340,6 +404,22 @@ public sealed partial class UsageReportViewModel
         _modelSearch = string.Empty;
         OnPropertyChanged(nameof(ExplorerTool)); OnPropertyChanged(nameof(ExplorerHost));
         OnPropertyChanged(nameof(ExplorerModel)); OnPropertyChanged(nameof(ModelSearch));
+        NotifyExplorerFilterContext();
+        QueueExplorerSelection();
+    }
+
+    public void ClearHiddenExplorerFilters()
+    {
+        _explorerHost = ExplorerHosts.Count > 0 ? ExplorerHosts[0] : null;
+        _clearingConfigurations = true;
+        try
+        {
+            foreach (UsageConfigurationOption option in ExplorerObservedModels.Concat(ExplorerEfforts).Concat(ExplorerTiers))
+                option.IsSelected = false;
+        }
+        finally { _clearingConfigurations = false; }
+        OnPropertyChanged(nameof(ExplorerHost));
+        NotifyExplorerFilterContext();
         QueueExplorerSelection();
     }
 
@@ -428,6 +508,7 @@ public sealed partial class UsageReportViewModel
     {
         _detailModelId = null;
         _returnToProjects = false;
+        _projectsFromOverview = false;
         HasSessions = false;
         HasProjects = false;
         HasOperations = false;
@@ -442,7 +523,12 @@ public sealed partial class UsageReportViewModel
 
     public async Task OpenSessionsAsync()
     {
-        if (DetailModel is not { } row || _attributionConsent is null)
+        if (_attributionConsent is null)
+        {
+            return;
+        }
+
+        if (!_projectsFromOverview && DetailModel is null)
         {
             return;
         }
@@ -456,9 +542,13 @@ public sealed partial class UsageReportViewModel
         long consentGeneration = _consentGeneration;
         CancellationToken token = _selectionCancellation?.Token ?? CancellationToken.None;
         UsageDetailSelection detail = CurrentDetailSelection();
+        bool omitModel = _projectsFromOverview;
+        string providerId = omitModel
+            ? "codex"
+            : DetailModel?.ProviderId ?? "codex";
         IReadOnlyList<UsageSessionContribution> contributions = await RunReportWorkAsync(async () =>
         {
-            AttributionCapability capability = SessionCapabilityFor(row.ProviderId);
+            AttributionCapability capability = SessionCapabilityFor(providerId);
             AttributionConsent consent = await _attributionConsent.LoadAsync(capability, token)
                 .ConfigureAwait(false);
             long epoch = consent.ActiveLinkEpoch;
@@ -471,9 +561,9 @@ public sealed partial class UsageReportViewModel
                 StartDate,
                 EndDate,
                 epoch,
-                new AgentId(row.ProviderId),
-                row.ModelProviderId is { } host ? new ModelProviderId(host) : null,
-                new ModelId(row.ModelId),
+                new AgentId(providerId),
+                omitModel ? null : DetailModel?.ModelProviderId is { } host ? new ModelProviderId(host) : null,
+                omitModel ? null : DetailModel is { } selected ? new ModelId(selected.ModelId) : null,
                 capability,
                 DetailProject?.ProjectKey is { } key ? new OpaqueAttributionKey(key) : null,
                 DetailProject is { IsUnassigned: true },
@@ -501,7 +591,7 @@ public sealed partial class UsageReportViewModel
 
         IReadOnlyList<UsageSessionLineageNode> lineage = SessionLineageAccounting.Build(
             contributions,
-            row.ProviderId == "codex" ? ParentChildAccountingKind.Exclusive : ParentChildAccountingKind.Unknown);
+            providerId == "codex" ? ParentChildAccountingKind.Exclusive : ParentChildAccountingKind.Unknown);
         _sessionContributions = contributions;
         _sessionLineage = lineage;
         _expandedSessions.Clear();
@@ -524,6 +614,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasProjectDetail));
         OnPropertyChanged(nameof(DetailSession));
         OnPropertyChanged(nameof(SessionDetailValues));
+        NotifyExplorerContextPath();
     }
 
     public void CloseSessions()
@@ -547,6 +638,7 @@ public sealed partial class UsageReportViewModel
             OnPropertyChanged(nameof(CanOpenProjects));
             OnPropertyChanged(nameof(CanOpenOperations));
             OnPropertyChanged(nameof(HasModelDetail));
+            NotifyExplorerContextPath();
             return;
         }
 
@@ -554,6 +646,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(CanOpenProjects));
         OnPropertyChanged(nameof(CanOpenOperations));
         OnPropertyChanged(nameof(HasModelDetail));
+        NotifyExplorerContextPath();
     }
 
     public void OpenSessionDetail(string? sessionKey)
@@ -565,6 +658,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(DetailSession));
         OnPropertyChanged(nameof(HasSessionDetail));
         OnPropertyChanged(nameof(SessionDetailValues));
+        NotifyExplorerContextPath();
     }
 
     public async Task OpenModelComparisonAsync()
@@ -676,6 +770,8 @@ public sealed partial class UsageReportViewModel
             DistributionSummary = string.Empty;
             OnPropertyChanged(nameof(DistributionSummary));
         }
+
+        NotifyExplorerContextPath();
     }
 
     private string ExactCost(decimal? cost) => cost is { } value
@@ -686,11 +782,116 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasExplorer)); OnPropertyChanged(nameof(CanFilterExplorer));
         OnPropertyChanged(nameof(HasExplorerReturn));
         OnPropertyChanged(nameof(HasConfigurationOptions)); OnPropertyChanged(nameof(CanLoadConfigurations));
+        OnPropertyChanged(nameof(IsLoadingConfigurations));
+        OnPropertyChanged(nameof(HasConfigurationEmpty));
         OnPropertyChanged(nameof(ConfigurationCoverageText));
         OnPropertyChanged(nameof(IsExplorerToolVisible)); OnPropertyChanged(nameof(ExplorerValueComponents));
         OnPropertyChanged(nameof(CanOpenDistributionOutlier));
+        NotifyExplorerFilterContext();
         _ = RefreshAttributionAvailabilityAsync();
         RebuildExplorerDetail();
+        NotifyExplorerContextPath();
+    }
+
+    private void NotifyExplorerFilterContext()
+    {
+        var parts = new List<string>();
+        if (IsExplorerToolVisible)
+        {
+            parts.Add(ExplorerTool?.Name ?? GetString("UsageExplorerAllTools"));
+        }
+
+        parts.Add(ExplorerHost?.Name ?? GetString("UsageExplorerAllHosts"));
+        parts.Add(ExplorerModel?.Name ?? GetString("UsageExplorerAllModels"));
+        if (!string.IsNullOrWhiteSpace(ModelSearch))
+        {
+            parts.Add(string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageExplorerSearchContextFormat"),
+                ModelSearch.Trim()));
+        }
+
+        ExplorerSelectionContext = string.Join(" · ", parts);
+        var hidden = new List<string>();
+        if (_explorerHost is { IsAll: false })
+        {
+            hidden.Add(string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageExplorerHiddenHostFormat"),
+                _explorerHost.Name));
+        }
+
+        string[] observed = ExplorerObservedModels.Where(option => option.IsSelected).Select(option => option.Name).ToArray();
+        if (observed.Length > 0)
+        {
+            hidden.Add(string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageExplorerHiddenObservedFormat"),
+                string.Join(", ", observed)));
+        }
+
+        string[] efforts = ExplorerEfforts.Where(option => option.IsSelected).Select(option => option.Name).ToArray();
+        if (efforts.Length > 0)
+        {
+            hidden.Add(string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageExplorerHiddenEffortFormat"),
+                string.Join(", ", efforts)));
+        }
+
+        string[] tiers = ExplorerTiers.Where(option => option.IsSelected).Select(option => option.Name).ToArray();
+        if (tiers.Length > 0)
+        {
+            hidden.Add(string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageExplorerHiddenTierFormat"),
+                string.Join(", ", tiers)));
+        }
+
+        HasHiddenExplorerFilters = hidden.Count > 0;
+        HiddenExplorerFilterSummary = string.Join(" · ", hidden);
+        OnPropertyChanged(nameof(ExplorerSelectionContext));
+        OnPropertyChanged(nameof(HasHiddenExplorerFilters));
+        OnPropertyChanged(nameof(HiddenExplorerFilterSummary));
+        NotifyExplorerContextPath();
+    }
+
+    private void NotifyExplorerContextPath()
+    {
+        var parts = new List<string> { GetString("UsageExplorerContextOverview") };
+        if (_projectsFromOverview)
+        {
+            parts.Add(GetString("UsageExplorerContextProjects"));
+            if (DetailProject is { } project)
+            {
+                parts.Add(project.Label);
+            }
+        }
+        else if (DetailModel is { } model)
+        {
+            parts.Add(model.ModelName);
+        }
+
+        if (HasSessions)
+        {
+            parts.Add(GetString("UsageExplorerContextSessions"));
+            if (DetailSession is { } session)
+            {
+                parts.Add(session.Label);
+            }
+        }
+
+        if (HasOperations)
+        {
+            parts.Add(string.IsNullOrWhiteSpace(OperationsHeading)
+                ? GetString("UsageExplorerContextOperations")
+                : OperationsHeading);
+        }
+
+        ExplorerContextPath = string.Join(" · ", parts);
+        OnPropertyChanged(nameof(ExplorerContextPath));
+        OnPropertyChanged(nameof(HasExplorerAnalysisBody));
+        OnPropertyChanged(nameof(IsStandardReportVisible));
     }
 
     private void UpdateOperationsAvailability()

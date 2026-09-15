@@ -13,6 +13,7 @@ public static class OpaqueKeyDomains
     public const string CodexSkills = "codex-skills/v1";
     public const string CodexCommands = "codex-commands/v1";
     public const string CodexFiles = "codex-files/v1";
+    public const string LegacyUnnamedSource = "codex";
 }
 
 public sealed record OpaqueAttributionKey

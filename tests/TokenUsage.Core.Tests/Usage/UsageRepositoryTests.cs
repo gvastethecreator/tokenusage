@@ -528,7 +528,7 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (12, '2026-07-22T12:00:00Z');
+                VALUES (13, '2026-07-22T12:00:00Z');
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -536,7 +536,7 @@ public sealed class UsageRepositoryTests
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(12, error.ActualVersion);
+        Assert.Equal(13, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -771,7 +771,7 @@ public sealed class UsageRepositoryTests
             }
         }
 
-        Assert.Equal(11, UsageRepository.CurrentSchemaVersion);
+        Assert.Equal(12, UsageRepository.CurrentSchemaVersion);
         Assert.Contains("ix_usage_event_agent_civil_date", names);
         Assert.Contains("ix_usage_event_occurred_at_utc", names);
         Assert.Contains("ix_daily_usage_rollup_agent_civil_date", names);
@@ -1163,7 +1163,7 @@ public sealed class UsageRepositoryTests
             Assert.Equal(6L, await check.ExecuteScalarAsync());
         }
         await Assert.ThrowsAsync<SqliteException>(() => UsageRepository.OpenAsync(folder.DatabasePath));
-        string backup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v11-*.db"));
+        string backup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v12-*.db"));
         byte[] backupHash = SHA256.HashData(await File.ReadAllBytesAsync(backup));
         await using (var verify = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
         {
@@ -1208,8 +1208,8 @@ public sealed class UsageRepositoryTests
         await Assert.ThrowsAsync<SqliteException>(() => invalidCommand.ExecuteNonQueryAsync());
         Assert.Equal(enriched, Assert.Single(await repository.QueryUsageEventsAsync(from, to)));
         Assert.Equal(backupHash, SHA256.HashData(await File.ReadAllBytesAsync(backup)));
-        Assert.Equal(2, Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v11-*.db").Length);
-        string cleanBackup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v11-*.db"), path => path != backup);
+        Assert.Equal(2, Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v12-*.db").Length);
+        string cleanBackup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v12-*.db"), path => path != backup);
         string recoveredPath = Path.Combine(Path.GetDirectoryName(folder.DatabasePath)!, "recovered.db");
         UsageRepository recovered = await UsageRepository.RecoverCopyAsync(cleanBackup, recoveredPath);
         Assert.Equal(original, Assert.Single(await recovered.QueryUsageEventsAsync(from, to)));

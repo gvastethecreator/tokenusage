@@ -311,13 +311,19 @@ public sealed partial class UsageTrendChart : UserControl
         LastDayLabel.Text = data.Days[^1].Label;
     }
 
-    private string FormatValue(double value, UsageReportMetric metric, UsageTrendPointKind? kind = null) =>
+    private string FormatValue(
+        double value,
+        UsageReportMetric metric,
+        UsageTrendPointKind? kind = null,
+        bool exact = false) =>
         kind == UsageTrendPointKind.Unobserved
             ? GetString("UsageReportChartUnobserved")
             : metric switch
         {
             _ when kind == UsageTrendPointKind.Unavailable || !double.IsFinite(value) => GetString("UsageReportUnpricedLabel"),
-            UsageReportMetric.Cost => UsageReportViewModel.FormatCompactUsd(value),
+            UsageReportMetric.Cost => exact
+                ? UsageReportViewModel.FormatDetailUsd(value)
+                : UsageReportViewModel.FormatAxisUsd(value),
             UsageReportMetric.Share => string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 "{0:0.#}%",

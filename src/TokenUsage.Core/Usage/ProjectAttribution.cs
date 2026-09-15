@@ -62,7 +62,9 @@ public sealed record UsageProjectContribution(
     DateTimeOffset? FirstOccurredAtUtc,
     DateTimeOffset? LastOccurredAtUtc,
     bool IsUnassigned,
-    bool IsAmbiguous);
+    bool IsAmbiguous,
+    AttributionCapability? Capability = null,
+    long ConsentEpoch = 0);
 
 public sealed record UsageSessionLineageNode(
     OpaqueAttributionKey SessionKey,

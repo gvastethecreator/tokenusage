@@ -99,7 +99,7 @@ public sealed class AppearanceSettingsStoreTests
             new TrayPopoverSettings(TrayPopoverMetric.SpendLast30Days, TrayPopoverMetric.None, 3, true, false)),
             loaded.Settings);
         Assert.Equal(ReportChartStyle.Bars, loaded.Settings.ReportChartStyle);
-        Assert.Equal(ReportChartGrouping.Provider, loaded.Settings.ReportChartGrouping);
+        Assert.Equal(ReportChartGrouping.Combined, loaded.Settings.ReportChartGrouping);
         await store.SaveAsync(loaded.Settings);
         Assert.False(Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync()).RequiresMigration);
     }
