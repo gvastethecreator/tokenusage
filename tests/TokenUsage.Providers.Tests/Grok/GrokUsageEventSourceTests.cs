@@ -280,18 +280,30 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
-    public async Task DeletedSessionFileDropsItsEventsOnTheNextRead()
+    public async Task DeletedSessionsStayCollectedAndNewSessionsMergeAfterCleanup()
     {
         using var corpus = new GrokCorpus();
         corpus.WriteSession("session-a", Snapshot("2026-07-22T11:00:00Z", 100, 10));
         corpus.WriteSession("session-b", Snapshot("2026-07-22T12:00:00Z", 200, 20));
         GrokUsageEventSource source = corpus.CreateSource(withCheckpoint: true);
         Assert.Equal(2, (await source.ReadAsync()).Events.Count);
+        var refresh = new LocalUsageRefresh(Path.Combine(corpus.Root, "usage.db"), source, GrokCorpus.FixtureClock);
+        Assert.Equal(330, (await refresh.RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
 
         Directory.Delete(Path.Combine(corpus.Root, "sessions", "cwd", "session-a"), true);
 
         UsageEvent remaining = Assert.Single((await source.ReadAsync()).Events);
         Assert.Equal(200, remaining.Tokens.Input);
+        Assert.Equal(330, (await refresh.RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        Directory.Delete(Path.Combine(corpus.Root, "sessions"), true);
+        Assert.Equal(330, (await refresh.RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        corpus.WriteSession("session-new", Snapshot("2026-07-22T12:00:00Z", 300, 30));
+        for (int repeat = 0; repeat < 2; repeat++)
+        {
+            var merged = await refresh.RefreshAsync();
+            Assert.Equal(660, merged.Rollups.Sum(row => row.Tokens.Total));
+            Assert.Equal(3, merged.Rollups.Sum(row => row.EventCount));
+        }
     }
 
     [Fact]

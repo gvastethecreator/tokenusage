@@ -12,6 +12,8 @@ public sealed record UsageMeasurementSection(string Title, string Text, string? 
 public sealed partial class UsageReportViewModel
 {
     public IReadOnlyList<UsageMeasurementSection> MeasurementSections { get; private set; } = [];
+    public IEnumerable<UsageMeasurementSection> MeasurementDisplaySections =>
+        MeasurementSections.Where(section => !string.IsNullOrWhiteSpace(section.DisplayText));
     public string ExplorerCollectionSummary { get; private set; } = string.Empty;
 
     public string MeasurementCopyText => "TokenUsage · " + GetString("UsageMeasurementDetails/Header")
@@ -22,9 +24,9 @@ public sealed partial class UsageReportViewModel
         BuildActivityDetails();
         BuildExplanations();
         var sections = new List<UsageMeasurementSection>();
-        void Add(string key, string text)
+        void Add(string key, string text, string? compactText = null)
         {
-            if (!string.IsNullOrWhiteSpace(text)) sections.Add(new(GetString(key), text.Trim()));
+            if (!string.IsNullOrWhiteSpace(text)) sections.Add(new(GetString(key), text.Trim(), compactText));
         }
 
         Add("UsageMeasurementScope", IsProviderScope && SelectedProvider is not null
@@ -35,13 +37,14 @@ public sealed partial class UsageReportViewModel
                 (IsCompareRatesAxis && !UsageComparison.UsesFixedCohortRows(ActiveRateMethodId)
                     ? GetString("UsageComparisonLegacyMethod") + " " : string.Empty) + GetString("UsageComparisonSavedEvidence")));
         else Add("UsageMeasurementMethod", _measurementEvidence);
-        if (HasExplanations) Add("UsageExplanationTitle", ExplanationEvidenceText);
+        if (HasExplanations) Add("UsageExplanationTitle", ExplanationEvidenceText, string.Empty);
         if (HasExplorer)
             Add("UsageExplorerSelectionEvidence", string.Format(CultureInfo.CurrentCulture,
                 GetString("UsageExplorerSelectionFormat"),
                 IsProviderScope ? SelectedProvider?.Name : ExplorerTool?.Name,
                 ExplorerHost?.Name, ExplorerModel?.Name,
-                string.IsNullOrWhiteSpace(ModelSearch) ? GetString("UsageExplorerNoSearch") : ModelSearch.Trim()));
+                string.IsNullOrWhiteSpace(ModelSearch) ? GetString("UsageExplorerNoSearch") : ModelSearch.Trim()),
+                ExplorerSelectionContext);
         if (HasConfigurationOptions || _report.ConfigurationSelection is not null || _compareRightReport.ConfigurationSelection is not null)
             Add("UsageConfigurationEvidence", IsCompareScope
                 ? "A: " + DescribeConfiguration(_report) + Environment.NewLine
@@ -51,8 +54,8 @@ public sealed partial class UsageReportViewModel
             ? "UsageComparisonRatesCostEvidence" : "UsageComparisonCostEvidence"));
         if (Overview is not null)
         {
-            Add("UsageOverviewCallsLabel", OverviewCallsUnavailableText);
-            Add("UsageOverviewSkillsLabel", GetString("UsageOverviewSkillsUnavailable"));
+            Add("UsageOverviewCallsLabel", OverviewCallsUnavailableText, GetString("UsageMeasurementCallsSummary"));
+            Add("UsageOverviewSkillsLabel", GetString("UsageOverviewSkillsUnavailable"), string.Empty);
             if (Overview.CacheShareAvailability == UsageOverviewFactKind.Measured)
             {
                 Add("UsageOverviewCacheShareLabel", Overview.CacheShareMethod);
@@ -69,7 +72,7 @@ public sealed partial class UsageReportViewModel
                 capability += Environment.NewLine + string.Format(CultureInfo.CurrentCulture,
                     GetString("UsageMeasurementCodexAvailabilityFormat"),
                     _report.Agents.Where(row => row.AgentId.Value == "codex").Sum(row => row.Metrics.EventCount));
-            Add("UsageMeasurementSourceCapability", capability);
+            Add("UsageMeasurementSourceCapability", capability, GetString("UsageMeasurementCapabilitySummary"));
         }
         string collectionDetails = GetString("UsageMeasurementStoredData") + Environment.NewLine
             + (collection.Length == 0 ? GetString("UsageComparisonFreshnessUnknown")
@@ -78,18 +81,22 @@ public sealed partial class UsageReportViewModel
                 GetString("UsageMeasurementCollectionFormat"),
                 row.AttemptedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture), row.Status, row.Issue,
                 CollectionSuccessText(row.LastSuccessfulAtUtc)))));
-        string collectionSummary = collection.Length == 0 ? GetString("UsageComparisonFreshnessUnknown")
-            : string.Join(Environment.NewLine, collection.GroupBy(row => (
-                    Attempt: row.AttemptedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
-                    Success: CollectionSuccessText(row.LastSuccessfulAtUtc), row.Status, row.Issue))
+        var includedProviders = _report.Agents.Concat(_compareRightReport.Agents)
+            .Select(row => row.AgentId.Value).ToHashSet(StringComparer.Ordinal);
+        UsageCollectionState[] relevantCollection = collection
+            .Where(row => includedProviders.Contains(row.AgentId)
+                || row.Status == UsageSourceReadStatus.Partial
+                || row.Issue is UsageSourceIssueKind.ReadFailed or UsageSourceIssueKind.AccessBlocked
+                    or UsageSourceIssueKind.UnsupportedSchema
+                || IsProviderScope && row.AgentId == SelectedProvider?.ProviderId).ToArray();
+        string collectionSummary = relevantCollection.Length == 0 ? GetString("UsageComparisonFreshnessUnknown")
+            : string.Join(Environment.NewLine, relevantCollection.GroupBy(row => (row.Status, row.Issue))
                 .Select(group => string.Join(", ", group.Select(row => ProviderName(row.AgentId))) + ": "
-                    + CollectionStatusText(group.Key.Status, group.Key.Issue)
-                    + " · " + string.Format(CultureInfo.CurrentCulture, GetString("UsageMeasurementFreshnessFormat"),
-                        group.Key.Success, group.Key.Attempt)));
+                    + CollectionStatusText(group.Key.Status, group.Key.Issue)));
         sections.Add(new(GetString("UsageMeasurementCollection"), collectionDetails, collectionSummary));
-        ExplorerCollectionSummary = GetString("UsageMeasurementStoredData") + " " + collectionSummary;
-        ExplorerSourceStatus = collectionSummary;
-        HasExplorerSourceWarning = collection.Any(row =>
+        ExplorerCollectionSummary = GetString("UsageMeasurementStoredData");
+        ExplorerSourceStatus = GetString("UsageExplorerSourceWarningSummary");
+        HasExplorerSourceWarning = relevantCollection.Any(row =>
             row.Status != UsageSourceReadStatus.Complete
             || row.Issue is UsageSourceIssueKind.UnresolvedHistory
                 or UsageSourceIssueKind.ReadFailed
@@ -105,7 +112,8 @@ public sealed partial class UsageReportViewModel
             Add("UsageMeasurementTiming", GetString("UsageComparisonTimingGaps"));
         if ((!_report.HasTimeBucketDetails && _report.TimeBuckets.Count == 0 && !_report.IsExactInterval)
             || IsPairComparison && !_compareRightReport.HasTimeBucketDetails && _compareRightReport.TimeBuckets.Count == 0 && !_compareRightReport.IsExactInterval)
-            Add("UsageMeasurementTiming", GetString("UsageReportTimeDetailsNotLoaded"));
+            Add("UsageMeasurementTiming", GetString("UsageReportTimeDetailsNotLoaded"),
+                GetString("UsageMeasurementTimingSummary"));
         if ((UseReferencePrices || IsCompareRatesAxis) && IsCompareScope && !IsCompareCyclesAxis)
             Add("UsageMeasurementPricing", string.Format(CultureInfo.CurrentCulture,
                 GetString("UsageComparisonPricingExclusions"), FormatTokens(_report.PriceReferenceExcludedTokens),
@@ -125,6 +133,7 @@ public sealed partial class UsageReportViewModel
 
         MeasurementSections = sections;
         OnPropertyChanged(nameof(MeasurementSections));
+        OnPropertyChanged(nameof(MeasurementDisplaySections));
         OnPropertyChanged(nameof(MeasurementEvidence));
     }
 

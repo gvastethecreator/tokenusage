@@ -39,7 +39,7 @@ public sealed class RefreshCommandTests
             ["--format", "json"],
             output,
             TextWriter.Null,
-            _ => Task.FromResult(CreateResult()),
+            _ => Task.FromResult(CreateResult(UsageSourceIssueKind.UnresolvedHistory)),
             new FixedTimeProvider(Now));
 
         Assert.Equal(0, exitCode);
@@ -48,6 +48,7 @@ public sealed class RefreshCommandTests
             RefreshCommand.SchemaVersion,
             document.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(2, document.RootElement.GetProperty("providers").GetArrayLength());
+        Assert.Equal("unresolved-history", document.RootElement.GetProperty("providers")[0].GetProperty("issue").GetString());
         Assert.DoesNotContain("path", output.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
@@ -95,7 +96,7 @@ public sealed class RefreshCommandTests
             error.ToString());
     }
 
-    private static LocalUsageRefreshResult CreateResult() => new(
+    private static LocalUsageRefreshResult CreateResult(UsageSourceIssueKind codexIssue = UsageSourceIssueKind.None) => new(
         [
             new DailyUsageRollup(
                 new DateOnly(2026, 8, 8),
@@ -118,8 +119,8 @@ public sealed class RefreshCommandTests
         [
             new UsageSourceDiagnostic(
                 new AgentId("codex"),
-                UsageSourceReadStatus.Complete,
-                UsageSourceIssueKind.None,
+                codexIssue == UsageSourceIssueKind.None ? UsageSourceReadStatus.Complete : UsageSourceReadStatus.Partial,
+                codexIssue,
                 true),
             new UsageSourceDiagnostic(
                 new AgentId("antigravity"),

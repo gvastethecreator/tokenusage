@@ -350,9 +350,16 @@ public sealed partial class UsageRepository
         return new UsageIngestResult(written.Length, batch.Length - written.Length);
     }
 
+    public Task<UsageIngestResult> UpsertAgentEventsAsync(
+        AgentId agentId,
+        IEnumerable<UsageEvent> events,
+        CancellationToken cancellationToken = default) =>
+        UpsertAgentEventsAsync(agentId, events, [], cancellationToken);
+
     public async Task<UsageIngestResult> UpsertAgentEventsAsync(
         AgentId agentId,
         IEnumerable<UsageEvent> events,
+        IReadOnlyList<UsageEventKey> supersededEventKeys,
         CancellationToken cancellationToken = default)
     {
         UsageEvent[] batch = ValidateAgentBatch(agentId, events, "Upsert");
@@ -373,6 +380,26 @@ public sealed partial class UsageRepository
                 batch,
                 cancellationToken)
             .ConfigureAwait(false);
+        var supersededDates = new HashSet<DateOnly>();
+        var supersededKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (UsageEventKey key in supersededEventKeys ?? [])
+        {
+            if (batch.Any(row => row.EventKey == key))
+                throw new ArgumentException("An admitted event cannot supersede itself.", nameof(supersededEventKeys));
+            await using SqliteCommand retire = connection.CreateCommand();
+            retire.Transaction = transaction;
+            retire.CommandText = "SELECT civil_date FROM usage_event WHERE event_key = $key AND agent_id = $agent AND source_instance_id IS NULL";
+            retire.Parameters.AddWithValue("$key", key.Value);
+            retire.Parameters.AddWithValue("$agent", agentId.Value);
+            if (await retire.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is string date)
+            {
+                DateOnly retiredDate = DateOnly.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
+                    retiredDate, retiredDate, cancellationToken).ConfigureAwait(false);
+                supersededDates.Add(retiredDate);
+                supersededKeys.Add(key.Value);
+            }
+        }
         HashSet<string> retiredKeys = await LoadTombstonedKeysAsync(connection, transaction, batch, cancellationToken)
             .ConfigureAwait(false);
         foreach (DateOnly date in previousDates.Concat(batch
@@ -380,6 +407,20 @@ public sealed partial class UsageRepository
                      .Select(row => AssertSingleRollup(row).Date)).Distinct())
             await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
                 date, date, cancellationToken).ConfigureAwait(false);
+        foreach (string key in supersededKeys)
+        {
+            await using SqliteCommand retire = connection.CreateCommand();
+            retire.Transaction = transaction;
+            retire.CommandText = """
+                INSERT OR IGNORE INTO usage_event_tombstone(event_key, retired_at_utc)
+                VALUES ($key, $now);
+                DELETE FROM usage_event WHERE event_key = $key AND agent_id = $agent AND source_instance_id IS NULL;
+                """;
+            retire.Parameters.AddWithValue("$key", key);
+            retire.Parameters.AddWithValue("$agent", agentId.Value);
+            retire.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            await retire.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
         UsageEvent[] written = await WriteEventsAsync(
                 connection,
                 transaction,
@@ -389,7 +430,7 @@ public sealed partial class UsageRepository
                 cancellationToken)
             .ConfigureAwait(false);
 
-        DateOnly[] dates = previousDates
+        DateOnly[] dates = previousDates.Concat(supersededDates)
             .Concat(written
             .Select(usageEvent => AssertSingleRollup(usageEvent).Date)
             )

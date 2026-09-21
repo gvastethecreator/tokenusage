@@ -309,9 +309,7 @@ public sealed class LocalUsageCoordinatorTests
         Assert.Equal("ProviderStatusReported", Capability(grok, "ProviderStatus.grok.Spend"));
         Assert.Equal("100%", Capability(grok, "ProviderStatus.grok.Coverage"));
 
-        ProviderStatusRow openCode = Assert.Single(card.ProviderStatuses, row => row.ProviderId == "opencode");
-        Assert.Equal("ProviderStatusNotConfigured", Capability(openCode, "ProviderStatus.opencode.Usage"));
-        Assert.Equal("ProviderStatusRootMissing", openCode.RootState);
+        Assert.DoesNotContain(card.ProviderStatuses, row => row.ProviderId == "opencode");
         Assert.DoesNotContain(":\\", string.Join(' ', card.ProviderStatuses.Select(row => row.AutomationName)), StringComparison.Ordinal);
     }
 

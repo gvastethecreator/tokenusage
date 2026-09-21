@@ -422,6 +422,7 @@ public sealed partial class UsageReportViewModel
                 _measurementEvidence = GetString("UsageComparisonLegacyMethod") + " " + _measurementEvidence;
             MeasurementSections = [new(GetString("UsageMeasurementMethod"), _measurementEvidence)];
             OnPropertyChanged(nameof(MeasurementSections));
+            OnPropertyChanged(nameof(MeasurementDisplaySections));
             _hasCurrentReport = true;
             StatusText = string.Empty;
             RebuildProjection();

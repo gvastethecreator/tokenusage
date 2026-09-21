@@ -1,15 +1,15 @@
 # Code map: tokenusage
 
-Generated: 2026-09-14T23:41:27Z | Commit: `6055769b7a80` | Schema: 2
-Generation: `988e55c358071ddb96c30fba35ac4b6c9a548489c4e6b9a168756c3cd84c7d0a`
+Generated: 2026-09-21T03:14:14Z | Commit: `840505684687` | Schema: 2
+Generation: `2d7d9bd1d6433423efaa83023d4356d736d87f1bf4a74f9727b963aba25285a8`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
-Nodes: 575 | Edges: 27 | Flows: 0
+Nodes: 577 | Edges: 27 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 522 analyzed of 575 included files.
+- Analysis: **partial**; 524 analyzed of 577 included files.
 - Configuration files: 0; omitted untracked files: 0.
-- Unresolved references and analysis limits: 2169.
+- Unresolved references and analysis limits: 2179.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -34,7 +34,7 @@ Nodes: 575 | Edges: 27 | Flows: 0
 - `src/TokenUsage.App/Controls/ProviderColorSwatch.xaml.cs` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/ProviderMarkImage.xaml` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/ProviderMarkImage.xaml.cs` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
-- Showing 20 of 575 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 577 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 

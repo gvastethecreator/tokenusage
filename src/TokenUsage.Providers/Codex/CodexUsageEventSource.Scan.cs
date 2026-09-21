@@ -18,13 +18,14 @@ public sealed partial class CodexUsageEventSource
 
         var state = new LocalScanState(_budget);
         SessionFile[] files = FindSessionFiles(roots, state, cancellationToken);
-        // Compare original paths before scanning can update replay locations. A copied
-        // checkpoint must not acquire this profile's authority on a later replay.
+        // One original path proves which profile wrote this single-profile checkpoint.
+        // Other sessions may have been deleted. Compare before replay can change paths,
+        // so a checkpoint copied from another profile cannot acquire this authority.
         var foundPaths = files.Select(file => Hash(Path.GetFullPath(file.Path).ToUpperInvariant()))
             .ToHashSet(StringComparer.Ordinal);
         bool canBindAuthority = checkpoints.SourceAuthority is null
             && checkpoints.Files.Count > 0
-            && checkpoints.Files.Values.All(file => foundPaths.Contains(file.AuthorityPathHash));
+            && checkpoints.Files.Values.Any(file => foundPaths.Contains(file.AuthorityPathHash));
         DateOnly recentFrom = RecentFrom();
         long initialBytesRemaining = MaximumInitialRecentScanBytes;
         CaptureAdmissionWatermarks(checkpoints);
@@ -37,7 +38,7 @@ public sealed partial class CodexUsageEventSource
 
         // Missing source files do not retire numeric observations; the retention horizon does.
         PruneCheckpointDays(checkpoints, recentFrom);
-        if (canBindAuthority && !state.IsPartial && checkpoints.Files.Values.Any(file => file.Observations.Count > 0))
+        if (canBindAuthority && checkpoints.Files.Values.Any(file => file.Observations.Count > 0))
             checkpoints.SourceAuthority = SourceAuthority;
         return CreateScanResult(checkpoints, state);
     }
@@ -53,7 +54,7 @@ public sealed partial class CodexUsageEventSource
         try
         {
             var info = new FileInfo(file.Path);
-            if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            if ((File.GetAttributes(file.Path) & FileAttributes.ReparsePoint) != 0)
             {
                 state.MarkPartial();
                 return;
@@ -143,6 +144,11 @@ public sealed partial class CodexUsageEventSource
         catch (OperationCanceledException)
         {
             throw;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // Codex can retain index entries after cleanup. Keep the numeric history
+            // already checkpointed; an absent source is not a failed read.
         }
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
@@ -303,7 +309,7 @@ public sealed partial class CodexUsageEventSource
         }
     }
 
-    private static bool IsNonUsageRecord(ReadOnlySpan<byte> prefix)
+    private bool IsNonUsageRecord(ReadOnlySpan<byte> prefix)
     {
         // Read only the envelope, not message text which can itself mention token_count.
         // A truncated or unrecognized envelope is not evidence that a line is irrelevant.
@@ -325,9 +331,15 @@ public sealed partial class CodexUsageEventSource
                     && reader.ValueTextEquals("type") && reader.Read())
                 {
                     if (reader.TokenType != JsonTokenType.String) return false;
-                    return !reader.ValueTextEquals("token_count")
-                        && !reader.ValueTextEquals("task_started")
-                        && !reader.ValueTextEquals("mcp_tool_call_begin")
+                    if (reader.ValueTextEquals("token_count") || reader.ValueTextEquals("task_started")) return false;
+                    // Large tool results are not numeric usage. When their optional
+                    // attribution is off, skipping the body cannot make usage partial.
+                    if (_attributionKeys is null
+                        || (_scanMcpConsent is not { State: AttributionConsentState.Enabled }
+                            && _scanSkillsConsent is not { State: AttributionConsentState.Enabled }
+                            && _scanCommandsConsent is not { State: AttributionConsentState.Enabled }
+                            && _scanFilesConsent is not { State: AttributionConsentState.Enabled })) return true;
+                    return !reader.ValueTextEquals("mcp_tool_call_begin")
                         && !reader.ValueTextEquals("mcp_tool_call_end")
                         && !reader.ValueTextEquals("item_started")
                         && !reader.ValueTextEquals("item_completed")
@@ -1045,8 +1057,9 @@ public sealed partial class CodexUsageEventSource
         CodexUsageCheckpointState checkpoints,
         LocalScanState state)
     {
-        bool legacyRepresentation = checkpoints.Files.Values.Any(file => file.Observations.Any(item => item.RepresentationRevision is null));
-        UsageSourceReadStatus status = state.IsPartial || legacyRepresentation
+        // Missing legacy detail remains Unknown on each observation. It is not a
+        // failed scan; the repository separately checks unresolved stored history.
+        UsageSourceReadStatus status = state.IsPartial
             ? UsageSourceReadStatus.Partial
             : !checkpoints.Files.Values.Any(file => file.Observations.Count > 0)
                 ? UsageSourceReadStatus.NoData
@@ -1055,7 +1068,6 @@ public sealed partial class CodexUsageEventSource
         {
             UsageSourceReadStatus.Partial when state.UnsupportedSchema =>
                 UsageSourceIssueKind.UnsupportedSchema,
-            UsageSourceReadStatus.Partial when legacyRepresentation => UsageSourceIssueKind.UnresolvedHistory,
             UsageSourceReadStatus.Partial => UsageSourceIssueKind.PartialScan,
             UsageSourceReadStatus.NoData => UsageSourceIssueKind.Empty,
             _ => null,

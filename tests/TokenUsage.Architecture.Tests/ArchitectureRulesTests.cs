@@ -597,11 +597,9 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(358, matches.Count);
-        Assert.Equal(342, distinctIds.Length);
-        Assert.Contains("UsageOverviewNotice", distinctIds, StringComparer.Ordinal);
+        Assert.Equal(352, matches.Count);
+        Assert.Equal(336, distinctIds.Length);
         Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageOverviewCalls", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCostDetails", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewPartialWarning", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerClearHidden", distinctIds, StringComparer.Ordinal);

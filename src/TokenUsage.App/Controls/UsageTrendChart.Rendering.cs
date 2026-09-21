@@ -152,6 +152,7 @@ public sealed partial class UsageTrendChart
     {
         UsageReportResetKind.Weekly => WeeklyResetBrushProxy.Background,
         UsageReportResetKind.Session => SessionResetBrushProxy.Background,
+        UsageReportResetKind.Scheduled => SessionResetBrushProxy.Background,
         UsageReportResetKind.Manual => ManualResetBrushProxy.Background,
         UsageReportResetKind.ResetCredit => ResetCreditBrushProxy.Background,
         _ => TextBrushProxy.Background,

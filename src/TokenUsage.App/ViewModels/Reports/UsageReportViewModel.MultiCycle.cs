@@ -33,7 +33,7 @@ public sealed partial class UsageReportViewModel
     }
     public bool HasThirdCycle => _cycleCount >= 3;
     public bool HasFourthCycle => _cycleCount >= 4;
-    public bool IsPairComparison => !IsCompareCyclesAxis;
+    public bool IsPairComparison => IsCompareScope && !IsCompareCyclesAxis;
     public string CycleProviderText => GetString("UsageComparisonCycleProvider");
     public string CycleAvailabilityText => GetString("UsageComparisonCycleCountHint");
     public IReadOnlyList<UsageCycleSummary> CycleSummaries { get; private set; } = [];

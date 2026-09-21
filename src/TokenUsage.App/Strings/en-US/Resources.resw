@@ -1129,6 +1129,12 @@
   <data name="UsageReportResetKindManual" xml:space="preserve"><value>Banked reset</value></data>
   <data name="UsageReportResetKindResetCredit" xml:space="preserve"><value>Extra reset</value></data>
   <data name="UsageReportResetKindObserved" xml:space="preserve"><value>Unknown reset</value></data>
+  <data name="UsageReportResetKindScheduled" xml:space="preserve"><value>Scheduled reset</value></data>
+  <data name="UsageExplorerSourceWarningSummary" xml:space="preserve"><value>Some sources could not be fully updated. Totals may be incomplete or out of date.</value></data>
+  <data name="UsageMeasurementCallsSummary" xml:space="preserve"><value>Request counts are not available from these records.</value></data>
+  <data name="UsageMeasurementCapabilitySummary" xml:space="preserve"><value>Codex provides token and model usage. Session, project and tool details depend on your collection settings.</value></data>
+  <data name="UsageMeasurementTimingSummary" xml:space="preserve"><value>Load activity details to inspect time-of-day coverage.</value></data>
+  <data name="UsageMeasurementTechnicalDetails.Header" xml:space="preserve"><value>Technical details</value></data>
   <data name="UpdateSectionTitle.Text" xml:space="preserve"><value>App updates</value></data>
   <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>v{0}</value></data>
   <data name="UpdateAutomaticLabel.Text" xml:space="preserve"><value>Automatic updates</value></data>
@@ -1355,7 +1361,7 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageReportCompactTokensFormat" xml:space="preserve"><value>Tokens {0}</value></data>
   <data name="UsageReportCompactCostFormat" xml:space="preserve"><value>Known usage cost {0}</value></data>
   <data name="UsageReportCompactTokenShareFormat" xml:space="preserve"><value>Token share {0}</value></data>
-  <data name="UsageReportCompactCostShareFormat" xml:space="preserve"><value>Known-cost share {0}</value></data>
+  <data name="UsageReportCompactCostShareFormat" xml:space="preserve"><value>Cost share {0}</value></data>
   <data name="UsageReportCompactCoverageFormat" xml:space="preserve"><value>Priced tokens {0}</value></data>
   <data name="UsageReportCompactEventsFormat" xml:space="preserve"><value>Events {0}</value></data>
   <data name="UsageReportCompactReportedFormat" xml:space="preserve"><value>Reported {0}</value></data>
@@ -1389,8 +1395,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageDashboardOperationsLoading.Text" xml:space="preserve"><value>Loading observed invocations…</value></data>
   <data name="UsageComparisonRows.Header" xml:space="preserve"><value>Full comparison rows</value></data>
   <data name="UsageDashboardOperationDetails.Header" xml:space="preserve"><value>All operations and scope details</value></data>
-  <data name="UsageDashboardExpandChart.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Expand original chart</value></data>
-  <data name="UsageDashboardExpandChart.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Expand or compact the original chart</value></data>
   <data name="UsageDashboardActivitySummaryFormat" xml:space="preserve"><value>{0} accounts for {1} of observed invocations.</value></data>
   <data name="UsageDashboardMethod.Header" xml:space="preserve"><value>How this is measured</value></data>
   <data name="UsageDashboardOperationPreview.Text" xml:space="preserve"><value>Tools · observed invocations</value></data>

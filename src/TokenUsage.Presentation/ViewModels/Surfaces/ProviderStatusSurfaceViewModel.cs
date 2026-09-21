@@ -261,6 +261,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             .ToHashSet(StringComparer.Ordinal);
         providers.AddRange(ProviderModuleCatalog.Entries
             .Where(entry => !includedIds.Contains(entry.Id.Value))
+            .Where(entry => !ProviderModuleCatalog.IsActiveLocalUsageProvider(entry.Id.Value))
             .Select(CreateCatalogRow));
         Providers = providers;
         PrimaryProviders = PrimaryProviderIds

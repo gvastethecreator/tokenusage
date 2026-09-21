@@ -4,7 +4,7 @@ namespace TokenUsage.App.ViewModels.Reports;
 
 public sealed record UsageReportResetMarker(int DayIndex, QuotaResetRecord Reset);
 
-public enum UsageReportResetKind { Weekly, Session, Manual, ResetCredit, Observed }
+public enum UsageReportResetKind { Weekly, Session, Manual, ResetCredit, Observed, Scheduled }
 
 public readonly record struct UsageReportResetMark(int DayIndex, UsageReportResetKind Kind, int StackIndex);
 
@@ -18,6 +18,7 @@ public static class UsageReportResetMarkers
         UsageReportResetKind.Session => "UsageReportResetKindSession",
         UsageReportResetKind.Manual => "UsageReportResetKindManual",
         UsageReportResetKind.ResetCredit => "UsageReportResetKindResetCredit",
+        UsageReportResetKind.Scheduled => "UsageReportResetKindScheduled",
         _ => "UsageReportResetKindObserved",
     };
 
@@ -28,6 +29,7 @@ public static class UsageReportResetMarkers
         QuotaResetCause.ResetCredit => UsageReportResetKind.ResetCredit,
         QuotaResetCause.Scheduled when reset.WindowDurationMinutes == 10_080m => UsageReportResetKind.Weekly,
         QuotaResetCause.Scheduled when reset.WindowDurationMinutes is > 0m and < 1_440m => UsageReportResetKind.Session,
+        QuotaResetCause.Scheduled => UsageReportResetKind.Scheduled,
         _ => UsageReportResetKind.Observed,
     };
 

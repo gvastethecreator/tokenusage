@@ -539,6 +539,15 @@ public sealed partial class UsageReportPage : Page
         Grid.SetRow(ReportToolbarHost, narrow ? 2 : 1);
         Grid.SetColumn(ReportToolbarHost, narrow ? 0 : 1);
         Grid.SetColumnSpan(ReportToolbarHost, narrow ? 2 : 1);
+        bool wrap = e.NewSize.Width < 800;
+        Grid.SetRow(ReportPeriodControls, wrap ? 1 : 0);
+        Grid.SetColumn(ReportPeriodControls, wrap ? 0 : 1);
+        Grid.SetRow(ReportMetricControls, wrap ? 2 : 0);
+        Grid.SetColumn(ReportMetricControls, wrap ? 0 : 2);
+        Grid.SetRow(ReportValueControls, wrap ? 2 : 0);
+        Grid.SetColumn(ReportValueControls, wrap ? 1 : 3);
+        Grid.SetColumnSpan(ReportScopeControls, wrap ? 2 : 1);
+        Grid.SetColumnSpan(ReportPeriodControls, wrap ? 2 : 1);
     }
 
     private void OnCycleTableSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCycleTableColumns();
@@ -647,6 +656,9 @@ public sealed partial class UsageReportPage : Page
         }
 
         if (e.PropertyName == nameof(UsageReportViewModel.CycleSummaries)) UpdateCycleSummaryLayout();
+        if (e.PropertyName is nameof(UsageReportViewModel.HasDashboardProjects)
+            or nameof(UsageReportViewModel.HasDashboardActivity))
+            UpdateDashboardLayout(DashboardGrid.ActualWidth);
 
         if (e.PropertyName == nameof(UsageReportViewModel.ModelShareLabel))
             _ = DispatcherQueue.TryEnqueue(UpdateSortHeaders);

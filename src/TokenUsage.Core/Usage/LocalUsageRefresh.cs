@@ -217,7 +217,8 @@ public sealed class LocalUsageRefresh
         UsageSourceDiagnostic[] diagnostics = _sources
             .Select(source => CreateCachedDiagnostic(source, cachedAgents))
             .ToArray();
-        UsageSourceReadStatus status = diagnostics.All(diagnostic =>
+        UsageSourceReadStatus status = diagnostics.Where(diagnostic =>
+            diagnostic.Issue != UsageSourceIssueKind.RootUnavailable || cachedAgents.Contains(diagnostic.AgentId)).All(diagnostic =>
             diagnostic.Status == UsageSourceReadStatus.Complete)
                 ? UsageSourceReadStatus.Complete
                 : UsageSourceReadStatus.Partial;
@@ -306,9 +307,10 @@ public sealed class LocalUsageRefresh
                 {
                     if (result.Status == UsageSourceReadStatus.Complete && result.Events.Count > 0)
                     {
-                        await repository.ReplaceAgentEventsAsync(
+                        await repository.UpsertAgentEventsAsync(
                             snapshotSource.AgentId,
                             result.Events,
+                            result.SupersededEventKeys,
                             cancellationToken).ConfigureAwait(false);
                     }
                     else canCommitCheckpoint = result.Events.Count == 0;
@@ -337,28 +339,16 @@ public sealed class LocalUsageRefresh
                             return eventDate < reconcileFrom && eventDate <= today;
                         })
                         .ToArray();
-                    bool isAuthoritative = result.Status == UsageSourceReadStatus.Complete
-                        && eventsInWindow.Length > 0;
                     canCommitCheckpoint = eventsInWindow.Length + olderEvents.Length == result.Events.Count;
-                    if (isAuthoritative)
-                    {
-                        await repository.ReconcileAgentEventRangeAsync(windowedSource.AgentId,
-                            windowedSource.EventParserVersion, reconcileFrom, today, eventsInWindow, cancellationToken).ConfigureAwait(false);
-                        if (olderEvents.Length > 0)
-                        {
-                            await repository.UpsertAgentEventsAsync(
-                                windowedSource.AgentId,
-                                olderEvents,
-                                cancellationToken).ConfigureAwait(false);
-                        }
-                    }
-                    else if ((eventsInWindow.Length > 0 || olderEvents.Length > 0)
+                    if ((eventsInWindow.Length > 0 || olderEvents.Length > 0)
                         && (result.Status == UsageSourceReadStatus.Complete || !await repository.HasDifferentParserInRangeAsync(windowedSource.AgentId,
                             windowedSource.EventParserVersion, reconcileFrom, today, cancellationToken).ConfigureAwait(false)))
                     {
                         await repository.UpsertAgentEventsAsync(
                             windowedSource.AgentId,
                             eventsInWindow.Concat(olderEvents).ToArray(),
+                            result.Status == UsageSourceReadStatus.Complete
+                                ? result.SupersededEventKeys : [],
                             cancellationToken).ConfigureAwait(false);
                     }
                     else canCommitCheckpoint = result.Events.Count == 0;
@@ -388,12 +378,14 @@ public sealed class LocalUsageRefresh
                 await PersistSourceAsync().ConfigureAwait(false);
         }
 
-        UsageSourceReadStatus readStatus = readResults.Any(
+        UsageSourceReadResult[] availableReads = readResults
+            .Where(result => result.Issue != UsageSourceIssueKind.RootUnavailable).ToArray();
+        UsageSourceReadStatus readStatus = availableReads.Any(
             result => result.Status == UsageSourceReadStatus.Partial)
                 ? UsageSourceReadStatus.Partial
-                : readResults.All(result => result.Status == UsageSourceReadStatus.NoData)
+                : availableReads.All(result => result.Status == UsageSourceReadStatus.NoData)
                     ? UsageSourceReadStatus.NoData
-                    : _sources.Count > 1 && readResults.Any(
+                    : availableReads.Length > 1 && availableReads.Any(
                         result => result.Status == UsageSourceReadStatus.NoData)
                         ? UsageSourceReadStatus.Partial
                     : UsageSourceReadStatus.Complete;

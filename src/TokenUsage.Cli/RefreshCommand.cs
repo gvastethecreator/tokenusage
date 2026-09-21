@@ -190,6 +190,7 @@ public static class RefreshCommand
         UsageSourceIssueKind.AccessBlocked => "access-blocked",
         UsageSourceIssueKind.UnsupportedSchema => "unsupported-schema",
         UsageSourceIssueKind.ReadFailed => "read-failed",
+        UsageSourceIssueKind.UnresolvedHistory => "unresolved-history",
         _ => throw new ArgumentOutOfRangeException(nameof(issue)),
     };
 
