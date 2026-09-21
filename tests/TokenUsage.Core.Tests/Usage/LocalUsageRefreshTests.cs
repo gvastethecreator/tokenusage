@@ -408,7 +408,7 @@ public sealed class LocalUsageRefreshTests
     }
 
     [Fact]
-    public async Task RefreshWindowedCompleteRemovesStaleKeysOutsideCurrentScan()
+    public async Task RefreshWindowedCompleteRemovesOnlyExplicitlySupersededKeys()
     {
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(Now);
@@ -424,6 +424,8 @@ public sealed class LocalUsageRefreshTests
                         new DateTimeOffset(2026, 7, 21, 10, 0, 0, TimeSpan.Zero),
                         input: 90_000,
                         output: 0,
+                        CostObservation.Unavailable()),
+                    CreateEvent("cursor", "cleaned-up", Now.AddMinutes(-1), 50, 0,
                         CostObservation.Unavailable()),
                 ],
                 UsageSourceReadStatus.Complete));
@@ -443,15 +445,48 @@ public sealed class LocalUsageRefreshTests
                         output: 100,
                         CostObservation.CatalogEstimated(0.75m, "xai-api-2026-08-12", "composer-2.5")),
                 ],
-                UsageSourceReadStatus.Complete));
+                UsageSourceReadStatus.Complete)
+            {
+                SupersededEventKeys = [CreateEvent("cursor", "composer-state", Now, 0, 0,
+                    CostObservation.Unavailable()).EventKey],
+            });
         LocalUsageRefreshResult second = await new LocalUsageRefresh(
             folder.DatabasePath,
             updated,
             clock).RefreshAsync();
 
-        Assert.Equal(1, second.Rollups.Sum(r => r.EventCount));
-        Assert.Equal(1_100, second.Rollups.Sum(r => r.Tokens.Total));
+        Assert.Equal(2, second.Rollups.Sum(r => r.EventCount));
+        Assert.Equal(1_150, second.Rollups.Sum(r => r.Tokens.Total));
         Assert.Equal(0.75m, second.Rollups.Sum(r => r.EstimatedCostUsd ?? 0m));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CleanupAndRecreatedSourcesMergeHistoryAndRepeatedUpdates(bool snapshot)
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var agent = new AgentId("zcode");
+        UsageEvent Row(string key, long input) => CreateEvent(agent.Value, key, Now.AddMinutes(-1),
+            input, 0, CostObservation.Unavailable());
+        async Task<LocalUsageRefreshResult> Read(UsageSourceReadResult result)
+        {
+            IUsageEventSource source = snapshot
+                ? new ScriptedSnapshotSource(agent, result)
+                : new ScriptedWindowedSource(agent, "test/1", 35, result);
+            return await new LocalUsageRefresh(folder.DatabasePath, source, clock).RefreshAsync();
+        }
+        await Read(new([Row("old", 100), Row("surviving", 20)], UsageSourceReadStatus.Complete));
+        var partialCleanup = await Read(new([Row("surviving", 30), Row("new", 40)], UsageSourceReadStatus.Complete));
+        Assert.Equal(170, partialCleanup.Rollups.Sum(row => row.Tokens.Total));
+        await Read(new([], UsageSourceReadStatus.NoData, UsageSourceIssueKind.RootUnavailable));
+        for (int repeat = 0; repeat < 2; repeat++)
+        {
+            var recreated = await Read(new([Row("recreated", 50)], UsageSourceReadStatus.Complete));
+            Assert.Equal(220, recreated.Rollups.Sum(row => row.Tokens.Total));
+            Assert.Equal(4, recreated.Rollups.Sum(row => row.EventCount));
+        }
     }
 
     [Theory]
@@ -850,6 +885,13 @@ public sealed class LocalUsageRefreshTests
 
         public Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(_result);
+    }
+
+    private sealed class ScriptedSnapshotSource(AgentId agentId, UsageSourceReadResult result) : ISnapshotUsageEventSource
+    {
+        public AgentId AgentId => agentId;
+        public SourceKind SourceKind => SourceKind.LocalLog;
+        public Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult(result);
     }
 
     private sealed class ThrowingUsageEventSource(AgentId agentId, bool checkpointFailure) : IUsageEventSource

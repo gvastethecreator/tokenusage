@@ -37,6 +37,7 @@ public sealed class CursorUsageEventSource :
     private readonly string _opaqueSource;
     private AttributionConsent? _scanConsent;
     private readonly List<UsageSessionLink> _scanSessionLinks = [];
+    private readonly List<UsageEventKey> _supersededEventKeys = [];
     private HashSet<string> _scanHistoricalEventKeys = new(StringComparer.Ordinal);
     public DateOnly? AttributionBackfillFrom { get; set; }
     public DateOnly? AttributionBackfillTo { get; set; }
@@ -127,6 +128,7 @@ public sealed class CursorUsageEventSource :
         var state = new LocalScanState(_budget);
         var events = new Dictionary<string, UsageEvent>(StringComparer.Ordinal);
         _scanSessionLinks.Clear();
+        _supersededEventKeys.Clear();
         _scanHistoricalEventKeys = LoadAdmissionKeys();
         bool accessBlocked = false;
         try
@@ -176,9 +178,8 @@ public sealed class CursorUsageEventSource :
                         : UsageSourceIssueKind.Empty);
         }
 
-        // Event coverage stays Partial or Unpriced. Scan status is Complete when
-        // this read finished inside the row and size limits, so refresh can replace
-        // stored Cursor events instead of leaving stale composer snapshots in place.
+        // Only explicitly superseded composer estimates may be removed. Other
+        // missing rows may have been cleaned up in Cursor after collection.
         return state.IsPartial
             ? new UsageSourceReadResult(
                 ordered,
@@ -190,6 +191,7 @@ public sealed class CursorUsageEventSource :
             : new UsageSourceReadResult(ordered, UsageSourceReadStatus.Complete)
             {
                 SessionLinks = _scanSessionLinks.ToArray(),
+                SupersededEventKeys = _supersededEventKeys.ToArray(),
             };
     }
 
@@ -228,6 +230,8 @@ public sealed class CursorUsageEventSource :
                 cancellationToken)
             : [];
 
+        _supersededEventKeys.AddRange(composersWithTurnTokens.Select(composer =>
+            new UsageEventKey(Hash($"cursor\0composer-state-v1\0composerData:{composer}"))));
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
             WITH raw_composer_rows AS (

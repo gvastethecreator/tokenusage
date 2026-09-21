@@ -11,31 +11,29 @@ public sealed partial class UsageReportPage
 
     private void OnDashboardSizeChanged(object sender, SizeChangedEventArgs e) => UpdateDashboardLayout(e.NewSize.Width);
 
-    private void OnDashboardExpandChartClick(object sender, RoutedEventArgs e) => UpdateDashboardLayout(DashboardGrid.ActualWidth);
-
     private void UpdateDashboardLayout(double width)
     {
         bool narrow = width < 820;
-        bool expanded = DashboardExpandChart.IsChecked == true;
         DashboardGrid.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        Grid.SetColumnSpan(DashboardTrendCard, !narrow && expanded ? 2 : 1);
-        Grid.SetColumnSpan(DashboardProviderTrendCard, !narrow && expanded ? 2 : 1);
-        Grid.SetColumn(DashboardCompositionCard, narrow || expanded ? 0 : 1);
-        Grid.SetColumnSpan(DashboardCompositionCard, !narrow && expanded ? 2 : 1);
-        Grid.SetRow(DashboardCompositionCard, narrow || expanded ? 1 : 0);
+        Grid.SetColumnSpan(DashboardTrendCard, 2);
+        Grid.SetColumnSpan(DashboardProviderTrendCard, 2);
+        Grid.SetColumn(DashboardCompositionCard, 0);
+        Grid.SetColumnSpan(DashboardCompositionCard, 2);
+        Grid.SetRow(DashboardCompositionCard, 1);
         Grid.SetColumn(DashboardModelsCard, 0);
-        Grid.SetRow(DashboardModelsCard, narrow || expanded ? 2 : 1);
+        Grid.SetRow(DashboardModelsCard, 2);
+        Grid.SetColumnSpan(DashboardModelsCard, narrow || !ViewModel.HasDashboardProjects ? 2 : 1);
         Grid.SetColumn(DashboardProjectsCard, narrow ? 0 : 1);
-        Grid.SetRow(DashboardProjectsCard, narrow ? 3 : expanded ? 2 : 1);
-        int operationsRow = narrow ? 4 : expanded ? 3 : 2;
+        Grid.SetRow(DashboardProjectsCard, narrow ? 3 : 2);
+        int operationsRow = narrow ? 4 : 3;
         Grid.SetRow(DashboardOperationsGrid, operationsRow);
         Grid.SetColumnSpan(DashboardOperationsGrid, 2);
         DashboardOperationsGrid.ColumnDefinitions[1].Width = narrow || !ViewModel.HasDashboardActivity
             ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         Grid.SetColumn(DashboardActivityPreview, narrow ? 0 : 1);
         Grid.SetRow(DashboardActivityPreview, narrow ? 1 : 0);
-        GlobalCombinedChart.PlotHeight = expanded ? 310 : 190;
-        ProviderChartContentRoot.PlotHeight = expanded ? 250 : 190;
+        GlobalCombinedChart.PlotHeight = 250;
+        ProviderChartContentRoot.PlotHeight = 250;
     }
 
     private void OnDashboardOperationsSizeChanged(object sender, SizeChangedEventArgs e)

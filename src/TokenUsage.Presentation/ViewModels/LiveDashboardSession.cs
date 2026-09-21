@@ -466,10 +466,16 @@ public sealed class LiveDashboardSession : IDisposable
         {
             if (version == Volatile.Read(ref _refreshVersion))
             {
-                RawLocalUsage = LocalUsageCardProjector.CreateUnavailable(
-                    DateOnly.FromDateTime(Clock.GetLocalNow().DateTime),
-                    getString,
-                    _localUsage.SourceKind);
+                RawLocalUsage = RawLocalUsage is { } retained
+                    ? retained with
+                    {
+                        NoticeText = getString("LocalUsageUnavailable"),
+                        IsNoticeImportant = true,
+                    }
+                    : LocalUsageCardProjector.CreateUnavailable(
+                        DateOnly.FromDateTime(Clock.GetLocalNow().DateTime),
+                        getString,
+                        _localUsage.SourceKind);
                 HasLocalUsage = true;
                 onChanged(this);
             }

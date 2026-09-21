@@ -77,11 +77,8 @@ public sealed partial class UsageReportViewModel
         ResetLogClassOptions =
         [
             new("*", GetString("UsageReportResetLogAllClasses")),
-            new(nameof(UsageReportResetKind.Weekly), GetString("UsageReportResetKindWeekly")),
-            new(nameof(UsageReportResetKind.Session), GetString("UsageReportResetKindSession")),
-            new(nameof(UsageReportResetKind.Manual), GetString("UsageReportResetKindManual")),
-            new(nameof(UsageReportResetKind.ResetCredit), GetString("UsageReportResetKindResetCredit")),
-            new(nameof(UsageReportResetKind.Observed), GetString("UsageReportResetKindObserved")),
+            .. Enum.GetValues<UsageReportResetKind>().Select(kind =>
+                new UsageReportResetLogFilter(kind.ToString(), GetString(UsageReportResetMarkers.LabelResourceKey(kind)))),
         ];
         _resetLogQuota = ResetLogQuotaOptions.FirstOrDefault(option => option.Id == _resetLogQuota?.Id)
             ?? ResetLogQuotaOptions[0];

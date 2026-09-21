@@ -11,9 +11,10 @@ public sealed class UsageReportResetMarkersTests
     [InlineData(QuotaResetCause.Manual, 10080, UsageReportResetKind.Manual)]
     [InlineData(QuotaResetCause.ResetCredit, 300, UsageReportResetKind.ResetCredit)]
     [InlineData(QuotaResetCause.Unknown, 10080, UsageReportResetKind.Observed)]
-    [InlineData(QuotaResetCause.Scheduled, 43200, UsageReportResetKind.Observed)]
-    [InlineData(QuotaResetCause.Scheduled, 0, UsageReportResetKind.Observed)]
-    public void MarkerKindUsesTheReportedCauseAndDuration(QuotaResetCause cause, int minutes, UsageReportResetKind expected)
+    [InlineData(QuotaResetCause.Scheduled, 43200, UsageReportResetKind.Scheduled)]
+    [InlineData(QuotaResetCause.Scheduled, null, UsageReportResetKind.Scheduled)]
+    [InlineData(QuotaResetCause.Unknown, null, UsageReportResetKind.Observed)]
+    public void MarkerKindUsesTheReportedCauseAndDuration(QuotaResetCause cause, int? minutes, UsageReportResetKind expected)
     {
         var reset = Reset(DateTimeOffset.UnixEpoch) with { Cause = cause, WindowDurationMinutes = minutes };
         Assert.Equal(expected, UsageReportResetMarkers.Classify(reset));

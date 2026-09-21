@@ -29,7 +29,7 @@ public sealed class CompactDashboardProjectorTests
         CompactDashboardProjection projection = CompactDashboardProjector.Create(
             today,
             rollups,
-            ["codex", "claude", "grok", "cursor"],
+            ["codex", "cursor"],
             isSampleMode: false,
             activeSample: null,
             EmptyLocalUsage(),
@@ -67,6 +67,8 @@ public sealed class CompactDashboardProjectorTests
         Assert.True(grok.HasUnpricedData);
         Assert.Equal("—", grok.CostText);
         Assert.False(cursor.HasData);
+        Assert.Equal(1_280, projection.ProviderSummaries.Sum(item => item.TotalTokens));
+        Assert.Equal(1.90m, projection.ProviderSummaries.Sum(item => item.CostUsd));
         Assert.Equal("codex", projection.SelectedProviderId);
         Assert.Same(projection.SelectedProviderLimits, projection.GlobalProviderLimits);
         Assert.NotEmpty(projection.GlobalProviderLimits);

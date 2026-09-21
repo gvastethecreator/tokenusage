@@ -350,6 +350,8 @@ public static class LocalUsageCardProjector
         Func<string, string> getString) =>
         diagnostics
             .Where(item => ProviderModuleCatalog.IsActiveLocalUsageProvider(item.AgentId.Value))
+            .Where(item => item.Issue != UsageSourceIssueKind.RootUnavailable
+                || rollups.Any(rollup => rollup.AgentId == item.AgentId))
             .Select(item =>
             {
                 Totals totals = Sum(rollups.Where(rollup => rollup.AgentId == item.AgentId));

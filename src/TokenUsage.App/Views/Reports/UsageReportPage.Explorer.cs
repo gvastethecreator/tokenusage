@@ -17,7 +17,10 @@ public sealed partial class UsageReportPage
     {
         ExplanationReturnButton.Visibility = Visibility.Visible;
         OnExplorerEvidenceClick(sender, e);
-        ExplanationReturnButton.Focus(FocusState.Programmatic);
+        MeasurementTechnicalDetails.IsExpanded = true;
+        MeasurementTechnicalDetails.UpdateLayout();
+        MeasurementTechnicalDetails.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });
+        MeasurementTechnicalDetails.Focus(FocusState.Programmatic);
     }
     private void OnExplanationReturnClick(object sender, RoutedEventArgs e)
     {

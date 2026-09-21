@@ -237,19 +237,15 @@ public sealed class SessionModuleTests
             "grok",
             .. ProviderModuleCatalog.Entries
                 .Select(entry => entry.Id.Value)
-                .Where(id => id is not "codex" and not "grok"),
+                .Where(id => id is not "codex" and not "grok"
+                    && !ProviderModuleCatalog.IsActiveLocalUsageProvider(id)),
         ];
         Assert.Equal(expectedProviderIds, surface.Providers.Select(provider => provider.ProviderId));
         string[] primaryProviderIds =
         [
             "codex",
-            "claude",
             "grok",
-            "opencode",
-            "antigravity",
-            "cursor",
             "copilot",
-            "zcode",
         ];
         Assert.Equal(
             primaryProviderIds,
@@ -280,7 +276,7 @@ public sealed class SessionModuleTests
         Assert.True(openrouter.CanConfigure);
         Assert.False(openrouter.HasSavedCredential);
         Assert.Equal("ProviderStatusSummaryPrepared", openrouter.CompactState);
-        Assert.False(surface.Providers.Single(provider => provider.ProviderId == "claude").CanConfigure);
+        Assert.DoesNotContain(surface.Providers, provider => provider.ProviderId == "claude");
         Assert.False(surface.Providers.Single(provider => provider.ProviderId == "zai").CanConfigure);
         Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").CanConfigure);
         Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").RequiresSecondaryField);
@@ -295,15 +291,6 @@ public sealed class SessionModuleTests
         Assert.Equal("ProviderCredentialCopilotOrganizationPlaceholder", copilot.SecondaryFieldPlaceholder);
         Assert.False(copilot.RequiresSecondaryField);
         Assert.True(copilot.HasSecondaryField);
-        ProviderStatusRow claude = surface.Providers.Single(provider =>
-            provider.ProviderId == "claude");
-        Assert.Equal("ProviderStatusUnavailable", claude.RootState);
-        Assert.Equal(ProviderStatusKind.Missing, claude.StatusKind);
-        Assert.Equal("ProviderStatusSummaryMissing", claude.CompactState);
-        Assert.Equal(
-            "ProviderStatusUnavailable",
-            claude.Capabilities.Single(capability =>
-                capability.AutomationId == "ProviderStatus.claude.Usage").Value);
         Assert.Equal(
             "ProviderStatusBlocked",
             surface.Providers.Single(provider => provider.ProviderId == "zai").RootState);

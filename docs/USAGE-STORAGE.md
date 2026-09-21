@@ -40,6 +40,22 @@ output path for a retry after resolving the cause. The source is opened read-onl
 These copies protect TokenUsage's own usage store. They do not back up provider
 logs, credentials, or other application data.
 
+## Codex session cleanup
+
+Deleting Codex session logs does not remove usage already saved by TokenUsage.
+Collection keeps checkpointed observations, ignores deleted files still listed in
+Codex's local index, and merges new observations by their existing event keys.
+Repeated refreshes and copies of a session in the archive do not add its usage
+again. Keep TokenUsage's own data folder; sessions deleted before they were ever
+collected cannot be reconstructed from those deleted logs.
+
+An older checkpoint can migrate when at least one original path still matches
+the current profile's sessions or local index. Missing sessions do not block that
+migration. The original checkpoint is preserved as `.pre-v4`, and historical
+tokens and prices remain unchanged. Detail not recorded by the older version
+stays unknown. A checkpoint with no evidence connecting it to the current profile
+is not assigned automatically.
+
 ## Detail retention
 
 Normal collection retains raw usage events for 400 days. Retention keeps daily
@@ -274,10 +290,10 @@ checkpoint. All admitted observations must be durable before progress is saved.
 
 New Codex checkpoints include an opaque profile ID. A different profile cannot use
 that checkpoint as its own. Earlier checkpoint formats keep their numeric history
-and a `.pre-v4` copy during upgrade. They can bind to a profile only after a complete
-scan finds every original checkpoint path in that profile. Original path hashes
+and a `.pre-v4` copy during upgrade. A single-profile legacy checkpoint can bind
+when discovery finds an original checkpoint path in that profile. Original path hashes
 remain fixed when replay locations change, so copying a checkpoint to another
-profile cannot gain authority through repeated reads. Missing or partial evidence
+profile cannot gain authority through repeated reads. No matching original path
 keeps the history unbound. This identity describes the profile supplying records,
 not proof of which computer executed the model or fresh validation of cached tokens.
 
@@ -302,6 +318,26 @@ Newly decoded Codex observations carry numeric representation revision 1. An
 initial valid cumulative counter without a valid last-usage record is a snapshot,
 with unknown usage-time support. Supported cumulative differences remain interval
 deltas; a timestamped last-usage record alone never establishes a final request.
-Checkpoint history without a representation revision stays unverified and makes
-the source read partial with an unresolved-history issue. Its stored values remain
-available without claiming that the current decoder repaired them.
+Checkpoint history without a representation revision stays unverified. Its stored
+values remain available without claiming that the current decoder repaired them;
+unresolved source ownership still reports an unresolved-history issue.
+
+## Cleanup in other local clients
+
+Local client reads merge by stable event identity. Removing a client's logs or
+database does not delete already collected usage. Recreated sources can add new
+events, and repeated reads update the same events without adding another copy.
+Normal retention rules still apply. Partial scans keep their coverage warning;
+they do not justify deleting missing records.
+
+Cursor explicitly identifies composer estimates superseded by measured turn
+counters. Only those estimates are retired, in the same transaction that stores
+their replacements; unrelated deleted conversations retain their history.
+Clients without a detected source or retained history are hidden from the local
+provider status list. Detection runs again on refresh, so installing a client later
+does not require resetting TokenUsage.
+
+Dashboard provider totals also include retained usage when current source
+detection is missing. A failed refresh keeps the last displayed data and adds a
+failure notice. The dashboard shows 30 days; choose All history in the report to
+view older retained dates.

@@ -332,6 +332,13 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(1, second.Rollups.Sum(rollup => rollup.EventCount));
         Assert.Equal(1_100_000, second.Rollups.Sum(rollup => rollup.Tokens.Total));
         Assert.Equal(2.25m, second.Rollups.Sum(rollup => rollup.EstimatedCostUsd ?? 0m));
+
+        // Cleanup may leave the old composer estimate but remove its bubble.
+        // A retired estimate must not be added back over retained measurements.
+        corpus.WriteRaw("bubbleId:conversation-1:bubble-1", "{}");
+        LocalUsageRefreshResult afterCleanup = await refresh.RefreshAsync();
+        Assert.Equal(1, afterCleanup.Rollups.Sum(rollup => rollup.EventCount));
+        Assert.Equal(1_100_000, afterCleanup.Rollups.Sum(rollup => rollup.Tokens.Total));
     }
 
     [Fact]

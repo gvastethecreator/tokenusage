@@ -540,15 +540,18 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task OversizedMessageContentDoesNotPreventAuthoritativeUsageCollection(bool eventMessage)
+    [InlineData("response_item", "agent_message", false)]
+    [InlineData("event_msg", "agent_message", false)]
+    [InlineData("event_msg", "item_completed", false)]
+    [InlineData("event_msg", "item_completed", true)]
+    public async Task OversizedMessagesOnlyMarkPartialWhenTheirAttributionIsEnabled(
+        string recordType, string payloadType, bool collectOperations)
     {
         using var corpus = new CodexCorpus();
         string oversizedContent = JsonSerializer.Serialize(new
         {
-            type = eventMessage ? "event_msg" : "response_item",
-            payload = new { type = "agent_message", text = "token_count " + new string('x', 70 * 1024) },
+            type = recordType,
+            payload = new { type = payloadType, text = "token_count " + new string('x', 70 * 1024) },
         });
         corpus.WriteSession(
             "session-large-content",
@@ -557,14 +560,19 @@ public sealed class CodexUsageEventSourceTests
             Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
         CodexUsageEventSource source = corpus.CreateSource(
             checkpointPath: Path.Combine(corpus.Root, "codex-usage.v1.json"),
+            attributionKeys: TestKeys(),
+            attributionConsent: collectOperations
+                ? new StaticConsent(new AttributionConsent(AttributionCapability.CodexMcp,
+                    AttributionConsentState.Enabled, 1, DateTimeOffset.UnixEpoch))
+                : null,
             clock: new FixedTimeProvider(
                 new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
 
         UsageSourceReadResult result = await source.ReadAsync();
 
         Assert.Single(result.Events);
-        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
-        Assert.Equal(UsageSourceIssueKind.None, result.Issue);
+        Assert.Equal(collectOperations ? UsageSourceReadStatus.Partial : UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(collectOperations ? UsageSourceIssueKind.PartialScan : UsageSourceIssueKind.None, result.Issue);
     }
 
     [Fact]
@@ -798,12 +806,76 @@ public sealed class CodexUsageEventSourceTests
             row.TimePrecision, row.IntervalStartedAtUtc, row.ObservedModelId, row.ReasoningEffort, row.ServiceTier,
             new UsageDetailMetadata(row.DetailMetadata.SourceInstance, row.DetailMetadata.RecordKind))).ToArray();
         Assert.Equal(expected, migrated.Events);
-        Assert.Equal(legacyVersion == 2 ? UsageSourceReadStatus.Complete : UsageSourceReadStatus.Partial, migrated.Status);
-        Assert.Equal(legacyVersion == 2 ? UsageSourceIssueKind.None : UsageSourceIssueKind.UnresolvedHistory, migrated.Issue);
+        Assert.Equal(UsageSourceReadStatus.Complete, migrated.Status);
+        Assert.Equal(UsageSourceIssueKind.None, migrated.Issue);
         Assert.Equal(600, migrated.Events.Sum(row => row.Tokens.Total));
         Assert.Equal(legacyBytes, await File.ReadAllTextAsync(path + ".pre-v4"));
         var upgraded = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
         Assert.Equal(corpus.CreateSource().SourceAuthority.Value, upgraded["sourceAuthority"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task CleanupMigratesLegacyHistoryAndMergesNewSessionsWithoutDuplicates()
+    {
+        using var corpus = new CodexCorpus();
+        string retained = corpus.WriteSession("retained", Context("gpt-5.6-sol"),
+            Usage("2026-07-27T09:00:00Z", 600, 0, 0, 0),
+            Usage("2026-07-27T13:00:00Z", 100, 0, 0, 0, totalInput: 1000));
+        string deleted = corpus.WriteSession("deleted", Context("gpt-5.6-sol"),
+            Usage("2026-07-27T09:30:00Z", 200, 0, 0, 0));
+        string checkpoint = Path.Combine(corpus.Root, "cleanup.json");
+        var first = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
+        await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        var legacy = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(checkpoint))!;
+        legacy["schemaVersion"] = 3;
+        legacy.AsObject().Remove("sourceAuthority");
+        foreach (var file in legacy["files"]!.AsArray()) file!.AsObject().Remove("authorityPathHash");
+        string legacyBytes = legacy.ToJsonString();
+        await File.WriteAllTextAsync(checkpoint, legacyBytes);
+        string database = Path.Combine(corpus.Root, "usage.db");
+        UsageRepository repository = await UsageRepository.OpenAsync(database);
+        UsageEvent[] history = first.Events.Select(row => new UsageEvent(
+            row.EventKey, row.AgentId, row.ModelProviderId, row.ModelId, row.OccurredAtUtc,
+            row.GroupingTimeZoneId, row.Tokens, row.Cost, row.ParserVersion, row.Coverage,
+            row.TimePrecision, row.IntervalStartedAtUtc, row.ObservedModelId, row.ReasoningEffort,
+            row.ServiceTier)).ToArray();
+        await repository.IngestAsync(history);
+        File.Delete(deleted);
+        corpus.WriteStateIndex((retained, "gpt-5.6-sol"),
+            (Path.Combine(corpus.Root, "sessions", "already-cleaned.jsonl"), "gpt-5.6-sol"));
+        string added = corpus.WriteSession("new", Context("gpt-5.6-sol"),
+            Usage("2026-07-27T14:00:00Z", 300, 0, 0, 0));
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
+        var refresh = new LocalUsageRefresh(database, corpus.CreateSource(checkpointPath: checkpoint), clock);
+        var merged = await refresh.RefreshAsync();
+        Assert.Equal(UsageSourceReadStatus.Complete, merged.OverallStatus);
+        Assert.Equal(1500, merged.Rollups.Sum(row => row.Tokens.Total));
+        Assert.Equal(legacyBytes, await File.ReadAllTextAsync(checkpoint + ".pre-v4"));
+        var upgraded = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(checkpoint))!;
+        Assert.Equal(4, upgraded["schemaVersion"]!.GetValue<int>());
+        Assert.NotNull(upgraded["sourceAuthority"]);
+
+        // After migration even a complete source cleanup must keep the saved history.
+        File.Delete(retained);
+        File.Delete(added);
+        File.Delete(Path.Combine(corpus.Root, "state_5.sqlite"));
+        string recreated = corpus.WriteSession("after-cleanup", Context("gpt-5.6-sol"),
+            Usage("2026-07-27T15:00:00Z", 400, 0, 0, 0));
+        var restarted = new LocalUsageRefresh(database, corpus.CreateSource(checkpointPath: checkpoint), clock);
+        Assert.Equal(1900, (await restarted.RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        File.Copy(recreated, Path.Combine(Directory.CreateDirectory(Path.Combine(corpus.Root, "archived_sessions")).FullName,
+            Path.GetFileName(recreated)));
+        Assert.Equal(1900, (await restarted.RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        var stored = await repository.QueryUsageEventsAsync(clock.GetUtcNow().AddDays(-2), clock.GetUtcNow());
+        Assert.Equal(5, stored.Count);
+        foreach (UsageEvent row in history)
+        {
+            UsageEvent preserved = Assert.Single(stored, item => item.EventKey == row.EventKey);
+            Assert.Equal(row.Tokens, preserved.Tokens);
+            Assert.Equal(row.Cost, preserved.Cost);
+            Assert.Equal(UsageRecordKind.Unknown, preserved.DetailMetadata.RecordKind);
+            Assert.Equal(UsageComponentAvailability.Unknown, preserved.DetailMetadata.Input);
+        }
     }
 
     [Fact]

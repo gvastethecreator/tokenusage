@@ -330,7 +330,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     /// <summary>
     /// True once a presence probe or a scan has answered for every configured provider.
     /// </summary>
-    public bool HasProviderDetection => _rawLocalUsage?.ProviderStatuses.Count > 0;
+    public bool HasProviderDetection => _rawLocalUsage is not null;
 
     /// <summary>
     /// True when detection ran and found no installed tool. This is a real state, not a
@@ -338,7 +338,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     /// </summary>
     public bool HasNoDetectedProviders => !IsSampleModeEnabled
         && HasProviderDetection
-        && DetectedProviderIds.Length == 0;
+        && DetectedProviderIds.Length == 0
+        && _localUsageRollups.Count == 0;
 
     /// <summary>
     /// Providers whose local root was found. A missing root means the tool is not installed,

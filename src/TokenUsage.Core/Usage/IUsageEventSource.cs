@@ -81,6 +81,10 @@ public sealed record UsageSourceReadResult
 
     public IReadOnlyList<UsageOperationFact> OperationFacts { get; init; } = [];
 
+    /// <summary>Previously emitted estimates explicitly replaced by this read's measurements.
+    /// Missing source files alone never prove that a stored event is obsolete.</summary>
+    public IReadOnlyList<UsageEventKey> SupersededEventKeys { get; init; } = [];
+
     public IReadOnlyList<UsageEvent> Events { get; }
 
     public UsageSourceReadStatus Status { get; }
@@ -123,8 +127,8 @@ public interface ISnapshotUsageEventSource : IUsageEventSource
 
 /// <summary>
 /// A source whose current files can revise events that were read before their
-/// final usage counters were written. Complete reads are authoritative only for
-/// the civil-date window they contain, so older retained history stays intact.
+/// final usage counters were written. Reads merge by event identity: an absent
+/// file does not invalidate previously collected history.
 /// </summary>
 public interface IWindowedSnapshotUsageEventSource : IUsageEventSource
 {

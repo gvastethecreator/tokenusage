@@ -252,7 +252,9 @@ public static class CompactDashboardProjector
             .Sum(item => (item.ReportedCostUsd ?? 0m) + (item.EstimatedCostUsd ?? 0m));
         long totalTokens = grouped.Values.SelectMany(items => items).Sum(item => item.Tokens.Total);
 
-        return providerIds
+        // Source presence can disappear after cleanup or a failed refresh. Stored
+        // usage still belongs in the provider list and in the displayed totals.
+        return providerIds.Concat(grouped.Keys).Distinct(StringComparer.Ordinal)
             .Select(providerId =>
             {
                 DailyUsageRollup[] items = grouped.GetValueOrDefault(providerId) ?? [];

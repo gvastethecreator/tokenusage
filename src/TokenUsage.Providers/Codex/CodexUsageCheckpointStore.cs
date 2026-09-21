@@ -232,8 +232,9 @@ internal sealed class CodexUsageCheckpointStore
                     checkpoint.Observations.AddRange(file.Observations.Select(item => new CodexNumericObservation(
                         item.Key, item.Timestamp, item.Model, ToTokens(item.Tokens)!, item.Precision, item.IntervalStart, item.ObservedModel, item.Effort, item.Tier,
                         document.SchemaVersion == SchemaVersion ? item.Measured : CodexMeasuredComponents.None,
-                        document.SchemaVersion == SchemaVersion ? item.RecordKind
-                            : item.Precision == UsageTimePrecision.Interval ? UsageRecordKind.IntervalDelta : UsageRecordKind.Unknown,
+                        // Match the metadata retained by the usage database migration.
+                        // Older checkpoints did not record a kind, even for timed intervals.
+                        document.SchemaVersion == SchemaVersion ? item.RecordKind : UsageRecordKind.Unknown,
                         document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null,
                         document.SchemaVersion == SchemaVersion ? item.ProjectKey : null,
                         document.SchemaVersion == SchemaVersion ? item.ProjectEpoch : null,
