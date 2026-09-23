@@ -10,7 +10,7 @@ namespace TokenUsage.Providers.Zcode;
 /// </summary>
 public static class ZcodePricingCatalog
 {
-    public const string Version = "zai-api-2026-09-02";
+    public const string Version = "zai-api-2026-09-22";
     private const decimal TokensPerMillion = 1_000_000m;
 
     // The Z.ai promo ends at 24:00 on 2026-09-09 in Singapore (UTC+8).
@@ -28,6 +28,7 @@ public static class ZcodePricingCatalog
         {
             // Z.ai promo rate through 2026-09-09; the list rate is 0.15/0.03/0.50.
             ["glm-5.3-flash"] = new(0.075m, 0.015m, 0.25m),
+            ["glm-5.3-flashx"] = new(0.37m, 0.075m, 1.25m),
             ["glm-5.3"] = new(1.4m, 0.26m, 4.4m),
             ["glm-5.2"] = new(1.4m, 0.26m, 4.4m),
             ["glm-5.1"] = new(1.4m, 0.26m, 4.4m),

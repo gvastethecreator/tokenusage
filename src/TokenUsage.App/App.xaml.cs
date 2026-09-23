@@ -82,18 +82,23 @@ public partial class App : Application
         bool showTraySummaryForTest = launchArguments.Contains(
             "--test-show-tray-summary",
             StringComparer.OrdinalIgnoreCase);
+        bool openReportForTest = launchArguments.Contains(
+            "--test-open-report",
+            StringComparer.OrdinalIgnoreCase);
         double? flyoutWidthForTest = GetFlyoutWidthForTest(launchArguments);
 #else
         const bool showForTest = false;
         const bool useSampleForTest = false;
         const bool showTraySummaryForTest = false;
+        const bool openReportForTest = false;
         double? flyoutWidthForTest = null;
 #endif
         Window = new MainWindow(
             showForTest,
             useSampleForTest,
             flyoutWidthForTest,
-            showTraySummaryForTest);
+            showTraySummaryForTest,
+            openReportForTest);
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         bool showRedirectedActivation;

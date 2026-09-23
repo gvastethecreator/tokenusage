@@ -55,7 +55,11 @@ public sealed class UsageReportWindow : Window, IDisposable
         _page = new UsageReportPage(_viewModel);
         Content = _page;
         ExtendsContentIntoTitleBar = true;
-        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        if (AppWindowTitleBar.IsCustomizationSupported())
+        {
+            AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        }
+
         SetTitleBar(_page.DragRegion);
         _page.Loaded += (_, _) => UpdateCaptionInset();
         _page.SizeChanged += (_, _) => UpdateCaptionInset();

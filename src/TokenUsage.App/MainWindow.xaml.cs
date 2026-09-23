@@ -53,7 +53,8 @@ public sealed partial class MainWindow : Window, IDisposable
         bool showForTest = false,
         bool useSampleForTest = false,
         double? preferredWidthDipsForTest = null,
-        bool showTraySummaryForTest = false)
+        bool showTraySummaryForTest = false,
+        bool openReportForTest = false)
     {
         InitializeComponent();
 
@@ -113,6 +114,13 @@ public sealed partial class MainWindow : Window, IDisposable
             RootPage.ViewModel.CloseWhenInactive = false;
             RootPage.ViewModel.IsSampleModeEnabled = useSampleForTest;
             _ = DispatcherQueue.TryEnqueue(() => ShowFlyout(true));
+        }
+
+        if (openReportForTest)
+        {
+            RootPage.ViewModel.CloseWhenInactive = false;
+            RootPage.ViewModel.IsSampleModeEnabled = useSampleForTest;
+            _ = DispatcherQueue.TryEnqueue(() => OpenUsageReport(UsageReportRequest.Global));
         }
     }
 

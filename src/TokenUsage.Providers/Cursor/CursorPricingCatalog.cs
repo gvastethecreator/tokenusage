@@ -10,8 +10,9 @@ namespace TokenUsage.Providers.Cursor;
 /// </summary>
 public static class CursorPricingCatalog
 {
-    public const string Version = "cursor-models-2026-09-02";
+    public const string Version = "cursor-models-2026-09-22";
     private const decimal TokensPerMillion = 1_000_000m;
+    private const long GrokFourSevenFastLongContextThreshold = 200_000;
 
     private static readonly Dictionary<string, Rates> FirstPartyRatesByModel =
         new(StringComparer.Ordinal)
@@ -23,6 +24,8 @@ public static class CursorPricingCatalog
             ["grok-4.5-fast"] = new(4m, 1m, 18m),
             ["grok-4.6"] = new(2m, 0.5m, 6m),
             ["grok-4.6-fast"] = new(4m, 1m, 12m),
+            ["grok-4.7"] = new(2m, 0.5m, 6m),
+            ["grok-4.7-fast"] = new(4m, 1m, 12m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -34,6 +37,8 @@ public static class CursorPricingCatalog
         if (!FirstPartyRatesByModel.TryGetValue(normalized, out Rates? rates)
             || !EvidenceEntries.Any(item => item.ExactPriceMatch == normalized && item.IsEffectiveAt(atUtc)))
             return new(null, UsagePriceExclusion.MissingTariff);
+        if (normalized == "grok-4.7-fast")
+            return new(null, UsagePriceExclusion.NonLinearRegime);
         return new(new(Version, normalized, "cursor-published-linear/v1", rates.Input,
             rates.Output, rates.Output, rates.CacheRead, rates.Input), null);
     }
@@ -52,10 +57,13 @@ public static class CursorPricingCatalog
             return KnownModelPricingCatalog.Resolve(model, occurredAtUtc, tokens);
         }
 
+        decimal multiplier = normalized == "grok-4.7-fast"
+            && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite) > GrokFourSevenFastLongContextThreshold
+                ? 1.5m : 1m;
         decimal amount =
             (((tokens.Input + tokens.CacheWrite) * rates.Input)
              + (tokens.CacheRead * rates.CacheRead)
-             + ((tokens.Output + tokens.Reasoning) * rates.Output))
+             + ((tokens.Output + tokens.Reasoning) * rates.Output)) * multiplier
             / TokensPerMillion;
         return CostObservation.CatalogEstimated(
             decimal.Round(amount, 6, MidpointRounding.AwayFromZero),

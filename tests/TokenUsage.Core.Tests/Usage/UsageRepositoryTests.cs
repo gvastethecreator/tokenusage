@@ -1436,6 +1436,35 @@ public sealed class UsageRepositoryTests
     }
 
     [Fact]
+    public async Task AttributionContributionsHonorModelSearch()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        UsageEvent sol = CreateEvent("search-sol", agentId: "codex", modelId: "gpt-6-sol");
+        UsageEvent astra = CreateEvent("search-astra", agentId: "codex", modelId: "gpt-6-astra");
+        await repository.IngestAsync([sol, astra]);
+        OpaqueAttributionKey solSession = DeriveKey(OpaqueKeyDomains.CodexSession, "search-sol");
+        OpaqueAttributionKey astraSession = DeriveKey(OpaqueKeyDomains.CodexSession, "search-astra");
+        OpaqueAttributionKey solProject = DeriveKey(OpaqueKeyDomains.CodexProject, "search-sol");
+        OpaqueAttributionKey astraProject = DeriveKey(OpaqueKeyDomains.CodexProject, "search-astra");
+        await repository.ReplaceSessionLinksAsync([
+            new UsageSessionLink(sol.EventKey, solSession, parentSessionKey: null, consentEpoch: 1),
+            new UsageSessionLink(astra.EventKey, astraSession, parentSessionKey: null, consentEpoch: 1),
+        ]);
+        await repository.ReplaceProjectLinksAsync([
+            new UsageProjectLink(sol.EventKey, solProject, 1, ProjectMappingKind.Observed),
+            new UsageProjectLink(astra.EventKey, astraProject, 1, ProjectMappingKind.Observed),
+        ]);
+        DateOnly day = new(2026, 7, 22);
+        IReadOnlyList<UsageSessionContribution> sessions = await repository.ReadSessionContributionsAsync(
+            day, day, 1, new AgentId("codex"), modelSearch: "sol");
+        IReadOnlyList<UsageProjectContribution> projects = await repository.ReadProjectContributionsAsync(
+            day, day, 1, new AgentId("codex"), modelSearch: "sol");
+        Assert.Equal(sol.Tokens.Total, Assert.Single(sessions).SelectedTokens.Total);
+        Assert.Equal(sol.Tokens.Total, Assert.Single(projects).SelectedTokens.Total);
+    }
+
+    [Fact]
     public async Task RestoredBackupLinksStayHiddenFromANewConsentEpoch()
     {
         using var folder = new TemporaryFolder();
@@ -1830,13 +1859,14 @@ public sealed class UsageRepositoryTests
         TokenBreakdown? tokens = null,
         string agentId = "grok",
         string parserVersion = "fixture/1",
-        CostObservation? cost = null, UsageDetailMetadata? detailMetadata = null) =>
+        CostObservation? cost = null, UsageDetailMetadata? detailMetadata = null,
+        string modelId = "grok-4.5") =>
         new(
             new UsageEventKey(Convert.ToHexString(SHA256.HashData(
                 Encoding.UTF8.GetBytes(localIdentity))).ToLowerInvariant()),
             new AgentId(agentId),
             new ModelProviderId("xai"),
-            new ModelId("grok-4.5"),
+            new ModelId(modelId),
             occurredAtUtc ?? new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
             "Argentina Standard Time",
             tokens ?? new TokenBreakdown(100, 25, 5, 20, 0),

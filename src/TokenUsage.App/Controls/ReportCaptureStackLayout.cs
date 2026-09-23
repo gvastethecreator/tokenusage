@@ -3,8 +3,8 @@ using Windows.Foundation;
 
 namespace TokenUsage.App.Controls;
 
-// A full-report image needs measured rows, not the height estimates used while scrolling.
-// The page installs this layout only for capture and restores the original layout in finally.
+// Keep the small dashboard model preview measured while it leaves the viewport.
+// Full-report capture also uses this layout temporarily for measured rows.
 internal sealed class ReportCaptureStackLayout(Orientation orientation, double spacing) : NonVirtualizingLayout
 {
     protected override Size MeasureOverride(NonVirtualizingLayoutContext context, Size availableSize)

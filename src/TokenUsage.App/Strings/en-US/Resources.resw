@@ -849,6 +849,7 @@
   <data name="UsageReportExportButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Export JSON, CSV, or HTML of the current selection</value></data>
   <data name="UsageReportExportSuccessFormat" xml:space="preserve"><value>Saved {0}.</value></data>
   <data name="UsageReportExportError" xml:space="preserve"><value>The report snapshot could not be saved.</value></data>
+  <data name="UsageReportExportStale" xml:space="preserve"><value>Report data changed. Refresh Reports and export again.</value></data>
   <data name="ShareCaptureSuccessFormat" xml:space="preserve"><value>Saved to {0} and copied to the clipboard.</value></data>
   <data name="ShareCaptureError" xml:space="preserve"><value>The screenshot could not be saved or copied.</value></data>
   <data name="ShareCaptureFolderTitle.Text" xml:space="preserve"><value>Screenshot folder</value></data>

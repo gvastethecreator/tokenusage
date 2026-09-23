@@ -63,6 +63,7 @@ public sealed partial class UsageReportPage : Page
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+        DashboardModelsRows.Layout = new ReportCaptureStackLayout(Orientation.Vertical, 0);
         UpdateChartToolsHost();
         Loaded += OnLoaded;
         SizeChanged += OnReportSizeChanged;
@@ -296,6 +297,10 @@ public sealed partial class UsageReportPage : Page
             }
 
             await WriteExportedSnapshotAsync(file.Path, snapshot);
+        }
+        catch (UsageReportExportStaleException)
+        {
+            ShowShareStatus(GetString("UsageReportExportStale"), isError: true);
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException

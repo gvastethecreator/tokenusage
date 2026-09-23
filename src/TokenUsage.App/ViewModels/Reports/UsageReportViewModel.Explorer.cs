@@ -575,7 +575,7 @@ public sealed partial class UsageReportViewModel
                 DetailProject is { IsUnassigned: true },
                 projectConsent.AllowsLinks ? projectConsent.Epoch : 0,
                 detail,
-                token).ConfigureAwait(false);
+                cancellationToken: token).ConfigureAwait(false);
             AttributionConsent published = await _attributionConsent.LoadAsync(capability, token)
                 .ConfigureAwait(false);
             if (!published.AcceptsEpoch(epoch) && epoch != 0)

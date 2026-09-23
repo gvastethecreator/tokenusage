@@ -1,4 +1,5 @@
 using System.Globalization;
+using TokenUsage.Core.Automation;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 
@@ -337,7 +338,8 @@ public sealed partial class UsageReportViewModel
         OpaqueAttributionKey? ProjectKey,
         OpaqueAttributionKey? SessionKey,
         bool HomogeneousModelJoin,
-        bool UnlinkedOnly)
+        bool UnlinkedOnly,
+        IReadOnlyList<(ModelId ModelId, ModelProviderId? ModelProviderId)>? SelectedModels = null)
     {
         public static OperationLoadScope Global { get; } = new(
             OperationScopeKind.Global,
@@ -352,6 +354,7 @@ public sealed partial class UsageReportViewModel
     {
         Global,
         Model,
+        Selection,
         Project,
         Session,
         Unlinked,
@@ -445,6 +448,23 @@ public sealed partial class UsageReportViewModel
                 UnlinkedOnly: false);
         }
 
+        UsageReportSelection selection = ExplorerSelection();
+        if (selection.ModelProviders.Count > 0 || selection.Models.Count > 0
+            || selection.HasConfigurationFilters || !string.IsNullOrWhiteSpace(selection.Search))
+        {
+            return new OperationLoadScope(
+                OperationScopeKind.Selection,
+                null,
+                null,
+                null,
+                HomogeneousModelJoin: false,
+                UnlinkedOnly: false,
+                SelectedModels: _report.Models
+                    .Where(row => row.AgentId.Value == "codex")
+                    .Select(row => (row.ModelId, row.ModelProviderId))
+                    .ToArray());
+        }
+
         return OperationLoadScope.Global;
     }
 
@@ -503,6 +523,11 @@ public sealed partial class UsageReportViewModel
         }
 
         if (scope.Kind == OperationScopeKind.Model && !IncludesCodexOperations(scope.Model))
+        {
+            return EmptyCohort(scope);
+        }
+
+        if (scope.Kind == OperationScopeKind.Selection && scope.SelectedModels is not { Count: > 0 })
         {
             return EmptyCohort(scope);
         }
@@ -566,8 +591,26 @@ public sealed partial class UsageReportViewModel
                 model.ModelProviderId is { } host ? new ModelProviderId(host) : null,
                 CurrentDetailSelection(),
                 token).ConfigureAwait(false);
-            restrict = sessionKeys.Count > 0;
-            includeMixed = sessionKeys.Count > 0;
+            if (sessionKeys.Count == 0) return EmptyCohort(scope);
+            restrict = true;
+            includeMixed = true;
+        }
+        else if (scope.Kind == OperationScopeKind.Selection && scope.SelectedModels is { } selectedModels)
+        {
+            AttributionConsent sessionConsent = await _attributionConsent
+                .LoadAsync(AttributionCapability.CodexSession, token)
+                .ConfigureAwait(false);
+            sessionKeys = await repository.ReadSessionKeysForSelectedModelsAsync(
+                from,
+                to,
+                new AgentId("codex"),
+                AttributionCapability.CodexSession,
+                sessionConsent.ActiveLinkEpoch,
+                selectedModels,
+                CurrentDetailSelection(),
+                token).ConfigureAwait(false);
+            if (sessionKeys.Count == 0) return EmptyCohort(scope);
+            restrict = true;
         }
 
         IReadOnlyList<string> sourceKeys = mixedSessionKeys.Length == 0
