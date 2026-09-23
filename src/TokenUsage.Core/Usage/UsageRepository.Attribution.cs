@@ -158,6 +158,7 @@ public sealed partial class UsageRepository
         bool unassignedProject = false,
         long? projectEpoch = null,
         UsageDetailSelection? detail = null,
+        string? modelSearch = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(fromInclusive, toInclusive);
@@ -188,6 +189,7 @@ public sealed partial class UsageRepository
             command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
             command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
             BindDetailSelection(command, detail);
+            AppendModelSearchFilter(command, modelSearch);
             if (projectKey is not null || unassignedProject)
             {
                 long epoch = projectEpoch ?? consentEpoch;
@@ -489,6 +491,17 @@ public sealed partial class UsageRepository
         }
 
         command.CommandText += " AND (" + string.Join(" OR ", clauses) + ")";
+    }
+
+    private static void AppendModelSearchFilter(SqliteCommand command, string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search)) return;
+        command.CommandText += """
+             AND (instr(lower(e.agent_id), $modelSearch) > 0
+                  OR instr(lower(coalesce(e.model_provider_id, '')), $modelSearch) > 0
+                  OR instr(lower(e.model_id), $modelSearch) > 0)
+            """;
+        command.Parameters.AddWithValue("$modelSearch", search.Trim().ToLowerInvariant());
     }
 
     private static TokenBreakdown AddTokens(TokenBreakdown left, TokenBreakdown right) =>

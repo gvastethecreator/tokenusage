@@ -192,7 +192,7 @@ public static class PricingEvidence
 
 public static class PricingOfficialSources
 {
-    private static readonly DateOnly ReviewDate = new(2026, 9, 3);
+    private static readonly DateOnly ReviewDate = new(2026, 9, 22);
 
     public static PricingSourceEvidence OpenAi { get; } = new(
         "openai-model-pricing",
@@ -203,7 +203,13 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence OpenAiAstra { get; } = new(
         "openai-astra-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-6-astra"),
-        new DateOnly(2026, 9, 4),
+        new DateOnly(2026, 9, 22),
+        PricingBillingScope.DirectProviderApi);
+
+    public static PricingSourceEvidence OpenAiFlagship { get; } = new(
+        "openai-flagship-pricing",
+        new Uri("https://developers.openai.com/api/docs/pricing"),
+        ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Anthropic { get; } = new(
@@ -220,7 +226,7 @@ public static class PricingOfficialSources
 
     public static PricingSourceEvidence Xai { get; } = new(
         "xai-model-pricing",
-        new Uri("https://docs.x.ai/developers/models/grok-4.6"),
+        new Uri("https://docs.x.ai/developers/pricing"),
         ReviewDate,
         PricingBillingScope.DirectProviderApi);
 

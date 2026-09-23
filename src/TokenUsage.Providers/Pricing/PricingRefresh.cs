@@ -57,11 +57,11 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.Anthropic,
             "anthropic-model-pricing.html",
-            ["Claude Sonnet 5", "$2", "$10", "will not occur"]),
+            ["Claude Sonnet 5", "$2", "$10", "Claude Opus 5.5", "$4", "$0.20", "$20"]),
         Define(
             PricingOfficialSources.Cursor,
             "cursor-model-pricing.html",
-            ["Composer 2.5", "Grok 4.5", "Grok 4.6", "Fast"]),
+            ["Composer 2.5", "Grok 4.5", "Grok 4.6", "Grok 4.7", "Fast"]),
         Define(
             PricingOfficialSources.CursorGemini,
             "cursor-gemini-3-8-pricing.html",
@@ -83,13 +83,17 @@ public static class PricingRefreshManifest
             "openai-astra-pricing.html",
             ["GPT-6 Astra", "$10.00", "$1.00", "$12.50", "$50.00", "272K", "1.5x"]),
         Define(
+            PricingOfficialSources.OpenAiFlagship,
+            "openai-flagship-pricing.html",
+            ["gpt-6-sol", "$2.00", "$0.20", "$10.00", "gpt-6-luna", "$0.10", "$0.50"]),
+        Define(
             PricingOfficialSources.Xai,
             "xai-model-pricing.html",
-            ["grok-4.6", "$2.00", "$0.50", "$6.00"]),
+            ["grok-4.6", "grok-4.7", "$2.00", "$0.50", "$6.00", "Grok 4.7 Fast", "$1.50", "$18.00"]),
         Define(
             PricingOfficialSources.Zai,
             "zai-model-pricing.html",
-            ["GLM-5.3-Flash", "$0.075", "$0.015", "$0.25", "September 9, 2026"]),
+            ["GLM-5.3-Flash", "$0.15", "$0.03", "$0.50", "GLM-5.3-FlashX"]),
     ];
 
     private static PricingRefreshSourceDefinition Define(

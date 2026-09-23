@@ -1,6 +1,6 @@
 # Provider matrix
 
-Cutoff date: 2026-09-04
+Cutoff date: 2026-09-22
 
 Temporary status: Vercel AI Gateway is out of the active catalog. Its implementation is kept so it can be reactivated in a later delivery.
 

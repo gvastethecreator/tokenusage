@@ -371,7 +371,7 @@ public sealed partial class UsageRepository
         return rows;
     }
 
-    public async Task<IReadOnlyList<string>> ReadHomogeneousSessionKeysAsync(
+    public Task<IReadOnlyList<string>> ReadHomogeneousSessionKeysAsync(
         DateTimeOffset fromInclusiveUtc,
         DateTimeOffset toExclusiveUtc,
         AgentId agentId,
@@ -380,12 +380,24 @@ public sealed partial class UsageRepository
         ModelId modelId,
         ModelProviderId? modelProviderId = null,
         UsageDetailSelection? detail = null,
+        CancellationToken cancellationToken = default) =>
+        ReadSessionKeysForSelectedModelsAsync(fromInclusiveUtc, toExclusiveUtc, agentId,
+            sessionCapability, sessionEpoch, [(modelId, modelProviderId)], detail, cancellationToken);
+
+    public async Task<IReadOnlyList<string>> ReadSessionKeysForSelectedModelsAsync(
+        DateTimeOffset fromInclusiveUtc,
+        DateTimeOffset toExclusiveUtc,
+        AgentId agentId,
+        AttributionCapability sessionCapability,
+        long sessionEpoch,
+        IReadOnlyList<(ModelId ModelId, ModelProviderId? ModelProviderId)> models,
+        UsageDetailSelection? detail = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agentId);
-        ArgumentNullException.ThrowIfNull(modelId);
+        ArgumentNullException.ThrowIfNull(models);
         ArgumentOutOfRangeException.ThrowIfNegative(sessionEpoch);
-        if (sessionEpoch == 0)
+        if (sessionEpoch == 0 || models.Count == 0)
         {
             return [];
         }
@@ -403,14 +415,25 @@ public sealed partial class UsageRepository
               AND e.occurred_at_utc < $to
             GROUP BY a.session_key
             HAVING COUNT(*) > 0
-               AND COUNT(*) = SUM(CASE WHEN e.model_id = $model
+               AND COUNT(*) = SUM(CASE WHEN (
         """;
-        if (modelProviderId is not null)
+        for (int index = 0; index < models.Count; index++)
         {
-            command.CommandText += " AND e.model_provider_id = $provider";
+            (ModelId modelId, ModelProviderId? modelProviderId) = models[index];
+            ArgumentNullException.ThrowIfNull(modelId);
+            if (index > 0) command.CommandText += " OR ";
+            command.CommandText += $"(e.model_id = $model{index}";
+            command.Parameters.AddWithValue($"$model{index}", modelId.Value);
+            if (modelProviderId is not null)
+            {
+                command.CommandText += $" AND e.model_provider_id = $provider{index}";
+                command.Parameters.AddWithValue($"$provider{index}", modelProviderId.Value);
+            }
+
+            command.CommandText += ")";
         }
 
-        command.CommandText += " THEN 1 ELSE 0 END)";
+        command.CommandText += ") THEN 1 ELSE 0 END)";
         if (detail is { HasFilters: true })
         {
             command.CommandText += """
@@ -439,12 +462,6 @@ public sealed partial class UsageRepository
         command.Parameters.AddWithValue("$agent", agentId.Value);
         command.Parameters.AddWithValue("$from", fromInclusiveUtc.UtcDateTime.ToString("o", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$to", toExclusiveUtc.UtcDateTime.ToString("o", CultureInfo.InvariantCulture));
-        command.Parameters.AddWithValue("$model", modelId.Value);
-        if (modelProviderId is not null)
-        {
-            command.Parameters.AddWithValue("$provider", modelProviderId.Value);
-        }
-
         BindHomogeneousLists(command, detail);
         var keys = new List<string>();
         await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);

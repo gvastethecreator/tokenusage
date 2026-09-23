@@ -10,7 +10,7 @@ namespace TokenUsage.Providers.Grok;
 /// </summary>
 public static class GrokPricingCatalog
 {
-    public const string Version = "xai-api-2026-09-02";
+    public const string Version = "xai-api-2026-09-22";
     private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 200_000;
 
@@ -32,6 +32,8 @@ public static class GrokPricingCatalog
             ["grok-4.5-fast"] = new("grok-4.5-fast", 4m, 1m, 18m, false, true),
             ["grok-4.6"] = new("grok-4.6", 2m, 0.5m, 6m, true),
             ["grok-4.6-fast"] = new("grok-4.6-fast", 4m, 1m, 12m, false, true),
+            ["grok-4.7"] = new("grok-4.7", 2m, 0.5m, 6m, true),
+            ["grok-4.7-fast"] = new("grok-4.7-fast", 4m, 1m, 12m, false, true),
             ["grok-4.20-0309-reasoning"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
             ["grok-4.20-0309-non-reasoning"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
             ["grok-4.20-multi-agent-0309"] = new("grok-4.3", 1.25m, 0.2m, 2.5m, true),
@@ -54,11 +56,17 @@ public static class GrokPricingCatalog
             return CostObservation.Unavailable();
         }
 
+        long promptTokens = checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite);
         decimal multiplier = 1m;
         if (applyLongContextSurcharge
+            && rates.PriceMatch == "grok-4.7-fast"
+            && promptTokens > LongContextThreshold)
+        {
+            multiplier = 1.5m;
+        }
+        else if (applyLongContextSurcharge
             && rates.HasLongContext
-            && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
-                >= LongContextThreshold)
+            && promptTokens >= LongContextThreshold)
         {
             multiplier = 2m;
         }
@@ -102,6 +110,13 @@ public static class GrokPricingCatalog
             return normalized.Contains("-fast", StringComparison.Ordinal)
                 ? "grok-4.6-fast"
                 : "grok-4.6";
+        }
+
+        if (normalized.StartsWith("grok-4.7-", StringComparison.Ordinal))
+        {
+            return normalized.Contains("-fast", StringComparison.Ordinal)
+                ? "grok-4.7-fast"
+                : "grok-4.7";
         }
 
         if (normalized.StartsWith("grok-4.3-", StringComparison.Ordinal))

@@ -96,6 +96,7 @@ public sealed partial class CompactUsageDashboard : UserControl
         SynchronizeProviderTabs();
         SynchronizeProviderLimitsImmediately();
         SynchronizeVisualizationImmediately();
+        UpdateQuotaTilesWidths();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -113,6 +114,12 @@ public sealed partial class CompactUsageDashboard : UserControl
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(DashboardSurfaceViewModel.GlobalProviderLimits)
+            or nameof(DashboardSurfaceViewModel.SelectedProviderLimits))
+        {
+            _ = DispatcherQueue.TryEnqueue(UpdateQuotaTilesWidths);
+        }
+
         if (string.Equals(
                 e.PropertyName,
                 nameof(DashboardSurfaceViewModel.Visualization),
@@ -193,13 +200,31 @@ public sealed partial class CompactUsageDashboard : UserControl
 
     private void OnQuotaTilesSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (sender is not ItemsRepeater repeater
-            || repeater.Layout is not UniformGridLayout layout)
+        if (sender is ItemsRepeater repeater)
+        {
+            UpdateQuotaTilesWidth(repeater, e.NewSize.Width);
+        }
+    }
+
+    private void UpdateQuotaTilesWidths()
+    {
+        UpdateQuotaTilesWidth(GlobalQuotaTilesRepeater, GlobalQuotaTilesRepeater.ActualWidth);
+        UpdateQuotaTilesWidth(ProviderQuotaTilesRepeater, ProviderQuotaTilesRepeater.ActualWidth);
+    }
+
+    private void UpdateQuotaTilesWidth(ItemsRepeater repeater, double availableWidth)
+    {
+        if (_viewModel is null || repeater.Layout is not UniformGridLayout layout)
         {
             return;
         }
 
-        double width = Math.Floor((e.NewSize.Width - 14d) / 2d);
+        int itemCount = ReferenceEquals(repeater, GlobalQuotaTilesRepeater)
+            ? ViewModel.GlobalProviderLimits.Count
+            : ViewModel.SelectedProviderLimits.Count;
+        double width = itemCount == 1
+            ? availableWidth
+            : Math.Floor((availableWidth - layout.MinColumnSpacing) / 2d);
         if (width > 0 && Math.Abs(layout.MinItemWidth - width) >= 0.5)
         {
             layout.MinItemWidth = width;

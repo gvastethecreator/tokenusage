@@ -130,7 +130,7 @@ public sealed class PricingEvidenceCatalogTests
 
         Assert.Equal(PricingOfficialSources.OpenAiAstra, evidence.Source);
         Assert.False(evidence.IsPromotional);
-        Assert.Equal(new DateOnly(2026, 9, 4), evidence.Source.ReviewedOn);
+        Assert.Equal(new DateOnly(2026, 9, 22), evidence.Source.ReviewedOn);
     }
 
     [Fact]

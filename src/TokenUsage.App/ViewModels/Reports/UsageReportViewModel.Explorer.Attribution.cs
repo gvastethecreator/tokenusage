@@ -5,6 +5,10 @@ using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
+public sealed class UsageReportExportStaleException : InvalidOperationException
+{
+}
+
 public sealed partial class UsageReportViewModel
 {
     public async Task OpenProjectsAsync()
@@ -50,7 +54,7 @@ public sealed partial class UsageReportViewModel
                 host,
                 model,
                 detail,
-                token).ConfigureAwait(false);
+                cancellationToken: token).ConfigureAwait(false);
             AttributionConsent published = await _attributionConsent
                 .LoadAsync(AttributionCapability.CodexProject, token)
                 .ConfigureAwait(false);
@@ -313,8 +317,21 @@ public sealed partial class UsageReportViewModel
         CancellationToken token = default)
     {
         UsageReportSnapshotV2.Document snapshot = CreateCanonicalSnapshot();
-        if (_attributionConsent is null || !File.Exists(_databasePath))
+        if (!File.Exists(_databasePath))
         {
+            if (_report.DataRevision is not null) throw new UsageReportExportStaleException();
+            return snapshot;
+        }
+
+        if (_attributionConsent is null)
+        {
+            if (_report.DataRevision is { } loaded)
+            {
+                UsageRepository current = await UsageRepository.OpenReadOnlyAsync(_databasePath, token)
+                    .ConfigureAwait(false);
+                if (await current.ReadDataRevisionAsync(token).ConfigureAwait(false) != loaded)
+                    throw new UsageReportExportStaleException();
+            }
             return snapshot;
         }
 
@@ -328,7 +345,7 @@ public sealed partial class UsageReportViewModel
         {
             if (_disposed || generation != _selectionGeneration)
             {
-                break;
+                throw new UsageReportExportStaleException();
             }
 
             UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(_databasePath, token)
@@ -336,7 +353,7 @@ public sealed partial class UsageReportViewModel
             UsageDataRevision start = await repository.ReadDataRevisionAsync(token).ConfigureAwait(false);
             if (loadedRevision is { } loaded && start != loaded)
             {
-                continue;
+                throw new UsageReportExportStaleException();
             }
 
             (IReadOnlyList<UsageSessionContribution> sessions, IReadOnlyList<UsageProjectContribution> projects) =
@@ -399,7 +416,7 @@ public sealed partial class UsageReportViewModel
             }
         }
 
-        assembled ??= CreateCanonicalSnapshot();
+        if (assembled is null) throw new UsageReportExportStaleException();
         return await UsageAttributionExport.RecheckConsentAsync(assembled, _attributionConsent, token)
             .ConfigureAwait(false);
     }
@@ -836,7 +853,8 @@ public sealed partial class UsageReportViewModel
                     model,
                     capability,
                     detail: detail,
-                    cancellationToken: token)
+                    cancellationToken: token,
+                    modelSearch: selection.Search)
                 .ConfigureAwait(false);
             AttributionConsent published = await _attributionConsent
                 .LoadAsync(capability, token)
@@ -861,7 +879,8 @@ public sealed partial class UsageReportViewModel
                 host,
                 model,
                 detail,
-                token)
+                modelSearch: selection.Search,
+                cancellationToken: token)
             .ConfigureAwait(false);
         AttributionConsent publishedProjects = await _attributionConsent
             .LoadAsync(AttributionCapability.CodexProject, token)

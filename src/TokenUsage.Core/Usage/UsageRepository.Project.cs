@@ -224,6 +224,7 @@ public sealed partial class UsageRepository
         ModelProviderId? modelProviderId = null,
         ModelId? modelId = null,
         UsageDetailSelection? detail = null,
+        string? modelSearch = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(fromInclusive, toInclusive);
@@ -272,6 +273,7 @@ public sealed partial class UsageRepository
             }
 
             BindDetailSelection(command, detail);
+            AppendModelSearchFilter(command, modelSearch);
 
             await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))

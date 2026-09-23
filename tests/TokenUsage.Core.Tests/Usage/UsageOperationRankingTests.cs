@@ -103,6 +103,13 @@ public sealed class UsageOperationRankingTests
             new ModelId("model-a"),
             detail: new UsageDetailSelection([], ["low"], []));
         Assert.Equal(pureA.Value, Assert.Single(low));
+        IReadOnlyList<string> selected = await repository.ReadSessionKeysForSelectedModelsAsync(
+            from, to, new AgentId("codex"), AttributionCapability.CodexSession, 1,
+            [(new ModelId("model-a"), null), (new ModelId("model-b"), null)],
+            new UsageDetailSelection([], ["low"], []));
+        Assert.Contains(mixedSession.Value, selected);
+        Assert.Contains(pureA.Value, selected);
+        Assert.DoesNotContain(mixedEffortSession.Value, selected);
         await repository.UpsertOperationFactsAsync(
         [
             Fact("op-mixed", mixedSession, "mixed_tool"),

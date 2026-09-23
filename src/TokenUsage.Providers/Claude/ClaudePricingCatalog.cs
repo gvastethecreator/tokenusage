@@ -5,7 +5,7 @@ namespace TokenUsage.Providers.Claude;
 
 public static class ClaudePricingCatalog
 {
-    public const string Version = "anthropic-api-2026-09-03";
+    public const string Version = "anthropic-api-2026-09-22";
     private const decimal TokensPerMillion = 1_000_000m;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
@@ -24,6 +24,8 @@ public static class ClaudePricingCatalog
             ["claude-opus-4-8-fast"] = new(10m, 50m, 12.5m, 20m, 1m),
             ["claude-opus-5"] = new(5m, 25m, 6.25m, 10m, 0.5m),
             ["claude-opus-5-fast"] = new(10m, 50m, 12.5m, 20m, 1m),
+            ["claude-opus-5-5"] = new(4m, 20m, 5m, 8m, 0.2m),
+            ["claude-opus-5-5-fast"] = new(8m, 40m, 10m, 16m, 0.4m),
             ["claude-sonnet-4"] = new(3m, 15m, 3.75m, 6m, 0.3m),
             ["claude-sonnet-4-5"] = new(3m, 15m, 3.75m, 6m, 0.3m),
             ["claude-sonnet-4-5-20250929"] = new(3m, 15m, 3.75m, 6m, 0.3m),
@@ -127,8 +129,8 @@ public static class ClaudePricingCatalog
             return true;
         }
 
-        // Fast mode is only published for Opus 5 and Opus 4.8; a fast flag on
-        // any other model keeps the base rates instead of failing.
+        // Fast mode is published for Opus 5.5, Opus 5, and Opus 4.8. A fast
+        // flag on any other model keeps the base rates instead of failing.
         rates = matched;
         priceMatch = matchedKey;
         return true;
