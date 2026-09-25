@@ -598,11 +598,11 @@ public sealed class SessionModuleTests
         surface.SelectProvider("codex");
 
         Assert.Collection(
-            surface.GlobalProviderLimits,
+            surface.GlobalCodexLimits,
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
             additional => Assert.Equal("CodexWindowAdditionalPrimaryFormat", additional.Title));
-        Assert.Equal(surface.GlobalProviderLimits, surface.SelectedProviderLimits);
-        Assert.Same(surface.GlobalProviderLimits, surface.GetProviderLimits("codex"));
+        Assert.Equal(surface.GlobalCodexLimits, surface.SelectedProviderLimits);
+        Assert.Same(surface.GlobalCodexLimits, surface.GetProviderLimits("codex"));
         Assert.True(surface.HasGlobalProviderLimits);
         Assert.True(surface.SelectedProviderHasLimits);
     }
@@ -656,7 +656,7 @@ public sealed class SessionModuleTests
         surface.SelectProvider("codex");
 
         Assert.Collection(
-            surface.GlobalProviderLimits,
+            surface.GlobalCodexLimits,
             weekly => Assert.Equal("SampleWindowWeekly", weekly.Title),
             additional => Assert.Equal("CodexWindowAdditionalPrimaryFormat", additional.Title));
         Assert.True(surface.SelectedProviderHasLimits);

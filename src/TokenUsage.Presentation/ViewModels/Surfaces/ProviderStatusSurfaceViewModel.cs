@@ -33,6 +33,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     private bool _hasPublishedDashboard;
     private SampleDataState _dataState;
     private IReadOnlyList<ProviderStatusRow> _localProviders = [];
+    private ProviderSnapshot? _claudeQuota;
     private bool _hasSnapshot;
 
     public ProviderStatusSurfaceViewModel(
@@ -221,9 +222,11 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         ProviderOutcome? codexOutcome,
         bool hasPublishedDashboard,
         SampleDataState dataState,
-        IReadOnlyList<ProviderStatusRow> localProviders)
+        IReadOnlyList<ProviderStatusRow> localProviders,
+        ProviderSnapshot? claudeQuota = null)
     {
         ArgumentNullException.ThrowIfNull(localProviders);
+        _claudeQuota = claudeQuota;
         _codexOutcome = codexOutcome;
         _hasPublishedDashboard = hasPublishedDashboard;
         _dataState = dataState;
@@ -252,10 +255,14 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         }
 
         var providers = new List<ProviderStatusRow> { codex };
-        providers.AddRange(localProviders.Where(row => !string.Equals(
-            row.ProviderId,
-            "codex",
-            StringComparison.Ordinal)));
+        providers.AddRange(localProviders
+            .Where(row => !string.Equals(
+                row.ProviderId,
+                "codex",
+                StringComparison.Ordinal))
+            .Select(row => string.Equals(row.ProviderId, "claude", StringComparison.Ordinal)
+                ? WithClaudeQuota(row)
+                : row));
         HashSet<string> includedIds = providers
             .Select(provider => provider.ProviderId)
             .ToHashSet(StringComparer.Ordinal);
@@ -379,6 +386,28 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             CompactState = GetCompactState(
                 GetCodexStatusKind(outcome, hasPublishedDashboard, dataState)),
         };
+
+    /// <summary>
+    /// Claude quota comes from the opt-in status line wrapper, not from the local log scan, so
+    /// its row says either that the reading is available or how to turn the wrapper on.
+    /// </summary>
+    private ProviderStatusRow WithClaudeQuota(ProviderStatusRow row)
+    {
+        string quota = _claudeQuota is null
+            ? _getString("ProviderStatusClaudeQuotaSetup")
+            : _getString("ProviderStatusAvailable");
+        return row with
+        {
+            Capabilities = row.Capabilities
+                .Select(capability => string.Equals(
+                    capability.AutomationId,
+                    "ProviderStatus.claude.Quota",
+                    StringComparison.Ordinal)
+                    ? capability with { Value = quota }
+                    : capability)
+                .ToArray(),
+        };
+    }
 
     private string GetQuotaStatus(ProviderOutcome? outcome, SampleDataState dataState) =>
         outcome switch

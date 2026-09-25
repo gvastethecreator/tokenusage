@@ -6,6 +6,7 @@ using TokenUsage.Core.Cache;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.VercelAiGateway;
@@ -242,7 +243,8 @@ public static class AppComposition
                         source.AttributionBackfillTo = null;
                     }
                 }
-            });
+            },
+            new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(localFolderPath)));
     }
 
     private static UpdateOptionsViewModel CreateUpdateOptions(string localFolderPath, TimeProvider clock)

@@ -412,20 +412,50 @@
 
             <StackPanel
                 Padding="12,9"
-                Spacing="5"
+                Spacing="12"
                 Visibility="{x:Bind ViewModel.HasGlobalProviderLimits, Mode=OneWay}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="codex" />
-                    <TextBlock x:Uid="CompactGlobalLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
+                <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalCodexLimits, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="codex" />
+                        <TextBlock x:Uid="CompactGlobalLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <ItemsRepeater
+                        x:Name="GlobalCodexQuotaTilesRepeater"
+                        ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
+                        ItemsSource="{x:Bind ViewModel.GlobalCodexLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
                 </StackPanel>
-                <ItemsRepeater
-                    x:Name="GlobalQuotaTilesRepeater"
-                    ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
-                    ItemsSource="{x:Bind ViewModel.GlobalProviderLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
-                    <ItemsRepeater.Layout>
-                        <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
-                    </ItemsRepeater.Layout>
-                </ItemsRepeater>
+                <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalClaudeLimits, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="claude" />
+                        <TextBlock x:Uid="CompactGlobalClaudeLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <ItemsRepeater
+                        x:Name="GlobalClaudeQuotaTilesRepeater"
+                        ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
+                        ItemsSource="{x:Bind ViewModel.GlobalClaudeLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </StackPanel>
+                <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalZcodeLimits, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="zcode" />
+                        <TextBlock x:Uid="CompactGlobalZcodeLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <ItemsRepeater
+                        x:Name="GlobalZcodeQuotaTilesRepeater"
+                        ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
+                        ItemsSource="{x:Bind ViewModel.GlobalZcodeLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </StackPanel>
             </StackPanel>
 
             <Grid

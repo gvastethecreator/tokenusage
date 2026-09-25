@@ -2,6 +2,14 @@
 
 User-facing changes for TokenUsage. Release notes include installation details and known limits.
 
+## Unreleased
+
+### Added
+
+- Claude Code subscription limits (5-hour and weekly, plus a gateway spend limit). They come from the documented status line reading and are opt-in in Settings. They appear in the Claude card, the global limits strip, the tray, provider status, `tokenusage limits`, and report reset cycles. Any existing Claude Code status line keeps running.
+- A Claude Code `Stop` hook that refreshes TokenUsage after each task, managed like the Grok, Cursor, and ZCode hooks.
+- `tokenusage claude <install-hook|uninstall-hook|install-statusline|uninstall-statusline|status|statusline>`.
+
 ## 0.0.1 Preview 2 — Unsigned portable
 
 The first Windows x64 preview uses an unsigned portable ZIP. No MSIX installer is included. Stable releases remain subject to signing and install checks.

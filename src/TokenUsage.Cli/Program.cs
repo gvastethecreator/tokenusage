@@ -61,6 +61,20 @@ if (args.Length > 0 && string.Equals(args[0], "hook", StringComparison.Ordinal))
         standardInput: hookStandardInput);
 }
 
+// Claude Code integration management follows the same unpackaged-safe rule. The status line
+// wrapper also stores the numeric limit reading, so it resolves application data lazily and
+// keeps working (without storing) when that storage is unavailable.
+if (args.Length > 0 && string.Equals(args[0], "claude", StringComparison.Ordinal))
+{
+    return await ClaudeCommand.RunAsync(
+        args.Skip(1).ToArray(),
+        Console.Out,
+        Console.Error,
+        resolveDataDirectory: () => TokenUsageDataDirectory.Resolve(
+            () => ApplicationData.Current.LocalFolder.Path),
+        standardInput: Console.IsInputRedirected ? Console.OpenStandardInput() : null);
+}
+
 // Grok hook management follows the same unpackaged-safe rule.
 if (args.Length > 0 && string.Equals(args[0], "grok", StringComparison.Ordinal))
 {

@@ -127,7 +127,7 @@ public static class ProviderModuleCatalog
     private static readonly IReadOnlyList<ProviderModuleDefinition> Catalog =
         Array.AsReadOnly<ProviderModuleDefinition>(
         [
-            Module("claude", "Claude", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["claude-code"]),
+            Module("claude", "Claude", [ProviderCapability.Limits, ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, ["claude-code"]),
             Module("codex", "Codex", [ProviderCapability.Limits, ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
             Module("cursor", "Cursor", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences),
             Module("antigravity", "Antigravity", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, quotaBlocked: true),

@@ -70,6 +70,8 @@
   <data name="CompactWeekdaySaturday.Text" xml:space="preserve"><value>S</value></data>
   <data name="CompactWeekdaySunday.Text" xml:space="preserve"><value>S</value></data>
   <data name="CompactGlobalLimitsTitle.Text" xml:space="preserve"><value>Codex Limits</value></data>
+  <data name="CompactGlobalClaudeLimitsTitle.Text" xml:space="preserve"><value>Claude Limits</value></data>
+  <data name="CompactGlobalZcodeLimitsTitle.Text" xml:space="preserve"><value>ZCode Limits</value></data>
   <data name="CompactGlobalSummaryLabel.Text" xml:space="preserve"><value>Observed cost · 30 days</value></data>
   <data name="CompactHeatmapLegendLow.Text" xml:space="preserve"><value>Very low</value></data>
   <data name="CompactHeatmapLegendHigh.Text" xml:space="preserve"><value>High</value></data>
@@ -84,7 +86,7 @@
   <data name="OptionsHeader.Text" xml:space="preserve"><value>Options</value></data>
   <data name="OptionsHomeDescription.Text" xml:space="preserve"><value>Choose what you want to change.</value></data>
   <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
-  <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Window behavior and sample data</value></data>
+  <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Window, collection, and attribution</value></data>
   <data name="OptionsGeneralButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
   <data name="OptionsAppearanceLabel.Text" xml:space="preserve"><value>Appearance</value></data>
   <data name="OptionsAppearanceDescription.Text" xml:space="preserve"><value>Theme, density, and usage formats</value></data>
@@ -96,7 +98,13 @@
   <data name="OptionsProvidersDescription.Text" xml:space="preserve"><value>Connections and source health</value></data>
   <data name="OptionsProvidersButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
   <data name="GeneralSectionTitle.Text" xml:space="preserve"><value>General</value></data>
-  <data name="GeneralSectionDescription.Content" xml:space="preserve"><value>Set the app language and default flyout behavior.</value></data>
+  <data name="GeneralSectionDescription.Content" xml:space="preserve"><value>Choose how usage is collected and linked.</value></data>
+  <data name="GeneralWindowGroupTitle.Text" xml:space="preserve"><value>Window</value></data>
+  <data name="GeneralCollectionGroupTitle.Text" xml:space="preserve"><value>Collection</value></data>
+  <data name="GeneralAttributionGroupTitle.Text" xml:space="preserve"><value>Attribution</value></data>
+  <data name="GeneralCodexDetailsExpander.Header" xml:space="preserve"><value>More Codex details</value></data>
+  <data name="GeneralHistoryExpander.Header" xml:space="preserve"><value>Backfill retained attribution</value></data>
+  <data name="GeneralScreenshotGroupTitle.Text" xml:space="preserve"><value>Screenshots</value></data>
   <data name="AppearanceSectionTitle.Text" xml:space="preserve"><value>Appearance</value></data>
   <data name="AppearanceSectionDescription.Content" xml:space="preserve"><value>Changes apply to the dashboard as soon as you select them.</value></data>
   <data name="PersonalizationSectionTitle.Text" xml:space="preserve"><value>Dashboard</value></data>
@@ -600,18 +608,18 @@
   <data name="UsageReportPeriod90Days" xml:space="preserve"><value>Last 90 days</value></data>
   <data name="UsageReportPeriodAllHistory" xml:space="preserve"><value>All history</value></data>
   <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Reset cycle</value></data>
-  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between Codex resets</value></data>
-  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed Codex reset cycle</value></data>
-  <data name="UsageReportResetCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Codex reset history</value></data>
+  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between quota resets</value></data>
+  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed quota reset cycle</value></data>
+  <data name="UsageReportResetCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quota reset history</value></data>
   <data name="UsageReportResetCycleGroupLabel.Text" xml:space="preserve"><value>Limit and cadence</value></data>
-  <data name="UsageReportResetCycleGroupSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Codex limit and cadence</value></data>
+  <data name="UsageReportResetCycleGroupSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quota limit and cadence</value></data>
   <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous reset cycle</value></data>
   <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the previous observed reset cycle</value></data>
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next reset cycle</value></data>
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the next observed reset cycle</value></data>
-  <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>No Codex reset cycle has been observed yet.</value></data>
-  <data name="UsageReportResetCycleQuotaUnavailable" xml:space="preserve"><value>Codex quota data is unavailable, so reset cycles cannot be built.</value></data>
-  <data name="UsageReportResetCycleHistoryEmpty" xml:space="preserve"><value>Codex quota is available, but no reset-cycle observation has been stored yet.</value></data>
+  <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>No reset cycle has been observed yet for this provider.</value></data>
+  <data name="UsageReportResetCycleQuotaUnavailable" xml:space="preserve"><value>Quota data is unavailable for this provider, so reset cycles cannot be built.</value></data>
+  <data name="UsageReportResetCycleHistoryEmpty" xml:space="preserve"><value>Quota is available, but no reset-cycle observation has been stored yet.</value></data>
   <data name="UsageReportResetCycleExactBoundaryNote" xml:space="preserve"><value>Events are assigned to this cycle from their recorded timestamps. The shared report shows this exact local range.</value></data>
   <data name="UsageReportResetCycleCurrentFormat" xml:space="preserve"><value>{0} · current</value></data>
   <data name="UsageReportResetCyclePreviousFormat" xml:space="preserve"><value>{0} · {1} · {2}</value></data>
@@ -768,7 +776,17 @@
   <data name="CompactProviderGooseCoverageHint" xml:space="preserve"><value>Goose: aggregate tokens come from a numeric read-only sessions.db query. Known models can show estimated API value.</value></data>
   <data name="CompactProviderHermesCoverageHint" xml:space="preserve"><value>Hermes: aggregate session tokens and actual cost come from numeric state.db columns. Messages are not queried.</value></data>
   <data name="CompactProviderZcodeCoverageHint" xml:space="preserve"><value>ZCode: per-request counters come from the local usage database. Cost is estimated from Z.ai API rates and is not the plan charge.</value></data>
-  <data name="ZcodeGlobalLimitTitlePrefix" xml:space="preserve"><value>ZCode · </value></data>
+  <data name="ClaudeQuotaSourceValue" xml:space="preserve"><value>Claude Code status line</value></data>
+  <data name="ClaudePlanSubscription" xml:space="preserve"><value>Subscription</value></data>
+  <data name="ClaudeCapabilityLimits" xml:space="preserve"><value>Subscription limits reported by Claude Code</value></data>
+  <data name="ClaudeQuotaStaleNotice" xml:space="preserve"><value>This reading is more than 30 minutes old. Claude Code updates it only while a session is running.</value></data>
+  <data name="ClaudeWindowSpendLimit" xml:space="preserve"><value>Spend limit</value></data>
+  <data name="ClaudeQuotaUsedTokensFormat" xml:space="preserve"><value>{0} observed Claude tokens in this time range; pool attribution unknown</value></data>
+  <data name="ProviderStatusClaudeQuotaSetup" xml:space="preserve"><value>Turn on the Claude Code status line in Settings</value></data>
+  <data name="ClaudeStatusLineLabel.Text" xml:space="preserve"><value>Read Claude Code limits from its status line</value></data>
+  <data name="ClaudeStatusLineToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Read Claude Code limits from its status line</value></data>
+  <data name="ClaudeStatusLineDescription.Text" xml:space="preserve"><value>Claude Code passes its 5-hour and weekly subscription limits to the status line command. TokenUsage wraps that command in ~/.claude/settings.json, stores only those percentages and reset times, and still runs a status line you already had. Turning this off restores it.</value></data>
+  <data name="ClaudeStatusLineUpdateFailed" xml:space="preserve"><value>The Claude Code settings file could not be updated. Check that it is valid JSON and not locked.</value></data>
   <data name="DataCollectionBackgroundToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Collect usage after each task</value></data>
   <data name="DataCollectionRefreshLabel.Text" xml:space="preserve"><value>Refresh while the app is open</value></data>
   <data name="DataCollectionRefreshLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh interval while the app is open</value></data>
@@ -885,7 +903,6 @@
   <data name="CodexFilesAttributionLabel.Text" xml:space="preserve"><value>Count Codex file operations</value></data>
   <data name="CodexFilesAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Count Codex file operations</value></data>
   <data name="CodexFilesAttributionDescription.Text" xml:space="preserve"><value>Optional. Stores opaque file identities and counts, never paths or patch hunks. Turning this off removes those facts and keeps numeric totals.</value></data>
-  <data name="AttributionBackfillLabel.Text" xml:space="preserve"><value>Backfill retained attribution</value></data>
   <data name="AttributionBackfillSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Attribution backfill source</value></data>
   <data name="AttributionBackfillFrom.PlaceholderText" xml:space="preserve"><value>From</value></data>
   <data name="AttributionBackfillFrom.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Backfill from date</value></data>

@@ -64,7 +64,7 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 | Provider | Local usage | Cost | Live quota |
 |---|---|---|---|
 | Codex | Yes | Reported or estimated | Yes, through the official local `app-server` |
-| Claude Code | Yes | Reported or estimated | Not available through an approved interface |
+| Claude Code | Yes | Reported or estimated | Yes, opt-in, from the documented status line `rate_limits` (5-hour and weekly) |
 | Cursor | Yes, partial | Estimated when the model matches | Not available through the current contract |
 | Grok Build | Yes | Reported or estimated | Not available through an approved interface |
 | ZCode | Yes, counters per request | Estimated when the model matches | Not available through an approved interface |

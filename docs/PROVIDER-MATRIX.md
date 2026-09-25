@@ -16,8 +16,9 @@ Cost catalogs are checked against the official [OpenAI model pages](https://deve
 - Weekly and model comparisons reuse admitted local collectors. They show known
   usage cost, unpriced tokens, price coverage, active days, collection status,
   and available configuration. These are descriptive comparisons, not quality rankings.
-- Codex is currently the only reset-cycle provider. Compare 2–4 distinct cycles
-  against A with one shared elapsed duration. Provider, pool, range, gaps, and
+- Codex and Claude are the reset-cycle providers. Claude cycles come from the
+  opt-in status line reading, so they only exist for periods when Claude Code ran with
+  the wrapper on. Compare 2–4 distinct cycles against A with one shared elapsed duration. Provider, pool, range, gaps, and
   exact cutoffs remain visible in live and saved results.
 - New Codex numeric records preserve timestamp/interval precision and observed
   model, effort, and tier when available. Older rows and other collectors do not
@@ -91,7 +92,7 @@ TokenUsage takes selected contracts from each upstream, calculates cost locally,
 | Provider | Live quota | Local tokens and cost | Chosen source | Status | Delivery |
 |---|---|---|---|---|
 | Codex | Yes, official local interface | Yes, official API and logs | `codex app-server` | MVP | M4; detail in M6 |
-| Claude | Blocked without a public interface | Yes, logs and reported or estimated cost | Claude Code sessions | Active local + quota Gate | Active; quota pending |
+| Claude | Yes, opt-in: documented status line `rate_limits` | Yes, logs and reported or estimated cost | Claude Code sessions + status line | Active local + opt-in quota | Active |
 | OpenCode | No common quota | Yes, reported cost and tokens | `opencode.db` and `storage` | Local | M6A |
 | Grok Build | Blocked without a public interface | Yes, reported or estimated cost | `sessions` and `unified.jsonl` | Local + Gate | M6A; quota pending |
 | Grok Bot | Blocked without an approved data interface | No | The desktop app coordinates a computer in the cloud; the local profile contains state and credentials | Prepared | Catalog compatibility; sessions and credentials are not read |
@@ -278,14 +279,43 @@ that value exists. Prompts and responses are omitted.
 
 ### Quota
 
-Claude Code stores Windows credentials in `%USERPROFILE%\.claude\.credentials.json`,
-according to its [authentication documentation](https://code.claude.com/docs/en/authentication).
-It does not document a read-only quota command. The upstream implementation
-calls a non-public endpoint and can rotate tokens.
+Claude Code 2.1.251 and later documents a
+[`rate_limits` object](https://code.claude.com/docs/en/statusline#rate-limit-usage) in
+the JSON it pipes into the user's status line command. It has `five_hour` and
+`seven_day` windows. Behind a Claude apps gateway it also has `spend_limit`. Each
+window has `used_percentage` and `resets_at` (Unix seconds). The object exists only
+for Pro and Max subscribers, or behind a gateway spend limit, and only after the first
+response in a session. Claude Code drops a window once `resets_at` passes.
 
-The [Claude Code legal guide](https://code.claude.com/docs/en/legal-and-compliance)
-limits third-party use of subscription OAuth. Quota stays blocked until a
-public interface or permission exists. The app does not write that credential.
+That is the quota source. It is opt-in: Settings (or
+`tokenusage claude install-statusline`) sets `statusLine.command` to
+`tokenusage claude statusline` in `settings.json` under `CLAUDE_CONFIG_DIR` or
+`%USERPROFILE%\.claude`. The wrapper:
+
+- parses only `rate_limits` and ignores session, path, model, cost, and transcript fields;
+- writes `cache/providers/claude/rate-limits.v1.json` (percentages, reset times,
+  observation time), at most once a minute when nothing changed;
+- forwards the same stdin to the status line the user had before. That command is kept
+  in `tokenusage-statusline.json` next to `settings.json`. The wrapper runs it through
+  Git Bash, as Claude Code does, or `cmd` when Git Bash is missing, with a 5-second limit.
+  Without a previous command, the wrapper prints `5h N% · 7d N%`;
+- is removed by the same switch or `uninstall-statusline`, which restores the previous
+  status line and deletes the stored reading.
+
+The reading feeds the Claude card, the global limits strip, the tray, provider status,
+`tokenusage limits`, the reset history, the quota journal, and report reset cycles. It
+moves only while Claude Code runs. The card marks readings older than 30 minutes, and
+windows whose reset time passed are dropped instead of shown as full.
+
+TokenUsage still does not read `.credentials.json` or call the private usage endpoint
+that upstream implementations use. The
+[Claude Code legal guide](https://code.claude.com/docs/en/legal-and-compliance)
+limits third-party use of subscription OAuth.
+
+Update on task completion: when the app opens, a `Stop` hook is registered in the
+same `settings.json` when Claude Code is detected and background collection is on
+(`tokenusage claude install-hook|status|uninstall-hook`). It discards the payload and
+only refreshes TokenUsage's own data.
 
 ### Local metrics
 
@@ -302,8 +332,8 @@ association lists are the current contract.
 
 ### Result
 
-Local view after the scanner and coverage tests. Live quota behind a legal and
-technical gate.
+Local view after the scanner and coverage tests. Subscription quota through the
+opt-in, documented status line reading.
 
 Upstream comparison source: [Claude provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/claude.md).
 

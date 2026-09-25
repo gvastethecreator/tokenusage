@@ -252,7 +252,7 @@ public static class CodexDashboardProjector
             automationId,
             metricId);
 
-    private static (string? Text, bool IsBehind) CreatePace(
+    internal static (string? Text, bool IsBehind) CreatePace(
         ProgressMetricSnapshot metric,
         decimal durationMinutes,
         TimeProvider clock,
@@ -389,7 +389,7 @@ public static class CodexDashboardProjector
             _ => string.Empty,
         };
 
-    private static string FormatReset(
+    internal static string FormatReset(
         DateTimeOffset? resetsAtUtc,
         TimeProvider clock,
         Func<string, string> text)
@@ -416,7 +416,7 @@ public static class CodexDashboardProjector
         };
     }
 
-    private static string Format(
+    internal static string Format(
         Func<string, string> text,
         string key,
         params object[] args) =>

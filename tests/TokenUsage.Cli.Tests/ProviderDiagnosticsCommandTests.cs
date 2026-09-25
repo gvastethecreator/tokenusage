@@ -61,7 +61,7 @@ public sealed class ProviderDiagnosticsCommandTests
         Assert.Equal(
             "amp: detected; data present; localUsage,spend\n"
             + "antigravity: detected; data present; localUsage,spend\n"
-            + "claude: detected; data absent; localUsage,spend\n"
+            + "claude: detected; data absent; limits,localUsage,spend\n"
             + "codex: detected; data present; limits,localUsage,spend\n"
             + "cursor: detected; data absent; localUsage,spend\n"
             + "goose: missing; data absent; localUsage,spend\n"
@@ -247,7 +247,7 @@ public sealed class ProviderDiagnosticsCommandTests
                 [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             new("claude", "Claude",
-                [ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                [ProviderCapability.Limits, ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
             new("opencode", "OpenCode",
                 [ProviderCapability.LocalUsage, ProviderCapability.Spend],
