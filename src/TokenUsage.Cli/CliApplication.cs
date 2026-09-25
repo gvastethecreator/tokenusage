@@ -6,7 +6,7 @@ namespace TokenUsage.Cli;
 public static class CliApplication
 {
     public const string UsageText =
-        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|pricing|cursor|zcode|grok|hook|recover-usage> [command options]";
+        "Usage: tokenusage <refresh|limits|usage|report|providers|doctor|pricing|cursor|claude|zcode|grok|hook|recover-usage> [command options]";
 
     public static bool IsHelpRequest(IReadOnlyList<string> arguments) =>
         arguments.Count == 1

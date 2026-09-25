@@ -80,6 +80,8 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
 
     public event EventHandler? BackgroundCollectionChanged;
 
+    public event EventHandler? ClaudeStatusLineChanged;
+
     public event EventHandler? DataCollectionRefreshChanged;
 
     public event EventHandler? CodexSessionAttributionChanged;
@@ -114,6 +116,19 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRunAttributionBackfill))]
     public partial bool IsCodexSessionAttributionEnabled { get; set; }
+
+    /// <summary>
+    /// Whether Claude Code's status line runs through TokenUsage. The Claude Code settings file
+    /// is the source of truth, so the switch reads it back instead of keeping its own copy.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsClaudeStatusLineEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsClaudeStatusLineAvailable { get; private set; }
+
+    [ObservableProperty]
+    public partial string ClaudeStatusLineStatus { get; private set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRunAttributionBackfill))]
@@ -218,6 +233,67 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
         {
             _isInitializing = false;
         }
+    }
+
+    private Func<bool>? _isClaudeStatusLineInstalled;
+    private Action<bool>? _applyClaudeStatusLine;
+    private bool _isSyncingClaudeStatusLine;
+
+    public void BindClaudeStatusLine(
+        bool isAvailable,
+        Func<bool> isInstalled,
+        Action<bool> apply)
+    {
+        ArgumentNullException.ThrowIfNull(isInstalled);
+        ArgumentNullException.ThrowIfNull(apply);
+        _isClaudeStatusLineInstalled = isInstalled;
+        _applyClaudeStatusLine = apply;
+        IsClaudeStatusLineAvailable = isAvailable;
+        SyncClaudeStatusLine();
+    }
+
+    private void SyncClaudeStatusLine()
+    {
+        _isSyncingClaudeStatusLine = true;
+        try
+        {
+            IsClaudeStatusLineEnabled = _isClaudeStatusLineInstalled?.Invoke() ?? false;
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException)
+        {
+            IsClaudeStatusLineEnabled = false;
+        }
+        finally
+        {
+            _isSyncingClaudeStatusLine = false;
+        }
+    }
+
+    partial void OnIsClaudeStatusLineEnabledChanged(bool value)
+    {
+        if (_isSyncingClaudeStatusLine || _applyClaudeStatusLine is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _applyClaudeStatusLine(value);
+            ClaudeStatusLineStatus = string.Empty;
+        }
+        catch (Exception exception) when (exception is IOException
+                                           or UnauthorizedAccessException
+                                           or InvalidDataException
+                                           or InvalidOperationException
+                                           or System.Text.Json.JsonException)
+        {
+            ClaudeStatusLineStatus = _getString("ClaudeStatusLineUpdateFailed");
+            SyncClaudeStatusLine();
+            return;
+        }
+
+        ClaudeStatusLineChanged?.Invoke(this, EventArgs.Empty);
     }
 
     partial void OnIsBackgroundCollectionEnabledChanged(bool value)

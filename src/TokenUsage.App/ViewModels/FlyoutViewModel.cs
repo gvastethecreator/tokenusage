@@ -12,7 +12,9 @@ using TokenUsage.Core.Layout;
 using Microsoft.UI.Dispatching;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Claude;
 using TokenUsage.Runtime.Windows;
+using TokenUsage.Runtime.Windows.Claude;
 
 namespace TokenUsage.App.ViewModels;
 
@@ -38,7 +40,9 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         string? usageDatabasePath = null,
         Func<AttributionCapability, CancellationToken, Task>? clearAttributionDerivedStores = null,
         AttributionAliasStore? attributionAliases = null,
-        Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null)
+        Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null,
+        ClaudeRateLimitStore? claudeRateLimits = null,
+        ClaudeSettingsInstaller? claudeSettings = null)
     {
         ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
@@ -67,6 +71,27 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             runAttributionBackfill);
         GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
+        if (claudeRateLimits is not null)
+        {
+            ClaudeSettingsInstaller claude = claudeSettings ?? new ClaudeSettingsInstaller();
+            GeneralOptions.BindClaudeStatusLine(
+                claude.IsProviderDetected,
+                () => claude.GetStatusLineStatus() == ClaudeIntegrationStatus.Installed,
+                enabled =>
+                {
+                    if (enabled)
+                    {
+                        claude.InstallStatusLine();
+                        return;
+                    }
+
+                    claude.UninstallStatusLine();
+                    // Turning the wrapper off withdraws the reading it produced.
+                    claudeRateLimits.Delete();
+                });
+            GeneralOptions.ClaudeStatusLineChanged += OnClaudeStatusLineChanged;
+        }
+
         ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
         Options = new OptionsSurfaceViewModel(
             OptionsNavigation,
@@ -81,7 +106,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             new LiveDashboardSession(
                 appSessionHost,
                 localUsageCoordinator,
-                quotaResetHistory),
+                quotaResetHistory,
+                claudeRateLimits),
             GeneralOptions,
             AppearanceOptions,
             Personalization,
@@ -107,6 +133,14 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
     private void OnBackgroundCollectionChanged(object? sender, EventArgs args) =>
         RefreshHookAutoSetup.EnsureInstalled(
             backgroundCollection: GeneralOptions.IsBackgroundCollectionEnabled);
+
+    private void OnClaudeStatusLineChanged(object? sender, EventArgs args)
+    {
+        if (!_disposed)
+        {
+            Dashboard.RefreshCommand.Execute(null);
+        }
+    }
 
     private void OnDataCollectionRefreshChanged(object? sender, EventArgs args) =>
         ApplyOpenRefreshInterval(GeneralOptions.SelectedDataCollectionRefresh?.Minutes ?? 0);
@@ -234,6 +268,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         _openRefreshTimer.Stop();
         GeneralOptions.BackgroundCollectionChanged -= OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged -= OnDataCollectionRefreshChanged;
+        GeneralOptions.ClaudeStatusLineChanged -= OnClaudeStatusLineChanged;
         Options.Updates?.Dispose();
         OptionsNavigation.PropertyChanged -= OnOptionsNavigationPropertyChanged;
         OptionsNavigation.CloseRequested -= OnOptionsNavigationCloseRequested;

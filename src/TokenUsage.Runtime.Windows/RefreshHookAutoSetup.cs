@@ -1,3 +1,4 @@
+using TokenUsage.Runtime.Windows.Claude;
 using TokenUsage.Runtime.Windows.Cursor;
 using TokenUsage.Runtime.Windows.Grok;
 using TokenUsage.Runtime.Windows.Zcode;
@@ -16,7 +17,8 @@ public static class RefreshHookAutoSetup
         ZcodeHookInstaller? zcode = null,
         GrokHookInstaller? grok = null,
         CursorHookInstaller? cursor = null,
-        bool backgroundCollection = true)
+        bool backgroundCollection = true,
+        ClaudeSettingsInstaller? claude = null)
     {
         Try(() =>
         {
@@ -67,6 +69,25 @@ public static class RefreshHookAutoSetup
             else
             {
                 installer.Uninstall();
+            }
+        });
+        Try(() =>
+        {
+            // Only the refresh hook follows background collection. The status line wrapper
+            // is a separate, explicit choice and is never installed from here.
+            ClaudeSettingsInstaller installer = claude ?? new ClaudeSettingsInstaller();
+            if (!installer.IsProviderDetected)
+            {
+                return;
+            }
+
+            if (backgroundCollection)
+            {
+                installer.InstallHook();
+            }
+            else
+            {
+                installer.UninstallHook();
             }
         });
     }

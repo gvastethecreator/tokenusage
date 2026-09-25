@@ -40,6 +40,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         new(StringComparer.Ordinal);
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
+    private ProviderSnapshot? _lastClaudeSnapshot;
+    private IReadOnlyDictionary<string, long> _claudeWindowUsedTokens = new Dictionary<string, long>();
     private DashboardSnapshot? _rawDashboard;
     private DashboardSnapshot? _appearanceDashboard;
     private bool _disposed;
@@ -170,7 +172,18 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
-    public partial IReadOnlyList<QuotaWindow> GlobalProviderLimits { get; private set; } = [];
+    [NotifyPropertyChangedFor(nameof(HasGlobalCodexLimits))]
+    public partial IReadOnlyList<QuotaWindow> GlobalCodexLimits { get; private set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
+    [NotifyPropertyChangedFor(nameof(HasGlobalClaudeLimits))]
+    public partial IReadOnlyList<QuotaWindow> GlobalClaudeLimits { get; private set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
+    [NotifyPropertyChangedFor(nameof(HasGlobalZcodeLimits))]
+    public partial IReadOnlyList<QuotaWindow> GlobalZcodeLimits { get; private set; } = [];
 
     [ObservableProperty]
     public partial UsageHeatmapModel SelectedProviderHeatmap { get; private set; } = UsageHeatmapModel.Empty;
@@ -273,7 +286,13 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     public bool SelectedProviderHasLimits => SelectedProviderLimits.Count > 0;
 
-    public bool HasGlobalProviderLimits => GlobalProviderLimits.Count > 0;
+    public bool HasGlobalProviderLimits => HasGlobalCodexLimits || HasGlobalClaudeLimits || HasGlobalZcodeLimits;
+
+    public bool HasGlobalCodexLimits => GlobalCodexLimits.Count > 0;
+
+    public bool HasGlobalClaudeLimits => GlobalClaudeLimits.Count > 0;
+
+    public bool HasGlobalZcodeLimits => GlobalZcodeLimits.Count > 0;
 
     public bool SelectedProviderHasCoverageHint => SelectedProvider is not null;
 
@@ -693,6 +712,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     {
         _lastCodexSnapshot = session.LastCodexSnapshot;
         _lastCodexOutcome = session.LastCodexOutcome;
+        _lastClaudeSnapshot = session.LastClaudeSnapshot;
+        _claudeWindowUsedTokens = session.ClaudeWindowUsedTokens;
         _publishedObservedAtUtc = session.PublishedObservedAtUtc;
         _retryAtUtc = session.RetryAtUtc;
         SetDataState(session.DataState);
@@ -710,6 +731,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
 
         if (session.LastCodexSnapshot is null
+            && session.LastClaudeSnapshot is null
             && session.HasLocalUsage
             && (session.RawLocalUsage is null
                 || session.RawLocalUsage.SpendBreakdown.AgentSlices.Count == 0))
@@ -752,6 +774,14 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                 _liveSession.CodexWindowUsedTokens).Providers);
         }
 
+        if (_lastClaudeSnapshot is not null)
+        {
+            providers.Add(ClaudeDashboardProjector.Create(
+                _lastClaudeSnapshot,
+                _liveSession.Clock,
+                _getString,
+                _claudeWindowUsedTokens));
+        }
 
         IReadOnlyList<SpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
             ? _rawLocalUsage.SpendBreakdown.AgentSlices
@@ -839,7 +869,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _lastCodexOutcome,
             _hasPublishedDashboard,
             DataState,
-            LocalUsage.ProviderStatuses);
+            LocalUsage.ProviderStatuses,
+            _lastClaudeSnapshot);
 
     private void RebuildSamplePreview() => InOnePass(() =>
     {
@@ -1008,7 +1039,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         GlobalCostBreakdownText = projection.GlobalCostBreakdownText;
         GlobalHeatmap = projection.GlobalHeatmap;
         GlobalActivity = projection.GlobalActivity;
-        GlobalProviderLimits = projection.GlobalProviderLimits;
+        GlobalCodexLimits = projection.GlobalCodexLimits;
+        GlobalClaudeLimits = projection.GlobalClaudeLimits;
+        GlobalZcodeLimits = projection.GlobalZcodeLimits;
 
         DashboardProviderOption? nextSelection = ProviderOptions.FirstOrDefault(option =>
             string.Equals(option.ProviderId, projection.SelectedProviderId, StringComparison.Ordinal))

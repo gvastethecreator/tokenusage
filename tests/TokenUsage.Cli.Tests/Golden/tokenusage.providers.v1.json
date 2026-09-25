@@ -26,6 +26,7 @@
       "id": "claude",
       "name": "Claude",
       "capabilities": [
+        "limits",
         "localUsage",
         "spend"
       ],

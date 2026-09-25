@@ -1,6 +1,7 @@
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Claude;
 using TokenUsage.Runtime.Windows.Providers;
 
 namespace TokenUsage.Cli;
@@ -18,27 +19,40 @@ public static class LocalLimitsCliAccess
         ArgumentNullException.ThrowIfNull(clock);
         cancellationToken.ThrowIfCancellationRequested();
 
+        bool isClaude = string.Equals(providerId, "claude", StringComparison.Ordinal);
         if (providerId is not null
+            && !isClaude
             && !IsKnownProvider(providerId))
         {
             return [];
         }
 
         string root = Path.GetFullPath(dataDirectory);
-        ProviderRefreshHost host = CreateLiveHost(root, clock);
-        IReadOnlyList<ProviderSnapshot> snapshots = await new LimitsQuery(host)
-            .ReadAsync(
-                providerId is null ? null : new ProviderId(providerId),
-                forceRefresh,
-                cancellationToken)
-            .ConfigureAwait(false);
+        var snapshots = new List<ProviderSnapshot>();
+        if (!isClaude)
+        {
+            ProviderRefreshHost host = CreateLiveHost(root, clock);
+            snapshots.AddRange(await new LimitsQuery(host)
+                .ReadAsync(
+                    providerId is null ? null : new ProviderId(providerId),
+                    forceRefresh,
+                    cancellationToken)
+                .ConfigureAwait(false));
+        }
+
+        // Claude limits are the last reading its status line wrapper stored; there is no
+        // live call to force, so a forced read returns the same reading.
+        if ((providerId is null || isClaude)
+            && ReadClaude(root, clock) is { } claude)
+        {
+            snapshots.Add(claude);
+        }
+
         var history = new QuotaResetHistoryStore(
             Path.Combine(root, "history", QuotaResetHistoryStore.DefaultFileName),
             clock);
-        foreach (ProviderSnapshot snapshot in snapshots.Where(snapshot => string.Equals(
-                     snapshot.ProviderId.Value,
-                     "codex",
-                     StringComparison.Ordinal)))
+        foreach (ProviderSnapshot snapshot in snapshots.Where(snapshot => snapshot.ProviderId.Value
+                     is "codex" or "claude"))
         {
             try
             {
@@ -59,6 +73,20 @@ public static class LocalLimitsCliAccess
         }
 
         return snapshots;
+    }
+
+    private static ProviderSnapshot? ReadClaude(string dataDirectory, TimeProvider clock)
+    {
+        string path = ClaudeRateLimitStore.DefaultPath(dataDirectory);
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        ClaudeRateLimitSnapshot? reading = new ClaudeRateLimitStore(path).Load();
+        return reading is null
+            ? null
+            : ClaudeRateLimitSnapshotMapper.Map(reading, clock.GetUtcNow(), TimeZoneInfo.Local.Id);
     }
 
     internal static ProviderRefreshHost CreateLiveHost(string dataDirectory, TimeProvider clock)

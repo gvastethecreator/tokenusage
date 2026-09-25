@@ -15,7 +15,9 @@ public sealed record CompactDashboardProjection(
     IReadOnlyList<SpendSlice> GlobalSpendSlices,
     UsageHeatmapModel GlobalHeatmap,
     IReadOnlyList<DashboardActivitySummary> GlobalActivity,
-    IReadOnlyList<QuotaWindow> GlobalProviderLimits,
+    IReadOnlyList<QuotaWindow> GlobalCodexLimits,
+    IReadOnlyList<QuotaWindow> GlobalClaudeLimits,
+    IReadOnlyList<QuotaWindow> GlobalZcodeLimits,
     string GlobalCostText,
     string GlobalDonutCenterText,
     string GlobalFooterText,
@@ -135,7 +137,9 @@ public static class CompactDashboardProjector
             spendSlices,
             heatmap,
             CreateActivitySummaries(windowed, today, getString),
-            CreateGlobalLimits(GetLimitsOnce, getString),
+            GetLimitsOnce("codex"),
+            GetLimitsOnce("claude"),
+            GetLimitsOnce("zcode"),
             globalCostText,
             globalCostText.Replace(" USD", "\nUSD", StringComparison.Ordinal),
             string.Format(
@@ -149,32 +153,6 @@ public static class CompactDashboardProjector
             selected.Heatmap,
             selected.Trend,
             selected.Limits);
-    }
-
-    /// <summary>
-    /// The global limits strip shows every provider that publishes quota
-    /// windows. ZCode titles carry the provider name because Codex window
-    /// titles do not.
-    /// </summary>
-    private static IReadOnlyList<QuotaWindow> CreateGlobalLimits(
-        Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
-        Func<string, string> getString)
-    {
-        IReadOnlyList<QuotaWindow> codex = getProviderLimits("codex");
-        IReadOnlyList<QuotaWindow> zcode = getProviderLimits("zcode");
-        if (zcode.Count == 0)
-        {
-            return codex;
-        }
-
-        string prefix = getString("ZcodeGlobalLimitTitlePrefix");
-        return codex
-            .Concat(zcode.Select(window => window with
-            {
-                Title = prefix + window.Title,
-                AutomationName = prefix + window.AutomationName,
-            }))
-            .ToArray();
     }
 
     public static CompactSelectedProviderProjection CreateSelectedProvider(

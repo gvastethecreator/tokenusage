@@ -70,14 +70,14 @@ public sealed class CompactDashboardProjectorTests
         Assert.Equal(1_280, projection.ProviderSummaries.Sum(item => item.TotalTokens));
         Assert.Equal(1.90m, projection.ProviderSummaries.Sum(item => item.CostUsd));
         Assert.Equal("codex", projection.SelectedProviderId);
-        Assert.Same(projection.SelectedProviderLimits, projection.GlobalProviderLimits);
-        Assert.NotEmpty(projection.GlobalProviderLimits);
-        // Codex and ZCode each read once through the per-provider cache.
-        Assert.Equal(2, providerLimitReads);
+        Assert.Same(projection.SelectedProviderLimits, projection.GlobalCodexLimits);
+        Assert.NotEmpty(projection.GlobalCodexLimits);
+        // Codex, Claude, and ZCode each read once through the per-provider cache.
+        Assert.Equal(3, providerLimitReads);
     }
 
     [Fact]
-    public void ZcodeQuotaWindowsJoinTheGlobalLimitsStripWithAProviderPrefix()
+    public void ZcodeQuotaWindowsKeepTheirOwnGlobalGroup()
     {
         var today = new DateOnly(2026, 8, 26);
 
@@ -89,7 +89,7 @@ public sealed class CompactDashboardProjectorTests
             activeSample: null,
             EmptyLocalUsage(),
             selectedProviderId: null,
-            getString: key => key == "ZcodeGlobalLimitTitlePrefix" ? "ZCode · " : key,
+            getString: key => key,
             getProviderLimits: id => id == "zcode"
                 ?
                 [
@@ -99,9 +99,71 @@ public sealed class CompactDashboardProjectorTests
                 : []);
 
         Assert.Collection(
-            projection.GlobalProviderLimits,
-            fiveHour => Assert.Equal("ZCode · 5-hour credits (estimated)", fiveHour.Title),
-            weekly => Assert.Equal("ZCode · Weekly credits (estimated)", weekly.Title));
+            projection.GlobalZcodeLimits,
+            fiveHour => Assert.Equal("5-hour credits (estimated)", fiveHour.Title),
+            weekly => Assert.Equal("Weekly credits (estimated)", weekly.Title));
+        Assert.Empty(projection.GlobalCodexLimits);
+        Assert.Empty(projection.GlobalClaudeLimits);
+    }
+
+    [Fact]
+    public void ClaudeQuotaWindowsKeepTheirOwnGlobalGroup()
+    {
+        var now = new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.Zero);
+        ProviderSnapshot snapshot = TokenUsage.Providers.Claude.ClaudeRateLimitSnapshotMapper.Map(
+            new TokenUsage.Providers.Claude.ClaudeRateLimitSnapshot(
+                now,
+                [
+                    new("seven_day", 41.2m, now.AddDays(3)),
+                    new("five_hour", 23.5m, now.AddHours(2)),
+                ]),
+            now,
+            "UTC")!;
+        ProviderCard claude = ClaudeDashboardProjector.Create(
+            snapshot,
+            new FixedClock(now),
+            key => key switch
+            {
+                "SampleWindowSession" => "Session",
+                "SampleWindowWeekly" => "Weekly",
+                "LocalUsageAgentClaude" => "Claude",
+                _ => key,
+            },
+            new Dictionary<string, long> { ["quota.five-hour"] = 1_500 });
+
+        CompactDashboardProjection projection = CompactDashboardProjector.Create(
+            new DateOnly(2026, 9, 24),
+            [],
+            ["claude"],
+            isSampleMode: false,
+            activeSample: null,
+            EmptyLocalUsage(),
+            selectedProviderId: null,
+            getString: key => key,
+            getProviderLimits: id => id switch
+            {
+                "codex" => [new QuotaWindow("Session", 80, "80%", "soon", "Codex, Session", false)],
+                "claude" => claude.Windows,
+                _ => [],
+            });
+
+        Assert.Null(claude.NoticeText);
+        Assert.Equal("Session", Assert.Single(projection.GlobalCodexLimits).Title);
+        Assert.Collection(
+            projection.GlobalClaudeLimits,
+            session =>
+            {
+                Assert.Equal("Session", session.Title);
+                Assert.Equal(76.5d, session.RemainingPercent, precision: 3);
+                Assert.StartsWith("Claude, Session", session.AutomationName, StringComparison.Ordinal);
+                Assert.NotEmpty(session.UsedText);
+            },
+            weekly => Assert.Equal("Weekly", weekly.Title));
+    }
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     [Fact]

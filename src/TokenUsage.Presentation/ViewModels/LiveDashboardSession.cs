@@ -5,6 +5,7 @@ using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
+using TokenUsage.Providers.Claude;
 
 namespace TokenUsage.App.ViewModels;
 
@@ -14,11 +15,13 @@ namespace TokenUsage.App.ViewModels;
 public sealed class LiveDashboardSession : IDisposable
 {
     private static readonly AgentId CodexAgentId = new("codex");
+    private static readonly AgentId ClaudeAgentId = new("claude");
 
     private readonly object _updateSync = new();
     private readonly AppSessionHost _host;
     private readonly LocalUsageCoordinator _localUsage;
     private readonly QuotaResetHistoryStore? _quotaResetHistory;
+    private readonly ClaudeRateLimitStore? _claudeRateLimits;
     private CancellationTokenSource? _localRefreshCancellation;
     private Task _pendingUpdates = Task.CompletedTask;
     private Func<string, string>? _getString;
@@ -32,11 +35,13 @@ public sealed class LiveDashboardSession : IDisposable
     public LiveDashboardSession(
         AppSessionHost host,
         LocalUsageCoordinator localUsage,
-        QuotaResetHistoryStore? quotaResetHistory = null)
+        QuotaResetHistoryStore? quotaResetHistory = null,
+        ClaudeRateLimitStore? claudeRateLimits = null)
     {
         _host = host ?? throw new ArgumentNullException(nameof(host));
         _localUsage = localUsage ?? throw new ArgumentNullException(nameof(localUsage));
         _quotaResetHistory = quotaResetHistory;
+        _claudeRateLimits = claudeRateLimits;
         _host.Updated += OnSessionUpdated;
     }
 
@@ -53,6 +58,19 @@ public sealed class LiveDashboardSession : IDisposable
         new Dictionary<string, long>();
 
     public ProviderOutcome? LastCodexOutcome { get; private set; }
+
+    /// <summary>
+    /// The last Claude Code subscription reading, taken from the status line sidecar. Null
+    /// when the wrapper is not installed, the account has no subscription limits, or every
+    /// window it reported has already reset.
+    /// </summary>
+    public ProviderSnapshot? LastClaudeSnapshot { get; private set; }
+
+    /// <summary>
+    /// Tokens the local store recorded inside each open Claude window, keyed by metric ID.
+    /// </summary>
+    public IReadOnlyDictionary<string, long> ClaudeWindowUsedTokens { get; private set; } =
+        new Dictionary<string, long>();
 
     public LocalUsageCard? RawLocalUsage { get; private set; }
 
@@ -115,6 +133,13 @@ public sealed class LiveDashboardSession : IDisposable
                 LocalUsageRollups = cached.Rollups;
                 HasLocalUsage = true;
                 HasPublished = true;
+                _onChanged(this);
+            }
+
+            if (await RefreshClaudeQuotaAsync().ConfigureAwait(true)
+                && version == Volatile.Read(ref _refreshVersion)
+                && _publishingEnabled)
+            {
                 _onChanged(this);
             }
 
@@ -267,7 +292,7 @@ public sealed class LiveDashboardSession : IDisposable
                 if (codex is not null)
                 {
                     await ObserveResetHistoryAsync(codex).ConfigureAwait(true);
-                    await SumCodexWindowTokensAsync(codex).ConfigureAwait(true);
+                    CodexWindowUsedTokens = await SumWindowTokensAsync(codex, CodexAgentId).ConfigureAwait(true);
                     LastCodexSnapshot = codex;
                     PublishedObservedAtUtc = codex.SourceObservedAtUtc;
                     HasPublished = true;
@@ -292,7 +317,7 @@ public sealed class LiveDashboardSession : IDisposable
                 if (completed is not null)
                 {
                     await ObserveResetHistoryAsync(completed).ConfigureAwait(true);
-                    await SumCodexWindowTokensAsync(completed).ConfigureAwait(true);
+                    CodexWindowUsedTokens = await SumWindowTokensAsync(completed, CodexAgentId).ConfigureAwait(true);
                 }
                 PublishChanged(version);
                 break;
@@ -306,6 +331,13 @@ public sealed class LiveDashboardSession : IDisposable
                         _getString,
                         _ => PublishChanged(version),
                         localCancellation.Token).ConfigureAwait(true);
+                    // The local scan just added the latest Claude events, so each window's
+                    // observed token count can move even when the reading itself did not.
+                    if (await RefreshClaudeQuotaAsync(recountTokens: true).ConfigureAwait(true))
+                    {
+                        PublishChanged(version);
+                    }
+
                     if (version == Volatile.Read(ref _refreshVersion)
                         && HasLocalUsage
                         && !HasPublished
@@ -549,9 +581,62 @@ public sealed class LiveDashboardSession : IDisposable
         }
     }
 
-    private async Task SumCodexWindowTokensAsync(ProviderSnapshot codex)
+    /// <summary>
+    /// Loads the Claude Code reading and returns true when the published snapshot changed.
+    /// A new reading is added to the reset history exactly like a Codex quota response.
+    /// </summary>
+    private async Task<bool> RefreshClaudeQuotaAsync(bool recountTokens = false)
     {
-        Dictionary<string, decimal> durations = codex.Metrics
+        if (_claudeRateLimits is null)
+        {
+            return false;
+        }
+
+        ClaudeRateLimitSnapshot? reading;
+        try
+        {
+            reading = await Task.Run(_claudeRateLimits.Load).ConfigureAwait(true);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException)
+        {
+            return false;
+        }
+
+        ProviderSnapshot? snapshot = reading is null
+            ? null
+            : ClaudeRateLimitSnapshotMapper.Map(
+                reading,
+                Clock.GetUtcNow(),
+                TimeZoneInfo.Local.Id);
+        ProviderSnapshot? previous = LastClaudeSnapshot;
+        bool changed = snapshot is null
+            ? previous is not null
+            : previous is null
+                || previous.SourceObservedAtUtc != snapshot.SourceObservedAtUtc
+                || previous.Metrics.Count != snapshot.Metrics.Count;
+        if (!changed && !recountTokens)
+        {
+            return false;
+        }
+
+        if (snapshot is not null && changed)
+        {
+            await ObserveResetHistoryAsync(snapshot).ConfigureAwait(true);
+        }
+
+        ClaudeWindowUsedTokens = snapshot is null
+            ? new Dictionary<string, long>()
+            : await SumWindowTokensAsync(snapshot, ClaudeAgentId).ConfigureAwait(true);
+        LastClaudeSnapshot = snapshot;
+        return true;
+    }
+
+    private async Task<IReadOnlyDictionary<string, long>> SumWindowTokensAsync(
+        ProviderSnapshot quota,
+        AgentId agentId)
+    {
+        Dictionary<string, decimal> durations = quota.Metrics
             .OfType<ScalarMetricSnapshot>()
             .Where(metric => metric.Id.Value.EndsWith(".window-minutes", StringComparison.Ordinal))
             .ToDictionary(
@@ -561,7 +646,7 @@ public sealed class LiveDashboardSession : IDisposable
 
         DateTimeOffset nowUtc = Clock.GetUtcNow();
         var sums = new Dictionary<string, long>();
-        foreach (ProgressMetricSnapshot metric in codex.Metrics.OfType<ProgressMetricSnapshot>())
+        foreach (ProgressMetricSnapshot metric in quota.Metrics.OfType<ProgressMetricSnapshot>())
         {
             if (metric.ResetsAtUtc is not DateTimeOffset resetsAtUtc
                 || !durations.TryGetValue(metric.Id.Value, out decimal durationMinutes)
@@ -580,7 +665,7 @@ public sealed class LiveDashboardSession : IDisposable
             try
             {
                 sums[metric.Id.Value] = await _localUsage
-                    .SumTokensSinceAsync(CodexAgentId, windowStartUtc)
+                    .SumTokensSinceAsync(agentId, windowStartUtc)
                     .ConfigureAwait(true);
             }
             catch (Exception exception) when (exception is IOException
@@ -592,6 +677,6 @@ public sealed class LiveDashboardSession : IDisposable
             }
         }
 
-        CodexWindowUsedTokens = sums;
+        return sums;
     }
 }

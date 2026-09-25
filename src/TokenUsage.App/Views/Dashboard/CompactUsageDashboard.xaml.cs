@@ -114,7 +114,9 @@ public sealed partial class CompactUsageDashboard : UserControl
         object? sender,
         PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(DashboardSurfaceViewModel.GlobalProviderLimits)
+        if (e.PropertyName is nameof(DashboardSurfaceViewModel.GlobalCodexLimits)
+            or nameof(DashboardSurfaceViewModel.GlobalClaudeLimits)
+            or nameof(DashboardSurfaceViewModel.GlobalZcodeLimits)
             or nameof(DashboardSurfaceViewModel.SelectedProviderLimits))
         {
             _ = DispatcherQueue.TryEnqueue(UpdateQuotaTilesWidths);
@@ -208,7 +210,9 @@ public sealed partial class CompactUsageDashboard : UserControl
 
     private void UpdateQuotaTilesWidths()
     {
-        UpdateQuotaTilesWidth(GlobalQuotaTilesRepeater, GlobalQuotaTilesRepeater.ActualWidth);
+        UpdateQuotaTilesWidth(GlobalCodexQuotaTilesRepeater, GlobalCodexQuotaTilesRepeater.ActualWidth);
+        UpdateQuotaTilesWidth(GlobalClaudeQuotaTilesRepeater, GlobalClaudeQuotaTilesRepeater.ActualWidth);
+        UpdateQuotaTilesWidth(GlobalZcodeQuotaTilesRepeater, GlobalZcodeQuotaTilesRepeater.ActualWidth);
         UpdateQuotaTilesWidth(ProviderQuotaTilesRepeater, ProviderQuotaTilesRepeater.ActualWidth);
     }
 
@@ -219,9 +223,9 @@ public sealed partial class CompactUsageDashboard : UserControl
             return;
         }
 
-        int itemCount = ReferenceEquals(repeater, GlobalQuotaTilesRepeater)
-            ? ViewModel.GlobalProviderLimits.Count
-            : ViewModel.SelectedProviderLimits.Count;
+        int itemCount = repeater.ItemsSource is IReadOnlyCollection<QuotaWindow> limits
+            ? limits.Count
+            : 0;
         double width = itemCount == 1
             ? availableWidth
             : Math.Floor((availableWidth - layout.MinColumnSpacing) / 2d);

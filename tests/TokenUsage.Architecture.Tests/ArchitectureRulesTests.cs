@@ -452,6 +452,7 @@ public sealed class ArchitectureRulesTests
         string[] requiredAutomationIds =
         [
             "CloseWhenInactiveToggle",
+            "ClaudeStatusLineToggle",
             "CodexSessionAttributionToggle",
             "CodexProjectAttributionToggle",
             "CursorSessionAttributionToggle",
@@ -597,8 +598,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(352, matches.Count);
-        Assert.Equal(336, distinctIds.Length);
+        Assert.Equal(354, matches.Count);
+        Assert.Equal(338, distinctIds.Length);
         Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCostDetails", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewPartialWarning", distinctIds, StringComparer.Ordinal);

@@ -268,12 +268,27 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public bool IsValueModeVisible => IsGlobalScope;
 
     public bool CanUseResetCycles => IsProviderScope
-        && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+        && IsResetCycleProvider(SelectedProvider?.ProviderId)
         && ResetCycleOptions.Count > 0;
 
     public bool HasResetCycleAvailabilityNotice => IsProviderScope
-        && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+        && IsResetCycleProvider(SelectedProvider?.ProviderId)
         && ResetCycleOptions.Count == 0;
+
+    /// <summary>
+    /// Providers whose quota windows reset on a schedule the app observes: Codex through its
+    /// local API, Claude through the Claude Code status line reading.
+    /// </summary>
+    private static bool IsResetCycleProvider(string? providerId) =>
+        providerId is "codex" or "claude";
+
+    /// <summary>
+    /// The provider whose reset cycles the report offers: the selected one when it has cycles,
+    /// otherwise Codex, which the cycle comparison axis has always used.
+    /// </summary>
+    private string ResetCycleProviderId => IsResetCycleProvider(SelectedProvider?.ProviderId)
+        ? SelectedProvider!.ProviderId
+        : "codex";
 
     public string ResetCycleAvailabilityText => ProviderLimits.Count == 0
         ? GetString("UsageReportResetCycleQuotaUnavailable")
@@ -448,7 +463,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             {
                 RefreshProviderDetails();
                 RebuildResetCycleOptions();
-                if (!string.Equals(value?.ProviderId, "codex", StringComparison.Ordinal))
+                if (!IsResetCycleProvider(value?.ProviderId))
                 {
                     _usesResetCycle = false;
                 }
@@ -590,7 +605,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         : $"{SelectedResetCycle.AutomationName}{Environment.NewLine}{GetString("UsageReportResetCycleExactBoundaryNote")}";
 
     public bool HasResetCountSummary => IsProviderScope
-        && string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal);
+        && IsResetCycleProvider(SelectedProvider?.ProviderId);
 
     private QuotaResetCountSummary ResetCountSummary
     {
@@ -618,7 +633,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
             return QuotaResetCountQuery.Summarize(
                 _resetHistory,
-                "codex",
+                ResetCycleProviderId,
                 fromUtc,
                 toUtcExclusive,
                 metricId);
@@ -1281,7 +1296,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     private void RebuildResetCycleOptions()
     {
-        if (!NeedsCodexResetCycles)
+        if (!NeedsResetCycles)
         {
             ResetCycleOptions = [];
             ResetCycleGroupOptions = [];
@@ -1295,10 +1310,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return;
         }
 
+        string cycleProviderId = ResetCycleProviderId;
         IReadOnlyList<QuotaWindow> cycleLimits =
-            string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+            string.Equals(SelectedProvider?.ProviderId, cycleProviderId, StringComparison.Ordinal)
                 ? ProviderLimits
-                : _getProviderLimits("codex");
+                : _getProviderLimits(cycleProviderId);
 
         var windowNames = cycleLimits
             .Where(window => !string.IsNullOrWhiteSpace(window.LayoutMetricId))
@@ -1307,7 +1323,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         var windowDurations = _resetHistory.Windows
             .Where(window => string.Equals(
                 window.ProviderId,
-                "codex",
+                cycleProviderId,
                 StringComparison.Ordinal))
             .GroupBy(window => window.MetricId, StringComparer.Ordinal)
             .ToDictionary(
@@ -1317,7 +1333,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         foreach (QuotaResetWindowState window in _resetHistory.Windows
                      .Where(window => string.Equals(
                          window.ProviderId,
-                         "codex",
+                         cycleProviderId,
                          StringComparison.Ordinal)))
         {
             windowNames.TryAdd(window.MetricId, ResetWindowName(window));
@@ -1331,7 +1347,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         foreach (QuotaResetWindowState window in _resetHistory.Windows
                      .Where(window => string.Equals(
                          window.ProviderId,
-                         "codex",
+                         cycleProviderId,
                          StringComparison.Ordinal))
                      .OrderBy(window => ResetWindowOrder(window.MetricId)))
         {
@@ -1340,7 +1356,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         foreach (QuotaResetRecord reset in _resetHistory.Resets
                      .Where(reset => string.Equals(
                          reset.ProviderId,
-                         "codex",
+                         cycleProviderId,
                          StringComparison.Ordinal))
                      .OrderBy(reset => ResetWindowOrder(reset.MetricId)))
         {
@@ -1351,7 +1367,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         string? compareRightId = _compareRightCycle?.Id;
         UsageReportResetCycleOption[] options = QuotaResetCycleQuery.Build(
                 _resetHistory,
-                "codex",
+                cycleProviderId,
                 _clock.GetUtcNow().ToUniversalTime())
             .OrderBy(cycle => windowOrder.GetValueOrDefault(cycle.MetricId, int.MaxValue))
             .ThenByDescending(cycle => cycle.IsCurrent)
@@ -1889,8 +1905,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MeasurementEvidence));
     }
 
-    private bool NeedsCodexResetCycles =>
-        string.Equals(SelectedProvider?.ProviderId, "codex", StringComparison.Ordinal)
+    private bool NeedsResetCycles =>
+        IsResetCycleProvider(SelectedProvider?.ProviderId)
         || (IsCompareScope && IsCompareCyclesAxis);
 
     private async Task ApplyCompareReportsAsync(
