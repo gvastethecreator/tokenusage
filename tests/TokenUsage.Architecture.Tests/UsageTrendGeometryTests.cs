@@ -69,9 +69,21 @@ public sealed class UsageTrendGeometryTests
     }
 
     [Fact]
-    public void OverlaidBarsShareBaselinesAndDrawSmallValuesInFrontWithoutSummingPeriods()
+    public void StackedBarsSumTheDayWhileComparisonBarsStayOverlaid()
     {
         IReadOnlyList<double>[] values = [new double[] { 4_000, 40 }, new double[] { 40, 4 }];
+        UsageTrendScale stackedScale = UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(values, stacked: true));
+        var stacked = UsageTrendLayouts.Bars(values, 2, 400, 200, stackedScale.Maximum, stacked: true);
+        Assert.Equal(4, stacked.Count);
+        Assert.Equal(stacked[0].Y, stacked[1].Y + stacked[1].Height, 10);
+        Assert.False(stacked[0].IsTop);
+        Assert.True(stacked[1].IsTop);
+        Assert.Equal(stackedScale.Normalize(4_040) * 182, stacked[0].Height + stacked[1].Height, 10);
+        double[][] shares = [[60, 25], [40, 75]];
+        var percentage = UsageTrendLayouts.Bars(shares, 2, 400, 200, 100, stacked: true);
+        Assert.All(percentage.Where(bar => bar.IsTop), bar => Assert.Equal(8, bar.Y, 10));
+
+        // Comparison periods overlay: summing two periods would invent a total that never happened.
         UsageTrendScale scale = UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(values, stacked: false));
         Assert.Equal(scale.Normalize(4_000) / 100, scale.Normalize(40), 12);
         Assert.Equal(4_040, UsageTrendLayouts.Peak(values, stacked: true));

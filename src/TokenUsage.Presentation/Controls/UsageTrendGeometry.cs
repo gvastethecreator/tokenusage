@@ -127,8 +127,28 @@ public static class UsageTrendGeometry
         }
 
         return emphasizeSmallValues
-            ? new UsageTrendScale(maximum, Enumerable.Range(0, 5).Select(index => maximum * Math.Pow(index / 4d, 2)).ToArray(), true)
+            ? new UsageTrendScale(maximum, SquareRootTicks(maximum), true)
             : new UsageTrendScale(maximum, ticks);
+    }
+
+    // Evenly spaced on screen means quadratic in value; snapping each tick to a round number
+    // keeps labels readable ($40, $150) instead of exact quadratic points ($37.5, $337.5).
+    private static readonly double[] RoundTickSteps = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+    private static double[] SquareRootTicks(double maximum)
+    {
+        static double Snap(double value)
+        {
+            double magnitude = Math.Pow(10, Math.Floor(Math.Log10(value)));
+            return RoundTickSteps.MinBy(step => Math.Abs(step * magnitude - value)) * magnitude;
+        }
+
+        return [.. Enumerable.Range(1, 3)
+            .Select(index => Snap(maximum * Math.Pow(index / 4d, 2)))
+            .Prepend(0)
+            .Append(maximum)
+            .Distinct()
+            .Where(value => value <= maximum)];
     }
 
     public static IReadOnlyList<double> ContinueMeasuredValues(
