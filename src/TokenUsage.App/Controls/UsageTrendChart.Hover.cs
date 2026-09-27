@@ -97,6 +97,7 @@ public sealed partial class UsageTrendChart
             HoverCard.Visibility == Visibility.Visible)) return;
         bool wasVisible = HoverCard.Visibility == Visibility.Visible;
         _displayedHoverIndex = index;
+        EmphasizeDay(index);
         BuildHoverContent(index);
         double x = Data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || Data.Days.Count == 1
             ? (index + 0.5) * PlotCanvas.ActualWidth / Data.Days.Count
@@ -195,13 +196,14 @@ public sealed partial class UsageTrendChart
                     : FormatValue(total, Data.Metric, exact: true)
                         + (hasUnknown ? " · " + GetString("UsageReportKnownOnly") : ""));
         }
-        string hoverHelp = _hoverDate.Text + ". " + _hoverResets.Text + ". " + string.Join(". ",
-            Data.Series.Select(series =>
+        string hoverHelp = string.Join(". ", new[] { _hoverDate.Text, _hoverResets.Text }
+            .Where(part => !string.IsNullOrEmpty(part))
+            .Concat(Data.Series.Select(series =>
             {
                 double value = index < series.Values.Count ? series.Values[index] : 0;
                 UsageTrendPointKind kind = UsageTrendGeometry.KindAt(series.Values, series.PointKinds, index);
                 return series.Name + ": " + FormatValue(value, Data.Metric, kind, true);
-            }));
+            })));
         AutomationProperties.SetHelpText(this, hoverHelp);
     }
 
@@ -219,6 +221,8 @@ public sealed partial class UsageTrendChart
         });
         FrameworkElement mark = series.IsReserve ? new TablerIcon { Kind = "moon", Width = 14, Height = 14 }
             : new ProviderMarkImage { ProviderId = series.ProviderId, Width = 14, Height = 14 };
+        // Period and model comparisons have no provider identity; a fallback letter mark reads as data.
+        if (series.ProviderId.StartsWith("compare-", StringComparison.Ordinal)) mark.Visibility = Visibility.Collapsed;
         Grid.SetColumn(mark, 1);
         row.Children.Add(mark);
         var name = new TextBlock
@@ -251,6 +255,7 @@ public sealed partial class UsageTrendChart
         CancelPendingHover();
         _displayedHoverIndex = null;
         _hoverIndex = null;
+        EmphasizeDay(null);
         if (HoverCard.Visibility == Visibility.Visible)
             ElementCompositionPreview.GetElementVisual(HoverCard).StopAnimation("Translation.X");
         HoverCard.Visibility = Visibility.Collapsed;

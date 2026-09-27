@@ -18,21 +18,25 @@ public sealed partial class UsageTrendChart
         if (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
         {
             foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, UsageTrendLayouts.BarSlots(data.Style, data.Days.Count),
-                width, height, scale.Maximum, top: IsPreview ? 2 : TopPadding, bottom: IsPreview ? 2 : BottomPadding, emphasizeSmallValues: scale.EmphasizeSmallValues))
+                width, height, scale.Maximum, top: IsPreview ? 2 : TopPadding, bottom: IsPreview ? 2 : BottomPadding,
+                emphasizeSmallValues: scale.EmphasizeSmallValues, stacked: !data.IsComparison))
             {
+                // A one-pixel seam keeps adjacent stacked segments readable when two providers share a hue family.
+                double seam = !item.IsTop && item.Height > 3 ? 1 : 0;
                 var bar = new Border
                 {
-                    Width = item.Width, Height = item.Height,
+                    Width = item.Width, Height = item.Height - seam,
                     Background = IsPreview ? SeriesBrush(data.Series[item.SeriesIndex]) : BarBrush(data.Series[item.SeriesIndex]),
-                    CornerRadius = IsPreview ? new CornerRadius(1, 1, 0, 0) : new CornerRadius(4, 4, 0, 0),
+                    CornerRadius = !item.IsTop ? new CornerRadius(0)
+                        : IsPreview ? new CornerRadius(1, 1, 0, 0) : new CornerRadius(4, 4, 0, 0),
                     BorderBrush = IsHighContrast ? TextBrushProxy.Background : null,
                     BorderThickness = new Thickness(IsHighContrast ? 1 : 0),
                     UseLayoutRounding = false,
                     IsHitTestVisible = false,
                 };
                 Canvas.SetLeft(bar, item.X);
-                Canvas.SetTop(bar, item.Y);
-                _seriesCanvas.Children.Add(bar);
+                Canvas.SetTop(bar, item.Y + seam);
+                BarColumn(item.DayIndex).Children.Add(bar);
             }
             if (!IsPreview)
             {

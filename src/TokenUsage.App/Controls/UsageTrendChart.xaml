@@ -42,7 +42,7 @@
             <Border
                 x:Name="HoverCard"
                 Grid.ColumnSpan="3"
-                Width="220"
+                Width="260"
                 Padding="10,8"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
@@ -105,6 +105,7 @@
             x:Name="GridBrushProxy"
             Background="{ThemeResource DividerStrokeColorDefaultBrush}"
             Visibility="Collapsed" />
+        <Border x:Name="MarkLabelBrushProxy" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" Visibility="Collapsed" />
         <Border
             x:Name="TextBrushProxy"
             Background="{ThemeResource TextFillColorSecondaryBrush}"

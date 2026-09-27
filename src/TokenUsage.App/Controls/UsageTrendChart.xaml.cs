@@ -177,7 +177,7 @@ public sealed partial class UsageTrendChart : UserControl
         EmptyText.Text = data.UnavailableText ?? GetString("UsageTrendEmptyText");
         AutomationProperties.SetHelpText(this, data.UnavailableText ?? string.Empty);
         EmptyText.Visibility = hasSeries ? Visibility.Collapsed : Visibility.Visible;
-        HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(220, ActualWidth)) : 220;
+        HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(260, ActualWidth)) : 260;
         UpdateDateLabels(data);
         BuildLegend(data);
         BuildResetLegend(data);
@@ -189,11 +189,13 @@ public sealed partial class UsageTrendChart : UserControl
         IReadOnlyList<double>[] scaleValues = [.. data.Series.Select(series =>
             data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values)];
         bool stackedArea = data.Style == ReportChartStyle.Area && data.Days.Count > 1 && !data.IsComparison;
+        bool stackedBars = (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
+            && !data.IsComparison;
         UsageTrendScale scale = data.Metric == UsageReportMetric.Share
             ? new UsageTrendScale(100, [0, 25, 50, 75, 100])
             : UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(
                 scaleValues,
-                stackedArea,
+                stackedArea || stackedBars,
                 stackedArea
                     ? [.. data.Series.Select(series => (IReadOnlyList<UsageTrendPointKind>?)series.PointKinds)]
                     : null),
@@ -215,8 +217,8 @@ public sealed partial class UsageTrendChart : UserControl
                 Y2 = y,
                 Stroke = gridBrush,
                 StrokeThickness = 1,
-                StrokeDashArray = tick == 0 || IsPreview ? null : [3, 5],
-                Opacity = tick == 0 || IsHighContrast ? 1 : 0.65,
+                // Solid hairlines one step off the surface: a grid, not a threshold.
+                Opacity = tick == 0 || IsHighContrast ? 1 : 0.45,
                 IsHitTestVisible = false,
             });
 
@@ -241,9 +243,16 @@ public sealed partial class UsageTrendChart : UserControl
 
         _seriesCanvas = new Canvas { Width = width, Height = height, IsHitTestVisible = false };
         PlotCanvas.Children.Add(_seriesCanvas);
+        ResetBarColumns(data);
         RenderSeries(data, width, height, scale);
         if (!IsPreview) RenderResetMarkers(data, width);
-        if (!IsPreview && !ReferenceEquals(_lastAnimatedData, data) && MotionSettings.AreAnimationsEnabled())
+        RenderReferenceMarks(data, width, height, scale);
+        bool animate = !IsPreview && !IsCaptureMode && !ReferenceEquals(_lastAnimatedData, data) && MotionSettings.AreAnimationsEnabled();
+        if (animate && _barColumns.Count > 0)
+        {
+            StartColumnGrow(height - BottomPadding);
+        }
+        else if (animate)
         {
             var visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(_seriesCanvas);
             _entranceClip = visual.Compositor.CreateInsetClip();
@@ -274,6 +283,7 @@ public sealed partial class UsageTrendChart : UserControl
 
     private void FinishEntrance()
     {
+        FinishColumnGrow();
         if (_entranceClip is null) return;
         _entranceClip.StopAnimation("RightInset");
         _entranceClip.RightInset = 0;

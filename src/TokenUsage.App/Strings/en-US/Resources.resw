@@ -1416,4 +1416,5 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageDashboardActivitySummaryFormat" xml:space="preserve"><value>{0} accounts for {1} of observed invocations.</value></data>
   <data name="UsageDashboardMethod.Header" xml:space="preserve"><value>How this is measured</value></data>
   <data name="UsageDashboardOperationPreview.Text" xml:space="preserve"><value>Tools · observed invocations</value></data>
+  <data name="UsageReportChartAverageFormat" xml:space="preserve"><value>{0} avg/day</value></data>
 </root>

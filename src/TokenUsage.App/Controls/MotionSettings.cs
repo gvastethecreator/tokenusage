@@ -42,5 +42,12 @@ internal static class MotionSettings
 
     public static readonly TimeSpan ThemeSwitchDuration = TimeSpan.FromMilliseconds(480);
 
+    public static readonly TimeSpan ReportBarGrowDuration = TimeSpan.FromMilliseconds(460);
+
+    public static readonly TimeSpan ReportChartGrowDuration = TimeSpan.FromMilliseconds(420);
+
+    /// <summary>Per-day delay for the chart column reveal; 30 days finish inside ~0.8 s.</summary>
+    public static readonly TimeSpan ReportChartGrowStagger = TimeSpan.FromMilliseconds(12);
+
     public static bool AreAnimationsEnabled() => Settings.AnimationsEnabled;
 }
