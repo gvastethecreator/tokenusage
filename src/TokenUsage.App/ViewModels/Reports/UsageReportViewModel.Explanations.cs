@@ -88,6 +88,7 @@ public sealed partial class UsageReportViewModel
         ExplanationEvidenceText = string.Join(Environment.NewLine, evidence.Concat(text));
         OnPropertyChanged(nameof(HasExplanations));
         OnPropertyChanged(nameof(CanLoadExplanationDetail));
+        OnPropertyChanged(nameof(DashboardCacheSummary));
         OnPropertyChanged(nameof(ExplanationSummaryText));
         OnPropertyChanged(nameof(ExplanationEvidenceText));
     }

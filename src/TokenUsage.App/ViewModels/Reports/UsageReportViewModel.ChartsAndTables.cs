@@ -22,6 +22,8 @@ public sealed partial class UsageReportViewModel
 
     private bool _emphasizeSmallValues = true;
     public bool EmphasizeSmallValues => _emphasizeSmallValues;
+    // A percentage chart has a fixed 0-100 axis; the square-root scale does not apply there.
+    public bool CanEmphasizeSmallValues => !(IsShareValueMode && IsGlobalScope);
     public string ChartStyleName
     {
         get

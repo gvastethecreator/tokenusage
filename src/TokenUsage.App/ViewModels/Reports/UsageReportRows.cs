@@ -46,6 +46,8 @@ public sealed record UsageReportModelRow(
     public string CompactShareText { get; init; } = string.Empty;
     public string CompactCoverageText { get; init; } = string.Empty;
     public bool IsReserve => ModelId == "gpt-reserve";
+    /// <summary>Share of the selected metric, 0 to 100; drives the inline share bar.</summary>
+    public double SharePercent { get; init; }
     public string? ModelProviderId { get; init; }
     public string HostName { get; init; } = string.Empty;
     public string ReportedValueText { get; init; } = string.Empty;

@@ -4,24 +4,29 @@ using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
-public sealed record UsageDashboardBar(string Id, string Name, string ValueText, double Percent, string AutomationName);
+public sealed record UsageDashboardBar(string Id, string Name, string ValueText, double Percent, string AutomationName, string ShareText = "", string? ProviderId = null);
 
 public sealed partial class UsageReportViewModel
 {
     public IReadOnlyList<UsageDashboardBar> DashboardModels { get; private set; } = [];
     public IReadOnlyList<UsageDashboardBar> DashboardProjects { get; private set; } = [];
-    public IReadOnlyList<UsageDashboardBar> DashboardComponents { get; private set; } = [];
     public string DashboardModelSummary { get; private set; } = string.Empty;
     public string DashboardProjectSummary { get; private set; } = string.Empty;
     public string DashboardModelRemainder { get; private set; } = string.Empty;
     public string DashboardProjectRemainder { get; private set; } = string.Empty;
+    public bool HasDashboardModelRemainder => DashboardModelRemainder.Length > 0;
+    public bool HasDashboardProjectRemainder => DashboardProjectRemainder.Length > 0;
     public string DashboardTrendSummary { get; private set; } = string.Empty;
     public string DashboardUnit => GetString(IsCostMetric ? "UsageDashboardKnownCostUnit" : "UsageDashboardTokensUnit");
     public bool HasDashboardProjects => _codexProjectsAllowed && DashboardProjects.Count > 0;
     public string DashboardCacheSummary => Overview?.CacheShareAvailability == UsageOverviewFactKind.Measured
         ? string.Format(CultureInfo.CurrentCulture, GetString("UsageDashboardCacheSummaryFormat"),
             FormatPercent((Overview.CacheSharePercent ?? 0) / 100m))
-        : OverviewCacheCard?.Value ?? GetString("UsageExplorerNotAvailable");
+        // "Not loaded" alone reads as a failure; say what the Load details button will add.
+        : _report.CacheComposition is null && CanLoadExplanationDetail
+            ? GetString("UsageExplanationCacheNotLoaded")
+            : OverviewCacheCard?.Detail is { Length: > 0 } detail ? detail
+            : OverviewCacheCard?.Value ?? GetString("UsageExplorerNotAvailable");
 
     public IReadOnlyList<UsageDashboardBar> DashboardOperationBars { get; private set; } = [];
     public IReadOnlyList<UsageDashboardBar> DashboardActivityBars { get; private set; } = [];
@@ -340,21 +345,28 @@ public sealed partial class UsageReportViewModel
         decimal Value(UsageReportMetrics metrics) => IsCostMetric
             ? ReportDataProjection.KnownCost(metrics) ?? 0 : metrics.Tokens.Total;
         decimal denominator = Value(_report.Totals);
+        // Ranking rows are a glance surface: cents, not the six stored decimals the evidence views keep.
+        string Money(decimal? cost) => cost is { } value ? FormatUsd(value) : GetString("UsageExplorerNotAvailable");
         string Display(UsageReportMetrics metrics) => IsCostMetric
-            ? ExactCost(ReportDataProjection.KnownCost(metrics)) : FormatTokens(metrics.Tokens.Total);
+            ? Money(ReportDataProjection.KnownCost(metrics)) : FormatTokens(metrics.Tokens.Total);
         string Summary(string name, decimal amount) => denominator > 0
             ? string.Format(CultureInfo.CurrentCulture, GetString("UsageDashboardLeaderFormat"), name,
                 FormatPercent(amount / denominator), DashboardUnit)
             : GetString("UsageDashboardNoRankedValue");
-        string Remainder(int shown, int count, IEnumerable<UsageReportMetrics> remainder) => string.Format(
-            CultureInfo.CurrentCulture, GetString("UsageDashboardRemainderFormat"), shown, count,
-            IsCostMetric ? ExactCost(remainder.Sum(Value)) : FormatTokens((long)remainder.Sum(Value)));
+        // Nothing is hidden when every row fits; "3 of 3 · $0.00 in the rest" is noise.
+        string Remainder(int shown, int count, IEnumerable<UsageReportMetrics> remainder) => shown >= count
+            ? string.Empty
+            : string.Format(
+                CultureInfo.CurrentCulture, GetString("UsageDashboardRemainderFormat"), shown, count,
+                IsCostMetric ? Money(remainder.Sum(Value)) : FormatTokens((long)remainder.Sum(Value)));
         var models = ModelRows.OrderByDescending(row => Value(row.Metrics))
             .ThenBy(row => row.Id, StringComparer.Ordinal).ToArray();
         decimal modelMaximum = models.Select(row => Value(row.Metrics)).DefaultIfEmpty().Max();
+        string Share(decimal amount) => denominator > 0 ? FormatPercent(amount / denominator) : string.Empty;
         DashboardModels = models.Take(5).Select(row => new UsageDashboardBar(row.Id,
             row.ModelName + " · " + row.ProviderName, Display(row.Metrics),
-            modelMaximum > 0 ? (double)(100 * Value(row.Metrics) / modelMaximum) : 0, row.AutomationName)).ToArray();
+            modelMaximum > 0 ? (double)(100 * Value(row.Metrics) / modelMaximum) : 0, row.AutomationName,
+            Share(Value(row.Metrics)), row.ProviderId)).ToArray();
         DashboardModelSummary = models.Length > 0 ? Summary(models[0].ModelName, Value(models[0].Metrics)) : string.Empty;
         DashboardModelRemainder = Remainder(Math.Min(5, models.Length), models.Length, models.Skip(5).Select(row => row.Metrics));
         // The full overview is built before presentation limits. Never rank a pre-truncated Other group.
@@ -363,31 +375,24 @@ public sealed partial class UsageReportViewModel
         decimal projectMaximum = projects.Select(row => Value(row.Metrics)).DefaultIfEmpty().Max();
         DashboardProjects = projects.Take(5).Select(row => new UsageDashboardBar(row.Id, row.Name,
             Display(row.Metrics), projectMaximum > 0 ? (double)(100 * Value(row.Metrics) / projectMaximum) : 0,
-            row.AutomationName)).ToArray();
+            row.AutomationName, Share(Value(row.Metrics)))).ToArray();
         DashboardProjectSummary = projects.Length > 0 ? Summary(projects[0].Name, Value(projects[0].Metrics)) : string.Empty;
-        DashboardProjectRemainder = Remainder(Math.Min(5, projects.Length), projects.Length, projects.Skip(5).Select(row => row.Metrics))
-            + " · " + string.Format(CultureInfo.CurrentCulture, GetString("UsageDashboardUnassignedFormat"),
-                FormatTokens(projects.Where(row => row.IsUnassigned).Sum(row => row.Metrics.Tokens.Total)));
-        TokenBreakdown tokens = _report.Totals.Tokens;
-        (string Key, long Value)[] components =
-        [
-            ("UsageDashboardInput", tokens.Input), ("UsageDashboardCacheRead", tokens.CacheRead),
-            ("UsageDashboardOutput", tokens.Output), ("UsageDashboardReasoning", tokens.Reasoning),
-            ("UsageDashboardCacheWrite", tokens.CacheWrite),
-        ];
-        DashboardComponents = components.Where(item => item.Value > 0).Select(item => new UsageDashboardBar(
-            item.Key, GetString(item.Key), FormatTokens(item.Value),
-            tokens.Total > 0 ? 100d * item.Value / tokens.Total : 0,
-            GetString(item.Key) + ": " + FormatTokens(item.Value))).ToArray();
+        DashboardProjectRemainder = string.Join(" · ", new[]
+        {
+            Remainder(Math.Min(5, projects.Length), projects.Length, projects.Skip(5).Select(row => row.Metrics)),
+            string.Format(CultureInfo.CurrentCulture, GetString("UsageDashboardUnassignedFormat"),
+                FormatTokens(projects.Where(row => row.IsUnassigned).Sum(row => row.Metrics.Tokens.Total))),
+        }.Where(part => part.Length > 0));
         var peak = _report.Days.Where(day => !IsCostMetric || ReportDataProjection.KnownCost(day.Metrics) is not null)
             .OrderByDescending(day => Value(day.Metrics)).ThenBy(day => day.Date).FirstOrDefault();
         DashboardTrendSummary = peak is not null && denominator > 0
             ? string.Format(CultureInfo.CurrentCulture, GetString("UsageDashboardPeakFormat"),
                 peak.Date.ToString("d MMM", CultureInfo.CurrentCulture), FormatPercent(Value(peak.Metrics) / denominator), DashboardUnit)
             : GetString("UsageDashboardNoRankedValue");
-        foreach (string property in new[] { nameof(DashboardModels), nameof(DashboardProjects), nameof(DashboardComponents),
+        RebuildHighlights(Value, amount => IsCostMetric ? Money(amount) : FormatTokens((long)amount));
+        foreach (string property in new[] { nameof(DashboardModels), nameof(DashboardProjects),
             nameof(DashboardModelSummary), nameof(DashboardProjectSummary), nameof(DashboardModelRemainder),
-            nameof(DashboardProjectRemainder), nameof(DashboardTrendSummary), nameof(DashboardUnit),
+            nameof(DashboardProjectRemainder), nameof(HasDashboardModelRemainder), nameof(HasDashboardProjectRemainder), nameof(DashboardTrendSummary), nameof(DashboardUnit),
             nameof(HasDashboardProjects), nameof(DashboardCacheSummary) }) OnPropertyChanged(property);
         QueueDashboardOperations();
     }

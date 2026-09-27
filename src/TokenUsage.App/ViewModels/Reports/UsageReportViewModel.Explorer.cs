@@ -63,6 +63,13 @@ public sealed record UsageExplorerEvidenceRow(
 
 public sealed record UsageExplorerOption(string? Id, string Name, bool IsAll = false);
 
+/// <summary>A tool filter chip: the option plus whether it is the current selection.</summary>
+public sealed record UsageExplorerToolChip(UsageExplorerOption Option, bool IsSelected)
+{
+    public string ProviderId => Option.Id ?? string.Empty;
+    public bool HasMark => Option.Id is not null;
+}
+
 public sealed class UsageConfigurationOption(string? id, string name, bool selected, Action changed) : INotifyPropertyChanged
 {
     private bool _isSelected = selected;
@@ -175,8 +182,12 @@ public sealed partial class UsageReportViewModel
     public bool HasExplorerReturn => IsCompareScope && _explorerReturn is not null;
     public bool CanFilterExplorer => HasExplorer && !IsLoading && !_disposed;
     public bool IsExplorerToolVisible => IsGlobalScope;
+    public IReadOnlyList<UsageExplorerToolChip> ExplorerToolChips => ExplorerTools
+        .Select(option => new UsageExplorerToolChip(option, option == _explorerTool)).ToArray();
+    public bool HasActiveExplorerFilters => HasExplorerFilters;
     public bool IsFilteringModels { get; private set; }
     public string ExplorerNotice { get; private set; } = string.Empty;
+    public bool HasExplorerNotice => ExplorerNotice.Length > 0;
     public string ExplorerSelectionContext { get; private set; } = string.Empty;
     public bool HasHiddenExplorerFilters { get; private set; }
     public string HiddenExplorerFilterSummary { get; private set; } = string.Empty;
@@ -378,6 +389,7 @@ public sealed partial class UsageReportViewModel
         _explorerModel = Retain(ExplorerModels, _explorerModel);
         OnPropertyChanged(nameof(ExplorerTools)); OnPropertyChanged(nameof(ExplorerHosts)); OnPropertyChanged(nameof(ExplorerModels));
         OnPropertyChanged(nameof(ExplorerTool)); OnPropertyChanged(nameof(ExplorerHost)); OnPropertyChanged(nameof(ExplorerModel));
+        OnPropertyChanged(nameof(ExplorerToolChips)); OnPropertyChanged(nameof(HasActiveExplorerFilters));
 
         static UsageExplorerOption Retain(IReadOnlyList<UsageExplorerOption> options, UsageExplorerOption? previous) =>
             previous is null ? options[0] : options.FirstOrDefault(row => row.Id == previous.Id && row.IsAll == previous.IsAll)
@@ -505,6 +517,7 @@ public sealed partial class UsageReportViewModel
     {
         ExplorerNotice = string.Empty;
         OnPropertyChanged(nameof(ExplorerNotice));
+        OnPropertyChanged(nameof(HasExplorerNotice));
         _detailModelId = id;
         RebuildExplorerDetail();
         _ = RefreshDistributionAsync();
@@ -754,6 +767,7 @@ public sealed partial class UsageReportViewModel
             {
                 ExplorerNotice = GetString("UsageExplorerDetailRemoved");
                 OnPropertyChanged(nameof(ExplorerNotice));
+                OnPropertyChanged(nameof(HasExplorerNotice));
             }
             _detailModelId = null;
             ModelDetailValues = string.Empty;
@@ -859,6 +873,8 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(ExplorerSelectionContext));
         OnPropertyChanged(nameof(HasHiddenExplorerFilters));
         OnPropertyChanged(nameof(HiddenExplorerFilterSummary));
+        OnPropertyChanged(nameof(ExplorerToolChips));
+        OnPropertyChanged(nameof(HasActiveExplorerFilters));
         NotifyExplorerContextPath();
     }
 

@@ -11,38 +11,52 @@ public sealed partial class UsageReportPage
 
     private void OnDashboardSizeChanged(object sender, SizeChangedEventArgs e) => UpdateDashboardLayout(e.NewSize.Width);
 
+    // Wide: trend | models + token composition side by side | projects | operations.
+    // Narrow: one column in the same reading order. Grid spacing applies to empty rows and
+    // columns too, so the layout keeps exactly the tracks it uses.
     private void UpdateDashboardLayout(double width)
     {
         bool narrow = width < 820;
         DashboardGrid.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        DashboardGrid.ColumnSpacing = narrow ? 0 : 12;
         Grid.SetColumnSpan(DashboardTrendCard, 2);
         Grid.SetColumnSpan(DashboardProviderTrendCard, 2);
-        Grid.SetColumn(DashboardCompositionCard, 0);
-        Grid.SetColumnSpan(DashboardCompositionCard, 2);
-        Grid.SetRow(DashboardCompositionCard, 1);
+        Grid.SetRow(DashboardModelsCard, 1);
         Grid.SetColumn(DashboardModelsCard, 0);
-        Grid.SetRow(DashboardModelsCard, 2);
-        Grid.SetColumnSpan(DashboardModelsCard, narrow || !ViewModel.HasDashboardProjects ? 2 : 1);
-        Grid.SetColumn(DashboardProjectsCard, narrow ? 0 : 1);
-        Grid.SetRow(DashboardProjectsCard, narrow ? 3 : 2);
-        int operationsRow = narrow ? 4 : 3;
-        Grid.SetRow(DashboardOperationsGrid, operationsRow);
+        Grid.SetColumnSpan(DashboardModelsCard, narrow ? 2 : 1);
+        Grid.SetRow(DashboardCompositionCard, narrow ? 2 : 1);
+        Grid.SetColumn(DashboardCompositionCard, narrow ? 0 : 1);
+        Grid.SetColumnSpan(DashboardCompositionCard, narrow ? 2 : 1);
+        int nextRow = narrow ? 3 : 2;
+        Grid.SetRow(DashboardProjectsCard, nextRow);
+        Grid.SetColumn(DashboardProjectsCard, 0);
+        Grid.SetColumnSpan(DashboardProjectsCard, 2);
+        if (ViewModel.HasDashboardProjects) nextRow++;
+        Grid.SetRow(DashboardOperationsGrid, nextRow);
         Grid.SetColumnSpan(DashboardOperationsGrid, 2);
-        DashboardOperationsGrid.ColumnDefinitions[1].Width = narrow || !ViewModel.HasDashboardActivity
-            ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        Grid.SetColumn(DashboardActivityPreview, narrow ? 0 : 1);
-        Grid.SetRow(DashboardActivityPreview, narrow ? 1 : 0);
+        if (ViewModel.HasDashboardOperationsCard) nextRow++;
+        SetRowCount(DashboardGrid, Math.Max(nextRow, narrow ? 3 : 2));
+        UpdateDashboardOperationsLayout(width);
         GlobalCombinedChart.PlotHeight = 250;
         ProviderChartContentRoot.PlotHeight = 250;
     }
 
-    private void OnDashboardOperationsSizeChanged(object sender, SizeChangedEventArgs e)
+    private void OnDashboardOperationsSizeChanged(object sender, SizeChangedEventArgs e) =>
+        UpdateDashboardOperationsLayout(e.NewSize.Width);
+
+    private void UpdateDashboardOperationsLayout(double width)
     {
-        bool narrow = e.NewSize.Width < 820;
-        DashboardOperationsGrid.ColumnDefinitions[1].Width = narrow || !ViewModel.HasDashboardActivity
-            ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        Grid.SetColumn(DashboardActivityPreview, narrow ? 0 : 1);
-        Grid.SetRow(DashboardActivityPreview, narrow ? 1 : 0);
+        bool single = width < 820 || !ViewModel.HasDashboardActivity;
+        DashboardOperationsGrid.ColumnDefinitions[1].Width = single ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        DashboardOperationsGrid.ColumnSpacing = single ? 0 : 12;
+        Grid.SetColumn(DashboardActivityPreview, single ? 0 : 1);
+        Grid.SetRow(DashboardActivityPreview, single ? 1 : 0);
+    }
+
+    private static void SetRowCount(Grid grid, int count)
+    {
+        while (grid.RowDefinitions.Count < count) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        while (grid.RowDefinitions.Count > count) grid.RowDefinitions.RemoveAt(grid.RowDefinitions.Count - 1);
     }
 
     private void OnDashboardOperationKindClick(object sender, RoutedEventArgs e)

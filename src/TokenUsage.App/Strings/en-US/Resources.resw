@@ -20,7 +20,7 @@
   <data name="TrayOptionVisible" xml:space="preserve"><value>Visible</value></data>
   <data name="TrayOptionTaskbarPreview" xml:space="preserve"><value>Show in taskbar preview</value></data>
   <data name="TrayOptionHighlighted" xml:space="preserve"><value>Highlighted</value></data>
-  <data name="ThemeLogoButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Switch light or dark theme</value></data>
+  <data name="ThemeLogoButton.AutomationProperties.Name" xml:space="preserve"><value>Switch light or dark theme</value></data>
   <data name="ThemeLogoButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Switch light or dark theme</value></data>
   <data name="TraySummaryUnavailableValue" xml:space="preserve"><value>—</value></data>
   <data name="TraySummarySessionLabel" xml:space="preserve"><value>Session</value></data>
@@ -77,8 +77,8 @@
   <data name="CompactHeatmapLegendHigh.Text" xml:space="preserve"><value>High</value></data>
   <data name="CompactBackGlobalLabel.Text" xml:space="preserve"><value>Global</value></data>
   <data name="CompactProviderCardLimitsTitle.Text" xml:space="preserve"><value>Official limits</value></data>
-  <data name="HeaderRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Update</value></data>
-  <data name="HeaderOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
+  <data name="HeaderRefreshButton.AutomationProperties.Name" xml:space="preserve"><value>Update</value></data>
+  <data name="HeaderOptionsButton.AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
   <data name="HeaderOptionsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Options</value></data>
   <data name="HeaderVisualizationToDonut" xml:space="preserve"><value>Switch to donut view</value></data>
   <data name="HeaderVisualizationToHeatmap" xml:space="preserve"><value>Switch to calendar view</value></data>
@@ -87,16 +87,16 @@
   <data name="OptionsHomeDescription.Text" xml:space="preserve"><value>Choose what you want to change.</value></data>
   <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
   <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Window, collection, and attribution</value></data>
-  <data name="OptionsGeneralButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
+  <data name="OptionsGeneralButton.AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
   <data name="OptionsAppearanceLabel.Text" xml:space="preserve"><value>Appearance</value></data>
   <data name="OptionsAppearanceDescription.Text" xml:space="preserve"><value>Theme, density, and usage formats</value></data>
-  <data name="OptionsAppearanceButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Appearance options</value></data>
+  <data name="OptionsAppearanceButton.AutomationProperties.Name" xml:space="preserve"><value>Appearance options</value></data>
   <data name="OptionsPersonalizationLabel.Text" xml:space="preserve"><value>Dashboard</value></data>
   <data name="OptionsPersonalizationDescription.Text" xml:space="preserve"><value>Provider order, visibility, metrics, and colors</value></data>
-  <data name="OptionsPersonalizationButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Dashboard options</value></data>
+  <data name="OptionsPersonalizationButton.AutomationProperties.Name" xml:space="preserve"><value>Dashboard options</value></data>
   <data name="OptionsProvidersLabel.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="OptionsProvidersDescription.Text" xml:space="preserve"><value>Connections and source health</value></data>
-  <data name="OptionsProvidersButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
+  <data name="OptionsProvidersButton.AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
   <data name="GeneralSectionTitle.Text" xml:space="preserve"><value>General</value></data>
   <data name="GeneralSectionDescription.Content" xml:space="preserve"><value>Choose how usage is collected and linked.</value></data>
   <data name="GeneralWindowGroupTitle.Text" xml:space="preserve"><value>Window</value></data>
@@ -113,29 +113,29 @@
   <data name="ProvidersSectionDescription.Text" xml:space="preserve"><value>Manage connections and inspect each source.</value></data>
   <data name="OptionsVercelLabel.Text" xml:space="preserve"><value>Vercel connection</value></data>
   <data name="OptionsVercelDescription.Text" xml:space="preserve"><value>Connect or remove an experimental Vercel account</value></data>
-  <data name="OptionsVercelButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel connection options</value></data>
+  <data name="OptionsVercelButton.AutomationProperties.Name" xml:space="preserve"><value>Vercel connection options</value></data>
   <data name="OptionsProviderStatusLabel.Text" xml:space="preserve"><value>Source status</value></data>
   <data name="OptionsProviderStatusDescription.Text" xml:space="preserve"><value>Availability, access, freshness, and errors</value></data>
-  <data name="OptionsProviderStatusButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider source status</value></data>
-  <data name="OptionsBackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
-  <data name="LoadingProgressRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Updating usage</value></data>
+  <data name="OptionsProviderStatusButton.AutomationProperties.Name" xml:space="preserve"><value>Provider source status</value></data>
+  <data name="OptionsBackButton.AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
+  <data name="LoadingProgressRing.AutomationProperties.Name" xml:space="preserve"><value>Updating usage</value></data>
   <data name="LoadingLabel.Text" xml:space="preserve"><value>Looking for local usage data…</value></data>
   <data name="SampleLoadingLabel.Text" xml:space="preserve"><value>Refreshing sample data…</value></data>
   <data name="EmptyTitle.Text" xml:space="preserve"><value>No providers yet</value></data>
   <data name="EmptyBody.Text" xml:space="preserve"><value>Quota and spend will appear here when a supported local tool is available. This build has no data source connected.</value></data>
   <data name="EmptyOpenOptionsButton.Content" xml:space="preserve"><value>Open options</value></data>
-  <data name="EmptyOpenOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open options</value></data>
+  <data name="EmptyOpenOptionsButton.AutomationProperties.Name" xml:space="preserve"><value>Open options</value></data>
   <data name="CloseWhenInactiveLabel.Text" xml:space="preserve"><value>Close when focus is lost</value></data>
-  <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Close when focus is lost</value></data>
+  <data name="CloseWhenInactiveToggle.AutomationProperties.Name" xml:space="preserve"><value>Close when focus is lost</value></data>
   <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Close when focus is lost</value></data>
   <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>TokenUsage 0.1</value></data>
-  <data name="FooterOptionsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
+  <data name="FooterOptionsButton.AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
   <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Options</value></data>
   <data name="SampleBadge.Text" xml:space="preserve"><value>Sample</value></data>
   <data name="SampleModeToggle.Header" xml:space="preserve"><value>Show sample dashboard</value></data>
-  <data name="SampleModeToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show sample dashboard</value></data>
+  <data name="SampleModeToggle.AutomationProperties.Name" xml:space="preserve"><value>Show sample dashboard</value></data>
   <data name="SampleScenarioCombo.Header" xml:space="preserve"><value>Sample scenario</value></data>
-  <data name="SampleScenarioCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Sample scenario</value></data>
+  <data name="SampleScenarioCombo.AutomationProperties.Name" xml:space="preserve"><value>Sample scenario</value></data>
   <data name="SampleScenarioNormal" xml:space="preserve"><value>Normal</value></data>
   <data name="SampleScenarioNearLimit" xml:space="preserve"><value>Near limit</value></data>
   <data name="SampleScenarioPartial" xml:space="preserve"><value>Partial</value></data>
@@ -185,7 +185,7 @@
   <data name="ProviderObservedValueFormat" xml:space="preserve"><value>{0}</value></data>
   <data name="ProviderDetailsTooltipFormat" xml:space="preserve"><value>Source: {0}. Updated: {1}.</value></data>
   <data name="ProviderDetailsAutomationNameFormat" xml:space="preserve"><value>Details for {0}</value></data>
-  <data name="ProviderSecondaryMetricsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show or hide usage details</value></data>
+  <data name="ProviderSecondaryMetricsToggle.AutomationProperties.Name" xml:space="preserve"><value>Show or hide usage details</value></data>
   <data name="ProviderSecondaryMetricsToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Usage details</value></data>
   <data name="SampleMetricTokens" xml:space="preserve"><value>Tokens</value></data>
   <data name="SampleMetricSpend" xml:space="preserve"><value>Spend</value></data>
@@ -198,7 +198,7 @@
   <data name="SampleUnavailableTitle.Text" xml:space="preserve"><value>Sample unavailable</value></data>
   <data name="SampleUnavailableBody.Text" xml:space="preserve"><value>The sample source failed and no saved value is available yet.</value></data>
   <data name="SampleRetryButton.Content" xml:space="preserve"><value>Try again</value></data>
-  <data name="SampleRetryButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Retry sample</value></data>
+  <data name="SampleRetryButton.AutomationProperties.Name" xml:space="preserve"><value>Retry sample</value></data>
   <data name="SamplePlanPlus" xml:space="preserve"><value>Plus</value></data>
   <data name="SamplePlanPro" xml:space="preserve"><value>Pro</value></data>
   <data name="SamplePlanLocal" xml:space="preserve"><value>Local</value></data>
@@ -347,7 +347,7 @@
   <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
   <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="ProviderStatusSectionDescription.Content" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
-  <data name="ProviderStatusRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh provider status</value></data>
+  <data name="ProviderStatusRefreshButton.AutomationProperties.Name" xml:space="preserve"><value>Refresh provider status</value></data>
   <data name="ProviderStatusQuota" xml:space="preserve"><value>Quota</value></data>
   <data name="ProviderStatusUsage" xml:space="preserve"><value>Local usage</value></data>
   <data name="ProviderStatusSpend" xml:space="preserve"><value>Spend</value></data>
@@ -400,12 +400,12 @@
   <data name="ProviderCredentialCopilotOrganizationPlaceholder" xml:space="preserve"><value>Billing organization login</value></data>
   <data name="ProviderCredentialApiKeyBox.Header" xml:space="preserve"><value>API key</value></data>
   <data name="ProviderCredentialApiKeyBox.PlaceholderText" xml:space="preserve"><value>Paste a dedicated key</value></data>
-  <data name="ProviderCredentialApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>API key</value></data>
-  <data name="ProviderCredentialSecondaryBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Additional connection value</value></data>
+  <data name="ProviderCredentialApiKeyBox.AutomationProperties.Name" xml:space="preserve"><value>API key</value></data>
+  <data name="ProviderCredentialSecondaryBox.AutomationProperties.Name" xml:space="preserve"><value>Additional connection value</value></data>
   <data name="ProviderCredentialSaveButton.Content" xml:space="preserve"><value>Save</value></data>
-  <data name="ProviderCredentialSaveButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Save API key</value></data>
+  <data name="ProviderCredentialSaveButton.AutomationProperties.Name" xml:space="preserve"><value>Save API key</value></data>
   <data name="ProviderCredentialRemoveButton.Content" xml:space="preserve"><value>Remove key</value></data>
-  <data name="ProviderCredentialRemoveButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Remove saved API key</value></data>
+  <data name="ProviderCredentialRemoveButton.AutomationProperties.Name" xml:space="preserve"><value>Remove saved API key</value></data>
   <data name="ProviderCredentialKeyIdLabel" xml:space="preserve"><value>Key ID (optional)</value></data>
   <data name="ProviderCredentialKeyIdPlaceholder" xml:space="preserve"><value>Example: key_abc123</value></data>
   <data name="ProviderCredentialOrganizationLabel" xml:space="preserve"><value>Organization</value></data>
@@ -452,18 +452,18 @@
   <data name="VercelRiskInfo.Message" xml:space="preserve"><value>This key can run models and the report covers its whole account. Each report call costs about $0.005. Create a dedicated key with a $1 budget and expiry. TokenUsage stores it in Windows Credential Locker.</value></data>
   <data name="VercelApiKeyBox.Header" xml:space="preserve"><value>AI Gateway API key</value></data>
   <data name="VercelApiKeyBox.PlaceholderText" xml:space="preserve"><value>Paste a dedicated key</value></data>
-  <data name="VercelApiKeyBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key</value></data>
+  <data name="VercelApiKeyBox.AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key</value></data>
   <data name="VercelKeyIdBox.Header" xml:space="preserve"><value>API key ID (optional)</value></data>
   <data name="VercelKeyIdBox.PlaceholderText" xml:space="preserve"><value>Example: key_abc123</value></data>
   <data name="VercelKeyIdBox.Description" xml:space="preserve"><value>Add the raw ID to check this key's budget. Do not include api_key_id_.</value></data>
-  <data name="VercelKeyIdBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key ID</value></data>
+  <data name="VercelKeyIdBox.AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key ID</value></data>
   <data name="VercelKeyIdError.Text" xml:space="preserve"><value>Use the raw key ID with letters, digits, underscores, or hyphens.</value></data>
   <data name="VercelConsentCheckBox.Content" xml:space="preserve"><value>I understand this key can run models and exposes account-wide report data.</value></data>
-  <data name="VercelConsentCheckBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Accept Vercel AI Gateway key risk</value></data>
+  <data name="VercelConsentCheckBox.AutomationProperties.Name" xml:space="preserve"><value>Accept Vercel AI Gateway key risk</value></data>
   <data name="VercelConnectButton.Content" xml:space="preserve"><value>Connect and load report</value></data>
-  <data name="VercelConnectButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Connect Vercel AI Gateway and load its report</value></data>
+  <data name="VercelConnectButton.AutomationProperties.Name" xml:space="preserve"><value>Connect Vercel AI Gateway and load its report</value></data>
   <data name="VercelDisconnectButton.Content" xml:space="preserve"><value>Disconnect and clear report</value></data>
-  <data name="VercelDisconnectButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Disconnect Vercel AI Gateway and clear its cached report</value></data>
+  <data name="VercelDisconnectButton.AutomationProperties.Name" xml:space="preserve"><value>Disconnect Vercel AI Gateway and clear its cached report</value></data>
   <data name="VercelStatusChecking" xml:space="preserve"><value>Checking the Windows Credential Locker.</value></data>
   <data name="VercelStatusNotConfigured" xml:space="preserve"><value>No Vercel AI Gateway key is connected.</value></data>
   <data name="VercelStatusConnecting" xml:space="preserve"><value>Saving the key and clearing any prior account report.</value></data>
@@ -498,7 +498,7 @@
   <data name="VercelQuotaStatusInactive" xml:space="preserve"><value>Budget inactive</value></data>
   <data name="VercelQuotaDegradedNotice" xml:space="preserve"><value>The account report is current. The key budget could not be checked.</value></data>
   <data name="DashboardLayoutExpander.Header" xml:space="preserve"><value>Dashboard layout</value></data>
-  <data name="DashboardLayoutExpander.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Dashboard layout</value></data>
+  <data name="DashboardLayoutExpander.AutomationProperties.Name" xml:space="preserve"><value>Dashboard layout</value></data>
   <data name="DashboardLayoutDescription.Text" xml:space="preserve"><value>Choose provider cards and the metrics shown in each one.</value></data>
   <data name="DashboardProviderMoveUpAutomationNameFormat" xml:space="preserve"><value>Move {0} up</value></data>
   <data name="DashboardProviderMoveUpButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Move up</value></data>
@@ -529,10 +529,10 @@
   <data name="DashboardMetricSectionButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Change metric section</value></data>
   <data name="DashboardMetricHighlightLimitReached" xml:space="preserve"><value>You can highlight up to two metrics per provider.</value></data>
   <data name="DashboardLayoutUndoButton.Content" xml:space="preserve"><value>Undo</value></data>
-  <data name="DashboardLayoutUndoButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Undo last dashboard change</value></data>
+  <data name="DashboardLayoutUndoButton.AutomationProperties.Name" xml:space="preserve"><value>Undo last dashboard change</value></data>
   <data name="DashboardLayoutUndoButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Undo last dashboard change (Ctrl+Z)</value></data>
   <data name="DashboardLayoutResetButton.Content" xml:space="preserve"><value>Reset</value></data>
-  <data name="DashboardLayoutResetButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset dashboard layout</value></data>
+  <data name="DashboardLayoutResetButton.AutomationProperties.Name" xml:space="preserve"><value>Reset dashboard layout</value></data>
   <data name="DashboardLayoutResetButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Restore the default dashboard layout</value></data>
   <data name="DashboardLayoutResetTitle" xml:space="preserve"><value>Reset dashboard layout?</value></data>
   <data name="DashboardLayoutResetBody" xml:space="preserve"><value>This restores the default provider and metric layout. You can undo it while TokenUsage stays open.</value></data>
@@ -549,12 +549,12 @@
   <data name="AppearanceTransparencyLabel.Text" xml:space="preserve"><value>Increase transparency</value></data>
   <data name="AppearanceUsageLabel.Text" xml:space="preserve"><value>Show usage as</value></data>
   <data name="AppearanceResetTimeLabel.Text" xml:space="preserve"><value>Reset times</value></data>
-  <data name="AppearanceThemeSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Theme</value></data>
-  <data name="AppearanceDensitySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Density</value></data>
-  <data name="AppearanceTransparencyToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Increase transparency</value></data>
+  <data name="AppearanceThemeSelector.AutomationProperties.Name" xml:space="preserve"><value>Theme</value></data>
+  <data name="AppearanceDensitySelector.AutomationProperties.Name" xml:space="preserve"><value>Density</value></data>
+  <data name="AppearanceTransparencyToggle.AutomationProperties.Name" xml:space="preserve"><value>Increase transparency</value></data>
   <data name="AppearanceTransparencyToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Increase transparency</value></data>
-  <data name="AppearanceUsageSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show usage as</value></data>
-  <data name="AppearanceResetTimeSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset times</value></data>
+  <data name="AppearanceUsageSelector.AutomationProperties.Name" xml:space="preserve"><value>Show usage as</value></data>
+  <data name="AppearanceResetTimeSelector.AutomationProperties.Name" xml:space="preserve"><value>Reset times</value></data>
   <data name="AppearanceThemeSystem" xml:space="preserve"><value>System</value></data>
   <data name="AppearanceThemeLight" xml:space="preserve"><value>Light</value></data>
   <data name="AppearanceThemeDark" xml:space="preserve"><value>Dark</value></data>
@@ -565,21 +565,21 @@
   <data name="AppearanceResetRelative" xml:space="preserve"><value>Relative</value></data>
   <data name="AppearanceResetExact" xml:space="preserve"><value>Exact</value></data>
   <data name="AppearanceVisualizationLabel.Text" xml:space="preserve"><value>Global view</value></data>
-  <data name="AppearanceVisualizationSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Global view</value></data>
+  <data name="AppearanceVisualizationSelector.AutomationProperties.Name" xml:space="preserve"><value>Global view</value></data>
   <data name="AppearanceVisualizationList" xml:space="preserve"><value>List</value></data>
   <data name="AppearanceVisualizationDonut" xml:space="preserve"><value>Donut</value></data>
   <data name="AppearanceVisualizationHeatmap" xml:space="preserve"><value>Map</value></data>
   <data name="AppearanceTrayPopoverHeading.Text" xml:space="preserve"><value>Tray hover popover</value></data>
-  <data name="AppearanceTrayPopoverEnabledToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show the tray hover popover</value></data>
+  <data name="AppearanceTrayPopoverEnabledToggle.AutomationProperties.Name" xml:space="preserve"><value>Show the tray hover popover</value></data>
   <data name="AppearanceTrayPopoverEnabledToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the tray hover popover</value></data>
   <data name="AppearanceTrayPrimaryLabel.Text" xml:space="preserve"><value>Top value</value></data>
-  <data name="AppearanceTrayPrimarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Top value in the tray hover popover</value></data>
+  <data name="AppearanceTrayPrimarySelector.AutomationProperties.Name" xml:space="preserve"><value>Top value in the tray hover popover</value></data>
   <data name="AppearanceTraySecondaryLabel.Text" xml:space="preserve"><value>Bottom value</value></data>
-  <data name="AppearanceTraySecondarySelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Bottom value in the tray hover popover</value></data>
+  <data name="AppearanceTraySecondarySelector.AutomationProperties.Name" xml:space="preserve"><value>Bottom value in the tray hover popover</value></data>
   <data name="AppearanceTrayProviderCountLabel.Text" xml:space="preserve"><value>Providers shown</value></data>
-  <data name="AppearanceTrayProviderCountSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Providers shown in the tray hover popover</value></data>
+  <data name="AppearanceTrayProviderCountSelector.AutomationProperties.Name" xml:space="preserve"><value>Providers shown in the tray hover popover</value></data>
   <data name="AppearanceTrayProviderNameLabel.Text" xml:space="preserve"><value>Show the provider name</value></data>
-  <data name="AppearanceTrayProviderNameToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show the provider name in the tray hover popover</value></data>
+  <data name="AppearanceTrayProviderNameToggle.AutomationProperties.Name" xml:space="preserve"><value>Show the provider name in the tray hover popover</value></data>
   <data name="AppearanceTrayProviderNameToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the provider name in the tray hover popover</value></data>
   <data name="AppearanceTrayMetricNone" xml:space="preserve"><value>Nothing</value></data>
   <data name="AppearanceTrayMetricSessionQuota" xml:space="preserve"><value>Session quota</value></data>
@@ -594,11 +594,11 @@
   <data name="AppearanceUsedPercentFormat" xml:space="preserve"><value>{0:0.#}% used</value></data>
   <data name="AppearanceResetExactFormat" xml:space="preserve"><value>Resets {0}</value></data>
   <data name="AppearanceResetExactUnavailable" xml:space="preserve"><value>Exact reset unavailable</value></data>
-  <data name="UsageReportButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open usage report</value></data>
+  <data name="UsageReportButton.AutomationProperties.Name" xml:space="preserve"><value>Open usage report</value></data>
   <data name="UsageReportButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Open usage report</value></data>
   <data name="UsageReportWindowTitle" xml:space="preserve"><value>TokenUsage usage report</value></data>
   <data name="UsageReportTitle.Text" xml:space="preserve"><value>Usage report</value></data>
-  <data name="UsageReportPeriodSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report period</value></data>
+  <data name="UsageReportPeriodSelector.AutomationProperties.Name" xml:space="preserve"><value>Report period</value></data>
   <data name="UsageReportPeriod1Day" xml:space="preserve"><value>Last day</value></data>
   <data name="UsageReportPeriod3Days" xml:space="preserve"><value>Last 3 days</value></data>
   <data name="UsageReportPeriod7Days" xml:space="preserve"><value>Last 7 days</value></data>
@@ -608,14 +608,14 @@
   <data name="UsageReportPeriod90Days" xml:space="preserve"><value>Last 90 days</value></data>
   <data name="UsageReportPeriodAllHistory" xml:space="preserve"><value>All history</value></data>
   <data name="UsageReportResetCycleButton.Content" xml:space="preserve"><value>Reset cycle</value></data>
-  <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report between quota resets</value></data>
+  <data name="UsageReportResetCycleButton.AutomationProperties.Name" xml:space="preserve"><value>Report between quota resets</value></data>
   <data name="UsageReportResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Use a real observed quota reset cycle</value></data>
-  <data name="UsageReportResetCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quota reset history</value></data>
+  <data name="UsageReportResetCycleSelector.AutomationProperties.Name" xml:space="preserve"><value>Quota reset history</value></data>
   <data name="UsageReportResetCycleGroupLabel.Text" xml:space="preserve"><value>Limit and cadence</value></data>
-  <data name="UsageReportResetCycleGroupSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Quota limit and cadence</value></data>
-  <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous reset cycle</value></data>
+  <data name="UsageReportResetCycleGroupSelector.AutomationProperties.Name" xml:space="preserve"><value>Quota limit and cadence</value></data>
+  <data name="UsageReportPreviousResetCycleButton.AutomationProperties.Name" xml:space="preserve"><value>Previous reset cycle</value></data>
   <data name="UsageReportPreviousResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the previous observed reset cycle</value></data>
-  <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next reset cycle</value></data>
+  <data name="UsageReportNextResetCycleButton.AutomationProperties.Name" xml:space="preserve"><value>Next reset cycle</value></data>
   <data name="UsageReportNextResetCycleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show the next observed reset cycle</value></data>
   <data name="UsageReportResetCycleUnavailable" xml:space="preserve"><value>No reset cycle has been observed yet for this provider.</value></data>
   <data name="UsageReportResetCycleQuotaUnavailable" xml:space="preserve"><value>Quota data is unavailable for this provider, so reset cycles cannot be built.</value></data>
@@ -651,7 +651,7 @@
   <data name="UsageReportCompareCycleBLabel.Text" xml:space="preserve"><value>CYCLE B</value></data>
   <data name="UsageReportCompareCycleVersus.Text" xml:space="preserve"><value>VS</value></data>
   <data name="UsageReportCycleComparisonPeriodText" xml:space="preserve"><value>Reset-cycle comparison</value></data>
-  <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh usage report</value></data>
+  <data name="UsageReportRefreshButton.AutomationProperties.Name" xml:space="preserve"><value>Refresh usage report</value></data>
   <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Refresh real data</value></data>
   <data name="UsageReportLoading.Text" xml:space="preserve"><value>Loading usage report…</value></data>
   <data name="UsageReportEmptyDefaultTitle" xml:space="preserve"><value>No local usage in this period yet</value></data>
@@ -670,10 +670,10 @@
   <data name="UsageReportComparePeriodsButton.Content" xml:space="preserve"><value>Periods</value></data>
   <data name="UsageReportCompareCyclesButton.Content" xml:space="preserve"><value>Cycles</value></data>
   <data name="UsageReportCompareTokenDeltaFormat" xml:space="preserve"><value>{0} tokens</value></data>
-  <data name="UsageReportCompareLeftProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline provider (A)</value></data>
-  <data name="UsageReportCompareRightProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Current provider (B)</value></data>
-  <data name="UsageReportCompareLeftCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline Codex cycle (A)</value></data>
-  <data name="UsageReportCompareRightCycleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Current Codex cycle (B)</value></data>
+  <data name="UsageReportCompareLeftProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Baseline provider (A)</value></data>
+  <data name="UsageReportCompareRightProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Current provider (B)</value></data>
+  <data name="UsageReportCompareLeftCycleSelector.AutomationProperties.Name" xml:space="preserve"><value>Baseline Codex cycle (A)</value></data>
+  <data name="UsageReportCompareRightCycleSelector.AutomationProperties.Name" xml:space="preserve"><value>Current Codex cycle (B)</value></data>
   <data name="UsageReportCompareScope" xml:space="preserve"><value>Compare</value></data>
   <data name="UsageReportCompareMetricColumn.Text" xml:space="preserve"><value>Metric</value></data>
   <data name="UsageReportCompareLeftColumn.Text" xml:space="preserve"><value>A · Baseline</value></data>
@@ -704,7 +704,8 @@
   <data name="UsageReportSourceColumn.Text" xml:space="preserve"><value>Source</value></data>
   <data name="UsageReportReportedColumn.Text" xml:space="preserve"><value>Reported</value></data>
   <data name="UsageReportEstimatedColumn.Text" xml:space="preserve"><value>Estimated</value></data>
-  <data name="UsageReportDailyShareTitle" xml:space="preserve"><value>Daily share</value></data>
+  <data name="UsageReportDailyCostShareTitle" xml:space="preserve"><value>Daily share of known cost</value></data>
+  <data name="UsageReportDailyTokenShareTitle" xml:space="preserve"><value>Daily share of tokens</value></data>
   <data name="UsageReportGlobalScope" xml:space="preserve"><value>Global</value></data>
   <data name="UsageReportBreakdownTitle.Text" xml:space="preserve"><value>Breakdown</value></data>
   <data name="UsageReportModelButton.Content" xml:space="preserve"><value>Model</value></data>
@@ -718,7 +719,7 @@
   <data name="UsageReportDayColumn.Text" xml:space="preserve"><value>Day</value></data>
   <data name="UsageReportEventsColumn.Text" xml:space="preserve"><value>Events</value></data>
   <data name="UsageReportQualityTitle.Text" xml:space="preserve"><value>Data quality</value></data>
-  <data name="UsageReportCoverageHintButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open data quality details</value></data>
+  <data name="UsageReportCoverageHintButton.AutomationProperties.Name" xml:space="preserve"><value>Open data quality details</value></data>
   <data name="UsageReportCoverageHintButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Data quality details</value></data>
   <data name="UsageTrendEmptyText" xml:space="preserve"><value>No daily activity</value></data>
   <data name="UsageReportPeriodFormat" xml:space="preserve"><value>Calendar days · {0} to {1}</value></data>
@@ -759,12 +760,12 @@
   <data name="UsageReportReadFailed" xml:space="preserve"><value>The local report could not be read. Existing data was not changed.</value></data>
   <data name="UsageReportRefreshFailed" xml:space="preserve"><value>Refresh failed. Showing the last loaded report.</value></data>
   <data name="UsageReportRetryButton.Content" xml:space="preserve"><value>Try again</value></data>
-  <data name="CompactProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Select provider</value></data>
-  <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous provider</value></data>
+  <data name="CompactProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Select provider</value></data>
+  <data name="PreviousProviderTabButton.AutomationProperties.Name" xml:space="preserve"><value>Previous provider</value></data>
   <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Previous provider</value></data>
-  <data name="NextProviderTabButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next provider</value></data>
+  <data name="NextProviderTabButton.AutomationProperties.Name" xml:space="preserve"><value>Next provider</value></data>
   <data name="NextProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Next provider</value></data>
-  <data name="UsageReportProviderSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report provider</value></data>
+  <data name="UsageReportProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Report provider</value></data>
   <data name="CompactProviderCodexCoverageHint" xml:space="preserve"><value>Codex: daily totals are official; model mix and cost are estimated. Cost can differ from your plan charge.</value></data>
   <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: uses real local per-turn counters when available. Older conversations retain a partial context estimate. Cost is estimated API value, not the plan charge.</value></data>
   <data name="CompactProviderGrokCoverageHint" xml:space="preserve"><value>Grok Build: usage is read from local logs. Official quota is unavailable.</value></data>
@@ -784,29 +785,29 @@
   <data name="ClaudeQuotaUsedTokensFormat" xml:space="preserve"><value>{0} observed Claude tokens in this time range; pool attribution unknown</value></data>
   <data name="ProviderStatusClaudeQuotaSetup" xml:space="preserve"><value>Turn on the Claude Code status line in Settings</value></data>
   <data name="ClaudeStatusLineLabel.Text" xml:space="preserve"><value>Read Claude Code limits from its status line</value></data>
-  <data name="ClaudeStatusLineToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Read Claude Code limits from its status line</value></data>
+  <data name="ClaudeStatusLineToggle.AutomationProperties.Name" xml:space="preserve"><value>Read Claude Code limits from its status line</value></data>
   <data name="ClaudeStatusLineDescription.Text" xml:space="preserve"><value>Claude Code passes its 5-hour and weekly subscription limits to the status line command. TokenUsage wraps that command in ~/.claude/settings.json, stores only those percentages and reset times, and still runs a status line you already had. Turning this off restores it.</value></data>
   <data name="ClaudeStatusLineUpdateFailed" xml:space="preserve"><value>The Claude Code settings file could not be updated. Check that it is valid JSON and not locked.</value></data>
-  <data name="DataCollectionBackgroundToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Collect usage after each task</value></data>
+  <data name="DataCollectionBackgroundToggle.AutomationProperties.Name" xml:space="preserve"><value>Collect usage after each task</value></data>
   <data name="DataCollectionRefreshLabel.Text" xml:space="preserve"><value>Refresh while the app is open</value></data>
-  <data name="DataCollectionRefreshLabel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Refresh interval while the app is open</value></data>
+  <data name="DataCollectionRefreshLabel.AutomationProperties.Name" xml:space="preserve"><value>Refresh interval while the app is open</value></data>
   <data name="DataCollectionRefreshManual" xml:space="preserve"><value>Manual only</value></data>
   <data name="DataCollectionRefresh15Minutes" xml:space="preserve"><value>Every 15 minutes</value></data>
   <data name="DataCollectionRefresh30Minutes" xml:space="preserve"><value>Every 30 minutes</value></data>
   <data name="DataCollectionRefresh60Minutes" xml:space="preserve"><value>Every hour</value></data>
   <data name="AlertsMasterLabel.Text" xml:space="preserve"><value>Windows alerts</value></data>
   <data name="AlertsMasterDescription.Text" xml:space="preserve"><value>Notify you about quota and provider health changes.</value></data>
-  <data name="AlertsMasterToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Windows alerts</value></data>
+  <data name="AlertsMasterToggle.AutomationProperties.Name" xml:space="preserve"><value>Windows alerts</value></data>
   <data name="QuotaAlertThresholdLabel.Text" xml:space="preserve"><value>Low quota threshold (%)</value></data>
-  <data name="QuotaAlertThresholdNumberBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Low quota threshold percent</value></data>
+  <data name="QuotaAlertThresholdNumberBox.AutomationProperties.Name" xml:space="preserve"><value>Low quota threshold percent</value></data>
   <data name="QuotaThresholdAlertLabel.Text" xml:space="preserve"><value>Low quota</value></data>
-  <data name="QuotaThresholdAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Low quota alerts</value></data>
+  <data name="QuotaThresholdAlertToggle.AutomationProperties.Name" xml:space="preserve"><value>Low quota alerts</value></data>
   <data name="ExhaustionForecastAlertLabel.Text" xml:space="preserve"><value>Exhaustion forecast</value></data>
-  <data name="ExhaustionForecastAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Exhaustion forecast alerts</value></data>
+  <data name="ExhaustionForecastAlertToggle.AutomationProperties.Name" xml:space="preserve"><value>Exhaustion forecast alerts</value></data>
   <data name="StaleDataAlertLabel.Text" xml:space="preserve"><value>Stale provider data</value></data>
-  <data name="StaleDataAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Stale provider data alerts</value></data>
+  <data name="StaleDataAlertToggle.AutomationProperties.Name" xml:space="preserve"><value>Stale provider data alerts</value></data>
   <data name="CredentialFailureAlertLabel.Text" xml:space="preserve"><value>Provider setup issues</value></data>
-  <data name="CredentialFailureAlertToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Provider setup alerts</value></data>
+  <data name="CredentialFailureAlertToggle.AutomationProperties.Name" xml:space="preserve"><value>Provider setup alerts</value></data>
   <data name="AlertQuotaTitleFormat" xml:space="preserve"><value>{0} quota is low</value></data>
   <data name="AlertQuotaBodyFormat" xml:space="preserve"><value>{0}% remains. Your alert threshold is {1}%.</value></data>
   <data name="AlertExhaustionTitleFormat" xml:space="preserve"><value>{0} may run out before reset</value></data>
@@ -833,7 +834,7 @@
   <data name="UsageOverviewAttributedEstimatedPerSessionFormat" xml:space="preserve"><value>Attributed estimated value per attributed session: {0}</value></data>
   <data name="UsageOverviewCostDetails.Content" xml:space="preserve"><value>Reported and estimated</value></data>
   <data name="UsageOverviewCostDetailsLabel.Text" xml:space="preserve"><value>Reported and estimated</value></data>
-  <data name="UsageOverviewCostDetailsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reported and estimated</value></data>
+  <data name="UsageOverviewCostDetailsButton.AutomationProperties.Name" xml:space="preserve"><value>Reported and estimated</value></data>
   <data name="UsageOverviewPartialWarningDetails.Content" xml:space="preserve"><value>Measurement details</value></data>
   <data name="UsageOverviewNotLoaded" xml:space="preserve"><value>Not loaded</value></data>
   <data name="UsageOverviewCacheNotLoadedDetail" xml:space="preserve"><value>Needs retained detail. This is not a request hit rate.</value></data>
@@ -844,7 +845,7 @@
   <data name="UsageOverviewSessionsDetailFormat" xml:space="preserve"><value>{0} root · {1} delegated · {2} unassigned</value></data>
   <data name="UsageOverviewCacheShareLabel" xml:space="preserve"><value>CACHE-READ SHARE</value></data>
   <data name="UsageOverviewCacheUnknown" xml:space="preserve"><value>Load measurement details to compute measured-input cache share. This is not a request hit rate.</value></data>
-  <data name="UsageOverviewCallsLabel" xml:space="preserve"><value>CALLS</value></data>
+  <data name="UsageOverviewCallsLabel" xml:space="preserve"><value>Calls</value></data>
   <data name="UsageOverviewCallsUnavailable" xml:space="preserve"><value>Request counts are unavailable until request finality is established. Observation counts are not calls.</value></data>
   <data name="UsageOverviewSkillsLabel" xml:space="preserve"><value>Skills</value></data>
   <data name="UsageOverviewNoticeDisabled" xml:space="preserve"><value>Session attribution is disabled. Known-session counts are unavailable rather than zero.</value></data>
@@ -859,11 +860,11 @@
   <data name="UsageReportCombinedChartButton.Content" xml:space="preserve"><value>Combined</value></data>
   <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>By provider</value></data>
   <data name="UsageReportProviderChartsTitle.Text" xml:space="preserve"><value>COST BY PROVIDER</value></data>
-  <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Save and copy screenshot</value></data>
+  <data name="HeaderShareButton.AutomationProperties.Name" xml:space="preserve"><value>Save and copy screenshot</value></data>
   <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Save and copy screenshot</value></data>
-  <data name="UsageReportCaptureButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Save and copy full report</value></data>
+  <data name="UsageReportCaptureButton.AutomationProperties.Name" xml:space="preserve"><value>Save and copy full report</value></data>
   <data name="UsageReportCaptureButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Save and copy full report</value></data>
-  <data name="UsageReportExportButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Export report snapshot</value></data>
+  <data name="UsageReportExportButton.AutomationProperties.Name" xml:space="preserve"><value>Export report snapshot</value></data>
   <data name="UsageReportExportButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Export JSON, CSV, or HTML of the current selection</value></data>
   <data name="UsageReportExportSuccessFormat" xml:space="preserve"><value>Saved {0}.</value></data>
   <data name="UsageReportExportError" xml:space="preserve"><value>The report snapshot could not be saved.</value></data>
@@ -877,37 +878,37 @@
   <data name="AboutProjectTitle.Text" xml:space="preserve"><value>TokenUsage</value></data>
   <data name="AboutVersionFormat" xml:space="preserve"><value>Version {0}</value></data>
   <data name="AboutGitHubLink.Content" xml:space="preserve"><value>GitHub</value></data>
-  <data name="AboutGitHubLink.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open gvastethecreator on GitHub</value></data>
+  <data name="AboutGitHubLink.AutomationProperties.Name" xml:space="preserve"><value>Open gvastethecreator on GitHub</value></data>
   <data name="NotificationsSectionTitle.Text" xml:space="preserve"><value>Notifications</value></data>
   <data name="NotificationsSaveError.Message" xml:space="preserve"><value>Notifications could not be saved. Check folder permissions and try again.</value></data>
   <data name="DataCollectionBackgroundLabel.Text" xml:space="preserve"><value>Collect usage after each task</value></data>
   <data name="DataCollectionBackgroundDescription.Text" xml:space="preserve"><value>Collect usage when a task ends, even with TokenUsage closed. The interval below applies only while the app is open.</value></data>
   <data name="CodexSessionAttributionLabel.Text" xml:space="preserve"><value>Link future Codex usage to sessions</value></data>
-  <data name="CodexSessionAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Link future Codex usage to sessions</value></data>
+  <data name="CodexSessionAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Link future Codex usage to sessions</value></data>
   <data name="CodexSessionAttributionDescription.Text" xml:space="preserve"><value>Optional. TokenUsage stores opaque session keys, not native IDs, paths, or prompts. Existing usage stays Unassigned until new collection. Turning this off removes the links and keeps numeric totals.</value></data>
   <data name="CodexProjectAttributionLabel.Text" xml:space="preserve"><value>Link future Codex usage to projects</value></data>
-  <data name="CodexProjectAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Link future Codex usage to projects</value></data>
+  <data name="CodexProjectAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Link future Codex usage to projects</value></data>
   <data name="CodexProjectAttributionDescription.Text" xml:space="preserve"><value>Optional and separate from sessions. Working directories stay in the reader. TokenUsage stores only opaque project keys, not paths. Turning this off removes project links and aliases and keeps numeric totals.</value></data>
   <data name="CursorSessionAttributionLabel.Text" xml:space="preserve"><value>Link future Cursor usage to composer sessions</value></data>
-  <data name="CursorSessionAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Link future Cursor usage to composer sessions</value></data>
+  <data name="CursorSessionAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Link future Cursor usage to composer sessions</value></data>
   <data name="CursorSessionAttributionDescription.Text" xml:space="preserve"><value>Optional. TokenUsage stores an opaque key from the composer fragment. Parent and workspace inference stay off. Turning this off removes Cursor links and keeps numeric totals.</value></data>
   <data name="CodexMcpAttributionLabel.Text" xml:space="preserve"><value>Count Codex tools and MCP calls</value></data>
-  <data name="CodexMcpAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Count Codex tools and MCP calls</value></data>
+  <data name="CodexMcpAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Count Codex tools and MCP calls</value></data>
   <data name="CodexMcpAttributionDescription.Text" xml:space="preserve"><value>Optional and separate from sessions. Stores opaque call IDs and bounded Read, Edit, and MCP names. Arguments, URIs, and outputs are not stored. Turning this off removes those facts and keeps numeric totals.</value></data>
   <data name="CodexSkillsAttributionLabel.Text" xml:space="preserve"><value>Count Codex agent spawns</value></data>
-  <data name="CodexSkillsAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Count Codex agent spawns</value></data>
+  <data name="CodexSkillsAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Count Codex agent spawns</value></data>
   <data name="CodexSkillsAttributionDescription.Text" xml:space="preserve"><value>Optional. Counts explicit spawn records. Installed skill files are not uses. Prompts and skill paths are not stored. Turning this off removes spawn facts and keeps numeric totals.</value></data>
   <data name="CodexCommandsAttributionLabel.Text" xml:space="preserve"><value>Count Codex command families</value></data>
-  <data name="CodexCommandsAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Count Codex command families</value></data>
+  <data name="CodexCommandsAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Count Codex command families</value></data>
   <data name="CodexCommandsAttributionDescription.Text" xml:space="preserve"><value>Optional. Stores an allowlisted family such as git or search, never command text, arguments, or working directories. Unknown syntax stays Unknown. Turning this off removes those facts and keeps numeric totals.</value></data>
   <data name="CodexFilesAttributionLabel.Text" xml:space="preserve"><value>Count Codex file operations</value></data>
-  <data name="CodexFilesAttributionToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Count Codex file operations</value></data>
+  <data name="CodexFilesAttributionToggle.AutomationProperties.Name" xml:space="preserve"><value>Count Codex file operations</value></data>
   <data name="CodexFilesAttributionDescription.Text" xml:space="preserve"><value>Optional. Stores opaque file identities and counts, never paths or patch hunks. Turning this off removes those facts and keeps numeric totals.</value></data>
-  <data name="AttributionBackfillSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Attribution backfill source</value></data>
+  <data name="AttributionBackfillSource.AutomationProperties.Name" xml:space="preserve"><value>Attribution backfill source</value></data>
   <data name="AttributionBackfillFrom.PlaceholderText" xml:space="preserve"><value>From</value></data>
-  <data name="AttributionBackfillFrom.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Backfill from date</value></data>
+  <data name="AttributionBackfillFrom.AutomationProperties.Name" xml:space="preserve"><value>Backfill from date</value></data>
   <data name="AttributionBackfillTo.PlaceholderText" xml:space="preserve"><value>To</value></data>
-  <data name="AttributionBackfillTo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Backfill to date</value></data>
+  <data name="AttributionBackfillTo.AutomationProperties.Name" xml:space="preserve"><value>Backfill to date</value></data>
   <data name="AttributionBackfillRun.Content" xml:space="preserve"><value>Backfill selected range</value></data>
   <data name="AttributionBackfillCodexSessions" xml:space="preserve"><value>Codex sessions</value></data>
   <data name="AttributionBackfillCodexProjects" xml:space="preserve"><value>Codex projects</value></data>
@@ -936,7 +937,7 @@
   <data name="UsageExplorerOpenUnlinkedOperations.Content" xml:space="preserve"><value>Open operations without a session link</value></data>
   <data name="UsageExplorerProjectsForModelHeading" xml:space="preserve"><value>Projects for this model</value></data>
   <data name="UsageExplorerProjectsUnprovedHeading" xml:space="preserve"><value>Projects in this selection</value></data>
-  <data name="UsageExplorerOperations.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Operations for this model</value></data>
+  <data name="UsageExplorerOperations.AutomationProperties.Name" xml:space="preserve"><value>Operations for this model</value></data>
   <data name="UsageExplorerFilesWorkflowNote" xml:space="preserve"><value>File rows are invocation counts by opaque file identity. First-edit latency is unavailable without a proved task start. Verification-separated repeats count an admitted test-family operation between ordered edits of the same opaque file. Concurrent or unorderable pairs are excluded. This is not a quality or success score.</value></data>
   <data name="UsageExplorerOperationsDerivedNote" xml:space="preserve"><value>Command families are derived from the executable name only. Arguments, paths, and command text are not stored. Unknown syntax stays Unknown. This is not a productivity score.</value></data>
   <data name="UsageExplorerDerivedActivityHeading.Text" xml:space="preserve"><value>Derived activity</value></data>
@@ -965,7 +966,7 @@
   <data name="UsageOverviewSkillsUnavailable" xml:space="preserve"><value>Skill invocations are unavailable. Codex has no SkillInvocation record. Installed skill files are not uses.</value></data>
   <data name="UsageExplorerCloseSessions.Content" xml:space="preserve"><value>Back to model</value></data>
   <data name="UsageExplorerSessionsHeading.Text" xml:space="preserve"><value>Sessions for this model</value></data>
-  <data name="UsageExplorerSessions.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Sessions for this model</value></data>
+  <data name="UsageExplorerSessions.AutomationProperties.Name" xml:space="preserve"><value>Sessions for this model</value></data>
   <data name="UsageExplorerUnassigned" xml:space="preserve"><value>Unassigned</value></data>
   <data name="UsageExplorerSessionLabelFormat" xml:space="preserve"><value>Session · {0}</value></data>
   <data name="UsageExplorerSessionContributionFormat" xml:space="preserve"><value>Selected contribution: {0} tokens</value></data>
@@ -974,7 +975,7 @@
   <data name="UsageExplorerOpenProjects.Content" xml:space="preserve"><value>Open projects</value></data>
   <data name="UsageExplorerCloseProjects.Content" xml:space="preserve"><value>Back to model</value></data>
   <data name="UsageExplorerProjectsHeading.Text" xml:space="preserve"><value>Projects for this model</value></data>
-  <data name="UsageExplorerProjects.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Projects for this model</value></data>
+  <data name="UsageExplorerProjects.AutomationProperties.Name" xml:space="preserve"><value>Projects for this model</value></data>
   <data name="UsageExplorerProjectLabelFormat" xml:space="preserve"><value>Project · {0}</value></data>
   <data name="UsageExplorerProjectContributionFormat" xml:space="preserve"><value>Selected contribution: {0} tokens</value></data>
   <data name="UsageExplorerProjectTotalFormat" xml:space="preserve"><value>Whole project: {0} tokens</value></data>
@@ -982,7 +983,7 @@
   <data name="UsageExplorerProjectUserMapped" xml:space="preserve"><value>User mapped</value></data>
   <data name="UsageExplorerProjectAmbiguous" xml:space="preserve"><value>Ambiguous</value></data>
   <data name="UsageExplorerProjectAlias.PlaceholderText" xml:space="preserve"><value>Project alias</value></data>
-  <data name="UsageExplorerProjectAlias.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Project alias</value></data>
+  <data name="UsageExplorerProjectAlias.AutomationProperties.Name" xml:space="preserve"><value>Project alias</value></data>
   <data name="UsageExplorerSaveProjectAlias.Content" xml:space="preserve"><value>Save alias</value></data>
   <data name="UsageExplorerRemapProject.Content" xml:space="preserve"><value>Map unassigned rows in this range to this project</value></data>
   <data name="UsageDistributionUnavailable" xml:space="preserve"><value>Request input-size statistics are unavailable. No admitted source has proved RequestFinal observations.</value></data>
@@ -993,11 +994,11 @@
   <data name="UsageDistributionOutlierFormat" xml:space="preserve"><value>Session outlier · {0} · {1} tokens</value></data>
   <data name="UsageDistributionOutlierInsufficient" xml:space="preserve"><value>Session outliers need 30 comparable eligible sessions.</value></data>
   <data name="UsageExplorerOpenOutlier.Content" xml:space="preserve"><value>Open session outlier</value></data>
-  <data name="UsageExplorerOpenOutlier.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open session outlier</value></data>
-  <data name="UsageExplorerExpandSession.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Expand or collapse child sessions</value></data>
-  <data name="UsageDistributionSummary.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Request input-size distribution</value></data>
+  <data name="UsageExplorerOpenOutlier.AutomationProperties.Name" xml:space="preserve"><value>Open session outlier</value></data>
+  <data name="UsageExplorerExpandSession.AutomationProperties.Name" xml:space="preserve"><value>Expand or collapse child sessions</value></data>
+  <data name="UsageDistributionSummary.AutomationProperties.Name" xml:space="preserve"><value>Request input-size distribution</value></data>
   <data name="ReportChartsAppearanceTitle.Text" xml:space="preserve"><value>Report charts</value></data>
-  <data name="ReportChartStyleSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Report chart style</value></data>
+  <data name="ReportChartStyleSelector.AutomationProperties.Name" xml:space="preserve"><value>Report chart style</value></data>
   <data name="ReportChartStyleSmooth" xml:space="preserve"><value>Smooth curve</value></data>
   <data name="ReportChartStyleLine" xml:space="preserve"><value>Straight line</value></data>
   <data name="ReportChartStyleStep" xml:space="preserve"><value>Steps</value></data>
@@ -1013,21 +1014,21 @@
   <data name="UsageReportSortDescending" xml:space="preserve"><value>Descending</value></data>
   <data name="UsageReportSortNone" xml:space="preserve"><value>Not sorted</value></data>
   <data name="ReportChartStyleTwoHourBars" xml:space="preserve"><value>2-hour bars · 12/day</value></data>
-  <data name="ReportCycleChartStyleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next chart style</value></data>
+  <data name="ReportCycleChartStyleButton.AutomationProperties.Name" xml:space="preserve"><value>Next chart style</value></data>
   <data name="ReportChartStyleTooltipFormat" xml:space="preserve"><value>Chart style: {0}. Click to switch to the next style.</value></data>
-  <data name="ReportSmallValuesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Emphasize small values using a square-root scale</value></data>
+  <data name="ReportSmallValuesButton.AutomationProperties.Name" xml:space="preserve"><value>Emphasize small values using a square-root scale</value></data>
   <data name="ReportSmallValuesButton.ToolTipService.ToolTip" xml:space="preserve"><value>Square-root scale makes small values easier to see. Turn off for a linear scale. Amounts are unchanged.</value></data>
   <data name="ReportSquareRootScaleSuffix" xml:space="preserve"><value> · √ scale</value></data>
   <data name="UsageReportTwoHourTitle" xml:space="preserve"><value>2-hour usage · 12 bars per day</value></data>
   <data name="DashboardLayoutCardsTitle.Text" xml:space="preserve"><value>Provider cards</value></data>
   <data name="UsageReportCompareModelsButton.Content" xml:space="preserve"><value>Models</value></data>
   <data name="UsageReportCompareRatesButton.Content" xml:space="preserve"><value>Rates</value></data>
-  <data name="UsageReportCompareRatesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Compare catalog-date scenarios</value></data>
+  <data name="UsageReportCompareRatesButton.AutomationProperties.Name" xml:space="preserve"><value>Compare catalog-date scenarios</value></data>
   <data name="UsageReportMarkBest.Content" xml:space="preserve"><value>Mark best values</value></data>
-  <data name="UsageReportMarkBest.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Mark best values</value></data>
+  <data name="UsageReportMarkBest.AutomationProperties.Name" xml:space="preserve"><value>Mark best values</value></data>
   <data name="UsageReportMarkBest.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Marks the better number in each comparable row. Tokens are not scored.</value></data>
   <data name="UsageReportBestLabel.Text" xml:space="preserve"><value>Best</value></data>
-  <data name="UsageComparisonRateBaselineDate.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline catalog date</value></data>
+  <data name="UsageComparisonRateBaselineDate.AutomationProperties.Name" xml:space="preserve"><value>Baseline catalog date</value></data>
   <data name="UsageComparisonRateStepsTitle.Text" xml:space="preserve"><value>Catalog list rates</value></data>
   <data name="UsageComparisonVolumeChange" xml:space="preserve"><value>Token volume</value></data>
   <data name="UsageComparisonMixChange" xml:space="preserve"><value>Model mix</value></data>
@@ -1039,8 +1040,8 @@
   <data name="UsageReportResetLogEmpty.Text" xml:space="preserve"><value>No recorded resets in this range.</value></data>
   <data name="UsageReportResetLogAllQuotas" xml:space="preserve"><value>All quotas</value></data>
   <data name="UsageReportResetLogAllClasses" xml:space="preserve"><value>All classes</value></data>
-  <data name="UsageReportResetLogQuota.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset quota</value></data>
-  <data name="UsageReportResetLogClass.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Reset class</value></data>
+  <data name="UsageReportResetLogQuota.AutomationProperties.Name" xml:space="preserve"><value>Reset quota</value></data>
+  <data name="UsageReportResetLogClass.AutomationProperties.Name" xml:space="preserve"><value>Reset class</value></data>
   <data name="UsageReportResetLogWhen.Text" xml:space="preserve"><value>When</value></data>
   <data name="UsageReportResetLogQuotaColumn.Text" xml:space="preserve"><value>Quota</value></data>
   <data name="UsageReportResetLogExpected.Text" xml:space="preserve"><value>Expected</value></data>
@@ -1049,16 +1050,16 @@
   <data name="UsageReportResetEvidenceInferredBanked" xml:space="preserve"><value>Banked reset · inferred from a credit drop</value></data>
   <data name="UsageReportResetEvidenceInferredGrant" xml:space="preserve"><value>Extra reset · no credit drop</value></data>
   <data name="UsageReportResetEvidenceScheduled" xml:space="preserve"><value>Scheduled reset</value></data>
-  <data name="UsageComparisonPresetSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Comparison period</value></data>
-  <data name="UsageComparisonBaselineModel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Baseline model A</value></data>
+  <data name="UsageComparisonPresetSelector.AutomationProperties.Name" xml:space="preserve"><value>Comparison period</value></data>
+  <data name="UsageComparisonBaselineModel.AutomationProperties.Name" xml:space="preserve"><value>Baseline model A</value></data>
   <data name="UsageComparisonBaselineModel.PlaceholderText" xml:space="preserve"><value>Baseline model A</value></data>
-  <data name="UsageComparisonCurrentModel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Current model B</value></data>
+  <data name="UsageComparisonCurrentModel.AutomationProperties.Name" xml:space="preserve"><value>Current model B</value></data>
   <data name="UsageComparisonCurrentModel.PlaceholderText" xml:space="preserve"><value>Current model B</value></data>
   <data name="UsageComparisonAcrossPeriods.Content" xml:space="preserve"><value>Compare across periods</value></data>
   <data name="UsageComparisonReferencePrices.Content" xml:space="preserve"><value>Use fixed reference prices</value></data>
   <data name="UsageComparisonSaveButton.Content" xml:space="preserve"><value>Save comparison</value></data>
   <data name="UsageComparisonSavedSelector.PlaceholderText" xml:space="preserve"><value>Saved comparisons</value></data>
-  <data name="UsageComparisonSavedSelector.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Saved comparison revision</value></data>
+  <data name="UsageComparisonSavedSelector.AutomationProperties.Name" xml:space="preserve"><value>Saved comparison revision</value></data>
   <data name="UsageComparisonLiveButton.Content" xml:space="preserve"><value>Return to live data</value></data>
   <data name="UsageComparisonPresetLastCompleteWeek" xml:space="preserve"><value>Last complete week vs previous week</value></data>
   <data name="UsageComparisonPresetCurrentWeek" xml:space="preserve"><value>This week vs previous · completed days</value></data>
@@ -1156,9 +1157,9 @@
   <data name="UpdateSectionTitle.Text" xml:space="preserve"><value>App updates</value></data>
   <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>v{0}</value></data>
   <data name="UpdateAutomaticLabel.Text" xml:space="preserve"><value>Automatic updates</value></data>
-  <data name="AutomaticUpdatesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Download and install app updates automatically</value></data>
+  <data name="AutomaticUpdatesToggle.AutomationProperties.Name" xml:space="preserve"><value>Download and install app updates automatically</value></data>
   <data name="UpdateAutomaticDescription.Text" xml:space="preserve"><value>Checks GitHub once a day while TokenUsage runs. Downloads stable releases and installs them after you exit. No usage data is sent.</value></data>
-  <data name="UpdateDownloadProgress.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>App update download progress</value></data>
+  <data name="UpdateDownloadProgress.AutomationProperties.Name" xml:space="preserve"><value>App update download progress</value></data>
   <data name="UpdateSettingsError.Text" xml:space="preserve"><value>The update preference could not be saved. Check access to the app data folder and try again.</value></data>
   <data name="CheckAppUpdatesButton.Content" xml:space="preserve"><value>Check updates</value></data>
   <data name="DownloadAppUpdateButton.Content" xml:space="preserve"><value>Download and install</value></data>
@@ -1186,7 +1187,7 @@
   <data name="UpdateInitializationFailed" xml:space="preserve"><value>Update settings or recovery files could not be read. Check access to the app data folder.</value></data>
   <data name="UpdateRestartFailed" xml:space="preserve"><value>TokenUsage could not finish closing for the update. Try again when active work has finished.</value></data>
   <data name="UpdateLastCheckFormat" xml:space="preserve"><value>Last check: {0}</value></data>
-  <data name="UsageMeasurementCopyButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Copy measurement details</value></data>
+  <data name="UsageMeasurementCopyButton.AutomationProperties.Name" xml:space="preserve"><value>Copy measurement details</value></data>
   <data name="UsageMeasurementCopyButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Copy measurement details</value></data>
   <data name="UsageMeasurementCopied" xml:space="preserve"><value>Measurement details copied.</value></data>
   <data name="UsageMeasurementCopyFailed" xml:space="preserve"><value>Could not copy the details. Try again when the clipboard is available.</value></data>
@@ -1239,21 +1240,18 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageMeasurementCycles" xml:space="preserve"><value>Reset cycles and quota</value></data>
   <data name="UsageMeasurementHistory" xml:space="preserve"><value>Reset history</value></data>
   <data name="UsageReportUnknownHost" xml:space="preserve"><value>Unknown host</value></data>
-  <data name="UsageExplorerTool.Header" xml:space="preserve"><value>Tool</value></data>
   <data name="UsageExplorerTool.AutomationProperties.Name" xml:space="preserve"><value>Filter by tool</value></data>
   <data name="UsageExplorerHost.Header" xml:space="preserve"><value>Model host</value></data>
   <data name="UsageExplorerHost.AutomationProperties.Name" xml:space="preserve"><value>Filter by model host</value></data>
-  <data name="UsageExplorerModel.Header" xml:space="preserve"><value>Model</value></data>
   <data name="UsageExplorerModel.AutomationProperties.Name" xml:space="preserve"><value>Filter by model</value></data>
   <data name="UsageExplorerAllTools" xml:space="preserve"><value>All tools</value></data>
   <data name="UsageExplorerAllHosts" xml:space="preserve"><value>All hosts</value></data>
   <data name="UsageExplorerAllModels" xml:space="preserve"><value>All models</value></data>
   <data name="UsageExplorerClear.Content" xml:space="preserve"><value>Clear filters</value></data>
-  <data name="UsageExplorerSearch.PlaceholderText" xml:space="preserve"><value>Search tool, host or model ID</value></data>
+  <data name="UsageExplorerSearch.PlaceholderText" xml:space="preserve"><value>Search models, tools or hosts</value></data>
   <data name="UsageExplorerSearch.AutomationProperties.Name" xml:space="preserve"><value>Search report models</value></data>
-  <data name="UsageExplorerSearch.Description" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
+  <data name="UsageExplorerSearch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
   <data name="UsageExplorerSearchHint.Text" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
-  <data name="UsageExplorerAdvancedFilters.Header" xml:space="preserve"><value>Advanced filters</value></data>
   <data name="UsageExplorerClearHidden.Content" xml:space="preserve"><value>Clear hidden filters</value></data>
   <data name="UsageExplorerSourceDetails.Content" xml:space="preserve"><value>Source details</value></data>
   <data name="UsageExplorerSearchContextFormat" xml:space="preserve"><value>Search: {0}</value></data>
@@ -1332,7 +1330,7 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerContextProjects" xml:space="preserve"><value>Projects</value></data>
   <data name="UsageExplorerContextSessions" xml:space="preserve"><value>Sessions</value></data>
   <data name="UsageExplorerContextOperations" xml:space="preserve"><value>Operations</value></data>
-  <data name="UsageExplorerContextPath.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Detail context</value></data>
+  <data name="UsageExplorerContextPath.AutomationProperties.Name" xml:space="preserve"><value>Detail context</value></data>
   <data name="UsageReportChartGroupingCombined" xml:space="preserve"><value>Combined</value></data>
   <data name="UsageReportChartGroupingProvider" xml:space="preserve"><value>By provider</value></data>
   <data name="UsageReportChartGroupingModel" xml:space="preserve"><value>By model</value></data>
@@ -1359,6 +1357,7 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageComparisonCoverageFormat" xml:space="preserve"><value>Priced coverage A {0} · B {1}</value></data>
   <data name="UsageComparisonCatalogDatesFormat" xml:space="preserve"><value>Catalog dates: A {0}; B {1}. These are not usage dates.</value></data>
   <data name="UsageComparisonAdvanced.Header" xml:space="preserve"><value>Pricing scenario and catalog dates</value></data>
+  <data name="UsageComparisonDifferenceLabel.Text" xml:space="preserve"><value>Difference (B − A)</value></data>
   <data name="UsageComparisonUsageDatesLabel.Text" xml:space="preserve"><value>Usage dates</value></data>
   <data name="UsageComparisonUsageRangeFormat" xml:space="preserve"><value>{0} to {1}</value></data>
   <data name="UsageComparisonUsageRangesFormat" xml:space="preserve"><value>A {0} · B {1}</value></data>
@@ -1390,11 +1389,11 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageDashboardComposition.Text" xml:space="preserve"><value>Token composition</value></data>
   <data name="UsageDashboardViewAll.Content" xml:space="preserve"><value>View all →</value></data>
   <data name="UsageDashboardAllDetails.Header" xml:space="preserve"><value>Full breakdown</value></data>
-  <data name="UsageDashboardKnownCostUnit" xml:space="preserve"><value>known cost · USD</value></data>
-  <data name="UsageDashboardTokensUnit" xml:space="preserve"><value>tokens</value></data>
-  <data name="UsageDashboardLeaderFormat" xml:space="preserve"><value>{0} accounts for {1} of {2}.</value></data>
-  <data name="UsageDashboardRemainderFormat" xml:space="preserve"><value>{0} of {1} · Remaining: {2}</value></data>
-  <data name="UsageDashboardPeakFormat" xml:space="preserve"><value>{0} accounts for {1} of {2}.</value></data>
+  <data name="UsageDashboardKnownCostUnit" xml:space="preserve"><value>Known cost · USD</value></data>
+  <data name="UsageDashboardTokensUnit" xml:space="preserve"><value>Tokens</value></data>
+  <data name="UsageDashboardLeaderFormat" xml:space="preserve"><value>{0} leads with {1} of the total.</value></data>
+  <data name="UsageDashboardRemainderFormat" xml:space="preserve"><value>Top {0} of {1} · {2} in the rest</value></data>
+  <data name="UsageDashboardPeakFormat" xml:space="preserve"><value>Peak day: {0}, with {1} of the period total.</value></data>
   <data name="UsageDashboardCacheSummaryFormat" xml:space="preserve"><value>{0} of measured input came from cache.</value></data>
   <data name="UsageDashboardUnassignedFormat" xml:space="preserve"><value>Unassigned: {0} tokens</value></data>
   <data name="UsageDashboardNoRankedValue" xml:space="preserve"><value>No nonzero value to rank.</value></data>
@@ -1416,5 +1415,22 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageDashboardActivitySummaryFormat" xml:space="preserve"><value>{0} accounts for {1} of observed invocations.</value></data>
   <data name="UsageDashboardMethod.Header" xml:space="preserve"><value>How this is measured</value></data>
   <data name="UsageDashboardOperationPreview.Text" xml:space="preserve"><value>Tools · observed invocations</value></data>
+  <data name="UsageHighlightPeakLabel" xml:space="preserve"><value>Busiest day</value></data>
+  <data name="UsageHighlightPeakFormat" xml:space="preserve"><value>{0} · {1} of the period</value></data>
+  <data name="UsageHighlightAverageLabel" xml:space="preserve"><value>Per active day</value></data>
+  <data name="UsageHighlightAverageFormat" xml:space="preserve"><value>Active on {0} of {1} days</value></data>
+  <data name="UsageHighlightRecentLabel" xml:space="preserve"><value>Last 7 days</value></data>
+  <data name="UsageHighlightTrendUpFormat" xml:space="preserve"><value>+{0} vs the week before</value></data>
+  <data name="UsageHighlightTrendDownFormat" xml:space="preserve"><value>−{0} vs the week before</value></data>
+  <data name="UsageHighlightTrendNewFormat" xml:space="preserve"><value>No usage the week before</value></data>
+  <data name="UsageHighlightLeaderLabel" xml:space="preserve"><value>Top model</value></data>
+  <data name="UsageHighlightLeaderFormat" xml:space="preserve"><value>{0} · {1} of the total</value></data>
+  <data name="UsageTokenMixReadFormat" xml:space="preserve"><value>{0} read</value></data>
+  <data name="UsageTokenMixWrittenFormat" xml:space="preserve"><value>{0} written</value></data>
+  <data name="UsageTokenMixRatioFormat" xml:space="preserve"><value>About {0} tokens read for every token written.</value></data>
+  <data name="UsageHighlights.AutomationProperties.Name" xml:space="preserve"><value>Period highlights</value></data>
+  <data name="UsageTokenMixBar.AutomationProperties.Name" xml:space="preserve"><value>Token mix</value></data>
+  <data name="UsageExplorerMoreFiltersLabel.Text" xml:space="preserve"><value>More filters</value></data>
   <data name="UsageReportChartAverageFormat" xml:space="preserve"><value>{0} avg/day</value></data>
+  <data name="UsageHighlightTrendTimesFormat" xml:space="preserve"><value>{0}× the week before</value></data>
 </root>

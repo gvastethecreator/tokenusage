@@ -124,6 +124,8 @@ public sealed partial class UsageReportPage : Page
         }
 
         _loadedOnce = true;
+        // Start focus on navigation, not the search box: a stray keystroke must not filter the report.
+        ReportGlobalScopeTab.Focus(FocusState.Programmatic);
         // Opening a report reads the last collected data. Collection is a separate, explicit
         // action: a slow or unavailable provider must not block access to stored reports.
         await ViewModel.LoadAsync();
@@ -553,6 +555,16 @@ public sealed partial class UsageReportPage : Page
         Grid.SetColumn(ReportValueControls, wrap ? 1 : 3);
         Grid.SetColumnSpan(ReportScopeControls, wrap ? 2 : 1);
         Grid.SetColumnSpan(ReportPeriodControls, wrap ? 2 : 1);
+        // Narrow filters: the search keeps a full row; model and More filters move below it.
+        Grid.SetColumnSpan(ExplorerSearchHost, wrap ? 5 : 1);
+        Grid.SetRow(ExplorerModelBox, wrap ? 1 : 0);
+        Grid.SetColumn(ExplorerModelBox, wrap ? 0 : 1);
+        Grid.SetRow(ExplorerAdvancedFilters, wrap ? 1 : 0);
+        Grid.SetColumn(ExplorerAdvancedFilters, wrap ? 1 : 2);
+        Grid.SetRow(ExplorerClearButton, wrap ? 1 : 0);
+        // A group that starts a wrapped row has nothing to its left to separate from.
+        ReportPeriodSeparator.Visibility = wrap ? Visibility.Collapsed : Visibility.Visible;
+        ReportMetricSeparator.Visibility = wrap ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OnCycleTableSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCycleTableColumns();
@@ -661,8 +673,10 @@ public sealed partial class UsageReportPage : Page
         }
 
         if (e.PropertyName == nameof(UsageReportViewModel.CycleSummaries)) UpdateCycleSummaryLayout();
+        if (e.PropertyName == nameof(UsageReportViewModel.TokenMixCacheRead)) RevealTokenMix();
         if (e.PropertyName is nameof(UsageReportViewModel.HasDashboardProjects)
-            or nameof(UsageReportViewModel.HasDashboardActivity))
+            or nameof(UsageReportViewModel.HasDashboardActivity)
+            or nameof(UsageReportViewModel.HasDashboardOperationsCard))
             UpdateDashboardLayout(DashboardGrid.ActualWidth);
 
         if (e.PropertyName == nameof(UsageReportViewModel.ModelShareLabel))

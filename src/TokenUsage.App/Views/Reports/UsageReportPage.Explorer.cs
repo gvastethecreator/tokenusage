@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using TokenUsage.App.ViewModels.Reports;
 
 namespace TokenUsage.App.Views.Reports;
 
@@ -67,7 +68,12 @@ public sealed partial class UsageReportPage
         if (index >= 0 && ModelBreakdownRows.TryGetElement(index) is DependencyObject row
             && Descendants(row).OfType<Button>().FirstOrDefault(button => Equals(button.Tag, _modelReturnId)) is { } button)
             button.Focus(FocusState.Programmatic);
-        else { ReportFilters.IsExpanded = true; ExplorerSearchBox.Focus(FocusState.Programmatic); }
+        else ExplorerSearchBox.Focus(FocusState.Programmatic);
+    }
+
+    private void OnExplorerToolChipClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: UsageExplorerOption option }) ViewModel.ExplorerTool = option;
     }
 
     private void OnExplorerEvidenceClick(object sender, RoutedEventArgs e)

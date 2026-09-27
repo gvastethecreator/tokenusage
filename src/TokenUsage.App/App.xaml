@@ -208,6 +208,13 @@
                     <SolidColorBrush x:Key="ReportSessionResetBrush" Color="#0078A8" />
                     <SolidColorBrush x:Key="ReportManualResetBrush" Color="#6B3FA0" />
                     <SolidColorBrush x:Key="ReportResetCreditBrush" Color="#C2390B" />
+                    <SolidColorBrush x:Key="ReportBarFillBrush" Color="#FF5F5F5F" />
+                    <SolidColorBrush x:Key="ReportBarTrackBrush" Color="#12000000" />
+                    <SolidColorBrush x:Key="TokenMixCacheReadBrush" Color="#2A78D6" />
+                    <SolidColorBrush x:Key="TokenMixCacheWriteBrush" Color="#EDA100" />
+                    <SolidColorBrush x:Key="TokenMixInputBrush" Color="#1BAF7A" />
+                    <SolidColorBrush x:Key="TokenMixOutputBrush" Color="#EB6834" />
+                    <SolidColorBrush x:Key="TokenMixReasoningBrush" Color="#4A3AA7" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconDark.png" />
                     <SolidColorBrush x:Key="TokenUsageShellBrush" Color="#FFF5F5F5" />
                     <SolidColorBrush x:Key="TokenUsageCardBrush" Color="#FFFFFFFF" />
@@ -257,6 +264,13 @@
                     <SolidColorBrush x:Key="ReportSessionResetBrush" Color="#5AD2F2" />
                     <SolidColorBrush x:Key="ReportManualResetBrush" Color="#C4A0FF" />
                     <SolidColorBrush x:Key="ReportResetCreditBrush" Color="#FF8C4A" />
+                    <SolidColorBrush x:Key="ReportBarFillBrush" Color="#FFBDBDBD" />
+                    <SolidColorBrush x:Key="ReportBarTrackBrush" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="TokenMixCacheReadBrush" Color="#3987E5" />
+                    <SolidColorBrush x:Key="TokenMixCacheWriteBrush" Color="#C98500" />
+                    <SolidColorBrush x:Key="TokenMixInputBrush" Color="#199E70" />
+                    <SolidColorBrush x:Key="TokenMixOutputBrush" Color="#D95926" />
+                    <SolidColorBrush x:Key="TokenMixReasoningBrush" Color="#9085E9" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <SolidColorBrush x:Key="TokenUsageShellBrush" Color="#FF050505" />
                     <SolidColorBrush x:Key="TokenUsageCardBrush" Color="#FF0A0A0A" />
@@ -306,6 +320,13 @@
                     <StaticResource x:Key="ReportSessionResetBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="ReportManualResetBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="ReportResetCreditBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportBarFillBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="ReportBarTrackBrush" ResourceKey="SystemColorGrayTextColorBrush" />
+                    <StaticResource x:Key="TokenMixCacheReadBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="TokenMixCacheWriteBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="TokenMixInputBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="TokenMixOutputBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="TokenMixReasoningBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <StaticResource x:Key="TokenUsageShellBrush" ResourceKey="SystemColorWindowColorBrush" />
                     <StaticResource x:Key="TokenUsageCardBrush" ResourceKey="SystemColorWindowColorBrush" />

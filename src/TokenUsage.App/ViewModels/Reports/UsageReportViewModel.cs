@@ -317,6 +317,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(CanCaptureReport));
                 OnPropertyChanged(nameof(CanFilterExplorer));
                 OnPropertyChanged(nameof(CanLoadExplanationDetail));
+                OnPropertyChanged(nameof(DashboardCacheSummary));
             }
         }
     }
@@ -716,7 +717,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public string ChartTitle => GetString(
         ChartStyle == ReportChartStyle.TwoHourBars ? "UsageReportTwoHourTitle" :
         IsShareValueMode && IsGlobalScope
-            ? "UsageReportDailyShareTitle"
+            ? IsCostMetric ? "UsageReportDailyCostShareTitle" : "UsageReportDailyTokenShareTitle"
             : IsCostMetric
                 ? "UsageReportDailyCostTitle"
                 : "UsageReportDailyTokensTitle")
@@ -1214,6 +1215,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsProjectBreakdown));
         OnPropertyChanged(nameof(ScopeTitle));
         OnPropertyChanged(nameof(ChartTitle));
+        OnPropertyChanged(nameof(CanEmphasizeSmallValues));
         OnPropertyChanged(nameof(ChartAppearanceSummary));
     }
 
@@ -1873,6 +1875,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HeadlineValue));
         OnPropertyChanged(nameof(HeadlineDetail));
         OnPropertyChanged(nameof(ChartTitle));
+        OnPropertyChanged(nameof(CanEmphasizeSmallValues));
         OnPropertyChanged(nameof(ChartAppearanceSummary));
         OnPropertyChanged(nameof(SummaryTokensText));
         OnPropertyChanged(nameof(SummaryCostText));
@@ -2388,6 +2391,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             ? FormatUsd(value)
             : GetString("UsageReportUnpricedLabel");
 
+    private double MetricSharePercent(UsageReportMetrics metrics) => !IsCostMetric
+        ? _report.Totals.Tokens.Total == 0 ? 0 : 100d * metrics.Tokens.Total / _report.Totals.Tokens.Total
+        : ComparableCost(metrics) is decimal cost && _report.Totals.TotalCostUsd > 0m
+            ? (double)(100m * cost / _report.Totals.TotalCostUsd) : 0;
+
     private string FormatMetricShare(UsageReportMetrics metrics)
     {
         if (!IsCostMetric)
@@ -2517,13 +2525,13 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             [
                 new UsageReportTrendSeries(
                     "compare-left",
-                    "compare-left",
+                    IsCompareProvidersAxis && CompareLeftProvider is { } leftProvider ? leftProvider.ProviderId : "compare-left",
                     CompareLeftLabel,
                     CompareSeriesColor(isRight: false),
                     leftValues) { TimeValues = TimeCompareValues(_report, _compareLeftStart, dayCount), PointKinds = leftKinds },
                 new UsageReportTrendSeries(
                     "compare-right",
-                    "compare-right",
+                    IsCompareProvidersAxis && CompareRightProvider is { } rightProvider ? rightProvider.ProviderId : "compare-right",
                     CompareRightLabel,
                     CompareSeriesColor(isRight: true),
                     rightValues) { TimeValues = TimeCompareValues(_compareRightReport,
@@ -2744,6 +2752,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     FormatPercent(model.Metrics.PriceCoveragePercent / 100m))
                 {
                     ModelProviderId = model.ModelProviderId?.Value,
+                    SharePercent = MetricSharePercent(model.Metrics),
                     HostName = model.ModelProviderId?.Value ?? GetString("UsageReportUnknownHost"),
                     ReportedValueText = string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerReportedValueFormat"), ExactCost(model.Metrics.ReportedCostUsd)),
                     EstimatedValueText = string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerEstimatedValueFormat"), ExactCost(model.Metrics.EstimatedCostUsd)),
