@@ -78,7 +78,8 @@ public static class UsageValueFormatter
     }
 
     /// <summary>
-    /// Hover and detail money, including tiny stored amounts.
+    /// Hover and detail money: cents with digit grouping, plus enough digits for tiny stored
+    /// amounts that would otherwise round to zero.
     /// </summary>
     public static string DetailUsd(double amount)
     {
@@ -96,7 +97,7 @@ public static class UsageValueFormatter
                 amount);
         }
 
-        return string.Format(CultureInfo.CurrentCulture, "${0:0.######}", amount);
+        return string.Format(CultureInfo.CurrentCulture, "${0:N2}", amount);
     }
 
     /// <summary>
@@ -136,10 +137,13 @@ public static class UsageValueFormatter
 
     /// <summary>
     /// A percentage sign after a value that already counts in percent units, so 50m reads
-    /// as "50%". A share between zero and one has to be scaled by the caller.
+    /// as "50%". A share between zero and one has to be scaled by the caller. A positive
+    /// share too small to round to 0.1% reads "&lt;0.1%" so it never looks like nothing.
     /// </summary>
-    public static string PercentText(decimal percentValue) => string.Format(
-        CultureInfo.CurrentCulture,
-        "{0:0.#}%",
-        percentValue);
+    public static string PercentText(decimal percentValue) => percentValue is > 0m and < 0.05m
+        ? string.Format(CultureInfo.CurrentCulture, "<{0:0.#}%", 0.1m)
+        : string.Format(
+            CultureInfo.CurrentCulture,
+            "{0:0.#}%",
+            percentValue);
 }
