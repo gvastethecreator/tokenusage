@@ -123,8 +123,8 @@
             <Color x:Key="ProviderGrokColor">#FF7C5CFC</Color>
             <Color x:Key="ProviderOpenCodeColorDark">#FF9F2F62</Color>
             <Color x:Key="ProviderOpenCodeColor">#FFE5488C</Color>
-            <Color x:Key="ProviderZcodeColorDark">#FF2743B8</Color>
-            <Color x:Key="ProviderZcodeColor">#FF4E6BFF</Color>
+            <Color x:Key="ProviderZcodeColorDark">#FF94670F</Color>
+            <Color x:Key="ProviderZcodeColor">#FFE3A92B</Color>
 
         <Style x:Key="SectionTabRadioButtonStyle" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent" />

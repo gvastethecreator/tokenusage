@@ -63,7 +63,7 @@ public static class ProviderColorPreference
         ["openrouter"] = "#6366F1",
         ["vercel-ai-gateway"] = "#6B7280",
         ["zai"] = "#2D5BFF",
-        ["zcode"] = "#4E6BFF",
+        ["zcode"] = "#E3A92B",
     };
 
     private static readonly string[] DerivedColors =
