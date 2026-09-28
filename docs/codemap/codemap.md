@@ -1,15 +1,15 @@
 # Code map: tokenusage
 
-Generated: 2026-09-28T07:48:03Z | Commit: `ddb6f41928c8` | Schema: 2
-Generation: `6e75c02b49e3cba40714e18e2ce0e8e59892abf46c15898ee262f2c139ca1009`
+Generated: 2026-09-28T16:43:39Z | Commit: `907f0f9dbccd` | Schema: 2
+Generation: `9bd0778c7925c7ddc186d69c65c05324bb368a5b086aeac1a495e4573fec2bd4`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
-Nodes: 580 | Edges: 4202 | Flows: 0
+Nodes: 580 | Edges: 4208 | Flows: 0
 
 ## Coverage
 
 - Analysis: **partial**; 542 analyzed of 573 included files.
 - Configuration files: 0; omitted untracked files: 0.
-- Unresolved references and analysis limits: 2289.
+- Unresolved references and analysis limits: 2302.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -88,7 +88,7 @@ Nodes: 580 | Edges: 4202 | Flows: 0
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/MotionSettings.cs` | imports (type only)
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | calls
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | imports (type only)
-- Showing 50 of 4202 edges; JSON contains every edge and its evidence.
+- Showing 50 of 4208 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
