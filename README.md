@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/document.svg?title=TokenUsage&subtitle=Quota%2C+tokens%2C+cost%2C+and+reset+cycles+for+AI+coding+tools&logo=windows&theme=green&align=center&mode=dark" />
-    <img alt="TokenUsage — quota, tokens, cost, and reset cycles for AI coding tools" src="https://shieldcn.dev/header/document.svg?title=TokenUsage&subtitle=Quota%2C+tokens%2C+cost%2C+and+reset+cycles+for+AI+coding+tools&logo=windows&theme=green&align=center&mode=light" />
-  </picture>
+  <img src="docs/assets/github-readme-assets/final/readme-hero.svg" alt="TokenUsage — a silly mascot counting colored tokens" width="100%" />
 </p>
 
 <p align="center">
@@ -15,6 +12,7 @@
 
 <p align="center">
   <a href="https://gvastethecreator.github.io/tokenusage/">Project site</a> ·
+  <a href="#release-downloads">Download</a> ·
   <a href="#product-tour">Product tour</a> ·
   <a href="#provider-support">Providers</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
@@ -22,17 +20,17 @@
   <a href="#command-line">CLI</a>
 </p>
 
-TokenUsage turns the usage data already available on your computer into one clear view. Open the tray panel for a quick check. Open the report for trends, provider comparisons, costs, tokens, and reset cycles. Use the CLI for scripts and diagnostics.
+A Windows tray app for keeping track of AI coding usage. See your tokens, known cost, and available quota in one place, then open the report when you want the detail. The CLI exposes the same local data for scripts and diagnostics.
 
 No TokenUsage account is required. Provider data stays local unless you enable a documented opt-in connection.
 
 > [!IMPORTANT]
-> TokenUsage `0.0.1` is in active pre-release development. Provider coverage varies by product version, account type, and available data source.
+> The current release is an **unsigned Windows x64 portable preview**. [Download preview 4](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.4). Provider coverage depends on the tool, account, and available data source.
 
 ## What you get
 
 - **Fast tray view** — check total spend, provider activity, Codex limits, and selected provider quotas.
-- **Detailed reports** — compare providers, ranges, metrics, charts, and tables, then export a clean capture.
+- **Detailed reports** — compare providers, ranges, metrics, charts, and tables. Shared captures respect which sections you have expanded.
 - **Honest data states** — reported, estimated, partial, stale, unavailable, and unpriced values remain distinct.
 - **Reset history** — inspect observed Codex reset cycles, including early resets detected before the expected date.
 - **Stable CLI output** — read usage, reports, limits, provider status, and diagnostics as human text or versioned JSON.
@@ -40,13 +38,19 @@ No TokenUsage account is required. Provider data stays local unless you enable a
 
 ## Product tour
 
-| Compact overview | Spend distribution |
-| --- | --- |
-| <img src="docs/assets/screenshots/dashboard-overview.webp" alt="TokenUsage compact sample dashboard with provider spend and Codex quota windows" /> | <img src="docs/assets/screenshots/spend-distribution.webp" alt="TokenUsage sample dashboard with a provider spend donut" /> |
-| **Appearance settings** | **Provider coverage** |
-| <img src="docs/assets/screenshots/appearance-settings.webp" alt="TokenUsage appearance and tray popover settings" /> | <img src="docs/assets/screenshots/provider-coverage.webp" alt="TokenUsage provider availability and configuration states" /> |
+### The report
 
-The dashboard screenshots use the app's deterministic sample mode. They do not contain account data, local paths, or real usage totals.
+Tokens, known cost, priced tokens, and compact provider limits share the first row. Compare daily activity below, then expand the full breakdown when you need individual models and providers.
+
+<img src="docs/assets/screenshots/report-overview.png" alt="Sample usage report with four summary columns, Codex and Claude limit rows, daily cost, and provider composition" width="100%" />
+
+Shared captures include expanded sections and leave collapsed sections out. They preserve the report's current selection.
+
+### Open the detail you want to share
+
+<img src="docs/assets/screenshots/report-expanded.png" alt="The same sample report with its full model and provider breakdown expanded in the shared image" width="100%" />
+
+These are fresh captures of the native application with synthetic sample data. They contain no account data or personal paths. The banner mascot is an illustration generated with imagegen.
 
 ## Provider support
 
@@ -112,24 +116,15 @@ Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
 ## Requirements
 
-- Windows 10 version 1809 or later.
-- An `x64` or `ARM64` computer.
-- .NET 10 SDK.
-- Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0` for packaged builds.
+The portable preview runs on Windows x64 and includes its .NET and Windows App SDK runtimes. The app targets Windows 10 version 1809 or later. This preview has been checked on Windows 11; clean-machine qualification is still pending.
 
-TokenUsage uses C#, WinUI 3, Windows App SDK, and a full-trust MSIX package. `AnyCPU` and `x86` are not supported.
+Building from source also requires the .NET 10 SDK, Visual Studio with MSBuild and Windows app packaging tools, and Windows SDK `10.0.26100.0`. Source builds support x64 and ARM64; this release includes x64 only.
 
 ## Release downloads
 
-Published releases can include two Windows x64 files:
+[Download v0.0.1-preview.4](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.4), extract the ZIP, and open `TokenUsage.App.exe`.
 
-- A signed MSIX package for normal installation
-- A portable ZIP that does not require installation
-
-The [0.0.1 preview](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.2)
-is **unsigned and portable-only**. Windows may show a publisher or SmartScreen
-warning. It has no MSIX installer and is not delivered by automatic updates.
-Read the [release notes](docs/releases/0.0.1.md) for its limits.
+This preview is **unsigned and portable-only**. Windows may show a publisher or SmartScreen warning. It has no MSIX installer and is not delivered by automatic updates. See the [release notes](docs/releases/0.0.1.md) for fixes and limits.
 
 The portable ZIP contains the app and CLI. Run `tokenusage.cmd` from its root to use the CLI.
 

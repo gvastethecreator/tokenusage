@@ -80,6 +80,9 @@ execution limit. Without one, the wrapper prints the available quota windows.
 Uninstall restores that command and deletes the stored reading.
 
 The reading advances only while Claude Code runs with the wrapper enabled.
+TokenUsage checks the local reading every 30 seconds while the app runs.
+An omitted five-hour window stays absent until Claude Code sends it; it is not
+shown as zero use or a full allowance.
 Available windows depend on the account and can include five-hour, weekly,
 and gateway spending limits. Readings older than 30 minutes are marked stale;
 windows past their reset time are dropped. TokenUsage does not read

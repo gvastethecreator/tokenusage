@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "repo": {
+    "path": ".",
+    "name": "tokenusage",
+    "remote": "https://github.com/gvastethecreator/tokenusage.git",
+    "readme": "README.md",
+    "metadata_source": ""
+  },
+  "content": {
+    "title": "TokenUsage",
+    "subtitle": "Tokens, cost, and quota. One local view.",
+    "tags": [
+      "WINDOWS",
+      "LOCAL FIRST"
+    ],
+    "languages": [
+      "C#",
+      "XAML"
+    ]
+  },
+  "template": {
+    "id": "silly-token-counter",
+    "label": "Silly Token Counter",
+    "best_for": [
+      "dashboard",
+      "saas",
+      "admin",
+      "api",
+      "ops",
+      "analytics"
+    ],
+    "palette": "warm off-white, ink black, mint, lavender, orange",
+    "visual_language": "A deliberately uneven felt-pen bean mascot counting small colored token slips.",
+    "composition": "Empty left half for typography; flat mascot and token stacks on the right.",
+    "avoid": [
+      "real UI copy",
+      "fake buttons with text",
+      "marketing hero cliches",
+      "busy gradients",
+      "unrequested fantasy/game objects",
+      "gemstones",
+      "coins",
+      "keys",
+      "potion bottles"
+    ]
+  },
+  "assets": [
+    {
+      "id": "readme-hero",
+      "kind": "banner",
+      "label": "README hero banner",
+      "width": 2100,
+      "height": 900,
+      "raw_path": "raw/readme-hero.png",
+      "final_path": "final/readme-hero.svg",
+      "prompt": "A simple silly lumpy black bean mascot, uneven white eyes, thin wobbly limbs, losing count of mint, lavender and orange rectangular token slips. Flat naive felt-pen doodle on warm off-white. No realism, machinery, gradients, dashboard or corporate illustration. Quiet left half, mascot on right."
+    }
+  ]
+}

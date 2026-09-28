@@ -4,6 +4,17 @@ User-facing changes for TokenUsage. Release notes include installation details a
 
 ## Unreleased
 
+### Fixed
+
+- Keep Codex's 5-hour reading when its keyed limits contain more information than the legacy summary. Refresh Claude's local quota reading every 30 seconds, including percentage changes with the same observation timestamp.
+- Keep sample dashboards separate from previously collected usage.
+- Close reports safely when Windows detaches the window's theme resources.
+
+### Changed
+
+- Put usage limits in the fourth report summary cell with compact provider labels and bars.
+- Leave collapsed sections out of shared report images; expanded sections remain included.
+
 ### Added
 
 - Claude Code subscription limits (5-hour and weekly, plus a gateway spend limit). They come from the documented status line reading and are opt-in in Settings. They appear in the Claude card, the global limits strip, the tray, provider status, `tokenusage limits`, and report reset cycles. Any existing Claude Code status line keeps running.
