@@ -4,6 +4,8 @@ using TokenUsage.Core.Providers;
 
 namespace TokenUsage.Core.Usage;
 
+public enum QuotaWindowSemantics { Unknown, Fixed, Rolling }
+
 public sealed record QuotaObservation(string ProviderId, string MetricId,
     DateTimeOffset ObservedAtUtc, DateTimeOffset ReceivedAtUtc, decimal UsedPercent,
     decimal Capacity, decimal? WindowMinutes, DateTimeOffset? ExpectedResetAtUtc)

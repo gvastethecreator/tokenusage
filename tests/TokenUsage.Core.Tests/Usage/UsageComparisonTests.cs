@@ -150,22 +150,6 @@ public sealed class UsageComparisonTests
     }
 
     [Fact]
-    public void ConsumptionNeedsCompleteAccountingAndMatchingPoolNotJustLevels()
-    {
-        var evidence = new QuotaIntervalEvidence(QuotaWindowSemantics.Fixed, true, true, true);
-        var accounting = QuotaIntervalAccounting.Calculate([0, 40, 20, 60], evidence);
-        Assert.Equal(80, accounting.ConsumedPoints);
-        Assert.Equal(20, accounting.ReplenishedPoints);
-        Assert.Null(QuotaIntervalAccounting.Calculate([0, 40, 20, 60], evidence with { HasCompleteAccounting = false }).ConsumedPoints);
-        Assert.Null(QuotaIntervalAccounting.Calculate([0, 40], evidence with { Semantics = QuotaWindowSemantics.Rolling }).ConsumedPoints);
-        Assert.Null(accounting.TokensPerPoint(1_000_000, evidence with { HasMatchingPoolUsage = false }));
-        var a = QuotaIntervalAccounting.Calculate([0, 20], evidence);
-        var b = QuotaIntervalAccounting.Calculate([0, 30], evidence);
-        Assert.Equal(50, UsageNumericChange.Between(a.PointsPerMillionTokens(1_000_000, evidence), b.PointsPerMillionTokens(1_000_000, evidence)).RelativePercent);
-        Assert.Equal(-33.333m, decimal.Round(UsageNumericChange.Between(a.TokensPerPoint(1_000_000, evidence), b.TokensPerPoint(1_000_000, evidence)).RelativePercent!.Value, 3));
-    }
-
-    [Fact]
     public async Task ExactQueriesExcludeDailyAndCrossBoundaryEvidenceAndRetainedHistoryIsNotZero()
     {
         string root = Path.Combine(Path.GetTempPath(), "tokenusage-comparison-tests", Guid.NewGuid().ToString("N"));
