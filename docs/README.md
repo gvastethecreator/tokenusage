@@ -8,10 +8,6 @@ Start with the [main README](../README.md) for supported providers, requirements
 - [Pricing evidence](PRICING.md): reported and estimated costs, unpriced usage, and source refresh.
 - [Usage history upgrades](USAGE-STORAGE.md): migration copies, failed upgrades, and recovery limits.
 
-## Proposed Reports Workbench
-
-- [Reports engineering plan](reports-workbench/README.md): P0–P4 specifications, synthetic prototypes, quality gates, privacy, recovery, and implementation handoff. Design proposal; not implemented product features.
-
 ## Contributor references
 
 - [Contributor testing guide](CONTRIBUTOR-TESTING.md): evidence required for code, interface, and provider changes.
