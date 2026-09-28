@@ -36,7 +36,7 @@ public sealed partial class ReportShareBar : Grid
     private readonly Border _fill = new();
     private double _pendingFrom = double.NaN;
     private object? _valueItem;
-    private Microsoft.UI.System.ThemeSettings? _themeSettings;
+    private Windows.UI.ViewManagement.UISettings? _themeSettings;
 
     public ReportShareBar()
     {
@@ -50,19 +50,19 @@ public sealed partial class ReportShareBar : Grid
         SizeChanged += (_, args) => UpdateCorners(args.NewSize.Height);
         Loaded += (_, _) =>
         {
-            // AccessibilitySettings events are unavailable to desktop WinUI; ThemeSettings reports
-            // high contrast changes that leave ActualTheme unchanged.
-            if (_themeSettings is null && XamlRoot?.ContentIslandEnvironment is { } environment)
+            // UISettings is independent of the window lifetime, so unloading after
+            // the native window closes can safely remove this subscription.
+            if (_themeSettings is null)
             {
-                _themeSettings = Microsoft.UI.System.ThemeSettings.CreateForWindowId(environment.AppWindowId);
-                _themeSettings.Changed += OnSystemThemeChanged;
+                _themeSettings = new Windows.UI.ViewManagement.UISettings();
+                _themeSettings.ColorValuesChanged += OnSystemThemeChanged;
             }
             ApplyBrushes();
             if (!double.IsNaN(_pendingFrom)) Grow(_pendingFrom);
         };
         Unloaded += (_, _) =>
         {
-            if (_themeSettings is not null) _themeSettings.Changed -= OnSystemThemeChanged;
+            if (_themeSettings is not null) _themeSettings.ColorValuesChanged -= OnSystemThemeChanged;
             _themeSettings = null;
         };
         ActualThemeChanged += (_, _) => ApplyBrushes();
@@ -141,7 +141,7 @@ public sealed partial class ReportShareBar : Grid
     private static void OnBrushChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
         ((ReportShareBar)sender).ApplyBrushes();
 
-    private void OnSystemThemeChanged(Microsoft.UI.System.ThemeSettings sender, object args) =>
+    private void OnSystemThemeChanged(Windows.UI.ViewManagement.UISettings sender, object args) =>
         DispatcherQueue.TryEnqueue(ApplyBrushes);
 
     private void ApplyBrushes()

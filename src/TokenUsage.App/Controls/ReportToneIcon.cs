@@ -47,7 +47,7 @@ public sealed partial class ReportToneIcon : UserControl
 
     private static readonly Windows.UI.ViewManagement.AccessibilitySettings Accessibility = new();
     private readonly Path _path = new();
-    private Microsoft.UI.System.ThemeSettings? _themeSettings;
+    private Windows.UI.ViewManagement.UISettings? _themeSettings;
 
     public ReportToneIcon()
     {
@@ -62,18 +62,18 @@ public sealed partial class ReportToneIcon : UserControl
         ActualThemeChanged += (_, _) => ApplyFill();
         Loaded += (_, _) =>
         {
-            // AccessibilitySettings events are unavailable to desktop WinUI; ThemeSettings reports
-            // high contrast changes that leave ActualTheme unchanged.
-            if (_themeSettings is null && XamlRoot?.ContentIslandEnvironment is { } environment)
+            // UISettings is independent of the window lifetime, so unloading after
+            // the native window closes can safely remove this subscription.
+            if (_themeSettings is null)
             {
-                _themeSettings = Microsoft.UI.System.ThemeSettings.CreateForWindowId(environment.AppWindowId);
-                _themeSettings.Changed += OnSystemThemeChanged;
+                _themeSettings = new Windows.UI.ViewManagement.UISettings();
+                _themeSettings.ColorValuesChanged += OnSystemThemeChanged;
             }
             ApplyFill();
         };
         Unloaded += (_, _) =>
         {
-            if (_themeSettings is not null) _themeSettings.Changed -= OnSystemThemeChanged;
+            if (_themeSettings is not null) _themeSettings.ColorValuesChanged -= OnSystemThemeChanged;
             _themeSettings = null;
         };
     }
@@ -105,8 +105,8 @@ public sealed partial class ReportToneIcon : UserControl
     private static void OnToneChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
         ((ReportToneIcon)sender).ApplyFill();
 
-    private void OnSystemThemeChanged(Microsoft.UI.System.ThemeSettings sender, object args) =>
-        DispatcherQueue.TryEnqueue(ApplyFill);
+    private void OnSystemThemeChanged(Windows.UI.ViewManagement.UISettings sender, object args) =>
+        DispatcherQueue.TryEnqueue(() => { if (IsLoaded) ApplyFill(); });
 
     private void ApplyFill()
     {

@@ -26,8 +26,9 @@ public sealed partial class UsageTrendChart : UserControl
     private readonly Dictionary<(string Color, bool Area), Brush> _fillBrushes = [];
     private const double BottomPadding = 10;
     private readonly ResourceLoader _resources = new();
-    private Microsoft.UI.System.ThemeSettings? _themeSettings;
-    private bool IsHighContrast => _themeSettings?.HighContrast == true;
+    private Windows.UI.ViewManagement.UISettings? _themeSettings;
+    private readonly Windows.UI.ViewManagement.AccessibilitySettings _accessibilitySettings = new();
+    private bool IsHighContrast => _accessibilitySettings.HighContrast;
     private Line? _crosshair;
     private Canvas _seriesCanvas = new();
     private Microsoft.UI.Composition.InsetClip? _entranceClip;
@@ -121,10 +122,10 @@ public sealed partial class UsageTrendChart : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_themeSettings is null && XamlRoot is not null)
+        if (_themeSettings is null)
         {
-            _themeSettings = Microsoft.UI.System.ThemeSettings.CreateForWindowId(XamlRoot.ContentIslandEnvironment.AppWindowId);
-            _themeSettings.Changed += OnSystemThemeChanged;
+            _themeSettings = new Windows.UI.ViewManagement.UISettings();
+            _themeSettings.ColorValuesChanged += OnSystemThemeChanged;
         }
         Rebuild();
     }
@@ -133,14 +134,14 @@ public sealed partial class UsageTrendChart : UserControl
     {
         if (_themeSettings is not null)
         {
-            _themeSettings.Changed -= OnSystemThemeChanged;
+            _themeSettings.ColorValuesChanged -= OnSystemThemeChanged;
             _themeSettings = null;
         }
         HideHover();
         FinishEntrance();
     }
 
-    private void OnSystemThemeChanged(Microsoft.UI.System.ThemeSettings sender, object args) =>
+    private void OnSystemThemeChanged(Windows.UI.ViewManagement.UISettings sender, object args) =>
         _ = DispatcherQueue.TryEnqueue(() => { if (IsLoaded) Rebuild(); });
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => Rebuild();
