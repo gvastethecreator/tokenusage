@@ -105,7 +105,7 @@ public sealed partial class UsageRepository
             await delete.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }
         UsageEvent[] written = await WriteEventsAsync(connection, transaction, admitted, EventWriteKind.Upsert,
-            respectTombstones: true, token).ConfigureAwait(false);
+            token).ConfigureAwait(false);
         await ReplaceSessionLinksOnAsync(
             connection,
             transaction,

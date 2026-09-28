@@ -65,8 +65,7 @@ or source-detail metadata. Daily totals cannot reconstruct that detail.
 
 When configuration detail is loaded, its coverage reports how many aggregate
 records still have raw evidence and how many do not. Retention also changes the
-data revision: an open event-page cursor must restart instead of continuing over
-a changed data set. A configuration selection covers available detail only.
+data revision. A configuration selection covers available detail only.
 
 ## Collection freshness
 
@@ -253,11 +252,12 @@ actions lead to existing report detail and provide a keyboard return path.
 
 ## Codex collection progress
 
-Range reconciliation checks that stored daily totals still have all their raw
-records before rebuilding them. If retention has removed records, the operation
-fails in its transaction and keeps the totals and data revision unchanged. An
-empty source result cannot erase that retained history. Ordinary upserts and whole
-agent replacements apply the same check before rebuilding totals. Source-attributed
+Source range reconciliation checks that stored daily totals still have all their
+raw records before rebuilding them. If retention has removed records for a day,
+the read is not authoritative: new rows for that day are withheld and the retained
+totals stay unchanged. An empty source result cannot erase that retained history.
+Ordinary upserts apply the same check before rebuilding totals; they fail in their
+transaction and keep the totals and data revision unchanged. Source-attributed
 inserts also reject backfill into a day with retired detail. Replaying the same
 retired key remains a no-op through its tombstone. A new key cannot establish that
 the old usage is distinct. Recent ranges with their records intact can still

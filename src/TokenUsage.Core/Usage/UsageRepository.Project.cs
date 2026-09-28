@@ -83,52 +83,6 @@ public sealed partial class UsageRepository
         await ReplaceProjectLinksAsync(links, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<int> BackfillProjectLinksAsync(
-        IReadOnlyList<UsageProjectLink> links,
-        DateOnly fromInclusive,
-        DateOnly toInclusive,
-        long consentEpoch,
-        CancellationToken cancellationToken = default)
-    {
-        EnsureWritable();
-        ArgumentNullException.ThrowIfNull(links);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(fromInclusive, toInclusive);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(consentEpoch);
-        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        var existingKeys = new HashSet<string>(StringComparer.Ordinal);
-        await using (SqliteCommand command = connection.CreateCommand())
-        {
-            command.CommandText = """
-                SELECT event_key FROM usage_event
-                WHERE civil_date BETWEEN $from AND $to;
-                """;
-            command.Parameters.AddWithValue("$from", FormatDate(fromInclusive));
-            command.Parameters.AddWithValue("$to", FormatDate(toInclusive));
-            await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {
-                existingKeys.Add(reader.GetString(0));
-            }
-        }
-
-        UsageProjectLink[] admitted = links
-            .Where(link => link.ConsentEpoch == consentEpoch && existingKeys.Contains(link.EventKey.Value))
-            .ToArray();
-        var admittedKeys = admitted
-            .Select(link => link.EventKey.Value)
-            .ToHashSet(StringComparer.Ordinal);
-        await using SqliteTransaction transaction = connection.BeginTransaction();
-        await ReplaceProjectLinksOnAsync(
-            connection,
-            transaction,
-            admitted,
-            admittedKeys,
-            preserveUserMapped: true,
-            cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        return admitted.Length;
-    }
-
     public async Task<int> PurgeProjectLinksAsync(CancellationToken cancellationToken = default)
     {
         EnsureWritable();
