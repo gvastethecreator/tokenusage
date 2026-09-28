@@ -292,7 +292,6 @@ public sealed class QuotaResetHistoryStore
 {
     public const int CurrentSchemaVersion = 3;
     public const string DefaultFileName = "quota-resets.v2.json";
-    public const string LegacyFileName = "quota-resets.v1.json";
     public const string ResetCreditsReportedAvailableMetricId = "quota.reset-credits.reported-available";
 
     private const int MaximumDocumentBytes = 2 * 1024 * 1024;
@@ -313,7 +312,6 @@ public sealed class QuotaResetHistoryStore
 
     private readonly VersionedDocumentFile _document;
     private bool _requiresMigrationBackup;
-    private readonly VersionedDocumentFile? _legacyDocument;
 
     public QuotaResetHistoryStore(string documentPath, TimeProvider? clock = null)
     {
@@ -324,17 +322,6 @@ public sealed class QuotaResetHistoryStore
             "TokenUsage.QuotaResetHistory",
             effectiveClock,
             "Timed out while waiting for the quota reset history lock.");
-        if (string.Equals(
-            Path.GetFileName(documentPath),
-            DefaultFileName,
-            StringComparison.OrdinalIgnoreCase))
-        {
-            _legacyDocument = new VersionedDocumentFile(
-                Path.Combine(Path.GetDirectoryName(Path.GetFullPath(documentPath))!, LegacyFileName),
-                "TokenUsage.QuotaResetHistory.Legacy",
-                effectiveClock,
-                "Timed out while waiting for the legacy quota reset history lock.");
-        }
     }
 
     public string DocumentPath => _document.DocumentPath;
@@ -349,7 +336,7 @@ public sealed class QuotaResetHistoryStore
         try
         {
             QuotaResetHistory history = await LoadAsync(cancellationToken).ConfigureAwait(false);
-            return new(_document.Exists || _legacyDocument?.Exists is true
+            return new(_document.Exists
                 ? QuotaHistoryAvailability.Available : QuotaHistoryAvailability.Missing, history);
         }
         catch (QuotaResetHistoryVersionException) { return new(QuotaHistoryAvailability.UnsupportedSchema, null); }
@@ -567,19 +554,14 @@ public sealed class QuotaResetHistoryStore
 
     private QuotaResetHistory LoadCore()
     {
-        VersionedDocumentFile? source = _document.Exists
-            ? _document
-            : _legacyDocument?.Exists is true
-                ? _legacyDocument
-                : null;
-        if (source is null)
+        if (!_document.Exists)
         {
             return QuotaResetHistory.Empty;
         }
 
         try
         {
-            byte[] bytes = source.ReadBoundedBytes(MaximumDocumentBytes);
+            byte[] bytes = _document.ReadBoundedBytes(MaximumDocumentBytes);
             ReadOnlyMemory<byte> json = VersionedDocumentFile.RemoveUtf8Preamble(bytes);
             using JsonDocument parsed = JsonDocument.Parse(
                 json,
@@ -597,22 +579,8 @@ public sealed class QuotaResetHistoryStore
                     CurrentSchemaVersion);
             }
 
-            _requiresMigrationBackup = schemaVersion < CurrentSchemaVersion && _document.Exists;
-            if (schemaVersion == 1)
-            {
-                DocumentV1? legacy = JsonSerializer.Deserialize<DocumentV1>(
-                    json.Span,
-                    SerializerOptions);
-                if (legacy is null)
-                {
-                    return RejectInvalid();
-                }
-
-                QuotaResetHistory migrated = FromDocumentV1(legacy);
-                Write(migrated);
-                return migrated;
-            }
-
+            // Schema 1 (quota-resets.v1.json) was never written by a tagged build.
+            _requiresMigrationBackup = schemaVersion < CurrentSchemaVersion;
             if (schemaVersion is not (2 or CurrentSchemaVersion))
             {
                 return RejectInvalid();
@@ -710,45 +678,6 @@ public sealed class QuotaResetHistoryStore
             RetiredWindows = retired,
             CreditInventories = credits,
         };
-    }
-
-    private static QuotaResetHistory FromDocumentV1(DocumentV1 document)
-    {
-        QuotaResetWindowState[] windows = document.Windows?.ToArray() ?? [];
-        LegacyQuotaResetRecord[] legacyResets = document.Resets?.ToArray() ?? [];
-        QuotaResetRecord[] resets = legacyResets.Select(item => new QuotaResetRecord(
-            item.ProviderId,
-            item.MetricId,
-            item.OccurredAtUtc,
-            item.DetectedAtUtc,
-            item.PreviousCycleStartedAtUtc,
-            item.PreviousObservedAtUtc,
-            item.PreviousUsedPercent,
-            item.CurrentUsedPercent,
-            item.PreviousExpectedResetAtUtc,
-            item.CurrentExpectedResetAtUtc,
-            item.WindowDurationMinutes,
-            item.DetectionKind,
-            item.DetectionKind == QuotaResetDetectionKind.Scheduled
-                ? QuotaResetCause.Scheduled
-                : QuotaResetCause.Unknown,
-            item.DetectionKind == QuotaResetDetectionKind.Scheduled
-                ? QuotaChangeEvidenceKind.ExpectedBoundaryCrossed
-                : QuotaChangeEvidenceKind.ReturnedToFull)).ToArray();
-        var migrated = new QuotaResetHistory(windows, resets, []);
-        if (windows.Length > MaximumWindows
-            || resets.Length > MaximumResetRecords
-            || windows.Any(item => !IsValid(item))
-            || resets.Any(item => !IsValid(item))
-            || windows.GroupBy(
-                    item => (item.ProviderId, item.MetricId),
-                    EqualityComparer<(string, string)>.Default)
-                .Any(group => group.Count() > 1))
-        {
-            throw new InvalidDataException("Legacy quota reset history contains invalid records.");
-        }
-
-        return migrated;
     }
 
     private static bool IsValid(QuotaResetWindowState item) =>
@@ -975,15 +904,6 @@ public sealed class QuotaResetHistoryStore
     private sealed record ReplenishmentDetection(DateTimeOffset OccurredAtUtc)
         : QuotaChangeDetection(OccurredAtUtc);
 
-    private sealed class DocumentV1
-    {
-        public int SchemaVersion { get; set; }
-
-        public List<QuotaResetWindowState>? Windows { get; set; }
-
-        public List<LegacyQuotaResetRecord>? Resets { get; set; }
-    }
-
     private sealed class DocumentV2
     {
         public int SchemaVersion { get; set; }
@@ -998,18 +918,4 @@ public sealed class QuotaResetHistoryStore
         public List<QuotaResetWindowState>? RetiredWindows { get; set; }
         public List<QuotaCreditInventory>? CreditInventories { get; set; }
     }
-
-    private sealed record LegacyQuotaResetRecord(
-        string ProviderId,
-        string MetricId,
-        DateTimeOffset OccurredAtUtc,
-        DateTimeOffset DetectedAtUtc,
-        DateTimeOffset PreviousCycleStartedAtUtc,
-        DateTimeOffset PreviousObservedAtUtc,
-        decimal PreviousUsedPercent,
-        decimal CurrentUsedPercent,
-        DateTimeOffset? PreviousExpectedResetAtUtc,
-        DateTimeOffset? CurrentExpectedResetAtUtc,
-        decimal? WindowDurationMinutes,
-        QuotaResetDetectionKind DetectionKind);
 }

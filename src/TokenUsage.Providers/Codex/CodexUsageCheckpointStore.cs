@@ -99,7 +99,8 @@ internal sealed class CodexUsageCheckpointStore
             if (document?.SchemaVersion > SchemaVersion)
                 throw new NotSupportedException("Codex checkpoint schema is newer than supported; the original was preserved.");
             if (document is null
-                || document.SchemaVersion is not (2 or 3 or SchemaVersion)
+                // Schema 2 was never written by a tagged build; 3 was.
+                || document.SchemaVersion is not (3 or SchemaVersion)
                 || document.Files is null)
             {
                 return RejectInvalid();
@@ -199,13 +200,13 @@ internal sealed class CodexUsageCheckpointStore
 
                 var checkpoint = new CodexUsageFileCheckpoint(
                     file.PathHash,
-                    document.SchemaVersion == 2 ? 0 : file.Offset,
+                    file.Offset,
                     file.Model,
-                    document.SchemaVersion == 2 ? null : ToTokens(file.Previous),
-                    document.SchemaVersion != 2 && file.SawSessionMeta,
-                    document.SchemaVersion != 2 && file.ChildReplayPending,
-                    document.SchemaVersion == 2 ? null : file.ChildCreatedAtUnixSeconds);
-                checkpoint.PreviousTimestamp = document.SchemaVersion == 2 ? null : file.PreviousTimestamp;
+                    ToTokens(file.Previous),
+                    file.SawSessionMeta,
+                    file.ChildReplayPending,
+                    file.ChildCreatedAtUnixSeconds);
+                checkpoint.PreviousTimestamp = file.PreviousTimestamp;
                 checkpoint.PreviousMeasured = document.SchemaVersion == SchemaVersion ? file.PreviousMeasured : CodexMeasuredComponents.None;
                 checkpoint.AuthorityPathHash = file.AuthorityPathHash ?? file.PathHash;
                 checkpoint.ReplayThroughUtc = file.ReplayThroughUtc;
@@ -228,17 +229,16 @@ internal sealed class CodexUsageCheckpointStore
                     checkpoint.ProjectEpoch = file.ProjectEpoch;
                     checkpoint.SawMultipleProjects = file.SawMultipleProjects;
                 }
-                if (document.SchemaVersion >= 3)
-                    checkpoint.Observations.AddRange(file.Observations.Select(item => new CodexNumericObservation(
-                        item.Key, item.Timestamp, item.Model, ToTokens(item.Tokens)!, item.Precision, item.IntervalStart, item.ObservedModel, item.Effort, item.Tier,
-                        document.SchemaVersion == SchemaVersion ? item.Measured : CodexMeasuredComponents.None,
-                        // Match the metadata retained by the usage database migration.
-                        // Older checkpoints did not record a kind, even for timed intervals.
-                        document.SchemaVersion == SchemaVersion ? item.RecordKind : UsageRecordKind.Unknown,
-                        document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null,
-                        document.SchemaVersion == SchemaVersion ? item.ProjectKey : null,
-                        document.SchemaVersion == SchemaVersion ? item.ProjectEpoch : null,
-                        document.SchemaVersion == SchemaVersion ? item.ProjectMappingKind : null)));
+                checkpoint.Observations.AddRange(file.Observations.Select(item => new CodexNumericObservation(
+                    item.Key, item.Timestamp, item.Model, ToTokens(item.Tokens)!, item.Precision, item.IntervalStart, item.ObservedModel, item.Effort, item.Tier,
+                    document.SchemaVersion == SchemaVersion ? item.Measured : CodexMeasuredComponents.None,
+                    // Match the metadata retained by the usage database migration.
+                    // Older checkpoints did not record a kind, even for timed intervals.
+                    document.SchemaVersion == SchemaVersion ? item.RecordKind : UsageRecordKind.Unknown,
+                    document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null,
+                    document.SchemaVersion == SchemaVersion ? item.ProjectKey : null,
+                    document.SchemaVersion == SchemaVersion ? item.ProjectEpoch : null,
+                    document.SchemaVersion == SchemaVersion ? item.ProjectMappingKind : null)));
                 foreach (OperationV1 operation in file.Operations ?? [])
                 {
                     if (!OpaqueAttributionKey.IsHexSha256(operation.Key)

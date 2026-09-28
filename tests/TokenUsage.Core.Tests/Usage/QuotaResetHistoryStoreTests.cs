@@ -332,64 +332,6 @@ public sealed class QuotaResetHistoryStoreTests
     }
 
     [Fact]
-    public async Task LegacyDocumentMigratesOnceAndWritesOnlySchemaTwo()
-    {
-        using var folder = new TemporaryFolder();
-        string legacyPath = Path.Combine(folder.Root, QuotaResetHistoryStore.LegacyFileName);
-        string legacy = JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1,
-            windows = new[]
-            {
-                new
-                {
-                    providerId = "codex",
-                    metricId = "quota.primary",
-                    usedPercent = 0m,
-                    observedAtUtc = InitialObservation,
-                    currentCycleStartedAtUtc = InitialObservation.AddDays(-1),
-                    expectedResetAtUtc = InitialObservation.AddDays(1),
-                    windowDurationMinutes = 300m,
-                },
-            },
-            resets = new[]
-            {
-                new
-                {
-                    providerId = "codex",
-                    metricId = "quota.primary",
-                    occurredAtUtc = InitialObservation.AddHours(-1),
-                    detectedAtUtc = InitialObservation,
-                    previousCycleStartedAtUtc = InitialObservation.AddDays(-1),
-                    previousObservedAtUtc = InitialObservation.AddHours(-2),
-                    previousUsedPercent = 50m,
-                    currentUsedPercent = 0m,
-                    previousExpectedResetAtUtc = InitialObservation.AddHours(-1),
-                    currentExpectedResetAtUtc = InitialObservation.AddDays(1),
-                    windowDurationMinutes = 300m,
-                    detectionKind = "scheduled",
-                },
-            },
-        });
-        await File.WriteAllTextAsync(legacyPath, legacy);
-
-        var store = new QuotaResetHistoryStore(folder.DocumentPath);
-        QuotaResetHistory migrated = await store.LoadAsync();
-
-        QuotaResetRecord reset = Assert.Single(migrated.Resets);
-        Assert.Equal(QuotaResetCause.Scheduled, reset.Cause);
-        Assert.Empty(migrated.Replenishments);
-        using JsonDocument v2 = JsonDocument.Parse(await File.ReadAllTextAsync(folder.DocumentPath));
-        Assert.Equal(QuotaResetHistoryStore.CurrentSchemaVersion, v2.RootElement.GetProperty("schemaVersion").GetInt32());
-        Assert.True(v2.RootElement.TryGetProperty("replenishments", out _));
-
-        await File.WriteAllTextAsync(legacyPath, "invalid legacy data");
-        QuotaResetHistory loadedAgain = await new QuotaResetHistoryStore(folder.DocumentPath)
-            .LoadAsync();
-        Assert.Single(loadedAgain.Resets);
-    }
-
-    [Fact]
     public async Task InvalidEvidenceIsReportedWithoutReplacingTheOriginal()
     {
         using var folder = new TemporaryFolder();

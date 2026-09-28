@@ -51,14 +51,11 @@ public sealed class AppearanceSession
 
     public int? UnsupportedSchemaVersion { get; private set; }
 
-    public bool RequiresMigration { get; private set; }
-
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         IsBusy = true;
         QuarantineFileName = null;
         UnsupportedSchemaVersion = null;
-        RequiresMigration = false;
         try
         {
             AppearanceSettingsLoadResult result = await _store
@@ -68,20 +65,8 @@ public sealed class AppearanceSession
             {
                 case AppearanceSettingsLoadResult.Loaded loaded:
                     Settings = loaded.Settings;
-                    RequiresMigration = loaded.RequiresMigration;
                     _isReadOnly = false;
                     LastLoadKind = AppearanceSessionLoadKind.Loaded;
-                    if (RequiresMigration)
-                    {
-                        AppearanceSessionSaveKind migrate = await SaveCoreAsync(
-                            loaded.Settings,
-                            cancellationToken).ConfigureAwait(false);
-                        if (migrate == AppearanceSessionSaveKind.RefusedUnsupportedVersion)
-                        {
-                            LastLoadKind = AppearanceSessionLoadKind.UnsupportedVersion;
-                        }
-                    }
-
                     break;
                 case AppearanceSettingsLoadResult.Defaults:
                     Settings = AppearanceSettings.Default;

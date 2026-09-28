@@ -760,7 +760,6 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Theory]
-    [InlineData(2)]
     [InlineData(3)]
     public async Task LegacyCheckpointMigrationReplaysObservationsAndPreservesOriginalBytes(int legacyVersion)
     {

@@ -10,6 +10,10 @@ User-facing changes for TokenUsage. Release notes include installation details a
 - A Claude Code `Stop` hook that refreshes TokenUsage after each task, managed like the Grok, Cursor, and ZCode hooks.
 - `tokenusage claude <install-hook|uninstall-hook|install-statusline|uninstall-statusline|status|statusline>`.
 
+### Removed
+
+- Upgrades from files that only builds older than Preview 1 wrote: appearance settings before schema 5, `quota-resets.v1.json`, and Codex scan checkpoints at schema 2. Such appearance or reset-history files are set aside unchanged and TokenUsage starts from defaults; such a Codex checkpoint is reported as unreadable and kept unchanged. Files written by Preview 1 or later are not affected.
+
 ## 0.0.1 Preview 2 — Unsigned portable
 
 The first Windows x64 preview uses an unsigned portable ZIP. No MSIX installer is included. Stable releases remain subject to signing and install checks.

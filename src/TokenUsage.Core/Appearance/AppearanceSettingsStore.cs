@@ -52,19 +52,14 @@ public sealed class AppearanceSettingsStore
                 return new AppearanceSettingsLoadResult.UnsupportedVersion(version);
             }
 
-            AppearanceSettings settings = version switch
+            // Only schema 5 was ever shipped; an older document is set aside like any other
+            // unreadable file, byte for byte, and the defaults apply.
+            if (version != SchemaVersion)
             {
-                0 => ReadLegacyDocument(parsed.RootElement),
-                1 => ReadVersionOneDocument(parsed.RootElement),
-                2 => ReadVersionTwoDocument(parsed.RootElement),
-                3 => ReadVersionThreeDocument(parsed.RootElement),
-                4 => ReadVersionFourDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionFiveDocument(parsed.RootElement),
-                _ => throw new AppearanceDocumentFormatException(),
-            };
-            return new AppearanceSettingsLoadResult.Loaded(
-                settings,
-                requiresMigration: version < SchemaVersion);
+                throw new AppearanceDocumentFormatException();
+            }
+
+            return new AppearanceSettingsLoadResult.Loaded(ReadDocument(parsed.RootElement));
         }
         catch (Exception exception) when (IsInvalidDocument(exception))
         {
@@ -100,12 +95,7 @@ public sealed class AppearanceSettingsStore
             int version = ReadSchemaVersion(parsed.RootElement);
             _ = version switch
             {
-                0 => ReadLegacyDocument(parsed.RootElement),
-                1 => ReadVersionOneDocument(parsed.RootElement),
-                2 => ReadVersionTwoDocument(parsed.RootElement),
-                3 => ReadVersionThreeDocument(parsed.RootElement),
-                4 => ReadVersionFourDocument(parsed.RootElement),
-                SchemaVersion => ReadVersionFiveDocument(parsed.RootElement),
+                SchemaVersion => ReadDocument(parsed.RootElement),
                 > SchemaVersion => null,
                 _ => throw new AppearanceDocumentFormatException(),
             };
@@ -119,51 +109,19 @@ public sealed class AppearanceSettingsStore
         }
     }
 
-    private static AppearanceSettings ReadVersionOneDocument(JsonElement root) => new(
-        ReadRequiredEnum<AppThemeMode>(root, "theme"),
-        ReadRequiredEnum<AppDensityMode>(root, "density"),
-        ReadRequiredBoolean(root, "increaseTransparency"),
-        ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
-        ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
-        DashboardVisualizationMode.List);
-
-    private static AppearanceSettings ReadVersionTwoDocument(JsonElement root) => new(
-        ReadRequiredEnum<AppThemeMode>(root, "theme"),
-        ReadRequiredEnum<AppDensityMode>(root, "density"),
-        ReadRequiredBoolean(root, "increaseTransparency"),
-        ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
-        ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
-        ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"));
-
-    private static AppearanceSettings ReadVersionThreeDocument(JsonElement root) =>
-        ReadTrayPopoverDocument(root, includeEnabled: false);
-
-    private static AppearanceSettings ReadVersionFourDocument(JsonElement root) =>
-        ReadTrayPopoverDocument(root, includeEnabled: true);
-
-    private static AppearanceSettings ReadVersionFiveDocument(JsonElement root)
-    {
-        AppearanceSettings previous = ReadVersionFourDocument(root);
-        return new AppearanceSettings(previous.Theme, previous.Density,
-            previous.IncreaseTransparency, previous.UsageDisplay, previous.ResetTimeDisplay,
-            previous.DashboardVisualization, previous.TrayPopover,
-            ReadRequiredEnum<ReportChartStyle>(root, "reportChartStyle"),
-            ReadRequiredEnum<ReportChartGrouping>(root, "reportChartGrouping"),
-            ReadOptionalBoolean(root, "markReportBestValues", true));
-    }
-
-    private static AppearanceSettings ReadTrayPopoverDocument(
-        JsonElement root,
-        bool includeEnabled) => new(
+    private static AppearanceSettings ReadDocument(JsonElement root) => new(
         ReadRequiredEnum<AppThemeMode>(root, "theme"),
         ReadRequiredEnum<AppDensityMode>(root, "density"),
         ReadRequiredBoolean(root, "increaseTransparency"),
         ReadRequiredEnum<UsageDisplayMode>(root, "usageDisplay"),
         ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
         ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"),
-        ReadTrayPopover(root, includeEnabled));
+        ReadTrayPopover(root),
+        ReadRequiredEnum<ReportChartStyle>(root, "reportChartStyle"),
+        ReadRequiredEnum<ReportChartGrouping>(root, "reportChartGrouping"),
+        ReadOptionalBoolean(root, "markReportBestValues", true));
 
-    private static TrayPopoverSettings ReadTrayPopover(JsonElement root, bool includeEnabled)
+    private static TrayPopoverSettings ReadTrayPopover(JsonElement root)
     {
         EnsureObject(root);
         if (!root.TryGetProperty("trayPopover", out JsonElement popover))
@@ -185,27 +143,12 @@ public sealed class AppearanceSettingsStore
                 ReadRequiredEnum<TrayPopoverMetric>(popover, "secondaryMetric"),
                 providerCount,
                 ReadRequiredBoolean(popover, "showProviderName"),
-                isEnabled: includeEnabled
-                    ? ReadRequiredBoolean(popover, "isEnabled")
-                    : TrayPopoverSettings.Default.IsEnabled);
+                isEnabled: ReadRequiredBoolean(popover, "isEnabled"));
         }
         catch (ArgumentOutOfRangeException)
         {
             throw new AppearanceDocumentFormatException();
         }
-    }
-
-    private static AppearanceSettings ReadLegacyDocument(JsonElement root)
-    {
-        EnsureObject(root);
-        AppearanceSettings defaults = AppearanceSettings.Default;
-        return new AppearanceSettings(
-            ReadOptionalEnum(root, "appearance", defaults.Theme),
-            ReadOptionalEnum(root, "density", defaults.Density),
-            ReadOptionalBoolean(root, "increaseTransparency", defaults.IncreaseTransparency),
-            ReadOptionalEnum(root, "meterStyle", defaults.UsageDisplay),
-            ReadOptionalEnum(root, "resetDisplayMode", defaults.ResetTimeDisplay),
-            DashboardVisualizationMode.List);
     }
 
     private static TEnum ReadRequiredEnum<TEnum>(JsonElement root, string propertyName)
@@ -214,25 +157,6 @@ public sealed class AppearanceSettingsStore
         EnsureObject(root);
         if (!root.TryGetProperty(propertyName, out JsonElement value)
             || value.ValueKind != JsonValueKind.String)
-        {
-            throw new AppearanceDocumentFormatException();
-        }
-
-        return ParseEnum<TEnum>(value.GetString());
-    }
-
-    private static TEnum ReadOptionalEnum<TEnum>(
-        JsonElement root,
-        string propertyName,
-        TEnum defaultValue)
-        where TEnum : struct, Enum
-    {
-        if (!root.TryGetProperty(propertyName, out JsonElement value))
-        {
-            return defaultValue;
-        }
-
-        if (value.ValueKind != JsonValueKind.String)
         {
             throw new AppearanceDocumentFormatException();
         }
@@ -384,15 +308,12 @@ public abstract class AppearanceSettingsLoadResult
 
     public sealed class Loaded : AppearanceSettingsLoadResult
     {
-        public Loaded(AppearanceSettings settings, bool requiresMigration)
+        public Loaded(AppearanceSettings settings)
         {
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            RequiresMigration = requiresMigration;
         }
 
         public AppearanceSettings Settings { get; }
-
-        public bool RequiresMigration { get; }
     }
 
     public sealed class Corrupt : AppearanceSettingsLoadResult
