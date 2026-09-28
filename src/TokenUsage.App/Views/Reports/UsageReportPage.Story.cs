@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using TokenUsage.App.Controls;
+using TokenUsage.App.ViewModels.Reports;
 
 namespace TokenUsage.App.Views.Reports;
 
@@ -50,6 +51,40 @@ public sealed partial class UsageReportPage
 
         visual.StartAnimation("Opacity", fade);
         visual.StartAnimation("Translation", rise);
+    }
+
+    // Every highlight opens the evidence behind its number.
+    private void OnHighlightClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: UsageReportHighlight highlight } button) return;
+        switch (highlight.Action)
+        {
+            case UsageReportHighlightAction.RevealDay
+                when DateOnly.TryParseExact(highlight.Target, "O", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out DateOnly day)
+                && (ViewModel.IsProviderScope ? ProviderChartContentRoot : GlobalCombinedChart).RevealDay(day):
+                return;
+            case UsageReportHighlightAction.OpenModel:
+                RememberDashboardOrigin(button);
+                _modelReturnId = highlight.Target;
+                _modelReturnOffset = ReportScrollViewer.VerticalOffset;
+                ViewModel.OpenModelDetail(highlight.Target);
+                ShowModelDetail();
+                return;
+            default:
+                RememberDashboardOrigin(button);
+                ViewModel.SetBreakdown(UsageReportBreakdown.Day);
+                DashboardFullBreakdown.IsExpanded = true;
+                DashboardFullBreakdown.UpdateLayout();
+                DashboardFullBreakdown.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });
+                DashboardFullBreakdown.Focus(FocusState.Programmatic);
+                return;
+        }
+    }
+
+    private void OnCompositionLegendClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string providerId }) ViewModel.SelectExplorerTool(providerId);
     }
 
     // The token mix bar grows from its start edge when the mix changes.

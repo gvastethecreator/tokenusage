@@ -276,7 +276,8 @@ public sealed partial class UsageReportViewModel
     public string DistributionSummary { get; private set; } = string.Empty;
     public string ModelDetailTitle => DetailModel is { } row
         ? row.ModelName + " · " + row.ProviderName + " · " + row.HostName : string.Empty;
-    public string ModelDetailValues { get; private set; } = string.Empty;
+    public IReadOnlyList<UsageReportMetricCard> ModelDetailStats { get; private set; } = [];
+    public string ModelDetailProviderId => DetailModel?.ProviderId ?? string.Empty;
     public string ModelDetailConfigurations { get; private set; } = string.Empty;
     public UsageReportTrendDataset ModelDetailTrend { get; private set; } = UsageReportTrendDataset.Empty;
     public string ExplorerValueComponents => string.Format(CultureInfo.CurrentCulture,
@@ -405,6 +406,11 @@ public sealed partial class UsageReportViewModel
                 .Select(id => new UsageConfigurationOption(id, id ?? GetString("UsageConfigurationUnknown"), selected.Contains(id),
                     () => { if (!_clearingConfigurations) QueueExplorerSelection(); })).ToArray();
         }
+    }
+
+    public void SelectExplorerTool(string providerId)
+    {
+        if (ExplorerTools.FirstOrDefault(option => option.Id == providerId) is { } option) ExplorerTool = option;
     }
 
     public void ClearExplorerFilters()
@@ -747,10 +753,20 @@ public sealed partial class UsageReportViewModel
         {
             UsageReport selected = UsageReportQuery.FilterByModel(_report, new AgentId(row.ProviderId),
                 row.ModelProviderId is { } host ? new ModelProviderId(host) : null, new ModelId(row.ModelId));
-            ModelDetailValues = string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerDetailFormat"),
-                row.Metrics.Tokens.Total.ToString("N0", CultureInfo.CurrentCulture),
-                ExactCost(row.Metrics.ReportedCostUsd), ExactCost(row.Metrics.EstimatedCostUsd),
-                row.Metrics.UnpricedTokens.ToString("N0", CultureInfo.CurrentCulture), row.ShareText);
+            // The glance row: rounded values with their meaning. Exact stored values stay in the
+            // selectable sentence and the evidence views.
+            string Money(decimal? amount) => amount is { } value ? FormatUsd(value) : GetString("UsageExplorerNotAvailable");
+            ModelDetailStats =
+            [
+                new(GetString("UsageModelDetailTokensLabel"), FormatTokens(row.Metrics.Tokens.Total),
+                    row.Metrics.Tokens.Total.ToString("N0", CultureInfo.CurrentCulture)),
+                new(GetString("UsageModelDetailShareLabel"), row.ShareText, DashboardUnit),
+                new(GetString("UsageModelDetailEstimatedLabel"), Money(row.Metrics.EstimatedCostUsd),
+                    string.Format(CultureInfo.CurrentCulture, GetString("UsageModelDetailReportedFormat"), Money(row.Metrics.ReportedCostUsd))),
+                new(GetString("UsageModelDetailActiveDaysLabel"), row.ActiveDays.ToString("N0", CultureInfo.CurrentCulture),
+                    string.Format(CultureInfo.CurrentCulture, GetString("UsageModelDetailUnpricedFormat"),
+                        row.Metrics.UnpricedTokens.ToString("N0", CultureInfo.CurrentCulture))),
+            ];
             ModelDetailTrend = CreateReportTrend(row.ProviderId, false, selected);
             ModelDetailConfigurations = selected.HasConfigurationDetails
                 ? string.Join(Environment.NewLine, selected.Configurations.Select(configuration => string.Format(
@@ -770,7 +786,7 @@ public sealed partial class UsageReportViewModel
                 OnPropertyChanged(nameof(HasExplorerNotice));
             }
             _detailModelId = null;
-            ModelDetailValues = string.Empty;
+            ModelDetailStats = [];
             ModelDetailConfigurations = string.Empty;
             ModelDetailTrend = UsageReportTrendDataset.Empty;
         }
@@ -779,7 +795,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(CanOpenProjects));
         OnPropertyChanged(nameof(CanOpenOperations));
         UpdateOperationsAvailability();
-        OnPropertyChanged(nameof(ModelDetailTitle)); OnPropertyChanged(nameof(ModelDetailValues)); OnPropertyChanged(nameof(ModelDetailTrend));
+        OnPropertyChanged(nameof(ModelDetailTitle)); OnPropertyChanged(nameof(ModelDetailStats)); OnPropertyChanged(nameof(ModelDetailProviderId)); OnPropertyChanged(nameof(ModelDetailTrend));
         OnPropertyChanged(nameof(ModelDetailConfigurations));
         if (HasModelDetail)
         {

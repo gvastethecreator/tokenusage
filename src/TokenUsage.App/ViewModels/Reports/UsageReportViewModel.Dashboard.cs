@@ -4,7 +4,11 @@ using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
-public sealed record UsageDashboardBar(string Id, string Name, string ValueText, double Percent, string AutomationName, string ShareText = "", string? ProviderId = null);
+public sealed record UsageDashboardBar(string Id, string Name, string ValueText, double Percent, string AutomationName, string ShareText = "", string? ProviderId = null)
+{
+    public bool HasProvider => ProviderId is not null;
+    public string ProviderMarkId => ProviderId ?? string.Empty;
+}
 
 public sealed partial class UsageReportViewModel
 {

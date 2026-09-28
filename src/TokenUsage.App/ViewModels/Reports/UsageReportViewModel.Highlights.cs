@@ -11,13 +11,24 @@ public sealed record UsageReportSparkBar(double Height, bool IsRecent)
     public double Opacity => IsRecent ? 1 : 0.38;
 }
 
+/// <summary>What a highlight opens: the chart at a day, the day table, or a model's detail.</summary>
+public enum UsageReportHighlightAction
+{
+    RevealDay,
+    OpenDays,
+    OpenModel,
+}
+
 /// <summary>
 /// A plain-language fact about the selected period. Every value is arithmetic on the report
-/// already on screen; highlights never infer causes, savings, or productivity.
+/// already on screen; highlights never infer causes, savings, or productivity. Each one opens
+/// the evidence behind it.
 /// </summary>
-public sealed record UsageReportHighlight(string Glyph, string Label, string Value, string Detail)
+public sealed record UsageReportHighlight(string Glyph, string Label, string Value, string Detail,
+    UsageReportHighlightAction Action, string Target)
 {
     public IReadOnlyList<UsageReportSparkBar> Bars { get; init; } = [];
+    public string ActionHint { get; init; } = string.Empty;
     public bool HasBars => Bars.Count > 0;
     public string AutomationName => Label + ": " + Value + ". " + Detail;
 }
@@ -64,13 +75,15 @@ public sealed partial class UsageReportViewModel
             highlights.Add(new("", GetString("UsageHighlightPeakLabel"),
                 peak.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightPeakFormat"),
-                    display(peak.Amount), FormatPercent(peak.Amount / total))));
+                    display(peak.Amount), FormatPercent(peak.Amount / total)),
+                UsageReportHighlightAction.RevealDay, peak.Date.ToString("O", CultureInfo.InvariantCulture)));
 
             int activeDays = daily.Count(day => day.Amount > 0);
             highlights.Add(new("", GetString("UsageHighlightAverageLabel"),
                 display(total / activeDays),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightAverageFormat"),
-                    activeDays, daily.Length)));
+                    activeDays, daily.Length),
+                UsageReportHighlightAction.OpenDays, string.Empty));
 
             if (daily.Length >= 14)
             {
@@ -86,7 +99,7 @@ public sealed partial class UsageReportViewModel
                         ? "UsageHighlightTrendUpFormat" : "UsageHighlightTrendDownFormat"),
                         FormatPercent(Math.Abs(recent - before) / before));
                 highlights.Add(new(recent >= before ? "" : "", GetString("UsageHighlightRecentLabel"),
-                    display(recent), trend)
+                    display(recent), trend, UsageReportHighlightAction.OpenDays, string.Empty)
                 {
                     Bars = window.Select((day, index) => new UsageReportSparkBar(
                         tallest > 0 ? Math.Max(2, (double)(28 * day.Amount / tallest)) : 2, index >= 7)).ToArray(),
@@ -99,11 +112,20 @@ public sealed partial class UsageReportViewModel
             {
                 highlights.Add(new("", GetString("UsageHighlightLeaderLabel"), leader.ModelName,
                     string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightLeaderFormat"),
-                        leader.ProviderName, FormatPercent(value(leader.Metrics) / total))));
+                        leader.ProviderName, FormatPercent(value(leader.Metrics) / total)),
+                    UsageReportHighlightAction.OpenModel, leader.Id));
             }
         }
 
-        Highlights = highlights;
+        Highlights = highlights.Select(highlight => highlight with
+        {
+            ActionHint = GetString(highlight.Action switch
+            {
+                UsageReportHighlightAction.RevealDay => "UsageHighlightRevealDayHint",
+                UsageReportHighlightAction.OpenModel => "UsageHighlightOpenModelHint",
+                _ => "UsageHighlightOpenDaysHint",
+            }),
+        }).ToArray();
         RebuildTokenMix();
         foreach (string property in new[]
         {

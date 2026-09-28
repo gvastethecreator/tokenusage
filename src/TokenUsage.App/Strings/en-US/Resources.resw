@@ -1264,7 +1264,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerBackToModel.Content" xml:space="preserve"><value>Back to model</value></data>
   <data name="UsageExplorerNotAvailable" xml:space="preserve"><value>Not available</value></data>
   <data name="UsageExplorerValuesFormat" xml:space="preserve"><value>Reported value: {0} · Estimated API value: {1} · Unpriced tokens: {2}</value></data>
-  <data name="UsageExplorerDetailFormat" xml:space="preserve"><value>{0} tokens · Reported value: {1} · Estimated API value: {2} · Unpriced tokens: {3} · Selected contribution: {4}</value></data>
   <data name="UsageExplorerDetailRemoved" xml:space="preserve"><value>The model detail closed because the model is no longer in this selection.</value></data>
   <data name="UsageExplorerCompare.Content" xml:space="preserve"><value>Open in comparison</value></data>
   <data name="UsageExplorerReturn.Content" xml:space="preserve"><value>Return to model explorer</value></data>
@@ -1434,4 +1433,15 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageReportChartAverageFormat" xml:space="preserve"><value>{0} avg/day</value></data>
   <data name="UsageHighlightTrendTimesFormat" xml:space="preserve"><value>{0}× the week before</value></data>
   <data name="UsageReportChartNoDataFormat" xml:space="preserve"><value>No data: {0}</value></data>
+  <data name="UsageHighlightRevealDayHint" xml:space="preserve"><value>Show this day in the chart</value></data>
+  <data name="UsageHighlightOpenDaysHint" xml:space="preserve"><value>Open the day-by-day breakdown</value></data>
+  <data name="UsageHighlightOpenModelHint" xml:space="preserve"><value>Open this model's detail</value></data>
+  <data name="UsageReportLegendFilterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Show only this tool</value></data>
+  <data name="UsageReportLegendFilterButton.AutomationProperties.HelpText" xml:space="preserve"><value>Filters the report to this tool</value></data>
+  <data name="UsageModelDetailTokensLabel" xml:space="preserve"><value>TOKENS</value></data>
+  <data name="UsageModelDetailShareLabel" xml:space="preserve"><value>SHARE OF TOTAL</value></data>
+  <data name="UsageModelDetailEstimatedLabel" xml:space="preserve"><value>ESTIMATED API VALUE</value></data>
+  <data name="UsageModelDetailReportedFormat" xml:space="preserve"><value>Reported: {0}</value></data>
+  <data name="UsageModelDetailActiveDaysLabel" xml:space="preserve"><value>ACTIVE DAYS</value></data>
+  <data name="UsageModelDetailUnpricedFormat" xml:space="preserve"><value>Unpriced tokens: {0}</value></data>
 </root>
