@@ -538,6 +538,14 @@ public sealed partial class UsageReportPage : Page
 
     private void OnReportSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        // Past the content's maximum width the cards center; the page title and its controls
+        // follow the same column instead of drifting to the window edges. The title bar row
+        // keeps its full width for the drag region and caption buttons.
+        double side = Math.Max(0, (e.NewSize.Width - ReportCaptureRoot.MaxWidth) / 2
+            + ReportCaptureRoot.Padding.Left - ReportHeaderRoot.Padding.Left);
+        ReportTitleBlock.Margin = new Thickness(side, 0, 0, 0);
+        ReportToolbarHost.Margin = new Thickness(0, 0, side, 0);
+        ReportCaptureBrand.Margin = new Thickness(0, 0, side, 0);
         bool narrow = e.NewSize.Width < 1050;
         Grid.SetRow(ReportSavedControls, narrow ? 1 : 0);
         Grid.SetColumn(ReportSavedControls, narrow ? 0 : 1);

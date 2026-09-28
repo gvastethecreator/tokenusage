@@ -409,6 +409,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     }
 
     public string CompareLeftLabel { get; private set; } = string.Empty;
+    public string CompareRatioText { get; private set; } = string.Empty;
+    public bool HasCompareRatio => CompareRatioText.Length > 0;
 
     public string CompareRightLabel { get; private set; } = string.Empty;
 
@@ -1841,6 +1843,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             CompareRightTokensText = string.Empty;
             CompareDeltaCostText = string.Empty;
             CompareDeltaTokensText = string.Empty;
+            CompareRatioText = string.Empty;
             CompareRows = [];
             Trend = CreateTrend();
         }
@@ -1889,6 +1892,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ComparisonCoverageText));
         OnPropertyChanged(nameof(SummaryCoverageText));
         OnPropertyChanged(nameof(PriceCoveragePercent));
+        OnPropertyChanged(nameof(PriceCoverageTone));
+        OnPropertyChanged(nameof(PriceCoverageGlyph));
         OnPropertyChanged(nameof(CacheSummaryText));
         OnPropertyChanged(nameof(CachedInputText));
         OnPropertyChanged(nameof(UncachedInputText));
@@ -1901,6 +1906,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CompareRightTokensText));
         OnPropertyChanged(nameof(CompareDeltaCostText));
         OnPropertyChanged(nameof(CompareDeltaTokensText));
+        OnPropertyChanged(nameof(CompareRatioText));
+        OnPropertyChanged(nameof(HasCompareRatio));
         OnPropertyChanged(nameof(ComparisonResultCaptureText));
         OnPropertyChanged(nameof(HasCompareCycleWarning));
         OnPropertyChanged(nameof(CompareCycleWarningText));
@@ -2243,6 +2250,30 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             CultureInfo.CurrentCulture,
             GetString("UsageReportCompareTokenDeltaFormat"),
             FormatSignedTokens(delta.Tokens));
+        CompareRatioText = IsCostMetric
+            ? RelativeText(cycleComparison is null ? ComparableCost(_report.Totals) : cycleComparison.CostUsd.Left,
+                cycleComparison is null ? ComparableCost(_compareRightReport.Totals) : cycleComparison.CostUsd.Right)
+            : RelativeText(_report.Totals.Tokens.Total, _compareRightReport.Totals.Tokens.Total);
+    }
+
+    // One plain sentence for the pair: which side is larger and by how much. Within five percent
+    // the two read as about the same; past double, a multiple reads better than a percentage.
+    private string RelativeText(decimal? left, decimal? right)
+    {
+        if (left is not { } a || right is not { } b || a <= 0 || b <= 0) return string.Empty;
+        string unit = IsCostMetric ? "Cost" : "Tokens";
+        decimal ratio = b / a;
+        if (ratio is > 0.95m and < 1.05m)
+            return GetString($"UsageCompareRatioSame{unit}");
+        bool rightLarger = ratio > 1;
+        decimal factor = rightLarger ? ratio : a / b;
+        string larger = rightLarger ? CompareRightLabel : CompareLeftLabel;
+        string smaller = rightLarger ? CompareLeftLabel : CompareRightLabel;
+        return factor >= 2
+            ? string.Format(CultureInfo.CurrentCulture, GetString($"UsageCompareRatioTimes{unit}Format"),
+                larger, factor.ToString(factor >= 10 ? "N0" : "0.#", CultureInfo.CurrentCulture), smaller)
+            : string.Format(CultureInfo.CurrentCulture, GetString($"UsageCompareRatioMore{unit}Format"),
+                larger, FormatPercent(factor - 1), smaller);
     }
 
     private string FormatCompareRange(string resourceKey, DateOnly start, DateOnly end) =>

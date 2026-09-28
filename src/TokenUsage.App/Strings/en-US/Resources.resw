@@ -1444,4 +1444,10 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageModelDetailReportedFormat" xml:space="preserve"><value>Reported: {0}</value></data>
   <data name="UsageModelDetailActiveDaysLabel" xml:space="preserve"><value>ACTIVE DAYS</value></data>
   <data name="UsageModelDetailUnpricedFormat" xml:space="preserve"><value>Unpriced tokens: {0}</value></data>
+  <data name="UsageCompareRatioSameCost" xml:space="preserve"><value>About the same cost on both sides.</value></data>
+  <data name="UsageCompareRatioSameTokens" xml:space="preserve"><value>About the same tokens on both sides.</value></data>
+  <data name="UsageCompareRatioTimesCostFormat" xml:space="preserve"><value>{0} cost {1}× as much as {2}.</value></data>
+  <data name="UsageCompareRatioTimesTokensFormat" xml:space="preserve"><value>{0} used {1}× the tokens of {2}.</value></data>
+  <data name="UsageCompareRatioMoreCostFormat" xml:space="preserve"><value>{0} cost {1} more than {2}.</value></data>
+  <data name="UsageCompareRatioMoreTokensFormat" xml:space="preserve"><value>{0} used {1} more tokens than {2}.</value></data>
 </root>

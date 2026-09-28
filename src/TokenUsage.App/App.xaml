@@ -210,6 +210,23 @@
                     <SolidColorBrush x:Key="ReportResetCreditBrush" Color="#C2390B" />
                     <SolidColorBrush x:Key="ReportBarFillBrush" Color="#FF5F5F5F" />
                     <SolidColorBrush x:Key="ReportBarTrackBrush" Color="#12000000" />
+                    <!-- Report text hierarchy and indicator tones; contrast checked on the card surface. -->
+                    <SolidColorBrush x:Key="ReportToneBlueBrush" Color="#1F5FB0" />
+                    <SolidColorBrush x:Key="ReportToneBlueSoftBrush" Color="#1F5FB0" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportToneVioletBrush" Color="#4F3FB0" />
+                    <SolidColorBrush x:Key="ReportToneVioletSoftBrush" Color="#4F3FB0" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportToneAmberBrush" Color="#8A5A00" />
+                    <SolidColorBrush x:Key="ReportToneAmberSoftBrush" Color="#8A5A00" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportToneTealBrush" Color="#0B7650" />
+                    <SolidColorBrush x:Key="ReportToneTealSoftBrush" Color="#0B7650" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportToneRoseBrush" Color="#B02A42" />
+                    <SolidColorBrush x:Key="ReportToneRoseSoftBrush" Color="#B02A42" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportToneSuccessBrush" Color="#0F7B0F" />
+                    <SolidColorBrush x:Key="ReportToneSuccessSoftBrush" Color="#0F7B0F" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportToneCautionBrush" Color="#8A5300" />
+                    <SolidColorBrush x:Key="ReportToneCautionSoftBrush" Color="#8A5300" Opacity="0.12" />
+                    <SolidColorBrush x:Key="ReportTextLabelBrush" Color="#5C5C5C" />
+                    <SolidColorBrush x:Key="ReportTextDescriptionBrush" Color="#6B6B6B" />
                     <SolidColorBrush x:Key="TokenMixCacheReadBrush" Color="#2A78D6" />
                     <SolidColorBrush x:Key="TokenMixCacheWriteBrush" Color="#EDA100" />
                     <SolidColorBrush x:Key="TokenMixInputBrush" Color="#1BAF7A" />
@@ -266,6 +283,23 @@
                     <SolidColorBrush x:Key="ReportResetCreditBrush" Color="#FF8C4A" />
                     <SolidColorBrush x:Key="ReportBarFillBrush" Color="#FFBDBDBD" />
                     <SolidColorBrush x:Key="ReportBarTrackBrush" Color="#1AFFFFFF" />
+                    <!-- Report text hierarchy and indicator tones; contrast checked on the card surface. -->
+                    <SolidColorBrush x:Key="ReportToneBlueBrush" Color="#6CA6F0" />
+                    <SolidColorBrush x:Key="ReportToneBlueSoftBrush" Color="#6CA6F0" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportToneVioletBrush" Color="#A99CF4" />
+                    <SolidColorBrush x:Key="ReportToneVioletSoftBrush" Color="#A99CF4" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportToneAmberBrush" Color="#E3A93A" />
+                    <SolidColorBrush x:Key="ReportToneAmberSoftBrush" Color="#E3A93A" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportToneTealBrush" Color="#3DC495" />
+                    <SolidColorBrush x:Key="ReportToneTealSoftBrush" Color="#3DC495" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportToneRoseBrush" Color="#F0808F" />
+                    <SolidColorBrush x:Key="ReportToneRoseSoftBrush" Color="#F0808F" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportToneSuccessBrush" Color="#6CCB5F" />
+                    <SolidColorBrush x:Key="ReportToneSuccessSoftBrush" Color="#6CCB5F" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportToneCautionBrush" Color="#F2C94C" />
+                    <SolidColorBrush x:Key="ReportToneCautionSoftBrush" Color="#F2C94C" Opacity="0.16" />
+                    <SolidColorBrush x:Key="ReportTextLabelBrush" Color="#C5C5C5" />
+                    <SolidColorBrush x:Key="ReportTextDescriptionBrush" Color="#9C9C9C" />
                     <SolidColorBrush x:Key="TokenMixCacheReadBrush" Color="#3987E5" />
                     <SolidColorBrush x:Key="TokenMixCacheWriteBrush" Color="#C98500" />
                     <SolidColorBrush x:Key="TokenMixInputBrush" Color="#199E70" />
@@ -322,6 +356,22 @@
                     <StaticResource x:Key="ReportResetCreditBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="ReportBarFillBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="ReportBarTrackBrush" ResourceKey="SystemColorGrayTextColorBrush" />
+                    <StaticResource x:Key="ReportToneBlueBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneBlueSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportToneVioletBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneVioletSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportToneAmberBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneAmberSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportToneTealBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneTealSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportToneRoseBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneRoseSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportToneSuccessBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneSuccessSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportToneCautionBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneCautionSoftBrush" ResourceKey="SystemColorWindowColorBrush" />
+                    <StaticResource x:Key="ReportTextLabelBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportTextDescriptionBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="TokenMixCacheReadBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="TokenMixCacheWriteBrush" ResourceKey="SystemColorHighlightColorBrush" />
                     <StaticResource x:Key="TokenMixInputBrush" ResourceKey="SystemColorHighlightColorBrush" />

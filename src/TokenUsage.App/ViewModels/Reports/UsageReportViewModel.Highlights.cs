@@ -29,6 +29,8 @@ public sealed record UsageReportHighlight(string Glyph, string Label, string Val
 {
     public IReadOnlyList<UsageReportSparkBar> Bars { get; init; } = [];
     public string ActionHint { get; init; } = string.Empty;
+    /// <summary>Identity tone for the tile icon; see ReportIconChip.</summary>
+    public string Tone { get; init; } = "Blue";
     public bool HasBars => Bars.Count > 0;
     public string AutomationName => Label + ": " + Value + ". " + Detail;
 }
@@ -60,6 +62,11 @@ public sealed partial class UsageReportViewModel
     public string TokenMixRatioText { get; private set; } = string.Empty;
     public bool HasTokenMixRatio => TokenMixRatioText.Length > 0;
 
+    // Price coverage is a real state, so it gets a status tone with its own glyph; the caption
+    // beside it still says how many tokens are unpriced.
+    public string PriceCoverageTone => HasUnpricedSummary ? "Caution" : "Success";
+    public string PriceCoverageGlyph => HasUnpricedSummary ? "" : "";
+
     private void RebuildHighlights(Func<UsageReportMetrics, decimal> value, Func<decimal, string> display)
     {
         var daily = Enumerable.Range(0, RangeDayCount)
@@ -72,18 +79,18 @@ public sealed partial class UsageReportViewModel
         if (total > 0)
         {
             var peak = daily.OrderByDescending(day => day.Amount).ThenBy(day => day.Date).First();
-            highlights.Add(new("", GetString("UsageHighlightPeakLabel"),
+            highlights.Add(new("", GetString("UsageHighlightPeakLabel"),
                 peak.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightPeakFormat"),
                     display(peak.Amount), FormatPercent(peak.Amount / total)),
-                UsageReportHighlightAction.RevealDay, peak.Date.ToString("O", CultureInfo.InvariantCulture)));
+                UsageReportHighlightAction.RevealDay, peak.Date.ToString("O", CultureInfo.InvariantCulture)) { Tone = "Rose" });
 
             int activeDays = daily.Count(day => day.Amount > 0);
             highlights.Add(new("", GetString("UsageHighlightAverageLabel"),
                 display(total / activeDays),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightAverageFormat"),
                     activeDays, daily.Length),
-                UsageReportHighlightAction.OpenDays, string.Empty));
+                UsageReportHighlightAction.OpenDays, string.Empty) { Tone = "Blue" });
 
             if (daily.Length >= 14)
             {
@@ -98,9 +105,10 @@ public sealed partial class UsageReportViewModel
                     : string.Format(CultureInfo.CurrentCulture, GetString(recent >= before
                         ? "UsageHighlightTrendUpFormat" : "UsageHighlightTrendDownFormat"),
                         FormatPercent(Math.Abs(recent - before) / before));
-                highlights.Add(new(recent >= before ? "" : "", GetString("UsageHighlightRecentLabel"),
+                highlights.Add(new(recent >= before ? "" : "", GetString("UsageHighlightRecentLabel"),
                     display(recent), trend, UsageReportHighlightAction.OpenDays, string.Empty)
                 {
+                    Tone = "Teal",
                     Bars = window.Select((day, index) => new UsageReportSparkBar(
                         tallest > 0 ? Math.Max(2, (double)(28 * day.Amount / tallest)) : 2, index >= 7)).ToArray(),
                 });
@@ -113,7 +121,7 @@ public sealed partial class UsageReportViewModel
                 highlights.Add(new("", GetString("UsageHighlightLeaderLabel"), leader.ModelName,
                     string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightLeaderFormat"),
                         leader.ProviderName, FormatPercent(value(leader.Metrics) / total)),
-                    UsageReportHighlightAction.OpenModel, leader.Id));
+                    UsageReportHighlightAction.OpenModel, leader.Id) { Tone = "Amber" });
             }
         }
 
