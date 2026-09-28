@@ -5,6 +5,7 @@ using TokenUsage.Providers.Amp;
 using TokenUsage.Providers.Antigravity;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
+using TokenUsage.Providers.CopilotVsCode;
 using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.Catalog;
 using TokenUsage.Providers.Grok;
@@ -240,9 +241,14 @@ public static class WindowsProviderCatalog
             new(
                 ProviderModuleCatalog.Get("copilot"),
                 cacheDirectoryName: null,
-                localUsageAgentId: null,
+                localUsageAgentId: "copilot",
                 detectionCheckId: null,
-                dataCheckId: null),
+                dataCheckId: "local-usage-copilot",
+                compose: context => new ProviderBinding(
+                    LocalUsageSource: new CopilotVsCodeUsageEventSource(
+                        context.TimeZoneId,
+                        clock: context.Clock)),
+                localUsageFactory: timeZoneId => new CopilotVsCodeUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("devin"),
                 cacheDirectoryName: null,

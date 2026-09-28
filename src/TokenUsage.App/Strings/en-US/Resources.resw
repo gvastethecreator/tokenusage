@@ -247,6 +247,7 @@
   <data name="LocalUsageAgentAntigravity" xml:space="preserve"><value>Antigravity</value></data>
   <data name="LocalUsageAgentClaude" xml:space="preserve"><value>Claude</value></data>
   <data name="LocalUsageAgentCursor" xml:space="preserve"><value>Cursor</value></data>
+  <data name="LocalUsageAgentCopilot" xml:space="preserve"><value>GitHub Copilot</value></data>
   <data name="LocalUsageAgentGrok" xml:space="preserve"><value>Grok Build</value></data>
   <data name="LocalUsageAgentGrokBot" xml:space="preserve"><value>Grok Bot</value></data>
   <data name="LocalUsageAgentOpenCode" xml:space="preserve"><value>OpenCode</value></data>
@@ -631,6 +632,7 @@
   <data name="NextProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Next provider</value></data>
   <data name="UsageReportProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Report provider</value></data>
   <data name="CompactProviderCodexCoverageHint" xml:space="preserve"><value>Codex: daily totals are official; model mix and cost are estimated. Cost can differ from your plan charge.</value></data>
+  <data name="CompactProviderCopilotCoverageHint" xml:space="preserve"><value>GitHub Copilot: VS Code chat requests only. Output tokens and Copilot credits are measured; input is a lower bound unless per-model totals exist. Cost is the credit value before your plan allowance, not the net charge.</value></data>
   <data name="CompactProviderCursorCoverageHint" xml:space="preserve"><value>Cursor: uses real local per-turn counters when available. Older conversations retain a partial context estimate. Cost is estimated API value, not the plan charge.</value></data>
   <data name="CompactProviderGrokCoverageHint" xml:space="preserve"><value>Grok Build: usage is read from local logs. Official quota is unavailable.</value></data>
   <data name="CompactProviderOpenCodeCoverageHint" xml:space="preserve"><value>OpenCode: usage is observed in local logs; cost is estimated from catalog prices.</value></data>

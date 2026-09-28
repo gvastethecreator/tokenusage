@@ -75,11 +75,12 @@ collection cannot reconstruct quota history that was never observed.
 
 The catalog represents 56 identities from the inspected union. A visible module is not the same as an active data source:
 
-- `Active`: Amp, Antigravity, Claude, Codex, Cursor, Goose, Grok Build, Hermes,
-  Mux, OpenCode, and ZCode. Each one creates a real, bounded local reader.
+- `Active`: Amp, Antigravity, Claude, Codex, Cursor, GitHub Copilot, Goose,
+  Grok Build, Hermes, Mux, OpenCode, and ZCode. Each one creates a real,
+  bounded local reader.
 - `OptIn`: Vercel AI Gateway. It keeps its public client and requires a key that
   the user gives to TokenUsage.
-- `Prepared`: 35 modules with identity, capabilities, brand when it exists, and
+- `Prepared`: 34 modules with identity, capabilities, brand when it exists, and
   visible status. They do not open files, credentials, or connections.
 - `PolicyBlocked`: Cline, Cline CLI, Gemini CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
   Z.ai, and Zed. They keep the researched contract, but they do not
@@ -103,7 +104,7 @@ TokenUsage takes selected contracts from each upstream, calculates cost locally,
 | Mux | No common quota | Yes, tokens and aggregated cost by model | `session-usage.json`; transcripts are not opened | Active local | Active |
 | Goose | No common quota | Yes, tokens accumulated per session | read-only numeric query of `sessions.db` | Partial active local | Active; estimated API cost when a price exists |
 | Hermes | No common quota | Yes, tokens and cost accumulated per session | `state.db` in `.hermes` or in a profile; an empty `.hermes` folder or one from another tool does not count as an install | Partial active local | Active; reported or estimated API cost |
-| GitHub Copilot | No under the current contract | Yes, paid personal and organization | Billing API with a manual token | Partial Manual | M9; smoke pending |
+| GitHub Copilot | No under the current contract | Yes, VS Code chat tokens and credits; paid personal and organization billing | VS Code chat session files with an allowlist projection; Billing API with a manual token | Partial active local + Manual | Active local; billing smoke pending |
 | ZCode | Blocked without a public contract | Yes, counters per request; estimated API cost | local SQLite `model_usage` with an allowlist projection | Partial active local | Reopened in 3.8.1 |
 | Kilo Code | No public quota contract | Candidate CLI aggregates, without a machine contract | No suitable source; candidate: `kilo stats` | Gate | M9 |
 | Kimi Code | Blocked without a machine contract | Blocked because of session content | Version detection only | Blocked | M9 |
@@ -815,6 +816,22 @@ forbidden. The provider ignores an existing editor or GitHub CLI session.
 
 The gate is resolved as `implement-subset`. The public build stays off until
 an authorized smoke and credential deletion.
+
+### VS Code chat sessions
+
+The repository owner approved this local source on 2026-09-28. VS Code (and
+Insiders and VSCodium) stores each Copilot chat session in
+`User\workspaceStorage\<hash>\chatSessions\` or
+`User\globalStorage\emptyWindowChatSessions\`. TokenUsage replays those
+files and keeps only request ids, times, model ids, token counters, and
+Copilot credits. Message text, tool data, paths, `workspace.json`, extension
+storage, and logs are never read. This is the only Copilot editor file that
+TokenUsage opens.
+
+Output tokens and credits are measured. Input is a lower bound unless the
+request has per-model totals. Cost is the credit value (1 credit = $0.01)
+before the plan allowance, not the net charge. The quota stays unavailable.
+See [the complete VS Code source gate](source-gates/COPILOT-VSCODE.md).
 
 ### Copilot CLI local telemetry
 

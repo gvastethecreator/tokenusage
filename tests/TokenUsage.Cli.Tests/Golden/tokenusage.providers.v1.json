@@ -45,6 +45,17 @@
       "data": "present"
     },
     {
+      "id": "copilot",
+      "name": "GitHub Copilot",
+      "capabilities": [
+        "usage",
+        "localUsage",
+        "spend"
+      ],
+      "detection": "detected",
+      "data": "present"
+    },
+    {
       "id": "cursor",
       "name": "Cursor",
       "capabilities": [

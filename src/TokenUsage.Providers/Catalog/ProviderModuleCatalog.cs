@@ -150,7 +150,7 @@ public static class ProviderModuleCatalog
             Module("gemini-api", "Gemini API", [ProviderCapability.Limits, ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, ProviderReference.OpenUsage, credential: ManualCredentialKind.ApiKey),
             Module("gemini-cli", "Gemini CLI", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.PolicyBlocked, AllReferences),
             Module("ollama", "Ollama", [ProviderCapability.LocalUsage], ProviderModuleStage.Prepared, ProviderReference.OpenUsage | ProviderReference.CodexBar),
-            Module("copilot", "GitHub Copilot", [ProviderCapability.Usage, ProviderCapability.Spend], ProviderModuleStage.Prepared, AllReferences, credential: ManualCredentialKind.ApiKeyAndOptionalOrganization),
+            Module("copilot", "GitHub Copilot", [ProviderCapability.Usage, ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, AllReferences, credential: ManualCredentialKind.ApiKeyAndOptionalOrganization),
             Module("devin", "Devin", [ProviderCapability.Usage], ProviderModuleStage.Prepared, AllReferences, credential: ManualCredentialKind.ApiKeyAndOrganization),
             Module("amp", "Amp", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),
             Module("goose", "Goose", [ProviderCapability.LocalUsage, ProviderCapability.Spend], ProviderModuleStage.Active, OpenUsageAndCodeBurn),

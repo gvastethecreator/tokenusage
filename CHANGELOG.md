@@ -9,6 +9,7 @@ User-facing changes for TokenUsage. Release notes include installation details a
 - Claude Code subscription limits (5-hour and weekly, plus a gateway spend limit). They come from the documented status line reading and are opt-in in Settings. They appear in the Claude card, the global limits strip, the tray, provider status, `tokenusage limits`, and report reset cycles. Any existing Claude Code status line keeps running.
 - A Claude Code `Stop` hook that refreshes TokenUsage after each task, managed like the Grok, Cursor, and ZCode hooks.
 - `tokenusage claude <install-hook|uninstall-hook|install-statusline|uninstall-statusline|status|statusline>`.
+- GitHub Copilot usage from VS Code chat sessions (also Insiders and VSCodium). Output tokens and Copilot credits are measured; input is a lower bound unless per-model totals exist. Cost is the credit value before the plan allowance. Only numeric fields are read; messages and paths are not.
 
 ### Removed
 

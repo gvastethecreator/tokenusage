@@ -63,6 +63,7 @@ public sealed class ProviderDiagnosticsCommandTests
             + "antigravity: detected; data present; localUsage,spend\n"
             + "claude: detected; data absent; limits,localUsage,spend\n"
             + "codex: detected; data present; limits,localUsage,spend\n"
+            + "copilot: detected; data present; usage,localUsage,spend\n"
             + "cursor: detected; data absent; localUsage,spend\n"
             + "goose: missing; data absent; localUsage,spend\n"
             + "grok: detected; data present; localUsage,spend\n"
@@ -77,6 +78,7 @@ public sealed class ProviderDiagnosticsCommandTests
             + "local-usage-amp: present\n"
             + "local-usage-antigravity: present\n"
             + "local-usage-claude: absent\n"
+            + "local-usage-copilot: present\n"
             + "local-usage-cursor: absent\n"
             + "local-usage-goose: absent\n"
             + "local-usage-grok: present\n"
@@ -262,6 +264,9 @@ public sealed class ProviderDiagnosticsCommandTests
                     ProviderCapability.Spend,
                 ],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
+            new("copilot", "GitHub Copilot",
+                [ProviderCapability.Usage, ProviderCapability.LocalUsage, ProviderCapability.Spend],
+                ProviderDetectionStatus.Detected, ProviderDataStatus.Present),
             new("cursor", "Cursor",
                 [ProviderCapability.LocalUsage, ProviderCapability.Spend],
                 ProviderDetectionStatus.Detected, ProviderDataStatus.Absent),
@@ -283,6 +288,7 @@ public sealed class ProviderDiagnosticsCommandTests
             new("local-usage-amp", DoctorCheckStatus.Present),
             new("local-usage-antigravity", DoctorCheckStatus.Present),
             new("local-usage-claude", DoctorCheckStatus.Absent),
+            new("local-usage-copilot", DoctorCheckStatus.Present),
             new("local-usage-cursor", DoctorCheckStatus.Absent),
             new("local-usage-goose", DoctorCheckStatus.Absent),
             new("local-usage-opencode", DoctorCheckStatus.Unreadable),

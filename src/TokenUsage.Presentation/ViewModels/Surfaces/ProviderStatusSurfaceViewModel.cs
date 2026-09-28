@@ -262,13 +262,17 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
                 StringComparison.Ordinal))
             .Select(row => string.Equals(row.ProviderId, "claude", StringComparison.Ordinal)
                 ? WithClaudeQuota(row)
-                : row));
+                : row)
+            .Select(WithManualCredential));
         HashSet<string> includedIds = providers
             .Select(provider => provider.ProviderId)
             .ToHashSet(StringComparer.Ordinal);
+        // A local tool that also takes a pasted key (GitHub Copilot) keeps its key row
+        // until its local source reports, so the credential stays reachable.
         providers.AddRange(ProviderModuleCatalog.Entries
             .Where(entry => !includedIds.Contains(entry.Id.Value))
-            .Where(entry => !ProviderModuleCatalog.IsActiveLocalUsageProvider(entry.Id.Value))
+            .Where(entry => !ProviderModuleCatalog.IsActiveLocalUsageProvider(entry.Id.Value)
+                || entry.AcceptsManualCredential)
             .Select(CreateCatalogRow));
         Providers = providers;
         PrimaryProviders = PrimaryProviderIds
@@ -427,6 +431,34 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
                 _ => _getString("ProviderStatusUnavailable"),
             },
         };
+
+    /// <summary>
+    /// A local usage row for a provider that also accepts a pasted key carries the
+    /// same key controls as its catalog row.
+    /// </summary>
+    private ProviderStatusRow WithManualCredential(ProviderStatusRow row)
+    {
+        ProviderModuleDefinition? module = ProviderModuleCatalog.Entries.FirstOrDefault(entry =>
+            string.Equals(entry.Id.Value, row.ProviderId, StringComparison.Ordinal));
+        if (module is not { AcceptsManualCredential: true })
+        {
+            return row;
+        }
+
+        ProviderStatusRow catalog = CreateCatalogRow(module);
+        return row with
+        {
+            CanConfigure = catalog.CanConfigure,
+            HasSavedCredential = catalog.HasSavedCredential,
+            RequiresSecondaryField = catalog.RequiresSecondaryField,
+            SecondaryFieldLabel = catalog.SecondaryFieldLabel,
+            SecondaryFieldPlaceholder = catalog.SecondaryFieldPlaceholder,
+            CredentialHelpText = catalog.CredentialHelpText,
+            SecretFieldLabel = catalog.SecretFieldLabel,
+            SecretFieldPlaceholder = catalog.SecretFieldPlaceholder,
+            ConfigureAutomationName = catalog.ConfigureAutomationName,
+        };
+    }
 
     private ProviderStatusRow CreateCatalogRow(ProviderModuleDefinition module)
     {

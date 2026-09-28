@@ -54,19 +54,54 @@ public sealed class CopilotSourcePolicyTests
         Assert.Contains("would not replace the existing opt-in GitHub Billing", gate, StringComparison.Ordinal);
         Assert.Contains("Content-bearing field", gate, StringComparison.Ordinal);
 
-        string catalog = File.ReadAllText(Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.Providers",
-            "Catalog",
-            "ProviderModuleCatalog.cs"));
-        string copilotLine = catalog.Split('\n').Single(line =>
-            line.Contains("Module(\"copilot\"", StringComparison.Ordinal));
-        Assert.DoesNotContain("ProviderCapability.LocalUsage", copilotLine, StringComparison.Ordinal);
         Assert.False(Directory.Exists(Path.Combine(
             repoRoot,
             "src",
             "TokenUsage.Providers",
             "CopilotCli")));
+    }
+
+    [Fact]
+    public void CopilotLocalUsageComesOnlyFromTheApprovedVsCodeChatSessionGate()
+    {
+        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
+        string gate = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "docs",
+            "source-gates",
+            "COPILOT-VSCODE.md"));
+        Assert.Contains("Status: `approved`", gate, StringComparison.Ordinal);
+
+        string localRoot = Path.Combine(repoRoot, "src", "TokenUsage.Providers", "CopilotVsCode");
+        string combined = string.Join('\n', Directory
+            .GetFiles(localRoot, "*.cs", SearchOption.AllDirectories)
+            .Select(File.ReadAllText));
+        Assert.Contains("chatSessions", combined, StringComparison.Ordinal);
+        Assert.Contains("emptyWindowChatSessions", combined, StringComparison.Ordinal);
+
+        // Copilot CLI state, extension storage, logs, workspace descriptors, and
+        // network or credential access stay out of the local source.
+        string[] forbidden =
+        [
+            "\".copilot\"",
+            ".copilot\\",
+            ".copilot/",
+            "session-state",
+            "session-store",
+            "OTEL",
+            "copilot_internal",
+            "hosts.yml",
+            "workspace.json",
+            "GitHub.copilot-chat",
+            "github.copilot-chat",
+            "exthost",
+            "HttpClient",
+            "CredentialManager",
+            "PasswordVault",
+        ];
+        foreach (string token in forbidden)
+        {
+            Assert.DoesNotContain(token, combined, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

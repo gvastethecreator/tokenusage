@@ -238,7 +238,8 @@ public sealed class SessionModuleTests
             .. ProviderModuleCatalog.Entries
                 .Select(entry => entry.Id.Value)
                 .Where(id => id is not "codex" and not "grok"
-                    && !ProviderModuleCatalog.IsActiveLocalUsageProvider(id)),
+                    && (!ProviderModuleCatalog.IsActiveLocalUsageProvider(id)
+                        || ProviderModuleCatalog.Get(id).AcceptsManualCredential)),
         ];
         Assert.Equal(expectedProviderIds, surface.Providers.Select(provider => provider.ProviderId));
         string[] primaryProviderIds =

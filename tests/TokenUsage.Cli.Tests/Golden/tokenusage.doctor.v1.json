@@ -23,6 +23,10 @@
       "status": "absent"
     },
     {
+      "id": "local-usage-copilot",
+      "status": "present"
+    },
+    {
       "id": "local-usage-cursor",
       "status": "absent"
     },

@@ -302,6 +302,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             {
                 "codex" => _getString("CompactProviderCodexCoverageHint"),
                 "cursor" => _getString("CompactProviderCursorCoverageHint"),
+                "copilot" => _getString("CompactProviderCopilotCoverageHint"),
                 "grok" => _getString("CompactProviderGrokCoverageHint"),
                 "opencode" => _getString("CompactProviderOpenCodeCoverageHint"),
                 "antigravity" => _getString("CompactProviderAntigravityCoverageHint"),
