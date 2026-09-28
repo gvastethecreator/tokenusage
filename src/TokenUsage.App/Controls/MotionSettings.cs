@@ -6,6 +6,12 @@ internal static class MotionSettings
 {
     private static readonly UISettings Settings = new();
 
+    /// <summary>
+    /// True while the report is being captured to an image. Controls that start their own
+    /// motion (share bars) settle at their final state instead. UI thread only.
+    /// </summary>
+    public static bool IsCapturing { get; set; }
+
     public static readonly TimeSpan QuotaRevealDuration = TimeSpan.FromMilliseconds(360);
 
     public static readonly TimeSpan DonutRevealDuration = TimeSpan.FromMilliseconds(480);

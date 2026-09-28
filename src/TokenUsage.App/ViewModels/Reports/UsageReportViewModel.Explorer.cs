@@ -306,9 +306,6 @@ public sealed partial class UsageReportViewModel
     public string ModelDetailProviderId => DetailModel?.ProviderId ?? string.Empty;
     public string ModelDetailConfigurations { get; private set; } = string.Empty;
     public UsageReportTrendDataset ModelDetailTrend { get; private set; } = UsageReportTrendDataset.Empty;
-    public string ExplorerValueComponents => string.Format(CultureInfo.CurrentCulture,
-        GetString("UsageExplorerValuesFormat"), ExactCost(_report.Totals.ReportedCostUsd),
-        ExactCost(_report.Totals.EstimatedCostUsd), _report.Totals.UnpricedTokens.ToString("N0", CultureInfo.CurrentCulture));
 
     public string ModelSearch
     {
@@ -849,7 +846,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(IsLoadingConfigurations));
         OnPropertyChanged(nameof(HasConfigurationEmpty));
         OnPropertyChanged(nameof(ConfigurationCoverageText));
-        OnPropertyChanged(nameof(IsExplorerToolVisible)); OnPropertyChanged(nameof(ExplorerValueComponents));
+        OnPropertyChanged(nameof(IsExplorerToolVisible));
         OnPropertyChanged(nameof(CanOpenDistributionOutlier));
         NotifyExplorerFilterContext();
         _ = RefreshAttributionAvailabilityAsync();

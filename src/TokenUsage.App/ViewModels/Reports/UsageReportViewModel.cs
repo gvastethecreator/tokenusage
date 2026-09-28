@@ -670,7 +670,11 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public UsageReportTrendDataset Trend
     {
         get => _trend;
-        private set => SetProperty(ref _trend, value);
+        private set
+        {
+            if (UsageReportTrendDataset.HaveSameContent(_trend, value)) return;
+            SetProperty(ref _trend, value);
+        }
     }
 
     public string PeriodText
@@ -1879,14 +1883,21 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                         || _compareRightReport.Totals.UnpricedTokens > 0
                         || _compareRightReport.Totals.UnavailableCostEventCount > 0)));
         HasCoverageHint = summaryOnly || otherIncomplete;
-        // Only name the unpriced amounts when there are some; "0 tokens in 0 events" says nothing.
-        CoverageHintTitle = CoverageLabel(_report.Totals.Coverage);
-        CoverageHintText = _report.Totals.UnpricedTokens > 0 || _report.Totals.UnavailableCostEventCount > 0
+        // Describe the side that raised the notice (in Compare it can be the right one), and only
+        // name unpriced amounts when there are some; "0 tokens in 0 events" says nothing.
+        UsageReportMetrics noticeTotals = IsCompareScope && CoverageRank(_compareRightReport.Totals) > CoverageRank(_report.Totals)
+            ? _compareRightReport.Totals
+            : _report.Totals;
+        bool unpriced = noticeTotals.UnpricedTokens > 0 || noticeTotals.UnavailableCostEventCount > 0;
+        CoverageHintTitle = CoverageLabel(noticeTotals.Coverage == CoverageKind.Complete && unpriced
+            ? CoverageKind.Unpriced
+            : noticeTotals.Coverage);
+        CoverageHintText = unpriced
             ? string.Format(
                 CultureInfo.CurrentCulture,
                 GetString("UsageReportCoverageHintFormat"),
-                FormatTokens(_report.Totals.UnpricedTokens),
-                _report.Totals.UnavailableCostEventCount.ToString("N0", CultureInfo.CurrentCulture))
+                FormatTokens(noticeTotals.UnpricedTokens),
+                noticeTotals.UnavailableCostEventCount.ToString("N0", CultureInfo.CurrentCulture))
             : GetString(summaryOnly ? "UsageReportCoverageHintSummaryOnly" : "UsageReportCoverageHintPartial");
         OnPropertyChanged(nameof(CoverageHintTitle));
 
@@ -2687,7 +2698,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                     : totalTokens == 0 ? 0 : (decimal)agent.Metrics.Tokens.Total / totalTokens;
                 string providerId = agent.AgentId.Value;
                 string colorHex = ProviderColorPalette.GetEffectiveHex(providerId, null);
-                UsageReportTrendDataset trend = CreateProviderTrend(providerId);
+                // Only the split chart draws per-provider trends; skip seven builds when it is hidden.
+                UsageReportTrendDataset trend = IsGlobalScope && IsSplitChart
+                    ? CreateProviderTrend(providerId)
+                    : UsageReportTrendDataset.Empty;
                 bool showPlot = HasNumericTrend(trend);
                 return new UsageReportProviderRow(
                     providerId,
@@ -2897,6 +2911,15 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             ? 0
             : _report.Totals.Tokens.Total / activeDays.Length;
     }
+
+    // Higher is worse: which side's coverage a notice should describe.
+    private static int CoverageRank(UsageReportMetrics totals) => totals.Coverage switch
+    {
+        CoverageKind.SummaryOnly => 3,
+        CoverageKind.Partial => 2,
+        _ when totals.UnpricedTokens > 0 || totals.UnavailableCostEventCount > 0 => 1,
+        _ => 0,
+    };
 
     private string CoverageLabel(CoverageKind coverage) => GetString(coverage switch
     {

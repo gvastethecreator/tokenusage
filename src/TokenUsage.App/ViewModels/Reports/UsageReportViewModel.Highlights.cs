@@ -99,13 +99,16 @@ public sealed partial class UsageReportViewModel
                 decimal recent = window[7..].Sum(day => day.Amount);
                 decimal tallest = window.Max(day => day.Amount);
                 // Past doubling, a multiple reads better than "+203%".
-                string trend = before <= 0 ? GetString("UsageHighlightTrendNewFormat")
+                string trend = before <= 0 && recent <= 0 ? GetString("UsageHighlightTrendNone")
+                    : before <= 0 ? GetString("UsageHighlightTrendNewFormat")
+                    : recent == before ? GetString("UsageHighlightTrendSame")
                     : recent >= before * 2 ? string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightTrendTimesFormat"),
                         (recent / before).ToString("0.#", CultureInfo.CurrentCulture))
                     : string.Format(CultureInfo.CurrentCulture, GetString(recent >= before
                         ? "UsageHighlightTrendUpFormat" : "UsageHighlightTrendDownFormat"),
                         FormatPercent(Math.Abs(recent - before) / before));
-                highlights.Add(new(recent >= before ? "arrow-big-up" : "arrow-big-down", GetString("UsageHighlightRecentLabel"),
+                string icon = recent == before ? "calendar-event" : recent > before ? "arrow-big-up" : "arrow-big-down";
+                highlights.Add(new(icon, GetString("UsageHighlightRecentLabel"),
                     display(recent), trend, UsageReportHighlightAction.OpenDays, string.Empty)
                 {
                     Tone = "Teal",
@@ -134,17 +137,23 @@ public sealed partial class UsageReportViewModel
                 _ => "UsageHighlightOpenDaysHint",
             }),
         }).ToArray();
-        RebuildTokenMix();
+        foreach (string property in new[] { nameof(Highlights), nameof(HasHighlights), nameof(ShowTrendSummary) })
+            OnPropertyChanged(property);
+        // The token mix does not depend on the metric; an unchanged mix keeps its bar still.
+        if (!RebuildTokenMix()) return;
         foreach (string property in new[]
         {
-            nameof(Highlights), nameof(HasHighlights), nameof(ShowTrendSummary), nameof(TokenMixCacheRead), nameof(TokenMixCacheWrite),
-            nameof(TokenMixInput), nameof(TokenMixOutput), nameof(TokenMixReasoning), nameof(TokenMixReadText),
-            nameof(TokenMixWrittenText), nameof(TokenMixRatioText), nameof(HasTokenMixRatio),
+            nameof(TokenMixCacheRead), nameof(TokenMixCacheWrite), nameof(TokenMixInput), nameof(TokenMixOutput),
+            nameof(TokenMixReasoning), nameof(TokenMixReadText), nameof(TokenMixWrittenText), nameof(TokenMixRatioText),
+            nameof(HasTokenMixRatio),
         }) OnPropertyChanged(property);
     }
 
-    private void RebuildTokenMix()
+    // Returns false when every part and sentence is the same as before.
+    private bool RebuildTokenMix()
     {
+        var previous = (TokenMixCacheRead, TokenMixCacheWrite, TokenMixInput, TokenMixOutput, TokenMixReasoning,
+            TokenMixReadText, TokenMixWrittenText, TokenMixRatioText);
         TokenBreakdown tokens = _report.Totals.Tokens;
         long total = tokens.Total;
         UsageTokenMixPart Part(string key, long amount) => new(GetString(key), FormatTokens(amount),
@@ -168,5 +177,7 @@ public sealed partial class UsageReportViewModel
                     var ratio => ratio.ToString("0.#", CultureInfo.CurrentCulture),
                 })
             : string.Empty;
+        return previous != (TokenMixCacheRead, TokenMixCacheWrite, TokenMixInput, TokenMixOutput, TokenMixReasoning,
+            TokenMixReadText, TokenMixWrittenText, TokenMixRatioText);
     }
 }

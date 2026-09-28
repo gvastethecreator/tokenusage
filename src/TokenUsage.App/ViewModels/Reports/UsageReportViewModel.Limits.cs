@@ -7,8 +7,6 @@ public sealed record UsageReportLimitItem(string ProviderId, string ProviderName
     public string Title => ShowsProvider ? ProviderName + " · " + Window.Title : Window.Title;
 
     public string AutomationName => ShowsProvider ? ProviderName + ", " + Window.DisplayAutomationName : Window.DisplayAutomationName;
-
-    public string PaceTone => Window.IsPaceBehind ? "Caution" : "Success";
 }
 
 // Quota windows sit near the top of the report: Global lists every provider that reports them,

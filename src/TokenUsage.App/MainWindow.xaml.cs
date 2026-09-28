@@ -835,6 +835,7 @@ public sealed partial class MainWindow : Window, IDisposable
         if (_reportWindow is not null)
         {
             _reportWindow.Closed -= OnUsageReportWindowClosed;
+            RootPage.ViewModel.Dashboard.PropertyChanged -= OnDashboardChangedForReport;
             _reportWindow.Close();
             _reportWindow = null;
         }

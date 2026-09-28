@@ -137,6 +137,8 @@ public sealed record UsageReportResetLogRow(
     bool IsOnSchedule)
 {
     public string AutomationName => string.Join(", ", DayText, TimeText, QuotaText, KindText, EvidenceText, TimingText);
+
+    public bool IsOffSchedule => !IsOnSchedule && TimingDetail.Length > 0;
 }
 
 public sealed record UsageReportResetLogFilter(string Id, string Name);

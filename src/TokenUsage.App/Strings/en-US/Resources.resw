@@ -1259,7 +1259,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerEvidence.Content" xml:space="preserve"><value>Selection evidence</value></data>
   <data name="UsageExplorerBackToModel.Content" xml:space="preserve"><value>Back to model</value></data>
   <data name="UsageExplorerNotAvailable" xml:space="preserve"><value>Not available</value></data>
-  <data name="UsageExplorerValuesFormat" xml:space="preserve"><value>Reported value: {0} · Estimated API value: {1} · Unpriced tokens: {2}</value></data>
   <data name="UsageExplorerDetailRemoved" xml:space="preserve"><value>The model detail closed because the model is no longer in this selection.</value></data>
   <data name="UsageExplorerCompare.Content" xml:space="preserve"><value>Open in comparison</value></data>
   <data name="UsageExplorerReturn.Content" xml:space="preserve"><value>Return to model explorer</value></data>
@@ -1470,4 +1469,7 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageReportFiltersActiveFormat" xml:space="preserve"><value>Filters, {0} active</value></data>
   <data name="UsageReportFiltersLabel.Text" xml:space="preserve"><value>Filters</value></data>
   <data name="UsageDashboardRemainderCountFormat" xml:space="preserve"><value>Top {0} of {1}</value></data>
+  <data name="UsageReportResetLogSummaryUnknownFormat" xml:space="preserve"><value>{0} resets in this range: {1} on schedule, {2} off schedule, {3} with no known schedule.</value></data>
+  <data name="UsageHighlightTrendSame" xml:space="preserve"><value>Same as the week before</value></data>
+  <data name="UsageHighlightTrendNone" xml:space="preserve"><value>No usage in the last two weeks</value></data>
 </root>

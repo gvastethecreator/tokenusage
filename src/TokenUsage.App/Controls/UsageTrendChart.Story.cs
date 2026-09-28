@@ -19,6 +19,7 @@ public sealed partial class UsageTrendChart
     private readonly Dictionary<int, Canvas> _barColumns = [];
     private Canvas? _marksLayer;
     private int _slotsPerDay = 1;
+    private int? _emphasizedDay;
 
     private Canvas BarColumn(int slot)
     {
@@ -46,6 +47,7 @@ public sealed partial class UsageTrendChart
     {
         _barColumns.Clear();
         _marksLayer = null;
+        _emphasizedDay = null;
         _slotsPerDay = data.Style == ReportChartStyle.TwoHourBars ? 12 : 1;
     }
 
@@ -110,11 +112,31 @@ public sealed partial class UsageTrendChart
         return true;
     }
 
+    // Moving between days only changes the day left and the day entered; entering or leaving
+    // the chart changes every column. Skipping the rest keeps two-hour charts (360 columns) cheap.
     private void EmphasizeDay(int? day)
     {
+        if (day == _emphasizedDay) return;
+        int? previous = _emphasizedDay;
+        _emphasizedDay = day;
         foreach ((int slot, Canvas column) in _barColumns)
-            ElementCompositionPreview.GetElementVisual(column).Opacity =
-                day is null || slot / _slotsPerDay == day ? 1f : (float)DimmedColumnOpacity;
+        {
+            int columnDay = slot / _slotsPerDay;
+            if (previous is not null && day is not null && columnDay != previous && columnDay != day) continue;
+            Visual visual = ElementCompositionPreview.GetElementVisual(column);
+            float opacity = day is null || columnDay == day ? 1f : (float)DimmedColumnOpacity;
+            if (IsCaptureMode)
+            {
+                ImplicitAnimationCollection? fade = visual.ImplicitAnimations;
+                visual.ImplicitAnimations = null;
+                visual.Opacity = opacity;
+                visual.ImplicitAnimations = fade;
+            }
+            else
+            {
+                visual.Opacity = opacity;
+            }
+        }
     }
 
     // Average per active day and the peak day, drawn only where they are honest: daily bars or

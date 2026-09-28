@@ -35,6 +35,8 @@ public sealed partial class ReportShareBar : Grid
     private readonly Border _track = new();
     private readonly Border _fill = new();
     private double _pendingFrom = double.NaN;
+    private object? _valueItem;
+    private Microsoft.UI.System.ThemeSettings? _themeSettings;
 
     public ReportShareBar()
     {
@@ -48,7 +50,20 @@ public sealed partial class ReportShareBar : Grid
         SizeChanged += (_, args) => UpdateCorners(args.NewSize.Height);
         Loaded += (_, _) =>
         {
+            // AccessibilitySettings events are unavailable to desktop WinUI; ThemeSettings reports
+            // high contrast changes that leave ActualTheme unchanged.
+            if (_themeSettings is null && XamlRoot?.ContentIslandEnvironment is { } environment)
+            {
+                _themeSettings = Microsoft.UI.System.ThemeSettings.CreateForWindowId(environment.AppWindowId);
+                _themeSettings.Changed += OnSystemThemeChanged;
+            }
+            ApplyBrushes();
             if (!double.IsNaN(_pendingFrom)) Grow(_pendingFrom);
+        };
+        Unloaded += (_, _) =>
+        {
+            if (_themeSettings is not null) _themeSettings.Changed -= OnSystemThemeChanged;
+            _themeSettings = null;
         };
         ActualThemeChanged += (_, _) => ApplyBrushes();
     }
@@ -94,7 +109,12 @@ public sealed partial class ReportShareBar : Grid
         bar._fill.MinWidth = value > 0 ? 2 : 0;
         bar._fill.Visibility = value > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (value <= 0) return;
-        double from = previous / value;
+        // A recycled row that now shows another item has no previous length of its own; growing
+        // from the old item's length would read as a change in the data.
+        object? item = bar.DataContext;
+        bool sameItem = bar._valueItem is null || ReferenceEquals(bar._valueItem, item);
+        bar._valueItem = item;
+        double from = sameItem ? previous / value : 1;
         if (bar.IsLoaded) bar.Grow(from);
         else bar._pendingFrom = from;
     }
@@ -107,7 +127,7 @@ public sealed partial class ReportShareBar : Grid
         Visual visual = ElementCompositionPreview.GetElementVisual(_fill);
         visual.StopAnimation("Scale.X");
         visual.Scale = Vector3.One;
-        if (!MotionSettings.AreAnimationsEnabled() || Math.Abs(from - 1) < 0.001) return;
+        if (!MotionSettings.AreAnimationsEnabled() || MotionSettings.IsCapturing || Math.Abs(from - 1) < 0.001) return;
         Compositor compositor = visual.Compositor;
         visual.CenterPoint = Vector3.Zero;
         ScalarKeyFrameAnimation animation = compositor.CreateScalarKeyFrameAnimation();
@@ -120,6 +140,9 @@ public sealed partial class ReportShareBar : Grid
 
     private static void OnBrushChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
         ((ReportShareBar)sender).ApplyBrushes();
+
+    private void OnSystemThemeChanged(Microsoft.UI.System.ThemeSettings sender, object args) =>
+        DispatcherQueue.TryEnqueue(ApplyBrushes);
 
     private void ApplyBrushes()
     {

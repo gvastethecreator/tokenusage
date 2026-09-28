@@ -17,9 +17,12 @@ namespace TokenUsage.App.Controls;
 
 public sealed partial class UsageTrendChart : UserControl
 {
-    private double TopPadding => IsPreview || Data is null
-        ? 8
-        : UsageReportResetMarkers.TopPaddingFor(UsageReportResetMarkers.PackDays(Data.Days));
+    // Room for the reset rail, computed once per rebuild; hover and marks read it many times.
+    private double _topPadding = 8;
+    private double TopPadding => _topPadding;
+    private bool _rebuildPending;
+    private (UsageReportTrendDataset Data, ElementTheme Theme, bool HighContrast)? _legendKey;
+    private readonly Dictionary<(string Color, bool Area), Brush> _fillBrushes = [];
     private const double BottomPadding = 10;
     private readonly ResourceLoader _resources = new();
     private Microsoft.UI.System.ThemeSettings? _themeSettings;
@@ -141,7 +144,24 @@ public sealed partial class UsageTrendChart : UserControl
 
     private void OnActualThemeChanged(FrameworkElement sender, object args) => Rebuild();
 
-    private void OnPlotSizeChanged(object sender, SizeChangedEventArgs e) => Rebuild();
+    // A window drag raises several size changes per frame; draw once for the latest size.
+    // Capture needs the chart drawn at its capture width before the bitmap is taken.
+    private void OnPlotSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (IsCaptureMode)
+        {
+            Rebuild();
+            return;
+        }
+
+        if (_rebuildPending) return;
+        _rebuildPending = true;
+        _ = DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            _rebuildPending = false;
+            if (IsLoaded) Rebuild();
+        });
+    }
 
     private double GetAxisWidth() =>
         YAxisWidth.IsAbsolute ? YAxisWidth.Value : 54;
@@ -173,6 +193,8 @@ public sealed partial class UsageTrendChart : UserControl
         HoverCard.Visibility = Visibility.Collapsed;
 
         UsageReportTrendDataset data = Data ?? UsageReportTrendDataset.Empty;
+        _topPadding = IsPreview ? 8 : UsageReportResetMarkers.TopPaddingFor(UsageReportResetMarkers.PackDays(data.Days));
+        _fillBrushes.Clear();
         bool hasSeries = data.UnavailableText is null && data.Days.Count > 0 && data.Series.Count > 0;
         EmptyText.Text = data.UnavailableText ?? GetString("UsageTrendEmptyText");
         AutomationProperties.SetHelpText(this, data.UnavailableText ?? string.Empty);
@@ -180,8 +202,14 @@ public sealed partial class UsageTrendChart : UserControl
         HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(260, ActualWidth)) : 260;
         UpdateDateLabels(data);
         UpdateDateTicks(data, width);
-        BuildLegend(data);
-        BuildResetLegend(data);
+        // Legends depend on the data and theme only; a resize keeps the rows it already has.
+        var legendKey = (data, ActualTheme, IsHighContrast);
+        if (_legendKey != legendKey)
+        {
+            _legendKey = legendKey;
+            BuildLegend(data);
+            BuildResetLegend(data);
+        }
         if (!hasSeries)
         {
             return;

@@ -191,8 +191,9 @@ public sealed partial class UsageTrendChart
     private Brush BarBrush(UsageReportTrendSeries series)
     {
         if (IsHighContrast) return SeriesBrush(series);
+        if (_fillBrushes.TryGetValue((series.ColorHex, false), out Brush? cached)) return cached;
         Color color = ProviderColorPalette.Parse(series.ColorHex);
-        return new LinearGradientBrush
+        return _fillBrushes[(series.ColorHex, false)] = new LinearGradientBrush
         {
             StartPoint = new Point(0, 0), EndPoint = new Point(0, 1),
             GradientStops =
@@ -206,8 +207,9 @@ public sealed partial class UsageTrendChart
     private Brush AreaBrush(UsageReportTrendSeries series)
     {
         if (IsHighContrast) return SeriesBrush(series);
+        if (_fillBrushes.TryGetValue((series.ColorHex, true), out Brush? cached)) return cached;
         Color color = ProviderColorPalette.Parse(series.ColorHex);
-        return new LinearGradientBrush
+        return _fillBrushes[(series.ColorHex, true)] = new LinearGradientBrush
         {
             StartPoint = new Point(0, 0), EndPoint = new Point(0, 1),
             GradientStops =

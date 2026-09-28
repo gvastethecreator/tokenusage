@@ -375,6 +375,7 @@ public sealed partial class UsageReportPage : Page
             await ViewModel.FreezeCanonicalSnapshotAsync(),
             "json");
         _isCapturing = true;
+        MotionSettings.IsCapturing = true;
         var captureSelectors = Descendants(ReportCaptureRoot).OfType<RadioButton>()
             .Select(control => (Control: control, control.Opacity, control.IsHitTestVisible)).ToArray();
         var captureActions = new FrameworkElement[] { ReportTitleActions, ReportChartTools }
@@ -515,6 +516,7 @@ public sealed partial class UsageReportPage : Page
                 source.Focus(FocusState.Programmatic);
             }
             _isCapturing = false;
+            MotionSettings.IsCapturing = false;
         }
     }
 

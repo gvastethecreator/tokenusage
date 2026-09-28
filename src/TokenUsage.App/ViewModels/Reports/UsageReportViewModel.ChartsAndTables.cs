@@ -168,13 +168,20 @@ public sealed partial class UsageReportViewModel
         }
         if (ChartStyle == ReportChartStyle.TwoHourBars)
         {
-            var timeTotals = source.TimeBuckets.GroupBy(item => (item.Usage.Date, item.Hour))
+            // Totals only matter for percentages; provider buckets are grouped once, not rescanned per series.
+            var timeTotals = (percentage ? source.TimeBuckets : [])
+                .GroupBy(item => (item.Usage.Date, item.Hour))
                 .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
+            ILookup<string, TokenUsage.Core.Usage.UsageTimeRollup>? bucketsByProvider = byModel
+                ? null
+                : source.TimeBuckets.ToLookup(item => item.Usage.AgentId.Value, StringComparer.Ordinal);
             for (int index = 0; index < series.Count; index++)
             {
                 UsageReportTrendSeries current = series[index];
-                var buckets = (byModel ? modelGroups[current.Id].TimeBuckets : source.TimeBuckets)
-                    .Where(item => item.Usage.AgentId.Value == current.ProviderId)
+                IEnumerable<TokenUsage.Core.Usage.UsageTimeRollup> providerBuckets = byModel
+                    ? modelGroups[current.Id].TimeBuckets.Where(item => item.Usage.AgentId.Value == current.ProviderId)
+                    : bucketsByProvider![current.ProviderId];
+                var buckets = providerBuckets
                     .GroupBy(item => (item.Usage.Date, item.Hour))
                     .ToDictionary(group => group.Key, group => MetricValue(UsageReportQuery.Aggregate(group.Select(item => item.Usage))));
                 series[index] = current with

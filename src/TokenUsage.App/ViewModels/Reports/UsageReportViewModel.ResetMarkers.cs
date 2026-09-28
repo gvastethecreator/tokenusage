@@ -71,13 +71,10 @@ public sealed partial class UsageReportViewModel
         ResetLogQuotaOptions =
         [
             new("*", GetString("UsageReportResetLogAllQuotas")),
-            .. rows.Select(item => item.reset.MetricId).Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal)
-                .Select(id =>
-                {
-                    QuotaResetRecord first = rows.First(item => item.reset.MetricId == id).reset;
-                    return new UsageReportResetLogFilter(id, ProviderName(first.ProviderId) + " · " + ResetWindowName(id, first.WindowDurationMinutes));
-                }),
+            .. rows.GroupBy(item => item.reset.MetricId, StringComparer.Ordinal)
+                .Select(group => new UsageReportResetLogFilter(group.Key, ProviderName(group.First().reset.ProviderId)
+                    + " · " + ResetWindowName(group.Key, group.First().reset.WindowDurationMinutes)))
+                .OrderBy(option => option.Name, StringComparer.CurrentCulture),
         ];
         ResetLogClassOptions =
         [
@@ -89,14 +86,20 @@ public sealed partial class UsageReportViewModel
             ?? ResetLogQuotaOptions[0];
         _resetLogClass = ResetLogClassOptions.FirstOrDefault(option => option.Id == _resetLogClass?.Id)
             ?? ResetLogClassOptions[0];
-        ResetLogRows = rows
+        UsageReportResetLogRow[] nextRows = rows
             .Where(item => (_resetLogQuota?.Id is "*" or null || item.reset.MetricId == _resetLogQuota.Id)
                 && (_resetLogClass?.Id is "*" or null || item.kind.ToString() == _resetLogClass.Id))
             .Select(item => CreateResetLogRow(item.reset, item.kind))
             .ToArray();
+        // Resets do not depend on the metric; unchanged rows keep their list so the table keeps
+        // its elements instead of recreating every row on each projection.
+        if (!nextRows.SequenceEqual(ResetLogRows)) ResetLogRows = nextRows;
         int onSchedule = ResetLogRows.Count(row => row.IsOnSchedule);
+        int offSchedule = ResetLogRows.Count(row => row.IsOffSchedule);
+        int unscheduled = ResetLogRows.Count - onSchedule - offSchedule;
         ResetLogSummary = ResetLogRows.Count == 0 ? string.Empty : string.Format(CultureInfo.CurrentCulture,
-            GetString("UsageReportResetLogSummaryFormat"), ResetLogRows.Count, onSchedule, ResetLogRows.Count - onSchedule);
+            GetString(unscheduled > 0 ? "UsageReportResetLogSummaryUnknownFormat" : "UsageReportResetLogSummaryFormat"),
+            ResetLogRows.Count, onSchedule, offSchedule, unscheduled);
         OnPropertyChanged(nameof(ResetLogRows));
         OnPropertyChanged(nameof(ResetLogSummary));
         OnPropertyChanged(nameof(ResetLogQuotaOptions));

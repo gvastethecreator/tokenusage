@@ -218,6 +218,7 @@
                     <SolidColorBrush x:Key="ReportToneRoseBrush" Color="#B02A42" />
                     <SolidColorBrush x:Key="ReportToneSuccessBrush" Color="#0F7B0F" />
                     <SolidColorBrush x:Key="ReportToneCautionBrush" Color="#8A5300" />
+                    <SolidColorBrush x:Key="ReportToneOnCautionBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="ReportTextLabelBrush" Color="#5C5C5C" />
                     <SolidColorBrush x:Key="ReportTextDescriptionBrush" Color="#6B6B6B" />
                     <SolidColorBrush x:Key="TokenMixCacheReadBrush" Color="#2A78D6" />
@@ -284,6 +285,7 @@
                     <SolidColorBrush x:Key="ReportToneRoseBrush" Color="#F0808F" />
                     <SolidColorBrush x:Key="ReportToneSuccessBrush" Color="#6CCB5F" />
                     <SolidColorBrush x:Key="ReportToneCautionBrush" Color="#F2C94C" />
+                    <SolidColorBrush x:Key="ReportToneOnCautionBrush" Color="#000000" />
                     <SolidColorBrush x:Key="ReportTextLabelBrush" Color="#C5C5C5" />
                     <SolidColorBrush x:Key="ReportTextDescriptionBrush" Color="#9C9C9C" />
                     <SolidColorBrush x:Key="TokenMixCacheReadBrush" Color="#3987E5" />
@@ -349,13 +351,14 @@
                     <StaticResource x:Key="ReportToneRoseBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="ReportToneSuccessBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="ReportToneCautionBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="ReportToneOnCautionBrush" ResourceKey="SystemColorWindowColorBrush" />
                     <StaticResource x:Key="ReportTextLabelBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="ReportTextDescriptionBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <StaticResource x:Key="TokenMixCacheReadBrush" ResourceKey="SystemColorHighlightColorBrush" />
-                    <StaticResource x:Key="TokenMixCacheWriteBrush" ResourceKey="SystemColorHighlightColorBrush" />
-                    <StaticResource x:Key="TokenMixInputBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="TokenMixCacheWriteBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+                    <StaticResource x:Key="TokenMixInputBrush" ResourceKey="SystemColorGrayTextColorBrush" />
                     <StaticResource x:Key="TokenMixOutputBrush" ResourceKey="SystemColorHighlightColorBrush" />
-                    <StaticResource x:Key="TokenMixReasoningBrush" ResourceKey="SystemColorHighlightColorBrush" />
+                    <StaticResource x:Key="TokenMixReasoningBrush" ResourceKey="SystemColorWindowTextColorBrush" />
                     <BitmapImage x:Key="TokenUsageAppIconSource" UriSource="ms-appx:///Assets/AppIconLight.png" />
                     <StaticResource x:Key="TokenUsageShellBrush" ResourceKey="SystemColorWindowColorBrush" />
                     <StaticResource x:Key="TokenUsageCardBrush" ResourceKey="SystemColorWindowColorBrush" />

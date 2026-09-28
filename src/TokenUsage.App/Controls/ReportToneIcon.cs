@@ -40,13 +40,14 @@ public sealed partial class ReportToneIcon : UserControl
     };
 
     public static readonly DependencyProperty KindProperty = DependencyProperty.Register(
-        nameof(Kind), typeof(string), typeof(ReportToneIcon), new PropertyMetadata(string.Empty, OnChanged));
+        nameof(Kind), typeof(string), typeof(ReportToneIcon), new PropertyMetadata(string.Empty, OnKindChanged));
 
     public static readonly DependencyProperty ToneProperty = DependencyProperty.Register(
-        nameof(Tone), typeof(string), typeof(ReportToneIcon), new PropertyMetadata("Blue", OnChanged));
+        nameof(Tone), typeof(string), typeof(ReportToneIcon), new PropertyMetadata("Blue", OnToneChanged));
 
     private static readonly Windows.UI.ViewManagement.AccessibilitySettings Accessibility = new();
     private readonly Path _path = new();
+    private Microsoft.UI.System.ThemeSettings? _themeSettings;
 
     public ReportToneIcon()
     {
@@ -58,8 +59,23 @@ public sealed partial class ReportToneIcon : UserControl
         var canvas = new Canvas { Width = 24, Height = 24 };
         canvas.Children.Add(_path);
         Content = new Viewbox { Child = canvas, Stretch = Stretch.Uniform };
-        ActualThemeChanged += (_, _) => Apply();
-        Loaded += (_, _) => Apply();
+        ActualThemeChanged += (_, _) => ApplyFill();
+        Loaded += (_, _) =>
+        {
+            // AccessibilitySettings events are unavailable to desktop WinUI; ThemeSettings reports
+            // high contrast changes that leave ActualTheme unchanged.
+            if (_themeSettings is null && XamlRoot?.ContentIslandEnvironment is { } environment)
+            {
+                _themeSettings = Microsoft.UI.System.ThemeSettings.CreateForWindowId(environment.AppWindowId);
+                _themeSettings.Changed += OnSystemThemeChanged;
+            }
+            ApplyFill();
+        };
+        Unloaded += (_, _) =>
+        {
+            if (_themeSettings is not null) _themeSettings.Changed -= OnSystemThemeChanged;
+            _themeSettings = null;
+        };
     }
 
     public string Kind
@@ -75,15 +91,25 @@ public sealed partial class ReportToneIcon : UserControl
         set => SetValue(ToneProperty, value);
     }
 
-    private static void OnChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
-        ((ReportToneIcon)sender).Apply();
-
-    private void Apply()
+    // Geometry objects cannot be shared between paths, so the path is parsed per icon, but only
+    // when its kind changes; tone, theme and contrast changes only swap the fill.
+    private static void OnKindChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
+        var icon = (ReportToneIcon)sender;
         // F1 selects the nonzero fill rule, which the SVG sources assume.
-        _path.Data = Paths.TryGetValue(Kind, out string? data)
+        icon._path.Data = Paths.TryGetValue(icon.Kind, out string? data)
             ? (Geometry)XamlBindingHelper.ConvertValue(typeof(Geometry), "F1 " + data)
             : null;
+    }
+
+    private static void OnToneChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
+        ((ReportToneIcon)sender).ApplyFill();
+
+    private void OnSystemThemeChanged(Microsoft.UI.System.ThemeSettings sender, object args) =>
+        DispatcherQueue.TryEnqueue(ApplyFill);
+
+    private void ApplyFill()
+    {
         string theme = Accessibility.HighContrast ? "HighContrast"
             : ActualTheme == ElementTheme.Light ? "Light" : "Dark";
         // A tone can also name a report brush directly, such as WeeklyReset for the chart's reset marks.

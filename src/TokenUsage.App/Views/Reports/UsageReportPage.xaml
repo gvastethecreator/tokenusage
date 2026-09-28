@@ -404,7 +404,7 @@
                                     Background="{ThemeResource ReportToneCautionBrush}"
                                     Visibility="{x:Bind ViewModel.HasNotices, Mode=OneWay}" AutomationProperties.AccessibilityView="Raw">
                                     <TextBlock Text="{x:Bind ViewModel.NoticeCountText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold"
-                                        Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        Foreground="{ThemeResource ReportToneOnCautionBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                             </Grid>
                             <Button.Flyout>
