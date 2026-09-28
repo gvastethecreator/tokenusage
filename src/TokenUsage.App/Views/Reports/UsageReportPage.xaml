@@ -507,7 +507,7 @@
                                 SelectedItem="{x:Bind ViewModel.SelectedPeriod, Mode=OneWay}"
                                 SelectionChanged="OnPeriodSelectionChanged"
                                 Style="{StaticResource ReportToolbarComboBoxStyle}"
-                                Width="124">
+                                MinWidth="124">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="reports:UsageReportPeriodOption">
                                         <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
@@ -673,7 +673,7 @@
                                 <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="6" /></ItemsRepeater.Layout>
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="reports:UsageExplorerToolChip">
-                                        <RadioButton GroupName="UsageExplorerToolChips" Style="{StaticResource ReportFilterChipStyle}"
+                                        <RadioButton x:Uid="UsageExplorerToolChip" GroupName="UsageExplorerToolChips" Style="{StaticResource ReportFilterChipStyle}"
                                             IsChecked="{x:Bind IsSelected}" Tag="{x:Bind Option}" Click="OnExplorerToolChipClick"
                                             AutomationProperties.Name="{x:Bind Option.Name}">
                                             <StackPanel Orientation="Horizontal" Spacing="7">
@@ -1814,20 +1814,21 @@
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <TextBlock x:Uid="UsageReportCompositionTitle" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
                                             <ItemsRepeater x:Name="ReportCompositionLegendRoot" Grid.Row="1" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" VerticalAlignment="Center">
-                                                <ItemsRepeater.Layout><UniformGridLayout Orientation="Horizontal" MinItemWidth="160" MinItemHeight="24" MinColumnSpacing="12" MinRowSpacing="4" /></ItemsRepeater.Layout>
+                                                <ItemsRepeater.Layout><UniformGridLayout Orientation="Horizontal" MinItemWidth="180" MinItemHeight="24" MinColumnSpacing="12" MinRowSpacing="4" /></ItemsRepeater.Layout>
                                                 <ItemsRepeater.ItemTemplate>
                                                     <DataTemplate x:DataType="reports:UsageReportProviderRow">
                                                         <!-- A legend entry is also a shortcut: it filters the report to that tool. -->
                                                         <Button x:Uid="UsageReportLegendFilterButton" Tag="{x:Bind ProviderId}" Click="OnCompositionLegendClick"
-                                                            Style="{StaticResource SubtleButtonStyle}" Padding="6,2" Margin="-6,0,0,0" HorizontalAlignment="Left"
+                                                            Style="{StaticResource SubtleButtonStyle}" Padding="6,2" Margin="-6,0,0,0"
+                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                                             AutomationProperties.Name="{x:Bind Name}">
                                                             <Grid ColumnSpacing="7" VerticalAlignment="Center">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="Auto" />
-                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
                                                                 </Grid.ColumnDefinitions>
                                                                 <controls:ProviderColorSwatch Height="9" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center" Width="9" />
-                                                                <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap">
+                                                                <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1">
                                                                     <Run Text="{x:Bind Name}" /><Run Text="  " /><Run Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ShareText}" />
                                                                 </TextBlock>
                                                             </Grid>

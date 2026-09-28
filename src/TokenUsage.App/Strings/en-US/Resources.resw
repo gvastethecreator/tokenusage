@@ -1450,4 +1450,5 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageCompareRatioTimesTokensFormat" xml:space="preserve"><value>{0} used {1}× the tokens of {2}.</value></data>
   <data name="UsageCompareRatioMoreCostFormat" xml:space="preserve"><value>{0} cost {1} more than {2}.</value></data>
   <data name="UsageCompareRatioMoreTokensFormat" xml:space="preserve"><value>{0} used {1} more tokens than {2}.</value></data>
+  <data name="UsageExplorerToolChip.AutomationProperties.HelpText" xml:space="preserve"><value>Filter the report by tool</value></data>
 </root>
