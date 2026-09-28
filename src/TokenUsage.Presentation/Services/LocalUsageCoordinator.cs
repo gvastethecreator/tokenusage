@@ -83,16 +83,7 @@ public sealed class LocalUsageCoordinator
         LocalUsageRefreshResult result = await _refresh
             .RefreshAsync(cancellationToken)
             .ConfigureAwait(false);
-        return new LocalUsageDashboardResult(
-            LocalUsageCardProjector.Create(
-                result.Rollups,
-                result.ToInclusive,
-                getString,
-                result.SourceKind,
-                result.OverallStatus,
-                hasMultipleRealSources: result.HasMultipleRealSources,
-                sourceDiagnostics: result.SourceDiagnostics),
-            result.Rollups);
+        return ProjectDashboard(result, getString);
     }
 
     public async Task<LocalUsageCard?> ReadCachedAsync(
@@ -117,18 +108,23 @@ public sealed class LocalUsageCoordinator
         LocalUsageRefreshResult? result = await _refresh
             .ReadCachedAsync(cancellationToken)
             .ConfigureAwait(false);
-        return result is null
-            ? null
-            : new LocalUsageDashboardResult(
-                LocalUsageCardProjector.Create(
-                    result.Rollups,
-                    result.ToInclusive,
-                    getString,
-                    result.SourceKind,
-                    result.OverallStatus,
-                    hasMultipleRealSources: result.HasMultipleRealSources,
-                    sourceDiagnostics: result.SourceDiagnostics),
-                result.Rollups);
+        return result is null ? null : ProjectDashboard(result, getString);
+    }
+
+    private static LocalUsageDashboardResult ProjectDashboard(
+        LocalUsageRefreshResult result,
+        Func<string, string> getString)
+    {
+        return new LocalUsageDashboardResult(
+            LocalUsageCardProjector.Create(
+                result.Rollups,
+                result.ToInclusive,
+                getString,
+                result.SourceKind,
+                result.OverallStatus,
+                hasMultipleRealSources: result.HasMultipleRealSources,
+                sourceDiagnostics: result.SourceDiagnostics),
+            result.Rollups);
     }
 
     /// <summary>

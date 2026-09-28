@@ -35,39 +35,23 @@ public sealed class SampleRefreshCoordinator
         bool forceRefresh,
         CancellationToken cancellationToken)
     {
+        (FakeProviderScenario providerScenario, string cachePartition) = scenario switch
+        {
+            SampleScenario.Normal => (FakeProviderScenario.Success, "normal"),
+            SampleScenario.NearLimit => (FakeProviderScenario.NearLimit, "near-limit"),
+            SampleScenario.Partial => (FakeProviderScenario.Partial, "partial"),
+            SampleScenario.Stale => (FakeProviderScenario.Stale, "stale"),
+            SampleScenario.Error => (FakeProviderScenario.Error, "normal"),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario)),
+        };
         var provider = new FakeProviderRuntime(
-            MapScenario(scenario),
+            providerScenario,
             _providerDelay,
             CodexDescriptor);
-        var store = new SnapshotStore(GetCachePath(scenario), _clock);
+        var store = new SnapshotStore(
+            Path.Combine(_cacheDirectory, cachePartition, SnapshotStore.DefaultFileName),
+            _clock);
         var refresh = new CacheFirstRefresh(store, [provider], _clock);
         return refresh.RunAsync(forceRefresh, cancellationToken);
     }
-
-    private string GetCachePath(SampleScenario scenario) =>
-        Path.Combine(
-            _cacheDirectory,
-            GetCachePartition(scenario),
-            SnapshotStore.DefaultFileName);
-
-    private static string GetCachePartition(SampleScenario scenario) =>
-        scenario switch
-        {
-            SampleScenario.Normal or SampleScenario.Error => "normal",
-            SampleScenario.NearLimit => "near-limit",
-            SampleScenario.Partial => "partial",
-            SampleScenario.Stale => "stale",
-            _ => throw new ArgumentOutOfRangeException(nameof(scenario)),
-        };
-
-    private static FakeProviderScenario MapScenario(SampleScenario scenario) =>
-        scenario switch
-        {
-            SampleScenario.Normal => FakeProviderScenario.Success,
-            SampleScenario.NearLimit => FakeProviderScenario.NearLimit,
-            SampleScenario.Partial => FakeProviderScenario.Partial,
-            SampleScenario.Stale => FakeProviderScenario.Stale,
-            SampleScenario.Error => FakeProviderScenario.Error,
-            _ => throw new ArgumentOutOfRangeException(nameof(scenario)),
-        };
 }
