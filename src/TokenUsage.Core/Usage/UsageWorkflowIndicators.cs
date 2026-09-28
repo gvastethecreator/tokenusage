@@ -137,19 +137,6 @@ public static class UsageWorkflowIndicators
             incomplete);
     }
 
-    public static bool MatchesEvidence(UsageWorkflowEvidenceEvent evidence, UsageOperationKind kind, string tool, string? server, string? sessionKey)
-    {
-        if (evidence.Kind != kind
-            || !string.Equals(evidence.Tool, tool, StringComparison.Ordinal)
-            || !string.Equals(evidence.Server, server, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        string? evidenceSession = evidence.SessionKey?.Value;
-        return string.Equals(evidenceSession, sessionKey, StringComparison.Ordinal);
-    }
-
     private static SessionEvaluation EvaluateSession(IReadOnlyList<UsageOperationTimelineRow> rows)
     {
         List<UsageOperationTimelineRow> edits = Expand(rows.Where(row => IsFileEdit(row.Kind)))

@@ -97,13 +97,6 @@ public sealed partial class UsageRepository
         DateOnly from, DateOnly to, CancellationToken token = default)
         => HasDifferentParserCoreAsync(agentId, null, parserVersion, from, to, token);
 
-    public Task<bool> HasDifferentParserInSourceRangeAsync(AgentId agentId, UsageSourceInstanceId sourceInstance,
-        string parserVersion, DateOnly from, DateOnly to, CancellationToken token = default)
-    {
-        ArgumentNullException.ThrowIfNull(sourceInstance);
-        return HasDifferentParserCoreAsync(agentId, sourceInstance, parserVersion, from, to, token);
-    }
-
     private async Task<bool> HasDifferentParserCoreAsync(AgentId agentId, UsageSourceInstanceId? sourceInstance,
         string parserVersion, DateOnly from, DateOnly to, CancellationToken token)
     {
@@ -153,12 +146,4 @@ public sealed partial class UsageRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<AccountUsageAggregate>> ReadAccountUsageAsync(DateOnly from,
-        DateOnly to, AgentId? agentId = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(to, from);
-        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        return await ReadAccountUsageOnAsync(connection, transaction: null, from, to, agentId, cancellationToken)
-            .ConfigureAwait(false);
-    }
 }

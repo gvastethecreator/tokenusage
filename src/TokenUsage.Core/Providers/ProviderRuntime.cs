@@ -18,48 +18,6 @@ public sealed record ProviderDescriptor
     public bool IsExperimental { get; }
 }
 
-public abstract class ProviderDetection
-{
-    private ProviderDetection()
-    {
-    }
-
-    public sealed class Available : ProviderDetection;
-
-    public sealed class NeedsLogin : ProviderDetection
-    {
-        public NeedsLogin(string reason)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-            Reason = reason;
-        }
-
-        public string Reason { get; }
-    }
-
-    public sealed class UnsupportedAuth : ProviderDetection
-    {
-        public UnsupportedAuth(string reason)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-            Reason = reason;
-        }
-
-        public string Reason { get; }
-    }
-
-    public sealed class Unavailable : ProviderDetection
-    {
-        public Unavailable(string reason)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-            Reason = reason;
-        }
-
-        public string Reason { get; }
-    }
-}
-
 public sealed class RefreshContext
 {
     public RefreshContext(
@@ -92,8 +50,6 @@ public sealed class RefreshContext
 public interface IProviderRuntime
 {
     ProviderDescriptor Descriptor { get; }
-
-    ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken);
 
     Task<ProviderOutcome> RefreshAsync(
         RefreshContext context,

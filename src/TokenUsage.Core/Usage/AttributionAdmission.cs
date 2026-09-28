@@ -84,9 +84,4 @@ public static class AttributionAdmission
             .ToArray();
     }
 
-    public static HashSet<string> SnapshotEventKeys(IEnumerable<string> eventKeys)
-    {
-        ArgumentNullException.ThrowIfNull(eventKeys);
-        return eventKeys.ToHashSet(StringComparer.Ordinal);
-    }
 }

@@ -702,9 +702,6 @@ public sealed class SessionModuleTests
         public ProviderDescriptor Descriptor { get; } =
             new(new ProviderId("empty"), "Empty");
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken) =>
@@ -726,9 +723,6 @@ public sealed class SessionModuleTests
         public bool SawForcedRefresh { get; private set; }
 
         public List<bool> ForceRefreshRequests { get; } = [];
-
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
 
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,

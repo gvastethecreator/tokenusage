@@ -33,42 +33,6 @@ public sealed class VercelGatewayProviderRuntimeTests
     }
 
     [Fact]
-    public async Task DetectAsyncWhenConnectionPresentReturnsAvailable()
-    {
-        var runtime = CreateRuntime(new FakeConnectionSource(CreateConnection()), new FakeReportClient());
-
-        var detection = await runtime.DetectAsync(CancellationToken.None);
-
-        Assert.IsType<ProviderDetection.Available>(detection);
-    }
-
-    [Fact]
-    public async Task DetectAsyncWhenConnectionMissingReturnsUnavailableWithSafeCopy()
-    {
-        var runtime = CreateRuntime(new FakeConnectionSource(null), new FakeReportClient());
-
-        var detection = await runtime.DetectAsync(CancellationToken.None);
-
-        var unavailable = Assert.IsType<ProviderDetection.Unavailable>(detection);
-        Assert.Equal("Vercel AI Gateway is not configured.", unavailable.Reason);
-        AssertNoSecret(unavailable.Reason);
-    }
-
-    [Fact]
-    public async Task DetectAsyncDoesNotCallReportClient()
-    {
-        var client = new FakeReportClient();
-        var source = new FakeConnectionSource(CreateConnection());
-        var runtime = CreateRuntime(source, client);
-
-        await runtime.DetectAsync(CancellationToken.None);
-
-        Assert.Equal(0, client.CallCount);
-        Assert.Equal(0, source.ReadCount);
-        Assert.Equal(1, source.ConfigurationReadCount);
-    }
-
-    [Fact]
     public async Task RefreshAsyncWhenConnectionMissingReturnsNotConfigured()
     {
         var runtime = CreateRuntime(new FakeConnectionSource(null), new FakeReportClient());
@@ -542,19 +506,6 @@ public sealed class VercelGatewayProviderRuntimeTests
     }
 
     [Fact]
-    public async Task DetectAsyncPropagatesCancellation()
-    {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-        var runtime = CreateRuntime(
-            new FakeConnectionSource(CreateConnection(), respectCancellation: true),
-            new FakeReportClient());
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => runtime.DetectAsync(cts.Token).AsTask());
-    }
-
-    [Fact]
     public async Task RefreshAsyncPropagatesCancellationFromConnectionSource()
     {
         using var cts = new CancellationTokenSource();
@@ -575,20 +526,6 @@ public sealed class VercelGatewayProviderRuntimeTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => runtime.RefreshAsync(CreateContext(), CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task DetectAsyncPropagatesCancellationIgnoredByConnectionSource()
-    {
-        using var cancellation = new CancellationTokenSource();
-        var source = new FakeConnectionSource(CreateConnection())
-        {
-            BeforeConfigurationReturn = cancellation.Cancel
-        };
-        var runtime = CreateRuntime(source, new FakeReportClient());
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => runtime.DetectAsync(cancellation.Token).AsTask());
     }
 
     [Fact]

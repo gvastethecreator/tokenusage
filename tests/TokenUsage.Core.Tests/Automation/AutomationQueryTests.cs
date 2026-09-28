@@ -638,9 +638,6 @@ public sealed class AutomationQueryTests
         public ProviderDescriptor Descriptor { get; } =
             new(snapshot.ProviderId, snapshot.DisplayName);
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken) =>

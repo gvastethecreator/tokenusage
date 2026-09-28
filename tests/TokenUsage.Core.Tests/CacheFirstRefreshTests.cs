@@ -187,9 +187,6 @@ public sealed class CacheFirstRefreshTests
 
         public RefreshContext? LastContext { get; private set; }
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken)

@@ -275,19 +275,6 @@ public sealed class UsageReportQuery
             new DateTimeOffset(toInclusive.AddDays(2).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
     }
 
-    public async Task<IReadOnlyList<UsageEvent>> ReadRetainedObservationsAsync(
-        DateOnly fromInclusive,
-        DateOnly toInclusive,
-        CancellationToken cancellationToken = default)
-    {
-        if (toInclusive < fromInclusive) return [];
-        (DateTimeOffset from, DateTimeOffset to) = RetainedObservationWindow(fromInclusive, toInclusive);
-        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(
-            _databasePath, cancellationToken).ConfigureAwait(false);
-        return await repository.QueryUsageEventsAsync(from, to, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     public async Task<UsageRateScenarioComparison> CompareCatalogDatesAsync(
         DateOnly fromInclusive,
         DateOnly toInclusive,

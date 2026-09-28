@@ -606,16 +606,6 @@ public sealed partial class UsageRepository
         };
     }
 
-    public async Task<IReadOnlyList<UsageTimeRollup>> QueryTwoHourRollupsAsync(
-        DateOnly fromInclusive, DateOnly toInclusive, AgentId? agentId = null,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(toInclusive, fromInclusive);
-        await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        return await QueryTwoHourRollupsOnAsync(connection, null, fromInclusive, toInclusive,
-            agentId, cancellationToken).ConfigureAwait(false);
-    }
-
     private static async Task<IReadOnlyList<UsageTimeRollup>> QueryTwoHourRollupsOnAsync(
         SqliteConnection connection, SqliteTransaction? transaction,
         DateOnly fromInclusive, DateOnly toInclusive, AgentId? agentId, CancellationToken cancellationToken)

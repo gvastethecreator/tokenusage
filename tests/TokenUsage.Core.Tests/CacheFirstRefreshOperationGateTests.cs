@@ -205,9 +205,6 @@ public sealed class CacheFirstRefreshOperationGateTests
 
         public void Release() => _release.TrySetResult();
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public async Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken)

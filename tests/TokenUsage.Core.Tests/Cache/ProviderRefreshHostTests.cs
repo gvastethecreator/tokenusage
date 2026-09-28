@@ -250,9 +250,6 @@ public sealed class ProviderRefreshHostTests
 
         public RefreshContext? LastContext { get; private set; }
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken)
@@ -283,9 +280,6 @@ public sealed class ProviderRefreshHostTests
         public Task Completion { get; private set; } = Task.CompletedTask;
 
         public void Release() => _release.TrySetResult();
-
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
 
         public async Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,

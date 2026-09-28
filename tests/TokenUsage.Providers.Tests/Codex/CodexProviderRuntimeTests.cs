@@ -8,24 +8,6 @@ public sealed class CodexProviderRuntimeTests
     private static readonly DateTimeOffset Now =
         new(2026, 7, 22, 16, 0, 0, TimeSpan.Zero);
 
-    [Theory]
-    [InlineData(CodexClientAvailability.Available, typeof(ProviderDetection.Available))]
-    [InlineData(CodexClientAvailability.MissingCli, typeof(ProviderDetection.Unavailable))]
-    [InlineData(CodexClientAvailability.UnsupportedVersion, typeof(ProviderDetection.Unavailable))]
-    [InlineData(CodexClientAvailability.Unavailable, typeof(ProviderDetection.Unavailable))]
-    public async Task DetectionMapsLocalAvailability(
-        CodexClientAvailability availability,
-        Type expectedType)
-    {
-        var factory = new StubFactory(availability, CreateReadyClient());
-        var runtime = new CodexProviderRuntime(factory, "UTC");
-
-        ProviderDetection result = await runtime.DetectAsync(CancellationToken.None);
-
-        Assert.IsType(expectedType, result);
-        Assert.Equal(0, factory.CreateCount);
-    }
-
     [Fact]
     public async Task ChatGptQuotaProducesARealCodexSnapshotAndUsesAccountPlanFallback()
     {

@@ -16,20 +16,6 @@ public static class UsageReportSnapshotV2
         WriteIndented = true,
     };
 
-    public static string Serialize(
-        DateTimeOffset generatedAt,
-        DateOnly fromInclusive,
-        DateOnly toInclusive,
-        int days,
-        AgentId? agentId,
-        UsageReport report)
-    {
-        ArgumentNullException.ThrowIfNull(report);
-        return JsonSerializer.Serialize(
-            Create(generatedAt, fromInclusive, toInclusive, days, agentId, report),
-            SerializerOptions);
-    }
-
     public static Document Create(
         DateTimeOffset generatedAt,
         DateOnly fromInclusive,

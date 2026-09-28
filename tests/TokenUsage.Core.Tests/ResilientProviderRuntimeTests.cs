@@ -143,9 +143,6 @@ public sealed class ResilientProviderRuntimeTests
 
         public int RefreshCalls => _refreshCalls;
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public async Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken)
@@ -178,9 +175,6 @@ public sealed class ResilientProviderRuntimeTests
             new(new ProviderId("fake"), "Fake provider");
 
         public int RefreshCalls { get; private set; }
-
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
 
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,

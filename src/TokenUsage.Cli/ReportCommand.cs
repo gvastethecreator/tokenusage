@@ -139,7 +139,7 @@ public static class ReportCommand
         }
         else if (options.Format is OutputFormat.JsonV2 or OutputFormat.Csv or OutputFormat.Html)
         {
-            UsageReportSnapshotV2.Document snapshot = ReportJsonV2.Create(
+            UsageReportSnapshotV2.Document snapshot = UsageReportSnapshotV2.Create(
                 generatedAt,
                 fromInclusive,
                 toInclusive,
@@ -166,8 +166,8 @@ public static class ReportCommand
             }
             string rendered = options.Format switch
             {
-                OutputFormat.Csv => ReportJsonV2.WriteCsv(snapshot),
-                OutputFormat.Html => ReportJsonV2.WriteHtml(snapshot),
+                OutputFormat.Csv => UsageReportSnapshotV2.WriteCsv(snapshot),
+                OutputFormat.Html => UsageReportSnapshotV2.WriteHtml(snapshot),
                 _ => UsageReportSnapshotV2.Render(snapshot, "json"),
             };
             await standardOutput.WriteAsync(rendered).ConfigureAwait(false);

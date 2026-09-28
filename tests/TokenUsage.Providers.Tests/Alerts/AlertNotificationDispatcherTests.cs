@@ -177,9 +177,6 @@ public sealed class AlertNotificationDispatcherTests
         public ProviderDescriptor Descriptor { get; } =
             new(new ProviderId("codex"), "Codex");
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken)

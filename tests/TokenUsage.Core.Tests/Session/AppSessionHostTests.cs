@@ -216,9 +216,6 @@ public sealed class AppSessionHostTests
         public TaskCompletionSource SecondCall { get; } = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-
         public Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
             CancellationToken cancellationToken)
@@ -243,9 +240,6 @@ public sealed class AppSessionHostTests
 
         public TaskCompletionSource FirstCallStarted { get; } = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
 
         public async Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,
@@ -277,9 +271,6 @@ public sealed class AppSessionHostTests
             TaskCreationOptions.RunContinuationsAsynchronously);
 
         public bool CleanupCompleted { get; private set; }
-
-        public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
 
         public async Task<ProviderOutcome> RefreshAsync(
             RefreshContext context,

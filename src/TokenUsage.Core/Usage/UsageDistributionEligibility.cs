@@ -23,15 +23,6 @@ public sealed record UsageDistributionEligibility(
     public static UsageDistributionEligibility Unavailable(string reason) =>
         new(UsageStatisticAvailability.Unavailable, reason, 0, null, null);
 
-    public static UsageDistributionEligibility FromEvents(IReadOnlyList<UsageEvent> events)
-    {
-        ArgumentNullException.ThrowIfNull(events);
-        return FromMeasuredInputs(events
-            .Where(row => row.DetailMetadata.RecordKind == UsageRecordKind.RequestFinal
-                && row.DetailMetadata.Input == UsageComponentAvailability.Measured)
-            .Select(row => row.Tokens.Input));
-    }
-
     public static UsageDistributionEligibility FromMeasuredInputs(IEnumerable<long> measuredInputs)
     {
         ArgumentNullException.ThrowIfNull(measuredInputs);

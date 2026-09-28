@@ -144,18 +144,6 @@ public static class CliApplication
                     token),
                 clock,
                 cancellationToken).ConfigureAwait(false),
-            "recover-usage" => await RecoverUsageCommand.RunAsync(commandArguments,
-                standardOutput, standardError, cancellationToken).ConfigureAwait(false),
-            "pricing" => await PricingCommand.RunAsync(
-                commandArguments,
-                standardOutput,
-                standardError,
-                clock,
-                cancellationToken).ConfigureAwait(false),
-            "cursor" => await CursorCommand.RunAsync(
-                commandArguments,
-                standardOutput,
-                standardError).ConfigureAwait(false),
             _ => await WriteUnknownCommandAsync(standardError).ConfigureAwait(false),
         };
     }

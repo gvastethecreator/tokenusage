@@ -133,27 +133,6 @@ public sealed class FakeProviderRuntimeTests
     }
 
     [Fact]
-    public async Task DetectionIsLocalAndAvailable()
-    {
-        var runtime = new FakeProviderRuntime(FakeProviderScenario.Success);
-
-        ProviderDetection result = await runtime.DetectAsync(CancellationToken.None);
-
-        Assert.IsType<ProviderDetection.Available>(result);
-    }
-
-    [Fact]
-    public async Task CanceledDetectionStopsBeforePublishingAResult()
-    {
-        var runtime = new FakeProviderRuntime(FakeProviderScenario.Success);
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await runtime.DetectAsync(cancellation.Token));
-    }
-
-    [Fact]
     public async Task CanceledRefreshStopsBeforePublishingAnOutcome()
     {
         var runtime = new FakeProviderRuntime(FakeProviderScenario.Success);

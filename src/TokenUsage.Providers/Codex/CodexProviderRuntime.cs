@@ -41,26 +41,6 @@ public sealed class CodexProviderRuntime : IProviderRuntime
     public ProviderDescriptor Descriptor { get; } =
         new(new ProviderId("codex"), "Codex");
 
-    public async ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        CodexClientAvailability availability =
-            await _clientFactory.DetectAsync(cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return availability switch
-        {
-            CodexClientAvailability.Available => new ProviderDetection.Available(),
-            CodexClientAvailability.MissingCli =>
-                new ProviderDetection.Unavailable(MissingCliReason),
-            CodexClientAvailability.UnsupportedVersion =>
-                new ProviderDetection.Unavailable(UnsupportedVersionReason),
-            CodexClientAvailability.Unavailable =>
-                new ProviderDetection.Unavailable(UnavailableReason),
-            _ => throw new InvalidOperationException("Unknown Codex client availability."),
-        };
-    }
-
     public async Task<ProviderOutcome> RefreshAsync(
         RefreshContext context,
         CancellationToken cancellationToken)

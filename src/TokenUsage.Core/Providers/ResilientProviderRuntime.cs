@@ -64,9 +64,6 @@ public sealed class ResilientProviderRuntime : IProviderRuntime
 
     public ProviderDescriptor Descriptor => _inner.Descriptor;
 
-    public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken) =>
-        _inner.DetectAsync(cancellationToken);
-
     public async Task<ProviderOutcome> RefreshAsync(
         RefreshContext context,
         CancellationToken cancellationToken)

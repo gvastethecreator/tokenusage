@@ -66,20 +66,6 @@ public sealed class VercelGatewayProviderRuntime : IProviderRuntime
         DisplayNameValue,
         isExperimental: true);
 
-    public async ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        bool isConfigured = await _connectionSource
-            .IsConfiguredAsync(cancellationToken)
-            .ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return isConfigured
-            ? new ProviderDetection.Available()
-            : new ProviderDetection.Unavailable(NotConfiguredMessage);
-    }
-
     public async Task<ProviderOutcome> RefreshAsync(
         RefreshContext context,
         CancellationToken cancellationToken)

@@ -44,12 +44,6 @@ public sealed class FakeProviderRuntime : IProviderRuntime
 
     public ProviderDescriptor Descriptor { get; }
 
-    public ValueTask<ProviderDetection> DetectAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult<ProviderDetection>(new ProviderDetection.Available());
-    }
-
     public async Task<ProviderOutcome> RefreshAsync(
         RefreshContext context,
         CancellationToken cancellationToken)

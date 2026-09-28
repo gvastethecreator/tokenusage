@@ -141,7 +141,7 @@ public sealed class ReportCommandTests
         Assert.Equal(0, exitCode);
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            ReportJsonV2.SchemaVersion,
+            UsageReportSnapshotV2.SchemaVersion,
             document.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(
             "9007199254740993",
