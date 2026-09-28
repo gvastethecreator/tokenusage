@@ -24,12 +24,12 @@ public enum UsageReportHighlightAction
 /// already on screen; highlights never infer causes, savings, or productivity. Each one opens
 /// the evidence behind it.
 /// </summary>
-public sealed record UsageReportHighlight(string Glyph, string Label, string Value, string Detail,
+public sealed record UsageReportHighlight(string Icon, string Label, string Value, string Detail,
     UsageReportHighlightAction Action, string Target)
 {
     public IReadOnlyList<UsageReportSparkBar> Bars { get; init; } = [];
     public string ActionHint { get; init; } = string.Empty;
-    /// <summary>Identity tone for the tile icon; see ReportIconChip.</summary>
+    /// <summary>Identity tone for the tile icon; see ReportToneIcon.</summary>
     public string Tone { get; init; } = "Blue";
     public bool HasBars => Bars.Count > 0;
     public string AutomationName => Label + ": " + Value + ". " + Detail;
@@ -65,7 +65,7 @@ public sealed partial class UsageReportViewModel
     // Price coverage is a real state, so it gets a status tone with its own glyph; the caption
     // beside it still says how many tokens are unpriced.
     public string PriceCoverageTone => HasUnpricedSummary ? "Caution" : "Success";
-    public string PriceCoverageGlyph => HasUnpricedSummary ? "" : "";
+    public string PriceCoverageIcon => HasUnpricedSummary ? "alert-triangle" : "circle-check";
 
     private void RebuildHighlights(Func<UsageReportMetrics, decimal> value, Func<decimal, string> display)
     {
@@ -79,14 +79,14 @@ public sealed partial class UsageReportViewModel
         if (total > 0)
         {
             var peak = daily.OrderByDescending(day => day.Amount).ThenBy(day => day.Date).First();
-            highlights.Add(new("", GetString("UsageHighlightPeakLabel"),
+            highlights.Add(new("bolt", GetString("UsageHighlightPeakLabel"),
                 peak.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightPeakFormat"),
                     display(peak.Amount), FormatPercent(peak.Amount / total)),
                 UsageReportHighlightAction.RevealDay, peak.Date.ToString("O", CultureInfo.InvariantCulture)) { Tone = "Rose" });
 
             int activeDays = daily.Count(day => day.Amount > 0);
-            highlights.Add(new("", GetString("UsageHighlightAverageLabel"),
+            highlights.Add(new("calendar-event", GetString("UsageHighlightAverageLabel"),
                 display(total / activeDays),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightAverageFormat"),
                     activeDays, daily.Length),
@@ -105,7 +105,7 @@ public sealed partial class UsageReportViewModel
                     : string.Format(CultureInfo.CurrentCulture, GetString(recent >= before
                         ? "UsageHighlightTrendUpFormat" : "UsageHighlightTrendDownFormat"),
                         FormatPercent(Math.Abs(recent - before) / before));
-                highlights.Add(new(recent >= before ? "" : "", GetString("UsageHighlightRecentLabel"),
+                highlights.Add(new(recent >= before ? "arrow-big-up" : "arrow-big-down", GetString("UsageHighlightRecentLabel"),
                     display(recent), trend, UsageReportHighlightAction.OpenDays, string.Empty)
                 {
                     Tone = "Teal",
@@ -118,7 +118,7 @@ public sealed partial class UsageReportViewModel
                 .ThenBy(row => row.Id, StringComparer.Ordinal).FirstOrDefault();
             if (leader is not null && value(leader.Metrics) > 0)
             {
-                highlights.Add(new("", GetString("UsageHighlightLeaderLabel"), leader.ModelName,
+                highlights.Add(new("star", GetString("UsageHighlightLeaderLabel"), leader.ModelName,
                     string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightLeaderFormat"),
                         leader.ProviderName, FormatPercent(value(leader.Metrics) / total)),
                     UsageReportHighlightAction.OpenModel, leader.Id) { Tone = "Amber" });

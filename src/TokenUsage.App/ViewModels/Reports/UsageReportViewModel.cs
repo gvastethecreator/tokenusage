@@ -1893,7 +1893,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SummaryCoverageText));
         OnPropertyChanged(nameof(PriceCoveragePercent));
         OnPropertyChanged(nameof(PriceCoverageTone));
-        OnPropertyChanged(nameof(PriceCoverageGlyph));
+        OnPropertyChanged(nameof(PriceCoverageIcon));
         OnPropertyChanged(nameof(CacheSummaryText));
         OnPropertyChanged(nameof(CachedInputText));
         OnPropertyChanged(nameof(UncachedInputText));

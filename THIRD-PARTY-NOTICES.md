@@ -95,6 +95,9 @@ SOFTWARE.
 The local outline vectors in `Controls/TablerIcon.cs` are adapted from
 [Tabler Icons v3.46.0](https://github.com/tabler/tabler-icons/tree/v3.46.0/icons/outline).
 They retain the original paths, 24-unit view box, and 2-unit rounded strokes.
+The filled vectors in `Controls/ReportToneIcon.cs` come from the same release's
+[filled set](https://github.com/tabler/tabler-icons/tree/v3.46.0/icons/filled)
+and retain the original paths and 24-unit view box.
 
 MIT License
 

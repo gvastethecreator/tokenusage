@@ -827,7 +827,7 @@
                                         <TextBlock Typography.NumeralAlignment="Tabular" FontSize="22" Text="{x:Bind ViewModel.CompareDeltaCostText, Mode=OneWay}" TextWrapping="Wrap" />
                                         <TextBlock Style="{StaticResource ReportDescriptionStyle}" Text="{x:Bind ViewModel.CompareDeltaTokensText, Mode=OneWay}" TextWrapping="Wrap" />
                                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0" Visibility="{x:Bind ViewModel.HasCompareRatio, Mode=OneWay}">
-                                            <controls:ReportIconChip Glyph="&#xE8AB;" Tone="Violet" />
+                                            <controls:ReportToneIcon Kind="category" Tone="Violet" />
                                             <TextBlock Text="{x:Bind ViewModel.CompareRatioText, Mode=OneWay}" TextWrapping="Wrap" VerticalAlignment="Center"
                                                 FontWeight="SemiBold" />
                                         </StackPanel>
@@ -1577,7 +1577,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Padding="16,12" Spacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,2">
-                                    <controls:ReportIconChip Glyph="&#xE943;" Tone="Blue" />
+                                    <controls:ReportToneIcon Kind="stack-2" Tone="Blue" />
                                     <TextBlock x:Uid="UsageReportSummaryTokensLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                 </StackPanel>
                                 <TextBlock x:Name="ReportSummaryTokensValue" Typography.NumeralAlignment="Tabular" FontSize="26" FontWeight="SemiBold" Text="{x:Bind ViewModel.SummaryTokensText, Mode=OneWay}" TextWrapping="Wrap" />
@@ -1585,7 +1585,7 @@
                             <Border Grid.Column="1" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
                                 <StackPanel Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,2">
-                                    <controls:ReportIconChip Glyph="&#xE825;" Tone="Amber" />
+                                    <controls:ReportToneIcon Kind="coin" Tone="Amber" />
                                     <TextBlock x:Uid="UsageReportSummaryCostLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                 </StackPanel>
                                     <TextBlock x:Name="ReportSummaryCostValue" Typography.NumeralAlignment="Tabular" FontSize="26" FontWeight="SemiBold" Text="{x:Bind ViewModel.SummaryCostText, Mode=OneWay}" TextWrapping="Wrap" />
@@ -1631,7 +1631,7 @@
                             <Border Grid.Column="2" Padding="16,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0">
                                 <StackPanel Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,2">
-                                    <controls:ReportIconChip Glyph="{x:Bind ViewModel.PriceCoverageGlyph, Mode=OneWay}" Tone="{x:Bind ViewModel.PriceCoverageTone, Mode=OneWay}" />
+                                    <controls:ReportToneIcon Kind="{x:Bind ViewModel.PriceCoverageIcon, Mode=OneWay}" Tone="{x:Bind ViewModel.PriceCoverageTone, Mode=OneWay}" />
                                     <TextBlock x:Uid="UsageReportSummaryCoverageLabel" Style="{StaticResource ReportSectionLabelStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                 </StackPanel>
                                     <TextBlock x:Name="ReportSummaryCoverageValue" Typography.NumeralAlignment="Tabular" FontSize="26" FontWeight="SemiBold" Text="{x:Bind ViewModel.SummaryCoverageText, Mode=OneWay}" TextWrapping="Wrap" />
@@ -1658,7 +1658,7 @@
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
-                                                <controls:ReportIconChip Glyph="{x:Bind Glyph}" Tone="{x:Bind Tone}" />
+                                                <controls:ReportToneIcon Kind="{x:Bind Icon}" Tone="{x:Bind Tone}" />
                                                 <TextBlock Text="{x:Bind Label}" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
                                             </StackPanel>
                                             <TextBlock Text="{x:Bind Value}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
@@ -1707,7 +1707,7 @@
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <controls:ReportIconChip Glyph="&#xE9D2;" Tone="Blue" />
+                                        <controls:ReportToneIcon Kind="chart-area" Tone="Blue" />
                                         <TextBlock Style="{StaticResource ReportCardTitleStyle}" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" TextWrapping="Wrap" />
                                     </StackPanel>
                                         <ContentControl x:Name="GlobalChartToolsHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" Margin="0,0,10,0">
@@ -1865,7 +1865,7 @@
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <controls:ReportIconChip Glyph="&#xE9D2;" Tone="Blue" />
+                                    <controls:ReportToneIcon Kind="chart-area" Tone="Blue" />
                                     <TextBlock Style="{StaticResource ReportCardTitleStyle}" TextWrapping="Wrap" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" />
                                 </StackPanel>
                                     <ContentControl x:Name="ProviderChartToolsHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" Margin="0,0,10,0" />
@@ -1890,17 +1890,17 @@
                         <Border x:Name="DashboardCompositionCard" Grid.Row="1" Grid.Column="1" Padding="16,14" Style="{StaticResource ReportCardStyle}">
                             <StackPanel Spacing="12">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <controls:ReportIconChip Glyph="&#xE8FD;" Tone="Teal" />
+                                    <controls:ReportToneIcon Kind="chart-donut" Tone="Teal" />
                                     <TextBlock x:Uid="UsageDashboardComposition" Style="{StaticResource ReportCardTitleStyle}" />
                                 </StackPanel>
                                 <Grid ColumnSpacing="24">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <controls:ReportIconChip Glyph="&#xE896;" Tone="Blue" />
+                                        <controls:ReportToneIcon Kind="circle-arrow-down" Tone="Blue" />
                                         <TextBlock FontSize="20" FontWeight="SemiBold" Text="{x:Bind ViewModel.TokenMixReadText, Mode=OneWay}" VerticalAlignment="Center" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                        <controls:ReportIconChip Glyph="&#xE898;" Tone="Rose" />
+                                        <controls:ReportToneIcon Kind="circle-arrow-up" Tone="Rose" />
                                         <TextBlock FontSize="20" FontWeight="SemiBold" Text="{x:Bind ViewModel.TokenMixWrittenText, Mode=OneWay}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Grid>
@@ -1991,7 +1991,7 @@
                             <StackPanel Spacing="10">
                                 <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Spacing="1" Orientation="Horizontal">
-                                        <controls:ReportIconChip Glyph="&#xE99A;" Tone="Violet" Margin="0,0,10,0" />
+                                        <controls:ReportToneIcon Kind="sparkles" Tone="Violet" Margin="0,0,8,0" />
                                         <StackPanel Spacing="1">
                                         <TextBlock x:Uid="UsageDashboardModels" Style="{StaticResource ReportCardTitleStyle}" />
                                         <TextBlock Text="{x:Bind ViewModel.DashboardUnit, Mode=OneWay}" Style="{StaticResource ReportDescriptionStyle}" />
@@ -2031,7 +2031,7 @@
                             <StackPanel Spacing="10">
                                 <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Spacing="1" Orientation="Horizontal">
-                                        <controls:ReportIconChip Glyph="&#xE8B7;" Tone="Blue" Margin="0,0,10,0" />
+                                        <controls:ReportToneIcon Kind="folder" Tone="Blue" Margin="0,0,8,0" />
                                         <StackPanel Spacing="1">
                                         <TextBlock x:Uid="UsageDashboardProjects" Style="{StaticResource ReportCardTitleStyle}" />
                                         <TextBlock Text="{x:Bind ViewModel.DashboardUnit, Mode=OneWay}" Style="{StaticResource ReportDescriptionStyle}" />
@@ -2072,7 +2072,7 @@
                                     <Grid ColumnSpacing="8">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <controls:ReportIconChip Glyph="&#xE90F;" Tone="Amber" />
+                                            <controls:ReportToneIcon Kind="settings" Tone="Amber" />
                                             <TextBlock x:Uid="UsageDashboardOperationPreview" Style="{StaticResource ReportCardTitleStyle}" VerticalAlignment="Center" />
                                         </StackPanel>
                                         <Button Grid.Column="1" x:Uid="UsageDashboardViewAll"
@@ -2182,7 +2182,7 @@
                             Visibility="{x:Bind ViewModel.HasProviderLimits, Mode=OneWay}">
                             <StackPanel Spacing="5">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <controls:ReportIconChip Glyph="&#xE916;" Tone="Violet" />
+                                    <controls:ReportToneIcon Kind="gauge" Tone="Violet" />
                                     <TextBlock x:Uid="UsageReportLimitsTitle" Style="{StaticResource ReportCardTitleStyle}" />
                                 </StackPanel>
                                 <ItemsRepeater
@@ -2689,7 +2689,7 @@
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <controls:ReportIconChip Glyph="&#xE9D2;" Tone="Blue" />
+                                        <controls:ReportToneIcon Kind="chart-area" Tone="Blue" />
                                         <TextBlock Style="{StaticResource ReportCardTitleStyle}" Text="{x:Bind ViewModel.ChartTitle, Mode=OneWay}" TextWrapping="Wrap" />
                                     </StackPanel>
                                     <ContentControl x:Name="CompareChartToolsHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" />
