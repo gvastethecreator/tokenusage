@@ -1,962 +1,268 @@
-# Provider matrix
+# Provider support and data sources
 
-Cutoff date: 2026-09-28
+TokenUsage separates observed local usage, remote account readings, and quota.
+A catalog entry does not mean a reader is available. Missing data stays missing;
+the app does not create sample activity for prepared or blocked providers.
 
-Parity upstreams:
-`janekbaraniewski/openusage@ddc05f24b159bfd1a24bbf641dcfb841410a77ab`,
-`steipete/CodexBar@26ebaf9d5b0949e3b57fafcde0ed54aa3b27b3d2`, and
-`getagentseal/codeburn@d78bdb21f86025702376778fb27035cd3938956b`.
+The [provider catalog](../src/TokenUsage.Providers/Catalog/ProviderModuleCatalog.cs)
+defines the current stages:
 
-Cost catalogs are checked against the official [OpenAI model pages](https://developers.openai.com/api/docs/models), [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), [Google Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), [xAI model pages](https://docs.x.ai/developers/models), [Cursor model pricing](https://cursor.com/docs/models-and-pricing), [Z.ai pricing](https://docs.z.ai/guides/overview/pricing), and [Kimi pricing](https://platform.kimi.ai/docs/pricing/chat).
+| Stage | Count | Behavior |
+|---|---:|---|
+| Active | 12 | A bounded reader collects approved local usage. |
+| Opt-in | 2 | A remote reader runs after you save your own API key. |
+| Prepared | 33 | The catalog describes the provider, but no reader runs. Saving a supported credential does not enable a reader. |
+| Policy blocked | 9 | The available source does not meet the repository's source or privacy requirements. |
 
-## Measurement support (local implementation, 2026-09-07)
+## Local readers
 
-- Weekly and model comparisons reuse admitted local collectors. They show known
-  usage cost, unpriced tokens, price coverage, active days, collection status,
-  and available configuration. These are descriptive comparisons, not quality rankings.
-- Codex and Claude are the reset-cycle providers. Claude cycles come from the
-  opt-in status line reading, so they only exist for periods when Claude Code ran with
-  the wrapper on. Compare 2–4 distinct cycles against A with one shared elapsed duration. Provider, pool, range, gaps, and
-  exact cutoffs remain visible in live and saved results.
-- New Codex numeric records preserve timestamp/interval precision and observed
-  model, effort, and tier when available. Older rows and other collectors do not
-  gain invented precision. Exact charts exclude daily/unknown timing.
-- Official Codex account-day totals are separate from local model totals.
-  The provider does not establish their timezone or matching local scope, so
-  TokenUsage does not add them or present a fabricated reconciliation percentage.
-- Quota readings are sampled levels, not a complete consumption ledger. Current
-  sources do not establish model-to-pool attribution. Normalized quota ratios
-  therefore remain unavailable.
-- Optional Codex operation facts (`codex-mcp`, `codex-skills`, `codex-commands`,
-  `codex-files`) are independent Settings choices, off by default. They store
-  opaque call or file IDs and bounded names only. Operation identity includes the
-  collector source authority (schema 12 `source_instance`); the same `call_id`
-  from two homes is two facts. A schema-11 unnamed row is reconciled to the new
-  key when an explicit backfill recovers that identity; it is not silently
-  assigned to a guessed source. DynamicToolCall is allowlisted
-  to `Read` and `Edit`. Command families are derived from the executable name
-  (never argv). File rows keep an HMAC of a normalized path. Prompt-derived
-  categories and Claude operational rows are not admitted. RequestFinal / Calls
-  remain unavailable: `token_count` is not a finalized request. Reports may show a
-  versioned derived-activity partition (`derived-activity/v1`) and workflow
-  indicators (`workflow-indicators/v1`) from those admitted facts. Spawn is not a
-  skill invocation. First-edit latency stays unavailable without a proved task
-  start. A missing operation end is incomplete, not a completed interval.
-  Workflow export counts that depend on both files and commands are dropped when
-  either consent epoch is revoked or replaced. Same-file evidence is the
-  contributing event sequence. Explicit backfill reads historical operational
-  lines even if the log grew after enablement.
+| Provider | Source | Cost and coverage | Quota |
+|---|---|---|---|
+| Codex | Official local `app-server` and bounded session logs | Reported or estimated; account-day totals remain separate | Official account limits for a suitable ChatGPT account |
+| Claude | Claude Code project logs | Reported or estimated; excludes sessions that were not saved | Opt-in documented status line reading |
+| Cursor | Read-only numeric projection from `state.vscdb` | Per-turn counters when present; context estimate otherwise | Unavailable through this local source |
+| GitHub Copilot | VS Code chat session snapshots and operation logs | Partial tokens and recorded credits before plan allowances | Unavailable |
+| Grok Build | Unified log and session usage snapshots | Reported or estimated; source precedence prevents double counting | Blocked without an approved interface |
+| OpenCode | Read-only `opencode.db` and legacy JSON storage | Reported cost when present, estimated otherwise | No common source across providers and plans |
+| ZCode | Read-only `model_usage` table | Per-request counters and estimated API cost | Blocked without an approved interface |
+| Antigravity | Read-only generation metadata in local databases | Experimental, partial tokens and estimated cost | Blocked under the current source policy |
+| Amp | `ledger.jsonl` | Partial tokens; credits are not USD | No stable public source |
+| Mux | `session-usage.json` | Tokens and reported aggregate cost by model | No common source |
+| Goose | Read-only numeric query of `sessions.db` | Cumulative session tokens; estimated cost when priced | No common source |
+| Hermes | `state.db` in `.hermes` or a profile | Cumulative session tokens and reported or estimated cost | No common source |
 
-App-owned local storage now includes schema-5 numeric metadata, separate account
-daily totals, last collection status, and up to 100 immutable comparisons (4 MiB
-per comparison). Raw event retention remains 400 days; durable daily rollups do
-not become exact-time evidence after raw retention. Codex checkpoints retain a
-35-day reconciliation horizon with a 32 MiB document limit. Migration preserves
-the prior checkpoint/history file as `.pre-v3` before replacement.
-
-The quota journal is a numeric-only SQLite sidecar to reset history. It retains
-at most 90 days and 250,000 observations, and each interval read is capped at
-32,768 rows with an explicit truncation flag. It does not store prompts,
-conversation identifiers, credentials, or transcript contents. First-time
-collection cannot reconstruct quota history that was never observed.
-
-## States
-
-- `MVP`: chosen technical and product path.
-- `Local`: a view based only on local data can be published.
-- `Gate`: a test, public contract, or permitted-use review is missing.
-- `Manual`: requires a key that the user gives to the app.
-- `Experimental`: fragile source; no support promise.
-- `Blocked`: the known source cannot be used in a public build.
-
-## OpenUsage, CodexBar, and CodeBurn module baseline
-
-The catalog represents 56 identities from the inspected union. A visible module is not the same as an active data source:
-
-- `Active`: Amp, Antigravity, Claude, Codex, Cursor, GitHub Copilot, Goose,
-  Grok Build, Hermes, Mux, OpenCode, and ZCode. Each one creates a real,
-  bounded local reader.
-- `OptIn`: OpenRouter and Vercel AI Gateway. The app always composes them, but
-  each one reads nothing until the user saves a key in the provider list. Saving
-  the key is the opt-in; removing it stops the reads and clears the cached
-  reading.
-- `Prepared`: 33 modules with identity, capabilities, brand when it exists, and
-  visible status. They do not open files, credentials, or connections.
-- `PolicyBlocked`: Cline, Cline CLI, Gemini CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
-  Z.ai, and Zed. They keep the researched contract, but they do not
-  activate readers.
-
-TokenUsage takes selected contracts from each upstream, calculates cost locally, and does not copy OAuth sessions, cookies, or private endpoints.
-
-## Summary
-
-| Provider | Live quota | Local tokens and cost | Chosen source | Status | Delivery |
-|---|---|---|---|---|
-| Codex | Yes, official local interface | Yes, official API and logs | `codex app-server` | MVP | M4; detail in M6 |
-| Claude | Yes, opt-in: documented status line `rate_limits` | Yes, logs and reported or estimated cost | Claude Code sessions + status line | Active local + opt-in quota | Active |
-| OpenCode | No common quota | Yes, reported cost and tokens | `opencode.db` and `storage` | Local | M6A |
-| Grok Build | Blocked without a public interface | Yes, reported or estimated cost | `sessions` and `unified.jsonl` | Local + Gate | M6A; quota pending |
-| Grok Bot | Blocked without an approved data interface | No | The desktop app coordinates a computer in the cloud; the local profile contains state and credentials | Prepared | Catalog compatibility; sessions and credentials are not read |
-| OpenRouter | Yes, key limit from `/api/v1/key` | Spend only (day, week, month in UTC); no tokens | user's own key in Credential Locker | Opt-in | Active when a key is saved |
-| Vercel AI Gateway | Yes, key budget (best-effort) and team credit balance | Spend and tokens for the saved key, last 30 days | user's own key in Credential Locker | Opt-in | Active when a key is saved |
-| Z.ai | Blocked outside the official plugin | Only through admitted logs | official plugin limited to Claude Code | Blocked | M9; reopen with a contract or permission |
-| Cursor | Not on Individual. Teams/Enterprise: future manual Admin API | Yes, real counters per turn; context fallback for older data | local SQLite with an allowlist projection; future Admin API | Partial active local | Active; estimated API cost when the model matches |
-| Amp | No stable public quota | Yes, tokens from the ledger | `ledger.jsonl`; threads are not opened | Partial active local | Active; credits are not shown as USD |
-| Mux | No common quota | Yes, tokens and aggregated cost by model | `session-usage.json`; transcripts are not opened | Active local | Active |
-| Goose | No common quota | Yes, tokens accumulated per session | read-only numeric query of `sessions.db` | Partial active local | Active; estimated API cost when a price exists |
-| Hermes | No common quota | Yes, tokens and cost accumulated per session | `state.db` in `.hermes` or in a profile; an empty `.hermes` folder or one from another tool does not count as an install | Partial active local | Active; reported or estimated API cost |
-| GitHub Copilot | No under the current contract | Yes, VS Code chat tokens and credits; paid personal and organization billing | VS Code chat session files with an allowlist projection; Billing API with a manual token | Partial active local + Manual | Active local; billing smoke pending |
-| ZCode | Blocked without a public contract | Yes, counters per request; estimated API cost | local SQLite `model_usage` with an allowlist projection | Partial active local | Reopened in 3.8.1 |
-| Kilo Code | No public quota contract | Candidate CLI aggregates, without a machine contract | No suitable source; candidate: `kilo stats` | Gate | M9 |
-| Kimi Code | Blocked without a machine contract | Blocked because of session content | Version detection only | Blocked | M9 |
-| Command Code | Blocked without a machine contract | Blocked because of sessions and credentials | Version detection only | Blocked | M9 |
-| Cline | Manual API pending a contract | Blocked because of task content | Candidate Enterprise API | Blocked | M9 |
-| Zed | No public quota contract | Blocked because tokens and transcription are mixed | No suitable source | Blocked | M9 |
-| Antigravity IDE/CLI | Blocked by policy | Yes, tokens and estimated cost | local `gen_metadata` | Experimental local + blocked quota | M6B |
-| Devin | No for self-serve | Organization ACUs | v3 API with a manual service user | Experimental Manual | M9; smoke pending |
-
-## Prepared candidates
-
-These names appear in the local references, but they are not active providers
-yet. Each one starts with a separate gate. A scanner is not added until a
-source suitable for Windows is proven.
-
-| Candidate | Reason | Initial limit |
-|---|---|---|
-| Kiro | Appears in CodeBurn and AgentsView | Separate CLI, IDE, and account; do not read session content |
-| Roo Code | Appears in CodeBurn and AgentsView | Do not reuse VS Code tasks; avoid double counting with the model provider |
-| Kimi CLI | CodeBurn separates it from Kimi Code; AgentsView mixes both paths | Settle identity before inheriting Kimi Code storage or claims |
-| Cursor Agent | CodeBurn separates it from the Cursor editor | Keep it separate from Cursor Admin API and Individual |
-| Forge | Appears in CodeBurn and AgentsView | Validate Windows support and avoid databases that contain content |
-| OpenClaw | Appears in CodeBurn and AgentsView | Settle identity and an aggregated source; do not read conversations |
-| Pi | Appears in CodeBurn and AgentsView | Distinguish Pi from OMP and settle deduplication |
-| Qwen | Appears in CodeBurn and AgentsView | Separate Qwen Code from the Qwen model provider |
-| Warp | Appears in CodeBurn and AgentsView | Do not read terminal history or commands |
-| Mistral Vibe | Appears in CodeBurn and AgentsView | Do not read messages, tools, or commands; require an aggregated source |
-| DeepSeek TUI / CodeWhale | They share inherited paths between AgentsView and CodeBurn | Resolve identity and migration before creating IDs or reading sessions |
-| Windsurf | AgentsView declares Windows paths | Require an aggregated source; do not read chat or the IDE global state |
-| Trae | AgentsView declares several Windows paths | Separate editor variants and exclude chats, tasks, and credentials |
-| Aider | AgentsView treats it as an opt-in root | Settle consent and accept only documented minimum metrics |
-| OpenHands CLI | AgentsView records local sessions | Separate CLI, service, and model provider; do not read content |
-| Codebuff | CodeBurn records cost from sessions | Look for an official aggregate that does not expose messages or tools |
-| Piebald | AgentsView declares its own Windows storage | Confirm product, support, and source before creating a provider ID |
-| Crush | CodeBurn records it as a distinct agent | Settle product, publisher, and an aggregated source suitable for Windows |
-| Droid | CodeBurn records it as its own identity | Resolve the ambiguous name and separate agent, account, and model provider |
-| IBM Bob | CodeBurn includes a dedicated adapter | Confirm the current product, Windows support, and a minimum export |
-| LingTai TUI | CodeBurn includes its own sessions | Settle identity and Windows support before evaluating metrics |
-| Open Design | CodeBurn includes a dedicated adapter | Confirm that it is a measurable agent and not an auxiliary format |
-| Quick Desktop | CodeBurn uses the `quickdesk` identity | Settle canonical name, publisher, and Windows source |
-| Zerostack | CodeBurn includes a dedicated adapter | Confirm product, version, and metrics contract |
-| Zencoder | AgentsView declares its own sessions | Separate the product from other uses of the name and require a suitable source |
-| Qoder | AgentsView declares project paths | Do not read transcripts; look for an official aggregate |
-| Cortex Code | AgentsView declares local sessions | Separate agent usage from Snowflake billing |
-| gptme | AgentsView declares local logs | Confirm Windows support and an output without content |
-| iFlow | AgentsView declares its own sessions | Settle publisher, product, and contract before creating an ID |
-| IcodeMate | AgentsView records its own identity | Resolve identity, Windows support, and a minimum source |
-| MiMoCode | AgentsView declares local storage | Avoid databases that contain content and separate MiMo models |
-| Posit Assistant | AgentsView separates it from Positron | Settle Windows support and a source without conversation |
-| Positron Assistant | AgentsView declares paths by platform | Confirm Windows support before evaluating data |
-| QClaw | AgentsView separates it from OpenClaw | Resolve relationship, migration, and deduplication |
-| QwenPaw | AgentsView separates it from Qwen Code | Resolve identity and the relationship with the Qwen provider |
-| Reasonix | AgentsView declares a Windows path | Require aggregated metrics; exclude sessions and sidecars that contain content |
-| Shelley | AgentsView declares its own database | Confirm Windows support and tables free of content |
-| WorkBuddy | AgentsView declares sessions per project | Settle product, Windows support, and a suitable source |
-| OpenClaude | AgentsView separates it from Claude Code | Resolve whether it is a fork, alias, or provider before inheriting contracts |
-| Claude Cowork | AgentsView separates it from Claude Code | Keep it in the Claude family until account and source are settled |
-
-Delivery shows order, not a date. No `Gate` status enters stable until all of
-its controls are closed.
-
-ZooCode stays inside the Roo Code gate until its identity and the product
-migration are settled. VS Code Copilot and Visual Studio Copilot stay under the
-GitHub Copilot family. Kiro IDE stays under Kiro. Antigravity IDE and CLI keep
-distinct sources inside the same family. OMP is resolved in the Pi gate.
-`ChatGPT` and `Claude.ai` appear in AgentsView as history imports, not as local
-agents with a measurable quota, and they stay out of the provider inventory
-until another contract exists.
-
-The entry term `Zcode` resolves as `ZCode`, the desktop product of ZCode Agent.
-Kilo Code, Kimi Code, and Command Code are kept as entry terms. Zed represents
-only its native agent: sessions of external agents still belong to their
-original provider. Canonical product names must be settled
-before IDs, icons, paths, or claims are added to the code.
-
-
-## Publication gate
-
-Every integration starts with a provider Issue. The PR must follow the
-[contributor testing guide](CONTRIBUTOR-TESTING.md), even when the provider is
-not available to maintainers.
-
-Each provider needs:
-
-- [ ] documented source and precedence
-- [ ] Windows test with default paths and environment variable
-- [ ] response contract settled with sanitized fixtures
-- [ ] parser with size limits, timeout, and cancellation
-- [ ] absent, expired, unsuitable, throttle, and schema-change accounts covered
-- [ ] multiple accounts and account change defined
-- [ ] credential rotation without a race, or without writing
-- [ ] logs and cache without secrets
-- [ ] terms, policy, and brand review
-- [ ] test inside the signed MSIX
-- [ ] regression test against a real supported version
-- [ ] UI text that explains source, coverage, and limits
-- [ ] reported and estimated cost kept separate, with unpriced models visible
-- [ ] total differential against a reference on the same fixture
-- [ ] proof that the reader does not open auth, prompt, response, task, or command
+Local coverage excludes activity that the source never recorded. Unknown models
+stay unpriced. API-rate estimates are not subscription invoices. See
+[pricing evidence](PRICING.md) and [storage and retention](USAGE-STORAGE.md).
 
 ## Codex
 
-### Source
+The official local `app-server` handles login and renewal. TokenUsage uses
+`account/read` with `refreshToken: false`, `account/rateLimits/read`, and
+`account/usage/read`. It keeps only the admitted account type, plan, auth status,
+limits, and numeric usage. It does not retain email, account identifiers,
+tokens, raw responses, or `codexHome`, and does not open `auth.json`.
 
-- account status: `account/read` with `refreshToken: false`, selecting only
-  type, plan, and auth requirement
-- quota: `account/rateLimits/read`
-- tokens and daily buckets: `account/usage/read`
-- optional local detail: `CODEX_HOME/sessions` and `archived_sessions`; the
-  `state_5.sqlite` index is merged with the folders so a new session is not
-  hidden while the index catches up
+Optional local detail comes from `CODEX_HOME/sessions` and `archived_sessions`.
+The `state_5.sqlite` index is merged with those folders so index lag does not
+hide a new session. Multiple accounts need separate `CODEX_HOME` instances and
+processes. A compatible Codex binary is required. API-key, Bedrock, local, or
+unknown auth modes do not imply ChatGPT subscription quota. TokenUsage never
+consumes a reset credit.
 
-The official [`app-server`](https://github.com/openai/codex/blob/a26f219f6788c951dcb3bf435fab4c6d0f4d2f40/codex-rs/app-server/README.md) manages login and renewal. The app does not read `auth.json` in the MVP.
+Limits can include primary and secondary windows, named additional pools,
+resets, plan, and available spending controls. The `base_model_inference` pool
+is shown as `GPT reserve`. Account-day totals have no proved matching local
+scope or timezone, so they are not added to local model totals.
 
-Status reads do not keep or show `email`, `codexHome`, token, raw response, or
-account identifier. A ChatGPT session enables quota. API key, Bedrock, local
-mode, or future auth remain an unsuitable account until a quota contract says
-otherwise.
+Session, parent, and project links require separate consent and use opaque
+identities. Enabling consent does not backfill existing observations; Settings
+can admit a retained date range. Revoke removes links while keeping numeric
+usage. See [attribution rules](USAGE-STORAGE.md#session-attribution).
 
-### Metrics
-
-- primary window
-- secondary window
-- additional limits named by the official `limitName`; the current
-  `base_model_inference` bucket is shown as `GPT reserve`
-- next reset
-- plan
-- credits and spending controls when they exist
-- daily tokens and trend
-- estimated API cost by known model, including GPT-6 Astra
-
-### Limits
-
-- requires a compatible Codex binary
-- an API key without a ChatGPT account can lack subscription quota
-- the method can deliver new additional limits
-- multiple accounts require one `CODEX_HOME` and process per instance
-- consuming a reset credit stays outside the MVP because it is an irreversible action
-- optional session links are off by default. With consent, TokenUsage stores only
-  opaque keys derived from `session_meta.payload.id` and, when present,
-  `parent_thread_id` or `forked_from_id`. Native IDs, `cwd`, paths, and prompts
-  are not stored. Parent references use the same session identity domain so a
-  child can join its parent. Enablement does not backfill already-known
-  observations; Settings can backfill a retained date range. Revoke removes
-  Codex links only; numeric totals stay. A restored backup cannot re-enable a
-  disabled reader.
-- optional project links are a separate consent. Working directories stay
-  transient in the reader; persisted project identity is an opaque key, not a path
-- RequestFinal is still unproved for Codex. Reports distribution statistics stay
-  unavailable for this source; that empty result is correct. Attributed session
-  outliers can still appear when session consent is on and 30 comparable sessions
-  exist.
-
-### Result
-
-MVP approved after process, contract, package, and unsuitable-account tests.
-The local research test completed both read methods.
-
-Upstream comparison source: [Codex provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/codex.md).
+Codex `token_count` is not a proved finalized request. Request distributions
+remain unavailable. Session outliers can still use at least 30 comparable
+attributed sessions when the relevant consent is on.
 
 ## Claude
 
-### Local source
-
-- `%USERPROFILE%\.claude\projects`
-- equivalent path under `CLAUDE_CONFIG_DIR`
-- `pi` logs only in a later phase
-- non-persisted sessions stay out of coverage
-
-The reader extracts tokens, model, and date. It extracts recorded cost when
-that value exists. Prompts and responses are omitted.
-
-### Quota
-
-Claude Code 2.1.251 and later documents a
-[`rate_limits` object](https://code.claude.com/docs/en/statusline#rate-limit-usage) in
-the JSON it pipes into the user's status line command. It has `five_hour` and
-`seven_day` windows. Behind a Claude apps gateway it also has `spend_limit`. Each
-window has `used_percentage` and `resets_at` (Unix seconds). The object exists only
-for Pro and Max subscribers, or behind a gateway spend limit, and only after the first
-response in a session. Claude Code drops a window once `resets_at` passes.
-
-That is the quota source. It is opt-in: Settings (or
-`tokenusage claude install-statusline`) sets `statusLine.command` to
-`tokenusage claude statusline` in `settings.json` under `CLAUDE_CONFIG_DIR` or
-`%USERPROFILE%\.claude`. The wrapper:
-
-- parses only `rate_limits` and ignores session, path, model, cost, and transcript fields;
-- writes `cache/providers/claude/rate-limits.v1.json` (percentages, reset times,
-  observation time), at most once a minute when nothing changed;
-- forwards the same stdin to the status line the user had before. That command is kept
-  in `tokenusage-statusline.json` next to `settings.json`. The wrapper runs it through
-  Git Bash, as Claude Code does, or `cmd` when Git Bash is missing, with a 5-second limit.
-  Without a previous command, the wrapper prints `5h N% · 7d N%`;
-- is removed by the same switch or `uninstall-statusline`, which restores the previous
-  status line and deletes the stored reading.
-
-The reading feeds the Claude card, the global limits strip, the tray, provider status,
-`tokenusage limits`, the reset history, the quota journal, and report reset cycles. It
-moves only while Claude Code runs. The card marks readings older than 30 minutes, and
-windows whose reset time passed are dropped instead of shown as full.
-
-TokenUsage still does not read `.credentials.json` or call the private usage endpoint
-that upstream implementations use. The
-[Claude Code legal guide](https://code.claude.com/docs/en/legal-and-compliance)
-limits third-party use of subscription OAuth.
-
-Update on task completion: when the app opens, a `Stop` hook is registered in the
-same `settings.json` when Claude Code is detected and background collection is on
-(`tokenusage claude install-hook|status|uninstall-hook`). It discards the payload and
-only refreshes TokenUsage's own data.
-
-### Local metrics
-
-- today, yesterday, and 30 days
-- tokens and trend
-- measured cost if the log includes it
-- estimated cost with price coverage
-- omitted models and the reason
-
-Optional session, parent, and project links stay blocked. Candidate JSON
-fields `sessionId`, `parentUuid`, and `cwd` are not persisted. `message.id`
-is not a session identity. `isSidechain` is not a parent edge. Empty
-association lists are the current contract.
-
-### Result
-
-Local view after the scanner and coverage tests. Subscription quota through the
-opt-in, documented status line reading.
-
-Upstream comparison source: [Claude provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/claude.md).
-
-## OpenCode
-
-### Source
-
-OpenCode documents `%USERPROFILE%\.local\share\opencode` on Windows and
-`~/.local/share/opencode` inside WSL. The reader accepts `opencode.db` and the
-JSON `storage`. It omits `auth.json`.
-
-The official [`opencode stats`](https://opencode.ai/docs/cli/) command delivers
-human-readable token and cost statistics. Because it does not offer JSON in the
-observed version, it is used as a differential oracle and not as the adapter
-format.
-
-### Metrics
-
-- usage observed on this computer
-- tokens by period, agent, and model
-- cost reported by OpenCode when it exists
-- estimated cost only for rows without reported cost
-- trend
-- models and sources with coverage
-
-### Limits
-
-Local data can omit other computers, deleted sessions, and WSL installs. The UI
-calls this `Observed local usage`. It does not claim remaining quota because
-OpenCode can use many providers and plans.
-
-The database is opened read-only with minimal queries. It is not copied: in the
-local test it occupies about 2.5 GB. The first beta covers native OpenCode on
-Windows. Each WSL distro needs separate detection and consent.
-
-### Result
-
-Local beta after fixtures for SQLite, legacy JSON, WAL, unpriced model, and
-deduplication across formats. The examined install has OpenCode `1.18.4`,
-`opencode.db`, `storage`, and `opencode stats`.
-
-Upstream comparison source: [OpenCode provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/opencode.md).
-
-## Grok
-
-### Local source
-
-- `GROK_HOME/logs/unified.jsonl` as the primary source
-- `GROK_HOME/sessions/**/updates.jsonl` for cumulative session snapshots;
-  `summary.json` is optional when the snapshot has its own model and timestamp
-- `params.update.usage`, per-model breakdown, and `costUsdTicks` when they exist
-- catalog estimate only when the source does not report cost
-
-The unified log has priority when its oldest inference reaches the start of the
-35-day window. If Grok rotated the log and only
-recent turns remain, TokenUsage uses the session snapshots. Mixing both sources
-would count the same inference twice. The snapshots keep reported
-`costUsdTicks`. A `0` is not treated as a free turn.
-
-An explicit model on a `shell.turn.inference_done` context takes precedence over
-a process-level model announcement. Older records can omit the model; for those,
-the app uses the last announcement for the same `pid`. If neither source names
-the model, tokens stay visible under `unknown` and cost stays unavailable.
-Before unknown-model retention was added, a Grok `1.0.0` fixture lost 61 of 1034
-turns while the read was declared complete.
-
-### Quota
-
-OpenUsage shows remaining weekly percentage with the `grok login` session: it
-reads `auth.json`, calls `GET https://cli-chat-proxy.grok.com/v1/billing`, and
-writes rotated tokens. xAI documents that balance for people in Settings →
-Usage and in the TUI command `/usage`. There is no `grok usage` subcommand and
-no quota JSON for another app. `GET /v1/api-key` publishes key metadata, not
-the weekly pool. The Management API prepaid balance is team API credit with a
-management key, another product. Its [acceptable use policy](https://x.ai/legal/acceptable-use-policy)
-restricts automated access. The public build does not read `auth.json` or call
-the private endpoint.
-
-### Result
-
-Parser `grok-local/8` also discovers self-contained snapshots without a summary.
-It retains bounded reads and rejects reparse-point summaries. The parser version
-invalidates older numeric checkpoints; a complete refresh reconciles the existing
-window rather than adding a second parser's totals.
-
-This does not claim complete fork/replay deduplication across cumulative session
-snapshots. Those records do not provide the stable per-inference IDs needed to
-subtract shared parent history safely. Equal token totals are not duplicate proof.
-Support for the separate `turn_completed` ledger format needs its own source
-fixtures and identity rules; it is not added by this repair.
-
-Local tokens and cost in beta after version fixtures and a differential. Quota
-and balance only after a suitable official interface or written permission. The
-Windows test detected Grok Build `0.2.112`, sessions, and the unified log
-without opening the credential. The check on Grok `1.0.0` keeps the same
-format: `msg`, `pid`, `ts` in UTC, and `ctx` with `prompt_tokens`,
-`cached_prompt_tokens`, `completion_tokens`, and `reasoning_tokens`.
-
-Update on task completion: when the app opens, the `Stop` hook is registered
-automatically if Grok is installed (`~/.grok/hooks/tokenusage.json`). It is
-also managed with `tokenusage grok install-hook|status|uninstall-hook`. The
-hook discards the event payload and only refreshes TokenUsage's own data.
-Uninstall keeps the rest of the user's hooks.
-
-Upstream comparison source: [Grok provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/grok.md).
-
-### Grok Bot
-
-Grok Bot remains a prepared provider. Official documentation describes an agent
-on a persistent computer in the cloud. The user signs in with a Cursor account.
-The desktop app does not publish a usage reader, export, or third-party quota
-API.
-
-OpenUsage shows a "Grok Bot" tile inside Cursor: private RPC
-`DashboardService/GetSandUsageStatus` with the editor token. That is not a
-reader of the Grok Bot desktop app and does not activate TokenUsage's
-`grok-bot` module.
-
-TokenUsage detected the Windows package during research, but it does not open
-the Electron profile, local storage, session, or credentials. It also does not
-attribute Grok Build logs to the Bot, or treat xAI API credits as Bot quota. A
-reader can be enabled only with a public data interface or written permission
-from xAI or Cursor.
-
-References: [Grok Bot](https://docs.x.ai/grok-bot/overview), [get started](https://docs.x.ai/grok-bot/get-started), [Grok usage and limits](https://docs.x.ai/grok/faq).
-
-## OpenRouter
-
-### Source
-
-A key that the user adds to this app and that is stored in Credential Locker.
-A key from another app is not imported without confirmation.
-
-The current official contract separates capabilities. `GET /api/v1/key`
-([limits](https://openrouter.ai/docs/api_reference/limits)) reports the usage
-and the limit of the key that calls it. `GET /api/v1/credits`
-([credits](https://openrouter.ai/docs/api/api-reference/credits/get-remaining-credits))
-and `GET /api/v1/activity`
-([activity](https://openrouter.ai/docs/api/api-reference/analytics/get-user-activity))
-answer only for a management key.
-
-### Metrics
-
-- spend for the saved key: today, this week (from Monday), and this month, all
-  UTC calendar periods, plus all-time usage, in USD
-- the key limit as a quota window when the key has one: used is `limit` minus
-  `limit_remaining`, and the reset follows `limit_reset` (daily, weekly, or
-  monthly at midnight UTC; null means no reset). An unknown `limit_reset` value
-  keeps the limit without a reset time instead of failing the read.
-- free tier or paid credits, from `is_free_tier`
-
-### Result
-
-Opt-in and key-only. The runtime reads `/api/v1/key` with the key saved in the
-provider list, reuses a reading for 10 minutes unless the user refreshes, and
-backs off after failures. A `401` means "not configured", a `403` means the key
-cannot read its usage, and a `429` keeps the last reading until `Retry-After`.
-The panel shows this month's spend (labelled as the UTC month), no token count,
-and the key limit. The spend is not added to the local totals or the 30-day
-spend breakdown.
-
-Deferred: account credits and per-model activity. Both need a management key,
-which would have to be stored as its own Credential Locker secret; the optional
-second field of the key editor is not secret storage. Live reads have not been
-checked against a real key yet.
-
-Upstream comparison source: [OpenRouter provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/openrouter.md).
-
-## Vercel AI Gateway
-
-### Source
-
-An AI Gateway API key that the user saves in the provider list, with an
-optional key ID for the key budget. Both stay in Credential Locker. Every
-request sends `Authorization: Bearer <key>` to `ai-gateway.vercel.sh` only;
-redirects are not followed.
-
-- `GET /v1/report?start_date&end_date&group_by=day&date_part=day&api_key_id=self`
-  ([Custom Reporting](https://vercel.com/docs/ai-gateway/observability-and-spend/custom-reporting)):
-  spend and tokens of the saved key for the last 30 UTC days. It needs a Pro or
-  Enterprise plan and costs $5 per 1,000 queries.
-- `GET /v1/credits`
-  ([REST API](https://vercel.com/docs/ai-gateway/sdks-and-apis/rest-api)): the
-  team's credit balance and total used, sent as decimal strings. It works on
-  every plan and needs no key ID.
-- `GET /v1/quotas?quotaEntityId=api_key_id_<key id>`: the key budget. This
-  endpoint is not in the public REST reference, so it is best-effort: any
-  failure degrades only the budget. A `404` with "Quota not found" in either the
-  plain or the documented error shape means the key has no budget.
-
-### Metrics
-
-- spend (charged, market, surcharge, gateway fee), input, output, cached,
-  cache-creation, and reasoning tokens, and requests, for the saved key
-- team credit balance and total used
-- the key budget as a quota window, reset at the documented UTC boundary
-
-### Result
-
-Opt-in. An unforced refresh reuses a reading for at least an hour to limit the
-paid report queries; a manual refresh (or the optional open-panel refresh
-interval) always queries it. A plan without Custom Reporting keeps the credit
-balance and says why the spend is missing. The spend is not added to the local
-totals, because a local tool can record the same requests. Live reads have not
-been checked against a real key yet.
-
-## Z.ai
-
-### Evaluated source
-
-Z.ai publishes `glm-plan-usage`, a quota plugin for the Personal plan that runs
-inside Claude Code. Its official repository queries `api.z.ai` for
-international accounts and `open.bigmodel.cn` for China. The monitor endpoints
-do not appear in the general OpenAPI.
-
-Policy limits the GLM Coding Plan to supported tools. The sources do not grant
-a separate Windows app a read-only scope or permission to reuse those
-endpoints.
-
-### Result
-
-Blocked. The public build does not ask for a Z.ai key, does not invoke the
-plugin, and does not copy the upstream client. Local cost for Z.ai models can
-appear through logs of admitted agents, with coverage and provenance.
-
-Upstream comparison source: [Z.ai provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/zai.md).
-
-## ZCode
-
-### Source
-
-ZCode `3.8.1` stores a per-request usage record in
-`%USERPROFILE%\.zcode\cli\db\db.sqlite`, table `model_usage`. The columns
-include input, output, reasoning, read-cache, and write-cache tokens, model,
-and a UTC timestamp. Its own total is `entrada + salida`. Input includes the
-read cache, and reasoning lives inside output.
-
-The reader opens the database read-only with `PRAGMA query_only=ON` and
-selects only eight count columns from `model_usage`. It never opens
-`v2\credentials.json`, the `part`, `message`, `input_history`, and `session`
-tables, or `cli\rollout\*.jsonl`. It does not store session ids or paths:
-event keys are SHA-256 hashes of the row id. A missing column degrades to
-`UnsupportedSchema` instead of inventing numbers.
-
-### Evaluated source
-
-The `3.7.6` evaluation found no safe local source: hooks did not carry tokens,
-and the published paths were support or content. The current build added the
-local usage database, which reopens the provider under the Cursor `state.vscdb`
-allowlist-projection precedent.
-
-Terms in force since 2026-06-15 restrict access to other people's data,
-content, or accounts through the service. The reader runs on the user's disk,
-with no network and no account data. The recorded risk is that Z.ai does not
-publish the schema. Column verification and the parser version keep the reader
-fail-closed when the schema changes.
-
-### Metrics
-
-- Tokens per request, model, and day; 35-day reconciliation window.
-- Estimated cost with public Z.ai API rates for GLM models (dated catalog).
-  Plan credits are not converted into invoice cost. Models without a rate stay
-  `Unpriced`.
-
-### Limits
-
-Coding Plan quota stays closed: the official plugin's monitoring endpoints are
-private and require another tool's credential, and no ZCode hook exposes plan
-or real remaining.
-
-A quota estimated from plan credits was delivered briefly (public formula,
-multipliers, and tiers published by Z.ai) and was withdrawn by maintainer
-decision: it does not show the real remaining side and can mislead. The
-credits gate documents the mechanism in case a future contract revives it.
-
-### Result
-
-Partial active local: a card with observed tokens and labeled estimated cost.
-If Z.ai publishes an official usage API, the local reader migrates to it.
-
-Update on task completion: when the app opens, `Stop` hooks are registered
-automatically for detected local providers (ZCode, Grok, and Cursor). They can
-also be managed with `tokenusage zcode install-hook|status|uninstall-hook`.
-The hook discards the event payload and only refreshes TokenUsage's own data.
-Uninstall keeps the rest of the user's configuration.
-
-No ZCode, Cursor, or Grok hook exposes plan or real remaining.
-
-## Kilo Code
-
-### Evaluated source
-
-Kilo Code publishes the `kilo` CLI, also available on Windows, and documents
-`kilo stats` to show token and cost statistics. The command reference only
-exposes filters by days, tools, models, and project. It does not publish JSON
-output or a versioned contract to automate the table.
-
-The extension keeps a local `kilo.db` with sessions and history. That database
-is not a suitable source: TokenUsage cannot open it or infer its tables to
-obtain metrics. An isolated test of `kilo 7.4.15` returned an empty statistics
-table without login, but it does not prove that the command is read-only,
-stable, or safe against format changes.
-
-### Result
-
-Open gate. This phase does not create a database reader, session parser, or
-public card. The candidate path stays limited to an official command that emits
-a structured, read-only contract with aggregated metrics. Until then the app
-can only detect `kilo --version` in a future diagnostic.
-
-## Kimi Code
-
-### Evaluated source
-
-Kimi Code offers the `kimi` CLI, a VS Code extension, `/usage` inside the TUI,
-and a Console for quota and Extra Usage. It does not publish a machine output,
-metrics export, or read-only API for Kimi Code quota, tokens, or cost.
-
-On Windows it stores configuration, OAuth, sessions, logs, and history under
-`%USERPROFILE%\.kimi-code` or `KIMI_CODE_HOME`. Its sessions include
-`lastPrompt`, full communication, and request traces. The subscription is
-limited to interactive use and prohibits non-interactive automation.
-
-Kimi Platform publishes balance and usage with separate accounts and billing.
-It is not mixed with the Kimi Code provider.
-
-### Result
-
-Blocked. The public build can detect `kimi --version` in a diagnostic phase,
-but it does not read data, start the TUI, use `kimi web`, take tokens, or call
-the Console. The provider reopens with a minimum, documented source that is
-authorized for third parties.
-
-## Command Code
-
-### Evaluated source
-
-Command Code offers the `cmd` CLI. On native Windows, `cmdc` is used because
-`cmd` belongs to the system. Native Windows is still in alpha, and the
-documentation recommends WSL. `/usage` shows credits, plan, and limits inside
-an interactive session. Studio shows tokens, cost, and per-request history
-after sign-in.
-
-It does not publish a quota subcommand or a metrics export. `--output-format
-json` applies only to the `cmd -p` response. It does not turn `/usage` into a
-read contract. The Provider API publishes inference and model listing, not a
-balance, quota, or cost-history API. It uses the same API key as the CLI, so it
-is not a read-only monitor credential.
-
-Documentation places conversations under `~/.commandcode/projects/`, tokens in
-`~/.commandcode/auth.json`, and preferences in `.commandcode/taste/`. Those
-paths can contain prompts, responses, credentials, rules, or context and are
-not a suitable source.
-
-### Result
-
-Blocked. The public build can detect `cmdc --version` in a diagnostic phase,
-but it does not read data, sign in, call `/usage`, automate Studio, or reuse an
-API key. The provider reopens with a read-only API or export, documented for
-third parties, without sessions or credentials, and authorized for automatic
-queries.
-
-## Cline
-
-### Evaluated source
-
-Cline publishes an Enterprise API with GET endpoints for profile, balance,
-usage, metrics, and organization usage. An API key created by the owning
-person would be a possible manual source. The app does not take session tokens
-or search for keys in another application.
-
-Current documentation does not publish schemas, units, filters, pagination,
-errors, or a read-only permission for balance and usage. The key also serves
-the inference API, and the Enterprise API lists mutable operations. The
-announced OpenAPI returned HTTP 404 at the gate. Therefore a safe contract to
-implement the client does not exist yet.
-
-Local Cline tasks contain full conversations, changes, files, commands, and
-tool inputs and outputs. Local cost is an estimate that can differ from the
-BYOK invoice. Tasks, history, sessions, logs, `providers.json`, tokens, and
-exports are not read.
-
-### Result
-
-No adapter for now. The future manual path requires a schema or sanitized
-fixture, explicit permission for the key, Windows smoke with GET and
-revocation, and error states before the public build is enabled. ClinePass and
-BYOK keep their independent sources and billing rules.
-
-## Zed
-
-### Evaluated source
-
-Zed shows token usage of the active thread in its Agent Panel. That surface
-covers the native agent. External agents and terminal threads keep their own
-authentication and can expose different metrics.
-
-Official code persists each thread with messages, tool results, model, and
-token counters in the same compressed blob in `threads.db`. Decompressing or
-querying that store to extract counters would give access to prompts,
-responses, and tool data, outside TokenUsage's privacy limit. Documentation
-does not publish a CLI, API, or aggregated metrics export for third parties.
-
-### Result
-
-Blocked. The public build does not open the thread database, automate the
-panel, or use external-agent threads as Zed data. A future provider requires an
-official, minimal, aggregated API or export that is suitable for third-party
-queries.
+The local reader uses `%USERPROFILE%\.claude\projects`, or the equivalent under
+`CLAUDE_CONFIG_DIR`. It projects tokens, model, date, and recorded cost when
+present. It omits prompt and response content. Sessions that were not saved
+are outside coverage.
+
+Quota comes only from the documented Claude Code status line `rate_limits`
+object. It is opt-in through Settings or `tokenusage claude install-statusline`.
+The wrapper stores percentages, reset times, and observation time, and forwards
+stdin to the user's previous status line command. The previous command is kept
+in `tokenusage-statusline.json` next to `settings.json` and has a five-second
+execution limit. Without one, the wrapper prints the available quota windows.
+Uninstall restores that command and deletes the stored reading.
+
+The reading advances only while Claude Code runs with the wrapper enabled.
+Available windows depend on the account and can include five-hour, weekly,
+and gateway spending limits. Readings older than 30 minutes are marked stale;
+windows past their reset time are dropped. TokenUsage does not read
+`.credentials.json` or call the private subscription usage endpoint.
+
+Session, parent, project, and operational attribution stay blocked for Claude.
+`message.id` is not a session ID, and `isSidechain` is not a proved parent edge.
 
 ## Cursor
 
-### Chosen source
+The reader opens `state.vscdb` read-only and selects a fixed scalar projection
+from `cursorDiskKV`: `composerData:` and `bubbleId:` metadata only. It does not
+return full JSON values, prompts, responses, paths, commands, transcript,
+credentials, or unhashed IDs. Other tables, search databases, AI Code Tracking,
+private dashboard routes, RPCs, cookies, and credential stores are excluded.
 
-For Individual accounts, TokenUsage opens `state.vscdb` in read-only SQLite
-mode and projects only the model, timestamps, and estimated context total that
-Cursor stores in each `composerData:`. The size cap accepts the editor's
-current state (tens of GB) because the query does not load the whole file. The
-query does not return the full value, prompts, responses, paths, email,
-commands, transcript, credentials, or unhashed IDs.
+Per-turn counters take precedence over conversation context estimates. The
+fallback `estimatedTokens` value describes current context, not cumulative
+billed usage. Auto and unknown models remain unpriced. Host-specific rates are
+used only when the pricing catalog identifies them. Local coverage excludes
+Tab, cloud agents, account quota, and billing. Teams and Enterprise billing
+still require a separate future Admin API connection.
 
-The source is tied to the local schema observed in Cursor `3.15.6`. Cursor
-names those counters `estimatedTokens`: they represent the conversation's
-current context, not accumulated billed tokens. That is why the app marks the
-read as local, partial, and estimated. If the model matches an official
-catalog, that context carries estimated API value. Auto and unknown models stay
-unpriced. Gemini 3.8 Flash uses Cursor's published $0.75 input, $0.075 cache-read,
-and $3.50 output rates for Cursor events. Other providers use Google's $3.75
-output rate. The previous hook is out of the active path because the official
-`stop` contract does not deliver token counters. That legacy hook was
-withdrawn. Today the app automatically registers a `stop` hook at launch that
-acts only as a refresh trigger (also with `tokenusage cursor install-hook`): it
-discards the payload and updates TokenUsage's own data when each task ends.
-
-When per-turn counters exist in `bubbleId:`, they take priority over the
-conversation estimate. In the August 2026 check, the editor wrote `tokenCount`
-as zero for input and output, and an install with hundreds of thousands of
-bubbles cannot scan them all in one refresh. TokenUsage looks first at a
-handful of recent turns: if they are still zero, it uses the conversation
-estimate; if any counter is real, it reads turns with a positive value. The row
-cap orders from newest to oldest, so a cutoff drops old turns and not today's.
-
-Cursor's public Admin API remains the billable source for Teams and Enterprise.
-It requires a separate administrative key and does not reuse the editor login.
-The `POST /organizations/pooled-usage` contract publishes `remainingCents` for
-the Enterprise organization pool. It stays out of this Individual integration
-until a manual connection and authorized smoke are added.
-
-Cost and event endpoints do not replace that pool contract. The team card shows
-usage and cost, with provenance and cycle. It does not claim remaining quota
-without `remainingCents`. An Individual account has no public remaining-balance
-contract.
-
-OpenUsage gets the remaining plan percentage, Extra Usage, and the Grok Bot
-tile by reusing the editor login: RPC on `api2.cursor.sh`, private REST,
-Stripe, and dashboard CSV. TokenUsage does not call those routes or read the
-editor token. Organization `remainingCents` is not Grok Bot's weekly pool.
-
-### Coverage and policy
-
-- Individual: estimate of the current context of Agent conversations retained locally; no Tab, cloud agents, quota, or cost.
-- Teams: the local read keeps the same partial coverage; cost and billing require a future Admin API connection.
-- Business: legacy name that can appear in events; uses Teams semantics.
-- Enterprise: the same contract per configured connection; multiple connections are not mixed by email.
-
-Inside `state.vscdb` only `cursorDiskKV` with `composerData:` and `bubbleId:`
-keys is allowed, plus a fixed JSON projection of scalar metadata: model,
-timestamp, and counters. All other tables and values, search databases, AI Code
-Tracking, another app's Credential Manager, token refresh, cookies created from
-JWT, `api2.cursor.sh` RPC, private dashboard routes, Stripe, and private CSV
-export stay forbidden.
-
-The local gate is resolved as `integrated-local-estimate`. Tests confirm stable
-identity, snapshot replacement, and reads of the allowlist fields. The Admin
-API keeps its separate manual gate.
-
-Optional Cursor session links are off by default. With consent, TokenUsage
-stores an opaque key derived from the bounded composer fragment and a hash of
-the local database path. The same composer fragment in two databases produces
-two keys. Parent and workspace inference stay blocked. A session link does not
-upgrade a context estimate into a request. Already-scanned composer rows stay
-unlinked after enable unless the user backfills that retained range. Revoke
-removes Cursor links only; Codex links and numeric totals stay.
-
-Upstream comparison source: [Cursor provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/cursor.md).
-
-## Gemini CLI
-
-Gemini CLI `0.58.0` exposes token counters in `/stats model` and OpenTelemetry,
-but neither is an eligible passive source. `/stats` is interactive and has no
-machine history export. Chat JSONL combines counters with messages, tool
-arguments and results, paths, and session data. The telemetry file combines
-metrics with logs and traces; prompt logging defaults on, and common metric
-attributes include session, installation, email, and authentication data.
-
-Result: `policy-blocked`. TokenUsage does not open `.gemini` chats, settings,
-credentials, or telemetry. The gate reopens only for a documented metrics-only
-export that excludes content and identity before bytes reach the file. Local
-usage, Google quota, and direct Gemini API cost remain separate.
-
-See [the complete Gemini CLI source gate](source-gates/GEMINI-CLI.md).
+Optional session links require consent. Their opaque identities distinguish
+the same composer fragment in different databases. Parent and workspace
+inference remain blocked; a session link does not turn a context estimate into
+a request. Already-scanned rows require explicit backfill to gain links.
+Revoking Cursor links keeps Codex links and numeric totals.
 
 ## GitHub Copilot
 
-### Chosen source
-
-The public Billing REST API offers dedicated AI credits reports for a paid
-personal account and for an organization. TokenUsage uses version `2026-03-10`,
-a fine-grained token supplied by the user, and Windows Credential Locker.
-
-The personal account requires `Plan: read`. The organization requires
-`Administration: read` and an administrator. Each connection declares its
-scope. The client resolves the login with `GET /user` and does not ask for the
-username. The result shows used credits, covered discount, and net charge. The
-organization view is labeled as the entity total and, if GitHub publishes it,
-the Business or Enterprise `plan_type`.
-
-### Coverage and policy
-
-- Paid personal: usage and charge for Pro, Pro+, or Max under AI credits billing.
-- Free and Student: `Unsupported` until a useful public response is validated.
-- Legacy annual plan: outside the first subset.
-- Business or Enterprise: organization total for administrators; an ordinary member receives `InsufficientPermission`.
-
-The API does not return the effective allocation or the balance. The app does
-not calculate remaining quota from plan tables because the flex portion changes
-and organization pools depend on licenses and budgets.
-
-`/copilot_internal/user`, simulated editor identity, extension files,
-`hosts.yml`, another app's Credential Manager, cookies, and `gh auth` stay
-forbidden. The provider ignores an existing editor or GitHub CLI session.
-
-The gate is resolved as `implement-subset`. The public build stays off until
-an authorized smoke and credential deletion.
-
-### VS Code chat sessions
-
-The repository owner approved this local source on 2026-09-28. VS Code (and
-Insiders and VSCodium) stores each Copilot chat session in
-`User\workspaceStorage\<hash>\chatSessions\` or
-`User\globalStorage\emptyWindowChatSessions\`. TokenUsage replays those
-files and keeps only request ids, times, model ids, token counters, and
-Copilot credits. Message text, tool data, paths, `workspace.json`, extension
-storage, and logs are never read. This is the only Copilot editor file that
-TokenUsage opens.
+The active local reader supports VS Code, Insiders, and VSCodium. It reads
+`User\workspaceStorage\<hash>\chatSessions\` and
+`User\globalStorage\emptyWindowChatSessions\`, including `.json` snapshots
+and `.jsonl` operation logs. Linked directories are excluded. It projects only
+the approved request IDs, times, model IDs, counters, and credits; message text,
+tool data, workspace descriptors, extension storage, and logs are not admitted.
+Raw files are never copied into usage storage.
 
 Output tokens and credits are measured. Input is a lower bound unless the
-request has per-model totals. Cost is the credit value (1 credit = $0.01)
-before the plan allowance, not the net charge. The quota stays unavailable.
-See [the complete VS Code source gate](source-gates/COPILOT-VSCODE.md).
+request supplies per-model totals. One recorded AI credit is valued at $0.01
+before the plan allowance; that is not the net account charge. Remaining quota
+is unavailable. The [VS Code source gate](source-gates/COPILOT-VSCODE.md)
+defines the allowlist, format limits, and privacy boundary.
 
-### Copilot CLI local telemetry
+The Billing REST client is a separate manual connection. Its contract uses a
+user-supplied fine-grained token in Credential Locker, `Plan: read` for a paid
+personal account, or `Administration: read` and administrator access for an
+organization. It reports used credits, discounts, and net charges. Organization
+results are entity totals. Free, Student, legacy annual, and ordinary-member
+cases are outside the validated subset. The client has no effective allocation
+or balance and does not invent remaining quota from plan tables. Public billing
+activation still requires an authorized account smoke check and credential
+deletion check.
 
-This is a separate gate from the Billing REST connection above. Copilot CLI
-`1.0.82` documents `gen_ai.client.token.usage`, but its file exporter writes all
-OTel signals into one JSONL file. The same file can contain session, user, tool,
-server, error, and—when enabled—prompt and response fields. The normal
-`.copilot` directory contains session history, logs, command history, settings,
-and credential-related state rather than a minimal usage store.
+Copilot CLI telemetry remains blocked: its exporter mixes metrics with other
+signals and identity. It requires a documented metrics-only export that filters
+content and identity before writing. See the separate
+[Copilot CLI gate](source-gates/COPILOT-CLI.md). TokenUsage never borrows editor
+or GitHub CLI authentication, `hosts.yml`, or private Copilot endpoints.
 
-Result: `policy-blocked`. TokenUsage does not open Copilot CLI telemetry,
-sessions, editor state, Credential Manager, or `gh auth`. Re-entry requires a
-documented metrics-only export that filters content and identity before the
-file is written. See [the complete Copilot CLI source gate](source-gates/COPILOT-CLI.md).
+## Other local sources
 
+**Grok Build** reads `GROK_HOME/logs/unified.jsonl` first and session
+`updates.jsonl` snapshots when needed. A summary is optional if the snapshot
+already provides model and time. Reported cost takes precedence over estimates.
+Grok Bot is a separate prepared provider: Build logs and xAI API credits are
+not Bot usage or quota. Its desktop profile and cloud-computer session are
+outside the approved sources.
 
+**OpenCode** uses `%USERPROFILE%\.local\share\opencode`, accepts SQLite and
+legacy JSON, and excludes `auth.json`. It deduplicates across formats without
+copying the database. Native Windows is the supported local path; each WSL
+distro needs separate detection and consent. `opencode stats` can serve as a
+comparison reference, but its human-readable output is not the adapter format.
 
-Upstream comparison source: [Copilot provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/copilot.md).
+**ZCode** reads only numeric usage columns from
+`%USERPROFILE%\.zcode\cli\db\db.sqlite`. Input includes read-cache tokens;
+reasoning is part of output. Event keys hash the row ID. Missing required
+columns produce `UnsupportedSchema`. Credentials, message/session tables,
+history, and rollout files are excluded. Reconciliation covers 35 days. Plan
+credits do not become invoice cost or an estimate of remaining quota.
 
-## Antigravity
+**Antigravity** accepts bounded generation metadata from local `.db` files in
+the `antigravity`, `antigravity-cli`, and `antigravity-ide` roots. Unknown rows
+stay partial and unknown models stay unpriced. Encrypted `.pb` files, transcript,
+decryption, helper daemons, tokens, CSRF values, private RPCs, and automated TUI
+access are excluded. Local tokens do not establish quota or credits.
 
-### Quota
+**Amp** uses the ledger without opening threads. **Mux** uses aggregate
+`session-usage.json` without transcripts. **Goose** and **Hermes** select numeric
+session totals from their databases. An empty `.hermes` directory, or one owned
+by another application, does not establish an installed Hermes source.
 
-Antigravity documents [`/usage`](https://antigravity.google/docs/cli/commands/usage) and [`/credits`](https://antigravity.google/docs/cli-credits) inside its TUI, without machine output. Its [FAQ](https://antigravity.google/docs/faq) prohibits using the Antigravity login from third-party software. The app does not read Windows Credential Manager, does not automate the TUI, and does not call Cloud Code, the language server, or a private RPC.
+When background collection is on, detected Claude, Cursor, Grok, and ZCode
+clients can use task-completion hooks. The hook discards its payload and only
+requests a refresh of TokenUsage's own data. The CLI exposes
+`tokenusage <provider> install-hook|status|uninstall-hook`; uninstall preserves
+the rest of the client's configuration. Hooks do not supply token counters or
+remaining quota.
 
-### Permitted local source
+## Opt-in remote connections
 
-- `.db` conversations with `gen_metadata` and tokens per generation
-- read-only SQLite open
-- a future statusline only if the user installs it explicitly and supplies minimum data
+Keys belong to the user and are stored in Windows Credential Locker. Removing
+a key disables its connection. These readings remain separate from observed
+local totals to avoid counting the same activity twice.
 
-Encrypted `.pb` files, decryption, helper daemon, token, CSRF, and transcript
-are excluded. The passive reader accepts the `antigravity`, `antigravity-cli`,
-and `antigravity-ide` roots, limits files, rows, and BLOBs, and keeps as
-partial any row that does not match the observed schema.
+### OpenRouter
 
-### Result
+The active path calls only `GET /api/v1/key` with the saved key. It reports that
+key's limit, remaining budget, and spending today, this week, and this month
+using UTC boundaries. It does not report tokens. Account credit and activity
+endpoints that require a management key are outside this path.
 
-Active experimental local integration: it delivers tokens and estimated API
-cost for known exact aliases, and keeps unknown models unpriced. Quota and
-credits stay `Blocked` while the current contract applies.
+Ordinary refresh reuses a reading for ten minutes. Throttling preserves the
+last available reading and honors `Retry-After`. Missing or rejected credentials
+require setup; unsupported responses do not become zero usage.
 
-Upstream comparison source: [Antigravity provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/antigravity.md).
+### Vercel AI Gateway
 
-## Devin
+The connection accepts an API key and optional key ID. Requests use a fixed
+gateway origin without redirects. The usage report covers the saved key's last
+30 UTC days and requires an eligible Pro or Enterprise plan; report requests
+can incur provider charges. Team credits are a separate balance. Key quota is
+best effort: an unavailable quota endpoint does not imply an unlimited budget.
 
-### Chosen source
+Ordinary refresh reuses a reading for at least one hour. Forced refresh can
+request another paid report. Real-account validation remains separate from
+fixture and local test evidence.
 
-The public v3 API returns daily consumption of an organization. TokenUsage
-accepts a service user with organization scope, `ManageBilling` permission,
-manual ID, and key in Credential Locker. The client pins `api.devin.ai` and
-calls only `GET /v3/organizations/{org_id}/consumption/daily`.
+## Prepared and blocked providers
 
-The card shows ACUs and a per-product breakdown during an explicit period. It
-does not claim remaining quota or dollars.
+Prepared providers have no active reader. The catalog is the source of truth
+for their names, capabilities, aliases, and accepted credential types. Saving
+a credential for a prepared provider does not prove that its API is integrated.
+Devin's retained experimental client, for example, remains outside active
+composition until its organization-scoped permission and live-account checks
+pass. It reports ACUs, not dollars or remaining quota.
 
-### Coverage and policy
+The nine blocked catalog entries are Perplexity, Z.ai, Gemini CLI, Kilo Code,
+Zed, Kimi CLI, Kimi Code, Cline, and Cline CLI. Their source gate must change
+before a reader can be enabled. Quota can also be blocked for an active local
+provider; a safe token source does not grant permission to read credentials
+or call private account endpoints.
 
-- Organization: experimental subset with daily ACUs and total.
-- Self-serve: `Unsupported`; quota and balance remain only in the dashboard.
-- Enterprise: aggregate and ACU limits outside the first subset because of the key's broad scope.
-- Dedicated deployment: custom host outside the first subset.
+Gemini CLI's current chat and telemetry files mix counters with content or
+identity. Its interactive `/stats` command is not a passive history export.
+The [Gemini CLI gate](source-gates/GEMINI-CLI.md) requires a documented
+metrics-only source. Do not infer Gemini API cost or Google quota from local
+CLI observations.
 
-The CLI file, app SQLite, `server.codeium.com` RPC, simulated identity, host
-taken from configuration, and Session Insights stay forbidden. Session Insights
-returns ACUs, but also session material that the engine does not need.
+## Measurement limits
 
-The gate is resolved as `implement-experimental-subset`. The `ManageBilling`
-permission must be scoped to a single organization and pass an authorized smoke
-before the public build is enabled.
+Reports describe observed usage, not model quality or all activity on the PC.
+Quota observations are sampled levels, not a complete consumption ledger.
+Current sources do not prove model-to-quota-pool attribution, so normalized
+quota ratios remain unavailable. Reset-cycle comparisons use Codex and the
+opt-in Claude reading, expose gaps, and compare a shared elapsed duration.
 
+Exact-time charts exclude daily or unknown timing. Optional operational facts
+and attribution have independent consent, bounded backfill, and revocation
+rules. Raw retention, immutable snapshots, source authority, derived report
+methods, and recovery limits are documented in
+[usage storage](USAGE-STORAGE.md). A new collection cannot reconstruct quota
+history that was never observed.
 
+## Publication gate
 
-Upstream comparison source: [Devin provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/devin.md).
+Every integration starts with a provider issue and follows the
+[contributor testing guide](CONTRIBUTOR-TESTING.md), even when maintainers cannot
+access the provider. Before publication, provide:
 
+- A documented source, precedence rules, and terms, policy, and brand review.
+- A Windows check of default paths and environment overrides, plus a check
+  inside the signed MSIX and against a real supported provider version.
+- Sanitized fixtures, a settled response contract, size limits, timeout, and
+  cancellation handling.
+- Missing, expired, unsuitable, throttled, and changed-schema cases; defined
+  account switching and safe credential rotation.
+- Proof that only admitted fields reach storage. Readers of mixed files must
+  skip prompt, response, task, and command content; credential files remain
+  excluded.
+- Logs and cache without secrets, and a differential total against a reference
+  on the same fixture.
+- UI text that states source, coverage, and limits, separates reported and
+  estimated cost, and keeps unpriced models visible.

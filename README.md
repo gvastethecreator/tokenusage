@@ -54,9 +54,9 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 
 | State | Count | Meaning |
 |---|---:|---|
-| Active | 11 | A bounded reader produces real local usage data. |
-| Opt-in, held | 1 | The adapter is retained, but the provider is currently disabled. |
-| Prepared | 35 | Identity, capabilities, and status exist. No reader runs. |
+| Active | 12 | A bounded reader produces real local usage data. |
+| Opt-in | 2 | A remote reader runs after you save your own API key. |
+| Prepared | 33 | Identity, capabilities, and status exist. No reader runs. |
 | Policy blocked | 9 | The known source is unsafe, private, unstable, or not permitted. |
 
 ### Active readers
@@ -68,12 +68,18 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 | Cursor | Yes, partial | Estimated when the model matches | Not available through the current contract |
 | Grok Build | Yes | Reported or estimated | Not available through an approved interface |
 | ZCode | Yes, counters per request | Estimated when the model matches | Not available through an approved interface |
-| OpenCode | Yes | Reported | No common quota source |
+| OpenCode | Yes | Reported or estimated | No common quota source |
 | Antigravity | Yes, experimental | Estimated | Blocked by policy |
 | Amp | Yes, partial | Credits stay separate from USD | No stable public source |
 | Mux | Yes | Reported | No common quota source |
 | Goose | Yes, partial | Estimated when pricing exists | No common quota source |
 | Hermes | Yes, partial | Reported or estimated | No common quota source |
+| GitHub Copilot | Yes, VS Code chat sessions, partial | Recorded AI credits before plan allowances | No remaining-quota source |
+
+OpenRouter and Vercel AI Gateway are opt-in remote connections. OpenRouter reads
+key limits and UTC spending totals. Vercel reads the saved key's usage, available
+budget, and team credit balance. These account readings stay separate from local
+usage totals. Save or remove your key in Settings; keys use Windows Credential Locker.
 
 See the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, planned providers, and publication gates.
 
@@ -179,9 +185,7 @@ For a quick dependency and security pass on active projects:
 .\scripts\audit.ps1
 ```
 
-The repository uses the .NET SDK and MSBuild; no Bun or pnpm runtime is part
-of this native project. Archived probes under `.scratch` are retained as
-evidence and are not part of the active dependency graph.
+The repository uses the .NET SDK and MSBuild.
 
 ## Command line
 
@@ -222,6 +226,7 @@ The JSON contracts use versioned names such as `tokenusage.usage.v1`, `tokenusag
 | `src/TokenUsage.App` | WinUI views, view models, and application composition |
 | `src/TokenUsage.Core` | Portable domain, storage, cache, and coordination contracts |
 | `src/TokenUsage.Providers` | Provider adapters and pricing support |
+| `src/TokenUsage.Presentation` | Shared dashboard and report presentation |
 | `src/TokenUsage.Platform.Windows` | Windows integration |
 | `src/TokenUsage.Runtime.Windows` | Shared Windows runtime composition |
 | `src/TokenUsage.Cli` | Commands and stable JSON output |

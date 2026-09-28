@@ -6,7 +6,7 @@ Start with the [main README](../README.md) for supported providers, requirements
 
 - [Provider matrix](PROVIDER-MATRIX.md): sources, coverage, limits, and publication gates.
 - [Pricing evidence](PRICING.md): reported and estimated costs, unpriced usage, and source refresh.
-- [Usage history upgrades](USAGE-STORAGE.md): migration copies, failed upgrades, and recovery limits.
+- [Usage history and storage](USAGE-STORAGE.md): upgrades, recovery, retention, and optional attribution.
 
 ## Contributor references
 
