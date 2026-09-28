@@ -75,6 +75,7 @@
                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                     HorizontalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}" />
+                <Canvas x:Name="DateTicksCanvas" IsHitTestVisible="False" />
                 <TextBlock
                     x:Name="LastDayLabel"
                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"

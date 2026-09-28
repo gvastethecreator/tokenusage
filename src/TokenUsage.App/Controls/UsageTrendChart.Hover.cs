@@ -24,6 +24,8 @@ public sealed partial class UsageTrendChart
     private TextBlock? _hoverTotal;
     private TextBlock? _hoverResets;
     private readonly List<TextBlock> _hoverAmounts = [];
+    private readonly List<FrameworkElement> _hoverRows = [];
+    private TextBlock? _hoverQuiet;
     private const int MaximumHoverRows = 8;
 
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
@@ -143,14 +145,23 @@ public sealed partial class UsageTrendChart
             _hoverContentData = Data;
             HoverContent.Children.Clear();
             _hoverAmounts.Clear();
+            _hoverRows.Clear();
             _hoverDate = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.WrapWholeWords };
             HoverContent.Children.Add(_hoverDate);
             foreach (var series in Data.Series.Take(MaximumHoverRows))
             {
                 Grid row = CreateHoverRow(series, "");
                 _hoverAmounts.Add((TextBlock)row.Children[^1]);
+                _hoverRows.Add(row);
                 HoverContent.Children.Add(row);
             }
+            // Series with nothing observed that day fold into one quiet line instead of a row each.
+            _hoverQuiet = new TextBlock
+            {
+                FontSize = 11, TextWrapping = TextWrapping.WrapWholeWords,
+                Foreground = TextBrushProxy.Background, Visibility = Visibility.Collapsed,
+            };
+            HoverContent.Children.Add(_hoverQuiet);
             if (Data.Series.Count > MaximumHoverRows)
                 HoverContent.Children.Add(new TextBlock
                 {
@@ -176,6 +187,7 @@ public sealed partial class UsageTrendChart
         bool hasUnknown = false;
         bool hasMeasured = false;
         bool hasUnobserved = false;
+        var quiet = new List<string>();
         for (int i = 0; i < Data.Series.Count; i++)
         {
             UsageReportTrendSeries series = Data.Series[i];
@@ -186,7 +198,18 @@ public sealed partial class UsageTrendChart
             else hasMeasured = true;
             if (kind == UsageTrendPointKind.Measured && double.IsFinite(value)) total += value;
             if (i < _hoverAmounts.Count)
+            {
                 _hoverAmounts[i].Text = FormatValue(value, Data.Metric, kind, exact: true);
+                bool silent = kind == UsageTrendPointKind.Unobserved;
+                _hoverRows[i].Visibility = silent ? Visibility.Collapsed : Visibility.Visible;
+                if (silent) quiet.Add(series.LegendName ?? series.Name);
+            }
+        }
+        if (_hoverQuiet is not null)
+        {
+            _hoverQuiet.Text = quiet.Count == 0 ? string.Empty : string.Format(
+                System.Globalization.CultureInfo.CurrentCulture, GetString("UsageReportChartNoDataFormat"), string.Join(", ", quiet));
+            _hoverQuiet.Visibility = quiet.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
         if (_hoverTotal is not null)
         {

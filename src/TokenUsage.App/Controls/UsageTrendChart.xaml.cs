@@ -179,6 +179,7 @@ public sealed partial class UsageTrendChart : UserControl
         EmptyText.Visibility = hasSeries ? Visibility.Collapsed : Visibility.Visible;
         HoverCard.Width = data.IsComparison ? Math.Min(400, Math.Max(260, ActualWidth)) : 260;
         UpdateDateLabels(data);
+        UpdateDateTicks(data, width);
         BuildLegend(data);
         BuildResetLegend(data);
         if (!hasSeries)
@@ -317,8 +318,35 @@ public sealed partial class UsageTrendChart : UserControl
         }
 
         FirstDayLabel.Text = data.Days[0].Label;
-        MiddleDayLabel.Text = data.Days[data.Days.Count / 2].Label;
+        MiddleDayLabel.Text = data.Days.Count < WeeklyTickMinimumDays ? data.Days[data.Days.Count / 2].Label : string.Empty;
         LastDayLabel.Text = data.Days[^1].Label;
+    }
+
+    private const int WeeklyTickMinimumDays = 10;
+
+    // Longer ranges get a label every seven days, under its day, so the reader can find a week
+    // without counting bars. Labels that would crowd the first or last date are skipped.
+    private void UpdateDateTicks(UsageReportTrendDataset data, double width)
+    {
+        DateTicksCanvas.Children.Clear();
+        if (IsPreview || data.Days.Count < WeeklyTickMinimumDays || width <= 0) return;
+        bool slots = data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars;
+        const double edgeClearance = 64;
+        for (int index = 7; index < data.Days.Count - 1; index += 7)
+        {
+            double x = slots ? (index + 0.5) * width / data.Days.Count : index * width / (data.Days.Count - 1);
+            if (x < edgeClearance || x > width - edgeClearance) continue;
+            var label = new TextBlock
+            {
+                Text = data.Days[index].Label,
+                Foreground = TextBrushProxy.Background,
+                Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+                Opacity = 0.85,
+            };
+            label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(label, x - label.DesiredSize.Width / 2);
+            DateTicksCanvas.Children.Add(label);
+        }
     }
 
     private string FormatValue(

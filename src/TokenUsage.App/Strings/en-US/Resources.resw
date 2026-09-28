@@ -1433,4 +1433,5 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerMoreFiltersLabel.Text" xml:space="preserve"><value>More filters</value></data>
   <data name="UsageReportChartAverageFormat" xml:space="preserve"><value>{0} avg/day</value></data>
   <data name="UsageHighlightTrendTimesFormat" xml:space="preserve"><value>{0}× the week before</value></data>
+  <data name="UsageReportChartNoDataFormat" xml:space="preserve"><value>No data: {0}</value></data>
 </root>

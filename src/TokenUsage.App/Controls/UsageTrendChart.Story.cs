@@ -17,6 +17,7 @@ public sealed partial class UsageTrendChart
 {
     private const double DimmedColumnOpacity = 0.4;
     private readonly Dictionary<int, Canvas> _barColumns = [];
+    private Canvas? _marksLayer;
     private int _slotsPerDay = 1;
 
     private Canvas BarColumn(int slot)
@@ -44,6 +45,7 @@ public sealed partial class UsageTrendChart
     private void ResetBarColumns(UsageReportTrendDataset data)
     {
         _barColumns.Clear();
+        _marksLayer = null;
         _slotsPerDay = data.Style == ReportChartStyle.TwoHourBars ? 12 : 1;
     }
 
@@ -64,16 +66,48 @@ public sealed partial class UsageTrendChart
             grow.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
             visual.StartAnimation("Scale.Y", grow);
         }
+
+        // The average line and peak label describe finished bars, so they arrive after them.
+        if (_marksLayer is null || _barColumns.Count == 0) return;
+        Visual marks = ElementCompositionPreview.GetElementVisual(_marksLayer);
+        ScalarKeyFrameAnimation fade = marks.Compositor.CreateScalarKeyFrameAnimation();
+        fade.InsertKeyFrame(0, 0);
+        fade.InsertKeyFrame(1, 1);
+        fade.Duration = TimeSpan.FromMilliseconds(200);
+        fade.DelayTime = MotionSettings.ReportChartGrowStagger * (_barColumns.Keys.Max() / _slotsPerDay)
+            + MotionSettings.ReportChartGrowDuration * 0.7;
+        fade.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+        marks.StartAnimation("Opacity", fade);
     }
 
     private void FinishColumnGrow()
     {
+        if (_marksLayer is not null)
+        {
+            Visual marks = ElementCompositionPreview.GetElementVisual(_marksLayer);
+            marks.StopAnimation("Opacity");
+            marks.Opacity = 1;
+        }
+
         foreach (Canvas column in _barColumns.Values)
         {
             Visual visual = ElementCompositionPreview.GetElementVisual(column);
             visual.StopAnimation("Scale.Y");
             visual.Scale = Vector3.One;
         }
+    }
+
+    /// <summary>Moves the chart's day focus to <paramref name="date"/> and shows its hover card.</summary>
+    internal bool RevealDay(DateOnly date)
+    {
+        int index = Data.Days.ToList().FindIndex(day => day.Date == date);
+        if (index < 0 || Visibility != Visibility.Visible) return false;
+        CancelPendingHover();
+        _hoverIndex = index;
+        StartBringIntoView(new BringIntoViewOptions { AnimationDesired = MotionSettings.AreAnimationsEnabled(), VerticalAlignmentRatio = 0.3 });
+        if (FocusState == FocusState.Unfocused) Focus(FocusState.Programmatic);
+        ShowHover(index, animate: false);
+        return true;
     }
 
     private void EmphasizeDay(int? day)
@@ -99,7 +133,9 @@ public sealed partial class UsageTrendChart
         double available = baseline - TopPadding;
         double average = active.Average();
         double averageY = baseline - scale.Normalize(average) * available;
-        PlotCanvas.Children.Add(new Line
+        _marksLayer = new Canvas { IsHitTestVisible = false };
+        PlotCanvas.Children.Add(_marksLayer);
+        _marksLayer.Children.Add(new Line
         {
             X1 = 0, X2 = width, Y1 = averageY, Y2 = averageY,
             Stroke = TextBrushProxy.Background, StrokeThickness = 1, StrokeDashArray = [4, 3],
@@ -112,16 +148,16 @@ public sealed partial class UsageTrendChart
             int peak = Array.IndexOf(totals, totals.Max());
             double peakX = (peak + 0.5) * width / data.Days.Count;
             double peakY = baseline - scale.Normalize(totals[peak]) * available;
-            peakRect = AddMarkLabel(FormatValue(totals[peak], data.Metric), peakX, peakY, alignRight: false);
+            peakRect = AddMarkLabel(FormatValue(totals[peak], data.Metric, exact: true), peakX, peakY, alignRight: false);
         }
 
         string averageText = string.Format(System.Globalization.CultureInfo.CurrentCulture,
-            GetString("UsageReportChartAverageFormat"), FormatValue(average, data.Metric));
+            GetString("UsageReportChartAverageFormat"), FormatValue(average, data.Metric, exact: true));
         Windows.Foundation.Rect averageRect = AddMarkLabel(averageText, width, averageY, alignRight: true);
         if (peakRect is { } occupied && Intersects(occupied, averageRect))
         {
             // The peak sits over the right edge; move the average label to the left edge instead.
-            PlotCanvas.Children.RemoveAt(PlotCanvas.Children.Count - 1);
+            _marksLayer.Children.RemoveAt(_marksLayer.Children.Count - 1);
             AddMarkLabel(averageText, 0, averageY, alignRight: false, anchorLeft: true);
         }
     }
@@ -149,7 +185,7 @@ public sealed partial class UsageTrendChart
         double top = Math.Max(0, y - label.DesiredSize.Height - 3);
         Canvas.SetLeft(label, left);
         Canvas.SetTop(label, top);
-        PlotCanvas.Children.Add(label);
+        _marksLayer!.Children.Add(label);
         return new Windows.Foundation.Rect(left, top, label.DesiredSize.Width, label.DesiredSize.Height);
     }
 }
