@@ -2038,7 +2038,7 @@
                                         <Button Grid.Column="1" x:Uid="UsageDashboardViewAll"
                                             AutomationProperties.AutomationId="UsageDashboardOperationsViewAll"
                                             Click="OnDashboardOperationsViewAllClick" Style="{StaticResource SubtleButtonStyle}"
-                                            IsEnabled="{x:Bind ViewModel.CanOpenDashboardOperations, Mode=OneWay}" />
+                                            Visibility="{x:Bind ViewModel.CanOpenDashboardOperations, Mode=OneWay}" />
                                     </Grid>
                                     <StackPanel Orientation="Horizontal" Spacing="8"
                                         Visibility="{x:Bind ViewModel.HasDashboardOperationKindSwitch, Mode=OneWay}">
@@ -2102,7 +2102,7 @@
                                         <Button Grid.Column="1" x:Uid="UsageDashboardViewAll"
                                             AutomationProperties.AutomationId="UsageDashboardActivityViewAll"
                                             Click="OnDashboardOperationsViewAllClick" Style="{StaticResource SubtleButtonStyle}"
-                                            IsEnabled="{x:Bind ViewModel.CanOpenDashboardOperations, Mode=OneWay}" />
+                                            Visibility="{x:Bind ViewModel.CanOpenDashboardOperations, Mode=OneWay}" />
                                     </Grid>
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.DashboardActivityBars, Mode=OneWay}">
                                         <ItemsRepeater.ItemTemplate>
