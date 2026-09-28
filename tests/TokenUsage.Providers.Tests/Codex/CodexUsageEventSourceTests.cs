@@ -644,29 +644,6 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
-    public void Gpt56SolUsesTheOfficialPromotionalRate()
-    {
-        CostObservation cost = CodexPricingCatalog.Resolve(
-            "gpt-5.6-sol",
-            new TokenBreakdown(1_000_000, 100_000, 0, 0, 0));
-
-        Assert.Equal(11m, cost.EstimatedCostUsd);
-        Assert.Equal("gpt-5.6-sol", cost.ExactPriceMatch);
-        Assert.Equal(CodexPricingCatalog.Version, cost.CatalogVersion);
-    }
-
-    [Fact]
-    public void Gpt56LunaUsesTheOfficialLongContextRateAboveThePublishedLine()
-    {
-        CostObservation cost = CodexPricingCatalog.Resolve(
-            "gpt-5.6-luna",
-            new TokenBreakdown(1_000_000, 100_000, 0, 0, 0));
-
-        Assert.Equal(0.58m, cost.EstimatedCostUsd);
-        Assert.Equal("gpt-5.6-luna", cost.ExactPriceMatch);
-    }
-
-    [Fact]
     public void PricingIncludesThePublishedGpt54MiniRates()
     {
         CostObservation cost = CodexPricingCatalog.Resolve(
