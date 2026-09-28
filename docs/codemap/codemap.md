@@ -1,7 +1,7 @@
 # Code map: tokenusage
 
-Generated: 2026-09-28T07:23:20Z | Commit: `ecb9632b352f` | Schema: 2
-Generation: `1cc9a3579085ef1e0b580394e8e822f51008b48fab5f8e23607f326837350b0a`
+Generated: 2026-09-28T07:48:03Z | Commit: `ddb6f41928c8` | Schema: 2
+Generation: `6e75c02b49e3cba40714e18e2ce0e8e59892abf46c15898ee262f2c139ca1009`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
 Nodes: 580 | Edges: 4202 | Flows: 0
 
@@ -111,7 +111,7 @@ Nodes: 580 | Edges: 4202 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +3 / -0; edges: +28 / -0.
+- Nodes: +0 / -0; edges: +0 / -0.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "ecb9632b352fe0cf737fe970cef56c7679f93afe",
+  "source_commit": "ddb6f41928c8376262c5aa3c9796e9f2dd58f72c",
   "working_tree_dirty": true,
-  "generated_at": "2026-09-28T07:23:20Z",
-  "generation_id": "1cc9a3579085ef1e0b580394e8e822f51008b48fab5f8e23607f326837350b0a",
+  "generated_at": "2026-09-28T07:48:03Z",
+  "generation_id": "6e75c02b49e3cba40714e18e2ce0e8e59892abf46c15898ee262f2c139ca1009",
   "analysis": {
     "version": "syntax-1",
     "digest": "f254907343def68e42baabf08b179db9817a145bc24eaad26add0adf05d75581"
@@ -1372,7 +1372,7 @@
       },
       {
         "path": "src/TokenUsage.Core/Usage/CoverageAggregation.cs",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "8f1e07c4f7b4d6f6383b71eaf249550e6f061e0e2e250675cc4a56347baebd58",
         "size": 543
@@ -2487,8 +2487,8 @@
         "path": "src/TokenUsage.Providers/CopilotVsCode/CopilotVsCodeUsagePaths.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "1fb6192d0dad22dd1914001889f06df77c9839ce748fd1689448f5e4c288d886",
-        "size": 2979
+        "digest": "5a5a28e6c1ce85d6b5686dc91ef69ab00e1438c8f2dd5df7bff68137dc95efb1",
+        "size": 3151
       },
       {
         "path": "src/TokenUsage.Providers/Cursor/CursorPricingCatalog.cs",
@@ -2569,7 +2569,7 @@
       },
       {
         "path": "src/TokenUsage.Providers/LocalUsageSqlite.cs",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "fd291fbb2ceb97a61d9a98b7620c0162d5a89ace9fea2364d11b5d834818ccce",
         "size": 2338
@@ -2674,7 +2674,7 @@
       },
       {
         "path": "src/TokenUsage.Providers/ProviderHttpResponse.cs",
-        "origin": "untracked",
+        "origin": "tracked",
         "state": "present",
         "digest": "90f77f59eb6eb106b06e52dedb594f8b5ee832681986db28d52cef1078fa3a88",
         "size": 1617
@@ -4059,12 +4059,12 @@
         "size": 326
       }
     ],
-    "digest": "4bfbd1d325fb639993dd446dafbf1515471bcb4b7738fb54add93398f5fd58c4"
+    "digest": "72ea03eccc0d007014ada5057a77650b770601fd956eec92de473632a0563951"
   },
-  "source_digest": "0e015dc9ffd41b31617ad26dd52a497578b5e39be2baade3420c49a13bffa65f",
+  "source_digest": "975fcfadcc6cca8b5693be31598bb44ae3ac02b4cdcc9d5f2c14294ed42e12a2",
   "artifact_hashes": {
-    "codemap.json": "8e4ad3c187dd4e6795acda8d7f2e50a5ddc7c7075307945b564f2c403fb51ef6",
-    "codemap.md": "affe7f53d97f51547778980bb496492e385ead9d9d2be8b7c77c6d17f86bc1b4",
-    "codemap.html": "c429cc2e7e2172bc3edabf64264db1f5f8cfda8ffb768ed789d4b53e0c37549b"
+    "codemap.json": "a6fc513c757cf4f3f0d59c719044348e0ae8d45efe33b8089f63636789f5e466",
+    "codemap.md": "4a4eeb5f678297ed5344256797c9f7a3c42c82431e6da7a7b5da592bdd6ad7dd",
+    "codemap.html": "c4337be0d42ab5839c07259edc1f7dcc6291537f7d4f1644da93de399545ee8b"
   }
 }

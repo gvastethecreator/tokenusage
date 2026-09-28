@@ -64,7 +64,14 @@ public static class CopilotVsCodeUsagePaths
 
     private static bool IsPlainDirectory(string path)
     {
-        var info = new DirectoryInfo(path);
-        return info.Exists && (info.Attributes & FileAttributes.ReparsePoint) == 0;
+        for (DirectoryInfo? directory = new(path); directory is not null; directory = directory.Parent)
+        {
+            if (!directory.Exists || (directory.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
