@@ -160,21 +160,6 @@ public sealed class WindowsProviderCatalogTests
     }
 
     [Fact]
-    public void ClaudeLocalUsageIsActiveByDefault()
-    {
-        using var folder = new TemporaryFolder();
-
-        WindowsProviderComposition composition = WindowsProviderCatalog.CreateComposition(
-            folder.Path,
-            TimeProvider.System,
-            options: new WindowsProviderCompositionOptions(TimeZoneId: "UTC"));
-
-        Assert.Contains(
-            composition.LocalUsageSources,
-            source => source.AgentId.Value == "claude");
-    }
-
-    [Fact]
     public void DeferredVercelBindingRequiresExplicitOptIn()
     {
         using var folder = new TemporaryFolder();

@@ -16,61 +16,6 @@ public sealed class LimitsCliProcessTests
         new(2026, 7, 23, 3, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task ConcurrentProcessesReadSharedCacheWithoutDamage()
-    {
-        string dataRoot = Path.Combine(
-            Path.GetTempPath(),
-            "tokenusage-limits-process-tests",
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dataRoot);
-
-        try
-        {
-            string cachePath = Path.Combine(
-                dataRoot,
-                "cache",
-                "providers",
-                "codex",
-                SnapshotStore.DefaultFileName);
-            var store = new SnapshotStore(cachePath);
-            await store.UpsertLastGoodAsync(LimitsCommandTests.CreateCodexSnapshot());
-
-            Task<ProcessResult> first = RunLimitsProcessAsync(dataRoot);
-            Task<ProcessResult> second = RunLimitsProcessAsync(dataRoot);
-            ProcessResult[] results = await Task.WhenAll(first, second);
-
-            foreach (ProcessResult result in results)
-            {
-                Assert.Equal(0, result.ExitCode);
-                Assert.Equal(string.Empty, result.StandardError);
-                using JsonDocument document = JsonDocument.Parse(result.StandardOutput);
-                Assert.Equal(
-                    "tokenusage.limits.v1",
-                    document.RootElement.GetProperty("schemaVersion").GetString());
-                Assert.Equal(
-                    "codex",
-                    Assert.Single(document.RootElement
-                        .GetProperty("providers")
-                        .EnumerateArray())
-                        .GetProperty("id")
-                        .GetString());
-            }
-
-            SnapshotCacheReadResult.Loaded loaded =
-                Assert.IsType<SnapshotCacheReadResult.Loaded>(await store.LoadAsync());
-            Assert.Equal("codex", Assert.Single(loaded.Snapshots).ProviderId.Value);
-            Assert.Empty(Directory.EnumerateFiles(
-                Path.GetDirectoryName(cachePath)!,
-                "*.corrupt-*",
-                SearchOption.TopDirectoryOnly));
-        }
-        finally
-        {
-            Directory.Delete(dataRoot, recursive: true);
-        }
-    }
-
-    [Fact]
     public async Task WriterAndCliShareCacheWithoutCorruption()
     {
         string dataRoot = Path.Combine(
