@@ -1,0 +1,16 @@
+# Text is stored and checked out with LF on every platform; .NET, PowerShell 7 and the
+# Windows editors used here all read LF. Declaring it stops core.autocrlf rewrites.
+* text=auto eol=lf
+
+# Windows command scripts need CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.webp binary
+*.ico binary
+*.jpg binary
+*.gif binary
+*.zip binary
+*.pfx binary
+*.cer binary
