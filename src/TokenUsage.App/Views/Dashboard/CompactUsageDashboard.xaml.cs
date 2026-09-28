@@ -82,9 +82,11 @@ public sealed partial class CompactUsageDashboard : UserControl
         ProviderDetailStack.Spacing = isCompact ? 6 : 8;
     }
 
+    // The live session can publish before this view receives its view model. Throwing here
+    // aborted that refresh before it read Claude's limits, so an early reveal is a no-op.
     public void ScheduleReveal()
     {
-        _ = ViewModel.RevealToken;
+        _ = _viewModel?.RevealToken;
     }
 
 
