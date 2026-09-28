@@ -48,6 +48,14 @@ public static class CompactDashboardProjector
         ArgumentNullException.ThrowIfNull(getString);
         ArgumentNullException.ThrowIfNull(getProviderLimits);
 
+        if (isSampleMode)
+        {
+            rollups = [];
+            detectedProviderIds = [];
+            apiProviderSummaries = [];
+            localUsage = LocalUsageCardProjector.Create([], today, getString);
+        }
+
         var limitsByProvider = new Dictionary<string, IReadOnlyList<QuotaWindow>>(
             StringComparer.Ordinal);
         IReadOnlyList<QuotaWindow> GetLimitsOnce(string providerId)

@@ -420,10 +420,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             return;
         }
 
-        if (_publishedObservedAtUtc is not null)
-        {
-        }
-
         if (_isPanelVisible
             && _rawDashboard is not null
             && _appearance.Settings.ResetTimeDisplay == ResetTimeDisplayMode.Relative)
@@ -431,6 +427,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             PublishActiveDashboard(_rawDashboard);
         }
     }
+
+    public Task RefreshLocalQuotaAsync() => _disposed || IsSampleModeEnabled || IsSessionRefreshing
+        ? Task.CompletedTask : _liveSession.RefreshLocalQuotaAsync();
 
     public void ShowGlobal() => Scope = DashboardScopeMode.Global;
 
@@ -508,8 +507,10 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public async Task StartAsync()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        await RunRefreshAsync(scenario: null, forceRefresh: false).ConfigureAwait(true);
-        if (!_disposed && !HasGlobalProviderLimits && !HasRequestedForcedRefresh)
+        await RunRefreshAsync(
+            IsSampleModeEnabled ? _general.SelectedSampleScenario.Value : null,
+            forceRefresh: false).ConfigureAwait(true);
+        if (!_disposed && !IsSampleModeEnabled && !HasGlobalProviderLimits && !HasRequestedForcedRefresh)
         {
             // One live pass per process when the cache-first snapshot has no official
             // Codex quota windows. The first panel open must not start a second pass.
@@ -576,7 +577,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             .ToArray();
         ApplySelectedProviderProjection(CompactDashboardProjector.CreateSelectedProvider(
             value.ProviderId,
-            _localUsageRollups,
+            IsSampleModeEnabled ? [] : _localUsageRollups,
             DateOnly.FromDateTime(_liveSession.Clock.GetLocalNow().DateTime),
             _getString,
             GetProviderLimits));
@@ -665,6 +666,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     private void ApplyLiveSessionChange(LiveDashboardSession session)
     {
+        if (IsSampleModeEnabled)
+        {
+            return;
+        }
+
         _lastCodexSnapshot = session.LastCodexSnapshot;
         _lastCodexOutcome = session.LastCodexOutcome;
         _lastClaudeSnapshot = session.LastClaudeSnapshot;

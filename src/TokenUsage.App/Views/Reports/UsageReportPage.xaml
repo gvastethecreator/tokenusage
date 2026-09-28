@@ -269,77 +269,30 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Width" Value="28" />
         </Style>
-        <!-- One quota window. Every pill keeps the pace row so a uniform grid never clips a taller one. -->
-        <DataTemplate x:Key="ReportQuotaPillTemplate" x:DataType="reports:UsageReportLimitItem">
-            <Grid
-                Padding="0,4,0,4"
-                VerticalAlignment="Top"
-                AutomationProperties.Name="{x:Bind AutomationName}"
-                RowSpacing="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid ColumnSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <controls:ProviderMarkImage Width="14" Height="14" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center"
-                        Visibility="{x:Bind ShowsProvider}" />
-                    <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}"
-                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                        ToolTipService.ToolTip="{x:Bind AutomationName}" />
-                    <TextBlock Grid.Column="2" Typography.NumeralAlignment="Tabular" FontSize="13" FontWeight="SemiBold"
-                        Text="{x:Bind Window.RemainingText}" TextAlignment="Right" VerticalAlignment="Center" />
-                </Grid>
-                <controls:AnimatedProgressBar
-                    Grid.Row="1"
-                    Height="10"
-                    AutomationName="{x:Bind AutomationName}"
-                    IndicatorScale="2.5"
-                    RemainingValue="{x:Bind Window.ColorRemainingPercent}"
-                    TargetValue="{x:Bind Window.RemainingPercent}" />
-                <Grid Grid.Row="2" ColumnSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource ReportDescriptionStyle}" Text="{x:Bind Window.ResetText}" TextTrimming="CharacterEllipsis"
-                        VerticalAlignment="Center">
-                        <ToolTipService.ToolTip>
-                            <ToolTip MaxWidth="332" Content="{x:Bind Window.ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
-                        </ToolTipService.ToolTip>
-                    </TextBlock>
-                    <Button Grid.Column="1" MinWidth="22" MinHeight="22" Padding="4"
-                        Style="{StaticResource SubtleButtonStyle}"
-                        AutomationProperties.Name="{x:Bind Window.UsedText}"
-                        AutomationProperties.HelpText="{x:Bind Window.UsedText}"
-                        Visibility="{x:Bind Window.HasUsedText}">
-                        <ToolTipService.ToolTip>
-                            <ToolTip MaxWidth="332" Content="{x:Bind Window.UsedText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
-                        </ToolTipService.ToolTip>
-                        <FontIcon FontSize="11" Glyph="&#xE946;" />
-                    </Button>
-                </Grid>
-                <Grid Grid.Row="3" ColumnSpacing="6" MinHeight="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <controls:ReportToneIcon Kind="alert-triangle" Tone="Caution" Width="12" Height="12"
-                        Visibility="{x:Bind Window.IsPaceBehind}" />
-                    <TextBlock Grid.Column="1"
-                        AutomationProperties.Name="{x:Bind Window.PaceAutomationName}"
-                        Style="{StaticResource ReportDescriptionStyle}"
-                        Text="{x:Bind Window.PaceText}"
-                        TextTrimming="CharacterEllipsis"
-                        VerticalAlignment="Center"
-                        ToolTipService.ToolTip="{x:Bind Window.PaceText}" />
-                </Grid>
+        <!-- Compact quota rows keep reset and pace details in their tooltip. -->
+        <DataTemplate x:Key="ReportQuotaRowTemplate" x:DataType="reports:UsageReportLimitItem">
+            <Grid ColumnSpacing="7" MinHeight="24" AutomationProperties.Name="{x:Bind AutomationName}">
+                <ToolTipService.ToolTip>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{x:Bind AutomationName}" />
+                        <TextBlock Text="{x:Bind Window.PaceText}"
+                            AutomationProperties.Name="{x:Bind Window.PaceAutomationName}"
+                            Visibility="{x:Bind Window.HasPace}" />
+                    </StackPanel>
+                </ToolTipService.ToolTip>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="52" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <controls:ProviderMarkImage Width="14" Height="14" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{x:Bind Title}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <controls:AnimatedProgressBar Grid.Column="2" Height="4" VerticalAlignment="Center"
+                    AutomationName="{x:Bind AutomationName}" IndicatorScale="1"
+                    RemainingValue="{x:Bind Window.ColorRemainingPercent}" TargetValue="{x:Bind Window.RemainingPercent}" />
+                <TextBlock Grid.Column="3" Text="{x:Bind Window.RemainingText}" FontSize="12" FontWeight="SemiBold"
+                    Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" TextAlignment="Right" />
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -1649,6 +1602,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1.65*" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Padding="16,12" Spacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,2">
@@ -1715,6 +1669,44 @@
                                         Visibility="{x:Bind ViewModel.HasUnpricedSummary, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
+                        <Border x:Name="ReportLimitsCard" Grid.Column="3" Padding="14,12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="1,0,0,0"
+                            AutomationProperties.AutomationId="UsageReportLimits"
+                            Visibility="{x:Bind ViewModel.HasLimitItems, Mode=OneWay}">
+                            <StackPanel Spacing="4">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <controls:ReportToneIcon Kind="gauge" Tone="Violet" />
+                                    <TextBlock x:Uid="UsageReportLimitsTitle" Style="{StaticResource ReportSectionLabelStyle}" />
+                                </StackPanel>
+                                <ItemsRepeater x:Name="ReportProviderLimitsContentRoot"
+                                    ItemTemplate="{StaticResource ReportQuotaRowTemplate}" ItemsSource="{x:Bind ViewModel.LimitItems, Mode=OneWay}">
+                                    <ItemsRepeater.Layout><StackLayout Spacing="2" /></ItemsRepeater.Layout>
+                                </ItemsRepeater>
+                                    <Grid
+                                        Margin="0,6,0,0"
+                                        Padding="0,9,0,0"
+                                        AutomationProperties.Name="{x:Bind ViewModel.ProviderCreditSummary.AutomationName, Mode=OneWay}"
+                                        BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+                                        BorderThickness="0,1,0,0"
+                                        ColumnSpacing="16"
+                                        Visibility="{x:Bind ViewModel.HasProviderCreditSummary, Mode=OneWay}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="2">
+                                            <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ProviderCreditSummary.Title, Mode=OneWay}" />
+                                            <TextBlock
+                                                Style="{StaticResource ReportDescriptionStyle}"
+                                                Text="{x:Bind ViewModel.ProviderCreditSummary.Detail, Mode=OneWay}" />
+                                        </StackPanel>
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Typography.NumeralAlignment="Tabular"
+                                            Text="{x:Bind ViewModel.ProviderCreditSummary.Value, Mode=OneWay}"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+                            </StackPanel>
+                        </Border>
                         </Grid>
                     </Border>
 
@@ -1952,48 +1944,7 @@
                         </ItemsRepeater>
 
 
-                        <!-- Quota windows: every provider that reports them in Global, the selected one in Provider. -->
-                        <Border x:Name="ReportLimitsCard" Padding="16,12" Style="{StaticResource ReportCardStyle}"
-                            AutomationProperties.AutomationId="UsageReportLimits"
-                            Visibility="{x:Bind ViewModel.HasLimitItems, Mode=OneWay}">
-                            <StackPanel Spacing="8">
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <controls:ReportToneIcon Kind="gauge" Tone="Violet" />
-                                    <TextBlock x:Uid="UsageReportLimitsTitle" Style="{StaticResource ReportCardTitleStyle}" />
-                                </StackPanel>
-                                <ItemsRepeater x:Name="ReportProviderLimitsContentRoot" SizeChanged="OnProviderLimitsSizeChanged"
-                                    ItemTemplate="{StaticResource ReportQuotaPillTemplate}" ItemsSource="{x:Bind ViewModel.LimitItems, Mode=OneWay}">
-                                    <ItemsRepeater.Layout>
-                                        <UniformGridLayout MaximumRowsOrColumns="4" MinColumnSpacing="20" MinItemWidth="240"
-                                            MinRowSpacing="8" Orientation="Horizontal" />
-                                    </ItemsRepeater.Layout>
-                                </ItemsRepeater>
-                                    <Grid
-                                        Margin="0,6,0,0"
-                                        Padding="0,9,0,0"
-                                        AutomationProperties.Name="{x:Bind ViewModel.ProviderCreditSummary.AutomationName, Mode=OneWay}"
-                                        BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
-                                        BorderThickness="0,1,0,0"
-                                        ColumnSpacing="16"
-                                        Visibility="{x:Bind ViewModel.HasProviderCreditSummary, Mode=OneWay}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="2">
-                                            <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ProviderCreditSummary.Title, Mode=OneWay}" />
-                                            <TextBlock
-                                                Style="{StaticResource ReportDescriptionStyle}"
-                                                Text="{x:Bind ViewModel.ProviderCreditSummary.Detail, Mode=OneWay}" />
-                                        </StackPanel>
-                                        <TextBlock
-                                            Grid.Column="1"
-                                            Typography.NumeralAlignment="Tabular"
-                                            Text="{x:Bind ViewModel.ProviderCreditSummary.Value, Mode=OneWay}"
-                                            VerticalAlignment="Center" />
-                                    </Grid>
-                            </StackPanel>
-                        </Border>
+
                     </StackPanel>
 
                         <!-- Token mix: one part-to-whole bar in a read (cool) / written (warm) palette, then the numbers. -->

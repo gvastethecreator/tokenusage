@@ -40,11 +40,11 @@ public sealed class CodexRateLimitsSnapshotMapperTests
     }
 
     [Fact]
-    public void StableDefaultMetricsRemainAndMirroredAdditionalBucketIsSkipped()
+    public void StableDefaultMetricsUseTheKeyedReadingAndSkipItsLegacyAlias()
     {
         CodexRateLimitWindow sharedPrimary = Window(25, ObservedAt.AddHours(5), 300);
         var source = new CodexRateLimitsSnapshot(
-            new CodexRateLimitBucket("pro", sharedPrimary, null) { LimitId = "codex" },
+            new CodexRateLimitBucket("pro", null, Window(90, ObservedAt.AddDays(7), 10080)) { LimitId = "codex" },
             new Dictionary<string, CodexRateLimitBucket>(StringComparer.Ordinal)
             {
                 ["Z_Model"] = new("pro", Window(75, ObservedAt.AddHours(2), 60), null),

@@ -106,9 +106,13 @@ public sealed partial class MainPage : Page, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void OnRelativeTimeTimerElapsed(
+    private async void OnRelativeTimeTimerElapsed(
         Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
-        object args) => ViewModel.RefreshRelativeTime();
+        object args)
+    {
+        await ViewModel.Dashboard.RefreshLocalQuotaAsync();
+        ViewModel.RefreshRelativeTime();
+    }
 
     private void OnUsageReportButtonClick(object sender, RoutedEventArgs e) =>
         UsageReportRequested?.Invoke(

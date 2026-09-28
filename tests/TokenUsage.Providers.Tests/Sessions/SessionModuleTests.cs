@@ -12,6 +12,7 @@ using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Catalog;
+using TokenUsage.Providers.Claude;
 
 namespace TokenUsage.Providers.Tests.Sessions;
 
@@ -452,9 +453,11 @@ public sealed class SessionModuleTests
 
         general.IsSampleModeEnabled = true;
         await published.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await surface.StartAsync();
 
         Assert.Equal(FlyoutSurfaceState.Sample, surface.ResultSurface);
         Assert.NotNull(surface.ActiveSample);
+        Assert.NotEmpty(surface.ProviderSummaries);
         Assert.False(surface.IsSessionRefreshing);
 
         DashboardProviderLayoutRow codex = personalization.Providers.Single(provider =>
@@ -626,12 +629,14 @@ public sealed class SessionModuleTests
         await personalization.Initialization;
         var providerStatus = new ProviderStatusSurfaceViewModel(key => key);
         await using AppSessionHost appSession = CreateCodexAppSession(folder.Root, clock);
+        var claude = new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(folder.Root));
+        claude.Save(new(clock.GetUtcNow(), [new("seven_day", 27, clock.GetUtcNow().AddDays(4))]));
         var live = new LiveDashboardSession(
             appSession,
             new LocalUsageCoordinator(
                 Path.Combine(folder.Root, "usage.db"),
                 new SingleCodexUsageSource(clock),
-                clock));
+                clock), claudeRateLimits: claude);
         using var surface = new DashboardSurfaceViewModel(
             new SampleDashboardSession(new SampleRefreshCoordinator(
                 Path.Combine(folder.Root, "sample"),
@@ -656,6 +661,19 @@ public sealed class SessionModuleTests
         Assert.Same(surface.GlobalCodexLimits, surface.GetProviderLimits("codex"));
         Assert.True(surface.HasGlobalProviderLimits);
         Assert.True(surface.SelectedProviderHasLimits);
+        Assert.Single(surface.GlobalClaudeLimits);
+        // A status-line update must reach both bars without a full provider refresh.
+        claude.Save(new(clock.GetUtcNow(), [
+            new("five_hour", 23, clock.GetUtcNow().AddHours(3)),
+            new("seven_day", 27, clock.GetUtcNow().AddDays(4))]));
+        await surface.RefreshLocalQuotaAsync();
+        Assert.Equal(2, surface.GlobalClaudeLimits.Count);
+        Assert.Equal(77d, surface.GlobalClaudeLimits[0].ColorRemainingPercent);
+        claude.Save(new(clock.GetUtcNow(), [
+            new("five_hour", 38, clock.GetUtcNow().AddHours(3)),
+            new("seven_day", 27, clock.GetUtcNow().AddDays(4))]));
+        await surface.RefreshLocalQuotaAsync();
+        Assert.Equal(62d, surface.GlobalClaudeLimits[0].ColorRemainingPercent);
     }
 
     [Fact]

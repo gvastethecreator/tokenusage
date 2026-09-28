@@ -393,6 +393,9 @@ public sealed partial class UsageReportPage : Page
         Visibility measurementDetailsVisibility = MeasurementDetails.Visibility;
         Visibility measurementCaptureVisibility = MeasurementCaptureDetails.Visibility;
         Visibility windowBrandVisibility = ReportWindowBrandRoot.Visibility;
+        var collapsedSections = Descendants(ReportCaptureRoot).OfType<Expander>()
+            .Where(section => !section.IsExpanded)
+            .Select(section => (Section: section, section.Visibility)).ToArray();
         double originalScrollOffset = ReportScrollViewer.VerticalOffset;
         var captureLayouts = Descendants(ReportCaptureRoot).OfType<ItemsRepeater>()
             .Where(repeater => repeater.Layout is null or StackLayout)
@@ -433,7 +436,10 @@ public sealed partial class UsageReportPage : Page
             ReportToolbarHost.Visibility = Visibility.Collapsed;
             ReportCompareToolbar.Visibility = Visibility.Collapsed;
             MeasurementDetails.Visibility = Visibility.Collapsed;
-            MeasurementCaptureDetails.Visibility = Visibility.Visible;
+            MeasurementCaptureDetails.Visibility = MeasurementDetails.IsExpanded
+                ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var section in collapsedSections)
+                section.Section.Visibility = Visibility.Collapsed;
             ReportWindowBrandRoot.Visibility = Visibility.Collapsed;
             ReportCaptionInset.Width = new GridLength(0);
             ReportControlBar.Opacity = 0;
@@ -497,6 +503,8 @@ public sealed partial class UsageReportPage : Page
             ReportCompareToolbar.Visibility = comparisonToolbarVisibility;
             MeasurementDetails.Visibility = measurementDetailsVisibility;
             MeasurementCaptureDetails.Visibility = measurementCaptureVisibility;
+            foreach (var section in collapsedSections)
+                section.Section.Visibility = section.Visibility;
             ReportWindowBrandRoot.Visibility = windowBrandVisibility;
             ReportCaptionInset.Width = captionInset;
             ReportControlBar.Opacity = controlBarOpacity;
@@ -580,16 +588,6 @@ public sealed partial class UsageReportPage : Page
     }
 
     private void OnCycleTableSizeChanged(object sender, SizeChangedEventArgs e) => UpdateCycleTableColumns();
-
-    private void OnProviderLimitsSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        if (sender is not ItemsRepeater { Layout: UniformGridLayout layout }) return;
-        // Give the template a finite width without scaling its height with ItemsStretch.Fill.
-        int columns = Math.Clamp((int)((e.NewSize.Width + 20) / 260), 1, 4);
-        double width = Math.Floor((e.NewSize.Width - (columns - 1) * 20) / columns);
-        if (width > 0 && Math.Abs(layout.MinItemWidth - width) >= 0.5)
-            layout.MinItemWidth = width;
-    }
 
     private void OnCycleTableCellPrepared(ItemsRepeater sender, ItemsRepeaterElementPreparedEventArgs args)
     {

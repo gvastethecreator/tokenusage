@@ -10,6 +10,27 @@ namespace TokenUsage.Architecture.Tests;
 public sealed class CompactDashboardProjectorTests
 {
     [Fact]
+    public void SampleProjectionExcludesPreviouslyCollectedUsage()
+    {
+        var today = new DateOnly(2026, 8, 13);
+        DailyUsageRollup[] live = [Rollup("private-provider", today, reported: 999m, tokens: 987_654)];
+        DashboardSnapshot sample = TokenUsage.App.ViewModels.Sample.SampleDashboardCatalog.Create(
+            TokenUsage.App.ViewModels.Sample.SampleScenario.Normal, key => key);
+        CompactDashboardProjection Project(IReadOnlyList<DailyUsageRollup> rows) =>
+            CompactDashboardProjector.Create(today, rows, ["private-provider"], true, sample,
+                LocalUsageCardProjector.Create(rows, today, key => key), "private-provider",
+                key => key, _ => []);
+
+        CompactDashboardProjection actual = Project(live);
+        CompactDashboardProjection expected = Project([]);
+        Assert.Equal(expected.GlobalCostText, actual.GlobalCostText);
+        Assert.Equal(expected.GlobalTokensText, actual.GlobalTokensText);
+        Assert.Equal(expected.ProviderSummaries, actual.ProviderSummaries);
+        Assert.DoesNotContain(actual.ProviderOptions, option => option.ProviderId == "private-provider");
+        Assert.Equal(expected.GlobalActivity, actual.GlobalActivity);
+    }
+
+    [Fact]
     public void ReportedEstimatedUnpricedAndMissingStayDistinct()
     {
         var today = new DateOnly(2026, 8, 13);

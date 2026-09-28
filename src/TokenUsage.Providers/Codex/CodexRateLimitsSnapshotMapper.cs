@@ -60,7 +60,17 @@ public static class CodexRateLimitsSnapshotMapper
             AdapterVersion);
         var metrics = new List<MetricSnapshot>();
 
-        AddBucketMetrics(metrics, "quota", source.RateLimits, provenance, providerMetricKey: null);
+        // The keyed bucket is the current reading for an advertised legacy alias.
+        // The legacy view can omit a window that is present in that bucket.
+        CodexRateLimitBucket defaultBucket = source.RateLimits;
+        if (defaultBucket.LimitId is { Length: > 0 } defaultId)
+        {
+            CodexRateLimitBucket? keyed = source.RateLimitsByLimitId
+                .FirstOrDefault(pair => string.Equals(
+                    pair.Value.LimitId ?? pair.Key, defaultId, StringComparison.Ordinal)).Value;
+            if (keyed is not null) defaultBucket = keyed;
+        }
+        AddBucketMetrics(metrics, "quota", defaultBucket, provenance, providerMetricKey: null);
 
         var usedPrefixes = new HashSet<string>(StringComparer.Ordinal);
         foreach ((string limitId, CodexRateLimitBucket bucket) in

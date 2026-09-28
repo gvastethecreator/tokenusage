@@ -22,6 +22,7 @@ public sealed class LiveDashboardSession : IDisposable
     private readonly LocalUsageCoordinator _localUsage;
     private readonly QuotaResetHistoryStore? _quotaResetHistory;
     private readonly ClaudeRateLimitStore? _claudeRateLimits;
+    private readonly SemaphoreSlim _claudeQuotaGate = new(1, 1);
     private CancellationTokenSource? _localRefreshCancellation;
     private Task _pendingUpdates = Task.CompletedTask;
     private Func<string, string>? _getString;
@@ -662,7 +663,27 @@ public sealed class LiveDashboardSession : IDisposable
     /// Loads the Claude Code reading and returns true when the published snapshot changed.
     /// A new reading is added to the reset history exactly like a Codex quota response.
     /// </summary>
+    public async Task RefreshLocalQuotaAsync()
+    {
+        if (_disposed || !_publishingEnabled) return;
+        int version = Volatile.Read(ref _refreshVersion);
+        if (await RefreshClaudeQuotaAsync().ConfigureAwait(true)) PublishChanged(version);
+    }
+
     private async Task<bool> RefreshClaudeQuotaAsync(bool recountTokens = false)
+    {
+        await _claudeQuotaGate.WaitAsync().ConfigureAwait(true);
+        try
+        {
+            return !_disposed && await ReadClaudeQuotaAsync(recountTokens).ConfigureAwait(true);
+        }
+        finally
+        {
+            _claudeQuotaGate.Release();
+        }
+    }
+
+    private async Task<bool> ReadClaudeQuotaAsync(bool recountTokens)
     {
         if (_claudeRateLimits is null)
         {
@@ -691,7 +712,10 @@ public sealed class LiveDashboardSession : IDisposable
             ? previous is not null
             : previous is null
                 || previous.SourceObservedAtUtc != snapshot.SourceObservedAtUtc
-                || previous.Metrics.Count != snapshot.Metrics.Count;
+                || !previous.Metrics.OfType<ProgressMetricSnapshot>()
+                    .Select(metric => (metric.Id, metric.Used, metric.Limit, metric.ResetsAtUtc))
+                    .SequenceEqual(snapshot.Metrics.OfType<ProgressMetricSnapshot>()
+                        .Select(metric => (metric.Id, metric.Used, metric.Limit, metric.ResetsAtUtc)));
         if (!changed && !recountTokens)
         {
             return false;

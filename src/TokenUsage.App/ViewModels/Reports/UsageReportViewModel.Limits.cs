@@ -2,11 +2,11 @@ using TokenUsage.App.ViewModels.Dashboard;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
-public sealed record UsageReportLimitItem(string ProviderId, string ProviderName, QuotaWindow Window, bool ShowsProvider)
+public sealed record UsageReportLimitItem(string ProviderId, string ProviderName, QuotaWindow Window)
 {
-    public string Title => ShowsProvider ? ProviderName + " · " + Window.Title : Window.Title;
+    public string Title => ProviderName + " · " + Window.Title;
 
-    public string AutomationName => ShowsProvider ? ProviderName + ", " + Window.DisplayAutomationName : Window.DisplayAutomationName;
+    public string AutomationName => ProviderName + ", " + Window.DisplayAutomationName;
 }
 
 // Quota windows sit near the top of the report: Global lists every provider that reports them,
@@ -30,10 +30,10 @@ public sealed partial class UsageReportViewModel
             ? _selectedProvider is null
                 ? []
                 : [.. ProviderLimits.Select(window => new UsageReportLimitItem(
-                    _selectedProvider.ProviderId, _selectedProvider.Name, window, ShowsProvider: false))]
+                    _selectedProvider.ProviderId, _selectedProvider.Name, window))]
             : IsGlobalScope
                 ? [.. ProviderOptions.SelectMany(option => _getProviderLimits(option.ProviderId)
-                    .Select(window => new UsageReportLimitItem(option.ProviderId, option.Name, window, ShowsProvider: true)))]
+                    .Select(window => new UsageReportLimitItem(option.ProviderId, option.Name, window)))]
                 : [];
         // The panel republishes often; unchanged readings keep their bars instead of redrawing.
         if (items.SequenceEqual(LimitItems)) return;
