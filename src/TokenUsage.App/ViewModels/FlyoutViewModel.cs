@@ -25,7 +25,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
     private bool _disposed;
 
     public FlyoutViewModel(
-        SampleRefreshCoordinator sampleRefreshCoordinator,
+        SampleRefreshCoordinator? sampleRefreshCoordinator,
         AppSessionHost appSessionHost,
         LocalUsageCoordinator localUsageCoordinator,
         DashboardLayoutStore dashboardLayoutStore,
@@ -44,7 +44,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         ClaudeRateLimitStore? claudeRateLimits = null,
         ClaudeSettingsInstaller? claudeSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(sampleRefreshCoordinator);
         ArgumentNullException.ThrowIfNull(appSessionHost);
         ArgumentNullException.ThrowIfNull(localUsageCoordinator);
         ArgumentNullException.ThrowIfNull(dashboardLayoutStore);
@@ -102,7 +101,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             new NotificationsOptionsViewModel(alertSettings),
             updates);
         Dashboard = new DashboardSurfaceViewModel(
-            new SampleDashboardSession(sampleRefreshCoordinator),
+            sampleRefreshCoordinator is null ? null : new SampleDashboardSession(sampleRefreshCoordinator),
             new LiveDashboardSession(
                 appSessionHost,
                 localUsageCoordinator,

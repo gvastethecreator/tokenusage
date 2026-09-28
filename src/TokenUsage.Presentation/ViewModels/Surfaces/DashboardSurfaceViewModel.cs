@@ -16,7 +16,8 @@ namespace TokenUsage.App.ViewModels.Surfaces;
 
 public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDisposable
 {
-    private readonly SampleDashboardSession _sampleSession;
+    // Sample data is a local development aid; release builds pass no sample session.
+    private readonly SampleDashboardSession? _sampleSession;
     private readonly LiveDashboardSession _liveSession;
     private readonly GeneralOptionsViewModel _general;
     private readonly AppearanceSurfaceViewModel _appearance;
@@ -47,7 +48,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private bool _disposed;
 
     public DashboardSurfaceViewModel(
-        SampleDashboardSession sampleSession,
+        SampleDashboardSession? sampleSession,
         LiveDashboardSession liveSession,
         GeneralOptionsViewModel general,
         AppearanceSurfaceViewModel appearance,
@@ -57,7 +58,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         SynchronizationContext? synchronizationContext,
         IAlertNotificationSink? alertNotifications = null)
     {
-        _sampleSession = sampleSession ?? throw new ArgumentNullException(nameof(sampleSession));
+        _sampleSession = sampleSession;
         _liveSession = liveSession ?? throw new ArgumentNullException(nameof(liveSession));
         _general = general ?? throw new ArgumentNullException(nameof(general));
         _appearance = appearance ?? throw new ArgumentNullException(nameof(appearance));
@@ -84,7 +85,10 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         UnavailableBody = _getString("CodexUnavailableBody");
         RetryButtonText = _getString("SampleRetry");
         RetryAutomationName = _getString("CodexRetry");
-        RebuildSamplePreview();
+        // Start empty: the panel shows its loading state until live data arrives, and nothing
+        // (tray, report limits) can read sample windows as if they were real.
+        PublishActiveDashboard(LiveDashboardComposer.Create(
+            [], null, [], _getString("LiveDashboardPeriod"), _personalization.SummarizeSpend));
     }
 
     [ObservableProperty]
@@ -504,7 +508,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     public void Cancel()
     {
-        _sampleSession.Cancel();
+        _sampleSession?.Cancel();
         _liveSession.Cancel();
         _refreshCancellation?.Cancel();
         _refreshCancellation = null;
@@ -570,7 +574,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
 
         _refreshCancellation?.Cancel();
-        _sampleSession.Cancel();
+        _sampleSession?.Cancel();
         _liveSession.Cancel();
         var cancellation = new CancellationTokenSource();
         _refreshCancellation = cancellation;
@@ -583,7 +587,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
         try
         {
-            if (scenario is SampleScenario sampleScenario)
+            if (scenario is SampleScenario sampleScenario && _sampleSession is not null)
             {
                 await _sampleSession.RunAsync(
                     sampleScenario,
@@ -837,7 +841,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         _hasPublishedDashboard = false;
         _activeScenario = null;
         ResultSurface = FlyoutSurfaceState.Loading;
-        if (IsSampleModeEnabled)
+        if (IsSampleModeEnabled && _sampleSession is not null)
         {
             RebuildSamplePreview();
         }
@@ -852,10 +856,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         if (IsSampleModeEnabled)
         {
             _ = RunRefreshAsync(_general.SelectedSampleScenario.Value, forceRefresh: true);
-        }
-        else
-        {
-            RebuildSamplePreview();
         }
     }
 
@@ -896,7 +896,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     }
 
     private TimeProvider GetClock(SampleScenario? scenario) =>
-        scenario is null ? _liveSession.Clock : _sampleSession.Clock;
+        scenario is null || _sampleSession is null ? _liveSession.Clock : _sampleSession.Clock;
 
     /// <summary>
     /// Groups updates that each ask for the compact projection, and rebuilds it once when the

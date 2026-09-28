@@ -56,7 +56,6 @@ public static class AppComposition
         TimeProvider resolvedClock = clock ?? TimeProvider.System;
         options ??= new AppCompositionOptions();
 
-        string sampleCacheDirectory = Path.Combine(localFolderPath, "cache", "sample");
         string usageDatabasePath = GetUsageDatabasePath(localFolderPath);
         string dashboardLayoutPath = options.DashboardLayoutPath
             ?? Path.Combine(localFolderPath, DashboardLayoutStore.DefaultFileName);
@@ -136,7 +135,13 @@ public static class AppComposition
             resolvedClock,
             attributionConsent);
         return new FlyoutViewModel(
-            new SampleRefreshCoordinator(sampleCacheDirectory, resolvedClock),
+#if DEBUG
+            // Sample scenarios are a local development aid (--test-use-sample); release builds
+            // create no sample session or cache.
+            new SampleRefreshCoordinator(Path.Combine(localFolderPath, "cache", "sample"), resolvedClock),
+#else
+            null,
+#endif
             sessionHost,
             coordinator,
             new DashboardLayoutStore(dashboardLayoutPath, resolvedClock),
