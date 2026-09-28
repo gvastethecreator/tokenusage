@@ -23,8 +23,8 @@ public sealed partial class UsageRepository
         ArgumentOutOfRangeException.ThrowIfGreaterThan(from, to);
         UsageEvent[] batch = ValidateAgentBatch(agentId, observations, "Source admission");
         if (batch.Any(row => row.DetailMetadata.SourceInstance != sourceInstance
-            || row.ParserVersion != parserVersion || AssertSingleRollup(row).Date < from
-            || AssertSingleRollup(row).Date > to))
+            || row.ParserVersion != parserVersion || UsageRollupAggregator.CivilDate(row) < from
+            || UsageRollupAggregator.CivilDate(row) > to))
             throw new ArgumentException("Source admission requires one source, parser and civil-date window.", nameof(observations));
 
         await using SqliteConnection connection = await OpenConnectionAsync(token).ConfigureAwait(false);
@@ -78,9 +78,9 @@ public sealed partial class UsageRepository
         HashSet<string> tombstones = await LoadTombstonedKeysAsync(connection, transaction, batch, token).ConfigureAwait(false);
         UsageEvent[] admitted = batch.Where(row => tombstones.Contains(row.EventKey.Value)
             || (!conflictingKeys.Contains(row.EventKey.Value)
-                && !retiredDays.Contains(FormatDate(AssertSingleRollup(row).Date))
+                && !retiredDays.Contains(FormatDate(UsageRollupAggregator.CivilDate(row)))
                 && (ownedKeys.Contains(row.EventKey.Value)
-                    || !ambiguousDays.Contains(FormatDate(AssertSingleRollup(row).Date))))).ToArray();
+                    || !ambiguousDays.Contains(FormatDate(UsageRollupAggregator.CivilDate(row)))))).ToArray();
         bool unresolved = ambiguousDays.Count > 0 || retiredDays.Count > 0 || admitted.Length != batch.Length;
         bool authoritative = complete && !unresolved;
         if (!authoritative && differentParser)
@@ -123,7 +123,7 @@ public sealed partial class UsageRepository
         if (authoritative)
             await RebuildAgentRollupsInRangeAsync(connection, transaction, agentId, from, to, token).ConfigureAwait(false);
         await RebuildAgentRollupsForDatesAsync(connection, transaction, agentId,
-            previousDates.Concat(written.Select(row => AssertSingleRollup(row).Date))
+            previousDates.Concat(written.Select(row => UsageRollupAggregator.CivilDate(row)))
                 .Where(date => !authoritative || date < from || date > to).Distinct().ToArray(), token).ConfigureAwait(false);
         await transaction.CommitAsync(token).ConfigureAwait(false);
         return new(written.Length, withheld, unresolved);
@@ -194,7 +194,7 @@ public sealed partial class UsageRepository
         foreach (UsageEvent observation in batch)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            BindUsageEventParameters(command, observation, AssertSingleRollup(observation).Date);
+            BindUsageEventParameters(command, observation, UsageRollupAggregator.CivilDate(observation));
             associated = checked(associated + await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false));
         }
         return associated;

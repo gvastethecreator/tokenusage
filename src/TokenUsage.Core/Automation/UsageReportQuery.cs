@@ -914,10 +914,7 @@ public sealed class UsageReportQuery
                     hasEstimatedCost = true;
                 }
 
-                if (CoverageRank(rollup.Coverage) > CoverageRank(coverage))
-                {
-                    coverage = rollup.Coverage;
-                }
+                coverage = CoverageAggregation.Worst(coverage, rollup.Coverage);
             }
         }
 
@@ -946,13 +943,4 @@ public sealed class UsageReportQuery
             (current.EstimatedCostUsd ?? 0m) - (baseline.EstimatedCostUsd ?? 0m),
             current.UnpricedTokens - baseline.UnpricedTokens);
     }
-
-    private static int CoverageRank(CoverageKind coverage) => coverage switch
-    {
-        CoverageKind.Complete => 0,
-        CoverageKind.Partial => 1,
-        CoverageKind.SummaryOnly => 2,
-        CoverageKind.Unpriced => 3,
-        _ => throw new ArgumentOutOfRangeException(nameof(coverage)),
-    };
 }

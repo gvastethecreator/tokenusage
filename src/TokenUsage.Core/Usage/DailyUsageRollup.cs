@@ -181,10 +181,7 @@ public static class UsageRollupAggregator
                 }
             }
 
-            if (CoverageRank(usageEvent.Coverage) > CoverageRank(_coverage))
-            {
-                _coverage = usageEvent.Coverage;
-            }
+            _coverage = CoverageAggregation.Worst(_coverage, usageEvent.Coverage);
         }
 
         public DailyUsageRollup ToRollup(RollupKey key) =>
@@ -201,14 +198,5 @@ public static class UsageRollupAggregator
                 _unavailableCount,
                 _eventCount,
                 _coverage);
-
-        private static int CoverageRank(CoverageKind coverage) => coverage switch
-        {
-            CoverageKind.Complete => 0,
-            CoverageKind.Partial => 1,
-            CoverageKind.SummaryOnly => 2,
-            CoverageKind.Unpriced => 3,
-            _ => throw new ArgumentOutOfRangeException(nameof(coverage)),
-        };
     }
 }

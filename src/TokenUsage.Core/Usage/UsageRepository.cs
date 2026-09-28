@@ -185,7 +185,7 @@ public sealed partial class UsageRepository
             .ConfigureAwait(false);
         foreach (DateOnly date in previousDates.Concat(batch
                      .Where(row => !retiredKeys.Contains(row.EventKey.Value))
-                     .Select(row => AssertSingleRollup(row).Date)).Distinct())
+                     .Select(row => UsageRollupAggregator.CivilDate(row))).Distinct())
             await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId,
                 date, date, cancellationToken).ConfigureAwait(false);
         foreach (string key in supersededKeys)
@@ -212,7 +212,7 @@ public sealed partial class UsageRepository
 
         DateOnly[] dates = previousDates.Concat(supersededDates)
             .Concat(written
-            .Select(usageEvent => AssertSingleRollup(usageEvent).Date)
+            .Select(usageEvent => UsageRollupAggregator.CivilDate(usageEvent))
             )
             .Distinct()
             .ToArray();
@@ -1266,7 +1266,7 @@ public sealed partial class UsageRepository
         if (kind == EventWriteKind.Insert)
             foreach (var day in batch.Where(row => row.DetailMetadata.SourceInstance is not null
                          && !tombstoned.Contains(row.EventKey.Value))
-                         .Select(row => (row.AgentId, AssertSingleRollup(row).Date)).Distinct())
+                         .Select(row => (row.AgentId, Date: UsageRollupAggregator.CivilDate(row))).Distinct())
                 await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, day.AgentId,
                     day.Date, day.Date, cancellationToken).ConfigureAwait(false);
 
@@ -1358,99 +1358,51 @@ public sealed partial class UsageRepository
         UsageEvent usageEvent,
         DateOnly civilDate)
     {
-        if (command.Parameters.Count == 0)
+        bool createParameters = command.Parameters.Count == 0;
+        SetValue("$eventKey", usageEvent.EventKey.Value);
+        SetValue("$agentId", usageEvent.AgentId.Value);
+        SetValue("$modelProviderId", (object?)usageEvent.ModelProviderId?.Value ?? DBNull.Value);
+        SetValue("$modelId", usageEvent.ModelId.Value);
+        SetValue("$occurredAt", usageEvent.OccurredAtUtc.ToString("O", CultureInfo.InvariantCulture));
+        SetValue("$timeZone", usageEvent.GroupingTimeZoneId);
+        SetValue("$civilDate", FormatDate(civilDate));
+        SetValue("$input", usageEvent.Tokens.Input);
+        SetValue("$output", usageEvent.Tokens.Output);
+        SetValue("$reasoning", usageEvent.Tokens.Reasoning);
+        SetValue("$cacheRead", usageEvent.Tokens.CacheRead);
+        SetValue("$cacheWrite", usageEvent.Tokens.CacheWrite);
+        SetValue("$costKind", (int)usageEvent.Cost.Kind);
+        SetValue("$reported", ToDatabaseValue(usageEvent.Cost.ReportedCostUsd));
+        SetValue("$estimated", ToDatabaseValue(usageEvent.Cost.EstimatedCostUsd));
+        SetValue("$catalogVersion", (object?)usageEvent.Cost.CatalogVersion ?? DBNull.Value);
+        SetValue("$priceMatch", (object?)usageEvent.Cost.ExactPriceMatch ?? DBNull.Value);
+        SetValue("$parserVersion", usageEvent.ParserVersion);
+        SetValue("$coverage", (int)usageEvent.Coverage);
+        SetValue("$observedModel", (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value);
+        SetValue("$effort", (object?)usageEvent.ReasoningEffort ?? DBNull.Value);
+        SetValue("$tier", (object?)usageEvent.ServiceTier ?? DBNull.Value);
+        SetValue("$sourceInstance", (object?)usageEvent.DetailMetadata.SourceInstance?.Value ?? DBNull.Value);
+        SetValue("$recordKind", (int)usageEvent.DetailMetadata.RecordKind);
+        SetValue("$representationRevision", (object?)usageEvent.DetailMetadata.RepresentationRevision ?? DBNull.Value);
+        SetValue("$inputAvailability", (int)usageEvent.DetailMetadata.Input);
+        SetValue("$outputAvailability", (int)usageEvent.DetailMetadata.Output);
+        SetValue("$reasoningAvailability", (int)usageEvent.DetailMetadata.Reasoning);
+        SetValue("$cacheReadAvailability", (int)usageEvent.DetailMetadata.CacheRead);
+        SetValue("$cacheWriteAvailability", (int)usageEvent.DetailMetadata.CacheWrite);
+        SetValue("$precision", (int)usageEvent.TimePrecision);
+        SetValue("$intervalStart", (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value);
+
+        void SetValue(string name, object value)
         {
-            AddUsageEventParameters(command, usageEvent, civilDate);
-            return;
+            if (createParameters)
+            {
+                command.Parameters.AddWithValue(name, value);
+            }
+            else
+            {
+                command.Parameters[name].Value = value;
+            }
         }
-
-        command.Parameters["$eventKey"].Value = usageEvent.EventKey.Value;
-        command.Parameters["$agentId"].Value = usageEvent.AgentId.Value;
-        command.Parameters["$modelProviderId"].Value =
-            (object?)usageEvent.ModelProviderId?.Value ?? DBNull.Value;
-        command.Parameters["$modelId"].Value = usageEvent.ModelId.Value;
-        command.Parameters["$occurredAt"].Value =
-            usageEvent.OccurredAtUtc.ToString("O", CultureInfo.InvariantCulture);
-        command.Parameters["$timeZone"].Value = usageEvent.GroupingTimeZoneId;
-        command.Parameters["$civilDate"].Value = FormatDate(civilDate);
-        command.Parameters["$input"].Value = usageEvent.Tokens.Input;
-        command.Parameters["$output"].Value = usageEvent.Tokens.Output;
-        command.Parameters["$reasoning"].Value = usageEvent.Tokens.Reasoning;
-        command.Parameters["$cacheRead"].Value = usageEvent.Tokens.CacheRead;
-        command.Parameters["$cacheWrite"].Value = usageEvent.Tokens.CacheWrite;
-        command.Parameters["$costKind"].Value = (int)usageEvent.Cost.Kind;
-        command.Parameters["$reported"].Value = ToDatabaseValue(usageEvent.Cost.ReportedCostUsd);
-        command.Parameters["$estimated"].Value = ToDatabaseValue(usageEvent.Cost.EstimatedCostUsd);
-        command.Parameters["$catalogVersion"].Value =
-            (object?)usageEvent.Cost.CatalogVersion ?? DBNull.Value;
-        command.Parameters["$priceMatch"].Value =
-            (object?)usageEvent.Cost.ExactPriceMatch ?? DBNull.Value;
-        command.Parameters["$parserVersion"].Value = usageEvent.ParserVersion;
-        command.Parameters["$coverage"].Value = (int)usageEvent.Coverage;
-        command.Parameters["$observedModel"].Value = (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value;
-        command.Parameters["$effort"].Value = (object?)usageEvent.ReasoningEffort ?? DBNull.Value;
-        command.Parameters["$tier"].Value = (object?)usageEvent.ServiceTier ?? DBNull.Value;
-        command.Parameters["$sourceInstance"].Value = (object?)usageEvent.DetailMetadata.SourceInstance?.Value ?? DBNull.Value;
-        command.Parameters["$recordKind"].Value = (int)usageEvent.DetailMetadata.RecordKind;
-        command.Parameters["$representationRevision"].Value = (object?)usageEvent.DetailMetadata.RepresentationRevision ?? DBNull.Value;
-        command.Parameters["$inputAvailability"].Value = (int)usageEvent.DetailMetadata.Input;
-        command.Parameters["$outputAvailability"].Value = (int)usageEvent.DetailMetadata.Output;
-        command.Parameters["$reasoningAvailability"].Value = (int)usageEvent.DetailMetadata.Reasoning;
-        command.Parameters["$cacheReadAvailability"].Value = (int)usageEvent.DetailMetadata.CacheRead;
-        command.Parameters["$cacheWriteAvailability"].Value = (int)usageEvent.DetailMetadata.CacheWrite;
-        command.Parameters["$precision"].Value = (int)usageEvent.TimePrecision;
-        command.Parameters["$intervalStart"].Value = (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value;
-    }
-
-    private static void AddUsageEventParameters(
-        SqliteCommand command,
-        UsageEvent usageEvent,
-        DateOnly civilDate)
-    {
-        command.Parameters.AddWithValue("$eventKey", usageEvent.EventKey.Value);
-        command.Parameters.AddWithValue("$agentId", usageEvent.AgentId.Value);
-        command.Parameters.AddWithValue(
-            "$modelProviderId",
-            (object?)usageEvent.ModelProviderId?.Value ?? DBNull.Value);
-        command.Parameters.AddWithValue("$modelId", usageEvent.ModelId.Value);
-        command.Parameters.AddWithValue(
-            "$occurredAt",
-            usageEvent.OccurredAtUtc.ToString("O", CultureInfo.InvariantCulture));
-        command.Parameters.AddWithValue("$timeZone", usageEvent.GroupingTimeZoneId);
-        command.Parameters.AddWithValue("$civilDate", FormatDate(civilDate));
-        command.Parameters.AddWithValue("$input", usageEvent.Tokens.Input);
-        command.Parameters.AddWithValue("$output", usageEvent.Tokens.Output);
-        command.Parameters.AddWithValue("$reasoning", usageEvent.Tokens.Reasoning);
-        command.Parameters.AddWithValue("$cacheRead", usageEvent.Tokens.CacheRead);
-        command.Parameters.AddWithValue("$cacheWrite", usageEvent.Tokens.CacheWrite);
-        command.Parameters.AddWithValue("$costKind", (int)usageEvent.Cost.Kind);
-        command.Parameters.AddWithValue(
-            "$reported",
-            ToDatabaseValue(usageEvent.Cost.ReportedCostUsd));
-        command.Parameters.AddWithValue(
-            "$estimated",
-            ToDatabaseValue(usageEvent.Cost.EstimatedCostUsd));
-        command.Parameters.AddWithValue(
-            "$catalogVersion",
-            (object?)usageEvent.Cost.CatalogVersion ?? DBNull.Value);
-        command.Parameters.AddWithValue(
-            "$priceMatch",
-            (object?)usageEvent.Cost.ExactPriceMatch ?? DBNull.Value);
-        command.Parameters.AddWithValue("$parserVersion", usageEvent.ParserVersion);
-        command.Parameters.AddWithValue("$coverage", (int)usageEvent.Coverage);
-        command.Parameters.AddWithValue("$observedModel", (object?)usageEvent.ObservedModelId?.Value ?? DBNull.Value);
-        command.Parameters.AddWithValue("$effort", (object?)usageEvent.ReasoningEffort ?? DBNull.Value);
-        command.Parameters.AddWithValue("$tier", (object?)usageEvent.ServiceTier ?? DBNull.Value);
-        command.Parameters.AddWithValue("$sourceInstance", (object?)usageEvent.DetailMetadata.SourceInstance?.Value ?? DBNull.Value);
-        command.Parameters.AddWithValue("$recordKind", (int)usageEvent.DetailMetadata.RecordKind);
-        command.Parameters.AddWithValue("$representationRevision", (object?)usageEvent.DetailMetadata.RepresentationRevision ?? DBNull.Value);
-        command.Parameters.AddWithValue("$inputAvailability", (int)usageEvent.DetailMetadata.Input);
-        command.Parameters.AddWithValue("$outputAvailability", (int)usageEvent.DetailMetadata.Output);
-        command.Parameters.AddWithValue("$reasoningAvailability", (int)usageEvent.DetailMetadata.Reasoning);
-        command.Parameters.AddWithValue("$cacheReadAvailability", (int)usageEvent.DetailMetadata.CacheRead);
-        command.Parameters.AddWithValue("$cacheWriteAvailability", (int)usageEvent.DetailMetadata.CacheWrite);
-        command.Parameters.AddWithValue("$precision", (int)usageEvent.TimePrecision);
-        command.Parameters.AddWithValue("$intervalStart", (object?)usageEvent.IntervalStartedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? DBNull.Value);
     }
 
     private static async Task<DateTimeOffset?> ReadRetentionCursorAsync(
@@ -1588,24 +1540,13 @@ public sealed partial class UsageRepository
                 left.UnpricedTokens + right.UnpricedTokens,
                 left.UnavailableCostEventCount + right.UnavailableCostEventCount,
                 left.EventCount + right.EventCount,
-                WorstCoverage(left.Coverage, right.Coverage));
+                CoverageAggregation.Worst(left.Coverage, right.Coverage));
         }
     }
 
     private static decimal? AddNullable(decimal? left, decimal? right) =>
         left is null ? right : right is null ? left : checked(left.Value + right.Value);
 
-    private static CoverageKind WorstCoverage(CoverageKind left, CoverageKind right) =>
-        CoverageRank(left) >= CoverageRank(right) ? left : right;
-
-    private static int CoverageRank(CoverageKind coverage) => coverage switch
-    {
-        CoverageKind.Complete => 0,
-        CoverageKind.Partial => 1,
-        CoverageKind.SummaryOnly => 2,
-        CoverageKind.Unpriced => 3,
-        _ => throw new ArgumentOutOfRangeException(nameof(coverage)),
-    };
 
     private static DailyUsageRollup AssertSingleRollup(UsageEvent usageEvent) =>
         AssertSingle(UsageRollupAggregator.Aggregate([usageEvent]));

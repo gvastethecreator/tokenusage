@@ -136,27 +136,10 @@ public sealed class LocalUsageRefresh
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agentId);
-        if (!File.Exists(_databasePath))
+        UsageRepository? repository = await OpenCachedRepositoryAsync(cancellationToken).ConfigureAwait(false);
+        if (repository is null)
         {
             return 0;
-        }
-
-        UsageRepository repository;
-        try
-        {
-            repository = await UsageRepository.OpenReadOnlyAsync(
-                _databasePath,
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch (FileNotFoundException)
-        {
-            return 0;
-        }
-        catch (UsageSchemaTooOldException)
-        {
-            repository = await UsageRepository.OpenAsync(
-                _databasePath,
-                cancellationToken).ConfigureAwait(false);
         }
 
         DateTimeOffset toExclusiveUtc = _clock.GetUtcNow();
@@ -175,29 +158,10 @@ public sealed class LocalUsageRefresh
     public async Task<LocalUsageRefreshResult?> ReadCachedAsync(
         CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(_databasePath))
+        UsageRepository? repository = await OpenCachedRepositoryAsync(cancellationToken).ConfigureAwait(false);
+        if (repository is null)
         {
             return null;
-        }
-
-        UsageRepository repository;
-        try
-        {
-            repository = await UsageRepository.OpenReadOnlyAsync(
-                _databasePath,
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch (FileNotFoundException)
-        {
-            return null;
-        }
-        catch (UsageSchemaTooOldException)
-        {
-            // This is TokenUsage's own durable store. Migrate it before the cache-first
-            // read so an app upgrade cannot abort startup before the live refresh runs.
-            repository = await UsageRepository.OpenAsync(
-                _databasePath,
-                cancellationToken).ConfigureAwait(false);
         }
 
         DateOnly today = Today;
@@ -231,6 +195,28 @@ public sealed class LocalUsageRefresh
             status,
             diagnostics,
             hasMultipleRealSources: HasMultipleRealSources);
+    }
+
+    private async Task<UsageRepository?> OpenCachedRepositoryAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_databasePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await UsageRepository.OpenReadOnlyAsync(_databasePath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+        catch (UsageSchemaTooOldException)
+        {
+            // This is TokenUsage's own durable store. Migrate before reading cached history.
+            return await UsageRepository.OpenAsync(_databasePath, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task<LocalUsageRefreshResult> RefreshAsync(
