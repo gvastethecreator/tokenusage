@@ -151,6 +151,7 @@ try {
     Invoke-DotNetStep 'Platform Windows tests' @(
         'test',
         $platformWindowsTests,
+        '--filter', 'Category!=OptIn',
         '--configuration', $Configuration,
         '-p:Platform=x64',
         '--verbosity', 'minimal'
