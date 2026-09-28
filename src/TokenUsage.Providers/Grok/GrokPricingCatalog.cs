@@ -11,7 +11,6 @@ namespace TokenUsage.Providers.Grok;
 public static class GrokPricingCatalog
 {
     public const string Version = "xai-api-2026-09-22";
-    private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 200_000;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
@@ -71,13 +70,9 @@ public static class GrokPricingCatalog
             multiplier = 2m;
         }
 
-        decimal amount =
-            (((tokens.Input + tokens.CacheWrite) * rates.Input * multiplier)
-             + (tokens.CacheRead * rates.CacheRead * multiplier)
-             + ((tokens.Output + tokens.Reasoning) * rates.Output * multiplier))
-            / TokensPerMillion;
         return CostObservation.CatalogEstimated(
-            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            LinearTokenPrice.Estimate(tokens, rates.Input, rates.CacheRead, rates.Output,
+                inputMultiplier: multiplier, outputMultiplier: multiplier),
             rates.HostSpecific ? CursorPricingCatalog.Version : Version,
             rates.PriceMatch);
     }

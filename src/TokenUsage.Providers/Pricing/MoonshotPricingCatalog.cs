@@ -11,7 +11,6 @@ namespace TokenUsage.Providers.Pricing;
 public static class MoonshotPricingCatalog
 {
     public const string Version = "moonshot-api-2026-09-02";
-    private const decimal TokensPerMillion = 1_000_000m;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
@@ -36,13 +35,8 @@ public static class MoonshotPricingCatalog
             return CostObservation.Unavailable();
         }
 
-        decimal amount =
-            (((tokens.Input + tokens.CacheWrite) * rates.Input)
-             + (tokens.CacheRead * rates.CacheRead)
-             + ((tokens.Output + tokens.Reasoning) * rates.Output))
-            / TokensPerMillion;
         return CostObservation.CatalogEstimated(
-            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            LinearTokenPrice.Estimate(tokens, rates.Input, rates.CacheRead, rates.Output),
             Version,
             normalized);
     }

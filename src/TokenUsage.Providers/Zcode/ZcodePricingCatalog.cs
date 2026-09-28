@@ -11,7 +11,6 @@ namespace TokenUsage.Providers.Zcode;
 public static class ZcodePricingCatalog
 {
     public const string Version = "zai-api-2026-09-22";
-    private const decimal TokensPerMillion = 1_000_000m;
 
     // The Z.ai promo ends at 24:00 on 2026-09-09 in Singapore (UTC+8).
     // A resolve without a timestamp prices at the rate valid now.
@@ -69,13 +68,8 @@ public static class ZcodePricingCatalog
             rates = dated.ListRates;
         }
 
-        decimal amount =
-            (((tokens.Input + tokens.CacheWrite) * rates.Input)
-             + (tokens.CacheRead * rates.CacheRead)
-             + ((tokens.Output + tokens.Reasoning) * rates.Output))
-            / TokensPerMillion;
         return CostObservation.CatalogEstimated(
-            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            LinearTokenPrice.Estimate(tokens, rates.Input, rates.CacheRead, rates.Output),
             Version,
             normalized);
     }

@@ -7,7 +7,6 @@ namespace TokenUsage.Providers.Codex;
 public static class CodexPricingCatalog
 {
     public const string Version = "openai-api-2026-09-22";
-    private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 272_000;
 
     // Promotional rates switch to the list rate on the day after the published
@@ -97,14 +96,9 @@ public static class CodexPricingCatalog
             outputMultiplier = 1.5m;
         }
 
-        decimal amount =
-            ((tokens.Input * rates.Input * inputMultiplier)
-             + (tokens.CacheWrite * rates.CacheWrite * inputMultiplier)
-             + (tokens.CacheRead * rates.CachedInput * inputMultiplier)
-             + ((tokens.Output + tokens.Reasoning) * rates.Output * outputMultiplier))
-            / TokensPerMillion;
         return CostObservation.CatalogEstimated(
-            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            LinearTokenPrice.Estimate(tokens, rates.Input, rates.CachedInput, rates.Output,
+                rates.CacheWrite, inputMultiplier, outputMultiplier),
             Version,
             rates.PriceMatch);
     }

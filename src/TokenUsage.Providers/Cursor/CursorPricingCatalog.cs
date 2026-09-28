@@ -11,7 +11,6 @@ namespace TokenUsage.Providers.Cursor;
 public static class CursorPricingCatalog
 {
     public const string Version = "cursor-models-2026-09-22";
-    private const decimal TokensPerMillion = 1_000_000m;
     private const long GrokFourSevenFastLongContextThreshold = 200_000;
 
     private static readonly Dictionary<string, Rates> FirstPartyRatesByModel =
@@ -60,13 +59,9 @@ public static class CursorPricingCatalog
         decimal multiplier = normalized == "grok-4.7-fast"
             && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite) > GrokFourSevenFastLongContextThreshold
                 ? 1.5m : 1m;
-        decimal amount =
-            (((tokens.Input + tokens.CacheWrite) * rates.Input)
-             + (tokens.CacheRead * rates.CacheRead)
-             + ((tokens.Output + tokens.Reasoning) * rates.Output)) * multiplier
-            / TokensPerMillion;
         return CostObservation.CatalogEstimated(
-            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            LinearTokenPrice.Estimate(tokens, rates.Input, rates.CacheRead, rates.Output,
+                inputMultiplier: multiplier, outputMultiplier: multiplier),
             Version,
             normalized);
     }

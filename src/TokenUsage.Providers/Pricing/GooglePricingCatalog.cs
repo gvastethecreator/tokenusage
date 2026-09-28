@@ -9,7 +9,6 @@ namespace TokenUsage.Providers.Pricing;
 public static class GooglePricingCatalog
 {
     public const string Version = "google-api-2026-09-02";
-    private const decimal TokensPerMillion = 1_000_000m;
     private const long LongContextThreshold = 200_000;
 
     // The Gemini 3.6, 3.7, and 3.8 Flash promotional rates end on 2027-01-01. A
@@ -107,13 +106,8 @@ public static class GooglePricingCatalog
         decimal cacheRate = longContext ? tier!.CacheRead : rates.CacheRead;
         decimal outputRate = longContext ? tier!.Output : rates.Output;
 
-        decimal amount =
-            (((tokens.Input + tokens.CacheWrite) * inputRate)
-             + (tokens.CacheRead * cacheRate)
-             + ((tokens.Output + tokens.Reasoning) * outputRate))
-            / TokensPerMillion;
         return CostObservation.CatalogEstimated(
-            decimal.Round(amount, 6, MidpointRounding.AwayFromZero),
+            LinearTokenPrice.Estimate(tokens, inputRate, cacheRate, outputRate),
             Version,
             rates.PriceMatch);
     }
