@@ -123,6 +123,10 @@ public sealed partial class UsageTrendChart
     {
         if (IsPreview || data.IsComparison || data.Metric == UsageReportMetric.Share
             || data.Style == ReportChartStyle.TwoHourBars || data.Days.Count < 3 || scale.Maximum <= 0) return;
+        // A day total only exists on screen when series stack (bars, area) or there is one series;
+        // independent lines would put the average of a sum next to lines it does not describe.
+        bool showsDayTotal = data.Style is ReportChartStyle.Bars or ReportChartStyle.Area || data.Series.Count == 1;
+        if (!showsDayTotal) return;
 
         double[] totals = [.. Enumerable.Range(0, data.Days.Count).Select(day => data.Series.Sum(series =>
             day < series.Values.Count && double.IsFinite(series.Values[day]) ? Math.Max(0, series.Values[day]) : 0))];

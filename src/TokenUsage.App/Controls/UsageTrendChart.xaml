@@ -11,6 +11,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid Canvas.ZIndex="1" x:Name="PlotRegion" Height="{x:Bind PlotHeight, Mode=OneWay}">
@@ -96,6 +97,10 @@
                 <UniformGridLayout Orientation="Horizontal" MinItemWidth="154" MinItemHeight="24" MinColumnSpacing="12" MinRowSpacing="4" />
             </ItemsRepeater.Layout>
         </ItemsRepeater>
+
+        <!-- One full-width line explains dimmed spans instead of squeezing into a legend cell. -->
+        <TextBlock x:Name="SpanNote" Grid.Row="4" Margin="0,2,0,0" FontSize="11" TextWrapping="WrapWholeWords"
+            Foreground="{ThemeResource TextFillColorTertiaryBrush}" Visibility="Collapsed" />
 
         <Border x:Name="WeeklyResetBrushProxy" Background="{ThemeResource ReportWeeklyResetBrush}" Visibility="Collapsed" />
         <Border x:Name="SessionResetBrushProxy" Background="{ThemeResource ReportSessionResetBrush}" Visibility="Collapsed" />

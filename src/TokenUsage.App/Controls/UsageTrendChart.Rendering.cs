@@ -371,15 +371,16 @@ public sealed partial class UsageTrendChart
 
     private void BuildLegend(UsageReportTrendDataset data)
     {
+        bool spans = !IsPreview && HasUnobservedSpans(data);
+        SpanNote.Text = spans ? GetString("UsageReportChartUnobservedLegend") : string.Empty;
+        SpanNote.Visibility = spans ? Visibility.Visible : Visibility.Collapsed;
         var items = new List<Grid>();
-        LegendContent.ItemsSource = items;
         LegendContent.Visibility = data.IsComparison || data.Series.Any(series => series.ModelId is not null)
-            || HasUnobservedSpans(data)
             ? Visibility.Visible : Visibility.Collapsed;
-        if (LegendContent.Visibility != Visibility.Visible) return;
-        if (HasUnobservedSpans(data))
+        if (LegendContent.Visibility != Visibility.Visible)
         {
-            items.Add(CreateSpanLegendRow());
+            LegendContent.ItemsSource = items;
+            return;
         }
         foreach (var series in data.Series)
         {
@@ -400,19 +401,4 @@ public sealed partial class UsageTrendChart
         data.Style is not ReportChartStyle.Bars and not ReportChartStyle.TwoHourBars
         && data.Series.Any(series => series.PointKinds.Any(kind => kind == UsageTrendPointKind.Unobserved)
             || (series.PointKinds.Count == 0 && series.Values.Any(value => UsageTrendGeometry.ClassifyValue(value) == UsageTrendPointKind.Unobserved)));
-
-    private Grid CreateSpanLegendRow()
-    {
-        var row = new Grid { ColumnSpacing = 7 };
-        row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
-        var note = new TextBlock
-        {
-            Text = GetString("UsageReportChartUnobservedLegend"),
-            FontSize = 11,
-            TextWrapping = TextWrapping.WrapWholeWords,
-            Foreground = TextBrushProxy.Background,
-        };
-        row.Children.Add(note);
-        return row;
-    }
 }
