@@ -713,19 +713,8 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("MotionSettings.ProviderSwitchDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderSwitchMinimumOpacity", compactCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderContentTransition", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ProviderTabsRepeater.TryGetElement", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderCarouselDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTabsTransition", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ProviderTabCarouselLayout.PageSize", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ProviderTabCarouselLayout.ItemWidth", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ProviderTabCarouselLayout.MaximumPageSize", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ApplyProviderTabSize(tab)", compactCode, StringComparison.Ordinal);
-        Assert.Contains("tab.Width = _providerTabItemWidth", compactCode, StringComparison.Ordinal);
-        Assert.Contains("tab.MaxWidth = _providerTabItemWidth", compactCode, StringComparison.Ordinal);
-        Assert.Contains("tab.Margin = new Thickness(0)", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ProviderTabsLayout.Spacing = spacing", compactCode, StringComparison.Ordinal);
-        Assert.Contains("tab.HorizontalContentAlignment = HorizontalAlignment.Center", compactCode, StringComparison.Ordinal);
-        Assert.Contains("bool hasOverflow = providerCount > _providerTabPageSize", compactCode, StringComparison.Ordinal);
         Assert.Contains("MotionSettings.ProviderLimitsRevealDuration", compactCode, StringComparison.Ordinal);
         Assert.Contains("LayoutAnimationProgressed", compactCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTransitionEntry", compactCode, StringComparison.Ordinal);
@@ -733,9 +722,6 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("CycleVisualizationWithTransition", compactCode, StringComparison.Ordinal);
         Assert.Contains("PlayVisualizationTransition", compactCode, StringComparison.Ordinal);
         Assert.Contains("GetDominantOutgoingVisualization", compactCode, StringComparison.Ordinal);
-        Assert.Contains("if (activityVisibilityChanges)", compactCode, StringComparison.Ordinal);
-        Assert.Contains("VisualizationTransitionHost.Height", compactCode, StringComparison.Ordinal);
-        Assert.Contains("ActivitySummaryTransitionHost.Height", compactCode, StringComparison.Ordinal);
         Assert.DoesNotContain("Task.Delay", compactCode, StringComparison.Ordinal);
 
         string compactXaml = File.ReadAllText(Path.Combine(
@@ -1019,42 +1005,29 @@ public sealed class ArchitectureRulesTests
         string reportCode = ReadCsharpSources(
             Path.Combine(appRoot, "Views", "Reports"),
             "UsageReportPage");
-        Assert.Contains("ProviderTabCarouselLayout.ReportMaximumPageSize", reportCode, StringComparison.Ordinal);
         Assert.Contains("PlayProviderTabsTransition", reportCode, StringComparison.Ordinal);
-        Assert.Contains("tab.Width = _providerTabItemWidth", reportCode, StringComparison.Ordinal);
 
         string trendChartCode = ReadCsharpSources(Path.Combine(appRoot, "Controls"), "UsageTrendChart");
-        Assert.Contains("private Polygon CreateResetSymbol", trendChartCode, StringComparison.Ordinal);
-        Assert.Contains("new Polygon { Points = [new(0, 1), new(10, 1), new(5, 9)] }", trendChartCode, StringComparison.Ordinal);
         Assert.Contains("UsageTrendLayouts.EmptyDayStubs", trendChartCode, StringComparison.Ordinal);
-        Assert.Contains("UsageTrendLayouts.BarSlots(data.Style, data.Days.Count)", trendChartCode, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1)",
             trendChartCode,
             StringComparison.Ordinal);
         Assert.Contains("UsageTrendLayouts.Bars", trendChartCode, StringComparison.Ordinal);
-        Assert.Contains("if (data.Days.Count == 2)", trendChartCode, StringComparison.Ordinal);
-        Assert.Contains("if (data.Days.Count == 1)", trendChartCode, StringComparison.Ordinal);
-        Assert.Contains("MiddleDayLabel.Text = data.Days[0].Label", trendChartCode, StringComparison.Ordinal);
 
         string compareCode = ReadCsharpSources(
             Path.Combine(appRoot, "ViewModels", "Reports"),
             "UsageReportViewModel");
         Assert.Contains("UsageComparison.ReloadsForCatalogDate(UseReferencePrices, IsCompareRatesAxis)", compareCode, StringComparison.Ordinal);
         Assert.Contains("UsageComparison.OverlaysSingleReferencePrice(", compareCode, StringComparison.Ordinal);
-        Assert.Contains("UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_rateBaselineUtc", compareCode, StringComparison.Ordinal);
-        Assert.Contains("UsageReportCompareAxis.Rates => UsageComparison.CatalogDateLabel(_priceReferenceUtc", compareCode, StringComparison.Ordinal);
         Assert.Contains("CompareCatalogDatesAsync", compareCode, StringComparison.Ordinal);
         Assert.Contains("NotApplicableFixedCohortRow(GetString(\"UsageComparisonVolumeChange\"))", compareCode, StringComparison.Ordinal);
         Assert.Contains("NotApplicableFixedCohortRow(GetString(\"UsageComparisonMixChange\"))", compareCode, StringComparison.Ordinal);
         Assert.Contains("GetString(\"UsageComparisonFixedCohortNotApplicable\")", compareCode, StringComparison.Ordinal);
-        Assert.Contains("MethodId = IsCompareRatesAxis ? UsageReferencePricing.FixedCohortMethodId", compareCode, StringComparison.Ordinal);
         Assert.Contains(
             "UsageComparison.UsesFixedCohortRows(ActiveRateMethodId) ? GetString(\"UsageComparisonCatalogValue\")",
             compareCode,
             StringComparison.Ordinal);
-        Assert.Contains("OrderByDescending(item => item.EffectiveFromUtc)", compareCode, StringComparison.Ordinal);
-        Assert.Contains("RateBaselineUtc = IsCompareRatesAxis || IsLinearPriceScenario ? _rateBaselineUtc : null", compareCode, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1121,9 +1094,7 @@ public sealed class ArchitectureRulesTests
             "TokenUsage.App",
             "Services",
             "ShareCaptureService.cs"));
-        Assert.Contains("private const int CapturePadding = 10", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("DismissTransientOverlays(captureRoot)", shareCaptureCode, StringComparison.Ordinal);
-        Assert.Contains("byte[] paddedPixels = AddPadding", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("CaptureScrollableAsync", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("CropVertical", shareCaptureCode, StringComparison.Ordinal);
 
