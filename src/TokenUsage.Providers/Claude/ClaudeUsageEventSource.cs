@@ -480,23 +480,7 @@ public sealed class ClaudeUsageEventSource :
             long legacyWrite = GetNonNegativeInt64OrZero(
                 usage,
                 "cache_creation_input_tokens");
-            long cacheWrite5Minutes = legacyWrite;
-            long cacheWrite1Hour = 0;
-            if (usage.TryGetProperty("cache_creation", out JsonElement cacheCreation)
-                && cacheCreation.ValueKind == JsonValueKind.Object)
-            {
-                cacheWrite5Minutes = GetNonNegativeInt64OrZero(
-                    cacheCreation,
-                    "ephemeral_5m_input_tokens");
-                cacheWrite1Hour = GetNonNegativeInt64OrZero(
-                    cacheCreation,
-                    "ephemeral_1h_input_tokens");
-                long splitTotal = checked(cacheWrite5Minutes + cacheWrite1Hour);
-                if (legacyWrite > splitTotal)
-                {
-                    cacheWrite5Minutes = checked(cacheWrite5Minutes + legacyWrite - splitTotal);
-                }
-            }
+            (long cacheWrite5Minutes, long cacheWrite1Hour) = ReadCacheCreation(usage, legacyWrite);
 
             decimal? reportedCost = null;
             if (root.TryGetProperty("costUSD", out JsonElement costElement)
