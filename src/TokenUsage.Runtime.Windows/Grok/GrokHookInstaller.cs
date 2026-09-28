@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TokenUsage.Providers;
 
 namespace TokenUsage.Runtime.Windows.Grok;
 
@@ -166,35 +167,9 @@ public sealed class GrokHookInstaller
 
     private static string ResolveGrokHome(string? homeDirectory, string? configuredHome)
     {
-        string home = homeDirectory
-            ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string defaultHome = Path.Combine(Path.GetFullPath(home), ".grok");
-        if (string.IsNullOrWhiteSpace(configuredHome))
-        {
-            return defaultHome;
-        }
-
-        string raw = configuredHome.Trim();
-        if (raw == "~")
-        {
-            raw = Path.GetFullPath(home);
-        }
-        else if (raw.StartsWith($"~{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                 || raw.StartsWith($"~{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            raw = Path.Combine(Path.GetFullPath(home), raw[2..]);
-        }
-
-        try
-        {
-            return Path.GetFullPath(raw);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or NotSupportedException
-                                           or PathTooLongException)
-        {
-            return defaultHome;
-        }
+        string home = Path.GetFullPath(homeDirectory
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        return ToolHomePath.Resolve(configuredHome, home, Path.Combine(home, ".grok"));
     }
 
     private JsonObject ReadDocumentForUpdate()

@@ -351,32 +351,8 @@ public sealed partial class CodexUsageEventSource
         Path.Combine(_codexHome, "archived_sessions"),
     ];
 
-    private static string ResolveHome(string? configured, string userHome)
-    {
-        string raw = string.IsNullOrWhiteSpace(configured)
-            ? Path.Combine(userHome, ".codex")
-            : configured.Trim();
-        if (raw == "~")
-        {
-            raw = userHome;
-        }
-        else if (raw.StartsWith($"~{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                 || raw.StartsWith($"~{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            raw = Path.Combine(userHome, raw[2..]);
-        }
-
-        try
-        {
-            return Path.GetFullPath(raw);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or NotSupportedException
-                                           or PathTooLongException)
-        {
-            return Path.GetFullPath(Path.Combine(userHome, ".codex"));
-        }
-    }
+    private static string ResolveHome(string? configured, string userHome) =>
+        ToolHomePath.Resolve(configured, userHome, Path.Combine(userHome, ".codex"));
 
     private static string SessionIdentity(string path) =>
         Path.GetFileNameWithoutExtension(path).ToLowerInvariant();

@@ -18,7 +18,7 @@ public static class ClaudeConfigLocator
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string configuredRoot in configuredRoots)
         {
-            string expanded = ExpandHome(configuredRoot, homeDirectory);
+            string expanded = ToolHomePath.ExpandHome(configuredRoot, homeDirectory);
             string fullPath;
             try
             {
@@ -44,18 +44,5 @@ public static class ClaudeConfigLocator
         }
 
         return results;
-    }
-
-    private static string ExpandHome(string value, string homeDirectory)
-    {
-        if (value == "~")
-        {
-            return homeDirectory;
-        }
-
-        return value.StartsWith($"~{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-            || value.StartsWith($"~{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal)
-            ? Path.Combine(homeDirectory, value[2..])
-            : value;
     }
 }

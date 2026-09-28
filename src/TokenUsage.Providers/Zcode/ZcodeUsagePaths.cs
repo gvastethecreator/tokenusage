@@ -23,33 +23,9 @@ public static class ZcodeUsagePaths
         string? homeDirectory,
         string? configuredHome)
     {
-        string defaultHome = ResolveZcodeHome(homeDirectory);
-        if (string.IsNullOrWhiteSpace(configuredHome))
-        {
-            return defaultHome;
-        }
-
-        string raw = configuredHome.Trim();
-        string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (raw == "~")
-        {
-            raw = userHome;
-        }
-        else if (raw.StartsWith($"~{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                 || raw.StartsWith($"~{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            raw = Path.Combine(userHome, raw[2..]);
-        }
-
-        try
-        {
-            return Path.GetFullPath(raw);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or NotSupportedException
-                                           or PathTooLongException)
-        {
-            return defaultHome;
-        }
+        return ToolHomePath.Resolve(
+            configuredHome,
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ResolveZcodeHome(homeDirectory));
     }
 }

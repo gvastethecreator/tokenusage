@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TokenUsage.Providers;
 
 namespace TokenUsage.Runtime.Windows.Claude;
 
@@ -295,31 +296,7 @@ public sealed class ClaudeSettingsInstaller
         string? raw = configuredDirectory?
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return defaultDirectory;
-        }
-
-        if (raw == "~")
-        {
-            raw = home;
-        }
-        else if (raw.StartsWith($"~{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                 || raw.StartsWith($"~{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            raw = Path.Combine(home, raw[2..]);
-        }
-
-        try
-        {
-            return Path.GetFullPath(raw);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or NotSupportedException
-                                           or PathTooLongException)
-        {
-            return defaultDirectory;
-        }
+        return ToolHomePath.Resolve(raw, home, defaultDirectory);
     }
 
     private JsonObject ReadDocumentForUpdate()

@@ -1022,32 +1022,8 @@ public sealed class GrokUsageEventSource :
         }
     }
 
-    private static string ResolveHome(string? configured, string userHome)
-    {
-        string raw = string.IsNullOrWhiteSpace(configured)
-            ? Path.Combine(userHome, ".grok")
-            : configured.Trim();
-        if (raw == "~")
-        {
-            raw = userHome;
-        }
-        else if (raw.StartsWith($"~{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                 || raw.StartsWith($"~{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            raw = Path.Combine(userHome, raw[2..]);
-        }
-
-        try
-        {
-            return Path.GetFullPath(raw);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or NotSupportedException
-                                           or PathTooLongException)
-        {
-            return Path.GetFullPath(Path.Combine(userHome, ".grok"));
-        }
-    }
+    private static string ResolveHome(string? configured, string userHome) =>
+        ToolHomePath.Resolve(configured, userHome, Path.Combine(userHome, ".grok"));
 
     private static string? GetUnifiedModel(string message, JsonElement context) => message switch
     {
