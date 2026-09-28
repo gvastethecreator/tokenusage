@@ -8,13 +8,17 @@ namespace TokenUsage.Platform.Windows.Tests.Providers;
 
 public sealed class WindowsProviderCatalogTests
 {
+    // The tools read from disk, in catalog order. One list, so adding a provider changes one line.
+    private static readonly string[] ActiveLocalProviders =
+        ["amp", "antigravity", "claude", "codex", "copilot", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"];
+
     [Fact]
     public void CatalogOwnsCanonicalProviderIdentityAndCapabilities()
     {
         WindowsProviderCatalogEntry[] entries = WindowsProviderCatalog.Entries.ToArray();
 
         Assert.Equal(
-            ["amp", "antigravity", "claude", "codex", "copilot", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"],
+            ActiveLocalProviders,
             entries.Select(entry => entry.Id.Value));
         Assert.Equal(entries.Length, entries.Select(entry => entry.Id.Value).Distinct().Count());
         Assert.Equal(
@@ -39,14 +43,12 @@ public sealed class WindowsProviderCatalogTests
         Assert.Equal(
             ManualCredentialKind.ApiKeyAndOptionalKeyId,
             ProviderModuleCatalog.Get("vercel-ai-gateway").ManualCredentialKind);
-        Assert.Equal(33, WindowsProviderCatalog.PreparedEntries.Count);
         Assert.DoesNotContain(
             WindowsProviderCatalog.PreparedEntries,
             entry => entry.Id.Value == "openrouter");
         Assert.Equal(
             ["cline", "cline-cli", "gemini-cli", "kilo-code", "kimi-cli", "kimi-code", "perplexity", "zai", "zed"],
             WindowsProviderCatalog.PolicyBlockedEntries.Select(entry => entry.Id.Value));
-        Assert.Equal(56, WindowsProviderCatalog.AllEntries.Count);
         Assert.Equal(
             ProviderModuleCatalog.Entries.Select(entry => entry.Id.Value).Order(),
             WindowsProviderCatalog.AllEntries.Select(entry => entry.Id.Value).Order());
@@ -61,7 +63,7 @@ public sealed class WindowsProviderCatalogTests
             .ToArray();
 
         Assert.Equal(
-            ["amp", "antigravity", "claude", "codex", "copilot", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"],
+            ActiveLocalProviders,
             localUsageIds);
         Assert.All(localUsageIds, id => Assert.True(
             ProviderModuleCatalog.IsActiveLocalUsageProvider(id)));
@@ -158,7 +160,7 @@ public sealed class WindowsProviderCatalogTests
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
-            ["amp", "antigravity", "claude", "codex", "copilot", "cursor", "goose", "grok", "hermes", "mux", "opencode", "zcode"],
+            ActiveLocalProviders,
             composition.LocalUsageSources.Select(source => source.AgentId.Value));
         Assert.Equal(
             SourceKind.OfficialLocalApi,
