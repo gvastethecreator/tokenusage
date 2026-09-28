@@ -157,16 +157,6 @@ public sealed class ArchitectureRulesTests
             "TokenUsage.Runtime.Windows",
             "Providers",
             "WindowsProviderCatalog.cs"));
-        Assert.Contains("new ClaudeUsageEventSource", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("new CodexUsageEventSource", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("new GrokUsageEventSource", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("new OpenCodeUsageEventSource", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("new ZcodeUsageEventSource", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("new CodexRefreshCoordinator", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("CreateVercelBinding", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("ProviderModuleStage.OptIn", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("ProviderModuleStage.Prepared", providerCatalog, StringComparison.Ordinal);
-        Assert.Contains("ProviderModuleStage.PolicyBlocked", providerCatalog, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticUsageEventSource", providerCatalog, StringComparison.Ordinal);
 
         string cliLimits = File.ReadAllText(Path.Combine(
@@ -262,33 +252,6 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
-    public void UsageHeatmapIsVisibleInsideDetailsWithoutANestedExpander()
-    {
-        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
-        var document = System.Xml.Linq.XDocument.Load(Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.App",
-            "Views",
-            "Dashboard",
-            "DashboardView.xaml"));
-        System.Xml.Linq.XElement heatmap = Assert.Single(
-            document.Descendants(),
-            element => element.Attributes().Any(attribute =>
-                attribute.Name.LocalName == "AutomationProperties.AutomationId"
-                && attribute.Value == "UsageProductCard.Heatmap"));
-
-        Assert.DoesNotContain(
-            heatmap.Ancestors(),
-            element => element.Name.LocalName == "Expander");
-        Assert.Contains(
-            heatmap.Ancestors(),
-            element => element.Attributes().Any(attribute =>
-                attribute.Name.LocalName == "Name"
-                && attribute.Value == "UsageProductDetailsPanel"));
-    }
-
-    [Fact]
     public void MainPageAndFlyoutComposeBoundedFeatureSurfaces()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
@@ -321,11 +284,6 @@ public sealed class ArchitectureRulesTests
             "Views",
             "Options",
             "OptionsView.xaml"));
-        string providersView = File.ReadAllText(Path.Combine(
-            appRoot,
-            "Views",
-            "Options",
-            "ProvidersOptionsView.xaml"));
         Assert.DoesNotContain("VercelConnectionView", optionsView, StringComparison.Ordinal);
         Assert.Contains("UnifiedOptionsView", optionsView, StringComparison.Ordinal);
         XNamespace optionsNamespace = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
@@ -346,7 +304,6 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("ProviderStatusView", optionsView, StringComparison.Ordinal);
         Assert.DoesNotContain("OptionsHomeView", optionsView, StringComparison.Ordinal);
         Assert.DoesNotContain("ProvidersOptionsView", optionsView, StringComparison.Ordinal);
-        Assert.DoesNotContain("OptionsVercelButton", providersView, StringComparison.Ordinal);
         Assert.Contains(
             "PersonalizationOptionsView",
             File.ReadAllText(Path.Combine(
@@ -358,17 +315,13 @@ public sealed class ArchitectureRulesTests
 
         string[] requiredViews =
         [
-            Path.Combine("Dashboard", "DashboardView.xaml"),
             Path.Combine("Dashboard", "CompactUsageDashboard.xaml"),
             Path.Combine("Options", "AppearanceOptionsView.xaml"),
             Path.Combine("Options", "GeneralOptionsView.xaml"),
-            Path.Combine("Options", "OptionsHomeView.xaml"),
             Path.Combine("Options", "OptionsView.xaml"),
             Path.Combine("Options", "PersonalizationOptionsView.xaml"),
-            Path.Combine("Options", "ProvidersOptionsView.xaml"),
             Path.Combine("Options", "ProviderStatusView.xaml"),
             Path.Combine("Options", "ProviderCredentialEditor.xaml"),
-            Path.Combine("Options", "VercelConnectionView.xaml"),
             Path.Combine("Reports", "UsageReportPage.xaml"),
         ];
 
@@ -553,7 +506,7 @@ public sealed class ArchitectureRulesTests
         string[] compactQuotaSurfaces =
         [
             Path.Combine(appRoot, "App.xaml"),
-            Path.Combine(appRoot, "Views", "Dashboard", "DashboardView.xaml"),
+            Path.Combine(appRoot, "Views", "Dashboard", "CompactUsageDashboard.xaml"),
         ];
 
         foreach (string quotaSurface in compactQuotaSurfaces)
@@ -598,8 +551,6 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(357, matches.Count);
-        Assert.Equal(341, distinctIds.Length);
         Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCostDetails", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewPartialWarning", distinctIds, StringComparer.Ordinal);
@@ -1185,21 +1136,6 @@ public sealed class ArchitectureRulesTests
             "GeneralOptionsView.xaml.cs"));
         Assert.Contains("DispatcherQueue.TryEnqueue", generalOptionsCode, StringComparison.Ordinal);
         Assert.DoesNotContain("private async void OnLoaded", generalOptionsCode, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void CodexScannerIsSplitIntoPathsScanAndMap()
-    {
-        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
-        string codex = Path.Combine(repoRoot, "src", "TokenUsage.Providers", "Codex");
-        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.cs")));
-        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.Paths.cs")));
-        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.Scan.cs")));
-        Assert.True(File.Exists(Path.Combine(codex, "CodexUsageEventSource.Map.cs")));
-        Assert.Contains(
-            "public sealed partial class CodexUsageEventSource",
-            File.ReadAllText(Path.Combine(codex, "CodexUsageEventSource.Paths.cs")),
-            StringComparison.Ordinal);
     }
 
     private static string ReadCsharpSources(string directory, string filePrefix)

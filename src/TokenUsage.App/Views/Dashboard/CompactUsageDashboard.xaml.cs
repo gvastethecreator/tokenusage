@@ -42,7 +42,6 @@ public sealed partial class CompactUsageDashboard : UserControl
 
     public event EventHandler<UsageReportRequestedEventArgs>? ReportRequested;
 
-    public event EventHandler? OptionsRequested;
 
     public event EventHandler? LayoutAnimationProgressed;
 
@@ -236,7 +235,4 @@ public sealed partial class CompactUsageDashboard : UserControl
             layout.MinItemWidth = width;
         }
     }
-
-    private void OnOptionsClick(object sender, RoutedEventArgs e) =>
-        OptionsRequested?.Invoke(this, EventArgs.Empty);
 }

@@ -426,9 +426,6 @@ public sealed partial class UsageReportViewModel
         CancellationToken token = default) =>
         UsageAttributionExport.RecheckConsentAsync(frozen, _attributionConsent, token);
 
-    public string RenderCanonicalExport(string format) =>
-        UsageReportSnapshotV2.Render(CreateCanonicalSnapshot(), format);
-
     private string FormatDistributionSummary(
         UsageDistributionEligibility eligibility,
         UsageInputSizeShift? shift,

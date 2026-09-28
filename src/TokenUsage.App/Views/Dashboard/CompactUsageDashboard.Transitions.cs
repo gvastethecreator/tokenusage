@@ -22,15 +22,6 @@ public sealed partial class CompactUsageDashboard
             _ => DashboardVisualizationMode.List,
         });
 
-    private void OnVisualizationClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is ToggleButton { Tag: string value }
-            && Enum.TryParse(value, ignoreCase: true, out DashboardVisualizationMode mode))
-        {
-            SetVisualizationWithTransition(mode);
-        }
-    }
-
     private void SetVisualizationWithTransition(DashboardVisualizationMode mode)
     {
         if (mode == ViewModel.Visualization)

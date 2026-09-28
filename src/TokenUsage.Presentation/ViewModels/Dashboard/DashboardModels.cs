@@ -203,10 +203,6 @@ public sealed class DashboardMetricItem
     public static DashboardMetricItem FromMetric(DashboardMetric metric) =>
         new(null, metric ?? throw new ArgumentNullException(nameof(metric)));
 
-    public bool IsQuotaWindow => Window is not null;
-
-    public bool IsScalarMetric => Metric is not null;
-
     public string Title => Window?.Title ?? string.Empty;
 
     public double RemainingPercent => Window?.RemainingPercent ?? 0d;
@@ -216,8 +212,6 @@ public sealed class DashboardMetricItem
     public string RemainingText => Window?.RemainingText ?? string.Empty;
 
     public string ResetText => Window?.ResetText ?? string.Empty;
-
-    public string WindowAutomationName => Window?.DisplayAutomationName ?? string.Empty;
 
     public bool IsWithinLimit => Window?.IsWithinLimit ?? false;
 
@@ -235,9 +229,6 @@ public sealed class DashboardMetricItem
 
     public string Value => Metric?.Value ?? string.Empty;
 
-    public string MetricAutomationId => Metric?.AutomationId ?? string.Empty;
-
-    public string MetricAutomationName => Metric?.AutomationName ?? string.Empty;
 }
 
 public sealed record ProviderCard(
@@ -312,28 +303,16 @@ public sealed record ProviderCard(
 
     public bool HasSecondaryMetrics => SecondaryMetricItems.Count > 0;
 
-    public bool HasSecondaryWindows => SecondaryWindowItems.Count > 0;
-
     public UsageHeatmapModel Heatmap => ActivityHeatmap ?? UsageHeatmapModel.Empty;
 
     public bool HasHeatmap => Heatmap.HasData;
 
     public bool IsHeatmapExpanded => IsOnDemandMetricsExpanded && HasHeatmap;
 
-    public bool HasOnDemandMetrics => OnDemandMetricItems.Count > 0 || HasHeatmap;
-
     public bool HasDetails =>
         !string.IsNullOrWhiteSpace(SourceValue) || !string.IsNullOrWhiteSpace(ObservedValue);
 
     public string DetailsAutomationId => $"{AutomationId}.Details";
-
-    public string DetailsSourceAutomationId => $"{AutomationId}.Details.Source";
-
-    public string DetailsObservedAutomationId => $"{AutomationId}.Details.Observed";
-
-    public string SecondaryMetricsAutomationId => $"{AutomationId}.SecondaryMetrics";
-
-    public string NoticeAutomationId => $"{AutomationId}.Notice";
 
     public bool HasHighlight => IsHighlighted && !string.IsNullOrWhiteSpace(HighlightLabel);
 
@@ -372,27 +351,10 @@ public sealed record LocalUsageCard(
 {
     public bool HasData => Metrics.Count > 0;
 
-    public DashboardMetric ReportedCostMetric => FindMetric(
-        "UsageProductCard.ReportedCost");
-
-    public DashboardMetric EstimatedCostMetric => FindMetric(
-        "UsageProductCard.EstimatedCost");
-
-    public DashboardMetric UnpricedUsageMetric => FindMetric(
-        "UsageProductCard.UnpricedUsage");
-
     public DashboardMetric TotalTokensMetric => FindMetric(
         "UsageProductCard.TotalTokens");
 
-    public DashboardMetric CostCoverageMetric => FindMetric(
-        "UsageProductCard.CostCoverage");
-
-    public DashboardMetric CostPerMillionMetric => FindMetric(
-        "UsageProductCard.CostPerMillion");
-
     public UsageHeatmapModel Heatmap => ActivityHeatmap ?? UsageHeatmapModel.Empty;
-
-    public bool HasUsageDetails => SpendBreakdown.HasContent || Heatmap.HasData;
 
     public string ExpandedNoticeText => IsNoticeImportant ? string.Empty : NoticeText;
 
@@ -515,7 +477,4 @@ public sealed record LocalUsageSpendBreakdown(
 
     public bool HasContent => HasAgentSpend || HasModels;
 
-    public string DonutCenterText => string.IsNullOrWhiteSpace(CompactTotalText)
-        ? TotalText
-        : CompactTotalText;
 }

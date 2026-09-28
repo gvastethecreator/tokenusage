@@ -43,14 +43,6 @@ public sealed partial class UsageReportViewModel
     public string ChartStyleTooltip => string.Format(CultureInfo.CurrentCulture,
         GetString("ReportChartStyleTooltipFormat"), ChartStyleName);
 
-    public string ChartAppearanceSummary =>
-        ChartTitle + " · " + GetString(ChartGrouping switch
-        {
-            ReportChartGrouping.Provider => "UsageReportChartGroupingProvider",
-            ReportChartGrouping.Model => "UsageReportChartGroupingModel",
-            _ => "UsageReportChartGroupingCombined",
-        });
-
     public void SetSmallValueScale(bool enabled)
     {
         if (_emphasizeSmallValues == enabled) return;
@@ -79,7 +71,6 @@ public sealed partial class UsageReportViewModel
         _chartGrouping = grouping;
         OnPropertyChanged(nameof(ChartGrouping));
         OnPropertyChanged(nameof(IsProviderChart));
-        OnPropertyChanged(nameof(ChartAppearanceSummary));
         bool needsTiming = style == ReportChartStyle.TwoHourBars && (!IsCompareScope || !IsCompareRatesAxis && !UseReferencePrices)
             && (NeedsTimeDetails(_report) || IsPairComparison && NeedsTimeDetails(_compareRightReport));
         if (changesTiming && !HasSavedComparison && (IsLoading || needsTiming))

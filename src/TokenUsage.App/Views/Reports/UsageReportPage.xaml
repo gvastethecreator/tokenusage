@@ -805,6 +805,7 @@
                     <Grid
                         x:Name="ReportProviderTabsViewport"
                         Grid.Column="1"
+                        x:Uid="UsageReportProviderSelector"
                         AutomationProperties.AutomationId="UsageReportProviderSelector"
                         SizeChanged="OnProviderTabsViewportSizeChanged">
                         <Grid.Clip>
@@ -1355,7 +1356,7 @@
                             <Button x:Name="CloseProjectsButton" Grid.Column="1" x:Uid="UsageExplorerCloseProjects"
                                 AutomationProperties.AutomationId="UsageExplorerCloseProjects" Click="OnCloseProjectsClick" />
                         </Grid>
-                        <ItemsRepeater x:Name="UsageExplorerProjects" AutomationProperties.AutomationId="UsageExplorerProjects"
+                        <ItemsRepeater x:Name="UsageExplorerProjects" x:Uid="UsageExplorerProjects" AutomationProperties.AutomationId="UsageExplorerProjects"
                             ItemsSource="{x:Bind ViewModel.ProjectRows, Mode=OneWay}">
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="reports:UsageExplorerProjectRow">
@@ -1419,7 +1420,7 @@
                         <Expander x:Name="DashboardOperationDetails" x:Uid="UsageDashboardOperationDetails"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                         <StackPanel Spacing="8">
-                        <ItemsRepeater x:Name="UsageExplorerOperations" AutomationProperties.AutomationId="UsageExplorerOperations"
+                        <ItemsRepeater x:Name="UsageExplorerOperations" x:Uid="UsageExplorerOperations" AutomationProperties.AutomationId="UsageExplorerOperations"
                             ItemsSource="{x:Bind ViewModel.OperationRows, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.HasRankedOperations, Mode=OneWay}">
                             <ItemsRepeater.ItemTemplate>
@@ -1600,7 +1601,7 @@
                         <TextBlock Text="{x:Bind ViewModel.OverviewSessionPopulationText, Mode=OneWay}" TextWrapping="Wrap"
                             Style="{StaticResource ReportDescriptionStyle}"
                             Visibility="{x:Bind ViewModel.HasOverviewSessionPopulation, Mode=OneWay}" />
-                        <ItemsRepeater x:Name="UsageExplorerSessions" AutomationProperties.AutomationId="UsageExplorerSessions"
+                        <ItemsRepeater x:Name="UsageExplorerSessions" x:Uid="UsageExplorerSessions" AutomationProperties.AutomationId="UsageExplorerSessions"
                             ItemsSource="{x:Bind ViewModel.SessionRows, Mode=OneWay}">
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="reports:UsageExplorerSessionRow">
@@ -1611,7 +1612,7 @@
                                         </Grid.ColumnDefinitions>
                                         <Button HorizontalAlignment="Left" Padding="8,4"
                                             Tag="{x:Bind SessionKey}" Click="OnSessionExpandClick"
-                                            AutomationProperties.AutomationId="UsageExplorerExpandSession"
+                                            x:Uid="UsageExplorerExpandSession" AutomationProperties.AutomationId="UsageExplorerExpandSession"
                                             Visibility="{x:Bind CanExpand, Mode=OneWay}">
                                             <TextBlock Text="{x:Bind ExpandGlyph, Mode=OneWay}" />
                                         </Button>

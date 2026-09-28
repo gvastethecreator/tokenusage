@@ -11,7 +11,6 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <CornerRadius x:Key="DashboardCardCornerRadius">12</CornerRadius>
             <Style x:Key="OptionsInlineToggleStyle" TargetType="ToggleSwitch">
                 <Setter Property="Width" Value="56" />
                 <Setter Property="OnContent" Value="" />
@@ -38,80 +37,6 @@
                 TargetType="Border">
                 <Setter Property="Padding" Value="12,11" />
             </Style>
-            <Style x:Key="OptionsCategoryIconStyle" TargetType="FontIcon">
-                <Setter Property="FontSize" Value="18" />
-                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-                <Setter Property="Height" Value="26" />
-                <Setter Property="HorizontalAlignment" Value="Center" />
-                <Setter Property="IsTextScaleFactorEnabled" Value="False" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-                <Setter Property="Width" Value="26" />
-            </Style>
-            <Style
-                x:Key="OptionsCategoryTitleStyle"
-                BasedOn="{StaticResource BodyStrongTextBlockStyle}"
-                TargetType="TextBlock">
-                <Setter Property="FontSize" Value="16" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-            </Style>
-            <DataTemplate x:Key="QuotaWindowRowTemplate">
-                <Grid Padding="0,9,0,8" ColumnSpacing="10" RowSpacing="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="32" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Border
-                        Grid.RowSpan="3"
-                        Width="32"
-                        Height="32"
-                        VerticalAlignment="Top"
-                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                        BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
-                        BorderThickness="2"
-                        CornerRadius="7">
-                        <FontIcon FontSize="14" Glyph="&#xE787;" />
-                    </Border>
-                    <TextBlock
-                        Grid.Column="1"
-                        FontWeight="SemiBold"
-                        Text="{Binding Title}" />
-                    <TextBlock
-                        Grid.Column="2"
-                        HorizontalAlignment="Right"
-                        FontFamily="Consolas"
-                        FontWeight="SemiBold"
-                        Text="{Binding RemainingText}"
-                        TextAlignment="Right" />
-                    <controls:AnimatedProgressBar
-                        Grid.Row="1"
-                        Grid.Column="1"
-                        Grid.ColumnSpan="2"
-                        Height="6"
-                        AutomationName="{Binding DisplayAutomationName}"
-                        RemainingValue="{Binding ColorRemainingPercent}"
-                        TargetValue="{Binding RemainingPercent}" />
-                    <TextBlock
-                        Grid.Row="2"
-                        Grid.Column="1"
-                        Grid.ColumnSpan="2"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Text="{Binding ResetText}"
-                        TextAlignment="Right"
-                        TextWrapping="WrapWholeWords">
-                        <ToolTipService.ToolTip>
-                            <ToolTip MaxWidth="332" Content="{Binding ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
-                        </ToolTipService.ToolTip>
-                    </TextBlock>
-                </Grid>
-            </DataTemplate>
-
             <!-- TokenUsage data-visualization colors; these are not provider brand colors. -->
             <Color x:Key="ProviderAntigravityColorDark">#FF2458AA</Color>
             <Color x:Key="ProviderAntigravityColor">#FF4285F4</Color>

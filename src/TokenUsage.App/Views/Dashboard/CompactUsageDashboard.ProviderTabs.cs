@@ -28,15 +28,6 @@ public sealed partial class CompactUsageDashboard
     private void OnNextProviderTabClick(object sender, RoutedEventArgs e) =>
         NavigateProviderTab(1);
 
-    private void OnProviderSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (ViewModel.IsProviderScope
-            && sender is ComboBox { SelectedItem: DashboardProviderOption option })
-        {
-            SelectProviderWithTransition(option.ProviderId);
-        }
-    }
-
     private void OnDonutProviderInvoked(object? sender, ProviderInvokedEventArgs e) =>
         SelectProviderWithTransition(e.ProviderId);
 

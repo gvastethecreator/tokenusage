@@ -10,6 +10,7 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Foundation;
 using Windows.System;
 using Windows.UI;
+using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Reports;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
@@ -388,8 +389,8 @@ public sealed partial class UsageTrendChart : UserControl
         {
             _ when kind == UsageTrendPointKind.Unavailable || !double.IsFinite(value) => GetString("UsageReportUnpricedLabel"),
             UsageReportMetric.Cost => exact
-                ? UsageReportViewModel.FormatDetailUsd(value)
-                : UsageReportViewModel.FormatAxisUsd(value),
+                ? UsageValueFormatter.DetailUsd(value)
+                : UsageValueFormatter.AxisUsd(value),
             UsageReportMetric.Share => string.Format(
                 System.Globalization.CultureInfo.CurrentCulture,
                 "{0:0.#}%",

@@ -120,9 +120,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public partial bool IsSessionRefreshing { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(LiveDataStateText))]
-    [NotifyPropertyChangedFor(nameof(SampleDataStateText))]
-    [NotifyPropertyChangedFor(nameof(SampleDataStateAutomationId))]
     public partial SampleDataState DataState { get; private set; } = SampleDataState.Idle;
 
     [ObservableProperty]
@@ -227,8 +224,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
     public bool IsSampleLoading => IsLoading && IsSampleModeEnabled;
 
-    public bool IsLocalUsageVisible => _hasLocalUsage && !IsSampleModeEnabled;
-
     public bool IsRefreshing => IsSessionRefreshing;
 
     public bool IsGlobalScope => Scope == DashboardScopeMode.Global;
@@ -238,11 +233,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public DashboardVisualizationMode Visualization =>
         _appearance.Settings.DashboardVisualization;
 
-    public bool IsListVisualization => Visualization == DashboardVisualizationMode.List;
-
-    public bool IsDonutVisualization => Visualization == DashboardVisualizationMode.Donut;
-
-    public bool IsHeatmapVisualization => Visualization == DashboardVisualizationMode.Heatmap;
 
     public string VisualizationToggleIcon => Visualization switch
     {
@@ -257,8 +247,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         DashboardVisualizationMode.Donut => "HeaderVisualizationToHeatmap",
         _ => "HeaderVisualizationToList",
     });
-
-    public bool IsActivitySummaryVisible => !IsHeatmapVisualization;
 
     public bool HasCoverageHint => !string.IsNullOrWhiteSpace(LocalUsage.NoticeText);
 
@@ -371,49 +359,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             .Select(status => status.ProviderId)
             .ToArray();
 
-    public string Heading => _getString(
-        IsSampleModeEnabled ? "SampleTotalSpendHeading" : "LiveDashboardHeading");
-
-    public bool IsLiveDataStateVisible => !IsSampleModeEnabled;
-
-    public bool IsSampleDataStateVisible => IsSampleModeEnabled;
-
-    public string LiveDataStateText => _hasLocalUsage && ActiveSample.HasSpend
-        ? ActiveSample.PeriodLabel
-        : CodexLiveStateFormatter.Format(
-            DataState,
-            IsSampleModeEnabled,
-            _publishedObservedAtUtc,
-            _retryAtUtc,
-            _liveSession.Clock.GetUtcNow(),
-            _getString);
-
-    public string SampleDataStateText => _getString(DataState switch
-    {
-        SampleDataState.CacheRefreshing => "SampleStateCacheRefreshing",
-        SampleDataState.StaleCacheRefreshing => "SampleStateStaleCacheRefreshing",
-        SampleDataState.Fresh => "SampleStateFresh",
-        SampleDataState.Partial => "SampleStatePartial",
-        SampleDataState.Stale => "SampleStateStale",
-        SampleDataState.Error => "SampleStateError",
-        SampleDataState.Throttled => "SampleStateThrottled",
-        SampleDataState.NotSaved => "SampleStateNotSaved",
-        _ => "SamplePeriodNormal",
-    });
-
-    public string SampleDataStateAutomationId => DataState switch
-    {
-        SampleDataState.CacheRefreshing => "SampleStateCacheRefreshing",
-        SampleDataState.StaleCacheRefreshing => "SampleStateStaleCacheRefreshing",
-        SampleDataState.Fresh => "SampleStateFresh",
-        SampleDataState.Partial => "SampleStatePartial",
-        SampleDataState.Stale => "SampleStateStale",
-        SampleDataState.Error => "SampleStateError",
-        SampleDataState.Throttled => "SampleStateThrottled",
-        SampleDataState.NotSaved => "SampleStateNotSaved",
-        _ => "SampleStateIdle",
-    };
-
     /// <summary>
     /// Whether the panel is on screen. A hidden panel keeps watching for a due retry, and stops
     /// reprojecting the dashboard on every tick, because nobody can read the result.
@@ -450,7 +395,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
         if (_publishedObservedAtUtc is not null)
         {
-            OnPropertyChanged(nameof(LiveDataStateText));
         }
 
         if (_isPanelVisible
@@ -487,13 +431,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _appearance.SelectedDashboardVisualization = option;
         }
     }
-
-    public void CycleVisualization() => SetVisualization(Visualization switch
-    {
-        DashboardVisualizationMode.List => DashboardVisualizationMode.Donut,
-        DashboardVisualizationMode.Donut => DashboardVisualizationMode.Heatmap,
-        _ => DashboardVisualizationMode.List,
-    });
 
     public UsageReportRequest CreateReportRequest(DateOnly? focusDate = null) => new(
         Scope == DashboardScopeMode.Provider
@@ -558,11 +495,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     /// panel open cannot start a second live pass.
     /// </summary>
     public bool HasRequestedForcedRefresh { get; private set; }
-
-    /// <summary>
-    /// True once a forced refresh has run to completion.
-    /// </summary>
-    public bool HasCompletedForcedRefresh { get; private set; }
 
     public Task RefreshLiveAsync()
     {
@@ -676,10 +608,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             {
                 IsSessionRefreshing = false;
                 _refreshCancellation = null;
-                if (forceRefresh && !cancellation.IsCancellationRequested)
-                {
-                    HasCompletedForcedRefresh = true;
-                }
             }
 
             cancellation.Dispose();
@@ -724,7 +652,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             LocalUsage = _personalization.Apply(session.RawLocalUsage);
             _hasLocalUsage = session.HasLocalUsage;
             RebuildProviderStatuses();
-            OnPropertyChanged(nameof(IsLocalUsageVisible));
             OnPropertyChanged(nameof(HasProviderDetection));
             OnPropertyChanged(nameof(HasNoDetectedProviders));
             RebuildCompactProjection();
@@ -861,7 +788,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     {
         DataState = state;
         RebuildProviderStatuses();
-        OnPropertyChanged(nameof(LiveDataStateText));
     }
 
     private void RebuildProviderStatuses() =>
@@ -893,7 +819,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         _providerLimitsById.Clear();
         ActiveSample = _personalization.Apply(appearanceDashboard);
         RebuildCompactProjection();
-        OnPropertyChanged(nameof(LiveDataStateText));
         if (_rawLocalUsage is not null)
         {
             LocalUsage = _personalization.Apply(_rawLocalUsage);
@@ -908,12 +833,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(IsSampleContext));
         OnPropertyChanged(nameof(IsLiveLoading));
         OnPropertyChanged(nameof(IsSampleLoading));
-        OnPropertyChanged(nameof(Heading));
-        OnPropertyChanged(nameof(IsLiveDataStateVisible));
-        OnPropertyChanged(nameof(IsSampleDataStateVisible));
-        OnPropertyChanged(nameof(SampleDataStateText));
-        OnPropertyChanged(nameof(SampleDataStateAutomationId));
-        OnPropertyChanged(nameof(IsLocalUsageVisible));
         Cancel();
         _hasPublishedDashboard = false;
         _activeScenario = null;
@@ -945,12 +864,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         AppearanceSettings previous = _lastAppearanceSettings;
         _lastAppearanceSettings = settings;
         OnPropertyChanged(nameof(Visualization));
-        OnPropertyChanged(nameof(IsListVisualization));
-        OnPropertyChanged(nameof(IsDonutVisualization));
-        OnPropertyChanged(nameof(IsHeatmapVisualization));
         OnPropertyChanged(nameof(VisualizationToggleIcon));
         OnPropertyChanged(nameof(VisualizationToggleText));
-        OnPropertyChanged(nameof(IsActivitySummaryVisible));
         bool dashboardProjectionChanged = previous.UsageDisplay != settings.UsageDisplay
             || previous.ResetTimeDisplay != settings.ResetTimeDisplay;
         if (dashboardProjectionChanged && _rawDashboard is not null)

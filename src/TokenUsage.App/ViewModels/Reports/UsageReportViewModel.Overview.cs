@@ -28,8 +28,6 @@ public sealed partial class UsageReportViewModel
 
     public ObservableCollection<UsageReportProjectOverviewRow> ProjectOverviewRows { get; } = [];
 
-    public bool HasOverviewNotice => !string.IsNullOrEmpty(OverviewNoticeText);
-
     public string OverviewNoticeText { get; private set; } = string.Empty;
 
     public bool HasUnpricedSummary =>
@@ -234,8 +232,6 @@ public sealed partial class UsageReportViewModel
 
     public string OverviewCallsUnavailableText => GetString("UsageOverviewCallsUnavailable");
 
-    public bool HasOverviewCallsNotice => Overview is not null;
-
     private UsageReportProjectOverviewRow[] CreateProjectOverviewRows(UsageReportOverview overview) =>
         overview.Projects.Select(row =>
         {
@@ -328,7 +324,6 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasOverviewSessionsDetail));
         OnPropertyChanged(nameof(HasOverviewCacheDetail));
         OnPropertyChanged(nameof(OverviewNoticeText));
-        OnPropertyChanged(nameof(HasOverviewNotice));
         OnPropertyChanged(nameof(HasUnpricedSummary));
         OnPropertyChanged(nameof(PriceCoverageTone));
         OnPropertyChanged(nameof(PriceCoverageIcon));
@@ -343,7 +338,6 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasOverviewSessionPopulation));
         OnPropertyChanged(nameof(OverviewSessionPopulationText));
         OnPropertyChanged(nameof(OverviewCallsUnavailableText));
-        OnPropertyChanged(nameof(HasOverviewCallsNotice));
         OnPropertyChanged(nameof(IsProjectBreakdown));
     }
 }

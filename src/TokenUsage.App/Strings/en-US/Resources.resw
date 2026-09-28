@@ -43,18 +43,7 @@
   <data name="StatusIdle" xml:space="preserve"><value>No data yet</value></data>
   <data name="StatusLoading" xml:space="preserve"><value>Updating…</value></data>
   <data name="ProviderHeader.Text" xml:space="preserve"><value>TokenUsage</value></data>
-  <data name="UsageReportButtonLabel.Text" xml:space="preserve"><value>Report</value></data>
-  <data name="CompactGlobalCostLabel.Text" xml:space="preserve"><value>Known usage cost</value></data>
-  <data name="CompactGlobalTokensLabel.Text" xml:space="preserve"><value>Tokens</value></data>
-  <data name="CompactListButton.Content" xml:space="preserve"><value>List</value></data>
-  <data name="CompactDonutButton.Content" xml:space="preserve"><value>Donut</value></data>
-  <data name="CompactHeatmapButton.Content" xml:space="preserve"><value>Map</value></data>
-  <data name="CompactGlobalBackButton.Content" xml:space="preserve"><value>Global</value></data>
-  <data name="CompactProviderCostLabel.Text" xml:space="preserve"><value>Cost</value></data>
-  <data name="CompactProviderTokensLabel.Text" xml:space="preserve"><value>Tokens</value></data>
-  <data name="CompactProviderLimitsTitle.Text" xml:space="preserve"><value>Official limits</value></data>
   <data name="CompactProviderTrendTitle.Text" xml:space="preserve"><value>Processed tokens per day</value></data>
-  <data name="CompactActivityTitle.Text" xml:space="preserve"><value>GLOBAL ACTIVITY</value></data>
   <data name="CompactActivityToday" xml:space="preserve"><value>Today</value></data>
   <data name="CompactActivity7Days" xml:space="preserve"><value>7 days</value></data>
   <data name="CompactActivity30Days" xml:space="preserve"><value>30 days</value></data>
@@ -75,7 +64,6 @@
   <data name="CompactGlobalSummaryLabel.Text" xml:space="preserve"><value>Observed cost · 30 days</value></data>
   <data name="CompactHeatmapLegendLow.Text" xml:space="preserve"><value>Very low</value></data>
   <data name="CompactHeatmapLegendHigh.Text" xml:space="preserve"><value>High</value></data>
-  <data name="CompactBackGlobalLabel.Text" xml:space="preserve"><value>Global</value></data>
   <data name="CompactProviderCardLimitsTitle.Text" xml:space="preserve"><value>Official limits</value></data>
   <data name="HeaderRefreshButton.AutomationProperties.Name" xml:space="preserve"><value>Update</value></data>
   <data name="HeaderOptionsButton.AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
@@ -83,40 +71,14 @@
   <data name="HeaderVisualizationToDonut" xml:space="preserve"><value>Switch to donut view</value></data>
   <data name="HeaderVisualizationToHeatmap" xml:space="preserve"><value>Switch to calendar view</value></data>
   <data name="HeaderVisualizationToList" xml:space="preserve"><value>Switch to list view</value></data>
-  <data name="OptionsHeader.Text" xml:space="preserve"><value>Options</value></data>
-  <data name="OptionsHomeDescription.Text" xml:space="preserve"><value>Choose what you want to change.</value></data>
-  <data name="OptionsGeneralLabel.Text" xml:space="preserve"><value>General</value></data>
-  <data name="OptionsGeneralDescription.Text" xml:space="preserve"><value>Window, collection, and attribution</value></data>
-  <data name="OptionsGeneralButton.AutomationProperties.Name" xml:space="preserve"><value>General options</value></data>
-  <data name="OptionsAppearanceLabel.Text" xml:space="preserve"><value>Appearance</value></data>
-  <data name="OptionsAppearanceDescription.Text" xml:space="preserve"><value>Theme, density, and usage formats</value></data>
-  <data name="OptionsAppearanceButton.AutomationProperties.Name" xml:space="preserve"><value>Appearance options</value></data>
-  <data name="OptionsPersonalizationLabel.Text" xml:space="preserve"><value>Dashboard</value></data>
-  <data name="OptionsPersonalizationDescription.Text" xml:space="preserve"><value>Provider order, visibility, metrics, and colors</value></data>
-  <data name="OptionsPersonalizationButton.AutomationProperties.Name" xml:space="preserve"><value>Dashboard options</value></data>
-  <data name="OptionsProvidersLabel.Text" xml:space="preserve"><value>Providers</value></data>
-  <data name="OptionsProvidersDescription.Text" xml:space="preserve"><value>Connections and source health</value></data>
-  <data name="OptionsProvidersButton.AutomationProperties.Name" xml:space="preserve"><value>Provider options</value></data>
-  <data name="GeneralSectionTitle.Text" xml:space="preserve"><value>General</value></data>
-  <data name="GeneralSectionDescription.Content" xml:space="preserve"><value>Choose how usage is collected and linked.</value></data>
   <data name="GeneralWindowGroupTitle.Text" xml:space="preserve"><value>Window</value></data>
   <data name="GeneralCollectionGroupTitle.Text" xml:space="preserve"><value>Collection</value></data>
   <data name="GeneralAttributionGroupTitle.Text" xml:space="preserve"><value>Attribution</value></data>
   <data name="GeneralCodexDetailsExpander.Header" xml:space="preserve"><value>More Codex details</value></data>
   <data name="GeneralHistoryExpander.Header" xml:space="preserve"><value>Backfill retained attribution</value></data>
   <data name="GeneralScreenshotGroupTitle.Text" xml:space="preserve"><value>Screenshots</value></data>
-  <data name="AppearanceSectionTitle.Text" xml:space="preserve"><value>Appearance</value></data>
-  <data name="AppearanceSectionDescription.Content" xml:space="preserve"><value>Changes apply to the dashboard as soon as you select them.</value></data>
-  <data name="PersonalizationSectionTitle.Text" xml:space="preserve"><value>Dashboard</value></data>
-  <data name="PersonalizationSectionDescription.Content" xml:space="preserve"><value>Choose which providers and metrics get the most space.</value></data>
   <data name="ProvidersSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="ProvidersSectionDescription.Text" xml:space="preserve"><value>Manage connections and inspect each source.</value></data>
-  <data name="OptionsVercelLabel.Text" xml:space="preserve"><value>Vercel connection</value></data>
-  <data name="OptionsVercelDescription.Text" xml:space="preserve"><value>Connect or remove an experimental Vercel account</value></data>
-  <data name="OptionsVercelButton.AutomationProperties.Name" xml:space="preserve"><value>Vercel connection options</value></data>
-  <data name="OptionsProviderStatusLabel.Text" xml:space="preserve"><value>Source status</value></data>
-  <data name="OptionsProviderStatusDescription.Text" xml:space="preserve"><value>Availability, access, freshness, and errors</value></data>
-  <data name="OptionsProviderStatusButton.AutomationProperties.Name" xml:space="preserve"><value>Provider source status</value></data>
   <data name="OptionsBackButton.AutomationProperties.Name" xml:space="preserve"><value>Back</value></data>
   <data name="LoadingProgressRing.AutomationProperties.Name" xml:space="preserve"><value>Updating usage</value></data>
   <data name="LoadingLabel.Text" xml:space="preserve"><value>Looking for local usage data…</value></data>
@@ -130,18 +92,12 @@
   <data name="CloseWhenInactiveToggle.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Close when focus is lost</value></data>
   <data name="FlyoutFooterIdentity.Text" xml:space="preserve"><value>TokenUsage 0.1</value></data>
   <data name="FooterOptionsButton.AutomationProperties.Name" xml:space="preserve"><value>Options</value></data>
-  <data name="FooterOptionsLabel.Text" xml:space="preserve"><value>Options</value></data>
   <data name="SampleBadge.Text" xml:space="preserve"><value>Sample</value></data>
-  <data name="SampleModeToggle.Header" xml:space="preserve"><value>Show sample dashboard</value></data>
-  <data name="SampleModeToggle.AutomationProperties.Name" xml:space="preserve"><value>Show sample dashboard</value></data>
-  <data name="SampleScenarioCombo.Header" xml:space="preserve"><value>Sample scenario</value></data>
-  <data name="SampleScenarioCombo.AutomationProperties.Name" xml:space="preserve"><value>Sample scenario</value></data>
   <data name="SampleScenarioNormal" xml:space="preserve"><value>Normal</value></data>
   <data name="SampleScenarioNearLimit" xml:space="preserve"><value>Near limit</value></data>
   <data name="SampleScenarioPartial" xml:space="preserve"><value>Partial</value></data>
   <data name="SampleScenarioStale" xml:space="preserve"><value>Stale</value></data>
   <data name="SampleScenarioError" xml:space="preserve"><value>Error</value></data>
-  <data name="SampleTotalSpendTitle.Text" xml:space="preserve"><value>Total spend</value></data>
   <data name="SampleSpendAccessibleNameFormat" xml:space="preserve"><value>Total spend {0} across {1} providers. {2}</value></data>
   <data name="SampleStatus" xml:space="preserve"><value>Sample</value></data>
   <data name="SampleStatusLoading" xml:space="preserve"><value>Refreshing sample…</value></data>
@@ -150,22 +106,6 @@
   <data name="SamplePeriodPartial" xml:space="preserve"><value>30 days · partial coverage</value></data>
   <data name="SamplePeriodStale" xml:space="preserve"><value>30 days · stale sample</value></data>
   <data name="SamplePeriodError" xml:space="preserve"><value>30 days · sample error</value></data>
-  <data name="SampleStateCacheRefreshing" xml:space="preserve"><value>30 days · cache, updating…</value></data>
-  <data name="SampleStateStaleCacheRefreshing" xml:space="preserve"><value>30 days · stale cache, updating…</value></data>
-  <data name="SampleStateFresh" xml:space="preserve"><value>30 days · updated now</value></data>
-  <data name="SampleStatePartial" xml:space="preserve"><value>30 days · partial coverage</value></data>
-  <data name="SampleStateStale" xml:space="preserve"><value>30 days · stale sample</value></data>
-  <data name="SampleStateError" xml:space="preserve"><value>30 days · error, showing cache</value></data>
-  <data name="SampleStateThrottled" xml:space="preserve"><value>30 days · waiting to retry</value></data>
-  <data name="SampleStateNotSaved" xml:space="preserve"><value>30 days · updated, not saved</value></data>
-  <data name="SampleStateCacheRefreshingLabel.Text" xml:space="preserve"><value>30 days · cache, updating…</value></data>
-  <data name="SampleStateStaleCacheRefreshingLabel.Text" xml:space="preserve"><value>30 days · stale cache, updating…</value></data>
-  <data name="SampleStateFreshLabel.Text" xml:space="preserve"><value>30 days · updated now</value></data>
-  <data name="SampleStatePartialLabel.Text" xml:space="preserve"><value>30 days · partial coverage</value></data>
-  <data name="SampleStateStaleLabel.Text" xml:space="preserve"><value>30 days · stale sample</value></data>
-  <data name="SampleStateErrorLabel.Text" xml:space="preserve"><value>30 days · error, showing cache</value></data>
-  <data name="SampleStateThrottledLabel.Text" xml:space="preserve"><value>30 days · waiting to retry</value></data>
-  <data name="SampleStateNotSavedLabel.Text" xml:space="preserve"><value>30 days · updated, not saved</value></data>
   <data name="SampleRemainingFormat" xml:space="preserve"><value>{0}% left</value></data>
   <data name="SampleResetHoursFormat" xml:space="preserve"><value>Resets in {0} h</value></data>
   <data name="SampleResetDaysFormat" xml:space="preserve"><value>Resets in {0} d</value></data>
@@ -195,10 +135,6 @@
   <data name="SampleNoticePartial" xml:space="preserve"><value>Partial coverage</value></data>
   <data name="SampleNoticePolicy" xml:space="preserve"><value>Quota access is blocked by policy in this sample.</value></data>
   <data name="SampleNoticeError" xml:space="preserve"><value>Sample error · keeping the last value.</value></data>
-  <data name="SampleUnavailableTitle.Text" xml:space="preserve"><value>Sample unavailable</value></data>
-  <data name="SampleUnavailableBody.Text" xml:space="preserve"><value>The sample source failed and no saved value is available yet.</value></data>
-  <data name="SampleRetryButton.Content" xml:space="preserve"><value>Try again</value></data>
-  <data name="SampleRetryButton.AutomationProperties.Name" xml:space="preserve"><value>Retry sample</value></data>
   <data name="SamplePlanPlus" xml:space="preserve"><value>Plus</value></data>
   <data name="SamplePlanPro" xml:space="preserve"><value>Pro</value></data>
   <data name="SamplePlanLocal" xml:space="preserve"><value>Local</value></data>
@@ -209,7 +145,6 @@
   <data name="SampleMetricAcus" xml:space="preserve"><value>ACUs</value></data>
   <data name="SampleMetricUsage" xml:space="preserve"><value>Usage</value></data>
   <data name="SamplePlanExperimental" xml:space="preserve"><value>Experimental</value></data>
-  <data name="CodexQuotaTitle" xml:space="preserve"><value>Codex quota</value></data>
   <data name="CodexQuotaPeriod" xml:space="preserve"><value>Current Codex limits</value></data>
   <data name="CodexPlanUnknown" xml:space="preserve"><value>Plan unavailable</value></data>
   <data name="CodexUsageFormat" xml:space="preserve"><value>{0}% left · {1}% used</value></data>
@@ -234,33 +169,10 @@
   <data name="CodexResetCreditsNoExpiryDetail" xml:space="preserve"><value>No expiry was reported.</value></data>
   <data name="CodexResetUnknown" xml:space="preserve"><value>Reset time unavailable</value></data>
   <data name="CodexResetDue" xml:space="preserve"><value>Reset due</value></data>
-  <data name="CodexStateCacheRefreshing" xml:space="preserve"><value>Codex quota · cache, updating…</value></data>
-  <data name="CodexStateStaleCacheRefreshing" xml:space="preserve"><value>Codex quota · stale cache, updating…</value></data>
-  <data name="CodexStateFresh" xml:space="preserve"><value>Codex quota · updated now</value></data>
-  <data name="CodexStatePartial" xml:space="preserve"><value>Codex quota · partial coverage</value></data>
-  <data name="CodexStateStale" xml:space="preserve"><value>Codex quota · saved data</value></data>
-  <data name="CodexStateError" xml:space="preserve"><value>Codex quota · error, showing cache</value></data>
-  <data name="CodexStateNotSaved" xml:space="preserve"><value>Codex quota · updated, not saved</value></data>
-  <data name="CodexStateThrottled" xml:space="preserve"><value>Codex quota · waiting to retry</value></data>
-  <data name="CodexStateCacheRefreshingWithAgeFormat" xml:space="preserve"><value>Codex quota · cache from {0} ago, updating…</value></data>
-  <data name="CodexStateStaleCacheRefreshingWithAgeFormat" xml:space="preserve"><value>Codex quota · stale cache from {0} ago, updating…</value></data>
-  <data name="CodexStateStaleWithAgeFormat" xml:space="preserve"><value>Codex quota · saved data from {0} ago</value></data>
-  <data name="CodexStateErrorWithAgeFormat" xml:space="preserve"><value>Codex quota · error, showing cache from {0} ago</value></data>
-  <data name="CodexStateErrorRetryWithAgeFormat" xml:space="preserve"><value>Codex quota · retry in {0}, cache from {1} ago</value></data>
-  <data name="CodexStateThrottledWithAgeFormat" xml:space="preserve"><value>Codex quota · retry in {0}, cache from {1} ago</value></data>
-  <data name="CodexAgeLessThanMinute" xml:space="preserve"><value>less than 1 min</value></data>
-  <data name="CodexAgeMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
-  <data name="CodexAgeHoursFormat" xml:space="preserve"><value>{0} h</value></data>
-  <data name="CodexAgeDaysFormat" xml:space="preserve"><value>{0} d</value></data>
-  <data name="SampleRetryAutomationName" xml:space="preserve"><value>Retry sample</value></data>
   <data name="CodexUnavailableTitle" xml:space="preserve"><value>Codex quota unavailable</value></data>
   <data name="CodexUnavailableBody" xml:space="preserve"><value>TokenUsage could not read Codex quota. Check that Codex runs, then try again.</value></data>
   <data name="ProvidersUndetectedTitle" xml:space="preserve"><value>No AI coding tool detected</value></data>
   <data name="ProvidersUndetectedBody" xml:space="preserve"><value>TokenUsage found no supported tool on this computer. Install or run one, then refresh.</value></data>
-  <data name="CodexNotConfiguredTitle" xml:space="preserve"><value>Codex setup needed</value></data>
-  <data name="CodexNotConfiguredBody" xml:space="preserve"><value>Install Codex CLI or sign in with ChatGPT in Codex, then retry. TokenUsage does not ask for credentials.</value></data>
-  <data name="CodexUnsupportedTitle" xml:space="preserve"><value>Codex quota is unavailable for this account</value></data>
-  <data name="CodexUnsupportedBody" xml:space="preserve"><value>The active Codex account does not report ChatGPT quota windows.</value></data>
   <data name="CodexRetry" xml:space="preserve"><value>Retry Codex quota</value></data>
   <data name="CodexPartialUsageNotice" xml:space="preserve"><value>Daily token usage is incomplete.</value></data>
   <data name="CodexCapabilityUsage" xml:space="preserve"><value>Limits and official usage</value></data>
@@ -279,9 +191,6 @@
   <data name="CodexDurationHoursFormat" xml:space="preserve"><value>{0} h</value></data>
   <data name="CodexDurationMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
   <data name="CodexDurationHoursMinutesFormat" xml:space="preserve"><value>{0} h {1} min</value></data>
-  <data name="SampleTotalSpendHeading" xml:space="preserve"><value>Total spend</value></data>
-  <data name="SampleUnavailableTitleValue" xml:space="preserve"><value>Sample unavailable</value></data>
-  <data name="SampleUnavailableBodyValue" xml:space="preserve"><value>The sample source failed and no saved value is available yet.</value></data>
   <data name="SampleRetry" xml:space="preserve"><value>Try again</value></data>
   <data name="LocalUsageTitle" xml:space="preserve"><value>Local usage</value></data>
   <data name="LocalUsageSourceSynthetic" xml:space="preserve"><value>Synthetic fixture · Local SQLite</value></data>
@@ -344,7 +253,6 @@
   <data name="LocalUsageAgentZcode" xml:space="preserve"><value>ZCode</value></data>
   <data name="LocalUsageUsdFormat" xml:space="preserve"><value>${0:N2} USD</value></data>
   <data name="LocalUsageUsdTinyFormat" xml:space="preserve"><value>{0} USD</value></data>
-  <data name="CodexStateUnavailable" xml:space="preserve"><value>Quota unavailable · local usage shown</value></data>
   <data name="ProviderStatusSectionTitle.Text" xml:space="preserve"><value>Providers</value></data>
   <data name="ProviderStatusSectionDescription.Content" xml:space="preserve"><value>Local detection and supported data. Full paths stay private.</value></data>
   <data name="ProviderStatusRefreshButton.AutomationProperties.Name" xml:space="preserve"><value>Refresh provider status</value></data>
@@ -445,25 +353,6 @@
   <data name="VercelMetricRequests" xml:space="preserve"><value>Requests</value></data>
   <data name="LiveDashboardHeading" xml:space="preserve"><value>Provider usage</value></data>
   <data name="LiveDashboardPeriod" xml:space="preserve"><value>Live provider data</value></data>
-  <data name="VercelSectionTitle.Text" xml:space="preserve"><value>Vercel AI Gateway</value></data>
-  <data name="VercelExperimentalBadge.Text" xml:space="preserve"><value>Experimental</value></data>
-  <data name="VercelSectionDescription.Text" xml:space="preserve"><value>Official beta report for account-wide spend and tokens, plus an optional per-key budget. TokenUsage reuses data for 10 minutes.</value></data>
-  <data name="VercelRiskInfo.Title" xml:space="preserve"><value>High-privilege key</value></data>
-  <data name="VercelRiskInfo.Message" xml:space="preserve"><value>This key can run models and the report covers its whole account. Each report call costs about $0.005. Create a dedicated key with a $1 budget and expiry. TokenUsage stores it in Windows Credential Locker.</value></data>
-  <data name="VercelApiKeyBox.Header" xml:space="preserve"><value>AI Gateway API key</value></data>
-  <data name="VercelApiKeyBox.PlaceholderText" xml:space="preserve"><value>Paste a dedicated key</value></data>
-  <data name="VercelApiKeyBox.AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key</value></data>
-  <data name="VercelKeyIdBox.Header" xml:space="preserve"><value>API key ID (optional)</value></data>
-  <data name="VercelKeyIdBox.PlaceholderText" xml:space="preserve"><value>Example: key_abc123</value></data>
-  <data name="VercelKeyIdBox.Description" xml:space="preserve"><value>Add the raw ID to check this key's budget. Do not include api_key_id_.</value></data>
-  <data name="VercelKeyIdBox.AutomationProperties.Name" xml:space="preserve"><value>Vercel AI Gateway API key ID</value></data>
-  <data name="VercelKeyIdError.Text" xml:space="preserve"><value>Use the raw key ID with letters, digits, underscores, or hyphens.</value></data>
-  <data name="VercelConsentCheckBox.Content" xml:space="preserve"><value>I understand this key can run models and exposes account-wide report data.</value></data>
-  <data name="VercelConsentCheckBox.AutomationProperties.Name" xml:space="preserve"><value>Accept Vercel AI Gateway key risk</value></data>
-  <data name="VercelConnectButton.Content" xml:space="preserve"><value>Connect and load report</value></data>
-  <data name="VercelConnectButton.AutomationProperties.Name" xml:space="preserve"><value>Connect Vercel AI Gateway and load its report</value></data>
-  <data name="VercelDisconnectButton.Content" xml:space="preserve"><value>Disconnect and clear report</value></data>
-  <data name="VercelDisconnectButton.AutomationProperties.Name" xml:space="preserve"><value>Disconnect Vercel AI Gateway and clear its cached report</value></data>
   <data name="VercelStatusChecking" xml:space="preserve"><value>Checking the Windows Credential Locker.</value></data>
   <data name="VercelStatusNotConfigured" xml:space="preserve"><value>No Vercel AI Gateway key is connected.</value></data>
   <data name="VercelStatusConnecting" xml:space="preserve"><value>Saving the key and clearing any prior account report.</value></data>
@@ -538,12 +427,10 @@
   <data name="DashboardLayoutResetBody" xml:space="preserve"><value>This restores the default provider and metric layout. You can undo it while TokenUsage stays open.</value></data>
   <data name="DashboardLayoutResetConfirm" xml:space="preserve"><value>Reset dashboard</value></data>
   <data name="DashboardLayoutResetCancel" xml:space="preserve"><value>Cancel</value></data>
-  <data name="DashboardAllProvidersHidden.Text" xml:space="preserve"><value>All provider cards are hidden. Open Options to show one.</value></data>
   <data name="DashboardLayoutRecoveredFormat" xml:space="preserve"><value>Invalid layout settings were moved to {0}. You can save new settings.</value></data>
   <data name="DashboardLayoutNewerVersionFormat" xml:space="preserve"><value>Layout format {0} is newer. Update TokenUsage before changing it.</value></data>
   <data name="DashboardLayoutUnavailable" xml:space="preserve"><value>Layout settings cannot be read. Changes are disabled.</value></data>
   <data name="DashboardLayoutSaveFailed" xml:space="preserve"><value>Layout settings could not be saved. Your previous settings remain.</value></data>
-  <data name="AppearanceExpander.Header" xml:space="preserve"><value>Appearance</value></data>
   <data name="AppearanceThemeLabel.Text" xml:space="preserve"><value>Theme</value></data>
   <data name="AppearanceDensityLabel.Text" xml:space="preserve"><value>Density</value></data>
   <data name="AppearanceTransparencyLabel.Text" xml:space="preserve"><value>Increase transparency</value></data>
@@ -645,11 +532,9 @@
   <data name="UsageReportResetCountHelpText" xml:space="preserve"><value>{0:N0} scheduled · {1:N0} early/manual possible · {2:N0} observed at full quota. The provider does not identify manual resets, so early resets are not labeled as manual with certainty. Repeated refreshes count once.</value></data>
   <data name="UsageReportCycleSelectionTitle.Text" xml:space="preserve"><value>Reset cycle</value></data>
   <data name="UsageReportCycleSelectionHelp.Text" xml:space="preserve"><value>Choose a tracked quota window. Use the arrows to move through its history.</value></data>
-  <data name="UsageReportCycleComparisonTitle.Text" xml:space="preserve"><value>Compare reset cycles</value></data>
   <data name="UsageReportCompareCyclesHint.Text" xml:space="preserve"><value>Baseline A · Same supported elapsed time</value></data>
   <data name="UsageReportCompareCycleALabel.Text" xml:space="preserve"><value>CYCLE A</value></data>
   <data name="UsageReportCompareCycleBLabel.Text" xml:space="preserve"><value>CYCLE B</value></data>
-  <data name="UsageReportCompareCycleVersus.Text" xml:space="preserve"><value>VS</value></data>
   <data name="UsageReportCycleComparisonPeriodText" xml:space="preserve"><value>Reset-cycle comparison</value></data>
   <data name="UsageReportRefreshButton.AutomationProperties.Name" xml:space="preserve"><value>Refresh usage report</value></data>
   <data name="UsageReportRefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Refresh real data</value></data>
@@ -674,7 +559,6 @@
   <data name="UsageReportCompareRightProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Current provider (B)</value></data>
   <data name="UsageReportCompareLeftCycleSelector.AutomationProperties.Name" xml:space="preserve"><value>Baseline Codex cycle (A)</value></data>
   <data name="UsageReportCompareRightCycleSelector.AutomationProperties.Name" xml:space="preserve"><value>Current Codex cycle (B)</value></data>
-  <data name="UsageReportCompareScope" xml:space="preserve"><value>Compare</value></data>
   <data name="UsageReportCompareMetricColumn.Text" xml:space="preserve"><value>Metric</value></data>
   <data name="UsageReportCompareLeftColumn.Text" xml:space="preserve"><value>A · Baseline</value></data>
   <data name="UsageReportCompareRightColumn.Text" xml:space="preserve"><value>B · Current</value></data>
@@ -686,9 +570,7 @@
   <data name="UsageReportCompareUnpricedMetric" xml:space="preserve"><value>Unpriced tokens</value></data>
   <data name="UsageReportCompareEventsMetric" xml:space="preserve"><value>Numeric records (not requests)</value></data>
   <data name="UsageReportCompareQuotaUsedMetric" xml:space="preserve"><value>Quota level at cutoff</value></data>
-  <data name="UsageReportCompareCostPerMillionMetric" xml:space="preserve"><value>Cost per 1M tokens</value></data>
   <data name="UsageReportCompareTokensPerQuotaPointMetric" xml:space="preserve"><value>Tokens per consumed quota point</value></data>
-  <data name="UsageReportComparePaceMetric" xml:space="preserve"><value>Projected pace</value></data>
   <data name="UsageReportComparePercentagePointsFormat" xml:space="preserve"><value>{0} pp</value></data>
   <data name="UsageReportCompareUnavailable" xml:space="preserve"><value>—</value></data>
   <data name="UsageReportCompareCycleIncompatibleWarning" xml:space="preserve"><value>These cycles use different limits or cadences. Raw values are shown, but efficiency deltas are not directly comparable.</value></data>
@@ -706,7 +588,6 @@
   <data name="UsageReportEstimatedColumn.Text" xml:space="preserve"><value>Estimated</value></data>
   <data name="UsageReportDailyCostShareTitle" xml:space="preserve"><value>Daily share of known cost</value></data>
   <data name="UsageReportDailyTokenShareTitle" xml:space="preserve"><value>Daily share of tokens</value></data>
-  <data name="UsageReportGlobalScope" xml:space="preserve"><value>Global</value></data>
   <data name="UsageReportBreakdownTitle.Text" xml:space="preserve"><value>Breakdown</value></data>
   <data name="UsageReportModelButton.Content" xml:space="preserve"><value>Model</value></data>
   <data name="UsageReportDayButton.Content" xml:space="preserve"><value>Day</value></data>
@@ -724,10 +605,6 @@
   <data name="UsageTrendEmptyText" xml:space="preserve"><value>No daily activity</value></data>
   <data name="UsageReportPeriodFormat" xml:space="preserve"><value>Calendar days · {0} to {1}</value></data>
   <data name="UsageReportAllHistoryPeriodFormat" xml:space="preserve"><value>All history · {0} to {1}</value></data>
-  <data name="UsageReportTotalCostLabel" xml:space="preserve"><value>OBSERVED COST</value></data>
-  <data name="UsageReportProcessedTokensLabel" xml:space="preserve"><value>Processed tokens</value></data>
-  <data name="UsageReportCostBasisHint" xml:space="preserve"><value>Provider-reported cost plus catalog estimates. This is not a bill.</value></data>
-  <data name="UsageReportTokenEventFormat" xml:space="preserve"><value>Input, cache, output, and reasoning across {0} events.</value></data>
   <data name="UsageReportDailyCostTitle" xml:space="preserve"><value>Daily cost</value></data>
   <data name="UsageReportDailyTokensTitle" xml:space="preserve"><value>Daily processed tokens</value></data>
   <data name="UsageReportChartAutomationName" xml:space="preserve"><value>Daily usage chart by provider</value></data>
@@ -736,18 +613,6 @@
   <data name="UsageReportChartUnobservedLegend" xml:space="preserve"><value>Dimmed connections, or dashed in high contrast, are days without measured data. They are not tokens or cost.</value></data>
   <data name="UsageReportProviderCostDetailFormat" xml:space="preserve"><value>{0} of cost · {1} tokens</value></data>
   <data name="UsageReportProviderTokenDetailFormat" xml:space="preserve"><value>{0} of tokens · {1}</value></data>
-  <data name="UsageReportActiveDayAverageFormat" xml:space="preserve"><value>{0} per active day</value></data>
-  <data name="UsageReportCachedInputLabel" xml:space="preserve"><value>Cached input</value></data>
-  <data name="UsageReportCacheStripCachedInputLabel.Text" xml:space="preserve"><value>CACHED INPUT</value></data>
-  <data name="UsageReportCachedShareFormat" xml:space="preserve"><value>{0} of observed input</value></data>
-  <data name="UsageReportUncachedInputLabel" xml:space="preserve"><value>Uncached input</value></data>
-  <data name="UsageReportCacheStripUncachedInputLabel.Text" xml:space="preserve"><value>UNCACHED INPUT</value></data>
-  <data name="UsageReportCacheWriteFormat" xml:space="preserve"><value>{0} cache writes</value></data>
-  <data name="UsageReportOutputLabel" xml:space="preserve"><value>Output</value></data>
-  <data name="UsageReportCacheStripOutputLabel.Text" xml:space="preserve"><value>OUTPUT</value></data>
-  <data name="UsageReportReasoningFormat" xml:space="preserve"><value>includes {0} reasoning</value></data>
-  <data name="UsageReportPriceCoverageLabel" xml:space="preserve"><value>Price coverage</value></data>
-  <data name="UsageReportUnpricedTokensFormat" xml:space="preserve"><value>{0} unpriced tokens</value></data>
   <data name="UsageReportReportedCostLabel" xml:space="preserve"><value>Provider reported</value></data>
   <data name="UsageReportEstimatedCostLabel" xml:space="preserve"><value>Catalog estimated</value></data>
   <data name="UsageReportPricedTokensLabel" xml:space="preserve"><value>Priced tokens</value></data>
@@ -760,7 +625,6 @@
   <data name="UsageReportReadFailed" xml:space="preserve"><value>The local report could not be read. Existing data was not changed.</value></data>
   <data name="UsageReportRefreshFailed" xml:space="preserve"><value>Refresh failed. Showing the last loaded report.</value></data>
   <data name="UsageReportRetryButton.Content" xml:space="preserve"><value>Try again</value></data>
-  <data name="CompactProviderSelector.AutomationProperties.Name" xml:space="preserve"><value>Select provider</value></data>
   <data name="PreviousProviderTabButton.AutomationProperties.Name" xml:space="preserve"><value>Previous provider</value></data>
   <data name="PreviousProviderTabButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Previous provider</value></data>
   <data name="NextProviderTabButton.AutomationProperties.Name" xml:space="preserve"><value>Next provider</value></data>
@@ -818,7 +682,6 @@
   <data name="AlertCredentialTitleFormat" xml:space="preserve"><value>{0} needs attention</value></data>
   <data name="AlertCredentialBody" xml:space="preserve"><value>TokenUsage could not read this provider. Open provider status to review its setup.</value></data>
   <data name="CompactCostUnavailable" xml:space="preserve"><value>Cost unavailable</value></data>
-  <data name="UsageReportCacheSummaryFormat" xml:space="preserve"><value>CACHED INPUT  {0}    •    UNCACHED INPUT  {1}    •    OUTPUT  {2}</value></data>
   <data name="UsageReportSummaryTokensLabel.Text" xml:space="preserve"><value>TOKENS</value></data>
   <data name="UsageReportSummaryCostLabel.Text" xml:space="preserve"><value>KNOWN COST</value></data>
   <data name="UsageReportSummaryCostLabel.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Provider-reported cost plus catalog estimates. Unpriced usage is excluded. This is not a bill.</value></data>
@@ -829,10 +692,8 @@
   <data name="UsageOverviewUnpricedLabel.Text" xml:space="preserve"><value>UNPRICED TOKENS</value></data>
   <data name="UsageOverviewUnpricedDetail" xml:space="preserve"><value>Tokens without a reported or estimated price. This is not free usage.</value></data>
   <data name="UsageOverviewUnpricedCoverageFormat" xml:space="preserve"><value>{0} unpriced, not free</value></data>
-  <data name="UsageOverviewPerSessionFormat" xml:space="preserve"><value>Attributed selected value / attributed sessions: {0}</value></data>
   <data name="UsageOverviewAttributedReportedPerSessionFormat" xml:space="preserve"><value>Attributed reported value per attributed session: {0}</value></data>
   <data name="UsageOverviewAttributedEstimatedPerSessionFormat" xml:space="preserve"><value>Attributed estimated value per attributed session: {0}</value></data>
-  <data name="UsageOverviewCostDetails.Content" xml:space="preserve"><value>Reported and estimated</value></data>
   <data name="UsageOverviewCostDetailsLabel.Text" xml:space="preserve"><value>Reported and estimated</value></data>
   <data name="UsageOverviewCostDetailsButton.AutomationProperties.Name" xml:space="preserve"><value>Reported and estimated</value></data>
   <data name="UsageOverviewPartialWarningDetails.Content" xml:space="preserve"><value>Measurement details</value></data>
@@ -844,14 +705,12 @@
   <data name="UsageOverviewSessionsNone" xml:space="preserve"><value>No attributed sessions in this selection. Unassigned usage stays outside that count.</value></data>
   <data name="UsageOverviewSessionsDetailFormat" xml:space="preserve"><value>{0} root · {1} delegated · {2} unassigned</value></data>
   <data name="UsageOverviewCacheShareLabel" xml:space="preserve"><value>CACHE-READ SHARE</value></data>
-  <data name="UsageOverviewCacheUnknown" xml:space="preserve"><value>Load measurement details to compute measured-input cache share. This is not a request hit rate.</value></data>
   <data name="UsageOverviewCallsLabel" xml:space="preserve"><value>Calls</value></data>
   <data name="UsageOverviewCallsUnavailable" xml:space="preserve"><value>Request counts are unavailable until request finality is established. Observation counts are not calls.</value></data>
   <data name="UsageOverviewSkillsLabel" xml:space="preserve"><value>Skills</value></data>
   <data name="UsageOverviewNoticeDisabled" xml:space="preserve"><value>Session attribution is disabled. Known-session counts are unavailable rather than zero.</value></data>
   <data name="UsageOverviewOtherProjectsFormat" xml:space="preserve"><value>Other ({0} projects)</value></data>
   <data name="UsageOverviewUnassignedProject" xml:space="preserve"><value>Unassigned</value></data>
-  <data name="UsageOverviewAssignedProject" xml:space="preserve"><value>Attributed project</value></data>
   <data name="UsageOverviewModelSessionsFormat" xml:space="preserve"><value>{0} known sessions</value></data>
   <data name="UsageReportProjectButton.Content" xml:space="preserve"><value>Projects</value></data>
   <data name="UsageReportProjectColumn.Text" xml:space="preserve"><value>Project</value></data>
@@ -859,7 +718,6 @@
   <data name="UsageReportCompositionTitle.Text" xml:space="preserve"><value>COMPOSITION BY PROVIDER</value></data>
   <data name="UsageReportCombinedChartButton.Content" xml:space="preserve"><value>Combined</value></data>
   <data name="UsageReportSplitChartsButton.Content" xml:space="preserve"><value>By provider</value></data>
-  <data name="UsageReportProviderChartsTitle.Text" xml:space="preserve"><value>COST BY PROVIDER</value></data>
   <data name="HeaderShareButton.AutomationProperties.Name" xml:space="preserve"><value>Save and copy screenshot</value></data>
   <data name="HeaderShareButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Save and copy screenshot</value></data>
   <data name="UsageReportCaptureButton.AutomationProperties.Name" xml:space="preserve"><value>Save and copy full report</value></data>
@@ -879,7 +737,6 @@
   <data name="AboutVersionFormat" xml:space="preserve"><value>Version {0}</value></data>
   <data name="AboutGitHubLink.Content" xml:space="preserve"><value>GitHub</value></data>
   <data name="AboutGitHubLink.AutomationProperties.Name" xml:space="preserve"><value>Open gvastethecreator on GitHub</value></data>
-  <data name="NotificationsSectionTitle.Text" xml:space="preserve"><value>Notifications</value></data>
   <data name="NotificationsSaveError.Message" xml:space="preserve"><value>Notifications could not be saved. Check folder permissions and try again.</value></data>
   <data name="DataCollectionBackgroundLabel.Text" xml:space="preserve"><value>Collect usage after each task</value></data>
   <data name="DataCollectionBackgroundDescription.Text" xml:space="preserve"><value>Collect usage when a task ends, even with TokenUsage closed. The interval below applies only while the app is open.</value></data>
@@ -962,7 +819,6 @@
   <data name="UsageExplorerOperationOutcomeUnavailable" xml:space="preserve"><value>Outcomes are unavailable. Invocation count is still measured.</value></data>
   <data name="UsageExplorerOperationsDisabled" xml:space="preserve"><value>Codex tools and MCP collection is off. This is not a measured count of zero invocations.</value></data>
   <data name="UsageExplorerOperationsUnsupported" xml:space="preserve"><value>This source does not admit tool or MCP records.</value></data>
-  <data name="UsageOverviewOperationsLabel" xml:space="preserve"><value>TOOLS AND MCP</value></data>
   <data name="UsageOverviewSkillsUnavailable" xml:space="preserve"><value>Skill invocations are unavailable. Codex has no SkillInvocation record. Installed skill files are not uses.</value></data>
   <data name="UsageExplorerCloseSessions.Content" xml:space="preserve"><value>Back to model</value></data>
   <data name="UsageExplorerSessionsHeading.Text" xml:space="preserve"><value>Sessions for this model</value></data>
@@ -974,7 +830,6 @@
   <data name="UsageExplorerSessionInclusiveFormat" xml:space="preserve"><value>Inclusive descendants: {0} tokens</value></data>
   <data name="UsageExplorerOpenProjects.Content" xml:space="preserve"><value>Open projects</value></data>
   <data name="UsageExplorerCloseProjects.Content" xml:space="preserve"><value>Back to model</value></data>
-  <data name="UsageExplorerProjectsHeading.Text" xml:space="preserve"><value>Projects for this model</value></data>
   <data name="UsageExplorerProjects.AutomationProperties.Name" xml:space="preserve"><value>Projects for this model</value></data>
   <data name="UsageExplorerProjectLabelFormat" xml:space="preserve"><value>Project · {0}</value></data>
   <data name="UsageExplorerProjectContributionFormat" xml:space="preserve"><value>Selected contribution: {0} tokens</value></data>
@@ -996,7 +851,6 @@
   <data name="UsageExplorerOpenOutlier.Content" xml:space="preserve"><value>Open session outlier</value></data>
   <data name="UsageExplorerOpenOutlier.AutomationProperties.Name" xml:space="preserve"><value>Open session outlier</value></data>
   <data name="UsageExplorerExpandSession.AutomationProperties.Name" xml:space="preserve"><value>Expand or collapse child sessions</value></data>
-  <data name="UsageDistributionSummary.AutomationProperties.Name" xml:space="preserve"><value>Request input-size distribution</value></data>
   <data name="ReportChartsAppearanceTitle.Text" xml:space="preserve"><value>Report charts</value></data>
   <data name="ReportChartStyleSelector.AutomationProperties.Name" xml:space="preserve"><value>Report chart style</value></data>
   <data name="ReportChartStyleSmooth" xml:space="preserve"><value>Smooth curve</value></data>
@@ -1035,7 +889,6 @@
   <data name="UsageComparisonRateChange" xml:space="preserve"><value>Change on comparable usage</value></data>
   <data name="UsageComparisonCatalogValue" xml:space="preserve"><value>Catalog value on comparable usage</value></data>
   <data name="UsageComparisonFixedCohortNotApplicable" xml:space="preserve"><value>Not applicable — fixed cohort</value></data>
-  <data name="UsageReportResetLogTitle.Text" xml:space="preserve"><value>Recorded resets</value></data>
   <data name="UsageReportResetLogExpander.Header" xml:space="preserve"><value>Recorded resets</value></data>
   <data name="UsageReportResetLogEmpty.Text" xml:space="preserve"><value>No recorded resets in this range.</value></data>
   <data name="UsageReportResetLogAllQuotas" xml:space="preserve"><value>All quotas</value></data>
@@ -1078,7 +931,6 @@
   <data name="UsageComparisonSavedEvidence" xml:space="preserve"><value>Saved immutable revision. Refresh cannot alter these values; return to live data to create a new revision.</value></data>
   <data name="UsageComparisonSaveFailed" xml:space="preserve"><value>Could not save the comparison. Check storage access and the 100-revision / 4 MiB-per-revision limits.</value></data>
   <data name="UsageComparisonReadSavedFailed" xml:space="preserve"><value>Could not read the saved comparison. Your stored revision was not changed.</value></data>
-  <data name="UsageComparisonCycleEvidenceFormat" xml:space="preserve"><value>Matched elapsed time: {0}. Timing exclusions: A {1}, B {2}. Quota journal readings: A {3}, B {4}.</value></data>
   <data name="UsageComparisonCachedInput" xml:space="preserve"><value>Cached input tokens</value></data>
   <data name="UsageComparisonUncachedInput" xml:space="preserve"><value>Uncached input tokens</value></data>
   <data name="UsageComparisonOutput" xml:space="preserve"><value>Output and reasoning tokens</value></data>
@@ -1096,7 +948,6 @@
   <data name="UsageComparisonDescriptive" xml:space="preserve"><value>Descriptive; not a quality comparison</value></data>
   <data name="UsageComparisonInferredBoundary" xml:space="preserve"><value>Cycle start is inferred from the schedule or first reading, not an evidenced reset time.</value></data>
   <data name="UsageComparisonFreshnessUnknown" xml:space="preserve"><value>Collection freshness unknown.</value></data>
-  <data name="UsageComparisonFreshnessFormat" xml:space="preserve"><value>{0}: last collection attempt {1} · {2} ({3}). A complete scan is not complete account coverage.</value></data>
   <data name="UsageComparisonCycleProvider" xml:space="preserve"><value>Codex · Reset cycles</value></data>
   <data name="UsageComparisonCycleCount.PlaceholderText" xml:space="preserve"><value>Cycles</value></data>
   <data name="UsageComparisonCycleCount.AutomationProperties.Name" xml:space="preserve"><value>Number of cycles to compare</value></data>
@@ -1225,7 +1076,6 @@
   <data name="UsageMeasurementCollectionFormat" xml:space="preserve"><value>Last successful collection: {3}
 Last collection attempt: {0}
 Status: {1} · Issue: {2}</value></data>
-  <data name="UsageMeasurementFreshnessFormat" xml:space="preserve"><value>Last success: {0} · Last attempt: {1}</value></data>
   <data name="UsageMeasurementSuccessUnknown" xml:space="preserve"><value>Not recorded</value></data>
   <data name="UsageExplorerSourceUnresolved" xml:space="preserve"><value>History needs verification; retained values are not fully verified</value></data>
   <data name="UsageMeasurementTiming" xml:space="preserve"><value>Timing coverage</value></data>
@@ -1247,7 +1097,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerSearch.PlaceholderText" xml:space="preserve"><value>Search models, tools or hosts</value></data>
   <data name="UsageExplorerSearch.AutomationProperties.Name" xml:space="preserve"><value>Search report models</value></data>
   <data name="UsageExplorerSearch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
-  <data name="UsageExplorerSearchHint.Text" xml:space="preserve"><value>Search matches stored IDs, not conversations.</value></data>
   <data name="UsageExplorerClearHidden.Content" xml:space="preserve"><value>Clear hidden filters</value></data>
   <data name="UsageExplorerSourceDetails.Content" xml:space="preserve"><value>Source details</value></data>
   <data name="UsageExplorerSearchContextFormat" xml:space="preserve"><value>Search: {0}</value></data>
@@ -1268,7 +1117,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerReportedValueFormat" xml:space="preserve"><value>Reported: {0}</value></data>
   <data name="UsageExplorerEstimatedValueFormat" xml:space="preserve"><value>Estimated API: {0}</value></data>
   <data name="UsageExplorerUnpricedValueFormat" xml:space="preserve"><value>Unpriced tokens: {0}</value></data>
-  <data name="UsageExplorerUnpricedColumn.Text" xml:space="preserve"><value>Unpriced tokens</value></data>
   <data name="UsageExplorerSelectionEvidence" xml:space="preserve"><value>Explorer selection</value></data>
   <data name="UsageExplorerSelectionFormat" xml:space="preserve"><value>Tool: {0} · Host: {1} · Model: {2} · ID search: {3}. Collection status describes the tool's latest attempt, not completeness for this model or period.</value></data>
   <data name="UsageExplorerNoSearch" xml:space="preserve"><value>None</value></data>
@@ -1317,7 +1165,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageReportNoTimestampedUsage" xml:space="preserve"><value>No measured time-of-day usage is available in this selection.</value></data>
   <data name="UsageReportTimeDetailsNotLoaded" xml:space="preserve"><value>Time-of-day detail has not been loaded for this report. Timing coverage is unknown until supported detail is loaded. Live two-hour charts load this detail on demand.</value></data>
   <data name="UsageExplorerEmptyClear.Content" xml:space="preserve"><value>Clear filters</value></data>
-  <data name="UsageExplorerConfigurationLoading" xml:space="preserve"><value>Loading retained configurations…</value></data>
   <data name="UsageExplorerConfigurationEmpty.Text" xml:space="preserve"><value>No observed configurations in this selection. Totals above are unchanged.</value></data>
   <data name="UsageExplorerSourceWarningTitle.Text" xml:space="preserve"><value>Source status needs attention</value></data>
   <data name="UsageExplorerContextOverview" xml:space="preserve"><value>Overview</value></data>
@@ -1325,12 +1172,8 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerContextSessions" xml:space="preserve"><value>Sessions</value></data>
   <data name="UsageExplorerContextOperations" xml:space="preserve"><value>Operations</value></data>
   <data name="UsageExplorerContextPath.AutomationProperties.Name" xml:space="preserve"><value>Detail context</value></data>
-  <data name="UsageReportChartGroupingCombined" xml:space="preserve"><value>Combined</value></data>
-  <data name="UsageReportChartGroupingProvider" xml:space="preserve"><value>By provider</value></data>
-  <data name="UsageReportChartGroupingModel" xml:space="preserve"><value>By model</value></data>
   <data name="UsageReportCostShareDenominator" xml:space="preserve"><value>Share of known usage cost in this selection. Unpriced rows stay unlabeled as $0.</value></data>
   <data name="UsageReportTokenShareDenominator" xml:space="preserve"><value>Share of tokens in this selection.</value></data>
-  <data name="UsageReportOpenRowDetail" xml:space="preserve"><value>Open detail</value></data>
   <data name="UsageExplorerDerivedActivityMethodFormat" xml:space="preserve"><value>Method {0}; unit {1}. Counts are invocations, not model requests.</value></data>
   <data name="UsageExplorerWorkflowEvidenceHeading.Text" xml:space="preserve"><value>Contributing sequence</value></data>
   <data name="UsageExplorerEvidenceTimeUnknown" xml:space="preserve"><value>Time unknown</value></data>
@@ -1338,7 +1181,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerEvidenceOutcomeError" xml:space="preserve"><value>Failed</value></data>
   <data name="UsageExplorerEvidenceOutcomeUnknown" xml:space="preserve"><value>Outcome unknown</value></data>
   <data name="UsageExplorerEvidenceSessionUnknown" xml:space="preserve"><value>Session unknown</value></data>
-  <data name="UsageExplorerEvidenceLinkedSession" xml:space="preserve"><value>Linked session</value></data>
   <data name="UsageExplorerEvidenceLinkedSessionFormat" xml:space="preserve"><value>Linked session {0}</value></data>
   <data name="UsageExplorerEvidenceSequence.Text" xml:space="preserve"><value>Seq</value></data>
   <data name="UsageExplorerEvidenceTime.Text" xml:space="preserve"><value>Time</value></data>
@@ -1396,7 +1238,6 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageDashboardOutput" xml:space="preserve"><value>Output</value></data>
   <data name="UsageDashboardReasoning" xml:space="preserve"><value>Reasoning</value></data>
   <data name="UsageDashboardCacheWrite" xml:space="preserve"><value>Cache write</value></data>
-  <data name="UsageDashboardFilters.Text" xml:space="preserve"><value>Filters</value></data>
   <data name="UsageDashboardOperationsSummaryFormat" xml:space="preserve"><value>{0} of {1} ranking rows · {2:N0} observed invocations.</value></data>
   <data name="UsageDashboardMixedNoticeFormat" xml:space="preserve"><value>{0} broader mixed or incomplete-session rows are listed separately and are not in these exact invocation totals.</value></data>
   <data name="UsageDashboardNoRankedOperations" xml:space="preserve"><value>No ranked tool or MCP invocations in this selection. This is not a measured count of zero.</value></data>

@@ -23,8 +23,6 @@ public sealed partial class TraySummaryView : UserControl
 
     public ObservableCollection<TrayProviderSummary> Items { get; } = [];
 
-    public int ItemCount => Items.Count;
-
     /// <summary>
     /// Content width the popover window needs. An empty strip still needs room for the
     /// "no provider detected" message.

@@ -58,8 +58,6 @@ public sealed partial class UsageReportViewModel
     public bool CanOpenDashboardOperations => HasDashboardOperationsCard
         && (_codexMcpAllowed || _codexSkillsAllowed || _codexCommandsAllowed || _codexFilesAllowed)
         && !DashboardOmitsCodexOperations;
-    public int DashboardOperationsApplyCount { get; private set; }
-    public int DashboardExactOperationCount => DashboardKindRows.Length;
     public bool DashboardOmitsCodexOperations =>
         (IsProviderScope && SelectedProvider is { } provider
             && !string.Equals(provider.ProviderId, "codex", StringComparison.Ordinal))
@@ -75,20 +73,6 @@ public sealed partial class UsageReportViewModel
         DashboardShowsMcp = mcp;
         RebuildDashboardOperationPreview();
         NotifyDashboardOperations();
-    }
-
-    public async Task WaitForDashboardOperationsAsync()
-    {
-        DateTime limit = DateTime.UtcNow.AddSeconds(20);
-        while (!_disposed && IsDashboardOperationsLoading && DateTime.UtcNow < limit)
-        {
-            await Task.Delay(20).ConfigureAwait(true);
-        }
-
-        if (IsDashboardOperationsLoading)
-        {
-            throw new TimeoutException("Dashboard operations did not settle.");
-        }
     }
 
     public async Task OpenDashboardOperationsAsync()
@@ -246,7 +230,6 @@ public sealed partial class UsageReportViewModel
             ? GetString("UsageDashboardNoRankedOperations")
             : string.Empty;
         RebuildDashboardOperationPreview();
-        DashboardOperationsApplyCount++;
         NotifyDashboardOperations();
     }
 
@@ -335,8 +318,6 @@ public sealed partial class UsageReportViewModel
             nameof(HasDashboardOperationsCard),
             nameof(CanOpenDashboardOperations),
             nameof(DashboardShowsMcp),
-            nameof(DashboardExactOperationCount),
-            nameof(DashboardOperationsApplyCount),
             nameof(IsDashboardOperationsLoading),
         })
         {

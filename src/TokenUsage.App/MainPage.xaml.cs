@@ -170,9 +170,6 @@ public sealed partial class MainPage : Page, IDisposable
         object sender,
         UsageReportRequestedEventArgs e) => UsageReportRequested?.Invoke(this, e);
 
-    private void OnDashboardOptionsRequested(object? sender, EventArgs e) =>
-        ViewModel.OpenOptionsCommand.Execute(null);
-
     private void OnDashboardLayoutAnimationProgressed(object? sender, EventArgs e) =>
         LayoutAnimationProgressed?.Invoke(this, EventArgs.Empty);
 

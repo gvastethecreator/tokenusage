@@ -58,7 +58,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private string _statusText = string.Empty;
     private string _coverageHintText = string.Empty;
     private IReadOnlyList<UsageReportProviderRow> _providers = [];
-    private IReadOnlyList<UsageReportMetricCard> _metricCards = [];
     private IReadOnlyList<UsageReportQualityRow> _qualityRows = [];
     private IReadOnlyList<UsageReportProviderOption> _providerOptions = [];
     private IReadOnlyList<QuotaWindow> _providerLimits = [];
@@ -296,9 +295,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public bool IsResetCycleWindow => _usesResetCycle && CanUseResetCycles;
 
-    public bool HasMultipleResetCycles =>
-        IsResetCycleWindow && SelectedResetCycleOptions.Count > 1;
-
     public bool CanSelectPreviousResetCycle => IsResetCycleWindow
         && SelectedResetCycleIndex >= 0
         && SelectedResetCycleIndex < SelectedResetCycleOptions.Count - 1;
@@ -387,11 +383,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _providers, value);
     }
 
-    public IReadOnlyList<UsageReportMetricCard> MetricCards
-    {
-        get => _metricCards;
-        private set => SetProperty(ref _metricCards, value);
-    }
 
     public ObservableCollection<UsageReportModelRow> ModelRows { get; } = [];
 
@@ -707,20 +698,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string HeadlineLabel => GetString(
-        IsCostMetric ? "UsageReportTotalCostLabel" : "UsageReportProcessedTokensLabel");
-
-    public string HeadlineValue => IsCostMetric
-        ? FormatKnownCost(_report.Totals)
-        : FormatTokens(_report.Totals.Tokens.Total);
-
-    public string HeadlineDetail => IsCostMetric
-        ? GetString("UsageReportCostBasisHint")
-        : string.Format(
-            CultureInfo.CurrentCulture,
-            GetString("UsageReportTokenEventFormat"),
-            _report.Totals.EventCount.ToString("N0", CultureInfo.CurrentCulture));
-
     public string ChartTitle => GetString(
         ChartStyle == ReportChartStyle.TwoHourBars ? "UsageReportTwoHourTitle" :
         IsShareValueMode && IsGlobalScope
@@ -729,12 +706,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 ? "UsageReportDailyCostTitle"
                 : "UsageReportDailyTokensTitle")
         + (EmphasizeSmallValues && !(IsShareValueMode && IsGlobalScope) ? GetString("ReportSquareRootScaleSuffix") : "");
-
-    public string ScopeTitle => IsGlobalScope
-        ? GetString("UsageReportGlobalScope")
-        : IsCompareScope
-            ? GetString("UsageReportCompareScope")
-            : SelectedProviderName;
 
     public string SummaryTokensText => FormatTokens(_report.Totals.Tokens.Total);
 
@@ -749,19 +720,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
 
     public double PriceCoveragePercent => decimal.ToDouble(
         _report.Totals.PriceCoveragePercent);
-
-    public string CacheSummaryText => string.Format(
-        CultureInfo.CurrentCulture,
-        GetString("UsageReportCacheSummaryFormat"),
-        FormatTokens(_report.Totals.Tokens.CacheRead),
-        FormatTokens(_report.Totals.Tokens.Input),
-        FormatTokens(_report.Totals.Tokens.Output));
-
-    public string CachedInputText => FormatTokens(_report.Totals.Tokens.CacheRead);
-
-    public string UncachedInputText => FormatTokens(_report.Totals.Tokens.Input);
-
-    public string OutputTokensText => FormatTokens(_report.Totals.Tokens.Output);
 
     private DateOnly EndDate => IsResetCycleWindow && SelectedResetCycle is not null
         ? SelectedResetCycle.ToDate
@@ -1201,7 +1159,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasResetCycleAvailabilityNotice));
         OnPropertyChanged(nameof(ResetCycleAvailabilityText));
         OnPropertyChanged(nameof(IsResetCycleWindow));
-        OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(ResetCycleHelpText));
         OnPropertyChanged(nameof(HasProviderCreditSummary));
         RebuildLimitItems();
@@ -1220,10 +1177,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsSourceBreakdown));
         OnPropertyChanged(nameof(IsDayBreakdown));
         OnPropertyChanged(nameof(IsProjectBreakdown));
-        OnPropertyChanged(nameof(ScopeTitle));
         OnPropertyChanged(nameof(ChartTitle));
         OnPropertyChanged(nameof(CanEmphasizeSmallValues));
-        OnPropertyChanged(nameof(ChartAppearanceSummary));
     }
 
     private void RebuildProviderOptions()
@@ -1267,7 +1222,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         ReconcileCompareProviders(state.Options);
         RefreshProviderDetails();
         RebuildResetCycleOptions();
-        OnPropertyChanged(nameof(ScopeTitle));
         OnPropertyChanged(nameof(IsCompareProviderPickersVisible));
     }
 
@@ -1700,7 +1654,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasResetCycleAvailabilityNotice));
         OnPropertyChanged(nameof(ResetCycleAvailabilityText));
         OnPropertyChanged(nameof(IsResetCycleWindow));
-        OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(CanSelectPreviousResetCycle));
         OnPropertyChanged(nameof(CanSelectNextResetCycle));
         OnPropertyChanged(nameof(SelectedPeriod));
@@ -1837,7 +1790,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsSplitChart));
         OnPropertyChanged(nameof(IsModelChart));
         OnPropertyChanged(nameof(IsProviderTotalChart));
-        MetricCards = CreateMetricCards();
         ReconcileRows(ModelRows, OrderModelRows(CreateModelRows()), row => row.Id);
         NotifyExplorerChanged();
         ReconcileRows(SourceRows, OrderSourceRows(CreateSourceRows()), row => row.Id);
@@ -1901,17 +1853,12 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             : GetString(summaryOnly ? "UsageReportCoverageHintSummaryOnly" : "UsageReportCoverageHintPartial");
         OnPropertyChanged(nameof(CoverageHintTitle));
 
-        OnPropertyChanged(nameof(HeadlineLabel));
-        OnPropertyChanged(nameof(HeadlineValue));
-        OnPropertyChanged(nameof(HeadlineDetail));
         OnPropertyChanged(nameof(ChartTitle));
         OnPropertyChanged(nameof(CanEmphasizeSmallValues));
-        OnPropertyChanged(nameof(ChartAppearanceSummary));
         OnPropertyChanged(nameof(SummaryTokensText));
         OnPropertyChanged(nameof(SummaryCostText));
         OnPropertyChanged(nameof(ModelShareLabel));
         OnPropertyChanged(nameof(BreakdownShareCaption));
-        OnPropertyChanged(nameof(ChartAppearanceSummary));
         OnPropertyChanged(nameof(ComparisonStateText));
         OnPropertyChanged(nameof(ComparisonUsageDatesText));
         OnPropertyChanged(nameof(ComparisonCatalogDatesText));
@@ -1921,10 +1868,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(PriceCoveragePercent));
         OnPropertyChanged(nameof(PriceCoverageTone));
         OnPropertyChanged(nameof(PriceCoverageIcon));
-        OnPropertyChanged(nameof(CacheSummaryText));
-        OnPropertyChanged(nameof(CachedInputText));
-        OnPropertyChanged(nameof(UncachedInputText));
-        OnPropertyChanged(nameof(OutputTokensText));
         OnPropertyChanged(nameof(CompareLeftLabel));
         OnPropertyChanged(nameof(CompareRightLabel));
         OnPropertyChanged(nameof(CompareLeftCostText));
@@ -2751,53 +2694,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     private UsageReportTrendDataset CreateProviderTrend(string providerId) =>
         CreateReportTrend(providerId, IsModelChart);
 
-    private IReadOnlyList<UsageReportMetricCard> CreateMetricCards()
-    {
-        TokenBreakdown tokens = _report.Totals.Tokens;
-        long observedInput = checked(tokens.Input + tokens.CacheRead);
-        decimal cacheShare = observedInput == 0
-            ? 0
-            : (decimal)tokens.CacheRead / observedInput;
-        return
-        [
-            new(
-                GetString("UsageReportProcessedTokensLabel"),
-                FormatTokens(tokens.Total),
-                string.Format(
-                    CultureInfo.CurrentCulture,
-                    GetString("UsageReportActiveDayAverageFormat"),
-                    FormatTokens(AveragePerActiveDay()))),
-            new(
-                GetString("UsageReportCachedInputLabel"),
-                FormatTokens(tokens.CacheRead),
-                string.Format(
-                    CultureInfo.CurrentCulture,
-                    GetString("UsageReportCachedShareFormat"),
-                    FormatPercent(cacheShare))),
-            new(
-                GetString("UsageReportUncachedInputLabel"),
-                FormatTokens(tokens.Input),
-                string.Format(
-                    CultureInfo.CurrentCulture,
-                    GetString("UsageReportCacheWriteFormat"),
-                    FormatTokens(tokens.CacheWrite))),
-            new(
-                GetString("UsageReportOutputLabel"),
-                FormatTokens(tokens.Output),
-                string.Format(
-                    CultureInfo.CurrentCulture,
-                    GetString("UsageReportReasoningFormat"),
-                    FormatTokens(tokens.Reasoning))),
-            new(
-                GetString("UsageReportPriceCoverageLabel"),
-                FormatPercent(_report.Totals.PriceCoveragePercent / 100m),
-                string.Format(
-                    CultureInfo.CurrentCulture,
-                    GetString("UsageReportUnpricedTokensFormat"),
-                    FormatTokens(_report.Totals.UnpricedTokens))),
-        ];
-    }
-
     private UsageReportModelRow[] CreateModelRows()
     {
         IReadOnlyDictionary<string, int> activeDays = ReportDataProjection.ActiveModelDays(_report);
@@ -2902,16 +2798,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         CreateReportTrend(IsProviderScope ? SelectedProvider?.ProviderId : null,
             IsProviderScope && IsModelChart);
 
-    private long AveragePerActiveDay()
-    {
-        UsageDayReport[] activeDays = _report.Days
-            .Where(day => day.Metrics.Tokens.Total > 0)
-            .ToArray();
-        return activeDays.Length == 0
-            ? 0
-            : _report.Totals.Tokens.Total / activeDays.Length;
-    }
-
     // Higher is worse: which side's coverage a notice should describe.
     private static int CoverageRank(UsageReportMetrics totals) => totals.Coverage switch
     {
@@ -2942,15 +2828,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         CompactMetricLabel(
             IsCostMetric ? "UsageReportCompactCostShareFormat" : "UsageReportCompactTokenShareFormat",
             share);
-
-    internal static string FormatCompactUsd(double amount) =>
-        UsageValueFormatter.CompactUsd(amount);
-
-    internal static string FormatAxisUsd(double amount) =>
-        UsageValueFormatter.AxisUsd(amount);
-
-    internal static string FormatDetailUsd(double amount) =>
-        UsageValueFormatter.DetailUsd(amount);
 
     private static bool HasNumericTrend(UsageReportTrendDataset trend)
     {

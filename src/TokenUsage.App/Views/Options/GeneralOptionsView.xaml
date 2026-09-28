@@ -172,6 +172,7 @@
                 <StackPanel Spacing="4">
                     <ComboBox
                         x:Name="AttributionBackfillSource"
+                        x:Uid="AttributionBackfillSource"
                         AutomationProperties.AutomationId="AttributionBackfillSource"
                         DisplayMemberPath="Label"
                         HorizontalAlignment="Stretch"
