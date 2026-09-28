@@ -25,7 +25,7 @@ A Windows tray app for keeping track of AI coding usage. See your tokens, known 
 No TokenUsage account is required. Provider data stays local unless you enable a documented opt-in connection.
 
 > [!IMPORTANT]
-> The current release is an **unsigned Windows x64 portable preview**. [Download preview 4](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.4). Provider coverage depends on the tool, account, and available data source.
+> The current release is an **unsigned Windows x64 portable preview**. [Download preview 4](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.5). Provider coverage depends on the tool, account, and available data source.
 
 ## What you get
 
@@ -122,7 +122,7 @@ Building from source also requires the .NET 10 SDK, Visual Studio with MSBuild a
 
 ## Release downloads
 
-[Download v0.0.1-preview.4](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.4), extract the ZIP, and open `TokenUsage.App.exe`.
+[Download v0.0.1-preview.5](https://github.com/gvastethecreator/tokenusage/releases/tag/v0.0.1-preview.5), extract the ZIP, and open `TokenUsage.App.exe`.
 
 This preview is **unsigned and portable-only**. Windows may show a publisher or SmartScreen warning. It has no MSIX installer and is not delivered by automatic updates. See the [release notes](docs/releases/0.0.1.md) for fixes and limits.
 

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-28T16:43:39Z",
-  "generated_from_commit": "907f0f9dbccd81c64999e0b29ebe29c16d53b208",
+  "generated_at": "2026-09-28T17:05:10Z",
+  "generated_from_commit": "1dfcffd826ad774a808e1576895fefe7eec05bd1",
   "scope": [
     "BuildAndRun.ps1",
     "Directory.Build.props",
@@ -85,8 +85,8 @@
         "path": "scripts/release.ps1",
         "origin": "tracked",
         "state": "present",
-        "digest": "a52167ddaf3204173d4cb2400c36951de3408b2b48cc07518f146104a14fb581",
-        "size": 18219
+        "digest": "72d6a158bc6924717fc08f1efddfabe6a517072aa875d42f93781c70079dcefb",
+        "size": 18447
       },
       {
         "path": "scripts/store/Build-StoreUpload.ps1",
@@ -4065,7 +4065,7 @@
         "size": 326
       }
     ],
-    "digest": "1424c6ca02f28596bab08bae1e5f4e34498835f7dda989ac6ce071736c7fd0da"
+    "digest": "c829d28d6c61e6b04dacd08a8d72942e8acfcac50bbf05f2a9be292d347df162"
   },
   "coverage": {
     "discovered_files": 719,
@@ -25352,7 +25352,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "inventory",
-            "source_digest": "a52167ddaf3204173d4cb2400c36951de3408b2b48cc07518f146104a14fb581",
+            "source_digest": "72d6a158bc6924717fc08f1efddfabe6a517072aa875d42f93781c70079dcefb",
             "kind": "file"
           }
         ]
@@ -292411,7 +292411,7 @@
     }
   ],
   "triggers": [],
-  "source_digest": "f2f18eac3c92a078910665926dcbc797508f7ff4e4c01759b83b3521c15f9adf",
+  "source_digest": "875b739eb709fed1a5af91312e7fe51bf188b1b123b0f9ad5424c110c9e630da",
   "changes": {
     "added_nodes": [],
     "removed_nodes": [],
@@ -292422,5 +292422,5 @@
     "changed": false,
     "changed_node_ids": []
   },
-  "generation_id": "9bd0778c7925c7ddc186d69c65c05324bb368a5b086aeac1a495e4573fec2bd4"
+  "generation_id": "b20c8bf8c1461cde851bf6507320cefe79c177abc2d6331e9d0223e384a613ba"
 }

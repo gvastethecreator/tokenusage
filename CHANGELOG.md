@@ -6,6 +6,8 @@ User-facing changes for TokenUsage. Release notes include installation details a
 
 ### Fixed
 
+- Build the portable resource index independently of the MSIX index so WinUI's theme resources are included at startup.
+
 - Keep Codex's 5-hour reading when its keyed limits contain more information than the legacy summary. Refresh Claude's local quota reading every 30 seconds, including percentage changes with the same observation timestamp.
 - Keep sample dashboards separate from previously collected usage.
 - Close reports safely when Windows detaches the window's theme resources.

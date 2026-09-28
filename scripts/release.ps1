@@ -303,12 +303,15 @@ try {
     }
 
     Invoke-CheckedCommand 'Portable app publish' {
+        # Packaged PRI files omit WinUI's merged themes. Keep this publish's
+        # intermediate resources separate from the preceding MSIX build.
         & dotnet publish $appProject `
             --configuration Release `
             --runtime $runtimeIdentifier `
             --self-contained true `
             --output $appPublish `
             "-p:Platform=$Platform" `
+            "-p:IntermediateOutputPath=obj/portable-$architecture/Release/" `
             "-p:PublishProfile=portable-$architecture"
     }
 

@@ -1,7 +1,7 @@
 # Code map: tokenusage
 
-Generated: 2026-09-28T16:43:39Z | Commit: `907f0f9dbccd` | Schema: 2
-Generation: `9bd0778c7925c7ddc186d69c65c05324bb368a5b086aeac1a495e4573fec2bd4`
+Generated: 2026-09-28T17:05:10Z | Commit: `1dfcffd826ad` | Schema: 2
+Generation: `b20c8bf8c1461cde851bf6507320cefe79c177abc2d6331e9d0223e384a613ba`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
 Nodes: 580 | Edges: 4208 | Flows: 0
 
