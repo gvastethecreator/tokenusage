@@ -23,6 +23,7 @@ public sealed class VercelGatewayConnectionServiceTests
             credentials,
             reportClient,
             new NoBudgetQuotaClient(),
+            new FixedCreditsClient(),
             clock);
         await using IAsyncEnumerator<CacheFirstEvent> events = CoordinatorRefresh
             .Run(coordinator, forceRefresh: true, CancellationToken.None)
@@ -74,6 +75,7 @@ public sealed class VercelGatewayConnectionServiceTests
             credentials,
             reportClient,
             new NoBudgetQuotaClient(),
+            new FixedCreditsClient(),
             clock);
         await using IAsyncEnumerator<CacheFirstEvent> events = CoordinatorRefresh
             .Run(coordinator, forceRefresh: true, CancellationToken.None)
@@ -508,6 +510,14 @@ public sealed class VercelGatewayConnectionServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<VercelGatewayQuotaLookupResult>(
                 VercelGatewayQuotaLookupResult.NoBudget.Instance);
+    }
+
+    private sealed class FixedCreditsClient : IVercelGatewayCreditsClient
+    {
+        public Task<VercelGatewayCredits> GetCreditsAsync(
+            string apiKey,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new VercelGatewayCredits(10m, 1m));
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

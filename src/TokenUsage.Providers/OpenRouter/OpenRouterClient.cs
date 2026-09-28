@@ -259,7 +259,7 @@ public sealed class OpenRouterClient : IOpenRouterClient
         "daily" => OpenRouterLimitReset.Daily,
         "weekly" => OpenRouterLimitReset.Weekly,
         "monthly" => OpenRouterLimitReset.Monthly,
-        _ => throw ContractFailure("key usage"),
+        _ => OpenRouterLimitReset.Unknown,
     };
 
     private static OpenRouterClientException ContractFailure(string operation) => new(

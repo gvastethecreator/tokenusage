@@ -64,10 +64,12 @@ public sealed class VercelGatewayQuotaClientTests
         Assert.Equal(expected, Assert.IsType<VercelGatewayQuotaLookupResult.Found>(result).Quota.RefreshPeriod);
     }
 
-    [Fact]
-    public async Task ExactNotFoundResponseReturnsNoBudget()
+    [Theory]
+    [InlineData("{\"error\":\"Quota not found\"}")]
+    [InlineData("{\"error\":{\"message\":\"Quota not found\",\"type\":\"not_found_error\"}}")]
+    public async Task NotFoundResponseInEitherErrorShapeReturnsNoBudget(string body)
     {
-        var client = CreateClient(Json(HttpStatusCode.NotFound, "{\"error\":\"Quota not found\"}"));
+        var client = CreateClient(Json(HttpStatusCode.NotFound, body));
 
         VercelGatewayQuotaLookupResult result = await client.GetQuotaAsync(Secret, KeyId);
 
@@ -165,10 +167,13 @@ public sealed class VercelGatewayQuotaClientTests
         Assert.Equal(VercelGatewayQuotaErrorKind.Authentication, exception.Kind);
     }
 
-    [Fact]
-    public async Task UnexpectedNotFoundBodyIsAContractError()
+    [Theory]
+    [InlineData("{\"error\":\"private detail\"}")]
+    [InlineData("{\"error\":{\"message\":\"private detail\",\"type\":\"not_found_error\"}}")]
+    [InlineData("private detail")]
+    public async Task UnexpectedNotFoundBodyIsAContractError(string body)
     {
-        var client = CreateClient(Json(HttpStatusCode.NotFound, "{\"error\":\"private detail\"}"));
+        var client = CreateClient(Json(HttpStatusCode.NotFound, body));
 
         VercelGatewayQuotaException exception = await Assert.ThrowsAsync<VercelGatewayQuotaException>(() =>
             client.GetQuotaAsync(Secret, KeyId));

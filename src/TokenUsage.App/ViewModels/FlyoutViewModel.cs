@@ -42,7 +42,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AttributionAliasStore? attributionAliases = null,
         Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null,
         ClaudeRateLimitStore? claudeRateLimits = null,
-        ClaudeSettingsInstaller? claudeSettings = null)
+        ClaudeSettingsInstaller? claudeSettings = null,
+        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null)
     {
         ArgumentNullException.ThrowIfNull(appSessionHost);
         ArgumentNullException.ThrowIfNull(localUsageCoordinator);
@@ -91,7 +92,10 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             GeneralOptions.ClaudeStatusLineChanged += OnClaudeStatusLineChanged;
         }
 
-        ProviderStatus = new ProviderStatusSurfaceViewModel(GetString, manualCredentials);
+        ProviderStatus = new ProviderStatusSurfaceViewModel(
+            GetString,
+            manualCredentials,
+            credentialChanged);
         Options = new OptionsSurfaceViewModel(
             OptionsNavigation,
             GeneralOptions,

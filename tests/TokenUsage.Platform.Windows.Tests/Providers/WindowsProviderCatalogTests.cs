@@ -1,3 +1,5 @@
+using TokenUsage.Core.Cache;
+using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Providers;
 using TokenUsage.Providers.Catalog;
 using TokenUsage.Runtime.Windows.Providers;
@@ -25,14 +27,20 @@ public sealed class WindowsProviderCatalogTests
         WindowsProviderCatalogEntry[] deferredEntries =
             WindowsProviderCatalog.DeferredEntries.ToArray();
         Assert.Equal(
-            ["vercel-ai-gateway"],
+            ["openrouter", "vercel-ai-gateway"],
             deferredEntries.Select(entry => entry.Id.Value));
         Assert.All(deferredEntries, entry => Assert.False(entry.IsEnabledByDefault));
-        Assert.Equal(
+        Assert.All(deferredEntries, entry => Assert.Equal(
             [ProviderCapability.Limits, ProviderCapability.Spend],
-            deferredEntries.Single(entry => entry.Id.Value == "vercel-ai-gateway").Capabilities);
-        Assert.Equal(34, WindowsProviderCatalog.PreparedEntries.Count);
-        Assert.Contains(
+            entry.Capabilities));
+        Assert.Equal(
+            ManualCredentialKind.ApiKey,
+            ProviderModuleCatalog.Get("openrouter").ManualCredentialKind);
+        Assert.Equal(
+            ManualCredentialKind.ApiKeyAndOptionalKeyId,
+            ProviderModuleCatalog.Get("vercel-ai-gateway").ManualCredentialKind);
+        Assert.Equal(33, WindowsProviderCatalog.PreparedEntries.Count);
+        Assert.DoesNotContain(
             WindowsProviderCatalog.PreparedEntries,
             entry => entry.Id.Value == "openrouter");
         Assert.Equal(
@@ -156,11 +164,10 @@ public sealed class WindowsProviderCatalogTests
             SourceKind.OfficialLocalApi,
             composition.LocalUsageSources.Single(source =>
                 source.AgentId.Value == "codex").SourceKind);
-        Assert.Null(composition.VercelCoordinator);
     }
 
     [Fact]
-    public void DeferredVercelBindingRequiresExplicitOptIn()
+    public void OptInProvidersAreComposedOnlyWhenEnabledAndNeedAnHttpClient()
     {
         using var folder = new TemporaryFolder();
         using var httpClient = new HttpClient();
@@ -171,17 +178,68 @@ public sealed class WindowsProviderCatalogTests
             httpClient,
             new WindowsProviderCompositionOptions(
                 TimeZoneId: "UTC",
-                EnableVercelGateway: true));
+                EnableOptInProviders: true));
 
         Assert.Equal(
-            ["codex", "vercel-ai-gateway"],
+            ["codex", "openrouter", "vercel-ai-gateway"],
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
-        Assert.NotNull(composition.VercelCoordinator);
-        Assert.Equal(
-            "vercel-ai-gateway",
-            composition.VercelCoordinator.CreateRegistration().Provider.Descriptor.Id.Value);
+        Assert.Throws<ArgumentNullException>(() => WindowsProviderCatalog.CreateComposition(
+            folder.Path,
+            TimeProvider.System,
+            apiHttpClient: null,
+            new WindowsProviderCompositionOptions(EnableOptInProviders: true)));
     }
+
+    [Theory]
+    [InlineData("openrouter")]
+    [InlineData("vercel-ai-gateway")]
+    public async Task CredentialChangeClearsOnlyThatProvidersCachedReading(string providerId)
+    {
+        using var folder = new TemporaryFolder();
+        using var httpClient = new HttpClient();
+        WindowsProviderComposition composition = WindowsProviderCatalog.CreateComposition(
+            folder.Path,
+            TimeProvider.System,
+            httpClient,
+            new WindowsProviderCompositionOptions(
+                TimeZoneId: "UTC",
+                EnableOptInProviders: true));
+        ProviderRefreshRegistration registration = composition.RefreshHost.Registrations
+            .Single(candidate => candidate.Provider.Descriptor.Id.Value == providerId);
+        await registration.Store.UpsertLastGoodAsync(Snapshot(providerId));
+
+        ManualCredentialChangeResult result = await composition.ResetProviderCacheAsync(providerId);
+
+        Assert.Equal(ManualCredentialChangeResult.CacheCleared, result);
+        SnapshotCacheReadResult cache = await registration.Store.LoadAsync();
+        Assert.DoesNotContain(
+            cache is SnapshotCacheReadResult.Loaded loaded ? loaded.Snapshots : [],
+            snapshot => snapshot.ProviderId.Value == providerId);
+        Assert.Equal(
+            ManualCredentialChangeResult.NoLiveSource,
+            await composition.ResetProviderCacheAsync("codex"));
+        Assert.Equal(
+            ManualCredentialChangeResult.NoLiveSource,
+            await composition.ResetProviderCacheAsync("openai"));
+    }
+
+    private static ProviderSnapshot Snapshot(string providerId) => new(
+        new ProviderId(providerId),
+        providerId,
+        planLabel: null,
+        new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero),
+        new DateTimeOffset(2026, 7, 23, 12, 0, 0, TimeSpan.Zero),
+        "UTC",
+        [
+            new ScalarMetricSnapshot(
+                new MetricId("spend.test"),
+                1m,
+                "usd",
+                new DataProvenance(SourceKind.ManualKey, MeasurementKind.ProviderReported, "test")),
+        ],
+        CoverageKind.Complete,
+        1);
 
     private sealed class TemporaryFolder : IDisposable
     {

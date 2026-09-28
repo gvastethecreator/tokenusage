@@ -75,7 +75,7 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
         {
             throw ContractFailure();
         }
-        catch (HttpRequestException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException)
         {
             throw new VercelGatewayQuotaException(
                 VercelGatewayQuotaErrorKind.Transient,
@@ -111,10 +111,26 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
         }
     }
 
+    /// <summary>
+    /// A key without a budget answers 404. The body is <c>{"error":"Quota not found"}</c>, or the
+    /// documented error envelope <c>{"error":{"message":"...","type":"..."}}</c> whose message
+    /// says the quota was not found. Any other 404 body is a contract failure.
+    /// </summary>
     private static VercelGatewayQuotaLookupResult.NoBudget ParseNotFound(byte[] content)
     {
-        ErrorDocument? document = JsonSerializer.Deserialize<ErrorDocument>(content, JsonOptions);
-        if (!string.Equals(document?.Error, "Quota not found", StringComparison.Ordinal))
+        using JsonDocument document = JsonDocument.Parse(content);
+        string? message = document.RootElement.ValueKind == JsonValueKind.Object
+            && document.RootElement.TryGetProperty("error", out JsonElement error)
+                ? error.ValueKind switch
+                {
+                    JsonValueKind.String => error.GetString(),
+                    JsonValueKind.Object when error.TryGetProperty("message", out JsonElement text)
+                        && text.ValueKind == JsonValueKind.String => text.GetString(),
+                    _ => null,
+                }
+                : null;
+        if (message is null
+            || !message.Contains("quota not found", StringComparison.OrdinalIgnoreCase))
         {
             throw ContractFailure();
         }
@@ -252,11 +268,5 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
 
         [JsonPropertyName("active")]
         public bool? Active { get; init; }
-    }
-
-    private sealed class ErrorDocument
-    {
-        [JsonPropertyName("error")]
-        public string? Error { get; init; }
     }
 }

@@ -75,7 +75,9 @@ public sealed class OpenRouterClientTests
     [InlineData("daily", OpenRouterLimitReset.Daily)]
     [InlineData("weekly", OpenRouterLimitReset.Weekly)]
     [InlineData("monthly", OpenRouterLimitReset.Monthly)]
-    public async Task SupportedLimitCadencesMapExactly(
+    [InlineData("yearly", OpenRouterLimitReset.Unknown)]
+    [InlineData("Monthly", OpenRouterLimitReset.Unknown)]
+    public async Task LimitCadencesMapExactlyAndUnknownValuesDoNotFailTheRead(
         string wireValue,
         OpenRouterLimitReset expected)
     {
@@ -122,8 +124,6 @@ public sealed class OpenRouterClientTests
     [InlineData("{\"data\":{\"usage\":-1,\"usage_daily\":0,\"usage_weekly\":0,\"usage_monthly\":0,\"is_free_tier\":false}}")]
     [InlineData("{\"data\":{\"usage\":1,\"usage_weekly\":0,\"usage_monthly\":0,\"is_free_tier\":false}}")]
     [InlineData("{\"data\":{\"usage\":1,\"usage_daily\":0,\"usage_weekly\":0,\"usage_monthly\":0}}")]
-    [InlineData("{\"data\":{\"usage\":1,\"usage_daily\":0,\"usage_weekly\":0,\"usage_monthly\":0,\"limit_reset\":\"yearly\",\"is_free_tier\":false}}")]
-    [InlineData("{\"data\":{\"usage\":1,\"usage_daily\":0,\"usage_weekly\":0,\"usage_monthly\":0,\"limit_reset\":\"Monthly\",\"is_free_tier\":false}}")]
     [InlineData("{\"data\":{\"usage\":1,\"usage_daily\":0,\"usage_weekly\":0,\"usage_monthly\":0,\"limit\":-1,\"is_free_tier\":false}}")]
     [InlineData("{\"data\":{\"usage\":1,\"usage_daily\":0,\"usage_weekly\":0,\"usage_monthly\":0,\"limit_remaining\":-1,\"is_free_tier\":false}}")]
     [InlineData("not-json")]

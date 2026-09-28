@@ -4,11 +4,18 @@ namespace TokenUsage.Providers.VercelAiGateway;
 
 internal static class VercelGatewaySnapshotMapper
 {
-    internal const string AdapterVersion = "vercel-ai-gateway-report/1";
+    // Version 2: the report is scoped to the saved key (api_key_id=self), not the team.
+    internal const string AdapterVersion = "vercel-ai-gateway-report/2";
     internal const string QuotaAdapterVersion = "vercel-ai-gateway-quota/1";
     internal const string QuotaStateAdapterVersion = "vercel-ai-gateway-quota-state/1";
-    internal const int AdapterContractVersion = 2;
+    internal const string CreditsAdapterVersion = "vercel-ai-gateway-credits/1";
+    internal const int AdapterContractVersion = 3;
     internal const string TimeZoneId = "UTC";
+
+    internal const string BudgetMetricId = "quota.gateway.key.budget";
+    internal const string CreditsBalanceMetricId = "credits.gateway.balance";
+    internal const string CreditsTotalUsedMetricId = "credits.gateway.total-used";
+    internal const string ReportCapabilityId = "report.gateway.key";
 
     private static readonly DataProvenance Provenance = new DataProvenance(
         SourceKind.ManualKey,
@@ -25,6 +32,11 @@ internal static class VercelGatewaySnapshotMapper
         MeasurementKind.Derived,
         QuotaStateAdapterVersion);
 
+    private static readonly DataProvenance CreditsProvenance = new DataProvenance(
+        SourceKind.ManualKey,
+        MeasurementKind.ProviderReported,
+        CreditsAdapterVersion);
+
     internal sealed class MapResult
     {
         public MapResult(ProviderSnapshot snapshot, IReadOnlyList<ProviderWarning> warnings)
@@ -37,44 +49,59 @@ internal static class VercelGatewaySnapshotMapper
         public IReadOnlyList<ProviderWarning> Warnings { get; }
     }
 
-    internal static MapResult Map(
-        VercelGatewayReport report,
-        DateTimeOffset fetchedAtUtc) =>
-        Map(
-            report,
-            quotaResult: null,
-            ProviderCapabilityState.NotRequested,
-            fetchedAtUtc);
+    /// <summary>
+    /// Readings taken next to the report: the team credit balance and the key budget. Each
+    /// carries its own capability state so a failure degrades only that reading.
+    /// </summary>
+    internal sealed record SupplementalReadings(
+        VercelGatewayCredits? Credits,
+        ProviderCapabilityState CreditsState,
+        VercelGatewayQuotaLookupResult? Quota,
+        ProviderCapabilityState QuotaState);
 
     internal static MapResult Map(
-        VercelGatewayReport report,
-        VercelGatewayQuotaLookupResult? quotaResult,
-        ProviderCapabilityState quotaState,
+        VercelGatewayReport? report,
+        SupplementalReadings readings,
         DateTimeOffset fetchedAtUtc,
-        ProviderWarning? supplementalWarning = null)
+        IEnumerable<ProviderWarning> supplementalWarnings)
     {
-        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(readings);
+        ArgumentNullException.ThrowIfNull(supplementalWarnings);
 
-        var rows = report.Results;
         var metrics = new List<MetricSnapshot>();
-        var warnings = new List<ProviderWarning>();
+        var warnings = new List<ProviderWarning>(supplementalWarnings);
         var reportWarnings = new List<ProviderWarning>();
-        if (supplementalWarning is not null)
-        {
-            warnings.Add(supplementalWarning);
-        }
 
-        AddQuotaMetric(metrics, quotaResult);
+        AddQuotaMetric(metrics, readings.Quota, fetchedAtUtc);
+        AddCreditsMetrics(metrics, readings.Credits);
         ProviderCapabilitySnapshot[] capabilities =
         [
             new(
-                new CapabilityId("quota.gateway.key.budget"),
-                quotaState,
-                quotaState is ProviderCapabilityState.Available
+                new CapabilityId(BudgetMetricId),
+                readings.QuotaState,
+                readings.QuotaState is ProviderCapabilityState.Available
                     or ProviderCapabilityState.NotConfigured
                     ? QuotaProvenance
                     : QuotaStateProvenance),
+            new(
+                new CapabilityId(CreditsBalanceMetricId),
+                readings.CreditsState,
+                CreditsProvenance),
+            new(
+                new CapabilityId(ReportCapabilityId),
+                report is null
+                    ? ProviderCapabilityState.Degraded
+                    : ProviderCapabilityState.Available,
+                Provenance),
         ];
+        if (report is null)
+        {
+            return new MapResult(
+                CreateSnapshot(fetchedAtUtc, metrics, CoverageKind.Partial, capabilities),
+                warnings.AsReadOnly());
+        }
+
+        var rows = report.Results;
         if (rows.Count == 0)
         {
             return new MapResult(
@@ -175,22 +202,45 @@ internal static class VercelGatewaySnapshotMapper
 
     private static void AddQuotaMetric(
         List<MetricSnapshot> metrics,
-        VercelGatewayQuotaLookupResult? quotaResult)
+        VercelGatewayQuotaLookupResult? quotaResult,
+        DateTimeOffset fetchedAtUtc)
     {
         if (quotaResult is not VercelGatewayQuotaLookupResult.Found found)
         {
             return;
         }
 
+        ProgressResetCadence cadence = MapCadence(found.Quota.RefreshPeriod);
         metrics.Add(new ProgressMetricSnapshot(
-            new MetricId("quota.gateway.key.budget"),
+            new MetricId(BudgetMetricId),
             found.Quota.CurrentSpend,
             found.Quota.LimitAmount,
-            resetsAtUtc: null,
+            UtcResetSchedule.Next(cadence, fetchedAtUtc),
             QuotaProvenance,
             "usd",
-            MapCadence(found.Quota.RefreshPeriod),
+            cadence,
             found.Quota.Active));
+    }
+
+    private static void AddCreditsMetrics(
+        List<MetricSnapshot> metrics,
+        VercelGatewayCredits? credits)
+    {
+        if (credits is null)
+        {
+            return;
+        }
+
+        metrics.Add(new ScalarMetricSnapshot(
+            new MetricId(CreditsBalanceMetricId),
+            credits.Balance,
+            "usd",
+            CreditsProvenance));
+        metrics.Add(new ScalarMetricSnapshot(
+            new MetricId(CreditsTotalUsedMetricId),
+            credits.TotalUsed,
+            "usd",
+            CreditsProvenance));
     }
 
     private static ProgressResetCadence MapCadence(

@@ -1,8 +1,6 @@
 # Provider matrix
 
-Cutoff date: 2026-09-22
-
-Temporary status: Vercel AI Gateway is out of the active catalog. Its implementation is kept so it can be reactivated in a later delivery.
+Cutoff date: 2026-09-28
 
 Parity upstreams:
 `janekbaraniewski/openusage@ddc05f24b159bfd1a24bbf641dcfb841410a77ab`,
@@ -78,9 +76,11 @@ The catalog represents 56 identities from the inspected union. A visible module 
 - `Active`: Amp, Antigravity, Claude, Codex, Cursor, GitHub Copilot, Goose,
   Grok Build, Hermes, Mux, OpenCode, and ZCode. Each one creates a real,
   bounded local reader.
-- `OptIn`: Vercel AI Gateway. It keeps its public client and requires a key that
-  the user gives to TokenUsage.
-- `Prepared`: 34 modules with identity, capabilities, brand when it exists, and
+- `OptIn`: OpenRouter and Vercel AI Gateway. The app always composes them, but
+  each one reads nothing until the user saves a key in the provider list. Saving
+  the key is the opt-in; removing it stops the reads and clears the cached
+  reading.
+- `Prepared`: 33 modules with identity, capabilities, brand when it exists, and
   visible status. They do not open files, credentials, or connections.
 - `PolicyBlocked`: Cline, Cline CLI, Gemini CLI, Kilo Code, Kimi CLI, Kimi Code, Perplexity,
   Z.ai, and Zed. They keep the researched contract, but they do not
@@ -97,7 +97,8 @@ TokenUsage takes selected contracts from each upstream, calculates cost locally,
 | OpenCode | No common quota | Yes, reported cost and tokens | `opencode.db` and `storage` | Local | M6A |
 | Grok Build | Blocked without a public interface | Yes, reported or estimated cost | `sessions` and `unified.jsonl` | Local + Gate | M6A; quota pending |
 | Grok Bot | Blocked without an approved data interface | No | The desktop app coordinates a computer in the cloud; the local profile contains state and credentials | Prepared | Catalog compatibility; sessions and credentials are not read |
-| OpenRouter | Yes, API with a key | Depends on the API | user's own manual key | Manual | M9 |
+| OpenRouter | Yes, key limit from `/api/v1/key` | Spend only (day, week, month in UTC); no tokens | user's own key in Credential Locker | Opt-in | Active when a key is saved |
+| Vercel AI Gateway | Yes, key budget (best-effort) and team credit balance | Spend and tokens for the saved key, last 30 days | user's own key in Credential Locker | Opt-in | Active when a key is saved |
 | Z.ai | Blocked outside the official plugin | Only through admitted logs | official plugin limited to Claude Code | Blocked | M9; reopen with a contract or permission |
 | Cursor | Not on Individual. Teams/Enterprise: future manual Admin API | Yes, real counters per turn; context fallback for older data | local SQLite with an allowlist projection; future Admin API | Partial active local | Active; estimated API cost when the model matches |
 | Amp | No stable public quota | Yes, tokens from the ledger | `ledger.jsonl`; threads are not opened | Partial active local | Active; credits are not shown as USD |
@@ -131,7 +132,6 @@ source suitable for Windows is proven.
 | Pi | Appears in CodeBurn and AgentsView | Distinguish Pi from OMP and settle deduplication |
 | Qwen | Appears in CodeBurn and AgentsView | Separate Qwen Code from the Qwen model provider |
 | Warp | Appears in CodeBurn and AgentsView | Do not read terminal history or commands |
-| Vercel AI Gateway | CodeBurn exposes an aggregated API report | Separate gateway cost from agent usage; manual key with minimum permission |
 | Mistral Vibe | Appears in CodeBurn and AgentsView | Do not read messages, tools, or commands; require an aggregated source |
 | DeepSeek TUI / CodeWhale | They share inherited paths between AgentsView and CodeBurn | Resolve identity and migration before creating IDs or reading sessions |
 | Windsurf | AgentsView declares Windows paths | Require an aggregated source; do not read chat or the IDE global state |
@@ -468,25 +468,78 @@ References: [Grok Bot](https://docs.x.ai/grok-bot/overview), [get started](https
 A key that the user adds to this app and that is stored in Credential Locker.
 A key from another app is not imported without confirmation.
 
-The current official contract separates capabilities. `/api/v1/key` reports
-usage and the limit of the active key. `/api/v1/credits` reports account
-credits and requires a management key. A `403` on credits does not invalidate
-the key-usage result.
+The current official contract separates capabilities. `GET /api/v1/key`
+([limits](https://openrouter.ai/docs/api_reference/limits)) reports the usage
+and the limit of the key that calls it. `GET /api/v1/credits`
+([credits](https://openrouter.ai/docs/api/api-reference/credits/get-remaining-credits))
+and `GET /api/v1/activity`
+([activity](https://openrouter.ai/docs/api/api-reference/analytics/get-user-activity))
+answer only for a management key.
 
 ### Metrics
 
-- credits and balance
-- usage that the public API delivers
-- time and status of the response
+- spend for the saved key: today, this week (from Monday), and this month, all
+  UTC calendar periods, plus all-time usage, in USD
+- the key limit as a quota window when the key has one: used is `limit` minus
+  `limit_remaining`, and the reset follows `limit_reset` (daily, weekly, or
+  monthly at midnight UTC; null means no reset). An unknown `limit_reset` value
+  keeps the limit without a reset time instead of failing the read.
+- free tier or paid credits, from `is_free_tier`
 
 ### Result
 
-Official contract settled. The offline
-client is the first cut. The provider list can already store the key in
-Credential Locker. Runtime, live reads, and authorized smoke remain pending. It
-is marked as a manual configuration.
+Opt-in and key-only. The runtime reads `/api/v1/key` with the key saved in the
+provider list, reuses a reading for 10 minutes unless the user refreshes, and
+backs off after failures. A `401` means "not configured", a `403` means the key
+cannot read its usage, and a `429` keeps the last reading until `Retry-After`.
+The panel shows this month's spend (labelled as the UTC month), no token count,
+and the key limit. The spend is not added to the local totals or the 30-day
+spend breakdown.
+
+Deferred: account credits and per-model activity. Both need a management key,
+which would have to be stored as its own Credential Locker secret; the optional
+second field of the key editor is not secret storage. Live reads have not been
+checked against a real key yet.
 
 Upstream comparison source: [OpenRouter provider](https://github.com/robinebers/openusage/blob/9d2bf09f10e21f769494a525a9d65c84d7aeb1df/docs/providers/openrouter.md).
+
+## Vercel AI Gateway
+
+### Source
+
+An AI Gateway API key that the user saves in the provider list, with an
+optional key ID for the key budget. Both stay in Credential Locker. Every
+request sends `Authorization: Bearer <key>` to `ai-gateway.vercel.sh` only;
+redirects are not followed.
+
+- `GET /v1/report?start_date&end_date&group_by=day&date_part=day&api_key_id=self`
+  ([Custom Reporting](https://vercel.com/docs/ai-gateway/observability-and-spend/custom-reporting)):
+  spend and tokens of the saved key for the last 30 UTC days. It needs a Pro or
+  Enterprise plan and costs $5 per 1,000 queries.
+- `GET /v1/credits`
+  ([REST API](https://vercel.com/docs/ai-gateway/sdks-and-apis/rest-api)): the
+  team's credit balance and total used, sent as decimal strings. It works on
+  every plan and needs no key ID.
+- `GET /v1/quotas?quotaEntityId=api_key_id_<key id>`: the key budget. This
+  endpoint is not in the public REST reference, so it is best-effort: any
+  failure degrades only the budget. A `404` with "Quota not found" in either the
+  plain or the documented error shape means the key has no budget.
+
+### Metrics
+
+- spend (charged, market, surcharge, gateway fee), input, output, cached,
+  cache-creation, and reasoning tokens, and requests, for the saved key
+- team credit balance and total used
+- the key budget as a quota window, reset at the documented UTC boundary
+
+### Result
+
+Opt-in. An unforced refresh reuses a reading for at least an hour to limit the
+paid report queries; a manual refresh (or the optional open-panel refresh
+interval) always queries it. A plan without Custom Reporting keeps the credit
+balance and says why the spend is missing. The spend is not added to the local
+totals, because a local tool can record the same requests. Live reads have not
+been checked against a real key yet.
 
 ## Z.ai
 

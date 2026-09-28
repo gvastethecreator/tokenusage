@@ -94,6 +94,135 @@ public sealed class VercelGatewayProviderRuntimeTests
     }
 
     [Fact]
+    public async Task MissingConnectionMakesNoNetworkCall()
+    {
+        var report = new FakeReportClient();
+        var credits = new FakeCreditsClient();
+        var quota = new FakeQuotaClient();
+        var runtime = CreateRuntime(new FakeConnectionSource(null), report, quota, credits);
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(
+            CreateContext(forceRefresh: true),
+            CancellationToken.None);
+
+        Assert.IsType<ProviderOutcome.NotConfigured>(outcome);
+        Assert.Equal(0, report.CallCount);
+        Assert.Equal(0, credits.CallCount);
+        Assert.Equal(0, quota.CallCount);
+    }
+
+    [Theory]
+    [InlineData(50, 0)]
+    [InlineData(61, 1)]
+    public async Task UnforcedRefreshQueriesThePaidReportAtMostHourly(int ageMinutes, int expectedCalls)
+    {
+        var client = new FakeReportClient { Report = CreateFullReport() };
+        var runtime = CreateRuntime(new FakeConnectionSource(CreateConnection()), client);
+
+        await runtime.RefreshAsync(
+            CreateContext(CreateLastGood(TimeSpan.FromMinutes(ageMinutes))),
+            CancellationToken.None);
+
+        Assert.Equal(expectedCalls, client.CallCount);
+    }
+
+    [Fact]
+    public async Task CreditsAddTeamBalanceWithoutAKeyId()
+    {
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection()),
+            new FakeReportClient { Report = CreateFullReport() },
+            creditsClient: new FakeCreditsClient { Credits = new(95.5m, 4.5m) });
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(outcome).Snapshot;
+        var metrics = snapshot.Metrics.OfType<ScalarMetricSnapshot>().ToDictionary(m => m.Id.Value);
+        AssertMetric(metrics, "credits.gateway.balance", 95.5m, "usd");
+        AssertMetric(metrics, "credits.gateway.total-used", 4.5m, "usd");
+        Assert.Equal(
+            "vercel-ai-gateway-credits/1",
+            metrics["credits.gateway.balance"].Provenance.AdapterVersion);
+        Assert.Equal(
+            ProviderCapabilityState.Available,
+            Capability(snapshot, "credits.gateway.balance").State);
+    }
+
+    [Fact]
+    public async Task CreditsFailureDegradesOnlyTheBalance()
+    {
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection()),
+            new FakeReportClient { Report = CreateFullReport() },
+            creditsClient: new FakeCreditsClient
+            {
+                Exception = new VercelGatewayCreditsException(
+                    VercelGatewayCreditsErrorKind.Contract,
+                    "PRIVATE_CREDITS_BODY"),
+            });
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderOutcome.PartialSuccess partial =
+            Assert.IsType<ProviderOutcome.PartialSuccess>(outcome);
+        Assert.Contains(partial.Snapshot.Metrics, metric =>
+            metric.Id.Value == "spend.gateway.total.30d");
+        Assert.DoesNotContain(partial.Snapshot.Metrics, metric =>
+            metric.Id.Value.StartsWith("credits.", StringComparison.Ordinal));
+        Assert.Equal(
+            ProviderCapabilityState.Degraded,
+            Capability(partial.Snapshot, "credits.gateway.balance").State);
+        ProviderWarning warning = Assert.Single(partial.Warnings);
+        Assert.DoesNotContain("PRIVATE_CREDITS_BODY", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RejectedKeyOnCreditsReturnsNotConfiguredWithoutPaidReport()
+    {
+        var report = new FakeReportClient { Report = CreateFullReport() };
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection()),
+            report,
+            creditsClient: new FakeCreditsClient
+            {
+                Exception = new VercelGatewayCreditsException(
+                    VercelGatewayCreditsErrorKind.Authentication,
+                    "rejected"),
+            });
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderOutcome.NotConfigured notConfigured =
+            Assert.IsType<ProviderOutcome.NotConfigured>(outcome);
+        AssertNoSecret(notConfigured.Reason);
+        Assert.Equal(0, report.CallCount);
+    }
+
+    [Fact]
+    public async Task PlanWithoutCustomReportingKeepsTheCreditBalance()
+    {
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection()),
+            new FakeReportClient
+            {
+                Exception = CreateReportException(VercelGatewayReportErrorKind.UnsupportedAccount),
+            });
+
+        ProviderOutcome outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
+
+        ProviderOutcome.PartialSuccess partial =
+            Assert.IsType<ProviderOutcome.PartialSuccess>(outcome);
+        Assert.Equal(CoverageKind.Partial, partial.Snapshot.Coverage);
+        Assert.Contains(partial.Snapshot.Metrics, metric =>
+            metric.Id.Value == "credits.gateway.balance");
+        Assert.DoesNotContain(partial.Snapshot.Metrics, metric =>
+            metric.Id.Value.StartsWith("spend.", StringComparison.Ordinal));
+        Assert.Equal(
+            ProviderCapabilityState.Degraded,
+            Capability(partial.Snapshot, "report.gateway.key").State);
+    }
+
+    [Fact]
     public async Task RefreshAsyncQueriesExactlyThirtyInclusiveUtcDays()
     {
         var client = new FakeReportClient
@@ -157,9 +286,12 @@ public sealed class VercelGatewayProviderRuntimeTests
         Assert.Equal(FixedUtc, snapshot.SourceObservedAtUtc);
         Assert.Equal("UTC", snapshot.TimeZoneId);
         Assert.Equal(CoverageKind.Complete, snapshot.Coverage);
-        Assert.Equal(2, snapshot.AdapterContractVersion);
+        Assert.Equal(3, snapshot.AdapterContractVersion);
 
-        var metrics = snapshot.Metrics.OfType<ScalarMetricSnapshot>().ToDictionary(m => m.Id.Value);
+        var metrics = snapshot.Metrics
+            .OfType<ScalarMetricSnapshot>()
+            .Where(m => !m.Id.Value.StartsWith("credits.", StringComparison.Ordinal))
+            .ToDictionary(m => m.Id.Value);
         Assert.Equal(10, metrics.Count);
 
         AssertMetric(metrics, "spend.gateway.total.30d", 4.0m, "usd");
@@ -177,7 +309,7 @@ public sealed class VercelGatewayProviderRuntimeTests
         {
             Assert.Equal(SourceKind.ManualKey, metric.Provenance.SourceKind);
             Assert.Equal(MeasurementKind.ProviderReported, metric.Provenance.MeasurementKind);
-            Assert.Equal("vercel-ai-gateway-report/1", metric.Provenance.AdapterVersion);
+            Assert.Equal("vercel-ai-gateway-report/2", metric.Provenance.AdapterVersion);
         }
     }
 
@@ -194,7 +326,8 @@ public sealed class VercelGatewayProviderRuntimeTests
 
         var success = Assert.IsType<ProviderOutcome.Success>(outcome);
         Assert.Equal(CoverageKind.Complete, success.Snapshot.Coverage);
-        Assert.Empty(success.Snapshot.Metrics);
+        Assert.All(success.Snapshot.Metrics, metric =>
+            Assert.StartsWith("credits.", metric.Id.Value, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -227,9 +360,9 @@ public sealed class VercelGatewayProviderRuntimeTests
         Assert.Equal("usd", metric.Unit);
         Assert.Equal(ProgressResetCadence.Monthly, metric.ResetCadence);
         Assert.True(metric.IsActive);
-        Assert.Null(metric.ResetsAtUtc);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero), metric.ResetsAtUtc);
         Assert.Equal("vercel-ai-gateway-quota/1", metric.Provenance.AdapterVersion);
-        ProviderCapabilitySnapshot capability = Assert.Single(snapshot.Capabilities);
+        ProviderCapabilitySnapshot capability = Capability(snapshot, "quota.gateway.key.budget");
         Assert.Equal("quota.gateway.key.budget", capability.Id.Value);
         Assert.Equal(ProviderCapabilityState.Available, capability.State);
         Assert.Equal(SecretApiKey, quotaClient.LastApiKey);
@@ -251,7 +384,7 @@ public sealed class VercelGatewayProviderRuntimeTests
         ProviderSnapshot snapshot = Assert.IsType<ProviderOutcome.Success>(outcome).Snapshot;
         Assert.Equal(
             ProviderCapabilityState.NotRequested,
-            Assert.Single(snapshot.Capabilities).State);
+            Capability(snapshot, "quota.gateway.key.budget").State);
     }
 
     [Fact]
@@ -273,7 +406,7 @@ public sealed class VercelGatewayProviderRuntimeTests
             metric.Id.Value == "quota.gateway.key.budget");
         Assert.Equal(
             ProviderCapabilityState.NotConfigured,
-            Assert.Single(snapshot.Capabilities).State);
+            Capability(snapshot, "quota.gateway.key.budget").State);
         Assert.Equal(1, quotaClient.CallCount);
     }
 
@@ -302,7 +435,7 @@ public sealed class VercelGatewayProviderRuntimeTests
         Assert.Equal(ProviderWarningCode.SourceDegraded, warning.Code);
         Assert.DoesNotContain("PRIVATE_QUOTA_BODY", warning.Message, StringComparison.Ordinal);
         AssertNoSecret(warning.Message);
-        ProviderCapabilitySnapshot capability = Assert.Single(partial.Snapshot.Capabilities);
+        ProviderCapabilitySnapshot capability = Capability(partial.Snapshot, "quota.gateway.key.budget");
         Assert.Equal(ProviderCapabilityState.Degraded, capability.State);
         Assert.Equal(MeasurementKind.Derived, capability.Provenance.MeasurementKind);
         Assert.Equal("vercel-ai-gateway-quota-state/1", capability.Provenance.AdapterVersion);
@@ -377,13 +510,21 @@ public sealed class VercelGatewayProviderRuntimeTests
     }
 
     [Fact]
-    public async Task RefreshAsyncUnsupportedAccountReturnsUnsupportedAccount()
+    public async Task RefreshAsyncUnsupportedAccountWithoutBalanceReturnsUnsupportedAccount()
     {
         var client = new FakeReportClient
         {
             Exception = CreateReportException(VercelGatewayReportErrorKind.UnsupportedAccount)
         };
-        var runtime = CreateRuntime(new FakeConnectionSource(CreateConnection()), client);
+        var runtime = CreateRuntime(
+            new FakeConnectionSource(CreateConnection()),
+            client,
+            creditsClient: new FakeCreditsClient
+            {
+                Exception = new VercelGatewayCreditsException(
+                    VercelGatewayCreditsErrorKind.Unavailable,
+                    "unavailable"),
+            });
 
         var outcome = await runtime.RefreshAsync(CreateContext(), CancellationToken.None);
 
@@ -582,13 +723,18 @@ public sealed class VercelGatewayProviderRuntimeTests
     private static VercelGatewayProviderRuntime CreateRuntime(
         IVercelGatewayConnectionSource connectionSource,
         IVercelGatewayReportClient reportClient,
-        IVercelGatewayQuotaClient? quotaClient = null)
+        IVercelGatewayQuotaClient? quotaClient = null,
+        IVercelGatewayCreditsClient? creditsClient = null)
     {
         return new VercelGatewayProviderRuntime(
             connectionSource,
             reportClient,
-            quotaClient ?? new FakeQuotaClient());
+            quotaClient ?? new FakeQuotaClient(),
+            creditsClient ?? new FakeCreditsClient());
     }
+
+    private static ProviderCapabilitySnapshot Capability(ProviderSnapshot snapshot, string id) =>
+        Assert.Single(snapshot.Capabilities, capability => capability.Id.Value == id);
 
     private static RefreshContext CreateContext(
         ProviderSnapshot? lastGood = null,
@@ -607,7 +753,7 @@ public sealed class VercelGatewayProviderRuntimeTests
 
     private static ProviderSnapshot CreateLastGood(TimeSpan? age = null)
     {
-        TimeSpan effectiveAge = age ?? TimeSpan.FromHours(1);
+        TimeSpan effectiveAge = age ?? TimeSpan.FromHours(2);
         return new ProviderSnapshot(
             new ProviderId("vercel-ai-gateway"),
             "Vercel AI Gateway",
@@ -769,6 +915,29 @@ public sealed class VercelGatewayProviderRuntimeTests
 
             BeforeReturn?.Invoke();
             return Task.FromResult(Report);
+        }
+    }
+
+    private sealed class FakeCreditsClient : IVercelGatewayCreditsClient
+    {
+        public VercelGatewayCredits Credits { get; set; } = new(95.5m, 4.5m);
+
+        public VercelGatewayCreditsException? Exception { get; set; }
+
+        public int CallCount { get; private set; }
+
+        public Task<VercelGatewayCredits> GetCreditsAsync(
+            string apiKey,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            if (Exception is not null)
+            {
+                throw Exception;
+            }
+
+            return Task.FromResult(Credits);
         }
     }
 

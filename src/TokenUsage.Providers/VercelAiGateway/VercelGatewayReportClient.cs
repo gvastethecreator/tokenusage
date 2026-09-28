@@ -73,7 +73,7 @@ public sealed class VercelGatewayReportClient : IVercelGatewayReportClient
         {
             throw ContractFailure();
         }
-        catch (HttpRequestException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException)
         {
             throw new VercelGatewayReportException(
                 VercelGatewayReportErrorKind.Transient,
@@ -109,9 +109,11 @@ public sealed class VercelGatewayReportClient : IVercelGatewayReportClient
     {
         string start = startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         string end = endDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        // api_key_id=self limits the report to the key that authenticates it, so the numbers
+        // match the saved key instead of the whole team.
         var builder = new UriBuilder(ReportEndpoint)
         {
-            Query = $"start_date={start}&end_date={end}&group_by=day&date_part=day",
+            Query = $"start_date={start}&end_date={end}&group_by=day&date_part=day&api_key_id=self",
         };
         return builder.Uri;
     }

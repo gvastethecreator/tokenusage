@@ -42,6 +42,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private ProviderOutcome? _lastCodexOutcome;
     private ProviderSnapshot? _lastCodexSnapshot;
     private ProviderSnapshot? _lastClaudeSnapshot;
+    private IReadOnlyDictionary<string, ProviderSnapshot> _apiProviderSnapshots =
+        new Dictionary<string, ProviderSnapshot>(StringComparer.Ordinal);
     private IReadOnlyDictionary<string, long> _claudeWindowUsedTokens = new Dictionary<string, long>();
     private DashboardSnapshot? _rawDashboard;
     private DashboardSnapshot? _appearanceDashboard;
@@ -151,6 +153,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     [NotifyPropertyChangedFor(nameof(SelectedProviderHasLimits))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderHasCoverageHint))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderCoverageHintText))]
+    [NotifyPropertyChangedFor(nameof(SelectedProviderPeriodText))]
     public partial DashboardProviderOption? SelectedProvider { get; set; }
 
     [ObservableProperty]
@@ -312,8 +315,16 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                 "goose" => _getString("CompactProviderGooseCoverageHint"),
                 "hermes" => _getString("CompactProviderHermesCoverageHint"),
                 "zcode" => _getString("CompactProviderZcodeCoverageHint"),
+                "vercel-ai-gateway" => _getString("CompactProviderVercelCoverageHint"),
+                "openrouter" => _getString("CompactProviderOpenRouterCoverageHint"),
                 _ => string.Empty,
             };
+            if (ApiProviderCardParts.IsApiProvider(SelectedProvider?.ProviderId))
+            {
+                // These rows come from the provider's API, not from local data.
+                return detail;
+            }
+
             string[] statuses = !SelectedProviderHasData
                 ? [_getString("ProviderStatusNoData")]
                 : [
@@ -336,6 +347,17 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     }
 
     public string CompactPeriodText => _getString("CompactPeriod30Days");
+
+    /// <summary>
+    /// The period under the selected provider's cost and tokens. OpenRouter reports its
+    /// spend for the UTC calendar month, not the last 30 days.
+    /// </summary>
+    public string SelectedProviderPeriodText => string.Equals(
+        SelectedProvider?.ProviderId,
+        "openrouter",
+        StringComparison.Ordinal)
+            ? _getString("CompactPeriodThisMonthUtc")
+            : CompactPeriodText;
 
     public bool AreAllProvidersHidden => _personalization.AreAllProvidersHidden;
 
@@ -646,6 +668,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         _lastCodexSnapshot = session.LastCodexSnapshot;
         _lastCodexOutcome = session.LastCodexOutcome;
         _lastClaudeSnapshot = session.LastClaudeSnapshot;
+        _apiProviderSnapshots = session.ApiProviderSnapshots;
         _claudeWindowUsedTokens = session.ClaudeWindowUsedTokens;
         _publishedObservedAtUtc = session.PublishedObservedAtUtc;
         _retryAtUtc = session.RetryAtUtc;
@@ -664,6 +687,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
         if (session.LastCodexSnapshot is null
             && session.LastClaudeSnapshot is null
+            && session.ApiProviderSnapshots.Count == 0
             && session.HasLocalUsage
             && (session.RawLocalUsage is null
                 || session.RawLocalUsage.SpendBreakdown.AgentSlices.Count == 0))
@@ -715,10 +739,26 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                 _claudeWindowUsedTokens));
         }
 
+        var additionalSpendSlices = new List<SpendSlice>();
+        if (_apiProviderSnapshots.GetValueOrDefault("vercel-ai-gateway") is ProviderSnapshot vercel)
+        {
+            providers.Add(VercelGatewayCardProjector.Create(vercel, _getString));
+            if (VercelGatewayCardProjector.CreateSpendSlice(vercel, _getString) is SpendSlice slice)
+            {
+                additionalSpendSlices.Add(slice);
+            }
+        }
+
+        // OpenRouter reports spend per calendar period, not the rolling 30 days the spend
+        // breakdown covers, so it adds a card but no spend slice.
+        if (_apiProviderSnapshots.GetValueOrDefault("openrouter") is ProviderSnapshot openRouter)
+        {
+            providers.Add(OpenRouterCardProjector.Create(openRouter, _getString));
+        }
+
         IReadOnlyList<SpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
             ? _rawLocalUsage.SpendBreakdown.AgentSlices
             : [];
-        IReadOnlyList<SpendSlice> additionalSpendSlices = [];
         if (providers.Count == 0 && spendSlices.Count == 0 && additionalSpendSlices.Count == 0)
         {
             return false;
@@ -944,7 +984,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             LocalUsage,
             SelectedProvider?.ProviderId,
             _getString,
-            GetProviderLimits);
+            GetProviderLimits,
+            CreateApiProviderSummaries());
         ProviderSummaries = projection.ProviderSummaries;
         ProviderOptions = projection.ProviderOptions;
         GlobalSpendSlices = projection.GlobalSpendSlices;
@@ -976,6 +1017,27 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
 
         OnPropertyChanged(nameof(HasCoverageHint));
         OnPropertyChanged(nameof(CoverageHintText));
+    }
+
+    private List<DashboardProviderSummary> CreateApiProviderSummaries()
+    {
+        var summaries = new List<DashboardProviderSummary>();
+        if (IsSampleModeEnabled)
+        {
+            return summaries;
+        }
+
+        if (_apiProviderSnapshots.GetValueOrDefault("vercel-ai-gateway") is ProviderSnapshot vercel)
+        {
+            summaries.Add(VercelGatewayCardProjector.CreateSummary(vercel, _getString));
+        }
+
+        if (_apiProviderSnapshots.GetValueOrDefault("openrouter") is ProviderSnapshot openRouter)
+        {
+            summaries.Add(OpenRouterCardProjector.CreateSummary(openRouter, _getString));
+        }
+
+        return summaries;
     }
 
     private void ApplySelectedProviderProjection(CompactSelectedProviderProjection projection)

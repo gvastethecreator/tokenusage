@@ -9,7 +9,6 @@ using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Providers.Cursor;
-using TokenUsage.Providers.VercelAiGateway;
 using TokenUsage.Runtime.Windows.Attribution;
 using TokenUsage.Runtime.Windows.Credentials;
 using TokenUsage.Runtime.Windows.Providers;
@@ -41,7 +40,14 @@ public static class AppComposition
         Timeout = TimeSpan.FromMinutes(2),
     });
 
-    private static readonly Lazy<HttpClient> VercelHttpClient = new(() => new HttpClient
+    // Opt-in provider APIs (Vercel AI Gateway, OpenRouter). Redirects are not followed, so a
+    // saved key is only ever sent to the documented host.
+    private static readonly Lazy<HttpClient> ApiHttpClient = new(() => new HttpClient(new HttpClientHandler
+    {
+        AllowAutoRedirect = false,
+        UseCookies = false,
+        UseDefaultCredentials = false,
+    })
     {
         Timeout = TimeSpan.FromSeconds(30),
     });
@@ -77,21 +83,26 @@ public static class AppComposition
                 "providers",
                 "vercel-ai-gateway");
             providerOptions = new WindowsProviderCompositionOptions(
-                VercelCoordinator: CreateVercelCoordinator(
-                    vercelCache,
-                    resolvedClock,
+                VercelCoordinator: new VercelGatewayRefreshCoordinator(
+                    new SnapshotStore(
+                        Path.Combine(vercelCache, SnapshotStore.DefaultFileName),
+                        resolvedClock),
                     new DebugVercelCredentialStore(),
                     new DebugVercelReportClient(),
-                    new DebugVercelQuotaClient()),
-                EnableVercelGateway: true);
+                    new DebugVercelQuotaClient(),
+                    new DebugVercelCreditsClient(),
+                    resolvedClock));
         }
 #endif
         var attributionConsent = new AttributionConsentStore(
             GetAttributionConsentPath(localFolderPath),
             resolvedClock);
         IOpaqueKeyDeriver? attributionKeys = new WindowsAttributionSecretStore().TryCreateDeriver();
+        // Opt-in providers are always composed: each one reads its saved key first and makes
+        // no network call without one, so saving a key in the provider list is the opt-in.
         providerOptions = (providerOptions ?? new WindowsProviderCompositionOptions()) with
         {
+            EnableOptInProviders = true,
             AttributionConsent = attributionConsent,
             AttributionKeys = attributionKeys,
         };
@@ -99,7 +110,7 @@ public static class AppComposition
         WindowsProviderComposition providers = WindowsProviderCatalog.CreateComposition(
             localFolderPath,
             resolvedClock,
-            vercelHttpClient: null,
+            ApiHttpClient.Value,
             providerOptions);
         var attributionAliases = new AttributionAliasStore(
             GetAttributionAliasPath(localFolderPath),
@@ -249,7 +260,8 @@ public static class AppComposition
                     }
                 }
             },
-            new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(localFolderPath)));
+            new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(localFolderPath)),
+            credentialChanged: providers.ResetProviderCacheAsync);
     }
 
     private static UpdateOptionsViewModel CreateUpdateOptions(string localFolderPath, TimeProvider clock)
@@ -408,30 +420,5 @@ public static class AppComposition
             Path.GetFullPath(localFolderPath),
             "history",
             QuotaResetHistoryStore.DefaultFileName);
-    }
-
-    public static VercelGatewayRefreshCoordinator CreateVercelCoordinator(
-        string cacheDirectory,
-        TimeProvider clock,
-        IVercelGatewayCredentialStore? credentialStore = null,
-        IVercelGatewayReportClient? reportClient = null,
-        IVercelGatewayQuotaClient? quotaClient = null)
-    {
-        if (credentialStore is not null
-            && reportClient is not null
-            && quotaClient is not null)
-        {
-            return new VercelGatewayRefreshCoordinator(
-                new SnapshotStore(Path.Combine(cacheDirectory, SnapshotStore.DefaultFileName), clock),
-                credentialStore,
-                reportClient,
-                quotaClient,
-                clock);
-        }
-
-        return new VercelGatewayRefreshCoordinator(
-            cacheDirectory,
-            clock,
-            VercelHttpClient.Value);
     }
 }

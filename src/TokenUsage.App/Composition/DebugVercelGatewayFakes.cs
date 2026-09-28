@@ -4,10 +4,14 @@ using TokenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace TokenUsage.App.Composition;
 
+/// <summary>
+/// Starts with a placeholder key so the --test-vercel-fake mode shows the Vercel card without a
+/// real key. The value never leaves this process.
+/// </summary>
 internal sealed class DebugVercelCredentialStore : IVercelGatewayCredentialStore
 {
-    private string? _apiKey;
-    private string? _keyId;
+    private string? _apiKey = "debug-vercel-placeholder";
+    private string? _keyId = "debug-key";
 
     public Task<bool> IsConfiguredAsync(CancellationToken cancellationToken = default)
     {
@@ -100,6 +104,18 @@ internal sealed class DebugVercelQuotaClient : IVercelGatewayQuotaClient
                     6.5m,
                     VercelGatewayQuotaRefreshPeriod.Monthly,
                     Active: true)));
+    }
+}
+
+internal sealed class DebugVercelCreditsClient : IVercelGatewayCreditsClient
+{
+    public Task<VercelGatewayCredits> GetCreditsAsync(
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(new VercelGatewayCredits(Balance: 95.5m, TotalUsed: 4.5m));
     }
 }
 #endif

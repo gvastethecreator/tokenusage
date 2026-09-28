@@ -27,6 +27,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
 
     private readonly Func<string, string> _getString;
     private readonly IManualProviderCredentialStore? _manualCredentials;
+    private readonly Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? _credentialChanged;
     private readonly HashSet<string> _configuredManualIds = new(StringComparer.Ordinal);
     private Func<Task>? _refresh;
     private ProviderOutcome? _codexOutcome;
@@ -36,12 +37,18 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     private ProviderSnapshot? _claudeQuota;
     private bool _hasSnapshot;
 
+    /// <param name="credentialChanged">
+    /// Runs after a key is saved or removed. It drops the provider's cached reading, which
+    /// belongs to the previous key, and reports whether the provider has a live source.
+    /// </param>
     public ProviderStatusSurfaceViewModel(
         Func<string, string> getString,
-        IManualProviderCredentialStore? manualCredentials = null)
+        IManualProviderCredentialStore? manualCredentials = null,
+        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null)
     {
         _getString = getString ?? throw new ArgumentNullException(nameof(getString));
         _manualCredentials = manualCredentials;
+        _credentialChanged = credentialChanged;
     }
 
     [ObservableProperty]
@@ -177,7 +184,11 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             Project();
         }
 
-        return new(true, _getString("ProviderCredentialSaved"));
+        return new(true, await ApplyCredentialChangeAsync(
+                providerId,
+                "ProviderCredentialSaved",
+                cancellationToken)
+            .ConfigureAwait(true));
     }
 
     public async Task<ManualCredentialOperationResult> DeleteManualCredentialAsync(
@@ -215,7 +226,52 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             Project();
         }
 
-        return new(true, _getString("ProviderCredentialRemoved"));
+        return new(true, await ApplyCredentialChangeAsync(
+                providerId,
+                "ProviderCredentialRemoved",
+                cancellationToken)
+            .ConfigureAwait(true));
+    }
+
+    /// <summary>
+    /// A cached reading belongs to the key that produced it. After a key change the cache is
+    /// dropped first, then a live refresh reads the provider again with the current key (or
+    /// finds none). Returns the status text for the change.
+    /// </summary>
+    private async Task<string> ApplyCredentialChangeAsync(
+        string providerId,
+        string successKey,
+        CancellationToken cancellationToken)
+    {
+        if (_credentialChanged is null)
+        {
+            return _getString(successKey);
+        }
+
+        ManualCredentialChangeResult result;
+        try
+        {
+            result = await _credentialChanged(providerId, cancellationToken).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException)
+        {
+            result = ManualCredentialChangeResult.CacheCleanupFailed;
+        }
+
+        if (result != ManualCredentialChangeResult.NoLiveSource)
+        {
+            _ = RefreshAsync();
+        }
+
+        return _getString(result == ManualCredentialChangeResult.CacheCleanupFailed
+            ? "ProviderCredentialCacheCleanupFailed"
+            : successKey);
     }
 
     public void Update(
@@ -503,7 +559,9 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             module.DisplayName,
             rootState,
             _getString(hasSavedCredential
-                ? "ProviderStatusRecoveryKeySaved"
+                ? isOptional
+                    ? "ProviderStatusRecoveryKeySavedLive"
+                    : "ProviderStatusRecoveryKeySaved"
                 : module.Stage switch
                 {
                     ProviderModuleStage.Active => "ProviderStatusRecoveryRefresh",

@@ -2,6 +2,10 @@ namespace TokenUsage.Providers.OpenRouter;
 
 public interface IOpenRouterClient
 {
+    /// <summary>
+    /// Account credits. OpenRouter answers this only for a management key, so the key-only
+    /// runtime does not call it.
+    /// </summary>
     Task<OpenRouterCredits> GetCreditsAsync(
         string managementKey,
         CancellationToken cancellationToken = default);
@@ -9,6 +13,14 @@ public interface IOpenRouterClient
     Task<OpenRouterKeyUsage> GetKeyUsageAsync(
         string apiKey,
         CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Reads the OpenRouter key the user saved in TokenUsage. Null means no key is saved.
+/// </summary>
+public interface IOpenRouterKeySource
+{
+    Task<string?> ReadApiKeyAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed record OpenRouterCredits(
@@ -25,11 +37,17 @@ public sealed record OpenRouterKeyUsage(
     OpenRouterLimitReset? LimitReset,
     bool IsFreeTier);
 
+/// <summary>
+/// How the key limit resets. Null on <see cref="OpenRouterKeyUsage.LimitReset"/> means the
+/// limit never resets. <see cref="Unknown"/> is a value OpenRouter added after this contract:
+/// the limit is still shown, without a reset time.
+/// </summary>
 public enum OpenRouterLimitReset
 {
     Daily,
     Weekly,
     Monthly,
+    Unknown,
 }
 
 public enum OpenRouterClientErrorKind

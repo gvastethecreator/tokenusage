@@ -634,12 +634,12 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2">
                             <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SelectedProviderCostText, Mode=OneWay}" />
-                            <TextBlock Text="{x:Bind ViewModel.CompactPeriodText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.SelectedProviderPeriodText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                         <Border Grid.Column="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
                         <StackPanel Grid.Column="2" Spacing="2">
                             <TextBlock FontFamily="Consolas" FontSize="24" Text="{x:Bind ViewModel.SelectedProviderTokensText, Mode=OneWay}" />
-                            <TextBlock Text="{x:Bind ViewModel.CompactPeriodText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.SelectedProviderPeriodText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </Grid>
 

@@ -23,7 +23,7 @@ public sealed class VercelGatewayReportClientTests
         HttpRequestMessage request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Get, request.Method);
         Assert.Equal(
-            "https://ai-gateway.vercel.sh/v1/report?start_date=2026-07-01&end_date=2026-07-31&group_by=day&date_part=day",
+            "https://ai-gateway.vercel.sh/v1/report?start_date=2026-07-01&end_date=2026-07-31&group_by=day&date_part=day&api_key_id=self",
             request.RequestUri?.AbsoluteUri);
         Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
         Assert.Equal(Secret, request.Headers.Authorization?.Parameter);

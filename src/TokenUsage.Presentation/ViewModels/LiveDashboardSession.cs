@@ -72,6 +72,14 @@ public sealed class LiveDashboardSession : IDisposable
     public IReadOnlyDictionary<string, long> ClaudeWindowUsedTokens { get; private set; } =
         new Dictionary<string, long>();
 
+    /// <summary>
+    /// The last reading of each provider read through a saved key (Vercel AI Gateway,
+    /// OpenRouter), keyed by provider ID. A provider without a key, or whose key was
+    /// rejected, has no entry.
+    /// </summary>
+    public IReadOnlyDictionary<string, ProviderSnapshot> ApiProviderSnapshots { get; private set; } =
+        new Dictionary<string, ProviderSnapshot>(StringComparer.Ordinal);
+
     public LocalUsageCard? RawLocalUsage { get; private set; }
 
     public IReadOnlyList<DailyUsageRollup> LocalUsageRollups { get; private set; } = [];
@@ -301,15 +309,22 @@ public sealed class LiveDashboardSession : IDisposable
                         : SampleDataState.CacheRefreshing;
                 }
 
+                foreach (ProviderSnapshot cached in cache.Snapshots.Where(candidate =>
+                    ApiProviderCardParts.IsApiProvider(candidate.ProviderId.Value)))
+                {
+                    SetApiProviderSnapshot(cached.ProviderId.Value, cached);
+                }
+
                 PublishChanged(version);
                 break;
 
-            case CacheFirstEvent.ProviderCompleted provider when string.Equals(
-                provider.ProviderId.Value,
-                "vercel-ai-gateway",
-                StringComparison.Ordinal):
-                HasPublished = true;
-                PublishChanged(version);
+            case CacheFirstEvent.ProviderCompleted provider
+                when ApiProviderCardParts.IsApiProvider(provider.ProviderId.Value):
+                if (ApplyApiProviderOutcome(provider.ProviderId.Value, provider.Outcome))
+                {
+                    PublishChanged(version);
+                }
+
                 break;
 
             case CacheFirstEvent.ProviderCompleted provider:
@@ -402,6 +417,15 @@ public sealed class LiveDashboardSession : IDisposable
         }
 
         AppSessionState state = _host.Current;
+        bool apiChanged = false;
+        foreach (string providerId in ApiProviderCardParts.ProviderIds)
+        {
+            if (state.Outcomes.TryGetValue(providerId, out ProviderOutcome? apiOutcome))
+            {
+                apiChanged |= ApplyApiProviderOutcome(providerId, apiOutcome);
+            }
+        }
+
         state.Outcomes.TryGetValue("codex", out ProviderOutcome? outcome);
         ProviderSnapshot? snapshot = state.Snapshots.FirstOrDefault(candidate =>
             string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
@@ -412,6 +436,11 @@ public sealed class LiveDashboardSession : IDisposable
         bool outcomeChanged = outcome is not null && !ReferenceEquals(outcome, LastCodexOutcome);
         if (!snapshotChanged && !outcomeChanged)
         {
+            if (apiChanged)
+            {
+                PublishChanged(version);
+            }
+
             return;
         }
 
@@ -512,6 +541,54 @@ public sealed class LiveDashboardSession : IDisposable
                 onChanged(this);
             }
         }
+    }
+
+    /// <summary>
+    /// Keeps the reading of a provider read through a saved key. A missing or rejected key
+    /// (not configured) or an unsupported account drops the reading without marking the
+    /// dashboard as failed: these providers are optional. A failed refresh keeps the last good
+    /// reading. Returns true when the published readings changed.
+    /// </summary>
+    private bool ApplyApiProviderOutcome(string providerId, ProviderOutcome outcome)
+    {
+        ProviderSnapshot? snapshot = outcome switch
+        {
+            ProviderOutcome.Success success => success.Snapshot,
+            ProviderOutcome.PartialSuccess partial => partial.Snapshot,
+            ProviderOutcome.Throttled throttled => throttled.LastGood
+                ?? ApiProviderSnapshots.GetValueOrDefault(providerId),
+            ProviderOutcome.TransientFailure failure => failure.LastGood
+                ?? ApiProviderSnapshots.GetValueOrDefault(providerId),
+            ProviderOutcome.ContractFailure failure => failure.LastGood
+                ?? ApiProviderSnapshots.GetValueOrDefault(providerId),
+            _ => null,
+        };
+        return SetApiProviderSnapshot(providerId, snapshot);
+    }
+
+    private bool SetApiProviderSnapshot(string providerId, ProviderSnapshot? snapshot)
+    {
+        ProviderSnapshot? current = ApiProviderSnapshots.GetValueOrDefault(providerId);
+        if (ReferenceEquals(current, snapshot))
+        {
+            return false;
+        }
+
+        var next = new Dictionary<string, ProviderSnapshot>(
+            ApiProviderSnapshots,
+            StringComparer.Ordinal);
+        if (snapshot is null)
+        {
+            next.Remove(providerId);
+        }
+        else
+        {
+            next[providerId] = snapshot;
+            HasPublished = true;
+        }
+
+        ApiProviderSnapshots = next;
+        return true;
     }
 
     private ProviderSnapshot? ApplyCodexCompleted(CacheFirstEvent.ProviderCompleted provider)

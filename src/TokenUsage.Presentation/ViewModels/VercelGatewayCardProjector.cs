@@ -1,42 +1,39 @@
 using System.Globalization;
 using TokenUsage.App.ViewModels.Dashboard;
-using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Providers;
 
 namespace TokenUsage.App.ViewModels;
 
+/// <summary>
+/// Vercel AI Gateway card. Spend and tokens come from Custom Reporting scoped to the saved key
+/// (<c>api_key_id=self</c>) over the last 30 UTC days. The credit balance is the team's.
+/// </summary>
 public static class VercelGatewayCardProjector
 {
     private const string ProviderId = "vercel-ai-gateway";
+    private const string BudgetMetricId = "quota.gateway.key.budget";
+    private const string CreditsBalanceMetricId = "credits.gateway.balance";
+    private const string CreditsTotalUsedMetricId = "credits.gateway.total-used";
+    private const string ReportCapabilityId = "report.gateway.key";
+    private const string TotalSpendMetricId = "spend.gateway.total.30d";
 
     public static ProviderCard Create(
         ProviderSnapshot snapshot,
         Func<string, string> getString)
     {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        ArgumentNullException.ThrowIfNull(getString);
-        if (!string.Equals(snapshot.ProviderId.Value, ProviderId, StringComparison.Ordinal))
-        {
-            throw new ArgumentException(
-                "The Vercel AI Gateway card requires its provider ID.",
-                nameof(snapshot));
-        }
+        RequireVercel(snapshot, getString);
 
-        IReadOnlyDictionary<string, decimal> metrics = snapshot.Metrics
-            .OfType<ScalarMetricSnapshot>()
-            .ToDictionary(metric => metric.Id.Value, metric => metric.Value, StringComparer.Ordinal);
+        IReadOnlyDictionary<string, decimal> metrics = ApiProviderCardParts.ScalarMetrics(snapshot);
         ProgressMetricSnapshot? quota = snapshot.Metrics
             .OfType<ProgressMetricSnapshot>()
             .SingleOrDefault(metric => string.Equals(
                 metric.Id.Value,
-                "quota.gateway.key.budget",
+                BudgetMetricId,
                 StringComparison.Ordinal));
-        ProviderCapabilityState? quotaState = snapshot.Capabilities
-            .FirstOrDefault(capability => string.Equals(
-                capability.Id.Value,
-                "quota.gateway.key.budget",
-                StringComparison.Ordinal))
-            ?.State;
+        ProviderCapabilityState? quotaState = CapabilityState(snapshot, BudgetMetricId);
+        ProviderCapabilityState? creditsState = CapabilityState(snapshot, CreditsBalanceMetricId);
+        bool hasReport = CapabilityState(snapshot, ReportCapabilityId)
+            != ProviderCapabilityState.Degraded;
         string missing = getString("CodexUsageMissing");
         string source = getString("VercelSourceValue");
         string observed = string.Format(
@@ -50,18 +47,29 @@ public static class VercelGatewayCardProjector
             snapshot.DisplayName,
             getString("VercelExperimental"),
             getString("VercelCapabilityReport"),
-            snapshot.Coverage == CoverageKind.Partial
-                ? getString("VercelPartialReportNotice")
-                : quotaState == ProviderCapabilityState.Degraded
-                    ? getString("VercelQuotaDegradedNotice")
-                    : getString("VercelReportLagNotice"),
+            getString(!hasReport
+                ? "VercelReportPlanNotice"
+                : snapshot.Coverage == CoverageKind.Partial
+                    ? "VercelPartialReportNotice"
+                    : quotaState == ProviderCapabilityState.Degraded
+                        ? "VercelQuotaDegradedNotice"
+                        : creditsState == ProviderCapabilityState.Degraded
+                            ? "VercelCreditsDegradedNotice"
+                            : "VercelReportLagNotice"),
             Windows: CreateQuotaWindows(quota, quotaState, getString),
             Metrics:
             [
                 CurrencyMetric(
                     "VercelMetricTotalSpend",
                     "VercelGateway.TotalSpend30Days",
-                    "spend.gateway.total.30d",
+                    TotalSpendMetricId,
+                    metrics,
+                    missing,
+                    getString),
+                CurrencyMetric(
+                    "VercelMetricCreditBalance",
+                    "VercelGateway.CreditBalance",
+                    CreditsBalanceMetricId,
                     metrics,
                     missing,
                     getString),
@@ -113,30 +121,18 @@ public static class VercelGatewayCardProjector
             DetailsAutomationName: string.Format(
                 CultureInfo.CurrentCulture,
                 getString("ProviderDetailsAutomationNameFormat"),
-                snapshot.DisplayName));
+                snapshot.DisplayName),
+            CreditSummary: CreateCreditSummary(metrics, getString));
     }
 
     public static SpendSlice? CreateSpendSlice(
         ProviderSnapshot snapshot,
         Func<string, string> getString)
     {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        ArgumentNullException.ThrowIfNull(getString);
-        if (!string.Equals(snapshot.ProviderId.Value, ProviderId, StringComparison.Ordinal))
-        {
-            throw new ArgumentException(
-                "The Vercel AI Gateway spend slice requires its provider ID.",
-                nameof(snapshot));
-        }
-
-        decimal? total = snapshot.Metrics
-            .OfType<ScalarMetricSnapshot>()
-            .FirstOrDefault(metric => string.Equals(
-                metric.Id.Value,
-                "spend.gateway.total.30d",
-                StringComparison.Ordinal))
-            ?.Value;
-        if (total is null or <= 0m)
+        RequireVercel(snapshot, getString);
+        if (!ApiProviderCardParts.ScalarMetrics(snapshot)
+                .TryGetValue(TotalSpendMetricId, out decimal total)
+            || total <= 0m)
         {
             return null;
         }
@@ -144,15 +140,77 @@ public static class VercelGatewayCardProjector
         return new SpendSlice(
             ProviderId,
             snapshot.DisplayName,
-            decimal.ToDouble(total.Value),
+            decimal.ToDouble(total),
             string.Format(
                 CultureInfo.CurrentCulture,
                 getString("LocalUsageUsdFormat"),
-                total.Value),
+                total),
             CompactAmountText: string.Format(
                 CultureInfo.CurrentCulture,
                 getString("LocalUsageUsdCompactFormat"),
-                total.Value));
+                total));
+    }
+
+    /// <summary>
+    /// The panel row: the key's spend and input plus output tokens over the last 30 days,
+    /// the same period as the local rows. Without a report both stay unknown.
+    /// </summary>
+    public static DashboardProviderSummary CreateSummary(
+        ProviderSnapshot snapshot,
+        Func<string, string> getString)
+    {
+        RequireVercel(snapshot, getString);
+        IReadOnlyDictionary<string, decimal> metrics = ApiProviderCardParts.ScalarMetrics(snapshot);
+        decimal? spend = metrics.TryGetValue(TotalSpendMetricId, out decimal total)
+            ? total
+            : null;
+        long? tokens = metrics.TryGetValue("usage.tokens.input.30d", out decimal input)
+            && metrics.TryGetValue("usage.tokens.output.30d", out decimal output)
+                ? decimal.ToInt64(input + output)
+                : null;
+        return ApiProviderCardParts.CreateSummary(ProviderId, spend, tokens, getString);
+    }
+
+    private static void RequireVercel(ProviderSnapshot snapshot, Func<string, string> getString)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(getString);
+        if (!string.Equals(snapshot.ProviderId.Value, ProviderId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "The Vercel AI Gateway card requires its provider ID.",
+                nameof(snapshot));
+        }
+    }
+
+    private static ProviderCapabilityState? CapabilityState(
+        ProviderSnapshot snapshot,
+        string capabilityId) =>
+        snapshot.Capabilities
+            .FirstOrDefault(capability => string.Equals(
+                capability.Id.Value,
+                capabilityId,
+                StringComparison.Ordinal))
+            ?.State;
+
+    private static ProviderCreditSummary? CreateCreditSummary(
+        IReadOnlyDictionary<string, decimal> metrics,
+        Func<string, string> getString)
+    {
+        if (!metrics.TryGetValue(CreditsBalanceMetricId, out decimal balance))
+        {
+            return null;
+        }
+
+        string detail = metrics.TryGetValue(CreditsTotalUsedMetricId, out decimal totalUsed)
+            ? ApiProviderCardParts.Format(getString, "VercelCreditSummaryDetailFormat", totalUsed)
+            : getString("VercelCreditSummaryDetail");
+        return new ProviderCreditSummary(
+            getString("VercelCreditSummaryTitle"),
+            UsageValueFormatter.Usd(balance, getString),
+            detail,
+            HasAvailableCredits: balance > 0m,
+            IsExpired: false);
     }
 
     private static IReadOnlyList<QuotaWindow> CreateQuotaWindows(
@@ -167,25 +225,10 @@ public static class VercelGatewayCardProjector
             return [];
         }
 
-        string title = getString("VercelQuotaTitle");
-        string remaining = FormatRemaining(quota, getString);
-        string reset = ResetText(quota.ResetCadence, getString);
-        return
-        [
-            new QuotaWindow(
-                title,
-                (double)quota.RemainingPercent,
-                remaining,
-                reset,
-                string.Format(
-                    CultureInfo.CurrentCulture,
-                    getString("VercelQuotaAutomationFormat"),
-                    title,
-                    remaining,
-                    reset),
-                IsNearLimit: quota.RemainingPercent <= 20m,
-                LayoutMetricId: "quota.gateway.key.budget"),
-        ];
+        return [ApiProviderCardParts.CreateSpendLimitWindow(
+            getString("VercelQuotaTitle"),
+            quota,
+            getString)];
     }
 
     private static string QuotaStatus(
@@ -196,7 +239,11 @@ public static class VercelGatewayCardProjector
             ProviderCapabilityState.Available when quota?.IsActive == false =>
                 getString("VercelQuotaStatusInactive"),
             ProviderCapabilityState.Available when quota is not null =>
-                FormatRemaining(quota, getString),
+                ApiProviderCardParts.Format(
+                    getString,
+                    "ApiLimitRemainingFormat",
+                    Math.Max(0m, quota.Limit - quota.Used),
+                    quota.Limit),
             ProviderCapabilityState.NotRequested =>
                 getString("VercelQuotaStatusKeyIdMissing"),
             ProviderCapabilityState.NotConfigured =>
@@ -205,25 +252,6 @@ public static class VercelGatewayCardProjector
                 getString("VercelQuotaStatusDegraded"),
             _ => getString("ProviderStatusUnavailable"),
         };
-
-    private static string FormatRemaining(
-        ProgressMetricSnapshot quota,
-        Func<string, string> getString) => string.Format(
-        CultureInfo.CurrentCulture,
-        getString("VercelQuotaRemainingFormat"),
-        Math.Max(0m, quota.Limit - quota.Used),
-        quota.Limit);
-
-    private static string ResetText(
-        ProgressResetCadence? cadence,
-        Func<string, string> getString) => getString(cadence switch
-        {
-            ProgressResetCadence.Daily => "VercelQuotaResetDaily",
-            ProgressResetCadence.Weekly => "VercelQuotaResetWeekly",
-            ProgressResetCadence.Monthly => "VercelQuotaResetMonthly",
-            ProgressResetCadence.Never => "VercelQuotaResetNever",
-            _ => "ProviderStatusUnavailable",
-        });
 
     private static DashboardMetric CurrencyMetric(
         string labelKey,

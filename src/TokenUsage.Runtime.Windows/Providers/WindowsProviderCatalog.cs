@@ -1,4 +1,5 @@
 using TokenUsage.Core.Cache;
+using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Amp;
@@ -15,6 +16,7 @@ using TokenUsage.Providers.Mux;
 using TokenUsage.Providers.OpenCode;
 using TokenUsage.Providers.Zcode;
 using TokenUsage.Runtime.Windows.Codex;
+using TokenUsage.Runtime.Windows.OpenRouter;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace TokenUsage.Runtime.Windows.Providers;
@@ -100,31 +102,84 @@ public sealed class WindowsProviderCatalogEntry
     }
 }
 
+/// <summary>
+/// <see cref="EnableOptInProviders"/> composes every opt-in provider (Vercel AI Gateway and
+/// OpenRouter). An opt-in runtime reads its saved key first and returns "not configured"
+/// without a network call when there is none, so saving a key is the user's opt-in.
+/// </summary>
 public sealed record WindowsProviderCompositionOptions(
     string? TimeZoneId = null,
     ICodexQuotaClientFactory? CodexClientFactory = null,
     VercelGatewayRefreshCoordinator? VercelCoordinator = null,
-    bool EnableVercelGateway = false,
+    bool EnableOptInProviders = false,
     IAttributionConsentSource? AttributionConsent = null,
     IOpaqueKeyDeriver? AttributionKeys = null);
 
 public sealed class WindowsProviderComposition
 {
+    private readonly IReadOnlyDictionary<string, ProviderRefreshRegistration> _manualKeyRegistrations;
+
     internal WindowsProviderComposition(
         ProviderRefreshHost refreshHost,
         IReadOnlyList<IUsageEventSource> localUsageSources,
-        VercelGatewayRefreshCoordinator? vercelCoordinator)
+        IReadOnlyDictionary<string, ProviderRefreshRegistration> manualKeyRegistrations)
     {
         RefreshHost = refreshHost;
         LocalUsageSources = localUsageSources;
-        VercelCoordinator = vercelCoordinator;
+        _manualKeyRegistrations = manualKeyRegistrations;
     }
 
     public ProviderRefreshHost RefreshHost { get; }
 
     public IReadOnlyList<IUsageEventSource> LocalUsageSources { get; }
 
-    public VercelGatewayRefreshCoordinator? VercelCoordinator { get; }
+    /// <summary>
+    /// Removes the cached reading of a provider whose saved key just changed or was removed.
+    /// It runs under the provider's operation gate, so a refresh that read the old key either
+    /// finished before the removal or starts after it with the new key.
+    /// </summary>
+    public async Task<ManualCredentialChangeResult> ResetProviderCacheAsync(
+        string providerId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
+        if (!_manualKeyRegistrations.TryGetValue(
+                providerId,
+                out ProviderRefreshRegistration? registration))
+        {
+            return ManualCredentialChangeResult.NoLiveSource;
+        }
+
+        IAsyncDisposable? lease = registration.OperationGate is null
+            ? null
+            : await registration.OperationGate.EnterAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            SnapshotCacheRemoveResult result = await registration.Store
+                .RemoveProviderAsync(new ProviderId(providerId), CancellationToken.None)
+                .ConfigureAwait(false);
+            // An unreadable cache is quarantined, so the old reading is gone either way.
+            return result is SnapshotCacheRemoveResult.Removed
+                or SnapshotCacheRemoveResult.Missing
+                or SnapshotCacheRemoveResult.Unreadable
+                ? ManualCredentialChangeResult.CacheCleared
+                : ManualCredentialChangeResult.CacheCleanupFailed;
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or TimeoutException
+            or InvalidOperationException)
+        {
+            return ManualCredentialChangeResult.CacheCleanupFailed;
+        }
+        finally
+        {
+            if (lease is not null)
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+    }
 }
 
 public static class WindowsProviderCatalog
@@ -257,10 +312,11 @@ public static class WindowsProviderCatalog
                 dataCheckId: null),
             new(
                 ProviderModuleCatalog.Get("openrouter"),
-                cacheDirectoryName: null,
+                cacheDirectoryName: "openrouter",
                 localUsageAgentId: null,
                 detectionCheckId: null,
-                dataCheckId: null),
+                dataCheckId: "openrouter-cache",
+                compose: CreateOpenRouterBinding),
             new(
                 ProviderModuleCatalog.Get("zai"),
                 cacheDirectoryName: null,
@@ -306,19 +362,17 @@ public static class WindowsProviderCatalog
     public static WindowsProviderComposition CreateComposition(
         string dataDirectory,
         TimeProvider clock,
-        HttpClient? vercelHttpClient = null,
+        HttpClient? apiHttpClient = null,
         WindowsProviderCompositionOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         ArgumentNullException.ThrowIfNull(clock);
         options ??= new WindowsProviderCompositionOptions();
-        if (options.EnableVercelGateway
-            && vercelHttpClient is null
-            && options.VercelCoordinator is null)
+        if (options.EnableOptInProviders && apiHttpClient is null)
         {
             throw new ArgumentNullException(
-                nameof(vercelHttpClient),
-                "Vercel AI Gateway needs an HTTP client when it is enabled.");
+                nameof(apiHttpClient),
+                "Opt-in providers need an HTTP client when they are enabled.");
         }
 
         var context = new CompositionContext(
@@ -326,31 +380,35 @@ public static class WindowsProviderCatalog
             options.TimeZoneId ?? TimeZoneInfo.Local.Id,
             clock,
             options.CodexClientFactory ?? new CodexAppServerQuotaClientFactory(clock),
-            vercelHttpClient,
+            apiHttpClient,
             options.VercelCoordinator,
             options.AttributionConsent,
             options.AttributionKeys);
-        ProviderBinding[] bindings = Catalog
+        (WindowsProviderCatalogEntry Entry, ProviderBinding Binding)[] bindings = Catalog
             .Where(entry => entry.Stage == ProviderModuleStage.Active
-                || options.EnableVercelGateway && entry.Id.Value == "vercel-ai-gateway")
-            .Select(entry => entry.Compose(context))
+                || options.EnableOptInProviders && entry.Stage == ProviderModuleStage.OptIn)
+            .Select(entry => (entry, entry.Compose(context)))
             .ToArray();
         ProviderRefreshRegistration[] registrations = bindings
-            .Where(binding => binding.RefreshRegistration is not null)
-            .Select(binding => binding.RefreshRegistration!)
+            .Where(item => item.Binding.RefreshRegistration is not null)
+            .Select(item => item.Binding.RefreshRegistration!)
             .ToArray();
         IUsageEventSource[] usageSources = bindings
-            .Where(binding => binding.LocalUsageSource is not null)
-            .Select(binding => binding.LocalUsageSource!)
+            .Where(item => item.Binding.LocalUsageSource is not null)
+            .Select(item => item.Binding.LocalUsageSource!)
             .ToArray();
-        VercelGatewayRefreshCoordinator? vercelCoordinator = bindings
-            .Select(binding => binding.VercelCoordinator)
-            .SingleOrDefault(coordinator => coordinator is not null);
+        Dictionary<string, ProviderRefreshRegistration> manualKeyRegistrations = bindings
+            .Where(item => item.Entry.Module.AcceptsManualCredential
+                && item.Binding.RefreshRegistration is not null)
+            .ToDictionary(
+                item => item.Entry.Id.Value,
+                item => item.Binding.RefreshRegistration!,
+                StringComparer.Ordinal);
 
         return new WindowsProviderComposition(
             new ProviderRefreshHost(registrations, clock),
             Array.AsReadOnly(usageSources),
-            vercelCoordinator);
+            manualKeyRegistrations.AsReadOnly());
     }
 
     private static ProviderBinding CreateVercelBinding(CompositionContext context)
@@ -359,13 +417,16 @@ public static class WindowsProviderCatalog
             ?? new VercelGatewayRefreshCoordinator(
                 context.CacheDirectory("vercel-ai-gateway"),
                 context.Clock,
-                context.VercelHttpClient
-                    ?? throw new InvalidOperationException(
-                        "Vercel AI Gateway is enabled without an HTTP client."));
-        return new ProviderBinding(
-            RefreshRegistration: coordinator.CreateRegistration(),
-            VercelCoordinator: coordinator);
+                context.RequireApiHttpClient());
+        return new ProviderBinding(RefreshRegistration: coordinator.CreateRegistration());
     }
+
+    private static ProviderBinding CreateOpenRouterBinding(CompositionContext context) =>
+        new(RefreshRegistration: new OpenRouterRefreshCoordinator(
+                context.CacheDirectory("openrouter"),
+                context.Clock,
+                context.RequireApiHttpClient())
+            .CreateRegistration());
 }
 
 internal sealed record CompositionContext(
@@ -373,7 +434,7 @@ internal sealed record CompositionContext(
     string TimeZoneId,
     TimeProvider Clock,
     ICodexQuotaClientFactory CodexClientFactory,
-    HttpClient? VercelHttpClient,
+    HttpClient? ApiHttpClient,
     VercelGatewayRefreshCoordinator? VercelCoordinator,
     IAttributionConsentSource? AttributionConsent = null,
     IOpaqueKeyDeriver? AttributionKeys = null)
@@ -383,9 +444,11 @@ internal sealed record CompositionContext(
         "cache",
         "providers",
         name);
+
+    public HttpClient RequireApiHttpClient() => ApiHttpClient
+        ?? throw new InvalidOperationException("An opt-in provider is enabled without an HTTP client.");
 }
 
 internal sealed record ProviderBinding(
     ProviderRefreshRegistration? RefreshRegistration = null,
-    IUsageEventSource? LocalUsageSource = null,
-    VercelGatewayRefreshCoordinator? VercelCoordinator = null);
+    IUsageEventSource? LocalUsageSource = null);

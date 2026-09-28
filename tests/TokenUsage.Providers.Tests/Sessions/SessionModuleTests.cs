@@ -273,10 +273,11 @@ public sealed class SessionModuleTests
                 capability.AutomationId == "ProviderStatus.codex.Usage").Value);
         ProviderStatusRow openrouter = surface.Providers.Single(provider =>
             provider.ProviderId == "openrouter");
-        Assert.Equal("ProviderStatusPrepared", openrouter.RootState);
+        Assert.Equal("ProviderStatusOptional", openrouter.RootState);
         Assert.True(openrouter.CanConfigure);
         Assert.False(openrouter.HasSavedCredential);
-        Assert.Equal("ProviderStatusSummaryPrepared", openrouter.CompactState);
+        Assert.Equal("ProviderStatusSummaryOptional", openrouter.CompactState);
+        Assert.Equal("ProviderStatusRecoveryOptional", openrouter.RecoveryText);
         Assert.DoesNotContain(surface.Providers, provider => provider.ProviderId == "claude");
         Assert.False(surface.Providers.Single(provider => provider.ProviderId == "zai").CanConfigure);
         Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").CanConfigure);
@@ -348,6 +349,55 @@ public sealed class SessionModuleTests
         openrouter = surface.Providers.Single(provider => provider.ProviderId == "openrouter");
         Assert.False(openrouter.HasSavedCredential);
         Assert.False(await store.IsConfiguredAsync("openrouter"));
+    }
+
+    [Fact]
+    public async Task KeyChangeOfALiveSourceClearsItsCacheThenRefreshes()
+    {
+        var store = new MemoryManualProviderCredentialStore();
+        var changed = new List<string>();
+        int refreshCalls = 0;
+        var surface = new ProviderStatusSurfaceViewModel(
+            key => key,
+            store,
+            (providerId, _) =>
+            {
+                changed.Add(providerId);
+                return Task.FromResult(providerId switch
+                {
+                    "openrouter" => ManualCredentialChangeResult.CacheCleared,
+                    "vercel-ai-gateway" => ManualCredentialChangeResult.CacheCleanupFailed,
+                    _ => ManualCredentialChangeResult.NoLiveSource,
+                });
+            });
+        surface.BindRefresh(() =>
+        {
+            refreshCalls++;
+            return Task.CompletedTask;
+        });
+
+        ManualCredentialOperationResult saved = await surface.SaveManualCredentialAsync(
+            "openrouter",
+            "secret-key",
+            secondaryValue: null);
+        ManualCredentialOperationResult removed = await surface.DeleteManualCredentialAsync("openrouter");
+        ManualCredentialOperationResult prepared = await surface.SaveManualCredentialAsync(
+            "openai",
+            "secret-key",
+            secondaryValue: null);
+        ManualCredentialOperationResult failed = await surface.SaveManualCredentialAsync(
+            "vercel-ai-gateway",
+            "secret-key",
+            secondaryValue: null);
+
+        Assert.Equal(["openrouter", "openrouter", "openai", "vercel-ai-gateway"], changed);
+        Assert.Equal("ProviderCredentialSaved", saved.StatusText);
+        Assert.Equal("ProviderCredentialRemoved", removed.StatusText);
+        Assert.Equal("ProviderCredentialSaved", prepared.StatusText);
+        Assert.True(failed.Succeeded);
+        Assert.Equal("ProviderCredentialCacheCleanupFailed", failed.StatusText);
+        // The prepared provider has no live source, so its key change does not refresh.
+        Assert.Equal(3, refreshCalls);
     }
 
     [Fact]
@@ -664,6 +714,129 @@ public sealed class SessionModuleTests
         Assert.True(codexProvider.SawForcedRefresh);
         Assert.Equal([false, true], codexProvider.ForceRefreshRequests.Take(2));
         Assert.Equal(1, codexProvider.ForceRefreshRequests.Count(force => force));
+    }
+
+    [Fact]
+    public async Task LiveDashboardShowsApiProviderCardsWithoutAddingTheirSpendToTotals()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(
+            new DateTimeOffset(2026, 8, 9, 18, 0, 0, TimeSpan.Zero));
+        var general = new GeneralOptionsViewModel(key => key);
+        var appearance = new AppearanceSurfaceViewModel(
+            new AppearanceSession(new AppearanceSettingsStore(
+                Path.Combine(folder.Root, "appearance.json"),
+                clock)),
+            key => key);
+        await appearance.Initialization;
+        var personalization = new PersonalizationSurfaceViewModel(
+            new DashboardLayoutEditor(new DashboardLayoutStore(
+                Path.Combine(folder.Root, "layout.json"),
+                clock)),
+            key => key);
+        await personalization.Initialization;
+        var refresh = new ProviderRefreshHost(
+        [
+            new ProviderRefreshRegistration(
+                new FixedOutcomeProvider(
+                    "vercel-ai-gateway",
+                    new ProviderOutcome.Success(VercelSnapshot(clock.GetUtcNow()))),
+                new SnapshotStore(Path.Combine(folder.Root, "vercel-cache.json"), clock)),
+            new ProviderRefreshRegistration(
+                new FixedOutcomeProvider(
+                    "openrouter",
+                    new ProviderOutcome.NotConfigured("OpenRouter is not configured.")),
+                new SnapshotStore(Path.Combine(folder.Root, "openrouter-cache.json"), clock)),
+        ], clock);
+        await using var appSession = new AppSessionHost(
+            refresh,
+            new AlertHost(
+                new AlertDecisionStore(Path.Combine(folder.Root, "alert-decisions.json"), clock),
+                new AlertSettingsStore(Path.Combine(folder.Root, "alert-settings.json"), clock)),
+            clock);
+        var live = new LiveDashboardSession(
+            appSession,
+            new LocalUsageCoordinator(
+                Path.Combine(folder.Root, "usage.db"),
+                new SingleCodexUsageSource(clock),
+                clock));
+        using var surface = new DashboardSurfaceViewModel(
+            sampleSession: null,
+            live,
+            general,
+            appearance,
+            personalization,
+            new ProviderStatusSurfaceViewModel(key => key),
+            key => key,
+            synchronizationContext: null);
+
+        await surface.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Contains(surface.ActiveSample.Providers, card => card.ProviderId == "vercel-ai-gateway");
+        Assert.DoesNotContain(surface.ActiveSample.Providers, card => card.ProviderId == "openrouter");
+        DashboardProviderSummary vercel = Assert.Single(
+            surface.ProviderSummaries,
+            summary => summary.ProviderId == "vercel-ai-gateway");
+        Assert.Equal(12.5m, vercel.CostUsd);
+        Assert.DoesNotContain(surface.ProviderSummaries, summary => summary.ProviderId == "openrouter");
+        Assert.DoesNotContain(surface.GlobalSpendSlices, slice => slice.ProviderId == "vercel-ai-gateway");
+        QuotaWindow budget = Assert.Single(surface.GetProviderLimits("vercel-ai-gateway"));
+        Assert.Equal("VercelQuotaTitle", budget.Title);
+
+        surface.SelectProvider("vercel-ai-gateway");
+
+        Assert.True(surface.SelectedProviderHasLimits);
+        Assert.Equal("CompactProviderVercelCoverageHint", surface.SelectedProviderCoverageHintText);
+        Assert.Equal("CompactPeriod30Days", surface.SelectedProviderPeriodText);
+    }
+
+    private static ProviderSnapshot VercelSnapshot(DateTimeOffset now)
+    {
+        var provenance = new DataProvenance(
+            SourceKind.ManualKey,
+            MeasurementKind.ProviderReported,
+            "test-vercel/1");
+        return new ProviderSnapshot(
+            new ProviderId("vercel-ai-gateway"),
+            "Vercel AI Gateway",
+            planLabel: null,
+            now,
+            now,
+            "UTC",
+            [
+                new ScalarMetricSnapshot(new MetricId("spend.gateway.total.30d"), 12.5m, "usd", provenance),
+                new ScalarMetricSnapshot(new MetricId("usage.tokens.input.30d"), 1000m, "tokens", provenance),
+                new ScalarMetricSnapshot(new MetricId("usage.tokens.output.30d"), 250m, "tokens", provenance),
+                new ScalarMetricSnapshot(new MetricId("credits.gateway.balance"), 95.5m, "usd", provenance),
+                new ProgressMetricSnapshot(
+                    new MetricId("quota.gateway.key.budget"),
+                    3.5m,
+                    10m,
+                    new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero),
+                    provenance,
+                    "usd",
+                    ProgressResetCadence.Monthly,
+                    isActive: true),
+            ],
+            CoverageKind.Complete,
+            3,
+            [
+                new ProviderCapabilitySnapshot(
+                    new CapabilityId("quota.gateway.key.budget"),
+                    ProviderCapabilityState.Available,
+                    provenance),
+            ]);
+    }
+
+    private sealed class FixedOutcomeProvider(string providerId, ProviderOutcome outcome)
+        : IProviderRuntime
+    {
+        public ProviderDescriptor Descriptor { get; } = new(new ProviderId(providerId), providerId);
+
+        public Task<ProviderOutcome> RefreshAsync(
+            RefreshContext context,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(outcome);
     }
 
     private static AppSessionHost CreateAppSession(string root, TimeProvider clock)
