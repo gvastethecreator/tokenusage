@@ -1,15 +1,15 @@
 # Code map: tokenusage
 
-Generated: 2026-09-28T06:45:49Z | Commit: `f46cb38d3b45` | Schema: 2
-Generation: `a659de137956277a2fbe2b2e0f63c64a07530deea94f69e8ecfe608c08fe3628`
+Generated: 2026-09-28T07:23:20Z | Commit: `ecb9632b352f` | Schema: 2
+Generation: `1cc9a3579085ef1e0b580394e8e822f51008b48fab5f8e23607f326837350b0a`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
-Nodes: 577 | Edges: 4174 | Flows: 0
+Nodes: 580 | Edges: 4202 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 539 analyzed of 570 included files.
+- Analysis: **partial**; 542 analyzed of 573 included files.
 - Configuration files: 0; omitted untracked files: 0.
-- Unresolved references and analysis limits: 2257.
+- Unresolved references and analysis limits: 2289.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -34,7 +34,7 @@ Nodes: 577 | Edges: 4174 | Flows: 0
 - `src/TokenUsage.App/Composition/DebugVercelGatewayFakes.cs` | module | Repository | callers: none | callees: src/TokenUsage.Providers/VercelAiGateway/VercelGatewayCreditsContracts.cs, src/TokenUsage.Providers/VercelAiGateway/VercelGatewayProviderRuntime.cs, src/TokenUsage.Providers/VercelAiGateway/VercelGatewayQuotaContracts.cs, src/TokenUsage.Providers/VercelAiGateway/VercelGatewayReportContracts.cs | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/AnimatedProgressBar.xaml` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/AnimatedProgressBar.xaml.cs` | module | Repository | callers: none | callees: external:csharp:Microsoft, src/TokenUsage.App/Controls/MotionSettings.cs, src/TokenUsage.App/Controls/MotionSettings.cs, src/TokenUsage.Core/Usage/QuotaUsageLevel.cs | tests: 0 | entry: none
-- Showing 20 of 577 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 580 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 577 | Edges: 4174 | Flows: 0
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/MotionSettings.cs` | imports (type only)
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | calls
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | imports (type only)
-- Showing 50 of 4174 edges; JSON contains every edge and its evidence.
+- Showing 50 of 4202 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -111,8 +111,8 @@ Nodes: 577 | Edges: 4174 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +17 / -6; edges: +161 / -140.
-- Boundary changes: 0; new cycles: 4.
+- Nodes: +3 / -0; edges: +28 / -0.
+- Boundary changes: 0; new cycles: 0.
 
 ## Read next
 
