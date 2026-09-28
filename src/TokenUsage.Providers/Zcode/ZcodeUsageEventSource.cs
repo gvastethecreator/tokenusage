@@ -173,10 +173,10 @@ public sealed class ZcodeUsageEventSource :
         };
         using var connection = new SqliteConnection(builder.ToString());
         connection.Open();
-        ExecuteControl(connection, "PRAGMA busy_timeout=5000", cancellationToken);
-        ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
+        LocalUsageSqlite.ExecuteControl(connection, "PRAGMA busy_timeout=5000", cancellationToken);
+        LocalUsageSqlite.ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
 
-        HashSet<string> columns = GetColumns(connection, "model_usage", cancellationToken);
+        HashSet<string> columns = LocalUsageSqlite.GetColumns(connection, "model_usage", cancellationToken);
         if (!RequiredColumns.All(columns.Contains))
         {
             state.UnsupportedSchema = true;
@@ -237,17 +237,17 @@ public sealed class ZcodeUsageEventSource :
         if (reader.GetValue(0) is not string id
             || string.IsNullOrWhiteSpace(id)
             || id.Length > 200
-            || !TryGetInt64(reader, 1, out long startedAt))
+            || !LocalUsageSqlite.TryGetInt64(reader, 1, out long startedAt))
         {
             return false;
         }
 
         string? rawModel = reader.IsDBNull(2) ? null : reader.GetString(2);
-        long input = GetNonNegativeOrZero(reader, 3);
-        long output = GetNonNegativeOrZero(reader, 4);
-        long reasoning = GetNonNegativeOrZero(reader, 5);
-        long cacheWrite = GetNonNegativeOrZero(reader, 6);
-        long cacheRead = GetNonNegativeOrZero(reader, 7);
+        long input = LocalUsageSqlite.GetNonNegativeOrZero(reader, 3);
+        long output = LocalUsageSqlite.GetNonNegativeOrZero(reader, 4);
+        long reasoning = LocalUsageSqlite.GetNonNegativeOrZero(reader, 5);
+        long cacheWrite = LocalUsageSqlite.GetNonNegativeOrZero(reader, 6);
+        long cacheRead = LocalUsageSqlite.GetNonNegativeOrZero(reader, 7);
         if (input > MaximumPlausibleRequestTokens
             || output > MaximumPlausibleRequestTokens
             || reasoning > MaximumPlausibleRequestTokens
@@ -329,67 +329,6 @@ public sealed class ZcodeUsageEventSource :
         _clock.GetUtcNow()
             .AddDays(-UsagePeriodPolicy.ReconciliationDays)
             .ToUnixTimeMilliseconds();
-
-    private static void ExecuteControl(
-        SqliteConnection connection,
-        string text,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = text;
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        command.ExecuteNonQuery();
-    }
-
-    private static HashSet<string> GetColumns(
-        SqliteConnection connection,
-        string table,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info({table})";
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        using SqliteDataReader reader = command.ExecuteReader();
-        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        while (reader.Read())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            columns.Add(reader.GetString(1));
-        }
-
-        return columns;
-    }
-
-    private static bool TryGetInt64(SqliteDataReader reader, int ordinal, out long value)
-    {
-        value = 0;
-        if (reader.IsDBNull(ordinal))
-        {
-            return false;
-        }
-
-        object raw = reader.GetValue(ordinal);
-        return raw switch
-        {
-            long number when number >= 0 => Assign(number, out value),
-            int number when number >= 0 => Assign(number, out value),
-            string text when long.TryParse(
-                text,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out long number) && number >= 0 => Assign(number, out value),
-            _ => false,
-        };
-    }
-
-    private static bool Assign(long source, out long destination)
-    {
-        destination = source;
-        return true;
-    }
-
-    private static long GetNonNegativeOrZero(SqliteDataReader reader, int ordinal) =>
-        TryGetInt64(reader, ordinal, out long value) ? value : 0;
 
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))

@@ -169,12 +169,12 @@ public sealed class OpenCodeUsageEventSource :
             };
             using var connection = new SqliteConnection(builder.ToString());
             connection.Open();
-            ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
-            ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
-            ExecuteControl(connection, "BEGIN", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "BEGIN", cancellationToken);
 
-            HashSet<string> messageColumns = GetColumns(connection, "message", cancellationToken);
-            HashSet<string> sessionColumns = GetColumns(connection, "session", cancellationToken);
+            HashSet<string> messageColumns = LocalUsageSqlite.GetColumns(connection, "message", cancellationToken);
+            HashSet<string> sessionColumns = LocalUsageSqlite.GetColumns(connection, "session", cancellationToken);
             if (HasColumns(sessionColumns, "id", "time_updated", "model", "cost", "tokens_input", "tokens_output", "tokens_reasoning", "tokens_cache_read", "tokens_cache_write"))
             {
                 ReadAggregateRows(
@@ -188,7 +188,7 @@ public sealed class OpenCodeUsageEventSource :
             }
             else if (HasColumns(messageColumns, "id", "session_id", "time_created", "data"))
             {
-                HashSet<string> partColumns = GetColumns(connection, "part", cancellationToken);
+                HashSet<string> partColumns = LocalUsageSqlite.GetColumns(connection, "part", cancellationToken);
                 ReadMessageRows(
                     connection,
                     messages,
@@ -205,7 +205,7 @@ public sealed class OpenCodeUsageEventSource :
                 return false;
             }
 
-            ExecuteControl(connection, "COMMIT", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "COMMIT", cancellationToken);
             return true;
         }
         catch (OperationCanceledException)
@@ -217,29 +217,6 @@ public sealed class OpenCodeUsageEventSource :
             state.IsPartial = true;
             return false;
         }
-    }
-
-    private static void ExecuteControl(SqliteConnection connection, string text, CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = text;
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        command.ExecuteNonQuery();
-    }
-
-    private static HashSet<string> GetColumns(SqliteConnection connection, string table, CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info({table})";
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        using SqliteDataReader reader = command.ExecuteReader();
-        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        while (reader.Read())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            columns.Add(reader.GetString(1));
-        }
-        return columns;
     }
 
     private static bool HasColumns(HashSet<string> columns, params string[] expected) =>
