@@ -95,18 +95,24 @@ public sealed partial class UsageReportViewModel
                     + CollectionStatusText(group.Key.Status, group.Key.Issue)));
         sections.Add(new(GetString("UsageMeasurementCollection"), collectionDetails, collectionSummary));
         ExplorerCollectionSummary = GetString("UsageMeasurementStoredData");
-        ExplorerSourceStatus = GetString("UsageExplorerSourceWarningSummary");
-        HasExplorerSourceWarning = relevantCollection.Any(row =>
+        string[] incomplete = relevantCollection.Where(row =>
             row.Status != UsageSourceReadStatus.Complete
             || row.Issue is UsageSourceIssueKind.UnresolvedHistory
                 or UsageSourceIssueKind.ReadFailed
                 or UsageSourceIssueKind.PartialScan
                 or UsageSourceIssueKind.RootUnavailable
-                or UsageSourceIssueKind.AccessBlocked);
+                or UsageSourceIssueKind.AccessBlocked)
+            .Select(row => ProviderName(row.AgentId)).Distinct(StringComparer.CurrentCulture).ToArray();
+        HasExplorerSourceWarning = incomplete.Length > 0;
+        ExplorerSourceStatus = HasExplorerSourceWarning
+            ? string.Format(CultureInfo.CurrentCulture, GetString("UsageExplorerSourceWarningFormat"),
+                string.Join(", ", incomplete))
+            : GetString("UsageExplorerSourceWarningSummary");
         OnPropertyChanged(nameof(ExplorerCollectionSummary));
         OnPropertyChanged(nameof(ExplorerSourceStatus));
         OnPropertyChanged(nameof(HasExplorerSourceWarning));
         OnPropertyChanged(nameof(HasExplorerSourceOk));
+        NotifyNotices();
         if (_report.HasTimingGaps || _compareRightReport.HasTimingGaps
             || IsCompareCyclesAxis && _cycleReports.Any(entry => entry.Report.HasTimingGaps))
             Add("UsageMeasurementTiming", GetString("UsageComparisonTimingGaps"));

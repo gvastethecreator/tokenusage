@@ -86,6 +86,9 @@ public sealed class UsageReportWindow : Window, IDisposable
 
     public void ApplyRequest(UsageReportRequest request) => _viewModel.ApplyRequest(request);
 
+    /// <summary>Reads quota windows again after the main panel published new ones.</summary>
+    public void RefreshLimits() => _viewModel.RefreshLimits();
+
     private void ConfigureSize(PlatformRect workArea, uint dpi)
     {
         PlatformRect bounds = ReportWindowPlacementPolicy.Calculate(workArea, dpi);

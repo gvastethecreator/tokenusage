@@ -91,6 +91,7 @@ public sealed class UsageConfigurationOption(string? id, string name, bool selec
 
 public sealed partial class UsageReportViewModel
 {
+    private bool _isFilterPanelOpen;
     private readonly SemaphoreSlim _reportWorkGate = new(1, 1);
     private UsageReport _explorerSource = UsageReportQuery.Build([]);
     private CancellationTokenSource? _selectionCancellation;
@@ -185,6 +186,31 @@ public sealed partial class UsageReportViewModel
     public IReadOnlyList<UsageExplorerToolChip> ExplorerToolChips => ExplorerTools
         .Select(option => new UsageExplorerToolChip(option, option == _explorerTool)).ToArray();
     public bool HasActiveExplorerFilters => HasExplorerFilters;
+    public int ActiveExplorerFilterCount => !HasExplorer ? 0 : new[]
+    {
+        IsGlobalScope && _explorerTool is { IsAll: false }, _explorerHost is { IsAll: false }, _explorerModel is { IsAll: false },
+        ExplorerObservedModels.Any(option => option.IsSelected), ExplorerEfforts.Any(option => option.IsSelected),
+        ExplorerTiers.Any(option => option.IsSelected), !string.IsNullOrWhiteSpace(ModelSearch),
+    }.Count(active => active);
+    public string ActiveExplorerFilterCountText => ActiveExplorerFilterCount.ToString(CultureInfo.CurrentCulture);
+    public string FilterButtonName => ActiveExplorerFilterCount == 0 ? GetString("UsageReportFiltersButtonName")
+        : string.Format(CultureInfo.CurrentCulture, GetString("UsageReportFiltersActiveFormat"), ActiveExplorerFilterCount);
+
+    // Filters start folded away; the button in the toolbar opens them and its badge counts the
+    // ones in effect, so a filtered report never looks unfiltered.
+    public bool IsFilterPanelOpen
+    {
+        get => _isFilterPanelOpen;
+        set
+        {
+            if (_isFilterPanelOpen == value) return;
+            _isFilterPanelOpen = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsFilterPanelVisible));
+        }
+    }
+
+    public bool IsFilterPanelVisible => HasExplorer && _isFilterPanelOpen;
     public bool IsFilteringModels { get; private set; }
     public string ExplorerNotice { get; private set; } = string.Empty;
     public bool HasExplorerNotice => ExplorerNotice.Length > 0;
@@ -391,6 +417,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(ExplorerTools)); OnPropertyChanged(nameof(ExplorerHosts)); OnPropertyChanged(nameof(ExplorerModels));
         OnPropertyChanged(nameof(ExplorerTool)); OnPropertyChanged(nameof(ExplorerHost)); OnPropertyChanged(nameof(ExplorerModel));
         OnPropertyChanged(nameof(ExplorerToolChips)); OnPropertyChanged(nameof(HasActiveExplorerFilters));
+        NotifyFilterCount();
 
         static UsageExplorerOption Retain(IReadOnlyList<UsageExplorerOption> options, UsageExplorerOption? previous) =>
             previous is null ? options[0] : options.FirstOrDefault(row => row.Id == previous.Id && row.IsAll == previous.IsAll)
@@ -816,6 +843,7 @@ public sealed partial class UsageReportViewModel
     private void NotifyExplorerChanged()
     {
         OnPropertyChanged(nameof(HasExplorer)); OnPropertyChanged(nameof(CanFilterExplorer));
+        OnPropertyChanged(nameof(IsFilterPanelVisible)); NotifyFilterCount();
         OnPropertyChanged(nameof(HasExplorerReturn));
         OnPropertyChanged(nameof(HasConfigurationOptions)); OnPropertyChanged(nameof(CanLoadConfigurations));
         OnPropertyChanged(nameof(IsLoadingConfigurations));
@@ -891,6 +919,7 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HiddenExplorerFilterSummary));
         OnPropertyChanged(nameof(ExplorerToolChips));
         OnPropertyChanged(nameof(HasActiveExplorerFilters));
+        NotifyFilterCount();
         NotifyExplorerContextPath();
     }
 
@@ -953,5 +982,12 @@ public sealed partial class UsageReportViewModel
 
         OnPropertyChanged(nameof(OperationsAvailabilityText));
         OnPropertyChanged(nameof(HasOperationsAvailabilityNotice));
+    }
+
+    private void NotifyFilterCount()
+    {
+        OnPropertyChanged(nameof(ActiveExplorerFilterCount));
+        OnPropertyChanged(nameof(ActiveExplorerFilterCountText));
+        OnPropertyChanged(nameof(FilterButtonName));
     }
 }

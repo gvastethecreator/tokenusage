@@ -363,7 +363,10 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     public bool HasCoverageHint
     {
         get => _hasCoverageHint;
-        private set => SetProperty(ref _hasCoverageHint, value);
+        private set
+        {
+            if (SetProperty(ref _hasCoverageHint, value)) NotifyNotices();
+        }
     }
 
     public string StatusText
@@ -529,8 +532,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
     }
 
     public string SelectedProviderName => SelectedProvider?.Name ?? string.Empty;
-
-    public bool HasProviderLimits => IsProviderScope && ProviderLimits.Count > 0;
 
     public ProviderCreditSummary? ProviderCreditSummary
     {
@@ -1198,8 +1199,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsResetCycleWindow));
         OnPropertyChanged(nameof(HasMultipleResetCycles));
         OnPropertyChanged(nameof(ResetCycleHelpText));
-        OnPropertyChanged(nameof(HasProviderLimits));
         OnPropertyChanged(nameof(HasProviderCreditSummary));
+        RebuildLimitItems();
         OnPropertyChanged(nameof(ValueMode));
         OnPropertyChanged(nameof(IsAbsoluteValueMode));
         OnPropertyChanged(nameof(IsShareValueMode));
@@ -1274,8 +1275,8 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         ProviderCreditSummary = _selectedProvider is null
             ? null
             : _getProviderCreditSummary(_selectedProvider.ProviderId);
-        OnPropertyChanged(nameof(HasProviderLimits));
         OnPropertyChanged(nameof(HasProviderCreditSummary));
+        RebuildLimitItems();
     }
 
     private async Task LoadResetCyclesAsync(CancellationToken cancellationToken)
@@ -1583,9 +1584,19 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                 : GetString("SampleWindowSession");
         }
 
-        if (string.Equals(metricId, "quota.secondary", StringComparison.Ordinal))
+        if (metricId is "quota.secondary" or "quota.seven-day")
         {
             return GetString("SampleWindowWeekly");
+        }
+
+        if (metricId is "quota.five-hour")
+        {
+            return GetString("SampleWindowSession");
+        }
+
+        if (metricId is "quota.spend-limit")
+        {
+            return GetString("UsageReportWindowSpendLimit");
         }
 
         string identity = metricId.StartsWith("quota.", StringComparison.Ordinal)
@@ -1596,17 +1607,20 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             : identity.EndsWith(".secondary", StringComparison.Ordinal)
                 ? identity[..^".secondary".Length]
                 : identity;
-        return windowDurationMinutes is > 0m
-            ? string.Format(
-                CultureInfo.CurrentCulture,
-                GetString("CodexWindowUnnamedDurationFormat"),
-                identity,
-                FormatCycleDuration(TimeSpan.FromMinutes(
-                    decimal.ToDouble(windowDurationMinutes.Value))))
-            : string.Format(
-                CultureInfo.CurrentCulture,
-                GetString("CodexWindowUnnamedFormat"),
-                identity);
+        // "codex-bengalfox" reads as "Bengalfox" next to the Codex name; the window length says
+        // which of its limits.
+        string[] parts = identity.Split(['-', '_', '.'], StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 1 && ProviderOptions.Any(option => string.Equals(option.ProviderId, parts[0], StringComparison.OrdinalIgnoreCase)))
+            parts = parts[1..];
+        string name = string.Join(' ', parts.Select(part => char.ToUpper(part[0], CultureInfo.CurrentCulture) + part[1..]));
+        string? period = windowDurationMinutes switch
+        {
+            >= 10_080m => GetString("SampleWindowWeekly"),
+            > 0m and <= 300m => GetString("SampleWindowSession"),
+            > 0m => FormatCycleDuration(TimeSpan.FromMinutes(decimal.ToDouble(windowDurationMinutes.Value))),
+            _ => null,
+        };
+        return period is null ? name : name + " · " + period;
     }
 
     private static int ResetWindowOrder(string metricId) => metricId switch
@@ -1865,14 +1879,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
                         || _compareRightReport.Totals.UnpricedTokens > 0
                         || _compareRightReport.Totals.UnavailableCostEventCount > 0)));
         HasCoverageHint = summaryOnly || otherIncomplete;
-        CoverageHintText = string.Format(
-            CultureInfo.CurrentCulture,
-            GetString("UsageReportCoverageHintFormat"),
-            CoverageLabel(_report.Totals.Coverage),
-            FormatTokens(_report.Totals.UnpricedTokens),
-            _report.Totals.UnavailableCostEventCount.ToString(
-                "N0",
-                CultureInfo.CurrentCulture));
+        // Only name the unpriced amounts when there are some; "0 tokens in 0 events" says nothing.
+        CoverageHintTitle = CoverageLabel(_report.Totals.Coverage);
+        CoverageHintText = _report.Totals.UnpricedTokens > 0 || _report.Totals.UnavailableCostEventCount > 0
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                GetString("UsageReportCoverageHintFormat"),
+                FormatTokens(_report.Totals.UnpricedTokens),
+                _report.Totals.UnavailableCostEventCount.ToString("N0", CultureInfo.CurrentCulture))
+            : GetString(summaryOnly ? "UsageReportCoverageHintSummaryOnly" : "UsageReportCoverageHintPartial");
+        OnPropertyChanged(nameof(CoverageHintTitle));
 
         OnPropertyChanged(nameof(HeadlineLabel));
         OnPropertyChanged(nameof(HeadlineValue));

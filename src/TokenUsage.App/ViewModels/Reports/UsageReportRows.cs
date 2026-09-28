@@ -125,11 +125,19 @@ public sealed record UsageReportCompareRow(
     bool RightIsBest = false);
 
 public sealed record UsageReportResetLogRow(
-    string WhenText,
+    string DayText,
+    string TimeText,
+    string ProviderId,
     string QuotaText,
-    string ExpectedText,
-    string ClassText,
-    string EvidenceText);
+    string KindText,
+    string KindTone,
+    string EvidenceText,
+    string TimingText,
+    string TimingDetail,
+    bool IsOnSchedule)
+{
+    public string AutomationName => string.Join(", ", DayText, TimeText, QuotaText, KindText, EvidenceText, TimingText);
+}
 
 public sealed record UsageReportResetLogFilter(string Id, string Name);
 

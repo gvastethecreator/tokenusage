@@ -700,7 +700,7 @@
   <data name="UsageReportAbsoluteButton.Content" xml:space="preserve"><value>Absolute</value></data>
   <data name="UsageReportShareButton.Content" xml:space="preserve"><value>Percentage</value></data>
   <data name="UsageReportSourceButton.Content" xml:space="preserve"><value>Sources</value></data>
-  <data name="UsageReportLimitsTitle.Text" xml:space="preserve"><value>Official limits</value></data>
+  <data name="UsageReportLimitsTitle.Text" xml:space="preserve"><value>Usage limits</value></data>
   <data name="UsageReportSourceColumn.Text" xml:space="preserve"><value>Source</value></data>
   <data name="UsageReportReportedColumn.Text" xml:space="preserve"><value>Reported</value></data>
   <data name="UsageReportEstimatedColumn.Text" xml:space="preserve"><value>Estimated</value></data>
@@ -752,7 +752,7 @@
   <data name="UsageReportEstimatedCostLabel" xml:space="preserve"><value>Catalog estimated</value></data>
   <data name="UsageReportPricedTokensLabel" xml:space="preserve"><value>Priced tokens</value></data>
   <data name="UsageReportUnpricedLabel" xml:space="preserve"><value>Unpriced</value></data>
-  <data name="UsageReportCoverageHintFormat" xml:space="preserve"><value>{0}. {1} unpriced tokens in {2} events without cost.</value></data>
+  <data name="UsageReportCoverageHintFormat" xml:space="preserve"><value>{0} tokens in {1} events have no known cost, so the cost total may be low.</value></data>
   <data name="UsageReportCoverageComplete" xml:space="preserve"><value>Complete read</value></data>
   <data name="UsageReportCoveragePartial" xml:space="preserve"><value>Partial read</value></data>
   <data name="UsageReportCoverageSummaryOnly" xml:space="preserve"><value>Summary only</value></data>
@@ -1039,17 +1039,13 @@
   <data name="UsageReportResetLogExpander.Header" xml:space="preserve"><value>Recorded resets</value></data>
   <data name="UsageReportResetLogEmpty.Text" xml:space="preserve"><value>No recorded resets in this range.</value></data>
   <data name="UsageReportResetLogAllQuotas" xml:space="preserve"><value>All quotas</value></data>
-  <data name="UsageReportResetLogAllClasses" xml:space="preserve"><value>All classes</value></data>
+  <data name="UsageReportResetLogAllClasses" xml:space="preserve"><value>All types</value></data>
   <data name="UsageReportResetLogQuota.AutomationProperties.Name" xml:space="preserve"><value>Reset quota</value></data>
-  <data name="UsageReportResetLogClass.AutomationProperties.Name" xml:space="preserve"><value>Reset class</value></data>
+  <data name="UsageReportResetLogClass.AutomationProperties.Name" xml:space="preserve"><value>Reset type</value></data>
   <data name="UsageReportResetLogWhen.Text" xml:space="preserve"><value>When</value></data>
   <data name="UsageReportResetLogQuotaColumn.Text" xml:space="preserve"><value>Quota</value></data>
-  <data name="UsageReportResetLogExpected.Text" xml:space="preserve"><value>Expected</value></data>
-  <data name="UsageReportResetLogClassColumn.Text" xml:space="preserve"><value>Class</value></data>
-  <data name="UsageReportResetLogEvidence.Text" xml:space="preserve"><value>Evidence</value></data>
-  <data name="UsageReportResetEvidenceInferredBanked" xml:space="preserve"><value>Banked reset · inferred from a credit drop</value></data>
-  <data name="UsageReportResetEvidenceInferredGrant" xml:space="preserve"><value>Extra reset · no credit drop</value></data>
-  <data name="UsageReportResetEvidenceScheduled" xml:space="preserve"><value>Scheduled reset</value></data>
+  <data name="UsageReportResetLogExpected.Text" xml:space="preserve"><value>Timing</value></data>
+  <data name="UsageReportResetLogClassColumn.Text" xml:space="preserve"><value>Type</value></data>
   <data name="UsageComparisonPresetSelector.AutomationProperties.Name" xml:space="preserve"><value>Comparison period</value></data>
   <data name="UsageComparisonBaselineModel.AutomationProperties.Name" xml:space="preserve"><value>Baseline model A</value></data>
   <data name="UsageComparisonBaselineModel.PlaceholderText" xml:space="preserve"><value>Baseline model A</value></data>
@@ -1147,7 +1143,7 @@
   <data name="UsageReportResetKindSession" xml:space="preserve"><value>Scheduled session reset</value></data>
   <data name="UsageReportResetKindManual" xml:space="preserve"><value>Banked reset</value></data>
   <data name="UsageReportResetKindResetCredit" xml:space="preserve"><value>Extra reset</value></data>
-  <data name="UsageReportResetKindObserved" xml:space="preserve"><value>Unknown reset</value></data>
+  <data name="UsageReportResetKindObserved" xml:space="preserve"><value>Detected reset</value></data>
   <data name="UsageReportResetKindScheduled" xml:space="preserve"><value>Scheduled reset</value></data>
   <data name="UsageExplorerSourceWarningSummary" xml:space="preserve"><value>Some sources could not be fully updated. Totals may be incomplete or out of date.</value></data>
   <data name="UsageMeasurementCallsSummary" xml:space="preserve"><value>Request counts are not available from these records.</value></data>
@@ -1324,7 +1320,7 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageExplorerEmptyClear.Content" xml:space="preserve"><value>Clear filters</value></data>
   <data name="UsageExplorerConfigurationLoading" xml:space="preserve"><value>Loading retained configurations…</value></data>
   <data name="UsageExplorerConfigurationEmpty.Text" xml:space="preserve"><value>No observed configurations in this selection. Totals above are unchanged.</value></data>
-  <data name="UsageExplorerSourceWarning.Title" xml:space="preserve"><value>Source status needs attention</value></data>
+  <data name="UsageExplorerSourceWarningTitle.Text" xml:space="preserve"><value>Source status needs attention</value></data>
   <data name="UsageExplorerContextOverview" xml:space="preserve"><value>Overview</value></data>
   <data name="UsageExplorerContextProjects" xml:space="preserve"><value>Projects</value></data>
   <data name="UsageExplorerContextSessions" xml:space="preserve"><value>Sessions</value></data>
@@ -1451,4 +1447,27 @@ Status: {1} · Issue: {2}</value></data>
   <data name="UsageCompareRatioMoreCostFormat" xml:space="preserve"><value>{0} cost {1} more than {2}.</value></data>
   <data name="UsageCompareRatioMoreTokensFormat" xml:space="preserve"><value>{0} used {1} more tokens than {2}.</value></data>
   <data name="UsageExplorerToolChip.AutomationProperties.HelpText" xml:space="preserve"><value>Filter the report by tool</value></data>
+  <data name="UsageReportResetLogOnSchedule" xml:space="preserve"><value>On schedule</value></data>
+  <data name="UsageReportResetLogEarlyFormat" xml:space="preserve"><value>{0} early</value></data>
+  <data name="UsageReportResetLogLateFormat" xml:space="preserve"><value>{0} late</value></data>
+  <data name="UsageReportResetLogNoSchedule" xml:space="preserve"><value>No schedule known</value></data>
+  <data name="UsageReportResetLogExpectedFormat" xml:space="preserve"><value>Expected {0}</value></data>
+  <data name="UsageReportResetLogSummaryFormat" xml:space="preserve"><value>{0} resets in this range: {1} on schedule, {2} off schedule.</value></data>
+  <data name="UsageReportResetLogEvidenceProvider" xml:space="preserve"><value>Confirmed by the provider</value></data>
+  <data name="UsageReportResetLogEvidenceCreditUsed" xml:space="preserve"><value>A reset credit was used</value></data>
+  <data name="UsageReportResetLogEvidenceNoCredit" xml:space="preserve"><value>No reset credit was used</value></data>
+  <data name="UsageReportResetLogEvidenceBoundary" xml:space="preserve"><value>Reached its reset time</value></data>
+  <data name="UsageReportResetLogEvidenceFull" xml:space="preserve"><value>Usage went back to 0%</value></data>
+  <data name="UsageReportWindowSpendLimit" xml:space="preserve"><value>Spend limit</value></data>
+  <data name="UsageReportCoverageHintPartial" xml:space="preserve"><value>Some records could only be read in part, so totals may be low.</value></data>
+  <data name="UsageReportCoverageHintSummaryOnly" xml:space="preserve"><value>Only summary totals were available, so model and day detail is limited.</value></data>
+  <data name="UsageExplorerSourceWarningFormat" xml:space="preserve"><value>{0} could not be fully updated, so totals may be low or out of date.</value></data>
+  <data name="UsageReportNoticesNone" xml:space="preserve"><value>Notifications, nothing needs attention</value></data>
+  <data name="UsageReportNoticesCountFormat" xml:space="preserve"><value>Notifications, {0} need attention</value></data>
+  <data name="UsageReportNoticesTitle.Text" xml:space="preserve"><value>Notifications</value></data>
+  <data name="UsageReportNoticesEmpty.Text" xml:space="preserve"><value>Nothing needs your attention.</value></data>
+  <data name="UsageReportFiltersButtonName" xml:space="preserve"><value>Filters</value></data>
+  <data name="UsageReportFiltersActiveFormat" xml:space="preserve"><value>Filters, {0} active</value></data>
+  <data name="UsageReportFiltersLabel.Text" xml:space="preserve"><value>Filters</value></data>
+  <data name="UsageDashboardRemainderCountFormat" xml:space="preserve"><value>Top {0} of {1}</value></data>
 </root>

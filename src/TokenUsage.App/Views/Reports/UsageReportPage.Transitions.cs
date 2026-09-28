@@ -140,7 +140,7 @@ public sealed partial class UsageReportPage
             targets.Add(ProviderChartContentRoot);
         }
 
-        if (ViewModel.HasProviderLimits)
+        if (ViewModel.HasLimitItems)
         {
             targets.Add(ReportProviderLimitsContentRoot);
         }

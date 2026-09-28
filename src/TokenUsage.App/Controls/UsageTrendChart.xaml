@@ -105,6 +105,7 @@
         <Border x:Name="WeeklyResetBrushProxy" Background="{ThemeResource ReportWeeklyResetBrush}" Visibility="Collapsed" />
         <Border x:Name="SessionResetBrushProxy" Background="{ThemeResource ReportSessionResetBrush}" Visibility="Collapsed" />
         <Border x:Name="ManualResetBrushProxy" Background="{ThemeResource ReportManualResetBrush}" Visibility="Collapsed" />
+        <Border x:Name="ScheduledResetBrushProxy" Background="{ThemeResource ReportToneBlueBrush}" Visibility="Collapsed" />
         <Border x:Name="ResetCreditBrushProxy" Background="{ThemeResource ReportResetCreditBrush}" Visibility="Collapsed" />
 
         <Border

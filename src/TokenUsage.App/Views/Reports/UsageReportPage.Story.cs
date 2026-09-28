@@ -102,4 +102,30 @@ public sealed partial class UsageReportPage
         grow.Duration = MotionSettings.ReportBarGrowDuration;
         visual.StartAnimation("Scale.X", grow);
     }
+
+    // The filter card drops in from under the toolbar and takes focus, so opening it with the
+    // keyboard lands straight in the search box.
+    private void RevealFilters()
+    {
+        _ = DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!ReportFilters.IsLoaded) return;
+            ExplorerSearchBox.Focus(FocusState.Programmatic);
+            if (!MotionSettings.AreAnimationsEnabled() || _isCapturing) return;
+            Visual visual = ElementCompositionPreview.GetElementVisual(ReportFilters);
+            Compositor compositor = visual.Compositor;
+            CubicBezierEasingFunction ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1), new Vector2(0.3f, 1));
+            ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0, 0);
+            fade.InsertKeyFrame(1, 1, ease);
+            fade.Duration = TimeSpan.FromMilliseconds(180);
+            Vector3KeyFrameAnimation drop = compositor.CreateVector3KeyFrameAnimation();
+            drop.InsertKeyFrame(0, new Vector3(0, -8, 0));
+            drop.InsertKeyFrame(1, Vector3.Zero, ease);
+            drop.Duration = TimeSpan.FromMilliseconds(240);
+            ElementCompositionPreview.SetIsTranslationEnabled(ReportFilters, true);
+            visual.StartAnimation("Opacity", fade);
+            visual.StartAnimation("Translation", drop);
+        });
+    }
 }

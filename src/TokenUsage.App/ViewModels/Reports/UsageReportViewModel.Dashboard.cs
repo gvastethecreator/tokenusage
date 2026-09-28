@@ -358,17 +358,20 @@ public sealed partial class UsageReportViewModel
                 FormatPercent(amount / denominator), DashboardUnit)
             : GetString("UsageDashboardNoRankedValue");
         // Nothing is hidden when every row fits; "3 of 3 · $0.00 in the rest" is noise.
-        string Remainder(int shown, int count, IEnumerable<UsageReportMetrics> remainder) => shown >= count
-            ? string.Empty
-            : string.Format(
-                CultureInfo.CurrentCulture, GetString("UsageDashboardRemainderFormat"), shown, count,
-                IsCostMetric ? Money(remainder.Sum(Value)) : FormatTokens((long)remainder.Sum(Value)));
+        // "$0.00 in the rest" reads as an error when the rest simply has no known cost.
+        string Remainder(int shown, int count, IEnumerable<UsageReportMetrics> remainder) =>
+            shown >= count ? string.Empty
+            : remainder.Sum(Value) is var rest && rest <= 0
+                ? string.Format(CultureInfo.CurrentCulture, GetString("UsageDashboardRemainderCountFormat"), shown, count)
+                : string.Format(
+                    CultureInfo.CurrentCulture, GetString("UsageDashboardRemainderFormat"), shown, count,
+                    IsCostMetric ? Money(rest) : FormatTokens((long)rest));
         var models = ModelRows.OrderByDescending(row => Value(row.Metrics))
             .ThenBy(row => row.Id, StringComparer.Ordinal).ToArray();
         decimal modelMaximum = models.Select(row => Value(row.Metrics)).DefaultIfEmpty().Max();
         string Share(decimal amount) => denominator > 0 ? FormatPercent(amount / denominator) : string.Empty;
         DashboardModels = models.Take(5).Select(row => new UsageDashboardBar(row.Id,
-            row.ModelName + " · " + row.ProviderName, Display(row.Metrics),
+            IsProviderScope ? row.ModelName : row.ModelName + " · " + row.ProviderName, Display(row.Metrics),
             modelMaximum > 0 ? (double)(100 * Value(row.Metrics) / modelMaximum) : 0, row.AutomationName,
             Share(Value(row.Metrics)), row.ProviderId)).ToArray();
         DashboardModelSummary = models.Length > 0 ? Summary(models[0].ModelName, Value(models[0].Metrics)) : string.Empty;

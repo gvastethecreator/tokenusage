@@ -10,6 +10,8 @@ namespace TokenUsage.App.Views.Reports;
 
 public sealed partial class UsageReportPage
 {
+    private string? _checkedProviderTabId;
+
     private void OnProviderTabClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string providerId })
@@ -305,14 +307,19 @@ public sealed partial class UsageReportPage
         tab.VerticalContentAlignment = VerticalAlignment.Center;
     }
 
+    // The checked tab follows the provider being shown, set explicitly on every realized tab.
+    // Relying on the radio group left a recycled tab (for example Cursor) checked after the
+    // carousel paged, while the report already showed another provider.
     private void SetProviderTabSelection(string? providerId)
     {
-        int providerIndex = IndexOfVisibleProvider(providerId);
-        if (providerIndex >= 0
-            && ReportProviderTabsRepeater.TryGetElement(providerIndex) is RadioButton tab
-            && tab.IsChecked != true)
+        _checkedProviderTabId = providerId;
+        for (int index = 0; index < _visibleProviderTabs.Count; index++)
         {
-            tab.IsChecked = true;
+            if (ReportProviderTabsRepeater.TryGetElement(index) is RadioButton tab)
+            {
+                bool isSelected = string.Equals(_visibleProviderTabs[index].ProviderId, providerId, StringComparison.Ordinal);
+                if (tab.IsChecked != isSelected) tab.IsChecked = isSelected;
+            }
         }
     }
 
@@ -326,7 +333,7 @@ public sealed partial class UsageReportPage
         {
             tab.IsChecked = string.Equals(
                 _visibleProviderTabs[args.Index].ProviderId,
-                ViewModel.SelectedProvider?.ProviderId,
+                _checkedProviderTabId ?? ViewModel.SelectedProvider?.ProviderId,
                 StringComparison.Ordinal);
             ApplyProviderTabSize(tab);
         }

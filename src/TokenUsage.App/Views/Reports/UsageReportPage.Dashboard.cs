@@ -11,7 +11,7 @@ public sealed partial class UsageReportPage
 
     private void OnDashboardSizeChanged(object sender, SizeChangedEventArgs e) => UpdateDashboardLayout(e.NewSize.Width);
 
-    // Wide: trend | models + token composition side by side | projects | operations.
+    // Wide: trend | stats and limits | models + token composition side by side | projects | operations.
     // Narrow: one column in the same reading order. Grid spacing applies to empty rows and
     // columns too, so the layout keeps exactly the tracks it uses.
     private void UpdateDashboardLayout(double width)
@@ -21,13 +21,15 @@ public sealed partial class UsageReportPage
         DashboardGrid.ColumnSpacing = narrow ? 0 : 12;
         Grid.SetColumnSpan(DashboardTrendCard, 2);
         Grid.SetColumnSpan(DashboardProviderTrendCard, 2);
-        Grid.SetRow(DashboardModelsCard, 1);
+        Grid.SetRow(DashboardStatsPanel, 1);
+        Grid.SetColumnSpan(DashboardStatsPanel, 2);
+        Grid.SetRow(DashboardModelsCard, 2);
         Grid.SetColumn(DashboardModelsCard, 0);
         Grid.SetColumnSpan(DashboardModelsCard, narrow ? 2 : 1);
-        Grid.SetRow(DashboardCompositionCard, narrow ? 2 : 1);
+        Grid.SetRow(DashboardCompositionCard, narrow ? 3 : 2);
         Grid.SetColumn(DashboardCompositionCard, narrow ? 0 : 1);
         Grid.SetColumnSpan(DashboardCompositionCard, narrow ? 2 : 1);
-        int nextRow = narrow ? 3 : 2;
+        int nextRow = narrow ? 4 : 3;
         Grid.SetRow(DashboardProjectsCard, nextRow);
         Grid.SetColumn(DashboardProjectsCard, 0);
         Grid.SetColumnSpan(DashboardProjectsCard, 2);
@@ -35,7 +37,7 @@ public sealed partial class UsageReportPage
         Grid.SetRow(DashboardOperationsGrid, nextRow);
         Grid.SetColumnSpan(DashboardOperationsGrid, 2);
         if (ViewModel.HasDashboardOperationsCard) nextRow++;
-        SetRowCount(DashboardGrid, Math.Max(nextRow, narrow ? 3 : 2));
+        SetRowCount(DashboardGrid, Math.Max(nextRow, narrow ? 4 : 3));
         UpdateDashboardOperationsLayout(width);
         GlobalCombinedChart.PlotHeight = 250;
         ProviderChartContentRoot.PlotHeight = 250;

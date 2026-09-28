@@ -569,9 +569,9 @@ public sealed class ArchitectureRulesTests
             "Views",
             "Reports",
             "UsageReportPage.xaml"));
-        Assert.Contains("Text=\"{x:Bind PaceText}\"", report, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{x:Bind Window.PaceText}\"", report, StringComparison.Ordinal);
         Assert.Contains(
-            "AutomationProperties.Name=\"{x:Bind PaceAutomationName}\"",
+            "AutomationProperties.Name=\"{x:Bind Window.PaceAutomationName}\"",
             report,
             StringComparison.Ordinal);
     }
@@ -598,8 +598,8 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(354, matches.Count);
-        Assert.Equal(338, distinctIds.Length);
+        Assert.Equal(357, matches.Count);
+        Assert.Equal(341, distinctIds.Length);
         Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewCostDetails", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewPartialWarning", distinctIds, StringComparer.Ordinal);
@@ -617,6 +617,8 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageComparisonState", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageComparisonAdvanced", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportResetLogExpander", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportNoticesButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportFiltersToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerValues", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageOverviewProject", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportProjectButton", distinctIds, StringComparer.Ordinal);

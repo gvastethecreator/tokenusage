@@ -35,6 +35,7 @@ public sealed partial class ReportToneIcon : UserControl
         ["settings"] = "M14.647 4.081a.724 .724 0 0 0 1.08 .448c2.439 -1.485 5.23 1.305 3.745 3.744a.724 .724 0 0 0 .447 1.08c2.775 .673 2.775 4.62 0 5.294a.724 .724 0 0 0 -.448 1.08c1.485 2.439 -1.305 5.23 -3.744 3.745a.724 .724 0 0 0 -1.08 .447c-.673 2.775 -4.62 2.775 -5.294 0a.724 .724 0 0 0 -1.08 -.448c-2.439 1.485 -5.23 -1.305 -3.745 -3.744a.724 .724 0 0 0 -.447 -1.08c-2.775 -.673 -2.775 -4.62 0 -5.294a.724 .724 0 0 0 .448 -1.08c-1.485 -2.439 1.305 -5.23 3.744 -3.745a.722 .722 0 0 0 1.08 -.447c.673 -2.775 4.62 -2.775 5.294 0zm-2.647 4.919a3 3 0 1 0 0 6a3 3 0 0 0 0 -6",
         ["folder"] = "M9 3a1 1 0 0 1 .608 .206l.1 .087l2.706 2.707h6.586a3 3 0 0 1 2.995 2.824l.005 .176v8a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-11a3 3 0 0 1 2.824 -2.995l.176 -.005h4z",
         ["gauge"] = "M17 3.34a10 10 0 1 1 -14.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 14.995 -8.336zm-.293 3.953a1 1 0 0 0 -1.414 0l-2.59 2.59l-.083 .094l-.068 .1a2.001 2.001 0 0 0 -2.547 1.774l-.005 .149l.005 .15a2 2 0 1 0 3.917 -.701a.968 .968 0 0 0 .195 -.152l2.59 -2.59l.083 -.094a1 1 0 0 0 -.083 -1.32zm-4.707 -1.293a6 6 0 0 0 -6 6a1 1 0 0 0 2 0a4 4 0 0 1 4 -4a1 1 0 0 0 0 -2z",
+        ["triangle-inverted"] = "M20.118 3h-16.225a2.914 2.914 0 0 0 -2.503 4.371l8.116 13.549a2.917 2.917 0 0 0 4.987 .005l8.11 -13.539a2.914 2.914 0 0 0 -2.486 -4.386z",
         ["category"] = "M10 3h-6a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1 -1v-6a1 1 0 0 0 -1 -1z M20 3h-6a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1 -1v-6a1 1 0 0 0 -1 -1z M10 13h-6a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1 -1v-6a1 1 0 0 0 -1 -1z M17 13a4 4 0 1 1 -3.995 4.2l-.005 -.2l.005 -.2a4 4 0 0 1 3.995 -3.8z",
     };
 
@@ -67,7 +68,7 @@ public sealed partial class ReportToneIcon : UserControl
         set => SetValue(KindProperty, value);
     }
 
-    /// <summary>Blue, Violet, Amber, Teal, Rose, Success, or Caution.</summary>
+    /// <summary>Blue, Violet, Amber, Teal, Rose, Success, Caution, or a Report*Brush name without its affixes.</summary>
     public string Tone
     {
         get => (string)GetValue(ToneProperty);
@@ -85,7 +86,9 @@ public sealed partial class ReportToneIcon : UserControl
             : null;
         string theme = Accessibility.HighContrast ? "HighContrast"
             : ActualTheme == ElementTheme.Light ? "Light" : "Dark";
-        _path.Fill = Lookup($"ReportTone{Tone}Brush", theme) ?? Lookup("ReportToneBlueBrush", theme);
+        // A tone can also name a report brush directly, such as WeeklyReset for the chart's reset marks.
+        _path.Fill = Lookup($"ReportTone{Tone}Brush", theme) ?? Lookup($"Report{Tone}Brush", theme)
+            ?? Lookup("ReportToneBlueBrush", theme);
     }
 
     // Theme dictionaries are read directly so the icon follows the report window's own theme,

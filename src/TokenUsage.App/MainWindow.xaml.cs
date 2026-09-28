@@ -656,6 +656,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 attributionAliases: RootPage.ViewModel.GeneralOptions.AttributionAliases,
                 attributionOptions: RootPage.ViewModel.GeneralOptions);
             _reportWindow.Closed += OnUsageReportWindowClosed;
+            RootPage.ViewModel.Dashboard.PropertyChanged += OnDashboardChangedForReport;
         }
         else
         {
@@ -665,8 +666,16 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportWindow.Activate();
     }
 
+    // The report reads quota windows from the panel's published snapshot; a newer snapshot
+    // (for example Claude's status line reading) must reach an already open report.
+    private void OnDashboardChangedForReport(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(RootPage.ViewModel.Dashboard.ActiveSample)) _reportWindow?.RefreshLimits();
+    }
+
     private void OnUsageReportWindowClosed(object sender, WindowEventArgs args)
     {
+        RootPage.ViewModel.Dashboard.PropertyChanged -= OnDashboardChangedForReport;
         if (_reportWindow is not null)
         {
             _reportWindow.Closed -= OnUsageReportWindowClosed;

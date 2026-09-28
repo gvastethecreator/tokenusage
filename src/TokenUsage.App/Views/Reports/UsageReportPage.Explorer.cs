@@ -84,6 +84,12 @@ public sealed partial class UsageReportPage
         MeasurementDetails.Focus(FocusState.Programmatic);
     }
 
+    private void OnNoticeDetailsClick(object sender, RoutedEventArgs e)
+    {
+        ReportNoticesButton.Flyout.Hide();
+        OnExplorerEvidenceClick(sender, e);
+    }
+
     private void OnBackToModelClick(object sender, RoutedEventArgs e) => ShowModelDetail();
 
     private async void OnOpenSessionsClick(object sender, RoutedEventArgs e)

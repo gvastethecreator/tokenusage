@@ -12,6 +12,7 @@ public sealed partial class UsageReportViewModel
     public IReadOnlyList<UsageReportResetLogFilter> ResetLogQuotaOptions { get; private set; } = [];
     public IReadOnlyList<UsageReportResetLogFilter> ResetLogClassOptions { get; private set; } = [];
     public bool HasResetLog => ResetLogRows.Count > 0;
+    public string ResetLogSummary { get; private set; } = string.Empty;
     public bool HasEmptyResetLog => ResetLogRows.Count == 0;
 
     public UsageReportResetLogFilter? ResetLogQuota
@@ -52,7 +53,7 @@ public sealed partial class UsageReportViewModel
         HashSet<string>? providers = null;
         if (IsProviderScope && SelectedProvider is { } selected)
             providers = new HashSet<string>(StringComparer.Ordinal) { selected.ProviderId };
-        else if (IsCompareProvidersAxis)
+        else if (IsCompareScope && IsCompareProvidersAxis)
             providers = new[] { CompareLeftProvider?.ProviderId, CompareRightProvider?.ProviderId }
                 .OfType<string>()
                 .ToHashSet(StringComparer.Ordinal);
@@ -65,14 +66,18 @@ public sealed partial class UsageReportViewModel
             })
             .Where(item => item.date >= from && item.date <= to
                 && (providers is null || providers.Contains(item.reset.ProviderId)))
-            .OrderBy(item => item.reset.OccurredAtUtc)
+            .OrderByDescending(item => item.reset.OccurredAtUtc)
             .ToArray();
         ResetLogQuotaOptions =
         [
             new("*", GetString("UsageReportResetLogAllQuotas")),
             .. rows.Select(item => item.reset.MetricId).Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
-                .Select(id => new UsageReportResetLogFilter(id, ResetWindowName(id, rows.First(item => item.reset.MetricId == id).reset.WindowDurationMinutes))),
+                .Select(id =>
+                {
+                    QuotaResetRecord first = rows.First(item => item.reset.MetricId == id).reset;
+                    return new UsageReportResetLogFilter(id, ProviderName(first.ProviderId) + " · " + ResetWindowName(id, first.WindowDurationMinutes));
+                }),
         ];
         ResetLogClassOptions =
         [
@@ -87,16 +92,13 @@ public sealed partial class UsageReportViewModel
         ResetLogRows = rows
             .Where(item => (_resetLogQuota?.Id is "*" or null || item.reset.MetricId == _resetLogQuota.Id)
                 && (_resetLogClass?.Id is "*" or null || item.kind.ToString() == _resetLogClass.Id))
-            .Select(item => new UsageReportResetLogRow(
-                item.reset.OccurredAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
-                ProviderName(item.reset.ProviderId) + " · " + ResetWindowName(item.reset.MetricId, item.reset.WindowDurationMinutes),
-                item.reset.PreviousExpectedResetAtUtc is { } expected
-                    ? expected.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)
-                    : GetString("UsageReportCompareUnavailable"),
-                GetString(UsageReportResetMarkers.LabelResourceKey(item.kind)),
-                ResetEvidenceText(item.reset)))
+            .Select(item => CreateResetLogRow(item.reset, item.kind))
             .ToArray();
+        int onSchedule = ResetLogRows.Count(row => row.IsOnSchedule);
+        ResetLogSummary = ResetLogRows.Count == 0 ? string.Empty : string.Format(CultureInfo.CurrentCulture,
+            GetString("UsageReportResetLogSummaryFormat"), ResetLogRows.Count, onSchedule, ResetLogRows.Count - onSchedule);
         OnPropertyChanged(nameof(ResetLogRows));
+        OnPropertyChanged(nameof(ResetLogSummary));
         OnPropertyChanged(nameof(ResetLogQuotaOptions));
         OnPropertyChanged(nameof(ResetLogClassOptions));
         OnPropertyChanged(nameof(ResetLogQuota));
@@ -105,15 +107,63 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasEmptyResetLog));
     }
 
-    private string ResetEvidenceText(QuotaResetRecord reset) => reset.EvidenceKind switch
+    // Newest first, in the report's own date style. Timing compares the reset with the time the
+    // previous cycle said it would end; within ten minutes it reads as on schedule.
+    private UsageReportResetLogRow CreateResetLogRow(QuotaResetRecord reset, UsageReportResetKind kind)
     {
-        QuotaChangeEvidenceKind.OfficialManualSignal => GetString("UsageReportResetCycleManual"),
-        QuotaChangeEvidenceKind.OfficialResetCreditSignal => GetString("UsageReportResetCycleCredit"),
-        QuotaChangeEvidenceKind.InferredCreditDrop => GetString("UsageReportResetEvidenceInferredBanked"),
-        QuotaChangeEvidenceKind.InferredNoCreditDrop => GetString("UsageReportResetEvidenceInferredGrant"),
-        QuotaChangeEvidenceKind.ExpectedBoundaryCrossed => GetString("UsageReportResetEvidenceScheduled"),
-        _ => GetString("UsageReportResetCycleObserved"),
-    };
+        DateTimeOffset local = reset.OccurredAtUtc.ToLocalTime();
+        string timing;
+        string timingDetail = string.Empty;
+        bool onSchedule = false;
+        if (reset.PreviousExpectedResetAtUtc is { } expected)
+        {
+            TimeSpan offset = expected - reset.OccurredAtUtc;
+            onSchedule = Math.Abs(offset.TotalMinutes) < 10;
+            timing = onSchedule
+                ? GetString("UsageReportResetLogOnSchedule")
+                : string.Format(CultureInfo.CurrentCulture,
+                    GetString(offset > TimeSpan.Zero ? "UsageReportResetLogEarlyFormat" : "UsageReportResetLogLateFormat"),
+                    FormatCycleDuration(offset.Duration()));
+            DateTimeOffset expectedLocal = expected.ToLocalTime();
+            timingDetail = string.Format(CultureInfo.CurrentCulture, GetString("UsageReportResetLogExpectedFormat"),
+                expectedLocal.ToString("ddd d MMM", CultureInfo.CurrentCulture) + " · "
+                + expectedLocal.ToString("t", CultureInfo.CurrentCulture));
+        }
+        else
+        {
+            timing = GetString("UsageReportResetLogNoSchedule");
+        }
+
+        return new UsageReportResetLogRow(
+            local.ToString("ddd d MMM", CultureInfo.CurrentCulture),
+            local.ToString("t", CultureInfo.CurrentCulture),
+            reset.ProviderId,
+            ProviderName(reset.ProviderId) + " · " + ResetWindowName(reset.MetricId, reset.WindowDurationMinutes),
+            GetString(UsageReportResetMarkers.LabelResourceKey(kind)),
+            kind switch
+            {
+                UsageReportResetKind.Weekly => "WeeklyReset",
+                UsageReportResetKind.Session => "SessionReset",
+                UsageReportResetKind.Scheduled => "Blue",
+                UsageReportResetKind.Manual => "ManualReset",
+                UsageReportResetKind.ResetCredit => "ResetCredit",
+                _ => "TextLabel",
+            },
+            ResetEvidenceText(reset),
+            timing,
+            timingDetail,
+            onSchedule);
+    }
+
+    private string ResetEvidenceText(QuotaResetRecord reset) => GetString(reset.EvidenceKind switch
+    {
+        QuotaChangeEvidenceKind.OfficialManualSignal or QuotaChangeEvidenceKind.OfficialResetCreditSignal
+            => "UsageReportResetLogEvidenceProvider",
+        QuotaChangeEvidenceKind.InferredCreditDrop => "UsageReportResetLogEvidenceCreditUsed",
+        QuotaChangeEvidenceKind.InferredNoCreditDrop => "UsageReportResetLogEvidenceNoCredit",
+        QuotaChangeEvidenceKind.ExpectedBoundaryCrossed => "UsageReportResetLogEvidenceBoundary",
+        _ => "UsageReportResetLogEvidenceFull",
+    });
 
     private void AddResetMarkers(UsageReportTrendDay[] days,
         IEnumerable<UsageReportResetMarker> markers, string? comparison = null)

@@ -116,6 +116,14 @@
             <Setter Property="MinWidth" Value="32" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style x:Key="ReportFiltersToggleStyle" BasedOn="{StaticResource DefaultToggleButtonStyle}" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
         <Style x:Key="ReportToolbarSeparatorStyle" TargetType="Border">
             <Setter Property="Width" Value="1" />
             <Setter Property="Height" Value="16" />
@@ -261,11 +269,12 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Width" Value="28" />
         </Style>
-        <DataTemplate x:Key="ReportQuotaPillTemplate" x:DataType="dashboard:QuotaWindow">
+        <!-- One quota window. Every pill keeps the pace row so a uniform grid never clips a taller one. -->
+        <DataTemplate x:Key="ReportQuotaPillTemplate" x:DataType="reports:UsageReportLimitItem">
             <Grid
-                Padding="0,5,0,6"
+                Padding="0,4,0,4"
                 VerticalAlignment="Top"
-                AutomationProperties.Name="{x:Bind DisplayAutomationName}"
+                AutomationProperties.Name="{x:Bind AutomationName}"
                 RowSpacing="5">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -275,49 +284,62 @@
                 </Grid.RowDefinitions>
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}"
-                        MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                        ToolTipService.ToolTip="{x:Bind DisplayAutomationName}" />
-                    <TextBlock Grid.Column="1" Typography.NumeralAlignment="Tabular" FontSize="12" FontWeight="SemiBold" Text="{x:Bind RemainingText}" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                    <controls:ProviderMarkImage Width="14" Height="14" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center"
+                        Visibility="{x:Bind ShowsProvider}" />
+                    <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold" Text="{x:Bind Title}"
+                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                        ToolTipService.ToolTip="{x:Bind AutomationName}" />
+                    <TextBlock Grid.Column="2" Typography.NumeralAlignment="Tabular" FontSize="13" FontWeight="SemiBold"
+                        Text="{x:Bind Window.RemainingText}" TextAlignment="Right" VerticalAlignment="Center" />
                 </Grid>
                 <controls:AnimatedProgressBar
                     Grid.Row="1"
-                    Height="12"
-                    AutomationName="{x:Bind DisplayAutomationName}"
+                    Height="10"
+                    AutomationName="{x:Bind AutomationName}"
                     IndicatorScale="2.5"
-                    RemainingValue="{x:Bind ColorRemainingPercent}"
-                    TargetValue="{x:Bind RemainingPercent}" />
+                    RemainingValue="{x:Bind Window.ColorRemainingPercent}"
+                    TargetValue="{x:Bind Window.RemainingPercent}" />
                 <Grid Grid.Row="2" ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource ReportDescriptionStyle}" Text="{x:Bind ResetText}" TextTrimming="CharacterEllipsis">
+                    <TextBlock Style="{StaticResource ReportDescriptionStyle}" Text="{x:Bind Window.ResetText}" TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center">
                         <ToolTipService.ToolTip>
-                            <ToolTip MaxWidth="332" Content="{x:Bind ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
+                            <ToolTip MaxWidth="332" Content="{x:Bind Window.ResetText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
                         </ToolTipService.ToolTip>
                     </TextBlock>
-                    <Button Grid.Column="1" MinWidth="24" MinHeight="24" Padding="4"
+                    <Button Grid.Column="1" MinWidth="22" MinHeight="22" Padding="4"
                         Style="{StaticResource SubtleButtonStyle}"
-                        AutomationProperties.Name="{x:Bind UsedText}"
-                        AutomationProperties.HelpText="{x:Bind UsedText}"
-                        Visibility="{x:Bind HasUsedText}">
+                        AutomationProperties.Name="{x:Bind Window.UsedText}"
+                        AutomationProperties.HelpText="{x:Bind Window.UsedText}"
+                        Visibility="{x:Bind Window.HasUsedText}">
                         <ToolTipService.ToolTip>
-                            <ToolTip MaxWidth="332" Content="{x:Bind UsedText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
+                            <ToolTip MaxWidth="332" Content="{x:Bind Window.UsedText}" ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
                         </ToolTipService.ToolTip>
                         <FontIcon FontSize="11" Glyph="&#xE946;" />
                     </Button>
                 </Grid>
-                <TextBlock
-                    Grid.Row="3"
-                    AutomationProperties.Name="{x:Bind PaceAutomationName}"
-                    Style="{StaticResource ReportDescriptionStyle}"
-                    Text="{x:Bind PaceText}"
-                    TextWrapping="Wrap"
-                    Visibility="{x:Bind HasPace}" />
+                <Grid Grid.Row="3" ColumnSpacing="6" MinHeight="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <controls:ReportToneIcon Kind="alert-triangle" Tone="Caution" Width="12" Height="12"
+                        Visibility="{x:Bind Window.IsPaceBehind}" />
+                    <TextBlock Grid.Column="1"
+                        AutomationProperties.Name="{x:Bind Window.PaceAutomationName}"
+                        Style="{StaticResource ReportDescriptionStyle}"
+                        Text="{x:Bind Window.PaceText}"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center"
+                        ToolTipService.ToolTip="{x:Bind Window.PaceText}" />
+                </Grid>
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -371,6 +393,52 @@
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </Grid>
                     <StackPanel x:Name="ReportTitleActions" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                        <Button x:Name="ReportNoticesButton" AutomationProperties.AutomationId="UsageReportNoticesButton"
+                            AutomationProperties.Name="{x:Bind ViewModel.NoticeButtonName, Mode=OneWay}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.NoticeButtonName, Mode=OneWay}"
+                            Padding="7" Style="{StaticResource ReportTitleBarButtonStyle}">
+                            <Grid>
+                                <controls:TablerIcon Kind="bell" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                <Border MinWidth="15" Height="15" Padding="4,0" CornerRadius="8" Margin="0,-7,-9,0"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Background="{ThemeResource ReportToneCautionBrush}"
+                                    Visibility="{x:Bind ViewModel.HasNotices, Mode=OneWay}" AutomationProperties.AccessibilityView="Raw">
+                                    <TextBlock Text="{x:Bind ViewModel.NoticeCountText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold"
+                                        Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                            <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedRight" ShouldConstrainToRootBounds="True">
+                                    <StackPanel Width="340" Spacing="12">
+                                        <TextBlock x:Uid="UsageReportNoticesTitle" Style="{StaticResource ReportCardTitleStyle}" />
+                                        <TextBlock x:Uid="UsageReportNoticesEmpty" Style="{StaticResource ReportDescriptionStyle}"
+                                            Visibility="{x:Bind ViewModel.HasNoNotices, Mode=OneWay}" />
+                                        <Grid AutomationProperties.AutomationId="UsageExplorerSourceWarning" ColumnSpacing="10"
+                                            Visibility="{x:Bind ViewModel.HasExplorerSourceWarning, Mode=OneWay}">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <controls:ReportToneIcon Kind="alert-triangle" Tone="Caution" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock x:Uid="UsageExplorerSourceWarningTitle" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{x:Bind ViewModel.ExplorerSourceStatus, Mode=OneWay}" TextWrapping="Wrap"
+                                                    Style="{StaticResource ReportDescriptionStyle}" />
+                                                <HyperlinkButton x:Uid="UsageExplorerSourceDetails" Padding="0,2" Click="OnNoticeDetailsClick" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid AutomationProperties.AutomationId="UsageOverviewPartialWarning" ColumnSpacing="10"
+                                            Visibility="{x:Bind ViewModel.HasCoverageHint, Mode=OneWay}">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <controls:ReportToneIcon Kind="alert-triangle" Tone="Caution" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="{x:Bind ViewModel.CoverageHintTitle, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{x:Bind ViewModel.CoverageHintText, Mode=OneWay}" TextWrapping="Wrap"
+                                                    Style="{StaticResource ReportDescriptionStyle}" />
+                                                <HyperlinkButton x:Uid="UsageOverviewPartialWarningDetails" Padding="0,2" Click="OnNoticeDetailsClick" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
                         <Button x:Uid="UsageReportRefreshButton" AutomationProperties.AutomationId="UsageReportRefreshButton" Command="{x:Bind ViewModel.RefreshCommand}" Padding="7" Style="{StaticResource ReportTitleBarButtonStyle}">
                             <controls:TablerIcon Kind="refresh" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                         </Button>
@@ -489,7 +557,7 @@
                 <ScrollViewer Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                     HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" x:Name="ReportToolbarHost">
                     <Grid x:Name="ReportControlBar" HorizontalAlignment="Right" ColumnSpacing="2" RowSpacing="6">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
 
                         <StackPanel x:Name="ReportScopeControls" VerticalAlignment="Center" Orientation="Horizontal">
@@ -527,6 +595,24 @@
                             <Border x:Name="ReportMetricSeparator" Style="{StaticResource ReportToolbarSeparatorStyle}" />
                             <RadioButton x:Uid="UsageReportCostButton" AutomationProperties.AutomationId="UsageReportCostButton" GroupName="UsageReportMetricTabs" IsChecked="{x:Bind ViewModel.IsCostMetric, Mode=OneWay}" Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Cost" Click="OnMetricClick" />
                             <RadioButton x:Uid="UsageReportTokensButton" AutomationProperties.AutomationId="UsageReportTokensButton" GroupName="UsageReportMetricTabs" IsChecked="{x:Bind ViewModel.IsTokenMetric, Mode=OneWay}" Style="{StaticResource SectionTabRadioButtonStyle}" Tag="Tokens" Click="OnMetricClick" />
+                        </StackPanel>
+                        <StackPanel x:Name="ReportFilterControls" Grid.Column="4" VerticalAlignment="Center" Orientation="Horizontal"
+                            Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}">
+                            <Border Style="{StaticResource ReportToolbarSeparatorStyle}" />
+                            <ToggleButton x:Name="ReportFiltersToggle" AutomationProperties.AutomationId="UsageReportFiltersToggle"
+                                AutomationProperties.Name="{x:Bind ViewModel.FilterButtonName, Mode=OneWay}"
+                                IsChecked="{x:Bind ViewModel.IsFilterPanelOpen, Mode=TwoWay}" Style="{StaticResource ReportFiltersToggleStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <FontIcon Glyph="&#xE71C;" FontSize="13" />
+                                    <TextBlock x:Uid="UsageReportFiltersLabel" />
+                                    <Border MinWidth="16" Height="16" Padding="4,0" CornerRadius="8" VerticalAlignment="Center"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                        Visibility="{x:Bind ViewModel.HasActiveExplorerFilters, Mode=OneWay}" AutomationProperties.AccessibilityView="Raw">
+                                        <TextBlock Text="{x:Bind ViewModel.ActiveExplorerFilterCountText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold"
+                                            Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </StackPanel>
+                            </ToggleButton>
                         </StackPanel>
                         <StackPanel x:Name="ReportValueControls" Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal" Visibility="{x:Bind ViewModel.IsValueModeVisible, Mode=OneWay}">
                             <Border Style="{StaticResource ReportToolbarSeparatorStyle}" />
@@ -583,9 +669,9 @@
                         HorizontalAlignment="Left" Click="OnReturnToExplorerClick" />
                     <TextBlock x:Uid="UsageExplorerComparisonHint" TextWrapping="Wrap" />
                 </StackPanel>
-                <!-- Filters stay in view: search, model and tool are one glance, rarer filters sit behind More filters. -->
+                <!-- Filters open from the toolbar's Filters button; rarer filters sit behind More filters. -->
                 <Border x:Name="ReportFilters" AutomationProperties.AutomationId="UsageReportFilters" Padding="12,10"
-                    Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.HasExplorer, Mode=OneWay}">
+                    Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.IsFilterPanelVisible, Mode=OneWay}">
                     <ContentControl IsEnabled="{x:Bind ViewModel.CanFilterExplorer, Mode=OneWay}" HorizontalContentAlignment="Stretch" IsTabStop="False">
                     <StackPanel Spacing="10">
                         <Grid x:Name="ReportFilterBar" ColumnSpacing="8" RowSpacing="8">
@@ -696,18 +782,6 @@
                     </StackPanel>
                     </ContentControl>
                 </Border>
-                        <InfoBar
-                            x:Uid="UsageExplorerSourceWarning"
-                            AutomationProperties.AutomationId="UsageExplorerSourceWarning"
-                            IsClosable="True"
-                            IsOpen="{x:Bind ViewModel.HasExplorerSourceWarning, Mode=OneWay}"
-                            IsTabStop="True"
-                            Message="{x:Bind ViewModel.ExplorerSourceStatus, Mode=OneWay}"
-                            Severity="Warning">
-                            <InfoBar.ActionButton>
-                                <Button x:Uid="UsageExplorerSourceDetails" Click="OnExplorerEvidenceClick" />
-                            </InfoBar.ActionButton>
-                        </InfoBar>
                         <TextBlock Text="{x:Bind ViewModel.ExplorerNotice, Mode=OneWay}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Visibility="{x:Bind ViewModel.HasExplorerNotice, Mode=OneWay}" />
                         <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsFilteringModels, Mode=OneWay}" />
                 <Grid
@@ -1643,57 +1717,6 @@
                         </Grid>
                     </Border>
 
-                    <!-- Highlights narrate the period in plain facts; each tile is arithmetic on the data below. -->
-                    <ItemsRepeater x:Name="ReportHighlights" x:Uid="UsageHighlights" ItemsSource="{x:Bind ViewModel.Highlights, Mode=OneWay}"
-                        Visibility="{x:Bind ViewModel.HasHighlights, Mode=OneWay}" ElementPrepared="OnHighlightPrepared">
-                        <ItemsRepeater.Layout>
-                            <UniformGridLayout Orientation="Horizontal" MinItemWidth="220" MinColumnSpacing="8" MinRowSpacing="8"
-                                MaximumRowsOrColumns="4" ItemsStretch="Fill" />
-                        </ItemsRepeater.Layout>
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="reports:UsageReportHighlight">
-                                <Button Style="{StaticResource ReportStoryTileStyle}" Tag="{x:Bind}" Click="OnHighlightClick"
-                                    AutomationProperties.Name="{x:Bind AutomationName}" AutomationProperties.HelpText="{x:Bind ActionHint}" ToolTipService.ToolTip="{x:Bind ActionHint}">
-                                    <Grid ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="3">
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
-                                                <controls:ReportToneIcon Kind="{x:Bind Icon}" Tone="{x:Bind Tone}" />
-                                                <TextBlock Text="{x:Bind Label}" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
-                                            </StackPanel>
-                                            <TextBlock Text="{x:Bind Value}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                            <TextBlock Text="{x:Bind Detail}" Style="{StaticResource ReportDescriptionStyle}" MaxLines="1"
-                                                TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Detail}" />
-                                        </StackPanel>
-                                        <ItemsRepeater Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,2" ItemsSource="{x:Bind Bars}" Visibility="{x:Bind HasBars}">
-                                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="2" /></ItemsRepeater.Layout>
-                                            <ItemsRepeater.ItemTemplate>
-                                                <DataTemplate x:DataType="reports:UsageReportSparkBar">
-                                                    <Grid Width="5" Height="28">
-                                                        <Border Height="{x:Bind Height}" VerticalAlignment="Bottom" CornerRadius="1.5"
-                                                            Background="{ThemeResource TextFillColorPrimaryBrush}" Opacity="{x:Bind Opacity}" />
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsRepeater.ItemTemplate>
-                                        </ItemsRepeater>
-                                    </Grid>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-
-                    <InfoBar
-                        AutomationProperties.AutomationId="UsageOverviewPartialWarning"
-                        IsClosable="False"
-                        IsOpen="{x:Bind ViewModel.HasCoverageHint, Mode=OneWay}"
-                        IsTabStop="True"
-                        Message="{x:Bind ViewModel.CoverageHintText, Mode=OneWay}"
-                        Severity="Warning">
-                        <InfoBar.ActionButton>
-                            <Button x:Uid="UsageOverviewPartialWarningDetails" Click="OnExplorerEvidenceClick" />
-                        </InfoBar.ActionButton>
-                    </InfoBar>
-
                     <TextBlock x:Uid="UsageExplorerTopModelsHint" Visibility="{x:Bind ViewModel.IsModelChart, Mode=OneWay}"
                         TextWrapping="Wrap" Style="{StaticResource ReportDescriptionStyle}" />
 
@@ -1886,6 +1909,91 @@
                             <TextBlock Text="{x:Bind ViewModel.DashboardTrendSummary, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource ReportDescriptionStyle}" Visibility="{x:Bind ViewModel.ShowTrendSummary, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
+                    <!-- Reading order: totals, the chart, then the stats and limits that explain it. -->
+                    <StackPanel x:Name="DashboardStatsPanel" Grid.Row="1" Grid.ColumnSpan="2" Spacing="12">
+                        <!-- Highlights narrate the period in plain facts; each tile is arithmetic on the data below. -->
+                        <ItemsRepeater x:Name="ReportHighlights" x:Uid="UsageHighlights" ItemsSource="{x:Bind ViewModel.Highlights, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.HasHighlights, Mode=OneWay}" ElementPrepared="OnHighlightPrepared">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout Orientation="Horizontal" MinItemWidth="220" MinColumnSpacing="8" MinRowSpacing="8"
+                                    MaximumRowsOrColumns="4" ItemsStretch="Fill" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:UsageReportHighlight">
+                                    <Button Style="{StaticResource ReportStoryTileStyle}" Tag="{x:Bind}" Click="OnHighlightClick"
+                                        AutomationProperties.Name="{x:Bind AutomationName}" AutomationProperties.HelpText="{x:Bind ActionHint}" ToolTipService.ToolTip="{x:Bind ActionHint}">
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="3">
+                                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
+                                                    <controls:ReportToneIcon Kind="{x:Bind Icon}" Tone="{x:Bind Tone}" />
+                                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource ReportSectionLabelStyle}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <TextBlock Text="{x:Bind Value}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                <TextBlock Text="{x:Bind Detail}" Style="{StaticResource ReportDescriptionStyle}" MaxLines="1"
+                                                    TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Detail}" />
+                                            </StackPanel>
+                                            <ItemsRepeater Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,2" ItemsSource="{x:Bind Bars}" Visibility="{x:Bind HasBars}">
+                                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="2" /></ItemsRepeater.Layout>
+                                                <ItemsRepeater.ItemTemplate>
+                                                    <DataTemplate x:DataType="reports:UsageReportSparkBar">
+                                                        <Grid Width="5" Height="28">
+                                                            <Border Height="{x:Bind Height}" VerticalAlignment="Bottom" CornerRadius="1.5"
+                                                                Background="{ThemeResource TextFillColorPrimaryBrush}" Opacity="{x:Bind Opacity}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsRepeater.ItemTemplate>
+                                            </ItemsRepeater>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+
+
+                        <!-- Quota windows: every provider that reports them in Global, the selected one in Provider. -->
+                        <Border x:Name="ReportLimitsCard" Padding="16,12" Style="{StaticResource ReportCardStyle}"
+                            AutomationProperties.AutomationId="UsageReportLimits"
+                            Visibility="{x:Bind ViewModel.HasLimitItems, Mode=OneWay}">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <controls:ReportToneIcon Kind="gauge" Tone="Violet" />
+                                    <TextBlock x:Uid="UsageReportLimitsTitle" Style="{StaticResource ReportCardTitleStyle}" />
+                                </StackPanel>
+                                <ItemsRepeater x:Name="ReportProviderLimitsContentRoot" SizeChanged="OnProviderLimitsSizeChanged"
+                                    ItemTemplate="{StaticResource ReportQuotaPillTemplate}" ItemsSource="{x:Bind ViewModel.LimitItems, Mode=OneWay}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout MaximumRowsOrColumns="4" MinColumnSpacing="20" MinItemWidth="240"
+                                            MinRowSpacing="8" Orientation="Horizontal" />
+                                    </ItemsRepeater.Layout>
+                                </ItemsRepeater>
+                                    <Grid
+                                        Margin="0,6,0,0"
+                                        Padding="0,9,0,0"
+                                        AutomationProperties.Name="{x:Bind ViewModel.ProviderCreditSummary.AutomationName, Mode=OneWay}"
+                                        BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
+                                        BorderThickness="0,1,0,0"
+                                        ColumnSpacing="16"
+                                        Visibility="{x:Bind ViewModel.HasProviderCreditSummary, Mode=OneWay}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="2">
+                                            <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ProviderCreditSummary.Title, Mode=OneWay}" />
+                                            <TextBlock
+                                                Style="{StaticResource ReportDescriptionStyle}"
+                                                Text="{x:Bind ViewModel.ProviderCreditSummary.Detail, Mode=OneWay}" />
+                                        </StackPanel>
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Typography.NumeralAlignment="Tabular"
+                                            Text="{x:Bind ViewModel.ProviderCreditSummary.Value, Mode=OneWay}"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
 
                         <!-- Token mix: one part-to-whole bar in a read (cool) / written (warm) palette, then the numbers. -->
                         <Border x:Name="DashboardCompositionCard" Grid.Row="1" Grid.Column="1" Padding="16,14" Style="{StaticResource ReportCardStyle}">
@@ -2175,59 +2283,6 @@
                             </Border>
                         </Grid>
                     </Grid>
-                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasProviderLimits, Mode=OneWay}">
-
-                        <Border
-                            Padding="14,10"
-                            Style="{StaticResource ReportCardStyle}"
-                            Visibility="{x:Bind ViewModel.HasProviderLimits, Mode=OneWay}">
-                            <StackPanel Spacing="5">
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <controls:ReportToneIcon Kind="gauge" Tone="Violet" />
-                                    <TextBlock x:Uid="UsageReportLimitsTitle" Style="{StaticResource ReportCardTitleStyle}" />
-                                </StackPanel>
-                                <ItemsRepeater
-                                    x:Name="ReportProviderLimitsContentRoot"
-                                    SizeChanged="OnProviderLimitsSizeChanged"
-                                    ItemTemplate="{StaticResource ReportQuotaPillTemplate}"
-                                    ItemsSource="{x:Bind ViewModel.ProviderLimits, Mode=OneWay}">
-                                    <ItemsRepeater.Layout>
-                                        <UniformGridLayout
-                                            MaximumRowsOrColumns="4"
-                                            MinColumnSpacing="14"
-                                            MinItemWidth="240"
-                                            MinRowSpacing="5"
-                                            Orientation="Horizontal" />
-                                    </ItemsRepeater.Layout>
-                                </ItemsRepeater>
-                                <Grid
-                                    Margin="0,6,0,0"
-                                    Padding="0,9,0,0"
-                                    AutomationProperties.Name="{x:Bind ViewModel.ProviderCreditSummary.AutomationName, Mode=OneWay}"
-                                    BorderBrush="{ThemeResource TokenUsageStrokeBrush}"
-                                    BorderThickness="0,1,0,0"
-                                    ColumnSpacing="16"
-                                    Visibility="{x:Bind ViewModel.HasProviderCreditSummary, Mode=OneWay}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Spacing="2">
-                                        <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ProviderCreditSummary.Title, Mode=OneWay}" />
-                                        <TextBlock
-                                            Style="{StaticResource ReportDescriptionStyle}"
-                                            Text="{x:Bind ViewModel.ProviderCreditSummary.Detail, Mode=OneWay}" />
-                                    </StackPanel>
-                                    <TextBlock
-                                        Grid.Column="1"
-                                        Typography.NumeralAlignment="Tabular"
-                                        Text="{x:Bind ViewModel.ProviderCreditSummary.Value, Mode=OneWay}"
-                                        VerticalAlignment="Center" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-
                     <Expander x:Name="DashboardFullBreakdown" Collapsed="OnDashboardDetailsCollapsed" x:Uid="UsageDashboardAllDetails" AutomationProperties.AutomationId="UsageDashboardFullBreakdown" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                         <StackPanel Spacing="7">
                             <Grid>
@@ -2828,39 +2883,55 @@
                                     SelectedItem="{x:Bind ViewModel.ResetLogClass, Mode=TwoWay}" MinWidth="180"
                                     Style="{StaticResource ReportToolbarComboBoxStyle}" />
                             </StackPanel>
-                            <TextBlock x:Uid="UsageReportResetLogEmpty" Visibility="{x:Bind ViewModel.HasEmptyResetLog, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Uid="UsageReportResetLogEmpty" Visibility="{x:Bind ViewModel.HasEmptyResetLog, Mode=OneWay}" Style="{StaticResource ReportDescriptionStyle}" />
+                            <TextBlock Text="{x:Bind ViewModel.ResetLogSummary, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasResetLog, Mode=OneWay}"
+                                Style="{StaticResource ReportDescriptionStyle}" TextWrapping="Wrap" />
+                            <!-- Newest first. The type mark is the same triangle the chart draws on that day. -->
                             <Grid Padding="0,4" ColumnSpacing="12" Visibility="{x:Bind ViewModel.HasResetLog, Mode=OneWay}">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1.2*" />
+                                    <ColumnDefinition Width="0.9*" />
                                     <ColumnDefinition Width="1.4*" />
-                                    <ColumnDefinition Width="1.2*" />
+                                    <ColumnDefinition Width="1.5*" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="1.4*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="UsageReportResetLogWhen" Style="{StaticResource ReportDescriptionStyle}" />
-                                <TextBlock x:Uid="UsageReportResetLogQuotaColumn" Grid.Column="1" Style="{StaticResource ReportDescriptionStyle}" />
-                                <TextBlock x:Uid="UsageReportResetLogExpected" Grid.Column="2" Style="{StaticResource ReportDescriptionStyle}" />
-                                <TextBlock x:Uid="UsageReportResetLogClassColumn" Grid.Column="3" Style="{StaticResource ReportDescriptionStyle}" />
-                                <TextBlock x:Uid="UsageReportResetLogEvidence" Grid.Column="4" Style="{StaticResource ReportDescriptionStyle}" />
+                                <TextBlock x:Uid="UsageReportResetLogWhen" Style="{StaticResource ReportSectionLabelStyle}" />
+                                <TextBlock x:Uid="UsageReportResetLogQuotaColumn" Grid.Column="1" Style="{StaticResource ReportSectionLabelStyle}" />
+                                <TextBlock x:Uid="UsageReportResetLogClassColumn" Grid.Column="2" Style="{StaticResource ReportSectionLabelStyle}" />
+                                <TextBlock x:Uid="UsageReportResetLogExpected" Grid.Column="3" Style="{StaticResource ReportSectionLabelStyle}" TextAlignment="Right" />
                             </Grid>
                             <ItemsRepeater AutomationProperties.AutomationId="UsageReportResetLog" ItemsSource="{x:Bind ViewModel.ResetLogRows, Mode=OneWay}">
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="reports:UsageReportResetLogRow">
-                                        <ContentControl Style="{StaticResource ReportTableRowStyle}"
+                                        <ContentControl Style="{StaticResource ReportTableRowStyle}" AutomationProperties.Name="{x:Bind AutomationName}"
                                             PointerEntered="OnTableRowPointerEntered" PointerExited="OnTableRowPointerExited">
                                         <Grid Padding="0,8" ColumnSpacing="12" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.2*" />
+                                                <ColumnDefinition Width="0.9*" />
                                                 <ColumnDefinition Width="1.4*" />
-                                                <ColumnDefinition Width="1.2*" />
+                                                <ColumnDefinition Width="1.5*" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="1.4*" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{x:Bind WhenText}" FontSize="12" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind WhenText}" />
-                                            <TextBlock Grid.Column="1" Text="{x:Bind QuotaText}" FontSize="12" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind QuotaText}" />
-                                            <TextBlock Grid.Column="2" Text="{x:Bind ExpectedText}" FontSize="12" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ExpectedText}" />
-                                            <TextBlock Grid.Column="3" Text="{x:Bind ClassText}" FontSize="12" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ClassText}" />
-                                            <TextBlock Grid.Column="4" Text="{x:Bind EvidenceText}" FontSize="12" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind EvidenceText}" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind DayText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind TimeText}" Style="{StaticResource ReportDescriptionStyle}" Typography.NumeralAlignment="Tabular" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <controls:ProviderMarkImage Width="16" Height="16" ProviderId="{x:Bind ProviderId}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{x:Bind QuotaText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                    ToolTipService.ToolTip="{x:Bind QuotaText}" />
+                                            </StackPanel>
+                                            <Grid Grid.Column="2" ColumnSpacing="8" VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <controls:ReportToneIcon Kind="triangle-inverted" Tone="{x:Bind KindTone}" Width="11" Height="11"
+                                                    VerticalAlignment="Top" Margin="0,4,0,0" />
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{x:Bind KindText}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind KindText}" />
+                                                    <TextBlock Text="{x:Bind EvidenceText}" Style="{StaticResource ReportDescriptionStyle}" TextTrimming="CharacterEllipsis"
+                                                        ToolTipService.ToolTip="{x:Bind EvidenceText}" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock Grid.Column="3" Text="{x:Bind TimingText}" TextAlignment="Right" VerticalAlignment="Center"
+                                                TextWrapping="Wrap" MaxLines="2" ToolTipService.ToolTip="{x:Bind TimingDetail}" />
                                         </Grid>
                                         </ContentControl>
                                     </DataTemplate>

@@ -561,6 +561,8 @@ public sealed partial class UsageReportPage : Page
         Grid.SetColumn(ReportMetricControls, wrap ? 0 : 2);
         Grid.SetRow(ReportValueControls, wrap ? 2 : 0);
         Grid.SetColumn(ReportValueControls, wrap ? 1 : 3);
+        Grid.SetRow(ReportFilterControls, wrap ? 2 : 0);
+        Grid.SetColumn(ReportFilterControls, wrap ? 2 : 4);
         Grid.SetColumnSpan(ReportScopeControls, wrap ? 2 : 1);
         Grid.SetColumnSpan(ReportPeriodControls, wrap ? 2 : 1);
         // Narrow filters: the search keeps a full row; model and More filters move below it.
@@ -581,8 +583,8 @@ public sealed partial class UsageReportPage : Page
     {
         if (sender is not ItemsRepeater { Layout: UniformGridLayout layout }) return;
         // Give the template a finite width without scaling its height with ItemsStretch.Fill.
-        int columns = Math.Clamp((int)((e.NewSize.Width + 14) / 254), 1, 4);
-        double width = Math.Floor((e.NewSize.Width - (columns - 1) * 14) / columns);
+        int columns = Math.Clamp((int)((e.NewSize.Width + 20) / 260), 1, 4);
+        double width = Math.Floor((e.NewSize.Width - (columns - 1) * 20) / columns);
         if (width > 0 && Math.Abs(layout.MinItemWidth - width) >= 0.5)
             layout.MinItemWidth = width;
     }
@@ -682,6 +684,10 @@ public sealed partial class UsageReportPage : Page
 
         if (e.PropertyName == nameof(UsageReportViewModel.CycleSummaries)) UpdateCycleSummaryLayout();
         if (e.PropertyName == nameof(UsageReportViewModel.TokenMixCacheRead)) RevealTokenMix();
+        if (_loadedOnce && e.PropertyName is nameof(UsageReportViewModel.SelectedProvider)
+            or nameof(UsageReportViewModel.ProviderOptions))
+            _ = DispatcherQueue.TryEnqueue(SynchronizeProviderTabs);
+        if (e.PropertyName == nameof(UsageReportViewModel.IsFilterPanelOpen) && ViewModel.IsFilterPanelOpen) RevealFilters();
         if (e.PropertyName is nameof(UsageReportViewModel.HasDashboardProjects)
             or nameof(UsageReportViewModel.HasDashboardActivity)
             or nameof(UsageReportViewModel.HasDashboardOperationsCard))
