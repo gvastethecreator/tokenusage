@@ -46,8 +46,10 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
             ValidateFinalOrigin(response.RequestMessage?.RequestUri);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                byte[] notFoundContent = await ReadBoundedContentAsync(
+                byte[] notFoundContent = await ProviderHttpResponse.ReadBoundedAsync(
                     response.Content,
+                    MaximumResponseBytes,
+                    ContractFailure,
                     cancellationToken).ConfigureAwait(false);
                 return ParseNotFound(notFoundContent);
             }
@@ -57,8 +59,10 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
                 throw CreateStatusException(response);
             }
 
-            byte[] content = await ReadBoundedContentAsync(
+            byte[] content = await ProviderHttpResponse.ReadBoundedAsync(
                 response.Content,
+                MaximumResponseBytes,
+                ContractFailure,
                 cancellationToken).ConfigureAwait(false);
             QuotaDocument? document = JsonSerializer.Deserialize<QuotaDocument>(content, JsonOptions);
             return new VercelGatewayQuotaLookupResult.Found(Map(document, entityId));
@@ -191,58 +195,11 @@ public sealed class VercelGatewayQuotaClient : IVercelGatewayQuotaClient
             HttpStatusCode.TooManyRequests => new(
                 VercelGatewayQuotaErrorKind.Throttled,
                 "Vercel AI Gateway asked TokenUsage to retry later.",
-                ReadRetryAfter(response.Headers.RetryAfter)),
+                ProviderHttpResponse.ReadRetryAfter(response.Headers.RetryAfter)),
             _ => new(
                 VercelGatewayQuotaErrorKind.Transient,
                 "Vercel AI Gateway could not return the API key budget."),
         };
-
-    private static TimeSpan? ReadRetryAfter(RetryConditionHeaderValue? retryAfter)
-    {
-        if (retryAfter?.Delta is TimeSpan delta)
-        {
-            return delta < TimeSpan.Zero ? TimeSpan.Zero : delta;
-        }
-
-        if (retryAfter?.Date is DateTimeOffset date)
-        {
-            TimeSpan remaining = date - DateTimeOffset.UtcNow;
-            return remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
-        }
-
-        return null;
-    }
-
-    private static async Task<byte[]> ReadBoundedContentAsync(
-        HttpContent content,
-        CancellationToken cancellationToken)
-    {
-        if (content.Headers.ContentLength > MaximumResponseBytes)
-        {
-            throw ContractFailure();
-        }
-
-        await using Stream source = await content
-            .ReadAsStreamAsync(cancellationToken)
-            .ConfigureAwait(false);
-        using var destination = new MemoryStream();
-        var buffer = new byte[8192];
-        while (true)
-        {
-            int read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0)
-            {
-                return destination.ToArray();
-            }
-
-            if (destination.Length + read > MaximumResponseBytes)
-            {
-                throw ContractFailure();
-            }
-
-            destination.Write(buffer, 0, read);
-        }
-    }
 
     private static VercelGatewayQuotaException ContractFailure() =>
         new(

@@ -332,11 +332,21 @@ public sealed class OpenRouterClientTests
         Assert.Equal(OpenRouterClientErrorKind.Contract, queryException.Kind);
     }
 
-    [Fact]
-    public async Task OversizedSuccessResponseIsRejectedBeforeParsing()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task OversizedSuccessResponseIsRejectedBeforeParsing(bool hasContentLength)
     {
-        string body = new('x', (64 * 1024) + 1);
-        var client = CreateClient(Json(HttpStatusCode.OK, body));
+        string body = CreditsJson + new string(' ', 64 * 1024);
+        HttpResponseMessage response = Json(HttpStatusCode.OK, body);
+        if (!hasContentLength)
+        {
+            response.Content.Dispose();
+            response.Content = new StreamContent(new NonSeekableReadStream(
+                System.Text.Encoding.UTF8.GetBytes(body)));
+            Assert.Null(response.Content.Headers.ContentLength);
+        }
+        var client = CreateClient(response);
 
         OpenRouterClientException exception = await Assert.ThrowsAsync<OpenRouterClientException>(
             () => client.GetCreditsAsync(ManagementSecret));
@@ -413,6 +423,11 @@ public sealed class OpenRouterClientTests
             Requests.Add(request);
             return Task.FromResult(send(request, cancellationToken));
         }
+    }
+
+    private sealed class NonSeekableReadStream(byte[] bytes) : MemoryStream(bytes)
+    {
+        public override bool CanSeek => false;
     }
 
     private sealed class FailingReadStream : Stream

@@ -236,7 +236,11 @@ public sealed class CopilotClient : ICopilotClient
                 throw CreateStatusException(response, operation);
             }
 
-            return await ReadBoundedContentAsync(response.Content, operation, cancellationToken)
+            return await ProviderHttpResponse.ReadBoundedAsync(
+                response.Content,
+                MaximumResponseBytes,
+                () => ContractFailure(operation),
+                cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -316,59 +320,11 @@ public sealed class CopilotClient : ICopilotClient
             HttpStatusCode.TooManyRequests => new(
                 CopilotClientErrorKind.Throttled,
                 "GitHub asked TokenUsage to retry later.",
-                ReadRetryAfter(response.Headers.RetryAfter)),
+                ProviderHttpResponse.ReadRetryAfter(response.Headers.RetryAfter)),
             _ => new(
                 CopilotClientErrorKind.Transient,
                 $"GitHub could not return the {operation}."),
         };
-
-    private static TimeSpan? ReadRetryAfter(RetryConditionHeaderValue? retryAfter)
-    {
-        if (retryAfter?.Delta is TimeSpan delta)
-        {
-            return delta < TimeSpan.Zero ? TimeSpan.Zero : delta;
-        }
-
-        if (retryAfter?.Date is DateTimeOffset date)
-        {
-            TimeSpan remaining = date - DateTimeOffset.UtcNow;
-            return remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
-        }
-
-        return null;
-    }
-
-    private static async Task<byte[]> ReadBoundedContentAsync(
-        HttpContent content,
-        string operation,
-        CancellationToken cancellationToken)
-    {
-        if (content.Headers.ContentLength > MaximumResponseBytes)
-        {
-            throw ContractFailure(operation);
-        }
-
-        await using Stream source = await content
-            .ReadAsStreamAsync(cancellationToken)
-            .ConfigureAwait(false);
-        using var destination = new MemoryStream();
-        var buffer = new byte[81920];
-        while (true)
-        {
-            int read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0)
-            {
-                return destination.ToArray();
-            }
-
-            if (destination.Length + read > MaximumResponseBytes)
-            {
-                throw ContractFailure(operation);
-            }
-
-            destination.Write(buffer, 0, read);
-        }
-    }
 
     private static Uri BuildUserAiCreditUsageEndpoint(string username) =>
         new(

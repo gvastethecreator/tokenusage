@@ -53,8 +53,10 @@ public sealed class VercelGatewayReportClient : IVercelGatewayReportClient
                 throw CreateStatusException(response);
             }
 
-            byte[] content = await ReadBoundedContentAsync(
+            byte[] content = await ProviderHttpResponse.ReadBoundedAsync(
                 response.Content,
+                MaximumResponseBytes,
+                ContractFailure,
                 cancellationToken).ConfigureAwait(false);
             ReportDocument? document = JsonSerializer.Deserialize<ReportDocument>(
                 content,
@@ -144,58 +146,11 @@ public sealed class VercelGatewayReportClient : IVercelGatewayReportClient
             HttpStatusCode.TooManyRequests => new(
                 VercelGatewayReportErrorKind.Throttled,
                 "Vercel AI Gateway asked TokenUsage to retry later.",
-                ReadRetryAfter(response.Headers.RetryAfter)),
+                ProviderHttpResponse.ReadRetryAfter(response.Headers.RetryAfter)),
             _ => new(
                 VercelGatewayReportErrorKind.Transient,
                 "Vercel AI Gateway could not return the report."),
         };
-
-    private static TimeSpan? ReadRetryAfter(RetryConditionHeaderValue? retryAfter)
-    {
-        if (retryAfter?.Delta is TimeSpan delta)
-        {
-            return delta < TimeSpan.Zero ? TimeSpan.Zero : delta;
-        }
-
-        if (retryAfter?.Date is DateTimeOffset date)
-        {
-            TimeSpan remaining = date - DateTimeOffset.UtcNow;
-            return remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
-        }
-
-        return null;
-    }
-
-    private static async Task<byte[]> ReadBoundedContentAsync(
-        HttpContent content,
-        CancellationToken cancellationToken)
-    {
-        if (content.Headers.ContentLength > MaximumResponseBytes)
-        {
-            throw ContractFailure();
-        }
-
-        await using Stream source = await content
-            .ReadAsStreamAsync(cancellationToken)
-            .ConfigureAwait(false);
-        using var destination = new MemoryStream();
-        var buffer = new byte[81920];
-        while (true)
-        {
-            int read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0)
-            {
-                return destination.ToArray();
-            }
-
-            if (destination.Length + read > MaximumResponseBytes)
-            {
-                throw ContractFailure();
-            }
-
-            destination.Write(buffer, 0, read);
-        }
-    }
 
     private static VercelGatewayReport Map(
         ReportDocument? document,
