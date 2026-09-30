@@ -10,6 +10,23 @@ public sealed class CodexAppServerClientTests
     private const long SecondaryReset = 1_800_100_000;
 
     [Fact]
+    public async Task AccountBindingRejectsDifferentHomeOrEmailWithoutEchoingSensitiveValues()
+    {
+        string home = Path.GetTempPath();
+        using var wrongHome = new ScriptedCodexJsonlPeer("""{"id":1,"result":{"codexHome":"DIFFERENT_PRIVATE_HOME"}}""");
+        await using var first = wrongHome.CreateClient(new CodexClientOptions("test", "1", expectedHome: home));
+        var homeError = await Assert.ThrowsAsync<CodexProtocolException>(() => first.HandshakeAsync(CancellationToken.None));
+        Assert.DoesNotContain("DIFFERENT_PRIVATE_HOME", homeError.Message, StringComparison.Ordinal);
+        using var wrongEmail = new ScriptedCodexJsonlPeer(
+            System.Text.Json.JsonSerializer.Serialize(new { id = 1, result = new { codexHome = home } }),
+            """{"id":2,"result":{"account":{"type":"chatgpt","email":"wrong@example.test","planType":"pro"},"requiresOpenaiAuth":true}}""");
+        await using var second = wrongEmail.CreateClient(new CodexClientOptions("test", "1", expectedHome: home, expectedEmail: "expected@example.test"));
+        await second.HandshakeAsync(CancellationToken.None);
+        var emailError = await Assert.ThrowsAsync<CodexProtocolException>(() => second.ReadAccountStatusAsync(CancellationToken.None));
+        Assert.DoesNotContain("@", emailError.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task HandshakeAndRateLimitReadUseTheCurrentJsonlContract()
     {
         using var peer = new ScriptedCodexJsonlPeer(

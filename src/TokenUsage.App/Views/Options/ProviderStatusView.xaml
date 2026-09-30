@@ -10,6 +10,7 @@
     xmlns:dashboard="using:TokenUsage.App.ViewModels.Dashboard"
     xmlns:options="using:TokenUsage.App.Views.Options"
     xmlns:viewModels="using:TokenUsage.App.ViewModels"
+    xmlns:surfaces="using:TokenUsage.App.ViewModels.Surfaces"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -186,6 +187,34 @@
                         IsTextScaleFactorEnabled="False" />
                 </Button>
             </Grid>
+
+            <Expander x:Uid="CodexAccountsSection" HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch" Visibility="{x:Bind ViewModel.Accounts.IsAvailable}">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="CodexAccountsDescription" TextWrapping="Wrap" />
+                    <Button x:Uid="CodexAccountsDiscover" AutomationProperties.AutomationId="CodexAccountsDiscover"
+                            Command="{x:Bind ViewModel.Accounts.DiscoverCommand}" />
+                    <ProgressRing IsActive="{x:Bind ViewModel.Accounts.IsBusy, Mode=OneWay}" Width="20" Height="20" />
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.Accounts.Choices, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="surfaces:ProviderAccountChoice">
+                                <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" IsEnabled="{x:Bind CanSelect}"
+                                          AutomationProperties.AutomationId="{x:Bind AutomationId}"
+                                          AutomationProperties.Name="{x:Bind Label}">
+                                    <StackPanel><TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{x:Bind Status}" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button x:Uid="CodexAccountsSave" AutomationProperties.AutomationId="CodexAccountsSave"
+                            IsEnabled="{x:Bind ViewModel.Accounts.CanSave, Mode=OneWay}"
+                            Command="{x:Bind ViewModel.Accounts.SaveCommand}" />
+                    <TextBlock Text="{x:Bind ViewModel.Accounts.StatusText, Mode=OneWay}" TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite" />
+                </StackPanel>
+            </Expander>
 
             <ItemsControl
                 x:Name="ProviderStatusList"

@@ -83,13 +83,17 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         TimeProvider? clock = null,
         Func<string, ProviderCreditSummary?>? getProviderCreditSummary = null,
         AttributionConsentStore? attributionConsent = null,
-        AttributionAliasStore? attributionAliases = null)
+        AttributionAliasStore? attributionAliases = null,
+        Func<IReadOnlyList<CodexAccountQuota>>? getAccountQuotas = null,
+        Func<bool>? usesCodexAccounts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         _databasePath = Path.GetFullPath(databasePath);
         _refreshSourceAsync = refreshSourceAsync
             ?? throw new ArgumentNullException(nameof(refreshSourceAsync));
         _getProviderLimits = getProviderLimits ?? (_ => []);
+        _getAccountQuotas = getAccountQuotas ?? (() => []);
+        _usesCodexAccounts = usesCodexAccounts ?? (() => false);
         _getProviderCreditSummary = getProviderCreditSummary ?? (_ => null);
         _resetHistoryStore = resetHistoryStore;
         _clock = clock ?? TimeProvider.System;

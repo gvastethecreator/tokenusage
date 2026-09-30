@@ -25,7 +25,7 @@ public sealed class AlertNotificationDispatcher
         foreach (AlertNotificationIntent intent in intents)
         {
             AlertNotificationMessage message = CreateMessage(intent);
-            await _sink.ShowAsync(message, cancellationToken).ConfigureAwait(false);
+            await _sink.ShowAsync(message, cancellationToken).ConfigureAwait(true);
         }
     }
 
@@ -34,6 +34,12 @@ public sealed class AlertNotificationDispatcher
         ArgumentNullException.ThrowIfNull(intent);
         AlertCandidate candidate = intent.Candidate;
         string providerName = ProviderDisplayName.Resolve(intent.ProviderId, _getString);
+        if (intent.Account is { } account)
+        {
+            string label = account.Alias ?? string.Format(CultureInfo.CurrentCulture,
+                _getString("CodexAccountProfileFormat"), account.Number);
+            providerName += " · " + (label.Length > 36 ? label[..35] + "…" : label);
+        }
         return intent.Kind switch
         {
             AlertKind.QuotaThreshold => new AlertNotificationMessage(
@@ -43,7 +49,7 @@ public sealed class AlertNotificationDispatcher
                     _getString("AlertQuotaBodyFormat"),
                     Math.Round(candidate.RemainingPercent ?? 0m),
                     candidate.ThresholdPercent ?? 0),
-                CreateQuotaTarget(candidate)),
+                CreateQuotaTarget(intent)),
             AlertKind.ExhaustionForecast => new AlertNotificationMessage(
                 string.Format(CultureInfo.CurrentCulture, _getString("AlertExhaustionTitleFormat"), providerName),
                 string.Format(
@@ -51,7 +57,7 @@ public sealed class AlertNotificationDispatcher
                     _getString("AlertExhaustionBodyFormat"),
                     candidate.ProjectedExhaustionAtUtc?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)
                         ?? _getString("AlertTimeUnavailable")),
-                CreateQuotaTarget(candidate)),
+                CreateQuotaTarget(intent)),
             AlertKind.StaleData => new AlertNotificationMessage(
                 string.Format(CultureInfo.CurrentCulture, _getString("AlertStaleTitleFormat"), providerName),
                 _getString("AlertStaleBody"),
@@ -64,9 +70,11 @@ public sealed class AlertNotificationDispatcher
         };
     }
 
-    private static AlertActivationTarget CreateQuotaTarget(AlertCandidate candidate) =>
-        new(
+    private static AlertActivationTarget CreateQuotaTarget(AlertNotificationIntent intent) =>
+        intent.Account is not null
+            ? new(AlertActivationArea.ProviderStatus, intent.ProviderId)
+            : new(
             AlertActivationArea.QuotaReport,
-            candidate.ConditionKey.ProviderId.Value,
-            candidate.ConditionKey.MetricId!.Value);
+            intent.Candidate.ConditionKey.ProviderId.Value,
+            intent.Candidate.ConditionKey.MetricId!.Value);
 }

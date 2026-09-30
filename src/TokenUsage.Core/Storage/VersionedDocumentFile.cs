@@ -57,6 +57,22 @@ public sealed class VersionedDocumentFile
 
     public bool Exists => File.Exists(DocumentPath);
 
+    // Account stores must distinguish a missing document from access denied.
+    public bool ExistsStrict
+    {
+        get
+        {
+            try
+            {
+                if ((File.GetAttributes(DocumentPath) & FileAttributes.Directory) != 0)
+                    throw new IOException("The document path is not a file.");
+                return true;
+            }
+            catch (FileNotFoundException) { return false; }
+            catch (DirectoryNotFoundException) { return false; }
+        }
+    }
+
     public Task<TResult> RunLockedAsync<TResult>(
         Func<TResult> operation,
         CancellationToken cancellationToken = default)

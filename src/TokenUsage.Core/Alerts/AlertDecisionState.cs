@@ -42,9 +42,11 @@ public sealed class AlertDecisionStore
     public const int MaxDocumentBytes = 64 * 1024;
 
     private readonly VersionedDocumentFile _document;
+    private readonly ProviderInstanceKey? _scope;
 
-    public AlertDecisionStore(string documentPath, TimeProvider? clock = null)
+    public AlertDecisionStore(string documentPath, TimeProvider? clock = null, ProviderInstanceKey? scope = null)
     {
+        _scope = scope;
         _document = new VersionedDocumentFile(
             documentPath,
             mutexNamePrefix: "TokenUsage.AlertDecisionStore",
@@ -69,7 +71,7 @@ public sealed class AlertDecisionStore
 
     private AlertDecisionState LoadCore()
     {
-        if (!_document.Exists)
+        if (!(_scope is null ? _document.Exists : _document.ExistsStrict))
         {
             return new AlertDecisionState();
         }
@@ -80,6 +82,11 @@ public sealed class AlertDecisionStore
             using JsonDocument parsed = JsonDocument.Parse(
                 VersionedDocumentFile.RemoveUtf8Preamble(bytes),
                 new JsonDocumentOptions { MaxDepth = 8 });
+            if (_scope is not null && (!parsed.RootElement.TryGetProperty("providerId", out JsonElement provider)
+                || provider.GetString() != _scope.ProviderId.Value
+                || !parsed.RootElement.TryGetProperty("accountKey", out JsonElement account)
+                || account.GetString() != _scope.AccountKey))
+                throw new IOException("Alert decisions belong to a different account.");
             if (parsed.RootElement.ValueKind != JsonValueKind.Object
                 || !parsed.RootElement.TryGetProperty("schemaVersion", out JsonElement versionElement)
                 || !versionElement.TryGetInt32(out int version)
@@ -87,6 +94,7 @@ public sealed class AlertDecisionStore
                 || !parsed.RootElement.TryGetProperty("notifiedKeys", out JsonElement keysElement)
                 || keysElement.ValueKind != JsonValueKind.Array)
             {
+                if (_scope is not null) throw new IOException("Account alert decisions are unreadable or unsupported.");
                 _ = _document.QuarantineCorrupt();
                 return new AlertDecisionState();
             }
@@ -107,6 +115,7 @@ public sealed class AlertDecisionStore
             or VersionedDocumentFormatException
             or InvalidOperationException)
         {
+            if (_scope is not null) throw new IOException("Account alert decisions are unreadable and were preserved.");
             if (_document.Exists)
             {
                 _ = _document.QuarantineCorrupt();
@@ -118,11 +127,17 @@ public sealed class AlertDecisionStore
 
     private void SaveCore(AlertDecisionState state)
     {
+        if (_scope is not null) _ = LoadCore();
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
         {
             writer.WriteStartObject();
             writer.WriteNumber("schemaVersion", SchemaVersion);
+            if (_scope is not null)
+            {
+                writer.WriteString("providerId", _scope.ProviderId.Value);
+                writer.WriteString("accountKey", _scope.AccountKey);
+            }
             writer.WritePropertyName("notifiedKeys");
             writer.WriteStartArray();
             foreach (string key in state.NotifiedConditionKeys.OrderBy(value => value, StringComparer.Ordinal))

@@ -9,24 +9,32 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
 {
     private readonly CodexClientOptions _clientOptions;
     private readonly TimeProvider _clock;
-    private readonly Channel<bool> _processSlot;
+    private static readonly Channel<bool> ProcessSlot = CreateProcessSlot();
+    private readonly string? _codexHome;
 
     public CodexAppServerQuotaClientFactory(
         TimeProvider clock,
-        CodexClientOptions? clientOptions = null)
+        CodexClientOptions? clientOptions = null,
+        string? codexHome = null)
     {
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _clientOptions = clientOptions ?? new CodexClientOptions(
             "tokenusage",
             "0.1.0",
             "TokenUsage");
-        _processSlot = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
+        _codexHome = codexHome;
+    }
+
+    private static Channel<bool> CreateProcessSlot()
+    {
+        var slot = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
         {
             FullMode = BoundedChannelFullMode.Wait,
             SingleReader = false,
             SingleWriter = false,
         });
-        _processSlot.Writer.TryWrite(true);
+        slot.Writer.TryWrite(true);
+        return slot;
     }
 
     public ValueTask<CodexClientAvailability> DetectAsync(
@@ -48,7 +56,7 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await _processSlot.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        await ProcessSlot.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         bool processSlotTransferred = false;
         try
         {
@@ -62,7 +70,7 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
             try
             {
                 process = await Task.Run(
-                    () => CodexAppServerProcess.Start(executable),
+                    () => CodexAppServerProcess.Start(executable, new CodexAppServerProcessOptions(codexHome: _codexHome)),
                     CancellationToken.None).ConfigureAwait(false);
             }
             catch (CodexAppServerProcessException)
@@ -103,7 +111,7 @@ public sealed class CodexAppServerQuotaClientFactory : ICodexQuotaClientFactory
 
     private void ReleaseProcessSlot()
     {
-        if (!_processSlot.Writer.TryWrite(true))
+        if (!ProcessSlot.Writer.TryWrite(true))
         {
             throw new InvalidOperationException("The Codex process slot could not be released.");
         }

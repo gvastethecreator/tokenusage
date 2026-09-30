@@ -23,16 +23,18 @@ public sealed class SnapshotStore
 
     private readonly TimeProvider _clock;
     private readonly VersionedDocumentFile _document;
+    private readonly ProviderInstanceKey? _scope;
 
     public SnapshotStore(string documentPath)
         : this(documentPath, TimeProvider.System)
     {
     }
 
-    public SnapshotStore(string documentPath, TimeProvider clock)
+    public SnapshotStore(string documentPath, TimeProvider clock, ProviderInstanceKey? scope = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(documentPath);
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _scope = scope;
         _document = new VersionedDocumentFile(
             documentPath,
             mutexNamePrefix: "TokenUsage.SnapshotStore",
@@ -41,6 +43,8 @@ public sealed class SnapshotStore
     }
 
     public string DocumentPath => _document.DocumentPath;
+
+    public ProviderInstanceKey? Scope => _scope;
 
     public Task<SnapshotCacheReadResult> LoadAsync(CancellationToken cancellationToken = default) =>
         _document.RunLockedAsync(LoadCore, cancellationToken);
@@ -70,6 +74,11 @@ public sealed class SnapshotStore
     {
         ArgumentNullException.ThrowIfNull(snapshots);
         ProviderSnapshot[] snapshotArray = snapshots.ToArray();
+        if (snapshotArray.Any(snapshot => snapshot is not null
+            && (_scope is null ? snapshot.InstanceKey.AccountKey is not null : snapshot.InstanceKey != _scope)))
+        {
+            throw new InvalidOperationException("The snapshot does not belong to this store.");
+        }
         if (snapshotArray.Any(snapshot => snapshot is null))
         {
             throw new ArgumentException("Snapshots cannot contain null values.", nameof(snapshots));
@@ -99,7 +108,7 @@ public sealed class SnapshotStore
 
     private SnapshotCacheReadResult LoadCore()
     {
-        if (!_document.Exists)
+        if (!(_scope is null ? _document.Exists : _document.ExistsStrict))
         {
             return new SnapshotCacheReadResult.Empty();
         }
@@ -137,7 +146,7 @@ public sealed class SnapshotStore
                 return QuarantineCorrupt();
             }
 
-            return new SnapshotCacheReadResult.Loaded(SnapshotCacheMapper.FromDocument(document));
+            return new SnapshotCacheReadResult.Loaded(ReadSnapshots(document));
         }
         catch (Exception exception) when (IsInvalidDocument(exception))
         {
@@ -184,7 +193,7 @@ public sealed class SnapshotStore
                 return new SnapshotCacheProbeResult.Unreadable();
             }
 
-            IReadOnlyList<ProviderSnapshot> snapshots = SnapshotCacheMapper.FromDocument(document);
+            IReadOnlyList<ProviderSnapshot> snapshots = ReadSnapshots(document);
             return requiredProvider is null
                    || snapshots.Any(snapshot => snapshot.ProviderId == requiredProvider)
                 ? new SnapshotCacheProbeResult.Present()
@@ -202,6 +211,10 @@ public sealed class SnapshotStore
     private SnapshotCacheSaveResult SaveCore(IReadOnlyList<ProviderSnapshot> incoming)
     {
         SnapshotCacheReadResult current = LoadCore();
+        if (_scope is not null && current is SnapshotCacheReadResult.Corrupt)
+        {
+            throw new IOException("The account cache is unreadable and was preserved.");
+        }
         if (current is SnapshotCacheReadResult.UnsupportedVersion unsupported)
         {
             return new SnapshotCacheSaveResult.RefusedUnsupportedVersion(unsupported.SchemaVersion);
@@ -260,12 +273,28 @@ public sealed class SnapshotStore
         SnapshotCacheDocumentV1 document = SnapshotCacheMapper.ToDocument(
             snapshots,
             _clock.GetUtcNow().ToUniversalTime());
+        document.ProviderId = _scope?.ProviderId.Value;
+        document.AccountKey = _scope?.AccountKey;
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(document, SerializerOptions);
         _document.WriteAtomically(bytes, MaximumDocumentBytes);
     }
 
     private SnapshotCacheReadResult.Corrupt QuarantineCorrupt() =>
-        new(_document.QuarantineCorrupt());
+        new(_scope is null ? _document.QuarantineCorrupt() : Path.GetFileName(DocumentPath));
+
+    private IReadOnlyList<ProviderSnapshot> ReadSnapshots(SnapshotCacheDocumentV1 document)
+    {
+        if (document.AccountKey != _scope?.AccountKey || document.ProviderId != _scope?.ProviderId.Value)
+        {
+            throw new IOException("The cache belongs to a different provider account.");
+        }
+
+        IReadOnlyList<ProviderSnapshot> snapshots = SnapshotCacheMapper.FromDocument(document);
+        if (_scope is null) return snapshots;
+        if (snapshots.Any(snapshot => snapshot.ProviderId != _scope.ProviderId))
+            throw new IOException("The account cache contains a different provider.");
+        return snapshots.Select(snapshot => snapshot.ForAccount(_scope.AccountKey!)).ToArray();
+    }
 
     private static bool IsInvalidDocument(Exception exception) =>
         exception is JsonException

@@ -113,7 +113,8 @@ public sealed record WindowsProviderCompositionOptions(
     VercelGatewayRefreshCoordinator? VercelCoordinator = null,
     bool EnableOptInProviders = false,
     IAttributionConsentSource? AttributionConsent = null,
-    IOpaqueKeyDeriver? AttributionKeys = null);
+    IOpaqueKeyDeriver? AttributionKeys = null,
+    bool CodexActiveAccountOnly = false);
 
 public sealed class WindowsProviderComposition
 {
@@ -122,14 +123,18 @@ public sealed class WindowsProviderComposition
     internal WindowsProviderComposition(
         ProviderRefreshHost refreshHost,
         IReadOnlyList<IUsageEventSource> localUsageSources,
-        IReadOnlyDictionary<string, ProviderRefreshRegistration> manualKeyRegistrations)
+        IReadOnlyDictionary<string, ProviderRefreshRegistration> manualKeyRegistrations,
+        CodexAccountService accounts)
     {
         RefreshHost = refreshHost;
         LocalUsageSources = localUsageSources;
         _manualKeyRegistrations = manualKeyRegistrations;
+        Accounts = accounts;
     }
 
     public ProviderRefreshHost RefreshHost { get; }
+
+    public CodexAccountService Accounts { get; }
 
     public IReadOnlyList<IUsageEventSource> LocalUsageSources { get; }
 
@@ -405,10 +410,15 @@ public static class WindowsProviderCatalog
                 item => item.Binding.RefreshRegistration!,
                 StringComparer.Ordinal);
 
+        var accounts = new CodexAccountService(dataDirectory, clock);
+        var refreshHost = new ProviderRefreshHost(registrations, clock)
+        {
+            ResolveRegistrationsAsync = (items, token) => accounts.ResolveAsync(items, token, options.CodexActiveAccountOnly),
+        };
         return new WindowsProviderComposition(
-            new ProviderRefreshHost(registrations, clock),
+            refreshHost,
             Array.AsReadOnly(usageSources),
-            manualKeyRegistrations.AsReadOnly());
+            manualKeyRegistrations.AsReadOnly(), accounts);
     }
 
     private static ProviderBinding CreateVercelBinding(CompositionContext context)

@@ -312,10 +312,15 @@ public sealed class QuotaResetHistoryStore
 
     private readonly VersionedDocumentFile _document;
     private bool _requiresMigrationBackup;
+    private readonly ProviderInstanceKey? _scope;
+    private readonly Func<bool>? _isCodexHistoryFrozen;
 
-    public QuotaResetHistoryStore(string documentPath, TimeProvider? clock = null)
+    public QuotaResetHistoryStore(string documentPath, TimeProvider? clock = null,
+        ProviderInstanceKey? scope = null, Func<bool>? isCodexHistoryFrozen = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(documentPath);
+        _scope = scope;
+        _isCodexHistoryFrozen = isCodexHistoryFrozen;
         TimeProvider effectiveClock = clock ?? TimeProvider.System;
         _document = new VersionedDocumentFile(
             documentPath,
@@ -326,7 +331,7 @@ public sealed class QuotaResetHistoryStore
 
     public string DocumentPath => _document.DocumentPath;
 
-    public QuotaObservationJournal Journal => new(DocumentPath + ".observations.db");
+    public QuotaObservationJournal Journal => new(DocumentPath + ".observations.db", _scope);
 
     public Task<QuotaResetHistory> LoadAsync(CancellationToken cancellationToken = default) =>
         _document.RunLockedAsync(LoadCore, cancellationToken);
@@ -358,6 +363,10 @@ public sealed class QuotaResetHistoryStore
     private QuotaResetHistory ObserveCore(ProviderSnapshot snapshot)
     {
         QuotaResetHistory history = LoadCore();
+        if (_scope is null && snapshot.ProviderId.Value == "codex" && _isCodexHistoryFrozen?.Invoke() == true)
+            return history;
+        if (_scope is null ? snapshot.InstanceKey.AccountKey is not null : snapshot.InstanceKey != _scope)
+            throw new InvalidDataException("The reading does not belong to this quota history.");
         DateTimeOffset watermark = history.ProviderWatermarks
             .Where(item => item.ProviderId == snapshot.ProviderId.Value)
             .Select(item => item.ObservedAtUtc)
@@ -554,7 +563,7 @@ public sealed class QuotaResetHistoryStore
 
     private QuotaResetHistory LoadCore()
     {
-        if (!_document.Exists)
+        if (!(_scope is null ? _document.Exists : _document.ExistsStrict))
         {
             return QuotaResetHistory.Empty;
         }
@@ -589,6 +598,8 @@ public sealed class QuotaResetHistoryStore
             DocumentV2? document = JsonSerializer.Deserialize<DocumentV2>(
                 json.Span,
                 SerializerOptions);
+            if (document is not null && (document.ProviderId != _scope?.ProviderId.Value
+                || document.AccountKey != _scope?.AccountKey)) return RejectInvalid();
             return document is null ? RejectInvalid() : FromDocumentV2(document);
         }
         catch (QuotaResetHistoryVersionException)
@@ -617,6 +628,8 @@ public sealed class QuotaResetHistoryStore
         var document = new DocumentV2
         {
             SchemaVersion = CurrentSchemaVersion,
+            ProviderId = _scope?.ProviderId.Value,
+            AccountKey = _scope?.AccountKey,
             Windows = history.Windows.ToList(),
             Resets = history.Resets.ToList(),
             Replenishments = history.Replenishments.ToList(),
@@ -907,6 +920,8 @@ public sealed class QuotaResetHistoryStore
     private sealed class DocumentV2
     {
         public int SchemaVersion { get; set; }
+        public string? ProviderId { get; set; }
+        public string? AccountKey { get; set; }
 
         public List<QuotaResetWindowState>? Windows { get; set; }
 

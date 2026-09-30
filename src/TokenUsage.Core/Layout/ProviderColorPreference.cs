@@ -51,7 +51,7 @@ public static class ProviderColorPreference
         ["antigravity"] = "#4285F4",
         ["amp"] = "#F34E3F",
         ["claude"] = "#DE7356",
-        ["codex"] = "#10A37F",
+        ["codex"] = "#8AB4F8",
         ["copilot"] = "#8B5CF6",
         ["cursor"] = "#D7D7D7",
         ["devin"] = "#7C3AED",

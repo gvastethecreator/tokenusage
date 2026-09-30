@@ -1100,6 +1100,8 @@
                     </Border>
                 </StackPanel>
 
+                <TextBlock x:Uid="CodexUnassignedHistory" TextWrapping="Wrap" Margin="14,6"
+                           Visibility="{x:Bind ViewModel.UsesCodexAccounts, Mode=OneWay}" />
                 <Border
                     Padding="14,10"
                     Style="{StaticResource ReportCardStyle}"
@@ -1677,6 +1679,7 @@
                                     <controls:ReportToneIcon Kind="gauge" Tone="Violet" />
                                     <TextBlock x:Uid="UsageReportLimitsTitle" Style="{StaticResource ReportSectionLabelStyle}" />
                                 </StackPanel>
+                                <controls:CodexAccountQuotaList Items="{x:Bind ViewModel.AccountQuotas, Mode=OneWay}" />
                                 <ItemsRepeater x:Name="ReportProviderLimitsContentRoot"
                                     ItemTemplate="{StaticResource ReportQuotaRowTemplate}" ItemsSource="{x:Bind ViewModel.LimitItems, Mode=OneWay}">
                                     <ItemsRepeater.Layout><StackLayout Spacing="2" /></ItemsRepeater.Layout>

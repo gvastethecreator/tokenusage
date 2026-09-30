@@ -17,7 +17,7 @@ public sealed record QuotaObservation(string ProviderId, string MetricId,
 public sealed record QuotaObservationRange(IReadOnlyList<QuotaObservation> Observations, bool Truncated);
 
 /// <summary>Numeric-only evidence. The provider does not supply request-to-pool attribution.</summary>
-public sealed class QuotaObservationJournal(string path)
+public sealed class QuotaObservationJournal(string path, ProviderInstanceKey? scope = null)
 {
     public const int RetentionDays = 90;
     public const int MaximumRows = 250_000;
@@ -135,6 +135,22 @@ public sealed class QuotaObservationJournal(string path)
             command.CommandText = "PRAGMA user_version;";
             long version = (long)command.ExecuteScalar()!;
             if (version > 1) throw new InvalidDataException("Quota journal schema is newer than supported.");
+            if (scope is not null)
+            {
+                if (version == 0 && !readOnly)
+                {
+                    command.CommandText = "CREATE TABLE IF NOT EXISTS account_scope (id INTEGER PRIMARY KEY CHECK(id=1), provider_id TEXT NOT NULL, account_key TEXT NOT NULL);";
+                    command.ExecuteNonQuery();
+                    command.CommandText = "INSERT OR IGNORE INTO account_scope VALUES (1, $provider, $account);";
+                    command.Parameters.AddWithValue("$provider", scope.ProviderId.Value);
+                    command.Parameters.AddWithValue("$account", scope.AccountKey);
+                    command.ExecuteNonQuery();
+                    command.Parameters.Clear();
+                }
+                command.CommandText = "SELECT provider_id || ':' || account_key FROM account_scope WHERE id=1;";
+                if (!string.Equals(command.ExecuteScalar() as string, scope.Value, StringComparison.Ordinal))
+                    throw new InvalidDataException("The quota journal belongs to a different account.");
+            }
             command.CommandText = readOnly ? "PRAGMA query_only = ON;" : "PRAGMA journal_mode = WAL;";
             command.ExecuteNonQuery();
             return connection;

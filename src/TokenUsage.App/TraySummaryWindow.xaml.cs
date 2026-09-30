@@ -1,6 +1,7 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using TokenUsage.App.ViewModels.Tray;
+using TokenUsage.App.ViewModels;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Platform.Windows.Display;
 using TokenUsage.Platform.Windows.Placement;
@@ -18,21 +19,35 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
 
     private readonly nint _windowHandle;
     private bool _disposed;
+    private bool _contentInitialized;
+    private PlatformRect _iconBounds;
 
     public TraySummaryWindow()
     {
         InitializeComponent();
+        SummaryView.PointerEntered += (_, _) => IsPointerOver = true;
+        SummaryView.PointerExited += (_, _) => IsPointerOver = false;
+        SummaryView.Loaded += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (IsVisible && !_disposed)
+            {
+                SummaryView.MeasureAccountContent();
+                PositionAndShow(_iconBounds);
+            }
+        });
         _windowHandle = WindowNative.GetWindowHandle(this);
         ConfigureWindow();
         AppWindow.Hide();
     }
 
     public bool IsVisible { get; private set; }
+    public bool IsPointerOver { get; private set; }
 
     public void Show(
         IReadOnlyList<TrayProviderSummary> items,
         AppearanceSettings appearance,
-        PlatformRect iconBounds)
+        PlatformRect iconBounds,
+        IReadOnlyList<CodexAccountQuota>? accounts = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(items);
@@ -42,7 +57,8 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
             throw new ArgumentException("The tray icon bounds must have positive size.", nameof(iconBounds));
         }
 
-        SummaryView.Apply(items, appearance);
+        _iconBounds = iconBounds;
+        SummaryView.Apply(items, appearance, accounts);
         PositionAndShow(iconBounds);
         IsVisible = true;
     }
@@ -66,6 +82,7 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
 
         AppWindow.Hide();
         IsVisible = false;
+        IsPointerOver = false;
     }
 
     private void ConfigureWindow()
@@ -124,6 +141,17 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
             iconBounds,
             final.AnchorEdge,
             FlyoutPlacementCalculator.DipsToPixels(IconGapDips, dpi));
+        if (!_contentInitialized)
+        {
+            // WinUI must activate the XAML window once to connect its content tree.
+            // Preserve the foreground window when initializing this hover preview.
+            nint foreground = ForegroundWindowInspector.Current;
+            Activate();
+            _contentInitialized = true;
+            if (ForegroundWindowInspector.IsForeground(_windowHandle))
+                _ = ForegroundWindowActivator.TryActivate(foreground);
+        }
+        AppWindow.Show(activateWindow: false);
         if (!NonActivatingWindowStyle.TryShowAt(_windowHandle, finalBounds))
         {
             AppWindow.MoveAndResize(new RectInt32(

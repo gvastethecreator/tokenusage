@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "1dfcffd826ad774a808e1576895fefe7eec05bd1",
+  "source_commit": "746efbba86b483855978e4e01ce2a85e2c9a5e89",
   "working_tree_dirty": true,
-  "generated_at": "2026-09-28T17:05:10Z",
-  "generation_id": "b20c8bf8c1461cde851bf6507320cefe79c177abc2d6331e9d0223e384a613ba",
+  "generated_at": "2026-09-30T14:15:24Z",
+  "generation_id": "d309a474fbe43ee5a81e3021b84299a5775fdf2f8634474064a70958bae243be",
   "analysis": {
     "version": "syntax-1",
     "digest": "f254907343def68e42baabf08b179db9817a145bc24eaad26add0adf05d75581"
@@ -100,7 +100,7 @@
         "path": "src/TokenUsage.App/App.xaml",
         "origin": "tracked",
         "state": "present",
-        "digest": "af111e35868ff87c61def7e78b99a202ff984f5df7710ef3b74e0e8bbff8814c",
+        "digest": "844403e01d9ec98a9ab23b46df259a9abbae0ab5db6f871507928ad09b900dd3",
         "size": 25688
       },
       {
@@ -114,8 +114,8 @@
         "path": "src/TokenUsage.App/Composition/AppComposition.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "34c2184384a813bf77e42a4a019ad391c3aeca00f8f6ccdc7193f1f0ad6eb0a2",
-        "size": 18194
+        "digest": "8594ca35c540c62303abda267ce5c10cb72d714dad6483e7151a439938dd0e4d",
+        "size": 18423
       },
       {
         "path": "src/TokenUsage.App/Composition/DebugVercelGatewayFakes.cs",
@@ -137,6 +137,20 @@
         "state": "present",
         "digest": "9ba50d02fc864fa237b11a1519a2f41215ac7474c8837224767a72f542deddd2",
         "size": 4691
+      },
+      {
+        "path": "src/TokenUsage.App/Controls/CodexAccountQuotaList.xaml",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "7818b6387b7256dec1b8c23b5069ce6aa813176d85a98c6a2332635334bc900d",
+        "size": 4158
+      },
+      {
+        "path": "src/TokenUsage.App/Controls/CodexAccountQuotaList.xaml.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "2f2c854010de9e59bdc94a167f824eed7ca9d2432afb1828bef834672ee0f69d",
+        "size": 771
       },
       {
         "path": "src/TokenUsage.App/Controls/MotionSettings.cs",
@@ -359,8 +373,8 @@
         "path": "src/TokenUsage.App/MainWindow.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "afa28acc771d6783e13dd8a7d17d4f3bf8b7be5bee91d67b2d9991d4579f5c03",
-        "size": 30805
+        "digest": "23cff96f9d8d306e2048debce2a25ff2c257433691095256f3feaef71892861b",
+        "size": 31289
       },
       {
         "path": "src/TokenUsage.App/Program.cs",
@@ -408,15 +422,15 @@
         "path": "src/TokenUsage.App/TraySummaryWindow.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "c59a235165bcd76c0a0a1fe07d2811000ee07868708eceefebcee9fb0db6992e",
-        "size": 4897
+        "digest": "2ffe78fcbb7fefa91f0d035c951ecef6cb71032fd230ddfb158e84117610f5a0",
+        "size": 6136
       },
       {
         "path": "src/TokenUsage.App/UsageReportWindow.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "4fe607d22d588661f2bd0a08e47211864727e8bc99b517b13d54d002e508b6e8",
-        "size": 6569
+        "digest": "82179fc3fa1d0a7faab24bcee845f13bfd52a85f7f61779d75fc0e4e216c6392",
+        "size": 6819
       },
       {
         "path": "src/TokenUsage.App/ViewModels/FlyoutViewModel.Dashboard.cs",
@@ -429,8 +443,8 @@
         "path": "src/TokenUsage.App/ViewModels/FlyoutViewModel.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "494ce8e1fe42245f0abd980fd58e315993f4254f798e823805e6975d9097b176",
-        "size": 12143
+        "digest": "09c4f1a9df2c0240cb913935db686c2f557f5b2df81e424c87f77f70eda75389",
+        "size": 12373
       },
       {
         "path": "src/TokenUsage.App/ViewModels/Reports/UsageReportRows.cs",
@@ -513,8 +527,8 @@
         "path": "src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.Limits.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "e542880458e36cd32e7ef189e7235d74bdaa25d3f0d745366a027fd282a0bd62",
-        "size": 1825
+        "digest": "62f330c039de44fa00a6b185602a555ee5ee6cc4f81711156f0da59724ebccff",
+        "size": 2425
       },
       {
         "path": "src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.MeasurementDetails.cs",
@@ -562,8 +576,8 @@
         "path": "src/TokenUsage.App/ViewModels/Reports/UsageReportViewModel.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "aef89ab66c5521057dcb2f964c94747cccd50512332685718de0e56ee906a0f8",
-        "size": 118268
+        "digest": "be9ac6089ea5fc8fcb8f82e1ea27383255b93a4ad29193b2f981baaebdf32489",
+        "size": 118512
       },
       {
         "path": "src/TokenUsage.App/ViewModels/Surfaces/OptionsSurfaceViewModel.cs",
@@ -597,8 +611,8 @@
         "path": "src/TokenUsage.App/Views/Dashboard/CompactUsageDashboard.xaml",
         "origin": "tracked",
         "state": "present",
-        "digest": "d4073542a8984353900b79b998503aa702ca8a8bc073dc96b48153e473931a3c",
-        "size": 41809
+        "digest": "8b61446876493274ed76e7284eea3228f2458207e438ceddb401f55225e6b2f0",
+        "size": 40300
       },
       {
         "path": "src/TokenUsage.App/Views/Dashboard/CompactUsageDashboard.xaml.cs",
@@ -695,8 +709,8 @@
         "path": "src/TokenUsage.App/Views/Options/ProviderStatusView.xaml",
         "origin": "tracked",
         "state": "present",
-        "digest": "a25e2a859fdd2bd6c2570456c6bd6250757071a0da3db31704b61709e95e7b5f",
-        "size": 13866
+        "digest": "6b6471095ffe1ba38b8bd9f60c3e721653457d202ea113613c8e4e245b5a551d",
+        "size": 16105
       },
       {
         "path": "src/TokenUsage.App/Views/Options/ProviderStatusView.xaml.cs",
@@ -765,8 +779,8 @@
         "path": "src/TokenUsage.App/Views/Reports/UsageReportPage.xaml",
         "origin": "tracked",
         "state": "present",
-        "digest": "39b0b5e58f22cf5f1d4f4209270ff1b86299c70713edbdef75bf285ce5eaf727",
-        "size": 281637
+        "digest": "f5c21639810ef8126fea25dbbf9117ffc9a02d895c46d8b31ee357e3e452aca9",
+        "size": 281946
       },
       {
         "path": "src/TokenUsage.App/Views/Reports/UsageReportPage.xaml.cs",
@@ -779,15 +793,15 @@
         "path": "src/TokenUsage.App/Views/Tray/TraySummaryView.xaml",
         "origin": "tracked",
         "state": "present",
-        "digest": "844ac65002b9d6217e602eb49195ae2bcdbb40cb312c495ee6b050d36ca74833",
-        "size": 5928
+        "digest": "da6d87a76d4dc00ee76e355815eeb91001cc2b7803744b42f58f1dfb19495848",
+        "size": 6353
       },
       {
         "path": "src/TokenUsage.App/Views/Tray/TraySummaryView.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "776777fd5756b5e65ee664919f98e3edc3ec529fa76b3b111bbea9b60ca2d5d6",
-        "size": 2292
+        "digest": "05015185a8e41924c29c0260b4684620c8bd3a2b33b40f2b89939e376b8a8f0d",
+        "size": 3138
       },
       {
         "path": "src/TokenUsage.Cli/ClaudeCommand.cs",
@@ -870,8 +884,8 @@
         "path": "src/TokenUsage.Cli/LocalLimitsCliAccess.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "2829f814867559def8ae824c22ef103d0f80f7e2b51c2e20c4748922f4e19af7",
-        "size": 4407
+        "digest": "56696f6cabf1eb27706fa124bab1b29f136b46b42b5832fb48e4eb1469c6405d",
+        "size": 4637
       },
       {
         "path": "src/TokenUsage.Cli/LocalProviderDiagnosticsAccess.cs",
@@ -1024,8 +1038,8 @@
         "path": "src/TokenUsage.Core/Alerts/AlertDecisionState.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "e9b119c3093e55bbd90606d5560371c8538c50bca4ed79994c05bc1a600928a3",
-        "size": 9294
+        "digest": "d7bd327b3bc6b3434f981f60887759375c553a551616a1218851e282adfb9398",
+        "size": 10370
       },
       {
         "path": "src/TokenUsage.Core/Alerts/AlertEvaluator.cs",
@@ -1066,8 +1080,8 @@
         "path": "src/TokenUsage.Core/Alerts/AlertNotificationIntent.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "52f17bfab0b89df114cd47f8898052c8ecfa32331b280b24271459cee4303b20",
-        "size": 420
+        "digest": "f7786f45211fbfcdab22998fe5da6ea7e0c8c05d5d88f4b96c8e3fddffa54dff",
+        "size": 568
       },
       {
         "path": "src/TokenUsage.Core/Alerts/AlertSettings.cs",
@@ -1101,8 +1115,8 @@
         "path": "src/TokenUsage.Core/Automation/LimitsQuery.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "ae38d35fde02f82bb567270c939daf10e97dfb045bf8993ffe06681c4d8d3633",
-        "size": 4690
+        "digest": "b73969e4b4a8b95c4e3d05dddd279d8462c257aece5ae9984f45c96407e3dcda",
+        "size": 4765
       },
       {
         "path": "src/TokenUsage.Core/Automation/ProviderDiagnostics.cs",
@@ -1136,22 +1150,22 @@
         "path": "src/TokenUsage.Core/Cache/CacheFirstEvent.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "eda5aecf3f8b2b4178daed497b6e22028cc1891d6832c741437f41a264647cd0",
-        "size": 1688
+        "digest": "3a69376e059c5e490c1e02e97c1b9c60b1bb42895226fb3ee8567f7b766fd955",
+        "size": 2048
       },
       {
         "path": "src/TokenUsage.Core/Cache/CacheFirstRefresh.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "114cf389fd183e1467dd8fd962a2898e7f431948e8b98b8339df8a3c5d22e7e2",
-        "size": 6131
+        "digest": "082fb4daccd623ea4aa480566300e4b1d275eff5c9d1418de1fb0e08d09ffdf7",
+        "size": 7421
       },
       {
         "path": "src/TokenUsage.Core/Cache/Internal/SnapshotCacheDocumentV1.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "f35ce01d92dab58ad30bf5c8cb5c67c8890090fe50f788b881bc760fd3caf790",
-        "size": 2379
+        "digest": "66872bc55e1accba97123f447c8d22a86427503d0870b8722253df3b96a245a0",
+        "size": 2469
       },
       {
         "path": "src/TokenUsage.Core/Cache/Internal/SnapshotCacheMapper.cs",
@@ -1164,8 +1178,8 @@
         "path": "src/TokenUsage.Core/Cache/ProviderRefreshHost.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "ff4e9b7afa284787a635e525e834b775852132c311a68f6fdb0f0c315d479e22",
-        "size": 7174
+        "digest": "89c3a6201e9f2f0cde3fe97860f158dddc9166d5caabf6ef4e66e001391ae332",
+        "size": 10235
       },
       {
         "path": "src/TokenUsage.Core/Cache/SnapshotCacheResults.cs",
@@ -1178,8 +1192,8 @@
         "path": "src/TokenUsage.Core/Cache/SnapshotStore.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "71e9bb5800102414d30bc851e20dc63dbc69163ca094e36c1a3b98a32b9dfbf0",
-        "size": 10588
+        "digest": "855ffe6984c02c9b44f85fe917c1f2e30b68075dfe2f58617ec6fb15c6e4bdb9",
+        "size": 12115
       },
       {
         "path": "src/TokenUsage.Core/Credentials/IManualProviderCredentialStore.cs",
@@ -1220,8 +1234,22 @@
         "path": "src/TokenUsage.Core/Layout/ProviderColorPreference.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "39f197ee6cef0169945d43209b16d7adf18826191e7220e8103e22828b095068",
+        "digest": "1f89385c23df8d50cb24e7f91f2aa50760e48c45ecc405854d0370d86de0df89",
         "size": 2563
+      },
+      {
+        "path": "src/TokenUsage.Core/Providers/ProviderAccountSelectionStore.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "b0877032b50bd75b54a4c974a25cd947885f19fdb54fec6a610b3025996166a4",
+        "size": 4451
+      },
+      {
+        "path": "src/TokenUsage.Core/Providers/ProviderAccounts.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "64e9c9a1f9bf1be03d07ebddb5932913be3dd36822a6d08dc8b0f991fbb295b5",
+        "size": 718
       },
       {
         "path": "src/TokenUsage.Core/Providers/ProviderCapability.cs",
@@ -1236,6 +1264,13 @@
         "state": "present",
         "digest": "25b028c7f6bf26ca0f605b9e3b22f3b74bc43cc5bf72b208e2ac614621e71c53",
         "size": 1926
+      },
+      {
+        "path": "src/TokenUsage.Core/Providers/ProviderInstanceKey.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "7fe07f705ec6251be8912aecc42022665f751f6415f97019748d0d73aba890af",
+        "size": 901
       },
       {
         "path": "src/TokenUsage.Core/Providers/ProviderMetrics.cs",
@@ -1269,8 +1304,8 @@
         "path": "src/TokenUsage.Core/Providers/ProviderSnapshot.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "e285e0ba5b8ee89f3ec8d8258289e640b1d031c4aa03e1262d910e1379749036",
-        "size": 4447
+        "digest": "6717f09fea37fb87b0db1aab4965a76e2461edce4c867d0320750643a2e3d40f",
+        "size": 4842
       },
       {
         "path": "src/TokenUsage.Core/Providers/QuotaPace.cs",
@@ -1290,8 +1325,8 @@
         "path": "src/TokenUsage.Core/Session/AppSessionHost.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "18e01d92accc0c1462655b42e58a6325c4a683c813ca9794c0c286c9aa525864",
-        "size": 16436
+        "digest": "418b5bf41c03d8e323269e4ef25bb755f42421b9e7a4bf789ebbfa526cc7ae15",
+        "size": 17893
       },
       {
         "path": "src/TokenUsage.Core/Storage/AtomicTextFile.cs",
@@ -1304,8 +1339,8 @@
         "path": "src/TokenUsage.Core/Storage/VersionedDocumentFile.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "9167b267f0091d89d22b7824d4ef73a6cda5ec70d59c391394cd3a618e0ec0d3",
-        "size": 8327
+        "digest": "ddd5c5028125bbb89be7ddf1494d2f1c30ea2025cb48e97d91894c847e29827b",
+        "size": 8844
       },
       {
         "path": "src/TokenUsage.Core/TokenUsage.Core.csproj",
@@ -1423,15 +1458,15 @@
         "path": "src/TokenUsage.Core/Usage/QuotaObservationJournal.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "ce8dcb2087f05a311ad0ee611dd8cea2ee8cd010059b673564cad120a3b3a882",
-        "size": 8508
+        "digest": "2a7e7661aff8250ac896ad6e8d59aaa4419e463114c03fff57a6b8083c4aba5d",
+        "size": 9624
       },
       {
         "path": "src/TokenUsage.Core/Usage/QuotaResetHistoryStore.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "8e922234aaececb660c0dfc049673b3fbb5877549a85ee88f3b984f3d9e4f5b0",
-        "size": 38002
+        "digest": "a62683f16ebc2151de81a215ef97c08432c50c80abc8da403e27ca8fdc682be8",
+        "size": 39034
       },
       {
         "path": "src/TokenUsage.Core/Usage/QuotaUsageLevel.cs",
@@ -1752,8 +1787,8 @@
         "path": "src/TokenUsage.Platform.Windows/Process/CodexAppServerProcess.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "1354563d086a43a7ab692f289824746176b80ce2a0bed48252451877d848d503",
-        "size": 15410
+        "digest": "8c5d6482807dba2c8727a2996d0ce9f7fc2a6ba453806787e0f10e7e18039f9a",
+        "size": 16223
       },
       {
         "path": "src/TokenUsage.Platform.Windows/Process/CodexAppServerProcessException.cs",
@@ -1766,8 +1801,8 @@
         "path": "src/TokenUsage.Platform.Windows/Process/CodexAppServerProcessOptions.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "9ff269ce5922dc0f7f24333554998c2812bf882deef9376003f77e9f9945b8cd",
-        "size": 1517
+        "digest": "d8347f51d4dfc8771db9cc28b1505b5488a9ca52d6264aea5305c2c86e949361",
+        "size": 1851
       },
       {
         "path": "src/TokenUsage.Platform.Windows/Process/CodexExecutableResolution.cs",
@@ -1871,8 +1906,8 @@
         "path": "src/TokenUsage.Platform.Windows/Windowing/ForegroundWindowInspector.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "b7129356f3a761413af68761751cabacee49b31eb1421bc1736d0df4d9b215c4",
-        "size": 283
+        "digest": "e6c47de23cbe715aca74c5a61513b63fce037c3d1111755f94e0919162a605a4",
+        "size": 355
       },
       {
         "path": "src/TokenUsage.Platform.Windows/Windowing/NonActivatingWindowStyle.cs",
@@ -1920,8 +1955,8 @@
         "path": "src/TokenUsage.Presentation/Services/AlertNotificationDispatcher.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "524cac66b63abb1d08a1a4601c2d4c1762a03d9446b97bf6f3256ff9a4f6ee23",
-        "size": 3416
+        "digest": "c0fe07cb7a5350326fa551eccde0c3e40a4fbd7cf36664fce5b8a87d46cd7612",
+        "size": 3854
       },
       {
         "path": "src/TokenUsage.Presentation/Services/LocalUsageCoordinator.cs",
@@ -1980,6 +2015,13 @@
         "size": 5911
       },
       {
+        "path": "src/TokenUsage.Presentation/ViewModels/CodexAccountQuota.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "ba710d56ffd1436317299d0b3a28e4df775e9c46c5d47a040594209246a8c7ff",
+        "size": 3457
+      },
+      {
         "path": "src/TokenUsage.Presentation/ViewModels/CodexDashboardProjector.cs",
         "origin": "tracked",
         "state": "present",
@@ -1997,8 +2039,8 @@
         "path": "src/TokenUsage.Presentation/ViewModels/Dashboard/DashboardModels.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "8c57081d43a9d1cfd06099453a4c9fc33deaa77277f5bb6f8ee57ab67870ce61",
-        "size": 14245
+        "digest": "2a8e47d05af68b2554efd9b7bb528c65800c838ecd303d8ddc6cbdd67951c051",
+        "size": 14750
       },
       {
         "path": "src/TokenUsage.Presentation/ViewModels/DashboardLayoutEditor.cs",
@@ -2046,8 +2088,8 @@
         "path": "src/TokenUsage.Presentation/ViewModels/LiveDashboardSession.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "603eaa3d950d288be1836f1df37532a793e543fe98131ad1d71cef5f26831682",
-        "size": 28404
+        "digest": "987d6594d2c3b1546f1b3abecc8b5465ff9d8af2d48befe27f94d55228aa1678",
+        "size": 30367
       },
       {
         "path": "src/TokenUsage.Presentation/ViewModels/LocalUsageCardProjector.cs",
@@ -2158,8 +2200,8 @@
         "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/DashboardSurfaceViewModel.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "08934e9042009be430349731dcd55137f039df604ef36b7704324973ee141bfe",
-        "size": 40858
+        "digest": "ec718a6d5a09ad3f0e8c922f5c3d6467b2b280ebd8eef00dade0febbd80ef202",
+        "size": 42294
       },
       {
         "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/GeneralOptionsViewModel.Attribution.cs",
@@ -2197,11 +2239,18 @@
         "size": 17806
       },
       {
+        "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/ProviderAccountsViewModel.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "bd95e4242bb8226484d24e0ac6881c086a761b6fe307e059b3ba71d9084b9053",
+        "size": 3840
+      },
+      {
         "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/ProviderStatusSurfaceViewModel.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "6af00c97de7f607d784f3f92b5e9aa22dca890ed30331a23d61708dd34e19dc2",
-        "size": 26412
+        "digest": "d1c27f3cc4a7ec670c142b6ed15f0e616f33c57e81eb66f716cb6420fc20c97b",
+        "size": 26650
       },
       {
         "path": "src/TokenUsage.Presentation/ViewModels/Surfaces/ReportChartStyleOption.cs",
@@ -2284,8 +2333,8 @@
         "path": "src/TokenUsage.Providers/Claude/ClaudePricingCatalog.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "4a9f1d87ca05d31d9216a5bd0d2c25710ab4fb044205d9725e195b0124e80f9b",
-        "size": 6860
+        "digest": "70872a281c4b3e413a0d52acb14d4f165f07927cd6b0c1f634f2477dff4fc072",
+        "size": 6926
       },
       {
         "path": "src/TokenUsage.Providers/Claude/ClaudeRateLimits.cs",
@@ -2312,15 +2361,15 @@
         "path": "src/TokenUsage.Providers/Codex/CodexAppServerClient.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "419c4c7e3602dca262c86de017b3987b8bf46e23ed00657b307cada1629f7bc0",
-        "size": 14044
+        "digest": "e9fce5feac6e48dca2121a01d6d798e2e104dedad61239dadc533b0dfd23aa28",
+        "size": 15461
       },
       {
         "path": "src/TokenUsage.Providers/Codex/CodexClientOptions.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "af6fc645e687eb08daaca041e7c8aa1ea7453e59f981e5f7fc5cc5488644f328",
-        "size": 2497
+        "digest": "e9eed54a5ced2fb09584e68fd8eb4bef77063bcf77d81d624003c71db17aebd5",
+        "size": 2737
       },
       {
         "path": "src/TokenUsage.Providers/Codex/CodexClientUnavailableException.cs",
@@ -2347,8 +2396,8 @@
         "path": "src/TokenUsage.Providers/Codex/CodexPricingCatalog.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "91a3991a6226b9a9003f7aaebc2942d9e50d245f71a45b2a1dd9bd6f0429c5dc",
-        "size": 8170
+        "digest": "5c04fb58f517ed476eb43c9b55f35b5492c2677a2f7b420fcbd0c9e23f7d9db7",
+        "size": 8440
       },
       {
         "path": "src/TokenUsage.Providers/Codex/CodexProtocolException.cs",
@@ -2361,8 +2410,8 @@
         "path": "src/TokenUsage.Providers/Codex/CodexProviderRuntime.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "60f5f39fd420bc8a17059de183e89f62b468218bc2a04dbea2c0727e2cc83db1",
-        "size": 8762
+        "digest": "d91f789904c03d4445e8d16b68931cd65312d33e18df44e8fc0ac85bd6d4db2f",
+        "size": 9030
       },
       {
         "path": "src/TokenUsage.Providers/Codex/CodexRateLimits.cs",
@@ -2655,8 +2704,8 @@
         "path": "src/TokenUsage.Providers/Pricing/PricingEvidence.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "0ab03fd95a43e8313047116fd98f612a715262b76b543fc2e26f51bc902b0052",
-        "size": 12547
+        "digest": "111229c4f11dd823aab9cc86716e8ce628e3f10745132611e9b620d448305944",
+        "size": 12841
       },
       {
         "path": "src/TokenUsage.Providers/Pricing/PricingEvidenceCatalog.cs",
@@ -2669,8 +2718,8 @@
         "path": "src/TokenUsage.Providers/Pricing/PricingRefresh.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "b15e04c4bf0d75dd9eddae47c74e871a989e13d68059a1851336f2d3894a7274",
-        "size": 10680
+        "digest": "61c3079abfe9fe44276d17298879963e846579ecccfa3f9f4dd0005e65181aae",
+        "size": 10914
       },
       {
         "path": "src/TokenUsage.Providers/ProviderHttpResponse.cs",
@@ -2806,11 +2855,18 @@
         "size": 5375
       },
       {
+        "path": "src/TokenUsage.Runtime.Windows/Codex/CodexAccountService.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "aa040d1729a038db1662f5862c3b08df2f9b2232bff787861cb9e3c661810290",
+        "size": 8971
+      },
+      {
         "path": "src/TokenUsage.Runtime.Windows/Codex/CodexAppServerQuotaClientFactory.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "82684a4af5f46c4a3bc2543679b966f8dce121e48751ae3aad2f915596533608",
-        "size": 6313
+        "digest": "0352161501d5652febd0edcf6f911c5a75d449ccd1636af62d927750ed3c7c66",
+        "size": 6578
       },
       {
         "path": "src/TokenUsage.Runtime.Windows/Codex/CodexRefreshCoordinator.cs",
@@ -2818,6 +2874,20 @@
         "state": "present",
         "digest": "5509f727db89116456c6a722b3fc369c773bb944541a6cccc22811f4d162fa1a",
         "size": 1049
+      },
+      {
+        "path": "src/TokenUsage.Runtime.Windows/Codex/CodexSwapDiscovery.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "9c05375b1ebd6ed6e4be217f1471ac680fc75bff26f49f0514d916d5cbb75fff",
+        "size": 9423
+      },
+      {
+        "path": "src/TokenUsage.Runtime.Windows/Codex/WindowsAccountSecretStore.cs",
+        "origin": "untracked",
+        "state": "present",
+        "digest": "40def16ee6b982f265209e025e163d8ca00ae437de2986a228d3d0cfa309ee12",
+        "size": 1567
       },
       {
         "path": "src/TokenUsage.Runtime.Windows/Credentials/WindowsManualProviderCredentialStore.cs",
@@ -2865,8 +2935,8 @@
         "path": "src/TokenUsage.Runtime.Windows/Providers/WindowsProviderCatalog.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "ea54407f66050b8aab92283557c180879c8d27c02dec7b333deecb6ef8cc53f2",
-        "size": 19688
+        "digest": "069cce1642ffebdf69b893650e1eee37eb0dd7418cc9399208893738d76d2164",
+        "size": 20112
       },
       {
         "path": "src/TokenUsage.Runtime.Windows/RefreshHookAutoSetup.cs",
@@ -2879,8 +2949,8 @@
         "path": "src/TokenUsage.Runtime.Windows/TokenUsage.Runtime.Windows.csproj",
         "origin": "tracked",
         "state": "present",
-        "digest": "d5ea25731379739dde86614ebe261926dfa247a6d6d289b88482ab1c56876a26",
-        "size": 659
+        "digest": "4caf1ad0c56d509ba0df6103604479b4141186365fb4fef1dbcbbb22919e4e8f",
+        "size": 730
       },
       {
         "path": "src/TokenUsage.Runtime.Windows/Updates/GitHubUpdateClient.cs",
@@ -3194,8 +3264,8 @@
         "path": "tests/TokenUsage.Core.Tests/Alerts/AlertHostTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "77c3775c00b6bf95523bcc6ab201784234a17092246e388cc25ab191992d0ea0",
-        "size": 15182
+        "digest": "60ddb0e440dcec3057b9167f9037f64b7bfb87c6d695dd11e54aa70adaf5694c",
+        "size": 16947
       },
       {
         "path": "tests/TokenUsage.Core.Tests/Alerts/AlertSettingsTests.cs",
@@ -3236,8 +3306,8 @@
         "path": "tests/TokenUsage.Core.Tests/Cache/ProviderRefreshHostTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "c8b1a4bbaa5b1825f63bf01b355b6dde082f56c7dc47b48a14cde88124e05d00",
-        "size": 11230
+        "digest": "125bd2bf1caff0f7da45287f18038c9a40d011ab8b8c65ec0a00b76d2dfefe72",
+        "size": 13437
       },
       {
         "path": "tests/TokenUsage.Core.Tests/CacheFirstRefreshOperationGateTests.cs",
@@ -3306,8 +3376,8 @@
         "path": "tests/TokenUsage.Core.Tests/SnapshotStoreTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "abde1cc67f08a1c11d06da0976a8f8c9e6d33067c6214f449d700394b14c9d14",
-        "size": 36847
+        "digest": "ef76f47ada69a3519eb6a18ed82034224cc11975fe7aeae4b7a51ce1fc76aedd",
+        "size": 39330
       },
       {
         "path": "tests/TokenUsage.Core.Tests/Storage/AtomicTextFileTests.cs",
@@ -3383,8 +3453,8 @@
         "path": "tests/TokenUsage.Core.Tests/Usage/QuotaResetHistoryStoreTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "bf158c680aa5162d210233a81d606aa8dbdad96a064a510fdba4fb07a4dab6f2",
-        "size": 32003
+        "digest": "caed5d631e8890850c27964d439026037f47a539207e3e57e906433a2603a9eb",
+        "size": 33625
       },
       {
         "path": "tests/TokenUsage.Core.Tests/Usage/QuotaUsageLevelPolicyTests.cs",
@@ -3530,8 +3600,8 @@
         "path": "tests/TokenUsage.Platform.Windows.Tests/CodexLiveCompositionTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "cde776e39c6512fa844631ec10870bddf6d48f8b9c32e3c08ee04635764e74ff",
-        "size": 20168
+        "digest": "498fb23b1685c83deb988d7e6a0d98398ab30e315f99d7188fec340c0360392d",
+        "size": 21857
       },
       {
         "path": "tests/TokenUsage.Platform.Windows.Tests/CodexRefreshCoordinatorTests.cs",
@@ -3705,8 +3775,8 @@
         "path": "tests/TokenUsage.Providers.Tests/Alerts/AlertNotificationDispatcherTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "1ce8500dfbb61fcf5b28abc73a6bb69f695cffcfc28e9e4be8375fffa3796885",
-        "size": 9556
+        "digest": "475dae6fedb94bf700883aecc7d094d027e6f9dc6bbca9c633e5ff89b04ed2d4",
+        "size": 10064
       },
       {
         "path": "tests/TokenUsage.Providers.Tests/Amp/AmpUsageEventSourceTests.cs",
@@ -3747,8 +3817,8 @@
         "path": "tests/TokenUsage.Providers.Tests/Claude/ClaudeUsageEventSourceTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "7ae98b27995f3709d404279db1c99c8b2232ae516157dd1a4331e8f932902c4b",
-        "size": 20361
+        "digest": "36dc646a667dc9208b407c53e5cc3b9b305307a41fa2aafe863bcb93d1ee387f",
+        "size": 20506
       },
       {
         "path": "tests/TokenUsage.Providers.Tests/Codex/CodexAccountStatusTests.cs",
@@ -3761,8 +3831,8 @@
         "path": "tests/TokenUsage.Providers.Tests/Codex/CodexAppServerClientTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "3a1f46d384dd3fb17a988efb72dcfc117c01ec51d9f26a6cb0391cac733b5fc2",
-        "size": 18351
+        "digest": "049a28a36f9e68a01214a726df790ab6a6bfe1b5e5cbdb5f98e607f42fbf8aa8",
+        "size": 19715
       },
       {
         "path": "tests/TokenUsage.Providers.Tests/Codex/CodexDailyUsageAggregatorTests.cs",
@@ -3922,8 +3992,8 @@
         "path": "tests/TokenUsage.Providers.Tests/Pricing/KnownModelPricingCatalogTests.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "c216561cd4fe081e05ac0fda564d75367b61074e0929710f2699ffd5df3de6f3",
-        "size": 23259
+        "digest": "8a90453366a6e177d50c84545dc1b675e7cd4292e7a7cc400fa49a7ca23aaf78",
+        "size": 23749
       },
       {
         "path": "tests/TokenUsage.Providers.Tests/Pricing/PricingEvidenceCatalogTests.cs",
@@ -4059,12 +4129,12 @@
         "size": 326
       }
     ],
-    "digest": "c829d28d6c61e6b04dacd08a8d72942e8acfcac50bbf05f2a9be292d347df162"
+    "digest": "347b2473a35d96d4a727b1ea13d9fd8f393a2a51455892f473c95a7f1e0458d5"
   },
-  "source_digest": "875b739eb709fed1a5af91312e7fe51bf188b1b123b0f9ad5424c110c9e630da",
+  "source_digest": "da5acf7bcd8e0dd1d32f7081afd5fd79e8338a97630258f721b979540b1bc652",
   "artifact_hashes": {
-    "codemap.json": "d9a9414c045a70b0115590f589998a3d2cf90ae95088fa486d10d3ae49410602",
-    "codemap.md": "b18245b051c3a8ed5610fb27c98849e65c234d14555fa9f98b53bf313edf43d8",
-    "codemap.html": "9cba3e1f7515318108ab074a09fa119d9f1480330fad94a9f9fe8f8a5bc2aeb2"
+    "codemap.json": "b35edc85eafb8ae7572c75c2b6849c5c1c7a634e8f3043d95cfd981c980a3a09",
+    "codemap.md": "784ad5930f60c448c613bbdd9506caa51ef8e4abee206ee3f7c4e4649e17246c",
+    "codemap.html": "9320e1ee625678160c133432fd819840c7427d7df5e89f0dc938a9f628648705"
   }
 }

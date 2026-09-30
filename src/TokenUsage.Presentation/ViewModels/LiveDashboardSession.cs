@@ -22,6 +22,7 @@ public sealed class LiveDashboardSession : IDisposable
     private readonly LocalUsageCoordinator _localUsage;
     private readonly QuotaResetHistoryStore? _quotaResetHistory;
     private readonly ClaudeRateLimitStore? _claudeRateLimits;
+    private readonly IProviderAccountService? _accounts;
     private readonly SemaphoreSlim _claudeQuotaGate = new(1, 1);
     private CancellationTokenSource? _localRefreshCancellation;
     private Task _pendingUpdates = Task.CompletedTask;
@@ -37,18 +38,23 @@ public sealed class LiveDashboardSession : IDisposable
         AppSessionHost host,
         LocalUsageCoordinator localUsage,
         QuotaResetHistoryStore? quotaResetHistory = null,
-        ClaudeRateLimitStore? claudeRateLimits = null)
+        ClaudeRateLimitStore? claudeRateLimits = null,
+        IProviderAccountService? accounts = null)
     {
         _host = host ?? throw new ArgumentNullException(nameof(host));
         _localUsage = localUsage ?? throw new ArgumentNullException(nameof(localUsage));
         _quotaResetHistory = quotaResetHistory;
         _claudeRateLimits = claudeRateLimits;
+        _accounts = accounts;
         _host.Updated += OnSessionUpdated;
     }
 
     public TimeProvider Clock => _host.Clock;
 
     public ProviderSnapshot? LastCodexSnapshot { get; private set; }
+
+    public bool UsesCodexAccounts => _accounts?.WasActivated == true;
+    public IReadOnlyList<CodexAccountQuota> AccountQuotas { get; private set; } = [];
 
     /// <summary>
     /// Tokens the local store recorded inside each Codex quota window, keyed by the quota
@@ -97,6 +103,26 @@ public sealed class LiveDashboardSession : IDisposable
     public bool HasPublished { get; private set; }
 
     public AppSessionHost Host => _host;
+
+    public void RefreshAccountQuotas() => UpdateAccountQuotas(_host.Current);
+
+    private void UpdateAccountQuotas(AppSessionState state)
+    {
+        if (!UsesCodexAccounts || _getString is null) { AccountQuotas = []; return; }
+        LastCodexSnapshot = null;
+        LastCodexOutcome = null;
+        CodexWindowUsedTokens = new Dictionary<string, long>();
+        CodexAccountQuota[] next = _accounts!.Accounts.Where(account => account.IsSelected).Select(account =>
+        {
+            ProviderSnapshot? snapshot = state.Snapshots.FirstOrDefault(item => item.InstanceKey == account.InstanceKey);
+            state.Outcomes.TryGetValue(account.InstanceKey.Value, out ProviderOutcome? outcome);
+            return CodexAccountQuota.Create(account, snapshot, outcome, Clock, _getString);
+        }).ToArray();
+        if (next.Length != AccountQuotas.Count
+            || next.Where((account, index) => !account.HasSameContent(AccountQuotas[index])).Any())
+            AccountQuotas = next;
+        HasPublished |= AccountQuotas.Count > 0;
+    }
 
     public void Bind(
         Func<string, string> getString,
@@ -154,7 +180,7 @@ public sealed class LiveDashboardSession : IDisposable
 
             if (!_host.IsStarted)
             {
-                await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+                await _host.StartAsync(cancellationToken).ConfigureAwait(true);
             }
             else
             {
@@ -163,10 +189,10 @@ public sealed class LiveDashboardSession : IDisposable
                         forceRefresh,
                         providerId: null,
                         cancellationToken)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(true);
             }
 
-            await PendingUpdatesAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+            await PendingUpdatesAsync().WaitAsync(cancellationToken).ConfigureAwait(true);
             await ReconcileHostStateAsync(version).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -297,7 +323,8 @@ public sealed class LiveDashboardSession : IDisposable
         {
             case CacheFirstEvent.CachePublished cache:
                 ProviderSnapshot? codex = cache.Snapshots.FirstOrDefault(candidate =>
-                    string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
+                    candidate.InstanceKey.AccountKey is null && !UsesCodexAccounts
+                    && string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
                 if (codex is not null)
                 {
                     await ObserveResetHistoryAsync(codex).ConfigureAwait(true);
@@ -316,6 +343,7 @@ public sealed class LiveDashboardSession : IDisposable
                     SetApiProviderSnapshot(cached.ProviderId.Value, cached);
                 }
 
+                UpdateAccountQuotas(update.State);
                 PublishChanged(version);
                 break;
 
@@ -326,6 +354,11 @@ public sealed class LiveDashboardSession : IDisposable
                     PublishChanged(version);
                 }
 
+                break;
+
+            case CacheFirstEvent.ProviderCompleted provider when provider.InstanceKey.AccountKey is not null:
+                UpdateAccountQuotas(update.State);
+                PublishChanged(version);
                 break;
 
             case CacheFirstEvent.ProviderCompleted provider:
@@ -418,6 +451,7 @@ public sealed class LiveDashboardSession : IDisposable
         }
 
         AppSessionState state = _host.Current;
+        UpdateAccountQuotas(state);
         bool apiChanged = false;
         foreach (string providerId in ApiProviderCardParts.ProviderIds)
         {
@@ -429,7 +463,8 @@ public sealed class LiveDashboardSession : IDisposable
 
         state.Outcomes.TryGetValue("codex", out ProviderOutcome? outcome);
         ProviderSnapshot? snapshot = state.Snapshots.FirstOrDefault(candidate =>
-            string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
+            candidate.InstanceKey.AccountKey is null && !UsesCodexAccounts
+            && string.Equals(candidate.ProviderId.Value, "codex", StringComparison.Ordinal));
         bool snapshotChanged = snapshot is not null
             && (LastCodexSnapshot is null
                 || snapshot.SourceObservedAtUtc != LastCodexSnapshot.SourceObservedAtUtc
@@ -437,7 +472,7 @@ public sealed class LiveDashboardSession : IDisposable
         bool outcomeChanged = outcome is not null && !ReferenceEquals(outcome, LastCodexOutcome);
         if (!snapshotChanged && !outcomeChanged)
         {
-            if (apiChanged)
+            if (apiChanged || UsesCodexAccounts)
             {
                 PublishChanged(version);
             }
@@ -638,7 +673,8 @@ public sealed class LiveDashboardSession : IDisposable
 
     private async Task ObserveResetHistoryAsync(ProviderSnapshot snapshot)
     {
-        if (_quotaResetHistory is null)
+        if (_quotaResetHistory is null || snapshot.InstanceKey.AccountKey is not null
+            || (snapshot.ProviderId.Value == "codex" && UsesCodexAccounts))
         {
             return;
         }

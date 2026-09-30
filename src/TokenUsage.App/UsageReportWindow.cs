@@ -4,6 +4,7 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 using Windows.UI.ViewManagement;
 using TokenUsage.App.ViewModels.Reports;
+using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.Views.Reports;
 using TokenUsage.Core.Appearance;
@@ -37,7 +38,9 @@ public sealed class UsageReportWindow : Window, IDisposable
         Action<bool>? saveMarkBest = null,
         TokenUsage.Core.Usage.AttributionConsentStore? attributionConsent = null,
         TokenUsage.Core.Usage.AttributionAliasStore? attributionAliases = null,
-        TokenUsage.App.ViewModels.Surfaces.GeneralOptionsViewModel? attributionOptions = null)
+        TokenUsage.App.ViewModels.Surfaces.GeneralOptionsViewModel? attributionOptions = null,
+        Func<IReadOnlyList<CodexAccountQuota>>? getAccountQuotas = null,
+        Func<bool>? usesCodexAccounts = null)
     {
         _viewModel = new UsageReportViewModel(
             databasePath,
@@ -47,7 +50,9 @@ public sealed class UsageReportWindow : Window, IDisposable
             new TokenUsage.Core.Usage.QuotaResetHistoryStore(resetHistoryPath),
             getProviderCreditSummary: getProviderCreditSummary,
             attributionConsent: attributionConsent,
-            attributionAliases: attributionAliases);
+            attributionAliases: attributionAliases,
+            getAccountQuotas: getAccountQuotas,
+            usesCodexAccounts: usesCodexAccounts);
         if (attributionOptions is not null)
         {
             _viewModel.ObserveAttribution(attributionOptions);

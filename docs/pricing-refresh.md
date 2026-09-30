@@ -6,15 +6,16 @@ Generated from bounded projections of allowlisted official pricing pages. No fet
 
 | Source | Scope | Result | Projection |
 |---|---|---|---|
-| anthropic-model-pricing | directProviderApi | current (7/7 markers) | `fefe994f0caf` |
+| anthropic-model-pricing | directProviderApi | current (8/8 markers) | `97a0ef7b2827` |
 | cursor-gemini-3-8-pricing | hostSpecific | current (4/4 markers) | `4d6c7d510a19` |
-| cursor-model-pricing | hostSpecific | current (5/5 markers) | `9f0b7bcd4d42` |
+| cursor-model-pricing | hostSpecific | current (6/6 markers) | `3f123daa4774` |
 | google-gemini-api-pricing | directProviderApi | current (5/5 markers) | `082169f7c293` |
 | moonshot-model-pricing | directProviderApi | current (4/4 markers) | `b77cabf0031a` |
 | openai-astra-pricing | directProviderApi | current (7/7 markers) | `7fbd2f696250` |
-| openai-flagship-pricing | directProviderApi | current (7/7 markers) | `05b7e0a86eb2` |
+| openai-cyber-pricing | directProviderApi | current (7/7 markers) | `a524a5389215` |
+| openai-flagship-pricing | directProviderApi | current (8/8 markers) | `ba99ea40026d` |
 | openai-model-pricing | directProviderApi | current (5/5 markers) | `26c97fe41d42` |
-| xai-model-pricing | directProviderApi | current (5/5 markers) | `fab1e84d087a` |
+| xai-model-pricing | directProviderApi | current (8/8 markers) | `c04c4aa828e1` |
 | zai-model-pricing | directProviderApi | current (5/5 markers) | `868dc612393f` |
 
 ## Catalog candidates

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using TokenUsage.Core.Providers;
+using TokenUsage.Core.Alerts;
 
 namespace TokenUsage.Core.Cache;
 
@@ -12,11 +13,18 @@ public sealed class ProviderRefreshRegistration
     public ProviderRefreshRegistration(
         IProviderRuntime provider,
         SnapshotStore store,
-        ProviderOperationGate? operationGate = null)
+        ProviderOperationGate? operationGate = null,
+        AlertHost? alertHost = null,
+        Func<ProviderSnapshot, CancellationToken, Task>? beforeSnapshotSaveAsync = null,
+        ProviderAccountInfo? account = null)
     {
         Provider = provider ?? throw new ArgumentNullException(nameof(provider));
         Store = store ?? throw new ArgumentNullException(nameof(store));
         OperationGate = operationGate;
+        InstanceKey = store.Scope ?? new ProviderInstanceKey(provider.Descriptor.Id);
+        AlertHost = alertHost;
+        BeforeSnapshotSaveAsync = beforeSnapshotSaveAsync;
+        Account = account;
     }
 
     public IProviderRuntime Provider { get; }
@@ -24,11 +32,20 @@ public sealed class ProviderRefreshRegistration
     public SnapshotStore Store { get; }
 
     public ProviderOperationGate? OperationGate { get; }
+
+    public ProviderInstanceKey InstanceKey { get; }
+
+    public AlertHost? AlertHost { get; }
+    public Func<ProviderSnapshot, CancellationToken, Task>? BeforeSnapshotSaveAsync { get; }
+    public ProviderAccountInfo? Account { get; }
 }
 
 public sealed class ProviderRefreshHost
 {
-    private readonly IReadOnlyList<ProviderRefreshRegistration> _registrations;
+    private IReadOnlyList<ProviderRefreshRegistration> _registrations;
+    private readonly IReadOnlyList<ProviderRefreshRegistration> _baseRegistrations;
+    public Func<IReadOnlyList<ProviderRefreshRegistration>, CancellationToken,
+        Task<IReadOnlyList<ProviderRefreshRegistration>>>? ResolveRegistrationsAsync { get; set; }
     private readonly TimeProvider _clock;
 
     public ProviderRefreshHost(
@@ -47,7 +64,7 @@ public sealed class ProviderRefreshHost
         }
 
         string? duplicate = array
-            .GroupBy(registration => registration.Provider.Descriptor.Id.Value, StringComparer.Ordinal)
+            .GroupBy(registration => registration.InstanceKey.Value, StringComparer.Ordinal)
             .FirstOrDefault(group => group.Count() > 1)
             ?.Key;
         if (duplicate is not null)
@@ -58,6 +75,7 @@ public sealed class ProviderRefreshHost
         }
 
         _registrations = Array.AsReadOnly(array);
+        _baseRegistrations = _registrations;
     }
 
     public TimeProvider Clock => _clock;
@@ -67,7 +85,7 @@ public sealed class ProviderRefreshHost
     public IAsyncEnumerable<CacheFirstEvent> RunAsync(
         bool forceRefresh = false,
         CancellationToken cancellationToken = default) =>
-        RunRegistrationsAsync(_registrations, forceRefresh, cancellationToken);
+        RunResolvedAsync(null, forceRefresh, cancellationToken);
 
     public IAsyncEnumerable<CacheFirstEvent> RunProviderAsync(
         ProviderId providerId,
@@ -75,11 +93,32 @@ public sealed class ProviderRefreshHost
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(providerId);
-        ProviderRefreshRegistration registration = _registrations.FirstOrDefault(candidate =>
-            candidate.Provider.Descriptor.Id == providerId)
-            ?? throw new KeyNotFoundException(
-                $"Provider '{providerId.Value}' is not registered with this refresh host.");
-        return RunRegistrationsAsync([registration], forceRefresh, cancellationToken);
+        if (!_baseRegistrations.Any(item => item.InstanceKey.ProviderId == providerId))
+            throw new ArgumentException("The provider is not registered.", nameof(providerId));
+        return RunResolvedAsync(providerId, forceRefresh, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<CacheFirstEvent> RunResolvedAsync(ProviderId? providerId,
+        bool forceRefresh, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await ResolveAsync(cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<ProviderRefreshRegistration> selected = providerId is null ? _registrations
+            : _registrations.Where(item => item.InstanceKey.ProviderId == providerId).ToArray();
+        await foreach (CacheFirstEvent item in RunRegistrationsAsync(selected, forceRefresh, cancellationToken)
+            .ConfigureAwait(false)) yield return item;
+    }
+
+    public async Task ResolveAsync(CancellationToken cancellationToken = default)
+    {
+        if (ResolveRegistrationsAsync is not null)
+        {
+            IReadOnlyList<ProviderRefreshRegistration> resolved = await ResolveRegistrationsAsync(
+                _baseRegistrations, cancellationToken).ConfigureAwait(false);
+            if (resolved.Select(item => item.InstanceKey.Value).Distinct(StringComparer.Ordinal).Count() != resolved.Count)
+                throw new InvalidOperationException("Provider account registrations must be unique.");
+            _registrations = resolved;
+        }
+
     }
 
     private async IAsyncEnumerable<CacheFirstEvent> RunRegistrationsAsync(
@@ -92,7 +131,7 @@ public sealed class ProviderRefreshHost
         SnapshotCacheReadResult? firstEmptyOrCorrupt = null;
 
         Task<SnapshotCacheReadResult>[] cacheReads = registrations
-            .Select(registration => registration.Store.LoadAsync(cancellationToken))
+            .Select(registration => ReadCacheAsync(registration, cancellationToken))
             .ToArray();
         SnapshotCacheReadResult[] readResults = await Task
             .WhenAll(cacheReads)
@@ -105,7 +144,7 @@ public sealed class ProviderRefreshHost
                 loadedAny = true;
                 foreach (ProviderSnapshot snapshot in loaded.Snapshots)
                 {
-                    mergedSnapshots[snapshot.ProviderId.Value] = snapshot;
+                    mergedSnapshots[snapshot.InstanceKey.Value] = snapshot;
                 }
             }
             else
@@ -120,7 +159,8 @@ public sealed class ProviderRefreshHost
                     .OrderBy(snapshot => snapshot.ProviderId.Value, StringComparer.Ordinal)
                     .ToArray())
             : firstEmptyOrCorrupt ?? new SnapshotCacheReadResult.Empty();
-        yield return new CacheFirstEvent.CachePublished(published);
+        yield return new CacheFirstEvent.CachePublished(published,
+            _registrations.Select(item => item.InstanceKey.Value).ToHashSet(StringComparer.Ordinal));
 
         using var refreshCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken);
@@ -160,19 +200,31 @@ public sealed class ProviderRefreshHost
             registration.Store,
             [registration.Provider],
             _clock,
-            registration.OperationGate);
+            registration.OperationGate,
+            registration.BeforeSnapshotSaveAsync);
         await foreach (CacheFirstEvent item in partitionRefresh
                            .RunAsync(forceRefresh, cancellationToken)
                            .ConfigureAwait(false))
         {
             if (item is CacheFirstEvent.ProviderCompleted completed)
             {
-                return completed;
+                return new CacheFirstEvent.ProviderCompleted(completed.ProviderId, completed.Outcome,
+                    completed.CacheStatus, registration.InstanceKey);
             }
         }
 
         throw new InvalidOperationException(
             $"Provider '{registration.Provider.Descriptor.Id.Value}' produced no completion event.");
+    }
+
+    private static async Task<SnapshotCacheReadResult> ReadCacheAsync(
+        ProviderRefreshRegistration registration, CancellationToken token)
+    {
+        try { return await registration.Store.LoadAsync(token).ConfigureAwait(false); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
+        {
+            return new SnapshotCacheReadResult.Corrupt(Path.GetFileName(registration.Store.DocumentPath));
+        }
     }
 
     private static async Task ObservePendingAsync(

@@ -115,78 +115,29 @@
             <Setter Property="Width" Value="28" />
         </Style>
         <DataTemplate x:Key="CompactQuotaWindowTileTemplate" x:DataType="dashboard:QuotaWindow">
-            <Grid Padding="0,5,0,6" RowSpacing="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid ColumnSpacing="8" MinHeight="34">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock
-                        FontSize="13"
-                        FontWeight="SemiBold"
-                        Text="{x:Bind Title}"
-                        MaxLines="2"
-                        TextWrapping="Wrap"
-                        ToolTipService.ToolTip="{x:Bind Title}"
-                        TextTrimming="CharacterEllipsis"
-                        VerticalAlignment="Center" />
-                    <TextBlock
-                        Grid.Column="1"
-                        FontFamily="Consolas"
-                        FontSize="12"
-                        FontWeight="SemiBold"
-                        Text="{x:Bind RemainingText}"
-                        TextAlignment="Right"
-                        TextTrimming="CharacterEllipsis"
-                        VerticalAlignment="Center" />
+            <Grid Padding="0,4,0,8" RowSpacing="7" AutomationProperties.HelpText="{x:Bind UsedText}">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <ToolTipService.ToolTip>
+                    <ToolTip MaxWidth="332">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{x:Bind DisplayAutomationName}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind UsedText}" Visibility="{x:Bind HasUsedText}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </ToolTip>
+                </ToolTipService.ToolTip>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <controls:ProviderMarkImage ProviderId="{x:Bind ProviderId}" Width="15" Height="15" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind ProfileLabel}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2" Text="{x:Bind CompactRemainingText}" FontSize="13" />
                 </Grid>
-                <controls:AnimatedProgressBar
-                    Grid.Row="1"
-                    Height="12"
+                <controls:AnimatedProgressBar Grid.Row="1" Height="6" IndicatorScale="1.5"
                     AutomationName="{x:Bind DisplayAutomationName}"
-                    IndicatorScale="1.8"
-                    RemainingValue="{x:Bind ColorRemainingPercent}"
-                    TargetValue="{x:Bind RemainingPercent}" />
-                <Grid Grid.Row="2" ColumnSpacing="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock
-                        FontSize="11"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Text="{x:Bind ResetText}"
-                        TextTrimming="CharacterEllipsis">
-                        <ToolTipService.ToolTip>
-                            <ToolTip
-                                MaxWidth="332"
-                                Content="{x:Bind ResetText}"
-                                ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
-                        </ToolTipService.ToolTip>
-                    </TextBlock>
-                    <Button
-                        Grid.Column="1"
-                        MinWidth="24"
-                        MinHeight="24"
-                        Padding="4"
-                        Style="{StaticResource SubtleButtonStyle}"
-                        AutomationProperties.Name="{x:Bind UsedText}"
-                        AutomationProperties.HelpText="{x:Bind UsedText}"
-                        Visibility="{x:Bind HasUsedText}">
-                        <ToolTipService.ToolTip>
-                            <ToolTip
-                                MaxWidth="332"
-                                Content="{x:Bind UsedText}"
-                                ContentTemplate="{StaticResource TokenUsageWrappedToolTipTemplate}" />
-                        </ToolTipService.ToolTip>
-                        <FontIcon FontSize="11" Glyph="&#xE946;" />
-                    </Button>
+                    RemainingValue="{x:Bind ColorRemainingPercent}" TargetValue="{x:Bind RemainingPercent}" />
+                <Grid Grid.Row="2" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind WindowDetailText}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind ResetText}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Grid>
             </Grid>
         </DataTemplate>
@@ -202,6 +153,31 @@
             Visibility="{x:Bind ViewModel.IsGlobalScope, Mode=OneWay}">
 
             <Border BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0" />
+
+            <Grid
+                x:Name="ActivitySummaryTransitionHost"
+                SizeChanged="OnActivitySummaryTransitionHostSizeChanged"
+                VerticalAlignment="Top">
+                <Grid.Clip>
+                    <RectangleGeometry x:Name="ActivitySummaryTransitionClip" />
+                </Grid.Clip>
+            <StackPanel Spacing="5">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.GlobalActivity, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="100" ItemsStretch="Fill" MinColumnSpacing="8" Orientation="Horizontal" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="dashboard:DashboardActivitySummary">
+                            <StackPanel Padding="6,4" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" Text="{x:Bind Label}" />
+                                <TextBlock HorizontalAlignment="Center" FontFamily="Consolas" FontSize="20" FontWeight="SemiBold" Text="{x:Bind Value}" />
+                                <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" Text="{x:Bind Detail}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+            </Grid>
 
             <StackPanel Spacing="3">
                 <TextBlock
@@ -411,77 +387,47 @@
             </Grid>
 
             <StackPanel
-                Padding="12,9"
-                Spacing="12"
+                Padding="8,8"
+                Spacing="6"
                 Visibility="{x:Bind ViewModel.HasGlobalProviderLimits, Mode=OneWay}">
+                <controls:CodexAccountQuotaList Items="{x:Bind ViewModel.AccountQuotas, Mode=OneWay}"
+                                               Visibility="{x:Bind ViewModel.HasAccountQuotas, Mode=OneWay}" />
                 <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalCodexLimits, Mode=OneWay}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="codex" />
-                        <TextBlock x:Uid="CompactGlobalLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
-                    </StackPanel>
+
                     <ItemsRepeater
                         x:Name="GlobalCodexQuotaTilesRepeater"
                         ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
                         ItemsSource="{x:Bind ViewModel.GlobalCodexLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                            <UniformGridLayout ItemsStretch="Fill" MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
                 </StackPanel>
                 <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalClaudeLimits, Mode=OneWay}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="claude" />
-                        <TextBlock x:Uid="CompactGlobalClaudeLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
-                    </StackPanel>
+
                     <ItemsRepeater
                         x:Name="GlobalClaudeQuotaTilesRepeater"
                         ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
                         ItemsSource="{x:Bind ViewModel.GlobalClaudeLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                            <UniformGridLayout ItemsStretch="Fill" MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
                 </StackPanel>
                 <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalZcodeLimits, Mode=OneWay}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <controls:ProviderMarkImage Height="16" VerticalAlignment="Center" Width="16" ProviderId="zcode" />
-                        <TextBlock x:Uid="CompactGlobalZcodeLimitsTitle" VerticalAlignment="Center" FontWeight="SemiBold" />
-                    </StackPanel>
+
                     <ItemsRepeater
                         x:Name="GlobalZcodeQuotaTilesRepeater"
                         ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
                         ItemsSource="{x:Bind ViewModel.GlobalZcodeLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                            <UniformGridLayout ItemsStretch="Fill" MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
                 </StackPanel>
             </StackPanel>
 
-            <Grid
-                x:Name="ActivitySummaryTransitionHost"
-                SizeChanged="OnActivitySummaryTransitionHostSizeChanged"
-                VerticalAlignment="Top">
-                <Grid.Clip>
-                    <RectangleGeometry x:Name="ActivitySummaryTransitionClip" />
-                </Grid.Clip>
-            <StackPanel Spacing="5">
-                <ItemsRepeater ItemsSource="{x:Bind ViewModel.GlobalActivity, Mode=OneWay}">
-                    <ItemsRepeater.Layout>
-                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="100" ItemsStretch="Fill" MinColumnSpacing="8" Orientation="Horizontal" />
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="dashboard:DashboardActivitySummary">
-                            <StackPanel Padding="6,4" HorizontalAlignment="Center" Spacing="2">
-                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" Text="{x:Bind Label}" />
-                                <TextBlock HorizontalAlignment="Center" FontFamily="Consolas" FontSize="20" FontWeight="SemiBold" Text="{x:Bind Value}" />
-                                <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource BodyTextBlockStyle}" Text="{x:Bind Detail}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </StackPanel>
-            </Grid>
+
 
         </StackPanel>
 
@@ -668,13 +614,14 @@
                     <RectangleGeometry x:Name="ProviderLimitsClip" />
                 </Grid.Clip>
                 <StackPanel Padding="12,9" Spacing="5">
+                    <controls:CodexAccountQuotaList Items="{x:Bind ViewModel.SelectedAccountQuotas, Mode=OneWay}" />
                     <TextBlock x:Uid="CompactProviderCardLimitsTitle" Style="{StaticResource SectionLabelStyle}" />
                     <ItemsRepeater
                         x:Name="ProviderQuotaTilesRepeater"
                         ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
                         ItemsSource="{x:Bind ViewModel.SelectedProviderLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                            <UniformGridLayout ItemsStretch="Fill" MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
                 </StackPanel>

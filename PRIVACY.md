@@ -1,6 +1,6 @@
 # TokenUsage Privacy Policy
 
-**Effective date:** August 17, 2026  
+**Effective date:** September 28, 2026
 **Publisher:** GVASTETHECREATOR
 
 TokenUsage is a local-first Windows application that summarizes quota, token usage, cost, activity, and reset-cycle information made available by supported AI developer tools.
@@ -64,6 +64,21 @@ TokenUsage data remains on the user's device unless the user explicitly enables 
 When a user explicitly supplies a credential for a supported opt-in integration, TokenUsage uses Windows credential-protection facilities where supported. Credentials must not be written to ordinary logs, exported reports, screenshots, issue templates, or unprotected application settings.
 
 TokenUsage does not copy credentials from another application's private credential store.
+
+Codex accounts are optional. Settings discovers profiles through the installed
+`xswap list --json` command. Email, source account IDs, and effective profile paths
+are used in memory to verify a reading. They are not saved in quota caches,
+diagnostics, or exports. Account storage uses an opaque HMAC key derived from
+the source account and user IDs. Windows Credential Locker protects the local
+HMAC secret. An unreadable existing secret blocks account updates.
+
+Only selected profiles are queried. Each official Codex `app-server` child process
+receives its own `CODEX_HOME`. TokenUsage does not switch profiles, copy credentials,
+open `auth.json`, or use the private endpoint behind `xswap usage`. Additional
+accounts use `account/read` and `account/rateLimits/read`; they do not add local
+session scans or account usage imports. Display aliases and profile numbers are
+saved with the selection. Aliases that contain email addresses, paths, or source
+identity values are replaced by a profile number.
 
 ## 5. Network activity
 

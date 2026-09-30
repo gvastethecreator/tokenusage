@@ -5,7 +5,7 @@ namespace TokenUsage.Providers.Claude;
 
 public static class ClaudePricingCatalog
 {
-    public const string Version = "anthropic-api-2026-09-22";
+    public const string Version = "anthropic-api-2026-09-30";
     private const decimal TokensPerMillion = 1_000_000m;
 
     private static readonly Dictionary<string, Rates> RatesByModel =
@@ -31,6 +31,7 @@ public static class ClaudePricingCatalog
             ["claude-sonnet-4-5-20250929"] = new(3m, 15m, 3.75m, 6m, 0.3m),
             ["claude-sonnet-4-6"] = new(3m, 15m, 3.75m, 6m, 0.3m),
             ["claude-sonnet-5"] = new(2m, 10m, 2.5m, 4m, 0.2m),
+            ["claude-sonnet-5-5"] = new(2m, 10m, 2.5m, 4m, 0.2m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =

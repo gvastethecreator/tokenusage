@@ -63,7 +63,12 @@ public sealed class CodexAppServerClient : ICodexQuotaClient
 
             using JsonDocument response = await ExchangeAsync(request, requestId, cancellationToken)
                 .ConfigureAwait(false);
-            RequireResultObject(response.RootElement);
+            JsonElement initialized = RequireResultObject(response.RootElement);
+            if (_options.ExpectedHome is not null
+                && (!initialized.TryGetProperty("codexHome", out JsonElement home)
+                    || home.ValueKind != JsonValueKind.String
+                    || !SameHome(home.GetString(), _options.ExpectedHome)))
+                throw new CodexProtocolException("Codex returned a different account home.");
 
             await WriteWithTimeoutAsync(new RpcNotification("initialized"), cancellationToken)
                 .ConfigureAwait(false);
@@ -141,7 +146,13 @@ public sealed class CodexAppServerClient : ICodexQuotaClient
             using JsonDocument response = await ExchangeAsync(request, requestId, cancellationToken)
                 .ConfigureAwait(false);
             JsonElement result = RequireResultObject(response.RootElement);
-            return CodexAccountStatusParser.Parse(result);
+            CodexAccountStatus status = CodexAccountStatusParser.Parse(result);
+            if (_options.ExpectedEmail is not null && status.Kind == CodexAccountKind.ChatGpt
+                && (!result.GetProperty("account").TryGetProperty("email", out JsonElement email)
+                    || email.ValueKind != JsonValueKind.String
+                    || !string.Equals(email.GetString(), _options.ExpectedEmail, StringComparison.OrdinalIgnoreCase)))
+                throw new CodexProtocolException("Codex returned a different account identity.");
+            return status;
         }
         catch (Exception exception) when (
             exception is CodexProtocolException or OperationCanceledException)
@@ -413,6 +424,14 @@ public sealed class CodexAppServerClient : ICodexQuotaClient
 
     private sealed record InitializeCapabilities(
         [property: JsonPropertyName("experimentalApi")] bool ExperimentalApi);
+
+    private static bool SameHome(string? actual, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(actual) || !Path.IsPathFullyQualified(actual)) return false;
+        static string Normalize(string value) => Path.GetFullPath(value.StartsWith(@"\\?\", StringComparison.Ordinal)
+            ? value[4..] : value).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return string.Equals(Normalize(actual), Normalize(expected), StringComparison.OrdinalIgnoreCase);
+    }
 
     private sealed record AccountReadParams(
         [property: JsonPropertyName("refreshToken")] bool RefreshToken);

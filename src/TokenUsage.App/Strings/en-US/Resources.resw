@@ -1320,4 +1320,27 @@ Status: {1} · Issue: {2}</value></data>
   <data name="CompactPeriodThisMonthUtc" xml:space="preserve"><value>This month (UTC)</value></data>
   <data name="CompactProviderVercelCoverageHint" xml:space="preserve"><value>Vercel AI Gateway: spend and tokens for the saved key come from the Vercel report for the last 30 days. They are not added to the local totals, because a local tool can also record the same requests.</value></data>
   <data name="CompactProviderOpenRouterCoverageHint" xml:space="preserve"><value>OpenRouter: spend for the saved key comes from the OpenRouter API for this UTC month. The key endpoint has no token counts. The spend is not added to the local totals, because a local tool can also record the same requests.</value></data>
+  <data name="CodexAccountProfileFormat" xml:space="preserve"><value>Profile {0}</value></data>
+  <data name="CodexAccountBankedResetOne" xml:space="preserve"><value>1 banked reset</value></data>
+  <data name="CodexAccountBankedResetsFormat" xml:space="preserve"><value>{0:N0} banked resets</value></data>
+  <data name="CodexAccountActive" xml:space="preserve"><value>Active</value></data>
+  <data name="CodexAccountLoginRequired" xml:space="preserve"><value>Sign in with code-swap to update this account.</value></data>
+  <data name="CodexAccountIdentityChanged" xml:space="preserve"><value>Identity changed. Reading was not accepted.</value></data>
+  <data name="CodexAccountUnavailable" xml:space="preserve"><value>Account unavailable. Last reading retained.</value></data>
+  <data name="CodexAccountUpdateFailed" xml:space="preserve"><value>Update failed. Last reading retained.</value></data>
+  <data name="CodexAccountNoReading" xml:space="preserve"><value>No reading yet.</value></data>
+  <data name="CodexAccountStale" xml:space="preserve"><value>Out of date</value></data>
+  <data name="CodexAccountCurrent" xml:space="preserve"><value>Up to date</value></data>
+  <data name="CodexAccountAvailable" xml:space="preserve"><value>Ready to select</value></data>
+  <data name="CodexAccountsDiscoveryFailed" xml:space="preserve"><value>Accounts could not be verified. Existing selection and readings were preserved.</value></data>
+  <data name="CodexAccountsEmpty" xml:space="preserve"><value>No code-swap profiles found.</value></data>
+  <data name="CodexAccountsSelectionHint" xml:space="preserve"><value>Select the accounts whose quotas you want to show. New profiles stay unselected.</value></data>
+  <data name="CodexAccountsSaved" xml:space="preserve"><value>Selection saved.</value></data>
+  <data name="CodexAccountsUpdateInterrupted" xml:space="preserve"><value>Update interrupted. Last valid readings were retained.</value></data>
+  <data name="CodexAccountsSaveFailed" xml:space="preserve"><value>Selection could not be saved. Existing data was preserved.</value></data>
+  <data name="CodexAccountsSection.Header" xml:space="preserve"><value>Codex accounts</value></data>
+  <data name="CodexAccountsDescription.Text" xml:space="preserve"><value>Choose profiles from code-swap to show separate quotas. Local tokens and costs remain shared. Previous quota history stays available without an identified account.</value></data>
+  <data name="CodexAccountsDiscover.Content" xml:space="preserve"><value>Find accounts</value></data>
+  <data name="CodexAccountsSave.Content" xml:space="preserve"><value>Save selection</value></data>
+  <data name="CodexUnassignedHistory.Text" xml:space="preserve"><value>Previous Codex quota history has no identified account. It is preserved separately; new account readings do not assign shared tokens or costs to account cycles.</value></data>
 </root>

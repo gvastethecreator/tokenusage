@@ -13,6 +13,48 @@ public sealed class SnapshotStoreTests
     private static readonly DateTimeOffset Now = new(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task AccountCachesRejectOtherOwnersAndPreserveUnreadableDocuments()
+    {
+        using var folder = new TemporaryFolder();
+        var first = new ProviderInstanceKey(new ProviderId("codex"), new string('a', 64));
+        var second = new ProviderInstanceKey(new ProviderId("codex"), new string('b', 64));
+        var store = new SnapshotStore(folder.DocumentPath, TimeProvider.System, first);
+        ProviderSnapshot snapshot = CreateSnapshot("codex", 91m).ForAccount(first.AccountKey!);
+        await store.UpsertLastGoodAsync(snapshot);
+        byte[] original = await File.ReadAllBytesAsync(folder.DocumentPath);
+        Assert.Equal(first, Assert.Single(Assert.IsType<SnapshotCacheReadResult.Loaded>(await store.LoadAsync()).Snapshots).InstanceKey);
+        var other = new SnapshotStore(folder.DocumentPath, TimeProvider.System, second);
+        await Assert.ThrowsAsync<IOException>(() => other.LoadAsync());
+        await Assert.ThrowsAsync<IOException>(() => other.UpsertLastGoodAsync(CreateSnapshot("codex", 5m).ForAccount(second.AccountKey!)));
+        Assert.Equal(original, await File.ReadAllBytesAsync(folder.DocumentPath));
+        foreach (string invalid in new[] { "{", "{\"schemaVersion\":999}" })
+        {
+            await File.WriteAllTextAsync(folder.DocumentPath, invalid);
+            _ = await store.LoadAsync();
+            try { await store.UpsertLastGoodAsync(snapshot); } catch (IOException) { }
+            Assert.Equal(invalid, await File.ReadAllTextAsync(folder.DocumentPath));
+        }
+    }
+
+    [Fact]
+    public async Task AccountSelectionCanBeRenamedRemovedAndRestoredWithoutChangingItsStore()
+    {
+        using var folder = new TemporaryFolder();
+        var selection = new ProviderAccountSelectionStore(Path.GetDirectoryName(folder.DocumentPath)!, new ProviderId("codex"));
+        string key = new('a', 64);
+        Assert.False(selection.WasActivated);
+        await selection.SaveAsync([new(key, 1, "Work")]);
+        string accountPath = selection.AccountDirectory(key);
+        await selection.SaveAsync([new(key, 3, "Renamed")]);
+        await selection.SaveAsync([]);
+        Assert.True(selection.WasActivated);
+        await selection.SaveAsync([new(key, 2, null)]);
+        Assert.Equal(accountPath, selection.AccountDirectory(Assert.Single(await selection.LoadAsync()).AccountKey));
+        await selection.SaveAsync([new(key, 2, null)]);
+        Assert.Single(await selection.LoadAsync());
+    }
+
+    [Fact]
     public async Task LoadMissingFileReturnsEmpty()
     {
         using var folder = new TemporaryFolder();

@@ -42,8 +42,8 @@
             <Color x:Key="ProviderAntigravityColor">#FF4285F4</Color>
             <Color x:Key="ProviderClaudeColorDark">#FFA04732</Color>
             <Color x:Key="ProviderClaudeColor">#FFDE7356</Color>
-            <Color x:Key="ProviderCodexColorDark">#FF086B54</Color>
-            <Color x:Key="ProviderCodexColor">#FF10A37F</Color>
+            <Color x:Key="ProviderCodexColorDark">#FF506890</Color>
+            <Color x:Key="ProviderCodexColor">#FF8AB4F8</Color>
             <Color x:Key="ProviderGrokColorDark">#FF4C36B8</Color>
             <Color x:Key="ProviderGrokColor">#FF7C5CFC</Color>
             <Color x:Key="ProviderOpenCodeColorDark">#FF9F2F62</Color>

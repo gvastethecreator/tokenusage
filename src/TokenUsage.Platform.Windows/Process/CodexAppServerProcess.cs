@@ -106,6 +106,7 @@ public sealed class CodexAppServerProcess : IAsyncDisposable
         FileStream? clientOutput = null;
         FileStream? stderrStream = null;
         CodexAppServerProcess? result = null;
+        nint environmentBlock = 0;
         CodexAppServerProcessError failureStage = CodexAppServerProcessError.StartFailed;
 
         try
@@ -134,6 +135,16 @@ public sealed class CodexAppServerProcess : IAsyncDisposable
             string workingDirectory = Path.GetDirectoryName(executablePath)
                 ?? throw new InvalidOperationException("Codex executable directory is unavailable.");
 
+            if (options.CodexHome is not null)
+            {
+                var environment = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+                    environment[(string)entry.Key] = (string)entry.Value!;
+                environment["CODEX_HOME"] = options.CodexHome;
+                string block = string.Join('\0', environment.Select(entry => $"{entry.Key}={entry.Value}")) + "\0\0";
+                environmentBlock = Marshal.StringToHGlobalUni(block);
+            }
+
             if (!NativeMethods.CreateProcessWithExtendedStartupInfo(
                     executablePath,
                     commandLine,
@@ -142,8 +153,9 @@ public sealed class CodexAppServerProcess : IAsyncDisposable
                     inheritHandles: true,
                     NativeMethods.CreateSuspended
                         | NativeMethods.CreateNoWindow
-                        | NativeMethods.ExtendedStartupInfoPresent,
-                    0,
+                        | NativeMethods.ExtendedStartupInfoPresent
+                        | (environmentBlock == 0 ? 0u : 0x00000400u),
+                    environmentBlock,
                     workingDirectory,
                     ref startupInfo,
                     out NativeMethods.ProcessInformation processInformation))
@@ -225,6 +237,7 @@ public sealed class CodexAppServerProcess : IAsyncDisposable
         }
         finally
         {
+            if (environmentBlock != 0) Marshal.FreeHGlobal(environmentBlock);
             childStdinRead?.Dispose();
             childStdoutWrite?.Dispose();
             childStderrWrite?.Dispose();

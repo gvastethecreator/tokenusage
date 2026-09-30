@@ -6,7 +6,7 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-09-22";
+    public const string Version = "openai-api-2026-09-30";
     private const long LongContextThreshold = 272_000;
 
     // Promotional rates switch to the list rate on the day after the published
@@ -39,12 +39,14 @@ public static class CodexPricingCatalog
             ["gpt-5.4-nano"] = new("gpt-5.4-nano", 0.2m, 0.02m, 1.25m, 0.2m, false),
             ["gpt-5.5"] = new("gpt-5.5", 5m, 0.5m, 30m, 5m, true),
             ["gpt-5.6"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
+            ["gpt-5.6-cyber"] = new("gpt-5.6-cyber", 12.5m, 1.25m, 75m, 15.625m, true),
             ["gpt-5.6-luna"] = new("gpt-5.6-luna", 0.2m, 0.02m, 1.2m, 0.25m, true),
             ["gpt-5.6-sol"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
             ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
             ["gpt-6-astra"] = new("gpt-6-astra", 10m, 1m, 50m, 12.5m, true),
             ["gpt-6-luna"] = new("gpt-6-luna", 0.10m, 0.01m, 0.50m, 0.125m, true),
             ["gpt-6-sol"] = new("gpt-6-sol", 2m, 0.20m, 10m, 2.5m, true),
+            ["gpt-6.1-sol"] = new("gpt-6.1-sol", 2m, 0.10m, 10m, 2.5m, true),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -182,11 +184,13 @@ public static class CodexPricingCatalog
                 evidence.Add(PricingEvidence.Ongoing(
                     Version,
                     priceMatch,
-                    priceMatch == "gpt-6-astra"
-                        ? PricingOfficialSources.OpenAiAstra
-                        : priceMatch is "gpt-6-sol" or "gpt-6-luna"
-                            ? PricingOfficialSources.OpenAiFlagship
-                            : PricingOfficialSources.OpenAi));
+                    priceMatch switch
+                    {
+                        "gpt-5.6-cyber" => PricingOfficialSources.OpenAiCyber,
+                        "gpt-6-astra" => PricingOfficialSources.OpenAiAstra,
+                        "gpt-6-sol" or "gpt-6.1-sol" or "gpt-6-luna" => PricingOfficialSources.OpenAiFlagship,
+                        _ => PricingOfficialSources.OpenAi,
+                    }));
             }
         }
 

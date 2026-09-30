@@ -9,7 +9,9 @@ public sealed class CodexClientOptions
         string clientVersion,
         string? clientTitle = null,
         TimeSpan? requestTimeout = null,
-        int maximumLineBytes = DefaultMaximumLineBytes)
+        int maximumLineBytes = DefaultMaximumLineBytes,
+        string? expectedHome = null,
+        string? expectedEmail = null)
     {
         ClientName = RequireIdentifier(clientName, nameof(clientName));
         ClientVersion = RequireIdentifier(clientVersion, nameof(clientVersion));
@@ -31,6 +33,8 @@ public sealed class CodexClientOptions
         }
 
         MaximumLineBytes = maximumLineBytes;
+        ExpectedHome = expectedHome;
+        ExpectedEmail = expectedEmail;
     }
 
     public string ClientName { get; }
@@ -42,6 +46,10 @@ public sealed class CodexClientOptions
     public TimeSpan RequestTimeout { get; }
 
     public int MaximumLineBytes { get; }
+
+    internal string? ExpectedHome { get; }
+
+    internal string? ExpectedEmail { get; }
 
     private static string RequireIdentifier(string value, string paramName)
     {

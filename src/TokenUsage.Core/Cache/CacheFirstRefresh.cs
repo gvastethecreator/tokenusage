@@ -9,12 +9,14 @@ public sealed class CacheFirstRefresh
     private readonly IReadOnlyList<IProviderRuntime> _providers;
     private readonly TimeProvider _clock;
     private readonly ProviderOperationGate? _providerOperationGate;
+    private readonly Func<ProviderSnapshot, CancellationToken, Task>? _beforeSnapshotSaveAsync;
 
     public CacheFirstRefresh(
         SnapshotStore store,
         IEnumerable<IProviderRuntime> providers,
         TimeProvider clock,
-        ProviderOperationGate? providerOperationGate = null)
+        ProviderOperationGate? providerOperationGate = null,
+        Func<ProviderSnapshot, CancellationToken, Task>? beforeSnapshotSaveAsync = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         ArgumentNullException.ThrowIfNull(providers);
@@ -39,15 +41,20 @@ public sealed class CacheFirstRefresh
 
         _providers = Array.AsReadOnly(providerArray);
         _providerOperationGate = providerOperationGate;
+        _beforeSnapshotSaveAsync = beforeSnapshotSaveAsync;
     }
 
     public async IAsyncEnumerable<CacheFirstEvent> RunAsync(
         bool forceRefresh = false,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        SnapshotCacheReadResult readResult = await _store
-            .LoadAsync(cancellationToken)
-            .ConfigureAwait(false);
+        SnapshotCacheReadResult readResult;
+        try { readResult = await _store.LoadAsync(cancellationToken).ConfigureAwait(false); }
+        catch (Exception exception) when (_store.Scope is not null
+            && exception is IOException or UnauthorizedAccessException or TimeoutException)
+        {
+            readResult = new SnapshotCacheReadResult.Corrupt(Path.GetFileName(_store.DocumentPath));
+        }
         yield return new CacheFirstEvent.CachePublished(readResult);
 
         var lastGood = readResult is SnapshotCacheReadResult.Loaded loaded
@@ -122,6 +129,9 @@ public sealed class CacheFirstRefresh
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_beforeSnapshotSaveAsync is not null)
+                    await _beforeSnapshotSaveAsync(newLastGood, cancellationToken).ConfigureAwait(false);
                 SnapshotCacheSaveResult saveResult = await _store
                     .UpsertLastGoodAsync(newLastGood, cancellationToken)
                     .ConfigureAwait(false);
@@ -155,9 +165,16 @@ public sealed class CacheFirstRefresh
             }
         }
 
+        if (_store.Scope is not null && newLastGood is not null && cacheStatus != CacheUpdateStatus.Updated)
+        {
+            outcome = new ProviderOutcome.TransientFailure(new ProviderError(
+                ProviderErrorCode.TransientSourceFailure, "The account reading could not be saved."), cachedSnapshot);
+        }
+
         return new CacheFirstEvent.ProviderCompleted(
             provider.Descriptor.Id,
             outcome,
-            cacheStatus);
+            cacheStatus,
+            _store.Scope);
     }
 }

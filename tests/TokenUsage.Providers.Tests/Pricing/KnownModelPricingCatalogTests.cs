@@ -51,14 +51,18 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("claude-4.5-sonnet-thinking", 4.5, "claude-sonnet-4-5")]
     [InlineData("claude-opus-4-7", 7.5, "claude-opus-4-7")]
     [InlineData("claude-sonnet-5", 3.0, "claude-sonnet-5")]
+    [InlineData("claude-sonnet-5.5", 3.0, "claude-sonnet-5-5")]
+    [InlineData("anthropic/claude-sonnet-5-5", 3.0, "claude-sonnet-5-5")]
     [InlineData("claude-opus-5.5", 6.0, "claude-opus-5-5")]
     [InlineData("gpt-5.1-codex", 2.25, "gpt-5.1-codex")]
     [InlineData("gpt-5-mini", 0.45, "gpt-5-mini")]
     [InlineData("gpt-5.6 sol", 11.0, "gpt-5.6-sol")]
     [InlineData("gpt-5.6-luna", 0.58, "gpt-5.6-luna")]
     [InlineData("gpt-5.6-terra", 5.8, "gpt-5.6-terra")]
+    [InlineData("gpt-5.6-cyber", 36.25, "gpt-5.6-cyber")]
     [InlineData("gpt-6-astra", 27.5, "gpt-6-astra")]
     [InlineData("gpt-6-sol", 5.5, "gpt-6-sol")]
+    [InlineData("openai/gpt-6.1-sol", 5.5, "gpt-6.1-sol")]
     [InlineData("gpt-6-luna", 0.275, "gpt-6-luna")]
     [InlineData("openai/gpt-6-astra-max", 27.5, "gpt-6-astra")]
     [InlineData("grok-4.6", 2.6, "grok-4.6")]
@@ -91,8 +95,8 @@ public sealed class KnownModelPricingCatalogTests
 
     [Theory]
     [InlineData("composer-2.5", "cursor-models-2026-09-22")]
-    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-22")]
-    [InlineData("gpt-5.1-codex", "openai-api-2026-09-22")]
+    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-09-30")]
+    [InlineData("gpt-5.1-codex", "openai-api-2026-09-30")]
     [InlineData("gemini-3.6-flash", "google-api-2026-09-02")]
     [InlineData("gemini-3.8-flash", "google-api-2026-09-02")]
     [InlineData("glm-5.3-flash", "zai-api-2026-09-22")]
@@ -152,20 +156,24 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
-    [InlineData(270_000, 2.9635)]
-    [InlineData(270_001, 5.80202)]
-    public void AstraPricesCacheWritesAndReasoningAcrossTheLongContextBoundary(
-        long input, decimal expectedUsd)
+    [InlineData("gpt-6-astra", 270_000, 2.9635)]
+    [InlineData("gpt-6-astra", 270_001, 5.80202)]
+    [InlineData("gpt-6.1-sol", 270_000, 0.5926)]
+    [InlineData("gpt-6.1-sol", 270_001, 1.160204)]
+    [InlineData("gpt-5.6-cyber", 270_000, 3.766875)]
+    [InlineData("gpt-5.6-cyber", 270_001, 7.346275)]
+    public void OpenAiPricesCacheWritesAndReasoningAcrossTheLongContextBoundary(
+        string model, long input, decimal expectedUsd)
     {
         CostObservation cost = KnownModelPricingCatalog.Resolve(
-            "gpt-6-astra",
+            model,
             OccurredAtUtc,
             new TokenBreakdown(input, 4_000, 1_000, 1_000, 1_000));
 
         Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
         Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
         Assert.Equal(CodexPricingCatalog.Version, cost.CatalogVersion);
-        Assert.Equal("gpt-6-astra", cost.ExactPriceMatch);
+        Assert.Equal(model, cost.ExactPriceMatch);
     }
 
     [Fact]

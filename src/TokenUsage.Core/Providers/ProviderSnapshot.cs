@@ -12,9 +12,11 @@ public sealed class ProviderSnapshot
         IEnumerable<MetricSnapshot> metrics,
         CoverageKind coverage,
         int adapterContractVersion,
-        IEnumerable<ProviderCapabilitySnapshot>? capabilities = null)
+        IEnumerable<ProviderCapabilitySnapshot>? capabilities = null,
+        string? accountKey = null)
     {
         ProviderId = providerId ?? throw new ArgumentNullException(nameof(providerId));
+        InstanceKey = new ProviderInstanceKey(providerId, accountKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         UtcTimestamp.Require(fetchedAtUtc, nameof(fetchedAtUtc));
         UtcTimestamp.Require(sourceObservedAtUtc, nameof(sourceObservedAtUtc));
@@ -83,6 +85,12 @@ public sealed class ProviderSnapshot
     }
 
     public ProviderId ProviderId { get; }
+
+    public ProviderInstanceKey InstanceKey { get; }
+
+    public ProviderSnapshot ForAccount(string accountKey) => new(
+        ProviderId, DisplayName, PlanLabel, FetchedAtUtc, SourceObservedAtUtc,
+        TimeZoneId, Metrics, Coverage, AdapterContractVersion, Capabilities, accountKey);
 
     public string DisplayName { get; }
 

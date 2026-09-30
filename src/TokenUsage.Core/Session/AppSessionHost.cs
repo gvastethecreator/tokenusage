@@ -422,19 +422,24 @@ public sealed class AppSessionHost : IAsyncDisposable
             switch (refreshEvent)
             {
                 case CacheFirstEvent.CachePublished cache:
+                    if (cache.RegisteredInstances is { } registered)
+                    {
+                        foreach (string key in _snapshots.Keys.Where(key => !registered.Contains(key)).ToArray()) _snapshots.Remove(key);
+                        foreach (string key in _outcomes.Keys.Where(key => !registered.Contains(key)).ToArray()) _outcomes.Remove(key);
+                    }
                     foreach (ProviderSnapshot snapshot in cache.Snapshots)
                     {
-                        _snapshots[snapshot.ProviderId.Value] = snapshot;
+                        _snapshots[snapshot.InstanceKey.Value] = snapshot;
                     }
 
                     break;
 
                 case CacheFirstEvent.ProviderCompleted completed:
-                    _outcomes[completed.ProviderId.Value] = completed.Outcome;
+                    _outcomes[completed.InstanceKey.Value] = completed.Outcome;
                     ProviderSnapshot? completedSnapshot = SelectOutcomeSnapshot(completed.Outcome);
                     if (completedSnapshot is not null)
                     {
-                        _snapshots[completed.ProviderId.Value] = completedSnapshot;
+                        _snapshots[completed.InstanceKey.Value] = completedSnapshot;
                     }
 
                     break;
@@ -449,28 +454,46 @@ public sealed class AppSessionHost : IAsyncDisposable
         lock (_sync)
         {
             facts = _refreshHost.Registrations
-                .Select(registration => registration.Provider.Descriptor.Id)
-                .Select(providerId => CreateAlertFacts(providerId))
+                .Where(registration => registration.InstanceKey.AccountKey is null)
+                .Select(registration => CreateAlertFacts(registration.InstanceKey))
                 .Where(candidate => candidate is not null)
                 .Cast<ProviderAlertFacts>()
                 .ToArray();
         }
 
-        return await _alertHost.EvaluateAsync(
+        var alerts = (await _alertHost.EvaluateAsync(
                 _clock.GetUtcNow().ToUniversalTime(),
                 facts,
                 cancellationToken)
-            .ConfigureAwait(false);
+            .ConfigureAwait(false)).ToList();
+        foreach (ProviderRefreshRegistration registration in _refreshHost.Registrations
+            .Where(item => item.AlertHost is not null))
+        {
+            ProviderAlertFacts? accountFacts;
+            lock (_sync) accountFacts = CreateAlertFacts(registration.InstanceKey);
+            if (accountFacts is null) continue;
+            try
+            {
+                IReadOnlyList<AlertNotificationIntent> accountAlerts = await registration.AlertHost!
+                    .EvaluateAsync(_clock.GetUtcNow().ToUniversalTime(), [accountFacts], cancellationToken).ConfigureAwait(false);
+                alerts.AddRange(accountAlerts.Select(intent => new AlertNotificationIntent(intent.Candidate, registration.Account)));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
+            {
+                // A damaged account decision file must not suppress the other accounts.
+            }
+        }
+        return alerts;
     }
 
-    private ProviderAlertFacts? CreateAlertFacts(ProviderId providerId)
+    private ProviderAlertFacts? CreateAlertFacts(ProviderInstanceKey instance)
     {
-        if (_outcomes.TryGetValue(providerId.Value, out ProviderOutcome? outcome))
+        if (_outcomes.TryGetValue(instance.Value, out ProviderOutcome? outcome))
         {
-            return AlertFactsBuilder.FromOutcome(providerId, outcome, _clock);
+            return AlertFactsBuilder.FromOutcome(instance.ProviderId, outcome, _clock);
         }
 
-        return _snapshots.TryGetValue(providerId.Value, out ProviderSnapshot? snapshot)
+        return _snapshots.TryGetValue(instance.Value, out ProviderSnapshot? snapshot)
             ? AlertFactsBuilder.FromSnapshot(snapshot, _clock)
             : null;
     }

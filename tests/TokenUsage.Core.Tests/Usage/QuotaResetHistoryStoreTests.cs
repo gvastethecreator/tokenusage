@@ -10,6 +10,34 @@ public sealed class QuotaResetHistoryStoreTests
         new(2026, 8, 11, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task ActivationFreezesLegacyHistoryAndAccountsStartIndependentBaselines()
+    {
+        using var folder = new TemporaryFolder();
+        bool activated = false;
+        var legacy = new QuotaResetHistoryStore(folder.DocumentPath, isCodexHistoryFrozen: () => activated);
+        var old = CreateSnapshot(InitialObservation, 91m, InitialObservation.AddDays(2), 10_080m);
+        await legacy.ObserveAsync(old);
+        byte[] baseline = await File.ReadAllBytesAsync(folder.DocumentPath);
+        activated = true;
+        await legacy.ObserveAsync(CreateSnapshot(InitialObservation.AddHours(1), 0m, InitialObservation.AddDays(3), 10_080m));
+        Assert.Equal(baseline, await File.ReadAllBytesAsync(folder.DocumentPath));
+        foreach (char account in new[] { 'a', 'b' })
+        {
+            var scope = new ProviderInstanceKey(new ProviderId("codex"), new string(account, 64));
+            string path = folder.DocumentPath + account;
+            var history = new QuotaResetHistoryStore(path, scope: scope);
+            var snapshot = CreateSnapshot(InitialObservation.AddHours(1), account == 'a' ? 5m : 0m,
+                InitialObservation.AddDays(3), 10_080m).ForAccount(scope.AccountKey!);
+            await history.ObserveAsync(snapshot);
+            var reopened = new QuotaResetHistoryStore(path, scope: scope);
+            var result = await reopened.ObserveAsync(snapshot);
+            Assert.Empty(result.Resets);
+            Assert.Empty(result.Replenishments);
+            Assert.Equal(account == 'a' ? 5m : 0m, Assert.Single(result.Windows).UsedPercent);
+        }
+    }
+
+    [Fact]
     public async Task FirstObservationStartsCurrentCycleWithoutInventingAReset()
     {
         using var folder = new TemporaryFolder();

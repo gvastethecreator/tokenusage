@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TokenUsage.App.Services;
@@ -152,6 +153,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     [NotifyPropertyChangedFor(nameof(SelectedProviderTokensText))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderHasLimits))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderHasCoverageHint))]
+    [NotifyPropertyChangedFor(nameof(SelectedAccountQuotas))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderCoverageHintText))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderPeriodText))]
     public partial DashboardProviderOption? SelectedProvider { get; set; }
@@ -178,6 +180,16 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
     [NotifyPropertyChangedFor(nameof(HasGlobalCodexLimits))]
     public partial IReadOnlyList<QuotaWindow> GlobalCodexLimits { get; private set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAccountQuotas))]
+    [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
+    [NotifyPropertyChangedFor(nameof(SelectedProviderHasLimits))]
+    [NotifyPropertyChangedFor(nameof(SelectedAccountQuotas))]
+    public partial IReadOnlyList<CodexAccountQuota> AccountQuotas { get; private set; } = [];
+
+    public bool HasAccountQuotas => AccountQuotas.Count > 0;
+    public bool UsesCodexAccounts => _liveSession.UsesCodexAccounts;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
@@ -279,9 +291,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public bool SelectedProviderHasUnpricedData =>
         SelectedProviderSummary?.HasUnpricedData ?? false;
 
-    public bool SelectedProviderHasLimits => SelectedProviderLimits.Count > 0;
+    public IReadOnlyList<CodexAccountQuota> SelectedAccountQuotas => SelectedProvider?.ProviderId == "codex" ? AccountQuotas : [];
 
-    public bool HasGlobalProviderLimits => HasGlobalCodexLimits || HasGlobalClaudeLimits || HasGlobalZcodeLimits;
+    public bool SelectedProviderHasLimits => SelectedProviderLimits.Count > 0 || SelectedAccountQuotas.Count > 0;
+
+    public bool HasGlobalProviderLimits => HasAccountQuotas || HasGlobalCodexLimits || HasGlobalClaudeLimits || HasGlobalZcodeLimits;
 
     public bool HasGlobalCodexLimits => GlobalCodexLimits.Count > 0;
 
@@ -411,6 +425,12 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             return;
         }
 
+        if (UsesCodexAccounts)
+        {
+            _liveSession.RefreshAccountQuotas();
+            AccountQuotas = _liveSession.AccountQuotas;
+        }
+
         if (_retryAtUtc is DateTimeOffset retryAtUtc
             && retryAtUtc <= _liveSession.Clock.GetUtcNow().ToUniversalTime()
             && !IsSessionRefreshing)
@@ -491,7 +511,13 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             string.Equals(card.ProviderId, providerId, StringComparison.Ordinal));
         IReadOnlyList<QuotaWindow> limits = providerCard is null
             ? []
-            : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).ToArray();
+            : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).Select(window => window with
+            {
+                ProviderId = providerId,
+                ProfileLabel = providerCard.Name,
+                CompactRemainingLabel = string.Format(CultureInfo.CurrentCulture,
+                    _getString("AppearanceRemainingPercentFormat"), window.RemainingPercent),
+            }).ToArray();
         _providerLimitsById.Add(providerId, limits);
         return limits;
     }
@@ -672,6 +698,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
 
         _lastCodexSnapshot = session.LastCodexSnapshot;
+        AccountQuotas = session.AccountQuotas;
+        OnPropertyChanged(nameof(UsesCodexAccounts));
         _lastCodexOutcome = session.LastCodexOutcome;
         _lastClaudeSnapshot = session.LastClaudeSnapshot;
         _apiProviderSnapshots = session.ApiProviderSnapshots;
@@ -692,6 +720,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
 
         if (session.LastCodexSnapshot is null
+            && session.AccountQuotas.Count == 0
             && session.LastClaudeSnapshot is null
             && session.ApiProviderSnapshots.Count == 0
             && session.HasLocalUsage
@@ -765,7 +794,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         IReadOnlyList<SpendSlice> spendSlices = _hasLocalUsage && _rawLocalUsage is not null
             ? _rawLocalUsage.SpendBreakdown.AgentSlices
             : [];
-        if (providers.Count == 0 && spendSlices.Count == 0 && additionalSpendSlices.Count == 0)
+        if (providers.Count == 0 && spendSlices.Count == 0 && additionalSpendSlices.Count == 0 && AccountQuotas.Count == 0)
         {
             return false;
         }

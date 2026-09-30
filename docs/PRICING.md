@@ -19,7 +19,7 @@ GPT-6 Astra uses the [official OpenAI rates](https://developers.openai.com/api/d
 reviewed on 2026-09-04: $10 input, $1 cached input, $12.50 cache writes, and
 $50 output per million tokens. Input and cache rates double above 272,000 prompt
 tokens. Output, including reasoning, then uses 1.5 times the standard rate.
-The catalog records these rates as `openai-api-2026-09-22`.
+The current catalog version is `openai-api-2026-09-30`.
 
 GPT-6 Sol and GPT-6 Luna use the [official flagship rates](https://developers.openai.com/api/docs/pricing),
 reviewed on 2026-09-22. Sol is $2 input, $0.20 cached input, $2.50 cache writes,
@@ -27,10 +27,29 @@ and $10 output per million tokens. Luna is $0.10, $0.01, $0.125, and $0.50.
 Above 272,000 prompt tokens, input and cache rates double and output uses 1.5
 times the standard rate, the same rule as Astra.
 
+GPT-6.1 Sol uses the [official flagship rates](https://developers.openai.com/api/docs/pricing),
+reviewed on 2026-09-30: $2 input, $0.10 cache reads, $2.50 cache writes, and
+$10 output per million tokens. Above 272,000 prompt tokens, these become
+$4, $0.20, $5, and $15. GPT-6 Sol keeps its separate $0.20 short-context
+cache-read rate.
+
+GPT-5.6 Cyber uses its [official model pricing](https://developers.openai.com/api/docs/models/gpt-5.6-cyber),
+reviewed on 2026-09-30: $12.50 input, $1.25 cache reads, $15.625 cache writes,
+and $75 output per million tokens. Its model page specifies doubled input
+and cache rates and 1.5 times the output rate above 272,000 prompt tokens.
+The catalog estimates recorded usage; model access still requires OpenAI approval.
+
 Claude Opus 5.5 uses the [official Anthropic rates](https://platform.claude.com/docs/en/about-claude/pricing):
 $4 input, $5 five-minute cache writes, $8 one-hour cache writes, $0.20 cache
 reads, and $20 output. Fast mode is $8 input and $40 output, with the same
 cache multipliers. Claude Sonnet 5 remains at its published $2 and $10 rates.
+
+Claude Sonnet 5.5 (`claude-sonnet-5-5`) uses the same
+[published standard rates](https://platform.claude.com/docs/en/models/sonnet-5-5/overview):
+$2 input, $2.50 five-minute cache writes, $4 one-hour cache writes, $0.20 cache
+reads, and $10 output per million tokens. These rates were reviewed on
+2026-09-30 and are recorded in `anthropic-api-2026-09-30`. Cursor also lists
+Sonnet 5.5; its local model IDs resolve through the shared Anthropic catalog.
 
 Grok 4.7 uses the [official xAI rates](https://docs.x.ai/developers/pricing):
 $2 input, $0.50 cached input, and $6 output, doubling at 200,000 prompt tokens.

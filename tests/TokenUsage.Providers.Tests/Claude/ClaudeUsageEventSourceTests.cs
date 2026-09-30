@@ -241,8 +241,10 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(CostKind.CatalogEstimated, advisor.Cost.Kind);
     }
 
-    [Fact]
-    public async Task EstimatesExactModelsAndLeavesUnknownModelsUnpriced()
+    [Theory]
+    [InlineData("claude-sonnet-4-6", 8.085)]
+    [InlineData("claude-sonnet-5-5", 5.39)]
+    public async Task EstimatesExactModelsAndLeavesUnknownModelsUnpriced(string model, decimal expectedUsd)
     {
         using var corpus = new ClaudeCorpus();
         corpus.WriteLines(
@@ -253,6 +255,7 @@ public sealed class ClaudeUsageEventSourceTests
                 100_000,
                 cacheRead: 200_000,
                 cacheWrite: 0,
+                model: model,
                 cacheWrite5Minutes: 300_000,
                 cacheWrite1Hour: 400_000),
             UsageLine(
@@ -265,12 +268,12 @@ public sealed class ClaudeUsageEventSourceTests
         IReadOnlyList<UsageEvent> events = (await corpus.CreateSource().ReadAsync()).Events;
         UsageEvent priced = Assert.Single(
             events,
-            usageEvent => usageEvent.ModelId.Value == "claude-sonnet-4-6");
+            usageEvent => usageEvent.ModelId.Value == model);
         UsageEvent unknown = Assert.Single(
             events,
             usageEvent => usageEvent.ModelId.Value == "claude-future-9");
 
-        Assert.Equal(8.085m, priced.Cost.EstimatedCostUsd);
+        Assert.Equal(expectedUsd, priced.Cost.EstimatedCostUsd);
         Assert.Equal(ClaudePricingCatalog.Version, priced.Cost.CatalogVersion);
         Assert.Equal(700_000, priced.Tokens.CacheWrite);
         Assert.Equal(CostKind.Unavailable, unknown.Cost.Kind);

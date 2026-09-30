@@ -40,6 +40,39 @@ output path for a retry after resolving the cause. The source is opened read-onl
 These copies protect TokenUsage's own usage store. They do not back up provider
 logs, credentials, or other application data.
 
+## Codex account quotas
+
+Account quotas are additive. They do not migrate the usage database or change
+event keys, prices, totals, attribution, or scanner checkpoints. Selection is in
+`accounts/codex/selection.v1.json`. Each opaque account directory contains its own
+snapshot cache, quota reset history, observation journal, and alert decision
+state. Documents bind their schema version, provider, and account key. The
+observation journal stores the same binding in its metadata table.
+
+The first reading starts a baseline. It is never compared with another account
+or with the old global quota history. Renaming or reordering a profile does not
+move its data. Removing and selecting it again uses the same identity. New quota
+observations do not assign shared tokens or costs to account cycles.
+
+The account namespace marks activation even with an empty selection. Do not
+delete it to disable queries: save an empty selection in Settings. Missing or
+invalid selection data must not restart the old global Codex history writer.
+Other providers and local usage collection continue. Corrupt, mismatched, and
+future documents are preserved for recovery; they are not replaced with empty
+state. Writes use existing atomic file replacement and document locks.
+
+Before a real-data trial, stop the app and CLI writers. Copy each SQLite database
+with SQLite's backup API so committed WAL data is included, then copy the closed
+documents. Run `PRAGMA quick_check` on the copied databases. Restore into a new
+directory and verify the tables and documents before using the copy. Preserve the
+Windows-protected account identity secret separately through its secure store;
+plain `LocalState` copies do not contain it. A missing secret blocks restored
+account queries rather than silently assigning new identities.
+
+Keep the installed package family `GVASTETHECREATOR.TokenUsage_h2dcbfhqhrgv8`
+and its `LocalState`. Never uninstall to reset an update. Recovery starts in a
+separate directory and must not overwrite newer data automatically.
+
 ## Codex session cleanup
 
 Deleting Codex session logs does not remove usage already saved by TokenUsage.

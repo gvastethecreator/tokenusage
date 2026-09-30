@@ -134,6 +134,14 @@ public sealed record QuotaWindow(
 
     public bool HasUsedText => !string.IsNullOrWhiteSpace(UsedText);
 
+    public string ProviderId { get; init; } = string.Empty;
+    public string ProfileLabel { get; init; } = string.Empty;
+    public string BankedResetsText { get; init; } = string.Empty;
+    public string? CompactRemainingLabel { get; init; }
+    public string CompactRemainingText => CompactRemainingLabel
+        ?? RemainingText.Split('·', 2, StringSplitOptions.TrimEntries)[0];
+    public string WindowDetailText => string.IsNullOrEmpty(BankedResetsText) ? Title : $"{Title} / {BankedResetsText}";
+
     public bool IsPaceWithinLimit => HasPace && !IsPaceBehind;
 
     public string PaceAutomationName => $"{Title}: {PaceText}";

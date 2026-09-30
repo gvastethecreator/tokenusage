@@ -8,6 +8,26 @@ public sealed class AlertHostTests
     private static readonly DateTimeOffset Now = new(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task AccountAlertsDoNotShareDeduplicationOrRecovery()
+    {
+        using var folder = new TemporaryFolder();
+        var settings = new AlertSettingsStore(Path.Combine(folder.Root, "settings.json"));
+        await settings.SaveAsync(CreateSettings(enabled: true));
+        var firstScope = new ProviderInstanceKey(new ProviderId("codex"), new string('a', 64));
+        var secondScope = new ProviderInstanceKey(new ProviderId("codex"), new string('b', 64));
+        var firstStore = new AlertDecisionStore(Path.Combine(folder.Root, "first.json"), scope: firstScope);
+        var secondStore = new AlertDecisionStore(Path.Combine(folder.Root, "second.json"), scope: secondScope);
+        var first = new AlertHost(firstStore, settings);
+        var second = new AlertHost(secondStore, settings);
+        Assert.Single(await first.EvaluateAsync(Now, [CreateFacts(10)]));
+        Assert.Single(await second.EvaluateAsync(Now, [CreateFacts(10)]));
+        await first.EvaluateAsync(Now.AddMinutes(1), [CreateFacts(90)]);
+        Assert.Empty(await second.EvaluateAsync(Now.AddMinutes(2), [CreateFacts(10)]));
+        var restarted = new AlertHost(new AlertDecisionStore(secondStore.DocumentPath, scope: secondScope), settings);
+        Assert.Empty(await restarted.EvaluateAsync(Now.AddMinutes(3), [CreateFacts(10)]));
+    }
+
+    [Fact]
     public void FactsBuilderMapsProgressMetricsAndStaleness()
     {
         var clock = new FixedTimeProvider(Now);

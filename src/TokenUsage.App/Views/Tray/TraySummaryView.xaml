@@ -20,6 +20,11 @@
         CornerRadius="10"
         Padding="8,7">
         <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <ScrollViewer x:Name="AccountScroll" Grid.Row="1" Visibility="Collapsed" Margin="0,8,0,0"
+                          HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <controls:CodexAccountQuotaList x:Name="AccountQuotas" />
+            </ScrollViewer>
             <ItemsControl
                 x:Name="ProviderStrip"
                 AutomationProperties.AutomationId="TraySummaryProviders"

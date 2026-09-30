@@ -98,6 +98,12 @@ public sealed class AlertNotificationDispatcherTests
             message.Body,
             StringComparison.Ordinal);
         Assert.DoesNotContain("outcome", message.Title + message.Body, StringComparison.OrdinalIgnoreCase);
+        var account = new ProviderAccountInfo(new ProviderInstanceKey(new ProviderId("codex"), new string('a', 64)),
+            1, new string('x', 80), false, true, ProviderAccountStatus.Available);
+        AlertNotificationMessage scoped = dispatcher.CreateMessage(new AlertNotificationIntent(candidate, account));
+        Assert.True(scoped.Title.Length <= 96);
+        Assert.Equal(AlertActivationArea.ProviderStatus, scoped.ActivationTarget.Area);
+        Assert.Null(scoped.ActivationTarget.MetricId);
     }
 
     [Fact]

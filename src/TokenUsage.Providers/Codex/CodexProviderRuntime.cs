@@ -19,12 +19,15 @@ public sealed class CodexProviderRuntime : IProviderRuntime
     private readonly ICodexQuotaClientFactory _clientFactory;
     private readonly TimeZoneInfo _timeZone;
     private readonly string _timeZoneId;
+    private readonly bool _includeUsage;
 
     public CodexProviderRuntime(
         ICodexQuotaClientFactory clientFactory,
-        string? timeZoneId = null)
+        string? timeZoneId = null,
+        bool includeUsage = true)
     {
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
+        _includeUsage = includeUsage;
         _timeZoneId = timeZoneId ?? TimeZoneInfo.Local.Id;
         ArgumentException.ThrowIfNullOrWhiteSpace(_timeZoneId);
         try
@@ -92,6 +95,8 @@ public sealed class CodexProviderRuntime : IProviderRuntime
 
             return mapping switch
             {
+                CodexSnapshotMappingResult.Available available when !_includeUsage =>
+                    new ProviderOutcome.Success(available.Snapshot),
                 CodexSnapshotMappingResult.Available available =>
                     await ReadUsageAsync(
                         client,

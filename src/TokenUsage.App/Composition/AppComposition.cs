@@ -69,7 +69,8 @@ public static class AppComposition
             ?? Path.Combine(localFolderPath, AppearanceSettingsStore.DefaultFileName);
         var quotaResetHistory = new QuotaResetHistoryStore(
             GetQuotaResetHistoryPath(localFolderPath),
-            resolvedClock);
+            resolvedClock, isCodexHistoryFrozen: () => new TokenUsage.Core.Providers.ProviderAccountSelectionStore(
+                localFolderPath, new TokenUsage.Core.Providers.ProviderId("codex")).WasActivated);
 
         WindowsProviderCompositionOptions? providerOptions = null;
 #if DEBUG || UI_TEST_FIXTURES
@@ -261,7 +262,8 @@ public static class AppComposition
                 }
             },
             new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(localFolderPath)),
-            credentialChanged: providers.ResetProviderCacheAsync);
+            credentialChanged: providers.ResetProviderCacheAsync,
+            accounts: providers.Accounts);
     }
 
     private static UpdateOptionsViewModel CreateUpdateOptions(string localFolderPath, TimeProvider clock)

@@ -5,7 +5,8 @@ public sealed class CodexAppServerProcessOptions
     public CodexAppServerProcessOptions(
         TimeSpan? gracefulShutdownTimeout = null,
         TimeSpan? forcedShutdownTimeout = null,
-        int maximumDiagnosticCharacters = 4096)
+        int maximumDiagnosticCharacters = 4096,
+        string? codexHome = null)
     {
         GracefulShutdownTimeout = ValidateTimeout(
             gracefulShutdownTimeout ?? TimeSpan.FromMilliseconds(500),
@@ -22,6 +23,9 @@ public sealed class CodexAppServerProcessOptions
         }
 
         MaximumDiagnosticCharacters = maximumDiagnosticCharacters;
+        if (codexHome is not null && (!Path.IsPathFullyQualified(codexHome) || !Directory.Exists(codexHome)))
+            throw new ArgumentException("The account home must be an existing absolute directory.", nameof(codexHome));
+        CodexHome = codexHome;
     }
 
     public TimeSpan GracefulShutdownTimeout { get; }
@@ -29,6 +33,8 @@ public sealed class CodexAppServerProcessOptions
     public TimeSpan ForcedShutdownTimeout { get; }
 
     public int MaximumDiagnosticCharacters { get; }
+
+    public string? CodexHome { get; }
 
     private static TimeSpan ValidateTimeout(TimeSpan value, string paramName)
     {

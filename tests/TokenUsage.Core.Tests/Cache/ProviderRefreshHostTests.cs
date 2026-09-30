@@ -8,6 +8,32 @@ public sealed class ProviderRefreshHostTests
     private static readonly DateTimeOffset Now = new(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task AccountsOfOneProviderKeepSeparateCachesAndFailureState()
+    {
+        using var folder = new TemporaryFolder();
+        var clock = new FixedTimeProvider(Now);
+        var first = new ProviderInstanceKey(new ProviderId("codex"), new string('a', 64));
+        var second = new ProviderInstanceKey(new ProviderId("codex"), new string('b', 64));
+        var firstStore = new SnapshotStore(Path.Combine(folder.Root, "first.json"), clock, first);
+        var secondStore = new SnapshotStore(Path.Combine(folder.Root, "second.json"), clock, second);
+        var oldFirst = CreateSnapshot("codex", 91m).ForAccount(first.AccountKey!);
+        await firstStore.UpsertLastGoodAsync(oldFirst);
+        await secondStore.UpsertLastGoodAsync(CreateSnapshot("codex", 5m).ForAccount(second.AccountKey!));
+        var host = new ProviderRefreshHost([
+            new(new RecordingProvider(first.ProviderId, "Codex", new ProviderOutcome.TransientFailure(
+                new ProviderError(ProviderErrorCode.TransientSourceFailure, "Unavailable"), oldFirst)), firstStore),
+            new(new RecordingProvider(second.ProviderId, "Codex", new ProviderOutcome.Success(
+                CreateSnapshot("codex", 8m).ForAccount(second.AccountKey!))), secondStore)], clock);
+        var events = new List<CacheFirstEvent>();
+        await foreach (var item in host.RunAsync(forceRefresh: true)) events.Add(item);
+        Assert.Equal(2, Assert.IsType<CacheFirstEvent.CachePublished>(events[0]).Snapshots.Count);
+        Assert.IsType<ProviderOutcome.TransientFailure>(events.OfType<CacheFirstEvent.ProviderCompleted>().Single(item => item.InstanceKey == first).Outcome);
+        Assert.IsType<ProviderOutcome.Success>(events.OfType<CacheFirstEvent.ProviderCompleted>().Single(item => item.InstanceKey == second).Outcome);
+        Assert.Equal(91m, Assert.IsType<ProgressMetricSnapshot>(Assert.Single(Assert.IsType<SnapshotCacheReadResult.Loaded>(await firstStore.LoadAsync()).Snapshots).Metrics[0]).Used);
+        Assert.Equal(8m, Assert.IsType<ProgressMetricSnapshot>(Assert.Single(Assert.IsType<SnapshotCacheReadResult.Loaded>(await secondStore.LoadAsync()).Snapshots).Metrics[0]).Used);
+    }
+
+    [Fact]
     public async Task RunPublishesMergedCacheThenCompletesEachProvider()
     {
         using var folder = new TemporaryFolder();

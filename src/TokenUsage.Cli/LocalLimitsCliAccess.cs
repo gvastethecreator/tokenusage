@@ -50,9 +50,9 @@ public static class LocalLimitsCliAccess
 
         var history = new QuotaResetHistoryStore(
             Path.Combine(root, "history", QuotaResetHistoryStore.DefaultFileName),
-            clock);
-        foreach (ProviderSnapshot snapshot in snapshots.Where(snapshot => snapshot.ProviderId.Value
-                     is "codex" or "claude"))
+            clock, isCodexHistoryFrozen: () => new ProviderAccountSelectionStore(root, new ProviderId("codex")).WasActivated);
+        foreach (ProviderSnapshot snapshot in snapshots.Where(snapshot => snapshot.InstanceKey.AccountKey is null
+                     && (snapshot.ProviderId.Value is "codex" or "claude")))
         {
             try
             {
@@ -93,7 +93,7 @@ public static class LocalLimitsCliAccess
     {
         return WindowsProviderCatalog.CreateComposition(
             dataDirectory,
-            clock).RefreshHost;
+            clock, options: new WindowsProviderCompositionOptions(CodexActiveAccountOnly: true)).RefreshHost;
     }
 
     internal static Task<IReadOnlyList<ProviderSnapshot>> SelectForceResultAsync(

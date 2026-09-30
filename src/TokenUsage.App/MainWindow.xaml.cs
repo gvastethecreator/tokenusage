@@ -477,7 +477,8 @@ public sealed partial class MainWindow : Window, IDisposable
         _traySummaryWindow.Show(
             CreateTrayProviderSummaries(),
             RootPage.ViewModel.Appearance,
-            iconBounds);
+            iconBounds,
+            RootPage.ViewModel.Dashboard.AccountQuotas);
         _traySummaryDismissTimer.Start();
         _systemVisualSettingsTimer.Start();
     }
@@ -517,7 +518,8 @@ public sealed partial class MainWindow : Window, IDisposable
         _traySummaryWindow.Show(
             CreateTrayProviderSummaries(),
             RootPage.ViewModel.Appearance,
-            iconBounds);
+            iconBounds,
+            RootPage.ViewModel.Dashboard.AccountQuotas);
     }
 
     private void HideTraySummary(bool force = false)
@@ -544,7 +546,8 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        if (_trayIcon is null || !_trayIcon.IsPointerOverIcon())
+        if ((_trayIcon is null || !_trayIcon.IsPointerOverIcon())
+            && _traySummaryWindow?.IsPointerOver is not true)
         {
             HideTraySummary();
         }
@@ -654,7 +657,9 @@ public sealed partial class MainWindow : Window, IDisposable
                 marked => RootPage.ViewModel.Options.Appearance.SetMarkReportBestValues(marked),
                 attributionConsent: RootPage.ViewModel.GeneralOptions.AttributionConsent,
                 attributionAliases: RootPage.ViewModel.GeneralOptions.AttributionAliases,
-                attributionOptions: RootPage.ViewModel.GeneralOptions);
+                attributionOptions: RootPage.ViewModel.GeneralOptions,
+                getAccountQuotas: () => RootPage.ViewModel.Dashboard.AccountQuotas,
+                usesCodexAccounts: () => RootPage.ViewModel.Dashboard.UsesCodexAccounts);
             _reportWindow.Closed += OnUsageReportWindowClosed;
             RootPage.ViewModel.Dashboard.PropertyChanged += OnDashboardChangedForReport;
         }
@@ -670,7 +675,9 @@ public sealed partial class MainWindow : Window, IDisposable
     // (for example Claude's status line reading) must reach an already open report.
     private void OnDashboardChangedForReport(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(RootPage.ViewModel.Dashboard.ActiveSample)) _reportWindow?.RefreshLimits();
+        if (e.PropertyName is nameof(RootPage.ViewModel.Dashboard.ActiveSample)
+            or nameof(RootPage.ViewModel.Dashboard.AccountQuotas)
+            or nameof(RootPage.ViewModel.Dashboard.UsesCodexAccounts)) _reportWindow?.RefreshLimits();
     }
 
     private void OnUsageReportWindowClosed(object sender, WindowEventArgs args)

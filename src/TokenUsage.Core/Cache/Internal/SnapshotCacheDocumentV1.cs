@@ -4,6 +4,10 @@ internal sealed class SnapshotCacheDocumentV1
 {
     public int SchemaVersion { get; set; }
 
+    public string? ProviderId { get; set; }
+
+    public string? AccountKey { get; set; }
+
     public DateTimeOffset? WrittenAtUtc { get; set; }
 
     public List<SnapshotCacheProviderV1>? Snapshots { get; set; }

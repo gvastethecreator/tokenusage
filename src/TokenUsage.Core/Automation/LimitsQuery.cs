@@ -33,6 +33,7 @@ public sealed class LimitsQuery
                 .ConfigureAwait(false);
         }
 
+        await _host.ResolveAsync(cancellationToken).ConfigureAwait(false);
         var snapshots = new List<ProviderSnapshot>();
         foreach (ProviderRefreshRegistration registration in _host.Registrations)
         {

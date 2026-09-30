@@ -209,13 +209,19 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence OpenAiFlagship { get; } = new(
         "openai-flagship-pricing",
         new Uri("https://developers.openai.com/api/docs/pricing"),
-        ReviewDate,
+        new DateOnly(2026, 9, 30),
+        PricingBillingScope.DirectProviderApi);
+
+    public static PricingSourceEvidence OpenAiCyber { get; } = new(
+        "openai-cyber-pricing",
+        new Uri("https://developers.openai.com/api/docs/models/gpt-5.6-cyber"),
+        new DateOnly(2026, 9, 30),
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Anthropic { get; } = new(
         "anthropic-model-pricing",
         new Uri("https://platform.claude.com/docs/en/about-claude/pricing"),
-        ReviewDate,
+        new DateOnly(2026, 9, 30),
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Google { get; } = new(

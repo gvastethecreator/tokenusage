@@ -19,6 +19,29 @@ public sealed class CodexLiveCompositionTests
         new(2026, 7, 22, 16, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public void DiscoveryUsesIdentityInsteadOfLabelsAndRejectsAmbiguousInventories()
+    {
+        using var folder = new TemporaryFolder();
+        var keys = new TokenUsage.Core.Usage.HmacOpaqueKeyDeriver(new byte[32]);
+        object Profile(int number, string alias, string owner = "synthetic-account") => new
+        {
+            number, alias, accountId = owner, userId = "synthetic-user", email = "owner@example.test",
+            home = folder.Path, savedHome = "not-used", isDefault = true, enabled = true, loginStatus = "present",
+        };
+        byte[] Inventory(params object[] accounts) => System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { schemaVersion = 1, accounts });
+        var first = Assert.Single(CodexSwapDiscovery.Parse(Inventory(Profile(1, "Work")), keys));
+        var renamed = Assert.Single(CodexSwapDiscovery.Parse(Inventory(Profile(3, "Renamed")), keys));
+        Assert.Equal(first.InstanceKey, renamed.InstanceKey);
+        Assert.Equal(first.Fingerprint, renamed.Fingerprint);
+        var changed = Assert.Single(CodexSwapDiscovery.Parse(Inventory(Profile(1, "Work", "different-account")), keys));
+        Assert.NotEqual(first.InstanceKey, changed.InstanceKey);
+        Assert.Null(Assert.Single(CodexSwapDiscovery.Parse(Inventory(Profile(1, "owner@example.test")), keys)).Alias);
+        Assert.Throws<IOException>(() => CodexSwapDiscovery.Parse(Inventory(Profile(1, "Work"), Profile(2, "Copy")), keys));
+        Assert.Throws<IOException>(() => CodexSwapDiscovery.Parse("{"u8.ToArray(), keys));
+        Assert.Throws<IOException>(() => CodexSwapDiscovery.Parse("{\"schemaVersion\":2,\"accounts\":[]}"u8.ToArray(), keys));
+    }
+
+    [Fact]
     public async Task FakeProcessFlowsThroughProtocolCacheAndDashboardWithoutAccountData()
     {
         using var folder = new TemporaryFolder();

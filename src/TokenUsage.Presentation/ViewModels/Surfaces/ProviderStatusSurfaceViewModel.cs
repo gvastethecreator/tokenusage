@@ -44,12 +44,17 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     public ProviderStatusSurfaceViewModel(
         Func<string, string> getString,
         IManualProviderCredentialStore? manualCredentials = null,
-        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null)
+        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null,
+        IProviderAccountService? accounts = null,
+        Func<Task>? refreshAccounts = null)
     {
         _getString = getString ?? throw new ArgumentNullException(nameof(getString));
         _manualCredentials = manualCredentials;
         _credentialChanged = credentialChanged;
+        Accounts = new ProviderAccountsViewModel(accounts, getString, refreshAccounts);
     }
+
+    public ProviderAccountsViewModel Accounts { get; }
 
     [ObservableProperty]
     public partial IReadOnlyList<ProviderStatusRow> Providers { get; private set; } = [];

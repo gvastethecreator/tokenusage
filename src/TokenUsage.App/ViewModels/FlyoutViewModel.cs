@@ -11,6 +11,7 @@ using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
 using Microsoft.UI.Dispatching;
 using TokenUsage.Core.Session;
+using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Runtime.Windows;
@@ -43,7 +44,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null,
         ClaudeRateLimitStore? claudeRateLimits = null,
         ClaudeSettingsInstaller? claudeSettings = null,
-        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null)
+        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null,
+        IProviderAccountService? accounts = null)
     {
         ArgumentNullException.ThrowIfNull(appSessionHost);
         ArgumentNullException.ThrowIfNull(localUsageCoordinator);
@@ -95,7 +97,9 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         ProviderStatus = new ProviderStatusSurfaceViewModel(
             GetString,
             manualCredentials,
-            credentialChanged);
+            credentialChanged,
+            accounts,
+            () => appSessionHost.RefreshAsync(AppSessionRefreshReason.Manual, forceRefresh: true));
         Options = new OptionsSurfaceViewModel(
             OptionsNavigation,
             GeneralOptions,
@@ -110,7 +114,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
                 appSessionHost,
                 localUsageCoordinator,
                 quotaResetHistory,
-                claudeRateLimits),
+                claudeRateLimits,
+                accounts),
             GeneralOptions,
             AppearanceOptions,
             Personalization,

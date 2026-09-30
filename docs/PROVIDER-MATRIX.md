@@ -37,6 +37,25 @@ stay unpriced. API-rate estimates are not subscription invoices. See
 
 ## Codex
 
+Settings → Providers → Codex accounts can show quotas for selected code-swap
+profiles. Use **Find accounts**, select the profiles, then **Save selection**.
+New profiles remain unselected. Each account shows its available windows, plan,
+reset times, active state, and reading status. Percentages are never added across
+accounts. Failed updates retain the last reading and its observation time.
+
+Discovery requires the installed `xswap list --json` schema version 1 and respects
+`XSWAP_HOME`. TokenUsage verifies the effective `home`, account identity, and email
+before accepting quota data. Ambiguous or changed identities block that reading.
+The official API does not return a stable account ID, so discovery is checked
+again after the query. Code-swap remains responsible for login and switching.
+
+Local tokens, costs, and conversations keep their existing accounting. Extra
+profiles add quota observations only. The CLI JSON contract still has one Codex
+entry for the active account. Removing a selection stops its queries and retains
+its data. After first activation, the previous global Codex quota history remains
+available as history without an identified account; it does not resume writing
+if code-swap is missing or the selection becomes empty.
+
 The official local `app-server` handles login and renewal. TokenUsage uses
 `account/read` with `refreshToken: false`, `account/rateLimits/read`, and
 `account/usage/read`. It keeps only the admitted account type, plan, auth status,

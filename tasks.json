@@ -1,0 +1,76 @@
+{
+  "updatedOn": "2026-09-30",
+  "objective": "Update supported model pricing and resolve the actionable findings in the September 30 audit.",
+  "baseline": {
+    "publicHead": "746efbba86b483855978e4e01ce2a85e2c9a5e89",
+    "publishedRelease": "v0.0.1-preview.5",
+    "releaseChannel": "Unsigned x64 portable prerelease",
+    "workingTree": "The user approved committing all pending account, UI, and pricing changes on 2026-09-30."
+  },
+  "tasks": [
+    {
+      "id": "model-pricing-2026-09-30",
+      "status": "done",
+      "title": "Add the verified missing models",
+      "result": "Added GPT-6.1 Sol, GPT-5.6 Cyber, and Claude Sonnet 5.5 with official rates, cache pricing, applicable context thresholds, reviewed sources, and refresh fixtures.",
+      "evidence": ["docs/PRICING.md", "docs/pricing-refresh.md"],
+      "limit": "Codex continues to estimate Standard or unspecified service tiers. Explicit unsupported tiers remain unpriced. Existing stored history is not migrated."
+    },
+    {
+      "id": "preserve-last-reliable",
+      "status": "open",
+      "title": "Verify retention in the running Windows app",
+      "result": "Existing automated checks pass for source failures, missing data, retained history, account cache isolation, and exhausted quota semantics. No retention code change was needed.",
+      "nextAction": "Observe a failed Codex refresh and an exhausted quota in the running app, including the freshness state and the next successful refresh.",
+      "limit": "Automated checks do not establish native runtime acceptance."
+    },
+    {
+      "id": "stable-signed-release",
+      "status": "blocked",
+      "title": "Qualify a stable signed release",
+      "result": "GitHub still distributes preview.5 without a signed MSIX. The release signing environment variables and GitHub WINDOWS_CERTIFICATE secrets are not configured.",
+      "nextAction": "Choose the signing channel and configure its credentials in a secure store, then qualify the exact release assets before publication.",
+      "limit": "Keep the existing package identity and publisher. Publication requires explicit authority."
+    }
+  ],
+  "changedPaths": [
+    "README.md",
+    "docs/PRICING.md",
+    "docs/pricing-refresh.md",
+    "docs/codemap/codemap.json",
+    "docs/codemap/codemap.md",
+    "docs/codemap/codemap.html",
+    "docs/codemap/codemap.lock",
+    "src/TokenUsage.Providers/Claude/ClaudePricingCatalog.cs",
+    "src/TokenUsage.Providers/Codex/CodexPricingCatalog.cs",
+    "src/TokenUsage.Providers/Pricing/PricingEvidence.cs",
+    "src/TokenUsage.Providers/Pricing/PricingRefresh.cs",
+    "tests/TokenUsage.Providers.Tests/Claude/ClaudeUsageEventSourceTests.cs",
+    "tests/TokenUsage.Providers.Tests/Pricing/KnownModelPricingCatalogTests.cs",
+    "tests/fixtures/pricing/anthropic-model-pricing.html",
+    "tests/fixtures/pricing/cursor-model-pricing.html",
+    "tests/fixtures/pricing/openai-cyber-pricing.html",
+    "tests/fixtures/pricing/openai-flagship-pricing.html",
+    "tasks.json"
+  ],
+  "validation": {
+    "configuration": "Release x64",
+    "providerChecks": 230,
+    "coreChecks": 28,
+    "cliChecks": 9,
+    "quotaBoundaryChecks": 3,
+    "pricingWorkflowChecks": 1,
+    "cliRepair": "Updated saved pricing fixtures and reran the one failed CLI check. The other eight CLI checks remain valid.",
+    "livePricingRefresh": "All 11 official sources passed their supported marker projections.",
+    "fullGate": "scripts/check.ps1 -Platform x64 -Configuration Release passed on 2026-09-30: 1,600 tests and the solution/MSIX build.",
+    "localLogs": ".scratch/audit-2026-09-30/",
+    "localUpdateEvidence": ".scratch/local-update-2026-09-30/",
+    "skipped": "Native outage acceptance and signed stable release qualification remain pending. The local development package update uses the existing identity and publisher."
+  },
+  "decisions": [
+    "Keep the UI redesign deferred while pricing and distribution gaps are addressed.",
+    "Keep API value estimates separate from subscription charges.",
+    "The user approved commit, push, and updating the local installation on 2026-09-30.",
+    "Preserve LocalState with SQLite backups and conservation checks when applying the local package update."
+  ]
+}

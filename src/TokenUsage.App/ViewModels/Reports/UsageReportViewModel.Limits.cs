@@ -14,9 +14,13 @@ public sealed record UsageReportLimitItem(string ProviderId, string ProviderName
 // whenever the panel publishes new ones instead of keeping what it saw when it opened.
 public sealed partial class UsageReportViewModel
 {
+    private readonly Func<IReadOnlyList<CodexAccountQuota>> _getAccountQuotas;
+    private readonly Func<bool> _usesCodexAccounts;
+    public IReadOnlyList<CodexAccountQuota> AccountQuotas { get; private set; } = [];
+    public bool UsesCodexAccounts => _usesCodexAccounts();
     public IReadOnlyList<UsageReportLimitItem> LimitItems { get; private set; } = [];
 
-    public bool HasLimitItems => LimitItems.Count > 0;
+    public bool HasLimitItems => LimitItems.Count > 0 || AccountQuotas.Count > 0;
 
     public void RefreshLimits()
     {
@@ -26,6 +30,11 @@ public sealed partial class UsageReportViewModel
 
     private void RebuildLimitItems()
     {
+        AccountQuotas = IsGlobalScope || (IsProviderScope && _selectedProvider?.ProviderId == "codex")
+            ? _getAccountQuotas() : [];
+        OnPropertyChanged(nameof(AccountQuotas));
+        OnPropertyChanged(nameof(UsesCodexAccounts));
+        OnPropertyChanged(nameof(HasLimitItems));
         UsageReportLimitItem[] items = IsProviderScope
             ? _selectedProvider is null
                 ? []
