@@ -91,6 +91,8 @@ public sealed partial class UsageReportPage : Page
         ArgumentNullException.ThrowIfNull(settings);
         ViewModel.SetChartAppearance(settings.ReportChartStyle, settings.ReportChartGrouping);
         ViewModel.MarkBestValues = settings.MarkReportBestValues;
+        ViewModel.ReportContent = settings.ReportContent;
+        UpdateDashboardLayout(DashboardGrid.ActualWidth);
         _themeSwitch.Apply(this, ReportHeaderLogo, settings.Theme switch
         {
             AppThemeMode.Light => ElementTheme.Light,
@@ -130,7 +132,6 @@ public sealed partial class UsageReportPage : Page
         // action: a slow or unavailable provider must not block access to stored reports.
         await ViewModel.LoadAsync();
         SynchronizeProviderTabs();
-        UpdateSortHeaders();
         SyncCompactSortCombo();
         _ = DispatcherQueue.TryEnqueue(() =>
             ReportScrollViewer.ChangeView(null, 0, null, disableAnimation: true));
@@ -396,6 +397,7 @@ public sealed partial class UsageReportPage : Page
         var collapsedSections = Descendants(ReportCaptureRoot).OfType<Expander>()
             .Where(section => !section.IsExpanded)
             .Select(section => (Section: section, section.Visibility)).ToArray();
+        UpdateBreakdownLayout();
         double originalScrollOffset = ReportScrollViewer.VerticalOffset;
         var captureLayouts = Descendants(ReportCaptureRoot).OfType<ItemsRepeater>()
             .Where(repeater => repeater.Layout is null or StackLayout)
@@ -436,7 +438,7 @@ public sealed partial class UsageReportPage : Page
             ReportToolbarHost.Visibility = Visibility.Collapsed;
             ReportCompareToolbar.Visibility = Visibility.Collapsed;
             MeasurementDetails.Visibility = Visibility.Collapsed;
-            MeasurementCaptureDetails.Visibility = MeasurementDetails.IsExpanded
+            MeasurementCaptureDetails.Visibility = measurementDetailsVisibility == Visibility.Visible && MeasurementDetails.IsExpanded
                 ? Visibility.Visible : Visibility.Collapsed;
             foreach (var section in collapsedSections)
                 section.Section.Visibility = Visibility.Collapsed;
@@ -524,6 +526,7 @@ public sealed partial class UsageReportPage : Page
                 source.Focus(FocusState.Programmatic);
             }
             _isCapturing = false;
+            UpdateBreakdownLayout();
             MotionSettings.IsCapturing = false;
         }
     }
@@ -646,18 +649,13 @@ public sealed partial class UsageReportPage : Page
     }
 
     private (FrameworkElement Rows, CompositeTransform Transform) GetBreakdownTransitionTarget(
-        UsageReportBreakdown breakdown) => breakdown switch
-        {
-            UsageReportBreakdown.Source => (SourceBreakdownRows, SourceBreakdownRowsTransform),
-            UsageReportBreakdown.Day => (DayBreakdownRows, DayBreakdownRowsTransform),
-            UsageReportBreakdown.Project => (ProjectBreakdownRows, ProjectBreakdownRowsTransform),
-            _ => (ModelBreakdownRows, ModelBreakdownRowsTransform),
-        };
+        UsageReportBreakdown breakdown) => (BreakdownRowsView, BreakdownRowsTransform);
 
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(UsageReportViewModel.Scope)) UpdateChartToolsHost();
+        if (e.PropertyName == nameof(UsageReportViewModel.HasBreakdownDetail)) UpdateBreakdownLayout();
 
         if (!_loadedOnce)
         {
@@ -690,11 +688,11 @@ public sealed partial class UsageReportPage : Page
         if (e.PropertyName == nameof(UsageReportViewModel.IsFilterPanelOpen) && ViewModel.IsFilterPanelOpen) RevealFilters();
         if (e.PropertyName is nameof(UsageReportViewModel.HasDashboardProjects)
             or nameof(UsageReportViewModel.HasDashboardActivity)
-            or nameof(UsageReportViewModel.HasDashboardOperationsCard))
+            or nameof(UsageReportViewModel.HasDashboardOperationsCard)
+            or nameof(UsageReportViewModel.HasLimitItems)
+            or nameof(UsageReportViewModel.HasHighlights)
+            or nameof(UsageReportViewModel.IsSplitChart))
             UpdateDashboardLayout(DashboardGrid.ActualWidth);
-
-        if (e.PropertyName == nameof(UsageReportViewModel.ModelShareLabel))
-            _ = DispatcherQueue.TryEnqueue(UpdateSortHeaders);
 
         if (e.PropertyName == nameof(UsageReportViewModel.CompactSortOptions)
             || e.PropertyName == nameof(UsageReportViewModel.SelectedCompactSort))
@@ -728,7 +726,6 @@ public sealed partial class UsageReportPage : Page
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _themeSwitch.Stop();
-        _rowMotions.Clear();
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _reportDataTransitionToken++;
         StopReportDataTransition(resetTargets: true);
@@ -736,9 +733,7 @@ public sealed partial class UsageReportPage : Page
         CancelSpatialTransition(_breakdownTransition);
         CancelProviderTabsTransition();
         ResetSpatialTarget(GlobalChartTransitionRoot, GlobalChartTransitionTransform);
-        ResetSpatialTarget(ModelBreakdownRows, ModelBreakdownRowsTransform);
-        ResetSpatialTarget(SourceBreakdownRows, SourceBreakdownRowsTransform);
-        ResetSpatialTarget(DayBreakdownRows, DayBreakdownRowsTransform);
+        ResetSpatialTarget(BreakdownRowsView, BreakdownRowsTransform);
         _pendingReportDataIntent = null;
         _pendingReportDataCommit = null;
         _reportDataCommitPending = false;

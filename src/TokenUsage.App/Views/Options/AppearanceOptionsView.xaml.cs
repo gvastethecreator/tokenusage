@@ -24,7 +24,7 @@ public sealed partial class AppearanceOptionsView : UserControl
         set
         {
             _viewModel = value ?? throw new ArgumentNullException(nameof(value));
-            if (_isInitialized)
+            if (_isInitialized && _viewModel is not null && _personalizationViewModel is not null)
             {
                 Bindings.Update();
             }
@@ -37,7 +37,7 @@ public sealed partial class AppearanceOptionsView : UserControl
         set
         {
             _personalizationViewModel = value ?? throw new ArgumentNullException(nameof(value));
-            if (_isInitialized)
+            if (_isInitialized && _viewModel is not null && _personalizationViewModel is not null)
             {
                 Bindings.Update();
             }

@@ -226,7 +226,7 @@ public sealed partial class UsageReportViewModel
                 GetString("UsageDashboardMixedNoticeFormat"),
                 _dashboardMixedRows.Length)
             : string.Empty;
-        DashboardOperationStatus = _dashboardExactRows.Length == 0 && _dashboardActivityRows.Length == 0
+        DashboardOperationStatus = !HasDashboardCoreTools && !HasDashboardMcpTools
             ? GetString("UsageDashboardNoRankedOperations")
             : string.Empty;
         RebuildDashboardOperationPreview();
@@ -364,7 +364,8 @@ public sealed partial class UsageReportViewModel
         DashboardProjects = projects.Take(5).Select(row => new UsageDashboardBar(row.Id, row.Name,
             Display(row.Metrics), projectMaximum > 0 ? (double)(100 * Value(row.Metrics) / projectMaximum) : 0,
             row.AutomationName, Share(Value(row.Metrics)))).ToArray();
-        DashboardProjectSummary = projects.Length > 0 ? Summary(projects[0].Name, Value(projects[0].Metrics)) : string.Empty;
+        DashboardProjectSummary = projects.FirstOrDefault(row => !row.IsUnassigned) is { } linkedProject
+            ? Summary(linkedProject.Name, Value(linkedProject.Metrics)) : string.Empty;
         DashboardProjectRemainder = string.Join(" · ", new[]
         {
             Remainder(Math.Min(5, projects.Length), projects.Length, projects.Skip(5).Select(row => row.Metrics)),

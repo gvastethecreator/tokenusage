@@ -263,7 +263,8 @@ public static class AppComposition
             },
             new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(localFolderPath)),
             credentialChanged: providers.ResetProviderCacheAsync,
-            accounts: providers.Accounts);
+            accounts: providers.Accounts,
+            dataDirectory: localFolderPath);
     }
 
     private static UpdateOptionsViewModel CreateUpdateOptions(string localFolderPath, TimeProvider clock)

@@ -71,11 +71,12 @@ public sealed partial class OptionsView : UserControl
             1 => NotificationsView.PrimaryAction,
             2 => AppearanceView.PrimaryAction,
             3 => ProviderStatusView.PrimaryAction,
+            4 => ReportSummaryOption,
             _ => GeneralView.PrimaryAction,
         };
     }
 
-    private ScrollViewer[] Panels => [GeneralScroll, NotificationsScroll, AppearanceScroll, ProvidersScroll];
+    private ScrollViewer[] Panels => [GeneralScroll, NotificationsScroll, AppearanceScroll, ProvidersScroll, ReportsScroll];
 
     private void OnOptionTabChecked(object sender, RoutedEventArgs e)
     {
@@ -87,7 +88,7 @@ public sealed partial class OptionsView : UserControl
     {
         if (index == _selectedTab) return;
         _selectedTab = index;
-        RadioButton[] tabs = [GeneralTab, NotificationsTab, AppearanceTab, ProvidersTab];
+        RadioButton[] tabs = [GeneralTab, NotificationsTab, AppearanceTab, ProvidersTab, ReportsTab];
         for (int slot = 0; slot < tabs.Length; slot++)
         {
             tabs[slot].IsChecked = slot == index;

@@ -10,58 +10,11 @@
     mc:Ignorable="d">
 
     <Grid AutomationProperties.AutomationId="UnifiedOptionsView" RowSpacing="12">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <Grid ColumnSpacing="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <RadioButton x:Name="GeneralTab" Grid.Column="0"
-                AutomationProperties.AutomationId="OptionsGeneralTab"
-                AutomationProperties.LabeledBy="{Binding ElementName=GeneralTabLabel}"
-                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
-                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
-                Tag="0" IsChecked="True" Checked="OnOptionTabChecked">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE713;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
-                    <TextBlock x:Name="GeneralTabLabel" x:Uid="OptionsGeneralTabLabel" FontSize="11" VerticalAlignment="Center" />
-                </StackPanel>
-            </RadioButton>
-            <RadioButton x:Name="NotificationsTab" Grid.Column="1"
-                AutomationProperties.AutomationId="OptionsNotificationsTab"
-                AutomationProperties.LabeledBy="{Binding ElementName=NotificationsTabLabel}"
-                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
-                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
-                Tag="1" IsChecked="False" Checked="OnOptionTabChecked">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <controls:TablerIcon Kind="bell" Width="13" Height="13" Foreground="{Binding Foreground, ElementName=NotificationsTabLabel}" AutomationProperties.AccessibilityView="Raw" />
-                    <TextBlock x:Name="NotificationsTabLabel" x:Uid="OptionsNotificationsTabLabel" FontSize="11" VerticalAlignment="Center" />
-                </StackPanel>
-            </RadioButton>
-            <RadioButton x:Name="AppearanceTab" Grid.Column="2"
-                AutomationProperties.AutomationId="OptionsAppearanceTab"
-                AutomationProperties.LabeledBy="{Binding ElementName=AppearanceTabLabel}"
-                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
-                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
-                Tag="2" IsChecked="False" Checked="OnOptionTabChecked">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE790;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
-                    <TextBlock x:Name="AppearanceTabLabel" x:Uid="OptionsAppearanceTabLabel" FontSize="11" VerticalAlignment="Center" />
-                </StackPanel>
-            </RadioButton>
-            <RadioButton x:Name="ProvidersTab" Grid.Column="3"
-                AutomationProperties.AutomationId="OptionsProvidersTab"
-                AutomationProperties.LabeledBy="{Binding ElementName=ProvidersTabLabel}"
-                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
-                Padding="4,6" MinWidth="0" HorizontalAlignment="Stretch"
-                Tag="3" IsChecked="False" Checked="OnOptionTabChecked">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE774;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
-                    <TextBlock x:Name="ProvidersTabLabel" x:Uid="OptionsProvidersTabLabel" FontSize="11" VerticalAlignment="Center" />
-                </StackPanel>
-            </RadioButton>
-            <Button x:Name="OptionsBackButton" x:Uid="OptionsBackButton" Grid.Column="4"
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBlock x:Uid="OptionsTitle" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+            <Button x:Name="OptionsBackButton" x:Uid="OptionsBackButton" Grid.Column="1"
                 AutomationProperties.AutomationId="OptionsBackButton"
                 Command="{x:Bind ViewModel.Navigation.NavigateBackCommand, Mode=OneWay}"
                 Width="32" Height="32" MinWidth="0" Padding="8" Margin="4,0,0,0"
@@ -70,9 +23,67 @@
                     AutomationProperties.AccessibilityView="Raw" />
             </Button>
         </Grid>
-        <Grid x:Name="OptionsContentHost" Grid.Row="1" Height="440" SizeChanged="OnOptionsHostSizeChanged">
+        <Grid Grid.Row="1" ColumnSpacing="8" RowSpacing="4">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <RadioButton x:Name="GeneralTab" Grid.Column="0"
+                AutomationProperties.AutomationId="OptionsGeneralTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=GeneralTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="10,8" Height="Auto" MinHeight="40" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="0" IsChecked="True" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE713;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="GeneralTabLabel" x:Uid="OptionsGeneralTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="NotificationsTab" Grid.Column="1"
+                AutomationProperties.AutomationId="OptionsNotificationsTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=NotificationsTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="10,8" Height="Auto" MinHeight="40" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="1" IsChecked="False" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <controls:TablerIcon Kind="bell" Width="13" Height="13" Foreground="{Binding Foreground, ElementName=NotificationsTabLabel}" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="NotificationsTabLabel" x:Uid="OptionsNotificationsTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="AppearanceTab" Grid.Row="1" Grid.Column="0"
+                AutomationProperties.AutomationId="OptionsAppearanceTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=AppearanceTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="10,8" Height="Auto" MinHeight="40" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="2" IsChecked="False" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE790;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="AppearanceTabLabel" x:Uid="OptionsAppearanceTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="ProvidersTab" Grid.Row="1" Grid.Column="1"
+                AutomationProperties.AutomationId="OptionsProvidersTab"
+                AutomationProperties.LabeledBy="{Binding ElementName=ProvidersTabLabel}"
+                GroupName="OptionsSections" Style="{StaticResource SectionTabRadioButtonStyle}"
+                Padding="10,8" Height="Auto" MinHeight="40" MinWidth="0" HorizontalAlignment="Stretch"
+                Tag="3" IsChecked="False" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE774;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="ProvidersTabLabel" x:Uid="OptionsProvidersTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+
+            <RadioButton x:Name="ReportsTab" Grid.Row="2" Grid.ColumnSpan="2"
+                AutomationProperties.AutomationId="OptionsReportsTab" AutomationProperties.LabeledBy="{Binding ElementName=ReportsTabLabel}" GroupName="OptionsSections"
+                Style="{StaticResource SectionTabRadioButtonStyle}" HorizontalAlignment="Stretch" Padding="10,8"
+                Tag="4" Checked="OnOptionTabChecked">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE9D9;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="ReportsTabLabel" x:Uid="OptionsReportsTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </StackPanel>
+            </RadioButton>
+        </Grid>
+        <Grid x:Name="OptionsContentHost" Grid.Row="2" Height="440" SizeChanged="OnOptionsHostSizeChanged">
             <Grid.Clip><RectangleGeometry x:Name="OptionsContentClip" /></Grid.Clip>
-            <ScrollViewer x:Name="GeneralScroll" Visibility="Visible" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="GeneralScroll" Visibility="Visible" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
                 <StackPanel x:Name="OptionsStack" Spacing="12" Margin="0">
                     <options:GeneralOptionsView x:Name="GeneralView"
                         ViewModel="{x:Bind ViewModel.General, Mode=OneWay}" />
@@ -101,18 +112,48 @@
                     </Border>
                 </StackPanel>
             </ScrollViewer>
-            <ScrollViewer x:Name="NotificationsScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="NotificationsScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
                 <options:NotificationsOptionsView x:Name="NotificationsView" Margin="0"
                     ViewModel="{x:Bind ViewModel.Notifications, Mode=OneWay}" />
             </ScrollViewer>
-            <ScrollViewer x:Name="AppearanceScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="AppearanceScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
                 <options:AppearanceOptionsView x:Name="AppearanceView" Margin="0"
                     PersonalizationViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}"
                     ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}" />
             </ScrollViewer>
-            <ScrollViewer x:Name="ProvidersScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="ProvidersScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
                 <options:ProviderStatusView x:Name="ProviderStatusView" Margin="0"
                     ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}" />
+            </ScrollViewer>
+            <ScrollViewer x:Name="ReportsScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="4" Padding="12,8">
+                    <CheckBox x:Name="ReportSummaryOption" x:Uid="ReportOptionSummary" AutomationProperties.AutomationId="ReportOptionSummary"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportSummary, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportChartOption" x:Uid="ReportOptionChart" AutomationProperties.AutomationId="ReportOptionChart"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportChart, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportLimitsOption" x:Uid="ReportOptionLimits" AutomationProperties.AutomationId="ReportOptionLimits"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportLimits, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportHeatmapOption" x:Uid="ReportOptionHeatmap" AutomationProperties.AutomationId="ReportOptionHeatmap"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportHeatmap, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportHighlightsOption" x:Uid="ReportOptionHighlights" AutomationProperties.AutomationId="ReportOptionHighlights"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportHighlights, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportModelsOption" x:Uid="ReportOptionModels" AutomationProperties.AutomationId="ReportOptionModels"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportModels, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportTokenCompositionOption" x:Uid="ReportOptionTokenComposition" AutomationProperties.AutomationId="ReportOptionTokenComposition"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportTokenComposition, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportProjectsOption" x:Uid="ReportOptionProjects" AutomationProperties.AutomationId="ReportOptionProjects"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportProjects, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportToolsOption" x:Uid="ReportOptionTools" AutomationProperties.AutomationId="ReportOptionTools"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportTools, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportFullBreakdownOption" x:Uid="ReportOptionFullBreakdown" AutomationProperties.AutomationId="ReportOptionFullBreakdown"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportFullBreakdown, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportResetsOption" x:Uid="ReportOptionResets" AutomationProperties.AutomationId="ReportOptionResets"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportResets, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportActivityOption" x:Uid="ReportOptionActivity" AutomationProperties.AutomationId="ReportOptionActivity"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportActivity, Mode=TwoWay}" />
+                    <CheckBox x:Name="ReportMeasurementOption" x:Uid="ReportOptionMeasurement" AutomationProperties.AutomationId="ReportOptionMeasurement"
+                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportMeasurement, Mode=TwoWay}" />
+                </StackPanel>
             </ScrollViewer>
         </Grid>
     </Grid>

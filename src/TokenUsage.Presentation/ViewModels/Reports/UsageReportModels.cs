@@ -17,6 +17,7 @@ public enum UsageReportBreakdown
     Source,
     Day,
     Project,
+    ApiProvider,
 }
 
 public enum UsageReportValueMode

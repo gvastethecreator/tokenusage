@@ -1,6 +1,8 @@
 using System.Globalization;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Usage;
+using TokenUsage.Core.Automation;
+using TokenUsage.App.ViewModels.Reports;
 
 using TokenUsage.App.ViewModels.Dashboard;
 
@@ -137,6 +139,65 @@ public static class UsageHeatmapProjector
             $"{title}. {summary}",
             automationPrefix,
             cells);
+    }
+
+    public static UsageHeatmapModel CreateReport(
+        UsageReport report, DateOnly start, DateOnly end, bool showCost,
+        Func<string, string> getString)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(getString);
+        ArgumentOutOfRangeException.ThrowIfLessThan(end, start);
+        var byDate = report.Days.Where(day => day.Date >= start && day.Date <= end)
+            .ToDictionary(day => day.Date, day => day.Metrics);
+        decimal Amount(UsageReportMetrics metrics) => showCost ? metrics.TotalCostUsd : metrics.Tokens.Total;
+        decimal maximum = byDate.Values.Select(Amount).DefaultIfEmpty(0).Max();
+        var leaders = report.AgentDays.Where(day => day.Date >= start && day.Date <= end && Amount(day.Metrics) > 0)
+            .GroupBy(day => day.Date).ToDictionary(group => group.Key, group => group
+                .OrderByDescending(day => Amount(day.Metrics)).ThenBy(day => day.AgentId.Value, StringComparer.Ordinal)
+                .First().AgentId.Value);
+        var cells = new UsageHeatmapCell[end.DayNumber - start.DayNumber + 1];
+        for (int index = 0; index < cells.Length; index++)
+        {
+            DateOnly date = start.AddDays(index);
+            byDate.TryGetValue(date, out UsageReportMetrics? metrics);
+            decimal amount = metrics is null ? 0 : Amount(metrics);
+            int records = metrics?.EventCount ?? 0;
+            int level = records == 0 ? 0 : maximum <= 0 || amount <= 0 ? 1
+                : Math.Clamp((int)Math.Ceiling(Math.Sqrt((double)(amount / maximum)) * 4), 1, 4);
+            decimal? cost = metrics is null ? null : ReportDataProjection.KnownCost(metrics);
+            string costText = cost is null ? getString("UsageHeatmapCostUnavailable")
+                : string.Format(CultureInfo.CurrentCulture, getString("UsageHeatmapCostFormat"), cost);
+            string tokenText = (metrics?.Tokens.Total ?? 0).ToString("N0", CultureInfo.CurrentCulture);
+            string label = $"{date:D}: {tokenText} {getString("UsageHeatmapTooltipTokensLabel")}; {costText}";
+            var rows = new List<UsageHeatmapTooltipRow>
+            {
+                new(getString("UsageHeatmapTooltipTokensLabel"), tokenText),
+                new(getString("UsageHeatmapTooltipCostLabel"), costText),
+                new(getString("UsageHeatmapTooltipEventsLabel"), records.ToString("N0", CultureInfo.CurrentCulture)),
+            };
+            if (metrics?.UnpricedTokens > 0)
+            {
+                string unpriced = metrics.UnpricedTokens.ToString("N0", CultureInfo.CurrentCulture);
+                rows.Add(new(getString("ReportHeatmapUnpriced"), unpriced));
+                label += $"; {getString("ReportHeatmapUnpriced")}: {unpriced}";
+            }
+            leaders.TryGetValue(date, out string? leader);
+            if (leader is not null)
+            {
+                string name = TokenUsage.Providers.Catalog.ProviderPresentationCatalog.DisplayNameResourceKey(leader) is { } key
+                    ? getString(key) : leader;
+                rows.Add(new(getString("ReportHeatmapLeadingProvider"), name));
+                label += $"; {getString("ReportHeatmapLeadingProvider")}: {name}";
+            }
+            cells[index] = new UsageHeatmapCell(date, level, metrics?.Tokens.Total ?? 0, records,
+                $"ReportHeatmap.{date:yyyy-MM-dd}", label, cost, TooltipText: label,
+                Tooltip: new UsageHeatmapTooltip(date.ToString("D", CultureInfo.CurrentCulture), rows),
+                DominantProviderId: leader);
+        }
+        string title = getString("ReportHeatmapTitle");
+        string metric = getString(showCost ? "UsageHeatmapTooltipCostLabel" : "UsageHeatmapTooltipTokensLabel");
+        return new UsageHeatmapModel(title, metric, $"{title}: {metric}", "ReportHeatmap", cells);
     }
 
     private static int GetLevel(DailyActivity activity, long maximumTokens)

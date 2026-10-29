@@ -11,7 +11,7 @@ public sealed partial class UsageReportPage
 
     private void OnDashboardSizeChanged(object sender, SizeChangedEventArgs e) => UpdateDashboardLayout(e.NewSize.Width);
 
-    // Wide: trend | stats and limits | models + token composition side by side | projects | operations.
+    // Totals, full-width chart, horizontal limits, then the detailed breakdowns.
     // Narrow: one column in the same reading order. Grid spacing applies to empty rows and
     // columns too, so the layout keeps exactly the tracks it uses.
     private void UpdateDashboardLayout(double width)
@@ -19,25 +19,34 @@ public sealed partial class UsageReportPage
         bool narrow = width < 820;
         DashboardGrid.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         DashboardGrid.ColumnSpacing = narrow ? 0 : 12;
-        Grid.SetColumnSpan(DashboardTrendCard, 2);
-        Grid.SetColumnSpan(DashboardProviderTrendCard, 2);
-        Grid.SetRow(DashboardStatsPanel, 1);
+        bool hasAccounts = ViewModel.AccountQuotas.Count > 0;
+        bool hasProviderLimits = ViewModel.LimitItems.Count > 0;
+        ReportQuotaStrip.ColumnDefinitions[0].Width = hasAccounts ? new GridLength(Math.Max(1, ViewModel.AccountQuotas.Count), GridUnitType.Star) : new GridLength(0);
+        ReportQuotaStrip.ColumnDefinitions[1].Width = hasProviderLimits ? new GridLength(Math.Max(1, ViewModel.LimitItems.Count), GridUnitType.Star) : new GridLength(0);
+        ReportQuotaStrip.ColumnSpacing = hasAccounts && hasProviderLimits ? 16 : 0;
+        var content = ViewModel.ReportContent;
+        int nextRow = 0;
+        Grid.SetRow(DashboardStatsPanel, nextRow);
         Grid.SetColumnSpan(DashboardStatsPanel, 2);
-        Grid.SetRow(DashboardModelsCard, 2);
+        if (content.Highlights && ViewModel.HasHighlights) nextRow++;
+        bool pair = !narrow && content.Models && content.TokenComposition;
+        Grid.SetRow(DashboardModelsCard, nextRow);
         Grid.SetColumn(DashboardModelsCard, 0);
-        Grid.SetColumnSpan(DashboardModelsCard, narrow ? 2 : 1);
-        Grid.SetRow(DashboardCompositionCard, narrow ? 3 : 2);
-        Grid.SetColumn(DashboardCompositionCard, narrow ? 0 : 1);
-        Grid.SetColumnSpan(DashboardCompositionCard, narrow ? 2 : 1);
-        int nextRow = narrow ? 4 : 3;
+        Grid.SetColumnSpan(DashboardModelsCard, pair ? 1 : 2);
+        if (content.Models && !pair) nextRow++;
+        Grid.SetRow(DashboardCompositionCard, nextRow);
+        Grid.SetColumn(DashboardCompositionCard, pair ? 1 : 0);
+        Grid.SetColumnSpan(DashboardCompositionCard, pair ? 1 : 2);
+        if (content.TokenComposition) nextRow++;
         Grid.SetRow(DashboardProjectsCard, nextRow);
         Grid.SetColumn(DashboardProjectsCard, 0);
         Grid.SetColumnSpan(DashboardProjectsCard, 2);
-        if (ViewModel.HasDashboardProjects) nextRow++;
+        if (content.Projects && ViewModel.HasDashboardProjects) nextRow++;
         Grid.SetRow(DashboardOperationsGrid, nextRow);
         Grid.SetColumnSpan(DashboardOperationsGrid, 2);
-        if (ViewModel.HasDashboardOperationsCard) nextRow++;
-        SetRowCount(DashboardGrid, Math.Max(nextRow, narrow ? 4 : 3));
+        if (content.Tools && ViewModel.HasDashboardOperationsCard) nextRow++;
+        DashboardGrid.Visibility = nextRow > 0 ? Visibility.Visible : Visibility.Collapsed;
+        SetRowCount(DashboardGrid, Math.Max(1, nextRow));
         UpdateDashboardOperationsLayout(width);
         GlobalCombinedChart.PlotHeight = 250;
         ProviderChartContentRoot.PlotHeight = 250;
@@ -158,6 +167,7 @@ public sealed partial class UsageReportPage
         if (sender is not Button { Tag: string tag } || !Enum.TryParse(tag, out UsageReportBreakdown breakdown)) return;
         RememberDashboardOrigin(sender);
         ViewModel.SetBreakdown(breakdown);
+        DashboardFullBreakdown.Visibility = Visibility.Visible;
         DashboardFullBreakdown.IsExpanded = true;
         DashboardFullBreakdown.UpdateLayout();
         DashboardFullBreakdown.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });

@@ -1010,13 +1010,16 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
             return;
         }
 
+        SelectBreakdownRow(null);
         _breakdown = breakdown;
         OnPropertyChanged(nameof(Breakdown));
         OnPropertyChanged(nameof(IsModelBreakdown));
         OnPropertyChanged(nameof(IsSourceBreakdown));
         OnPropertyChanged(nameof(IsDayBreakdown));
         OnPropertyChanged(nameof(IsProjectBreakdown));
+        OnPropertyChanged(nameof(IsApiProviderBreakdown));
         RebuildCompactSortOptions();
+        RebuildBreakdownRows();
     }
 
     public void SetScope(UsageReportScope scope)
@@ -1181,6 +1184,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsSourceBreakdown));
         OnPropertyChanged(nameof(IsDayBreakdown));
         OnPropertyChanged(nameof(IsProjectBreakdown));
+        OnPropertyChanged(nameof(IsApiProviderBreakdown));
         OnPropertyChanged(nameof(ChartTitle));
         OnPropertyChanged(nameof(CanEmphasizeSmallValues));
     }
@@ -1798,6 +1802,7 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         NotifyExplorerChanged();
         ReconcileRows(SourceRows, OrderSourceRows(CreateSourceRows()), row => row.Id);
         ReconcileRows(DayRows, OrderDayRows(CreateDayRows()), row => row.Id);
+        RebuildBreakdownRows();
         QualityRows = CreateQualityRows();
         RebuildDashboard();
         if (IsCompareScope)
@@ -1870,8 +1875,6 @@ public sealed partial class UsageReportViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ComparisonCoverageText));
         OnPropertyChanged(nameof(SummaryCoverageText));
         OnPropertyChanged(nameof(PriceCoveragePercent));
-        OnPropertyChanged(nameof(PriceCoverageTone));
-        OnPropertyChanged(nameof(PriceCoverageIcon));
         OnPropertyChanged(nameof(CompareLeftLabel));
         OnPropertyChanged(nameof(CompareRightLabel));
         OnPropertyChanged(nameof(CompareLeftCostText));

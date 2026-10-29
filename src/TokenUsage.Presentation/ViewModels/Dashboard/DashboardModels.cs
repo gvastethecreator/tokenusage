@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using TokenUsage.Core.Appearance;
 using System.Globalization;
 
 using TokenUsage.App.ViewModels.Sample;
@@ -46,7 +47,8 @@ public sealed record UsageHeatmapCell(
     long ReasoningTokens = 0,
     string TooltipText = "",
     IReadOnlyList<string>? ProviderIds = null,
-    UsageHeatmapTooltip? Tooltip = null)
+    UsageHeatmapTooltip? Tooltip = null,
+    string? DominantProviderId = null)
 {
     public bool HasActivity => Level > 0;
 
@@ -128,6 +130,11 @@ public sealed record QuotaWindow(
     string UsedText = "",
     string LabelEvidenceText = "")
 {
+    public QuotaDisplayStyle DisplayStyle { get; init; } = QuotaDisplayStyle.Rings;
+    public bool ShowRing => DisplayStyle == QuotaDisplayStyle.Rings;
+    public bool ShowBar => DisplayStyle == QuotaDisplayStyle.Bars;
+    public double IndicatorWidth => ShowRing ? 44 : 24;
+
     public bool IsWithinLimit => !IsNearLimit;
 
     public bool HasPace => !string.IsNullOrWhiteSpace(PaceText);
@@ -137,7 +144,12 @@ public sealed record QuotaWindow(
     public string ProviderId { get; init; } = string.Empty;
     public string ProfileLabel { get; init; } = string.Empty;
     public string BankedResetsText { get; init; } = string.Empty;
+    public string ReadingNotice { get; init; } = string.Empty;
+    public bool HasReadingNotice => !string.IsNullOrWhiteSpace(ReadingNotice);
     public string? CompactRemainingLabel { get; init; }
+    public double UsedPercent => Math.Clamp(100d - RemainingPercent, 0d, 100d);
+    public string UsedPercentText { get; init; } = string.Empty;
+    public string UsedAutomationName => $"{Title}: {UsedPercentText}. {ResetText}";
     public string CompactRemainingText => CompactRemainingLabel
         ?? RemainingText.Split('·', 2, StringSplitOptions.TrimEntries)[0];
     public string WindowDetailText => string.IsNullOrEmpty(BankedResetsText) ? Title : $"{Title} / {BankedResetsText}";
@@ -161,6 +173,7 @@ public sealed record QuotaWindow(
             string label = HasLabelEvidence
                 ? $"{AutomationName}. {LabelEvidenceText}"
                 : AutomationName;
+            if (HasReadingNotice) label += $". {ReadingNotice}";
             return HasHighlight ? $"{label}. {HighlightLabel}" : label;
         }
     }

@@ -16,7 +16,7 @@
         <Style x:Key="CompactCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource TokenUsageCardBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource TokenUsageStrokeBrush}" />
-            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="7" />
         </Style>
         <Style x:Key="CompactProviderTabStyle" TargetType="RadioButton">
@@ -114,9 +114,27 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Width" Value="28" />
         </Style>
+        <DataTemplate x:Key="ClaudeQuotaWindowTemplate" x:DataType="dashboard:QuotaWindow">
+            <Grid ColumnSpacing="10" Padding="0,3" AutomationProperties.Name="{x:Bind UsedAutomationName}">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <ToolTipService.ToolTip><ToolTip Content="{x:Bind UsedAutomationName}" /></ToolTipService.ToolTip>
+                <controls:QuotaMeter Width="44" Height="44" VerticalAlignment="Center" Visibility="{x:Bind ShowRing}"
+                    AutomationName="{x:Bind UsedAutomationName}"
+                    RemainingValue="{x:Bind ColorRemainingPercent}" TargetValue="{x:Bind UsedPercent}" />
+                <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="{x:Bind ResetText}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{x:Bind UsedPercentText}" FontSize="12" VerticalAlignment="Center" />
+                <controls:QuotaMeter Grid.Row="1" Grid.ColumnSpan="3" Height="6" IsBar="True" Margin="0,5,0,0"
+                    Visibility="{x:Bind ShowBar}" TargetValue="{x:Bind UsedPercent}" RemainingValue="{x:Bind ColorRemainingPercent}" AutomationName="{x:Bind UsedAutomationName}" />
+            </Grid>
+        </DataTemplate>
         <DataTemplate x:Key="CompactQuotaWindowTileTemplate" x:DataType="dashboard:QuotaWindow">
-            <Grid Padding="0,4,0,8" RowSpacing="7" AutomationProperties.HelpText="{x:Bind UsedText}">
+            <Grid Padding="0,3,0,5" RowSpacing="3" ColumnSpacing="10" AutomationProperties.HelpText="{x:Bind UsedText}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <ToolTipService.ToolTip>
                     <ToolTip MaxWidth="332">
                         <StackPanel Spacing="4">
@@ -125,20 +143,24 @@
                         </StackPanel>
                     </ToolTip>
                 </ToolTipService.ToolTip>
-                <Grid ColumnSpacing="8">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <controls:ProviderMarkImage ProviderId="{x:Bind ProviderId}" Width="15" Height="15" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Text="{x:Bind ProfileLabel}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="2" Text="{x:Bind CompactRemainingText}" FontSize="13" />
+                <Grid Grid.RowSpan="2" VerticalAlignment="Center" Width="{x:Bind IndicatorWidth}">
+                    <controls:QuotaMeter Width="44" Height="44" Visibility="{x:Bind ShowRing}"
+                        AutomationName="{x:Bind DisplayAutomationName}"
+                        RemainingValue="{x:Bind ColorRemainingPercent}" TargetValue="{x:Bind RemainingPercent}" />
+                    <controls:ProviderMarkImage ProviderId="{x:Bind ProviderId}" Width="24" Height="24" />
                 </Grid>
-                <controls:AnimatedProgressBar Grid.Row="1" Height="6" IndicatorScale="1.5"
-                    AutomationName="{x:Bind DisplayAutomationName}"
-                    RemainingValue="{x:Bind ColorRemainingPercent}" TargetValue="{x:Bind RemainingPercent}" />
-                <Grid Grid.Row="2" ColumnSpacing="10">
+                <Grid Grid.Column="1" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind ProfileLabel}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind CompactRemainingText}" FontSize="13" />
+                </Grid>
+                <Grid Grid.Row="1" Grid.Column="1" ColumnSpacing="10">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBlock Text="{x:Bind WindowDetailText}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Grid.Column="1" Text="{x:Bind ResetText}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Grid>
+                <controls:QuotaMeter Grid.Row="2" Grid.ColumnSpan="2" Height="6" IsBar="True" Margin="0,3,0,0"
+                    Visibility="{x:Bind ShowBar}" TargetValue="{x:Bind RemainingPercent}" RemainingValue="{x:Bind ColorRemainingPercent}" AutomationName="{x:Bind DisplayAutomationName}" />
             </Grid>
         </DataTemplate>
     </UserControl.Resources>
@@ -261,13 +283,13 @@
                                 Click="OnProviderClick">
                                 <Grid ColumnSpacing="9">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="22" />
+                                        <ColumnDefinition Width="24" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="112" />
                                         <ColumnDefinition Width="55" />
                                         <ColumnDefinition Width="16" />
                                     </Grid.ColumnDefinitions>
-                                    <controls:ProviderMarkImage Height="18" ProviderId="{x:Bind ProviderId}" Width="18" />
+                                    <controls:ProviderMarkImage Height="24" ProviderId="{x:Bind ProviderId}" Width="24" />
                                     <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{x:Bind Name}" />
                                     <TextBlock Grid.Column="2" FontFamily="Consolas" Text="{x:Bind CostText}" TextAlignment="Right" />
                                     <TextBlock Grid.Column="3" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind DetailText}" TextAlignment="Right" />
@@ -298,7 +320,8 @@
                     ProviderInvoked="OnDonutProviderInvoked"
                     Slices="{x:Bind ViewModel.GlobalSpendSlices, Mode=OneWay}"
                     Width="180" />
-                <ItemsRepeater Grid.Column="1" ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Providers">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
                             <Button
@@ -311,11 +334,11 @@
                                 Click="OnProviderClick">
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="20" />
+                                        <ColumnDefinition Width="24" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <controls:ProviderMarkImage Height="16" ProviderId="{x:Bind ProviderId}" Width="16" />
+                                    <controls:ProviderMarkImage Height="24" ProviderId="{x:Bind ProviderId}" Width="24" />
                                     <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{x:Bind Name}" />
                                     <TextBlock Grid.Column="2" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind DetailText}" />
                                 </Grid>
@@ -323,6 +346,7 @@
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
+                </ScrollViewer>
             </Grid>
 
             <StackPanel
@@ -404,15 +428,22 @@
                     </ItemsRepeater>
                 </StackPanel>
                 <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalClaudeLimits, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <controls:ProviderMarkImage ProviderId="claude" Width="24" Height="24" />
+                        <TextBlock Text="{x:Bind ViewModel.ClaudeLimitsHeading, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" />
+                    </StackPanel>
 
                     <ItemsRepeater
                         x:Name="GlobalClaudeQuotaTilesRepeater"
-                        ItemTemplate="{StaticResource CompactQuotaWindowTileTemplate}"
+                        ItemTemplate="{StaticResource ClaudeQuotaWindowTemplate}"
                         ItemsSource="{x:Bind ViewModel.GlobalClaudeLimits, Mode=OneWay}" SizeChanged="OnQuotaTilesSizeChanged">
                         <ItemsRepeater.Layout>
-                            <UniformGridLayout ItemsStretch="Fill" MaximumRowsOrColumns="2" MinItemWidth="200" MinColumnSpacing="14" MinRowSpacing="8" Orientation="Horizontal" />
+                            <StackLayout Orientation="Vertical" Spacing="4" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
+                    <TextBlock Text="{x:Bind ViewModel.ClaudeLimitsNotice, Mode=OneWay}"
+                               Visibility="{x:Bind ViewModel.HasClaudeLimitsNotice, Mode=OneWay}"
+                               FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
                 <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalZcodeLimits, Mode=OneWay}">
 
@@ -513,9 +544,9 @@
                                             Spacing="4"
                                             VerticalAlignment="Center">
                                             <controls:ProviderMarkImage
-                                                Height="14"
+                                                Height="24"
                                                 ProviderId="{x:Bind ProviderId}"
-                                                Width="14" />
+                                                Width="24" />
                                             <TextBlock
                                                 FontSize="10"
                                                 FontWeight="SemiBold"
@@ -551,7 +582,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <controls:ProviderMarkImage Height="22" ProviderId="{x:Bind ViewModel.SelectedProvider.ProviderId, Mode=OneWay}" Width="22" />
+                        <controls:ProviderMarkImage Height="24" ProviderId="{x:Bind ViewModel.SelectedProvider.ProviderId, Mode=OneWay}" Width="24" />
                         <TextBlock Grid.Column="1" FontSize="18" FontWeight="SemiBold" Text="{x:Bind ViewModel.SelectedProviderName, Mode=OneWay}" />
                         <Button
                             Grid.Column="2"

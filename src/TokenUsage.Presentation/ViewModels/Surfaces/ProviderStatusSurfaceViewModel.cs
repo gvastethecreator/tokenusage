@@ -35,6 +35,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     private SampleDataState _dataState;
     private IReadOnlyList<ProviderStatusRow> _localProviders = [];
     private ProviderSnapshot? _claudeQuota;
+    private ProviderOutcome? _claudeOutcome;
     private bool _hasSnapshot;
 
     /// <param name="credentialChanged">
@@ -284,10 +285,12 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         bool hasPublishedDashboard,
         SampleDataState dataState,
         IReadOnlyList<ProviderStatusRow> localProviders,
-        ProviderSnapshot? claudeQuota = null)
+        ProviderSnapshot? claudeQuota = null,
+        ProviderOutcome? claudeOutcome = null)
     {
         ArgumentNullException.ThrowIfNull(localProviders);
         _claudeQuota = claudeQuota;
+        _claudeOutcome = claudeOutcome;
         _codexOutcome = codexOutcome;
         _hasPublishedDashboard = hasPublishedDashboard;
         _dataState = dataState;
@@ -453,12 +456,13 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         };
 
     /// <summary>
-    /// Claude quota comes from the opt-in status line wrapper, not from the local log scan, so
-    /// its row says either that the reading is available or how to turn the wrapper on.
+    /// Claude's account quota refresh is separate from its local token log scan.
     /// </summary>
     private ProviderStatusRow WithClaudeQuota(ProviderStatusRow row)
     {
-        string quota = _claudeQuota is null
+        string quota = _claudeOutcome is not null
+            ? GetQuotaStatus(_claudeOutcome, _dataState)
+            : _claudeQuota is null
             ? _getString("ProviderStatusClaudeQuotaSetup")
             : _getString("ProviderStatusAvailable");
         return row with

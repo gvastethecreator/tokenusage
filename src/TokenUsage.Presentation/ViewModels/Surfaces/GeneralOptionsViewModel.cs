@@ -80,7 +80,7 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
 
     public event EventHandler? BackgroundCollectionChanged;
 
-    public event EventHandler? ClaudeStatusLineChanged;
+    public event EventHandler? ClaudeLimitsChanged;
 
     public event EventHandler? DataCollectionRefreshChanged;
 
@@ -118,17 +118,17 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
     public partial bool IsCodexSessionAttributionEnabled { get; set; }
 
     /// <summary>
-    /// Whether Claude Code's status line runs through TokenUsage. The Claude Code settings file
+    /// Whether TokenUsage may read Claude account limits. The TokenUsage consent document
     /// is the source of truth, so the switch reads it back instead of keeping its own copy.
     /// </summary>
     [ObservableProperty]
-    public partial bool IsClaudeStatusLineEnabled { get; set; }
+    public partial bool IsClaudeLimitsEnabled { get; set; }
 
     [ObservableProperty]
-    public partial bool IsClaudeStatusLineAvailable { get; private set; }
+    public partial bool IsClaudeLimitsAvailable { get; private set; }
 
     [ObservableProperty]
-    public partial string ClaudeStatusLineStatus { get; private set; } = string.Empty;
+    public partial string ClaudeLimitsStatus { get; private set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRunAttributionBackfill))]
@@ -235,52 +235,54 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
         }
     }
 
-    private Func<bool>? _isClaudeStatusLineInstalled;
-    private Action<bool>? _applyClaudeStatusLine;
-    private bool _isSyncingClaudeStatusLine;
+    private Func<bool>? _isClaudeLimitsEnabled;
+    private Action<bool>? _applyClaudeLimits;
+    private bool _isSyncingClaudeLimits;
 
-    public void BindClaudeStatusLine(
+    public void BindClaudeLimits(
         bool isAvailable,
-        Func<bool> isInstalled,
+        Func<bool> isEnabled,
         Action<bool> apply)
     {
-        ArgumentNullException.ThrowIfNull(isInstalled);
+        ArgumentNullException.ThrowIfNull(isEnabled);
         ArgumentNullException.ThrowIfNull(apply);
-        _isClaudeStatusLineInstalled = isInstalled;
-        _applyClaudeStatusLine = apply;
-        IsClaudeStatusLineAvailable = isAvailable;
-        SyncClaudeStatusLine();
+        _isClaudeLimitsEnabled = isEnabled;
+        _applyClaudeLimits = apply;
+        IsClaudeLimitsAvailable = isAvailable;
+        SyncClaudeLimits();
     }
 
-    private void SyncClaudeStatusLine()
+    private void SyncClaudeLimits()
     {
-        _isSyncingClaudeStatusLine = true;
+        _isSyncingClaudeLimits = true;
         try
         {
-            IsClaudeStatusLineEnabled = _isClaudeStatusLineInstalled?.Invoke() ?? false;
+            IsClaudeLimitsEnabled = _isClaudeLimitsEnabled?.Invoke() ?? false;
         }
         catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException)
+                                           or UnauthorizedAccessException or System.Text.Json.JsonException
+                                           or InvalidOperationException)
         {
-            IsClaudeStatusLineEnabled = false;
+            IsClaudeLimitsEnabled = false;
+            ClaudeLimitsStatus = _getString("ClaudeLimitsUpdateFailed");
         }
         finally
         {
-            _isSyncingClaudeStatusLine = false;
+            _isSyncingClaudeLimits = false;
         }
     }
 
-    partial void OnIsClaudeStatusLineEnabledChanged(bool value)
+    partial void OnIsClaudeLimitsEnabledChanged(bool value)
     {
-        if (_isSyncingClaudeStatusLine || _applyClaudeStatusLine is null)
+        if (_isSyncingClaudeLimits || _applyClaudeLimits is null)
         {
             return;
         }
 
         try
         {
-            _applyClaudeStatusLine(value);
-            ClaudeStatusLineStatus = string.Empty;
+            _applyClaudeLimits(value);
+            ClaudeLimitsStatus = string.Empty;
         }
         catch (Exception exception) when (exception is IOException
                                            or UnauthorizedAccessException
@@ -288,12 +290,12 @@ public sealed partial class GeneralOptionsViewModel : ObservableObject
                                            or InvalidOperationException
                                            or System.Text.Json.JsonException)
         {
-            ClaudeStatusLineStatus = _getString("ClaudeStatusLineUpdateFailed");
-            SyncClaudeStatusLine();
+            ClaudeLimitsStatus = _getString("ClaudeLimitsUpdateFailed");
+            SyncClaudeLimits();
             return;
         }
 
-        ClaudeStatusLineChanged?.Invoke(this, EventArgs.Empty);
+        ClaudeLimitsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     partial void OnIsBackgroundCollectionEnabledChanged(bool value)

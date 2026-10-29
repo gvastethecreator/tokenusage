@@ -24,6 +24,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
     private readonly ResourceLoader _resources = new();
     private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
     private bool _disposed;
+    private readonly Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? _resetProviderCache;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator? sampleRefreshCoordinator,
@@ -45,13 +46,15 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         ClaudeRateLimitStore? claudeRateLimits = null,
         ClaudeSettingsInstaller? claudeSettings = null,
         Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null,
-        IProviderAccountService? accounts = null)
+        IProviderAccountService? accounts = null,
+        string? dataDirectory = null)
     {
         ArgumentNullException.ThrowIfNull(appSessionHost);
         ArgumentNullException.ThrowIfNull(localUsageCoordinator);
         ArgumentNullException.ThrowIfNull(dashboardLayoutStore);
         ArgumentNullException.ThrowIfNull(appearanceSettingsStore);
         ArgumentNullException.ThrowIfNull(quotaResetHistory);
+        _resetProviderCache = credentialChanged;
 
         OptionsNavigation = new OptionsNavigationViewModel();
         OptionsNavigation.PropertyChanged += OnOptionsNavigationPropertyChanged;
@@ -73,26 +76,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
             runAttributionBackfill);
         GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
-        if (claudeRateLimits is not null)
-        {
-            ClaudeSettingsInstaller claude = claudeSettings ?? new ClaudeSettingsInstaller();
-            GeneralOptions.BindClaudeStatusLine(
-                claude.IsProviderDetected,
-                () => claude.GetStatusLineStatus() == ClaudeIntegrationStatus.Installed,
-                enabled =>
-                {
-                    if (enabled)
-                    {
-                        claude.InstallStatusLine();
-                        return;
-                    }
-
-                    claude.UninstallStatusLine();
-                    // Turning the wrapper off withdraws the reading it produced.
-                    claudeRateLimits.Delete();
-                });
-            GeneralOptions.ClaudeStatusLineChanged += OnClaudeStatusLineChanged;
-        }
+        ConfigureClaude(claudeRateLimits, claudeSettings, dataDirectory, appSessionHost);
 
         ProviderStatus = new ProviderStatusSurfaceViewModel(
             GetString,
@@ -114,7 +98,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
                 appSessionHost,
                 localUsageCoordinator,
                 quotaResetHistory,
-                claudeRateLimits,
                 accounts),
             GeneralOptions,
             AppearanceOptions,
@@ -142,8 +125,10 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         RefreshHookAutoSetup.EnsureInstalled(
             backgroundCollection: GeneralOptions.IsBackgroundCollectionEnabled);
 
-    private void OnClaudeStatusLineChanged(object? sender, EventArgs args)
+    private async void OnClaudeLimitsChanged(object? sender, EventArgs args)
     {
+        if (!_disposed && !GeneralOptions.IsClaudeLimitsEnabled && _resetProviderCache is not null)
+            await _resetProviderCache("claude", CancellationToken.None);
         if (!_disposed)
         {
             Dashboard.RefreshCommand.Execute(null);
@@ -276,7 +261,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         _openRefreshTimer.Stop();
         GeneralOptions.BackgroundCollectionChanged -= OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged -= OnDataCollectionRefreshChanged;
-        GeneralOptions.ClaudeStatusLineChanged -= OnClaudeStatusLineChanged;
+        GeneralOptions.ClaudeLimitsChanged -= OnClaudeLimitsChanged;
         Options.Updates?.Dispose();
         OptionsNavigation.PropertyChanged -= OnOptionsNavigationPropertyChanged;
         OptionsNavigation.CloseRequested -= OnOptionsNavigationCloseRequested;

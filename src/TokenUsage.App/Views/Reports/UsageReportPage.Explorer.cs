@@ -27,6 +27,7 @@ public sealed partial class UsageReportPage
     {
         ExplanationReturnButton.Visibility = Visibility.Collapsed;
         ExplanationBreakdownReturnButton.Visibility = Visibility.Collapsed;
+        MeasurementDetails.Visibility = Visibility.Visible;
         MeasurementDetails.IsExpanded = true;
         ExplanationCard.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });
         ExplanationEvidenceButton.Focus(FocusState.Programmatic);
@@ -64,9 +65,9 @@ public sealed partial class UsageReportPage
         ReportScrollViewer.UpdateLayout();
         ReportScrollViewer.ChangeView(null, _modelReturnOffset, null, disableAnimation: true);
         ReportScrollViewer.UpdateLayout();
-        int index = ViewModel.ModelRows.ToList().FindIndex(row => row.Id == _modelReturnId);
-        if (index >= 0 && ModelBreakdownRows.TryGetElement(index) is DependencyObject row
-            && Descendants(row).OfType<Button>().FirstOrDefault(button => Equals(button.Tag, _modelReturnId)) is { } button)
+        int index = ViewModel.BreakdownRows.ToList().FindIndex(row => row.EvidenceId == _modelReturnId);
+        if (index >= 0 && BreakdownRowsView.TryGetElement(index) is DependencyObject row
+            && (row as Button ?? Descendants(row).OfType<Button>().FirstOrDefault(button => Equals(button.Tag, ViewModel.BreakdownRows[index].Id))) is { } button)
             button.Focus(FocusState.Programmatic);
         else ExplorerSearchBox.Focus(FocusState.Programmatic);
     }
@@ -78,6 +79,7 @@ public sealed partial class UsageReportPage
 
     private void OnExplorerEvidenceClick(object sender, RoutedEventArgs e)
     {
+        MeasurementDetails.Visibility = Visibility.Visible;
         MeasurementDetails.IsExpanded = true;
         MeasurementDetails.UpdateLayout();
         MeasurementDetails.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });
@@ -260,10 +262,12 @@ public sealed partial class UsageReportPage
 
     private void RestoreOverviewProjectFocus(string? id)
     {
+        ViewModel.SetBreakdown(UsageReportBreakdown.Project);
+        DashboardFullBreakdown.Visibility = Visibility.Visible;
         DashboardFullBreakdown.IsExpanded = true;
         ReportScrollViewer.UpdateLayout();
-        ProjectBreakdownRows.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
-        ProjectBreakdownRows.UpdateLayout();
+        BreakdownRowsView.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        BreakdownRowsView.UpdateLayout();
         if (string.IsNullOrWhiteSpace(id))
         {
             FocusOverviewProjectFallback();
@@ -288,22 +292,24 @@ public sealed partial class UsageReportPage
             return null;
         }
 
+        ViewModel.SetBreakdown(UsageReportBreakdown.Project);
+        DashboardFullBreakdown.Visibility = Visibility.Visible;
         DashboardFullBreakdown.IsExpanded = true;
         ReportScrollViewer.UpdateLayout();
-        ProjectBreakdownRows.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
-        ProjectBreakdownRows.UpdateLayout();
-        int index = ViewModel.ProjectOverviewRows.ToList().FindIndex(row => row.Id == id);
+        BreakdownRowsView.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+        BreakdownRowsView.UpdateLayout();
+        int index = ViewModel.BreakdownRows.ToList().FindIndex(row => row.Id == id);
         if (index < 0)
         {
             return null;
         }
 
-        UIElement? row = ProjectBreakdownRows.TryGetElement(index)
-            ?? ProjectBreakdownRows.GetOrCreateElement(index);
-        ProjectBreakdownRows.UpdateLayout();
+        UIElement? row = BreakdownRowsView.TryGetElement(index)
+            ?? BreakdownRowsView.GetOrCreateElement(index);
+        BreakdownRowsView.UpdateLayout();
         return row is null
             ? null
-            : Descendants(row).OfType<Button>().FirstOrDefault(item => Equals(item.Tag, id));
+            : row as Button ?? Descendants(row).OfType<Button>().FirstOrDefault(item => Equals(item.Tag, id));
     }
 
     private void FocusOverviewProjectFallback()

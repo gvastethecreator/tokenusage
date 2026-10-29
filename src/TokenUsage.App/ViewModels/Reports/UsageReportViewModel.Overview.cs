@@ -325,8 +325,6 @@ public sealed partial class UsageReportViewModel
         OnPropertyChanged(nameof(HasOverviewCacheDetail));
         OnPropertyChanged(nameof(OverviewNoticeText));
         OnPropertyChanged(nameof(HasUnpricedSummary));
-        OnPropertyChanged(nameof(PriceCoverageTone));
-        OnPropertyChanged(nameof(PriceCoverageIcon));
         OnPropertyChanged(nameof(SummaryUnpricedText));
         OnPropertyChanged(nameof(OverviewReportedValue));
         OnPropertyChanged(nameof(OverviewEstimatedValue));

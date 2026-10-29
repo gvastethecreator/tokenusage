@@ -234,8 +234,8 @@ public sealed class ProviderPaletteTests
             string.Equals(element.Name.LocalName, "ProviderMarkImage", StringComparison.Ordinal));
 
         Assert.Equal("{x:Bind ProviderId}", (string?)mark.Attribute("ProviderId"));
-        Assert.Equal("14", (string?)mark.Attribute("Width"));
-        Assert.Equal("14", (string?)mark.Attribute("Height"));
+        Assert.Equal("24", (string?)mark.Attribute("Width"));
+        Assert.Equal("24", (string?)mark.Attribute("Height"));
     }
 
     [Fact]

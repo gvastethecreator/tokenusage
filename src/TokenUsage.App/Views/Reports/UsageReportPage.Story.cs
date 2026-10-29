@@ -53,6 +53,23 @@ public sealed partial class UsageReportPage
         visual.StartAnimation("Translation", rise);
     }
 
+    private void OnReportHeatmapSizeChanged(object sender, SizeChangedEventArgs e) =>
+        ReportHeatmapControl.CellWidth = Math.Max(24, (e.NewSize.Width - 16) / 7);
+
+    private void OnReportHeatmapDayInvoked(object? sender, TokenUsage.App.Controls.UsageHeatmapDayInvokedEventArgs e)
+    {
+        var chart = ViewModel.IsProviderScope ? ProviderChartContentRoot : GlobalCombinedChart;
+        if (ViewModel.ReportContent.Chart && chart.RevealDay(e.Cell.Date))
+        {
+            chart.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+            return;
+        }
+        ViewModel.SetBreakdown(UsageReportBreakdown.Day);
+        DashboardFullBreakdown.Visibility = Visibility.Visible;
+        DashboardFullBreakdown.IsExpanded = true;
+        DashboardFullBreakdown.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+    }
+
     // Every highlight opens the evidence behind its number.
     private void OnHighlightClick(object sender, RoutedEventArgs e)
     {
@@ -62,6 +79,7 @@ public sealed partial class UsageReportPage
             case UsageReportHighlightAction.RevealDay
                 when DateOnly.TryParseExact(highlight.Target, "O", System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.None, out DateOnly day)
+                && ViewModel.ReportContent.Chart
                 && (ViewModel.IsProviderScope ? ProviderChartContentRoot : GlobalCombinedChart).RevealDay(day):
                 return;
             case UsageReportHighlightAction.OpenModel:
@@ -74,6 +92,7 @@ public sealed partial class UsageReportPage
             default:
                 RememberDashboardOrigin(button);
                 ViewModel.SetBreakdown(UsageReportBreakdown.Day);
+                DashboardFullBreakdown.Visibility = Visibility.Visible;
                 DashboardFullBreakdown.IsExpanded = true;
                 DashboardFullBreakdown.UpdateLayout();
                 DashboardFullBreakdown.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });

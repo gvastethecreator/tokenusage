@@ -15,7 +15,6 @@
         AutomationProperties.AutomationId="GeneralSection"
         Style="{StaticResource OptionsCategoryCardStyle}">
         <StackPanel Spacing="12">
-            <TextBlock x:Uid="GeneralWindowGroupTitle" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             <Grid ColumnSpacing="12" MinHeight="32">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -23,6 +22,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock
                     x:Uid="CloseWhenInactiveLabel"
+                    TextWrapping="Wrap"
                     Style="{StaticResource BodyStrongTextBlockStyle}"
                     VerticalAlignment="Center" />
                 <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}"
@@ -34,230 +34,250 @@
                     IsOn="{x:Bind ViewModel.CloseWhenInactive, Mode=TwoWay}" MinWidth="0"
                     VerticalAlignment="Center" />
             </Grid>
-            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
-            <TextBlock x:Uid="GeneralCollectionGroupTitle" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            <StackPanel Spacing="4">
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="DataCollectionBackgroundLabel" x:Uid="DataCollectionBackgroundLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                        <TextBlock.Tag><ToolTip><TextBlock x:Uid="DataCollectionBackgroundDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                    </TextBlock>
-                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="DataCollectionBackgroundToggle"
-                        x:Uid="DataCollectionBackgroundToggle"
-                        AutomationProperties.AutomationId="DataCollectionBackgroundToggle"
-                        IsOn="{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}" />
-                </Grid>
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <TextBlock
-                    x:Uid="DataCollectionRefreshLabel"
-                    Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <ComboBox
-                    x:Name="DataCollectionOpenRefreshSelector"
-                    AutomationProperties.AutomationId="DataCollectionOpenRefreshSelector"
-                    DisplayMemberPath="Label"
-                    HorizontalAlignment="Stretch"
-                    ItemsSource="{x:Bind ViewModel.DataCollectionRefreshOptions, Mode=OneWay}"
-                    SelectedItem="{x:Bind ViewModel.SelectedDataCollectionRefresh, Mode=TwoWay}" />
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="ClaudeStatusLineLabel" x:Uid="ClaudeStatusLineLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                        <TextBlock.Tag><ToolTip><TextBlock x:Uid="ClaudeStatusLineDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                    </TextBlock>
-                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="ClaudeStatusLineToggle"
-                        x:Uid="ClaudeStatusLineToggle"
-                        AutomationProperties.AutomationId="ClaudeStatusLineToggle"
-                        IsEnabled="{x:Bind ViewModel.IsClaudeStatusLineAvailable, Mode=OneWay}"
-                        IsOn="{x:Bind ViewModel.IsClaudeStatusLineEnabled, Mode=TwoWay}" />
-                </Grid>
-                <TextBlock Text="{x:Bind ViewModel.ClaudeStatusLineStatus, Mode=OneWay}"
-                    AutomationProperties.AutomationId="ClaudeStatusLineStatus"
-                    AutomationProperties.LiveSetting="Polite"
-                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                    Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
-            </StackPanel>
-            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
-            <TextBlock x:Uid="GeneralAttributionGroupTitle" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            <StackPanel Spacing="4">
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="CodexSessionAttributionLabel" x:Uid="CodexSessionAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                        <TextBlock.Tag><ToolTip><TextBlock x:Uid="CodexSessionAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                    </TextBlock>
-                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexSessionAttributionToggle"
-                        x:Uid="CodexSessionAttributionToggle"
-                        AutomationProperties.AutomationId="CodexSessionAttributionToggle"
-                        IsOn="{x:Bind ViewModel.IsCodexSessionAttributionEnabled, Mode=TwoWay}" />
-                </Grid>
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="CodexProjectAttributionLabel" x:Uid="CodexProjectAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                        <TextBlock.Tag><ToolTip><TextBlock x:Uid="CodexProjectAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                    </TextBlock>
-                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexProjectAttributionToggle"
-                        x:Uid="CodexProjectAttributionToggle"
-                        AutomationProperties.AutomationId="CodexProjectAttributionToggle"
-                        IsOn="{x:Bind ViewModel.IsCodexProjectAttributionEnabled, Mode=TwoWay}" />
-                </Grid>
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBlock x:Name="CursorSessionAttributionLabel" x:Uid="CursorSessionAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                        <TextBlock.Tag><ToolTip><TextBlock x:Uid="CursorSessionAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                    </TextBlock>
-                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CursorSessionAttributionToggle"
-                        x:Uid="CursorSessionAttributionToggle"
-                        AutomationProperties.AutomationId="CursorSessionAttributionToggle"
-                        IsOn="{x:Bind ViewModel.IsCursorSessionAttributionEnabled, Mode=TwoWay}" />
-                </Grid>
-            </StackPanel>
-            <Expander x:Uid="GeneralCodexDetailsExpander" IsExpanded="False">
-                <StackPanel Spacing="12">
+            <Expander x:Name="CollectionExpander" AutomationProperties.AutomationId="CollectionExpander" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header><TextBlock x:Uid="GeneralCollectionGroupTitle" TextWrapping="Wrap" /></Expander.Header>
+                <StackPanel Spacing="16">
                     <StackPanel Spacing="4">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock x:Name="CodexMcpAttributionLabel" x:Uid="CodexMcpAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                                <TextBlock.Tag><ToolTip><TextBlock x:Uid="CodexMcpAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                            </TextBlock>
-                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexMcpAttributionToggle"
-                                x:Uid="CodexMcpAttributionToggle"
-                                AutomationProperties.AutomationId="CodexMcpAttributionToggle"
-                                IsOn="{x:Bind ViewModel.IsCodexMcpAttributionEnabled, Mode=TwoWay}" />
+                            <TextBlock x:Name="DataCollectionBackgroundLabel" x:Uid="DataCollectionBackgroundLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="DataCollectionBackgroundToggle"
+                                x:Uid="DataCollectionBackgroundToggle"
+                                AutomationProperties.AutomationId="DataCollectionBackgroundToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=DataCollectionBackgroundLabel}"
+                                IsOn="{x:Bind ViewModel.IsBackgroundCollectionEnabled, Mode=TwoWay}" />
                         </Grid>
                     </StackPanel>
                     <StackPanel Spacing="4">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock x:Name="CodexSkillsAttributionLabel" x:Uid="CodexSkillsAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                                <TextBlock.Tag><ToolTip><TextBlock x:Uid="CodexSkillsAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                            </TextBlock>
-                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexSkillsAttributionToggle"
-                                x:Uid="CodexSkillsAttributionToggle"
-                                AutomationProperties.AutomationId="CodexSkillsAttributionToggle"
-                                IsOn="{x:Bind ViewModel.IsCodexSkillsAttributionEnabled, Mode=TwoWay}" />
-                        </Grid>
-                    </StackPanel>
-                    <StackPanel Spacing="4">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock x:Name="CodexCommandsAttributionLabel" x:Uid="CodexCommandsAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                                <TextBlock.Tag><ToolTip><TextBlock x:Uid="CodexCommandsAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                            </TextBlock>
-                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexCommandsAttributionToggle"
-                                x:Uid="CodexCommandsAttributionToggle"
-                                AutomationProperties.AutomationId="CodexCommandsAttributionToggle"
-                                IsOn="{x:Bind ViewModel.IsCodexCommandsAttributionEnabled, Mode=TwoWay}" />
-                        </Grid>
-                    </StackPanel>
-                    <StackPanel Spacing="4">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBlock x:Name="CodexFilesAttributionLabel" x:Uid="CodexFilesAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center">
-                                <TextBlock.Tag><ToolTip><TextBlock x:Uid="CodexFilesAttributionDescription" MaxWidth="360" TextWrapping="Wrap" /></ToolTip></TextBlock.Tag>
-                            </TextBlock>
-                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexFilesAttributionToggle"
-                                x:Uid="CodexFilesAttributionToggle"
-                                AutomationProperties.AutomationId="CodexFilesAttributionToggle"
-                                IsOn="{x:Bind ViewModel.IsCodexFilesAttributionEnabled, Mode=TwoWay}" />
-                        </Grid>
+                        <TextBlock
+                            x:Name="DataCollectionRefreshLabel" x:Uid="DataCollectionRefreshLabel"
+                    TextWrapping="Wrap"
+                            Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <ComboBox
+                            x:Name="DataCollectionOpenRefreshSelector"
+                            AutomationProperties.AutomationId="DataCollectionOpenRefreshSelector"
+                    AutomationProperties.LabeledBy="{Binding ElementName=DataCollectionRefreshLabel}"
+                            DisplayMemberPath="Label"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{x:Bind ViewModel.DataCollectionRefreshOptions, Mode=OneWay}"
+                            SelectedItem="{x:Bind ViewModel.SelectedDataCollectionRefresh, Mode=TwoWay}" />
                     </StackPanel>
                 </StackPanel>
             </Expander>
-            <Expander x:Uid="GeneralHistoryExpander" IsExpanded="False">
-                <StackPanel Spacing="4">
-                    <ComboBox
-                        x:Name="AttributionBackfillSource"
-                        x:Uid="AttributionBackfillSource"
-                        AutomationProperties.AutomationId="AttributionBackfillSource"
-                        DisplayMemberPath="Label"
-                        HorizontalAlignment="Stretch"
-                        ItemsSource="{x:Bind ViewModel.AttributionBackfillSources, Mode=OneWay}"
-                        SelectedItem="{x:Bind ViewModel.SelectedAttributionBackfillSource, Mode=TwoWay}" />
-                    <Grid ColumnSpacing="8">
+            <Expander x:Name="ClaudeExpander" AutomationProperties.AutomationId="ClaudeExpander" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header><TextBlock x:Uid="GeneralClaudeGroupTitle" TextWrapping="Wrap" /></Expander.Header>
+                <StackPanel Spacing="16">
+                    <StackPanel Spacing="4">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ClaudeLimitsLabel" x:Uid="ClaudeLimitsLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="ClaudeLimitsToggle"
+                                x:Uid="ClaudeLimitsToggle"
+                                AutomationProperties.AutomationId="ClaudeLimitsToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=ClaudeLimitsLabel}"
+                                IsEnabled="{x:Bind ViewModel.IsClaudeLimitsAvailable, Mode=OneWay}"
+                                IsOn="{x:Bind ViewModel.IsClaudeLimitsEnabled, Mode=TwoWay}" />
+                        </Grid>
+                        <TextBlock Text="{x:Bind ViewModel.ClaudeLimitsStatus, Mode=OneWay}"
+                            AutomationProperties.AutomationId="ClaudeLimitsStatus"
+                            AutomationProperties.LiveSetting="Polite"
+                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Uid="ClaudeOpenButton" AutomationProperties.AutomationId="ClaudeOpenButton" Command="{x:Bind ViewModel.OpenClaudeCommand}" />
+                            <Button x:Uid="ClaudeRetryButton" AutomationProperties.AutomationId="ClaudeRetryButton" Command="{x:Bind ViewModel.RetryClaudeLimitsCommand}" />
+                        </StackPanel>
+                        <TextBlock x:Uid="ClaudeRecoveryTitle" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,8,0,0" />
+                        <TextBlock x:Uid="ClaudeRecoveryDescription" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <StackPanel Spacing="8">
+                            <Button x:Uid="ClaudeRecoveryPreview" AutomationProperties.AutomationId="ClaudeRecoveryPreview" Command="{x:Bind ViewModel.PreviewClaudeRecoveryCommand}" />
+                            <Button x:Uid="ClaudeRecoveryStart" AutomationProperties.AutomationId="ClaudeRecoveryStart" Command="{x:Bind ViewModel.RecoverClaudeHistoryCommand}" />
+                            <Button x:Uid="ClaudeRecoveryCancel" AutomationProperties.AutomationId="ClaudeRecoveryCancel" Command="{x:Bind ViewModel.CancelClaudeRecoveryCommand}" Visibility="{x:Bind ViewModel.IsRecoveringClaudeHistory, Mode=OneWay}" />
+                        </StackPanel>
+                        <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsRecoveringClaudeHistory, Mode=OneWay}" />
+                        <TextBlock Text="{x:Bind ViewModel.ClaudeRecoveryStatus, Mode=OneWay}" AutomationProperties.AutomationId="ClaudeRecoveryStatus" AutomationProperties.LiveSetting="Polite" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+            <Expander x:Name="AttributionExpander" AutomationProperties.AutomationId="AttributionExpander" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header><TextBlock x:Uid="GeneralAttributionGroupTitle" TextWrapping="Wrap" /></Expander.Header>
+                <StackPanel Spacing="16">
+                    <StackPanel Spacing="4">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="CodexSessionAttributionLabel" x:Uid="CodexSessionAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexSessionAttributionToggle"
+                                x:Uid="CodexSessionAttributionToggle"
+                                AutomationProperties.AutomationId="CodexSessionAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CodexSessionAttributionLabel}"
+                                IsOn="{x:Bind ViewModel.IsCodexSessionAttributionEnabled, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="CodexProjectAttributionLabel" x:Uid="CodexProjectAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexProjectAttributionToggle"
+                                x:Uid="CodexProjectAttributionToggle"
+                                AutomationProperties.AutomationId="CodexProjectAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CodexProjectAttributionLabel}"
+                                IsOn="{x:Bind ViewModel.IsCodexProjectAttributionEnabled, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="CursorSessionAttributionLabel" x:Uid="CursorSessionAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                            <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CursorSessionAttributionToggle"
+                                x:Uid="CursorSessionAttributionToggle"
+                                AutomationProperties.AutomationId="CursorSessionAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CursorSessionAttributionLabel}"
+                                IsOn="{x:Bind ViewModel.IsCursorSessionAttributionEnabled, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                    <Expander x:Uid="GeneralCodexDetailsExpander" IsExpanded="False">
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="4">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CodexMcpAttributionLabel" x:Uid="CodexMcpAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexMcpAttributionToggle"
+                                        x:Uid="CodexMcpAttributionToggle"
+                                        AutomationProperties.AutomationId="CodexMcpAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CodexMcpAttributionLabel}"
+                                        IsOn="{x:Bind ViewModel.IsCodexMcpAttributionEnabled, Mode=TwoWay}" />
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CodexSkillsAttributionLabel" x:Uid="CodexSkillsAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexSkillsAttributionToggle"
+                                        x:Uid="CodexSkillsAttributionToggle"
+                                        AutomationProperties.AutomationId="CodexSkillsAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CodexSkillsAttributionLabel}"
+                                        IsOn="{x:Bind ViewModel.IsCodexSkillsAttributionEnabled, Mode=TwoWay}" />
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CodexCommandsAttributionLabel" x:Uid="CodexCommandsAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexCommandsAttributionToggle"
+                                        x:Uid="CodexCommandsAttributionToggle"
+                                        AutomationProperties.AutomationId="CodexCommandsAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CodexCommandsAttributionLabel}"
+                                        IsOn="{x:Bind ViewModel.IsCodexCommandsAttributionEnabled, Mode=TwoWay}" />
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CodexFilesAttributionLabel" x:Uid="CodexFilesAttributionLabel" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                                    <ToggleSwitch Style="{StaticResource OptionsInlineToggleStyle}" Grid.Column="1" x:Name="CodexFilesAttributionToggle"
+                                        x:Uid="CodexFilesAttributionToggle"
+                                        AutomationProperties.AutomationId="CodexFilesAttributionToggle"
+                                AutomationProperties.LabeledBy="{Binding ElementName=CodexFilesAttributionLabel}"
+                                        IsOn="{x:Bind ViewModel.IsCodexFilesAttributionEnabled, Mode=TwoWay}" />
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+                    <Expander x:Uid="GeneralHistoryExpander" IsExpanded="False">
+                        <StackPanel Spacing="4">
+                            <ComboBox
+                                x:Name="AttributionBackfillSource"
+                                x:Uid="AttributionBackfillSource"
+                                AutomationProperties.AutomationId="AttributionBackfillSource"
+                                DisplayMemberPath="Label"
+                                HorizontalAlignment="Stretch"
+                                ItemsSource="{x:Bind ViewModel.AttributionBackfillSources, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedAttributionBackfillSource, Mode=TwoWay}" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CalendarDatePicker
+                                    x:Name="AttributionBackfillFrom"
+                                    x:Uid="AttributionBackfillFrom"
+                                    AutomationProperties.AutomationId="AttributionBackfillFrom"
+                                    Date="{x:Bind ViewModel.AttributionBackfillFromDate, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch" />
+                                <CalendarDatePicker
+                                    x:Name="AttributionBackfillTo"
+                                    x:Uid="AttributionBackfillTo"
+                                    Grid.Column="1"
+                                    AutomationProperties.AutomationId="AttributionBackfillTo"
+                                    Date="{x:Bind ViewModel.AttributionBackfillToDate, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch" />
+                            </Grid>
+                            <Button
+                                x:Name="AttributionBackfillRun"
+                                x:Uid="AttributionBackfillRun"
+                                AutomationProperties.AutomationId="AttributionBackfillRun"
+                                Click="OnAttributionBackfillRunClicked"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{x:Bind ViewModel.CanRunAttributionBackfill, Mode=OneWay}" />
+                            <TextBlock
+                                x:Name="AttributionBackfillStatus"
+                                AutomationProperties.AutomationId="AttributionBackfillStatus"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="{x:Bind ViewModel.AttributionBackfillStatus, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </Expander>
+            <Expander x:Name="ScreenshotsExpander" AutomationProperties.AutomationId="ScreenshotsExpander" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header><TextBlock x:Uid="GeneralScreenshotGroupTitle" TextWrapping="Wrap" /></Expander.Header>
+                <StackPanel Spacing="16">
+                    <Grid ColumnSpacing="8" RowSpacing="7">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <CalendarDatePicker
-                            x:Name="AttributionBackfillFrom"
-                            x:Uid="AttributionBackfillFrom"
-                            AutomationProperties.AutomationId="AttributionBackfillFrom"
-                            Date="{x:Bind ViewModel.AttributionBackfillFromDate, Mode=TwoWay}"
-                            HorizontalAlignment="Stretch" />
-                        <CalendarDatePicker
-                            x:Name="AttributionBackfillTo"
-                            x:Uid="AttributionBackfillTo"
-                            Grid.Column="1"
-                            AutomationProperties.AutomationId="AttributionBackfillTo"
-                            Date="{x:Bind ViewModel.AttributionBackfillToDate, Mode=TwoWay}"
-                            HorizontalAlignment="Stretch" />
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            x:Uid="ShareCaptureFolderTitle"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock
+                            x:Name="ShareCaptureFolderPath"
+                            x:Uid="ShareCaptureFolderPath"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            AutomationProperties.AutomationId="ShareCaptureFolderPath"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                            VerticalAlignment="Center" />
+                        <StackPanel
+                            Grid.Row="2"
+                            Grid.ColumnSpan="2"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                x:Uid="ShareCaptureFolderBrowseButton"
+                                AutomationProperties.AutomationId="ShareCaptureFolderBrowseButton"
+                                Click="OnShareCaptureFolderBrowseClicked"
+                                Padding="10,5" />
+                            <Button
+                                x:Uid="ShareCaptureFolderResetButton"
+                                AutomationProperties.AutomationId="ShareCaptureFolderResetButton"
+                                Click="OnShareCaptureFolderResetClicked"
+                                Padding="10,5"
+                                Style="{StaticResource SubtleButtonStyle}" />
+                        </StackPanel>
                     </Grid>
-                    <Button
-                        x:Name="AttributionBackfillRun"
-                        x:Uid="AttributionBackfillRun"
-                        AutomationProperties.AutomationId="AttributionBackfillRun"
-                        Click="OnAttributionBackfillRunClicked"
-                        HorizontalAlignment="Left"
-                        IsEnabled="{x:Bind ViewModel.CanRunAttributionBackfill, Mode=OneWay}" />
-                    <TextBlock
-                        x:Name="AttributionBackfillStatus"
-                        AutomationProperties.AutomationId="AttributionBackfillStatus"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Style="{StaticResource CaptionTextBlockStyle}"
-                        Text="{x:Bind ViewModel.AttributionBackfillStatus, Mode=OneWay}"
-                        TextWrapping="Wrap" />
                 </StackPanel>
             </Expander>
-            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
-            <TextBlock x:Uid="GeneralScreenshotGroupTitle" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            <Grid ColumnSpacing="8" RowSpacing="7">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock
-                    x:Uid="ShareCaptureFolderTitle"
-                    Grid.ColumnSpan="2"
-                    Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <TextBlock
-                    x:Name="ShareCaptureFolderPath"
-                    x:Uid="ShareCaptureFolderPath"
-                    Grid.Row="1"
-                    Grid.ColumnSpan="2"
-                    AutomationProperties.AutomationId="ShareCaptureFolderPath"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    TextTrimming="CharacterEllipsis"
-                    VerticalAlignment="Center" />
-                <StackPanel
-                    Grid.Row="2"
-                    Grid.ColumnSpan="2"
-                    HorizontalAlignment="Right"
-                    Orientation="Horizontal"
-                    Spacing="8">
-                    <Button
-                        x:Uid="ShareCaptureFolderBrowseButton"
-                        AutomationProperties.AutomationId="ShareCaptureFolderBrowseButton"
-                        Click="OnShareCaptureFolderBrowseClicked"
-                        Padding="10,5" />
-                    <Button
-                        x:Uid="ShareCaptureFolderResetButton"
-                        AutomationProperties.AutomationId="ShareCaptureFolderResetButton"
-                        Click="OnShareCaptureFolderResetClicked"
-                        Padding="10,5"
-                        Style="{StaticResource SubtleButtonStyle}" />
-                </StackPanel>
-            </Grid>
         </StackPanel>
     </Border>
 </UserControl>

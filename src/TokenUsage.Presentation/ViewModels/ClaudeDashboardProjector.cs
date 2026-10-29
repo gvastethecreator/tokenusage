@@ -6,23 +6,21 @@ using TokenUsage.Providers.Claude;
 namespace TokenUsage.App.ViewModels;
 
 /// <summary>
-/// The Claude quota card. Its windows come from the reading Claude Code hands its status line
-/// (5-hour session, weekly, and a gateway spend limit when one applies), so the card also says
-/// when that reading was taken: it only moves while Claude Code is running.
+/// Projects the account-wide and scoped limits returned by Claude's account usage endpoint.
 /// </summary>
 public static class ClaudeDashboardProjector
 {
     /// <summary>
-    /// Claude Code refreshes the reading on each status line update, which stops while it is
-    /// closed or idle. After this long the card says the percentages may have moved.
+    /// Two missed background refreshes make the reading visibly stale.
     /// </summary>
-    public static readonly TimeSpan StaleAfter = TimeSpan.FromMinutes(30);
+    public static readonly TimeSpan StaleAfter = TimeSpan.FromMinutes(10);
 
     public static ProviderCard Create(
         ProviderSnapshot snapshot,
         TimeProvider clock,
         Func<string, string> getString,
-        IReadOnlyDictionary<string, long>? windowUsedTokens = null)
+        IReadOnlyDictionary<string, long>? windowUsedTokens = null,
+        ProviderOutcome? outcome = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(clock);
@@ -55,14 +53,24 @@ public static class ClaudeDashboardProjector
             .ToString("g", CultureInfo.CurrentCulture);
         string source = getString("ClaudeQuotaSourceValue");
         string name = getString("LocalUsageAgentClaude");
+        string? refreshError = outcome switch
+        {
+            ProviderOutcome.TransientFailure failure => failure.Error.Message,
+            ProviderOutcome.ContractFailure failure => failure.Error.Message,
+            _ => null,
+        };
         return new ProviderCard(
             "claude",
             "Provider.Claude",
             name,
-            getString("ClaudePlanSubscription"),
+            snapshot.PlanLabel ?? getString("ClaudePlanSubscription"),
             getString("ClaudeCapabilityLimits"),
-            NoticeText: SnapshotFreshness.IsStale(snapshot, clock, StaleAfter)
-                ? getString("ClaudeQuotaStaleNotice")
+            NoticeText: refreshError is not null
+                ? CodexDashboardProjector.Format(getString, "ClaudeQuotaRefreshFailedNotice", observed, refreshError)
+                : outcome is ProviderOutcome.Throttled
+                ? CodexDashboardProjector.Format(getString, "ClaudeQuotaThrottledNotice", observed)
+                : SnapshotFreshness.IsStale(snapshot, clock, StaleAfter)
+                ? CodexDashboardProjector.Format(getString, "ClaudeQuotaStaleNotice", observed)
                 : null,
             Windows: windows,
             Metrics: [],
@@ -101,10 +109,12 @@ public static class ClaudeDashboardProjector
     {
         double remaining = decimal.ToDouble(metric.RemainingPercent);
         double used = decimal.ToDouble(Math.Clamp(metric.Used / metric.Limit * 100m, 0m, 100m));
-        string title = text(metric.Id.Value switch
+        string title = metric.Id.Value.StartsWith(ClaudeUsageSnapshotMapper.ScopedWeeklyMetricPrefix, StringComparison.Ordinal)
+            ? CodexDashboardProjector.Format(text, "ClaudeWindowWeeklyScopeFormat", metric.LabelEvidence?.ProviderMetricName ?? string.Empty)
+            : text(metric.Id.Value switch
         {
-            ClaudeRateLimitSnapshotMapper.FiveHourMetricId => "SampleWindowSession",
-            ClaudeRateLimitSnapshotMapper.SevenDayMetricId => "SampleWindowWeekly",
+            ClaudeRateLimitSnapshotMapper.FiveHourMetricId => "ClaudeWindowFiveHour",
+            ClaudeRateLimitSnapshotMapper.SevenDayMetricId => "ClaudeWindowWeeklyAll",
             _ => "ClaudeWindowSpendLimit",
         });
         string usage = CodexDashboardProjector.Format(text, "CodexUsageFormat", remaining, used);
@@ -137,6 +147,9 @@ public static class ClaudeDashboardProjector
             LayoutMetricId: metric.Id.Value,
             ResetAtUtc: metric.ResetsAtUtc,
             UsedText: usedTokens,
-            LabelEvidenceText: text("CodexLabelProviderSupplied"));
+            LabelEvidenceText: text("CodexLabelProviderSupplied"))
+        {
+            UsedPercentText = CodexDashboardProjector.Format(text, "ClaudeUsedPercentFormat", used),
+        };
     }
 }

@@ -122,6 +122,14 @@
 
                     </Grid>
 
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Uid="QuotaDisplayLabel" Style="{StaticResource CaptionTextBlockStyle}" />
+                        <ComboBox x:Uid="QuotaDisplaySelector" AutomationProperties.AutomationId="QuotaDisplaySelector"
+                            HorizontalAlignment="Stretch" DisplayMemberPath="DisplayName"
+                            ItemsSource="{x:Bind ViewModel.QuotaDisplayOptions}"
+                            SelectedItem="{x:Bind ViewModel.SelectedQuotaDisplay, Mode=TwoWay}" />
+                    </StackPanel>
+
                     <StackPanel Spacing="6">
                         <TextBlock x:Uid="ReportChartsAppearanceTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
                         <ComboBox x:Uid="ReportChartStyleSelector"

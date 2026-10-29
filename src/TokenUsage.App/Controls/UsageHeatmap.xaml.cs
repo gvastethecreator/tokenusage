@@ -180,7 +180,8 @@ public sealed partial class UsageHeatmap : UserControl
         for (int index = 0; index < Data.Cells.Count; index++)
         {
             UsageHeatmapCell cell = Data.Cells[index];
-            double targetOpacity = highContrast || cell.Level == 0
+            bool providerColor = !highContrast && cell.DominantProviderId is not null;
+            double targetOpacity = highContrast || providerColor || cell.Level == 0
                 ? 1
                 : 0.3 + (cell.Level * 0.175);
             var swatch = new Border
@@ -195,6 +196,12 @@ public sealed partial class UsageHeatmap : UserControl
                 BorderThickness = new Thickness(highContrast ? 1 : 0.5),
                 IsHitTestVisible = true,
             };
+            if (providerColor)
+            {
+                var color = ProviderColorPalette.Parse(ProviderColorPalette.GetEffectiveHex(cell.DominantProviderId!, null));
+                color.A = (byte)Math.Round(255 * (0.12 + cell.Level * 0.12));
+                swatch.Background = new SolidColorBrush(color);
+            }
             if (ShowDayLabels)
             {
                 var content = new Grid();
@@ -205,7 +212,7 @@ public sealed partial class UsageHeatmap : UserControl
                     Margin = new Thickness(7, 5, 4, 3),
                     FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas"),
                     FontSize = 11,
-                    Foreground = cell.HasActivity
+                    Foreground = cell.HasActivity && !providerColor
                         ? ActiveTextBrushProxy.Background
                         : EmptyTextBrushProxy.Background,
                     Text = cell.Date.Day == 1

@@ -194,7 +194,17 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
     [NotifyPropertyChangedFor(nameof(HasGlobalClaudeLimits))]
+    [NotifyPropertyChangedFor(nameof(ClaudeLimitsHeading))]
+    [NotifyPropertyChangedFor(nameof(ClaudeLimitsNotice))]
+    [NotifyPropertyChangedFor(nameof(HasClaudeLimitsNotice))]
     public partial IReadOnlyList<QuotaWindow> GlobalClaudeLimits { get; private set; } = [];
+
+    public string ClaudeLimitsHeading => _lastClaudeSnapshot?.PlanLabel is { Length: > 0 } plan
+        ? $"{_getString("LocalUsageAgentClaude")} · {plan}"
+        : _getString("LocalUsageAgentClaude");
+    public string ClaudeLimitsNotice => _appearanceDashboard?.Providers
+        .FirstOrDefault(card => card.ProviderId == "claude")?.NoticeText ?? string.Empty;
+    public bool HasClaudeLimitsNotice => !string.IsNullOrWhiteSpace(ClaudeLimitsNotice);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
@@ -428,7 +438,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         if (UsesCodexAccounts)
         {
             _liveSession.RefreshAccountQuotas();
-            AccountQuotas = _liveSession.AccountQuotas;
+            AccountQuotas = StyleAccounts(_liveSession.AccountQuotas);
         }
 
         if (_retryAtUtc is DateTimeOffset retryAtUtc
@@ -511,10 +521,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             string.Equals(card.ProviderId, providerId, StringComparison.Ordinal));
         IReadOnlyList<QuotaWindow> limits = providerCard is null
             ? []
-            : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).Select(window => window with
+            : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).Select((window, index) => window with
             {
                 ProviderId = providerId,
                 ProfileLabel = providerCard.Name,
+                ReadingNotice = index == 0 ? providerCard.NoticeText ?? string.Empty : string.Empty,
                 CompactRemainingLabel = string.Format(CultureInfo.CurrentCulture,
                     _getString("AppearanceRemainingPercentFormat"), window.RemainingPercent),
             }).ToArray();
@@ -698,7 +709,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         }
 
         _lastCodexSnapshot = session.LastCodexSnapshot;
-        AccountQuotas = session.AccountQuotas;
+        AccountQuotas = StyleAccounts(session.AccountQuotas);
         OnPropertyChanged(nameof(UsesCodexAccounts));
         _lastCodexOutcome = session.LastCodexOutcome;
         _lastClaudeSnapshot = session.LastClaudeSnapshot;
@@ -771,7 +782,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                 _lastClaudeSnapshot,
                 _liveSession.Clock,
                 _getString,
-                _claudeWindowUsedTokens));
+                _claudeWindowUsedTokens,
+                _liveSession.LastClaudeOutcome));
         }
 
         var additionalSpendSlices = new List<SpendSlice>();
@@ -876,7 +888,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _hasPublishedDashboard,
             DataState,
             LocalUsage.ProviderStatuses,
-            _lastClaudeSnapshot);
+            _lastClaudeSnapshot,
+            _liveSession.LastClaudeOutcome);
 
     private void RebuildSamplePreview() => InOnePass(() =>
     {
@@ -942,6 +955,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(Visualization));
         OnPropertyChanged(nameof(VisualizationToggleIcon));
         OnPropertyChanged(nameof(VisualizationToggleText));
+        if (previous.QuotaDisplay != settings.QuotaDisplay)
+        {
+            AccountQuotas = StyleAccounts(AccountQuotas);
+            RebuildCompactProjection();
+        }
         bool dashboardProjectionChanged = previous.UsageDisplay != settings.UsageDisplay
             || previous.ResetTimeDisplay != settings.ResetTimeDisplay;
         if (dashboardProjectionChanged && _rawDashboard is not null)
@@ -1031,9 +1049,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         GlobalCostBreakdownText = projection.GlobalCostBreakdownText;
         GlobalHeatmap = projection.GlobalHeatmap;
         GlobalActivity = projection.GlobalActivity;
-        GlobalCodexLimits = projection.GlobalCodexLimits;
-        GlobalClaudeLimits = projection.GlobalClaudeLimits;
-        GlobalZcodeLimits = projection.GlobalZcodeLimits;
+        GlobalCodexLimits = StyleWindows(projection.GlobalCodexLimits);
+        GlobalClaudeLimits = StyleWindows(projection.GlobalClaudeLimits);
+        GlobalZcodeLimits = StyleWindows(projection.GlobalZcodeLimits);
 
         DashboardProviderOption? nextSelection = ProviderOptions.FirstOrDefault(option =>
             string.Equals(option.ProviderId, projection.SelectedProviderId, StringComparison.Ordinal))
@@ -1075,11 +1093,19 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         return summaries;
     }
 
+    private IReadOnlyList<QuotaWindow> StyleWindows(IReadOnlyList<QuotaWindow> windows) =>
+        windows.All(window => window.DisplayStyle == _appearance.Settings.QuotaDisplay) ? windows
+            : windows.Select(window => window with { DisplayStyle = _appearance.Settings.QuotaDisplay }).ToArray();
+
+    private IReadOnlyList<CodexAccountQuota> StyleAccounts(IReadOnlyList<CodexAccountQuota> accounts) =>
+        accounts.All(account => account.Windows.All(window => window.DisplayStyle == _appearance.Settings.QuotaDisplay)) ? accounts
+            : accounts.Select(account => account with { Windows = StyleWindows(account.Windows) }).ToArray();
+
     private void ApplySelectedProviderProjection(CompactSelectedProviderProjection projection)
     {
         SelectedProviderHeatmap = projection.Heatmap;
         SelectedProviderTrend = projection.Trend;
-        SelectedProviderLimits = projection.Limits;
+        SelectedProviderLimits = StyleWindows(projection.Limits);
         OnPropertyChanged(nameof(SelectedProviderSummary));
         OnPropertyChanged(nameof(SelectedProviderName));
         OnPropertyChanged(nameof(SelectedProviderCostText));

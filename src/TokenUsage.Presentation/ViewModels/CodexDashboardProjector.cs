@@ -9,7 +9,7 @@ namespace TokenUsage.App.ViewModels;
 public static class CodexDashboardProjector
 {
     private const decimal SessionMaximumMinutes = 12 * 60;
-    private const decimal WeeklyMinimumMinutes = 24 * 60;
+    private const decimal DayMinutes = 24 * 60;
 
     public static DashboardSnapshot Create(
         ProviderSnapshot snapshot,
@@ -342,9 +342,11 @@ public static class CodexDashboardProjector
             return text("SampleWindowSession");
         }
 
-        if (isBaseQuota && durationMinutes >= WeeklyMinimumMinutes)
+        if (isBaseQuota && durationMinutes >= DayMinutes)
         {
-            return text("SampleWindowWeekly");
+            return durationMinutes == 7 * DayMinutes
+                ? text("SampleWindowWeekly")
+                : Format(text, "CodexDurationDaysFormat", durationMinutes / DayMinutes);
         }
 
         if (isBaseQuota)

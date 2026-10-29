@@ -21,9 +21,9 @@ public sealed class LiveDashboardSession : IDisposable
     private readonly AppSessionHost _host;
     private readonly LocalUsageCoordinator _localUsage;
     private readonly QuotaResetHistoryStore? _quotaResetHistory;
-    private readonly ClaudeRateLimitStore? _claudeRateLimits;
     private readonly IProviderAccountService? _accounts;
     private readonly SemaphoreSlim _claudeQuotaGate = new(1, 1);
+    private bool _claudeQuotaIsStale;
     private CancellationTokenSource? _localRefreshCancellation;
     private Task _pendingUpdates = Task.CompletedTask;
     private Func<string, string>? _getString;
@@ -38,13 +38,11 @@ public sealed class LiveDashboardSession : IDisposable
         AppSessionHost host,
         LocalUsageCoordinator localUsage,
         QuotaResetHistoryStore? quotaResetHistory = null,
-        ClaudeRateLimitStore? claudeRateLimits = null,
         IProviderAccountService? accounts = null)
     {
         _host = host ?? throw new ArgumentNullException(nameof(host));
         _localUsage = localUsage ?? throw new ArgumentNullException(nameof(localUsage));
         _quotaResetHistory = quotaResetHistory;
-        _claudeRateLimits = claudeRateLimits;
         _accounts = accounts;
         _host.Updated += OnSessionUpdated;
     }
@@ -67,11 +65,11 @@ public sealed class LiveDashboardSession : IDisposable
     public ProviderOutcome? LastCodexOutcome { get; private set; }
 
     /// <summary>
-    /// The last Claude Code subscription reading, taken from the status line sidecar. Null
-    /// when the wrapper is not installed, the account has no subscription limits, or every
-    /// window it reported has already reset.
+    /// The last account usage reading published by the shared provider refresh host.
     /// </summary>
     public ProviderSnapshot? LastClaudeSnapshot { get; private set; }
+
+    public ProviderOutcome? LastClaudeOutcome { get; private set; }
 
     /// <summary>
     /// Tokens the local store recorded inside each open Claude window, keyed by metric ID.
@@ -344,6 +342,12 @@ public sealed class LiveDashboardSession : IDisposable
                 }
 
                 UpdateAccountQuotas(update.State);
+                await RefreshClaudeQuotaAsync().ConfigureAwait(true);
+                PublishChanged(version);
+                break;
+
+            case CacheFirstEvent.ProviderCompleted provider when provider.ProviderId.Value == "claude":
+                await RefreshClaudeQuotaAsync().ConfigureAwait(true);
                 PublishChanged(version);
                 break;
 
@@ -721,29 +725,25 @@ public sealed class LiveDashboardSession : IDisposable
 
     private async Task<bool> ReadClaudeQuotaAsync(bool recountTokens)
     {
-        if (_claudeRateLimits is null)
+        AppSessionState state = _host.Current;
+        state.Outcomes.TryGetValue("claude", out ProviderOutcome? outcome);
+        ProviderSnapshot? snapshot = outcome switch
         {
-            return false;
-        }
-
-        ClaudeRateLimitSnapshot? reading;
-        try
-        {
-            reading = await Task.Run(_claudeRateLimits.Load).ConfigureAwait(true);
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException)
-        {
-            return false;
-        }
-
-        ProviderSnapshot? snapshot = reading is null
-            ? null
-            : ClaudeRateLimitSnapshotMapper.Map(
-                reading,
-                Clock.GetUtcNow(),
-                TimeZoneInfo.Local.Id);
+            ProviderOutcome.Success success => success.Snapshot,
+            ProviderOutcome.PartialSuccess partial => partial.Snapshot,
+            ProviderOutcome.TransientFailure failure => failure.LastGood,
+            ProviderOutcome.ContractFailure failure => failure.LastGood,
+            ProviderOutcome.Throttled throttled => throttled.LastGood,
+            ProviderOutcome.NotConfigured or ProviderOutcome.UnsupportedAccount => null,
+            _ => state.Snapshots.FirstOrDefault(item => item.ProviderId.Value == "claude"),
+        };
         ProviderSnapshot? previous = LastClaudeSnapshot;
+        bool outcomeChanged = !ReferenceEquals(outcome, LastClaudeOutcome);
+        LastClaudeOutcome = outcome;
+        bool isStale = snapshot is not null
+            && SnapshotFreshness.IsStale(snapshot, Clock, ClaudeDashboardProjector.StaleAfter);
+        bool freshnessChanged = isStale != _claudeQuotaIsStale;
+        _claudeQuotaIsStale = isStale;
         bool changed = snapshot is null
             ? previous is not null
             : previous is null
@@ -754,7 +754,7 @@ public sealed class LiveDashboardSession : IDisposable
                         .Select(metric => (metric.Id, metric.Used, metric.Limit, metric.ResetsAtUtc)));
         if (!changed && !recountTokens)
         {
-            return false;
+            return outcomeChanged || freshnessChanged;
         }
 
         if (snapshot is not null && changed)
@@ -785,6 +785,9 @@ public sealed class LiveDashboardSession : IDisposable
         var sums = new Dictionary<string, long>();
         foreach (ProgressMetricSnapshot metric in quota.Metrics.OfType<ProgressMetricSnapshot>())
         {
+            // The generic local history cannot attribute tokens to a provider's scoped pool.
+            if (metric.Id.Value.StartsWith(ClaudeUsageSnapshotMapper.ScopedWeeklyMetricPrefix, StringComparison.Ordinal))
+                continue;
             if (metric.ResetsAtUtc is not DateTimeOffset resetsAtUtc
                 || !durations.TryGetValue(metric.Id.Value, out decimal durationMinutes)
                 || durationMinutes <= 0m)

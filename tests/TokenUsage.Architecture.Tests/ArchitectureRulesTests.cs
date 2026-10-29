@@ -290,14 +290,14 @@ public sealed class ArchitectureRulesTests
         XDocument optionsDocument = XDocument.Parse(optionsView);
         XElement[] categories = optionsDocument.Descendants(optionsNamespace + "RadioButton")
             .Where(element => element.Attribute("GroupName")?.Value == "OptionsSections").ToArray();
-        Assert.Equal(4, categories.Length);
+        Assert.Equal(5, categories.Length);
         Assert.All(categories, category =>
         {
             Assert.Equal("{StaticResource SectionTabRadioButtonStyle}", category.Attribute("Style")?.Value);
             Assert.Single(category.Descendants(), element => element.Name.LocalName is "FontIcon" or "TablerIcon");
             Assert.Single(category.Descendants(optionsNamespace + "TextBlock"));
         });
-        Assert.Equal(4, optionsDocument.Descendants(optionsNamespace + "ScrollViewer").Count());
+        Assert.Equal(5, optionsDocument.Descendants(optionsNamespace + "ScrollViewer").Count());
         Assert.Contains("GeneralOptionsView", optionsView, StringComparison.Ordinal);
         Assert.Contains("AppearanceOptionsView", optionsView, StringComparison.Ordinal);
         Assert.DoesNotContain("PersonalizationOptionsView", optionsView, StringComparison.Ordinal);
@@ -405,7 +405,7 @@ public sealed class ArchitectureRulesTests
         string[] requiredAutomationIds =
         [
             "CloseWhenInactiveToggle",
-            "ClaudeStatusLineToggle",
+            "ClaudeLimitsToggle",
             "CodexSessionAttributionToggle",
             "CodexProjectAttributionToggle",
             "CursorSessionAttributionToggle",
@@ -571,13 +571,13 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("UsageReportNoticesButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportFiltersToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerValues", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageOverviewProject", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageBreakdownRow", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageBreakdownBack", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageReportApiProviderButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportProjectButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortProjectName", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortProjectTokens", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortProjectShare", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortProjectSessions", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortProjectReportedCost", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageBreakdownTable", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageBreakdownTotal", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("UsageBreakdownEvidence", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplorerOpenOutlier", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageLinearScenarioChoice", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageExplanationBreakdown", distinctIds, StringComparer.Ordinal);
@@ -675,8 +675,6 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("NotificationsSection", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ReportChartStyleSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UsageReportModelChartButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortModelActiveDays", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportSortDayDate", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
@@ -818,9 +816,9 @@ public sealed class ArchitectureRulesTests
             "DashboardProjectsRows",
             "DashboardFullBreakdown",
             "ReportProviderLimitsContentRoot",
-            "ModelBreakdownRows",
-            "SourceBreakdownRows",
-            "DayBreakdownRows",
+            "BreakdownRowsView",
+            "BreakdownDetail",
+            "UsageReportApiProviderButton",
             "UsageReportCompareButton",
             "UsageReportCompareAxisTabs",
             "ReportCompareSummary",

@@ -1,48 +1,45 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Animation;
 using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.Controls;
 
-public sealed partial class AnimatedProgressBar : UserControl
+public sealed partial class QuotaMeter : UserControl
 {
-    private Storyboard? _storyboard;
-    private int _lastRevealToken = int.MinValue;
-
     public static readonly DependencyProperty AutomationNameProperty =
         DependencyProperty.Register(
             nameof(AutomationName),
             typeof(string),
-            typeof(AnimatedProgressBar),
+            typeof(QuotaMeter),
             new PropertyMetadata(string.Empty));
 
     public static readonly DependencyProperty TargetValueProperty =
         DependencyProperty.Register(
             nameof(TargetValue),
             typeof(double),
-            typeof(AnimatedProgressBar),
+            typeof(QuotaMeter),
             new PropertyMetadata(0d, OnValueChanged));
 
     public static readonly DependencyProperty RemainingValueProperty =
         DependencyProperty.Register(
             nameof(RemainingValue),
             typeof(double),
-            typeof(AnimatedProgressBar),
+            typeof(QuotaMeter),
             new PropertyMetadata(0d, OnValueChanged));
 
-    public static readonly DependencyProperty IndicatorScaleProperty =
-        DependencyProperty.Register(
-            nameof(IndicatorScale),
-            typeof(double),
-            typeof(AnimatedProgressBar),
-            new PropertyMetadata(1d));
+    public static readonly DependencyProperty IsBarProperty = DependencyProperty.Register(
+        nameof(IsBar), typeof(bool), typeof(QuotaMeter), new PropertyMetadata(false, OnValueChanged));
 
-    public AnimatedProgressBar()
+    public bool IsBar
+    {
+        get => (bool)GetValue(IsBarProperty);
+        set => SetValue(IsBarProperty, value);
+    }
+
+    public QuotaMeter()
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Unloaded += OnUnloaded;
         ActualThemeChanged += OnActualThemeChanged;
     }
 
@@ -64,53 +61,6 @@ public sealed partial class AnimatedProgressBar : UserControl
         set => SetValue(RemainingValueProperty, value);
     }
 
-    public double IndicatorScale
-    {
-        get => (double)GetValue(IndicatorScaleProperty);
-        set => SetValue(IndicatorScaleProperty, value);
-    }
-
-    public void PlayReveal(int token)
-    {
-        if (token == _lastRevealToken)
-        {
-            return;
-        }
-
-        _lastRevealToken = token;
-        _storyboard?.Stop();
-
-        double target = SpendDonutGeometry.ClampPercent(TargetValue);
-        UpdateForeground(SpendDonutGeometry.ClampPercent(RemainingValue));
-        if (!MotionSettings.AreAnimationsEnabled() || target <= 0)
-        {
-            FillBar.Value = target;
-            return;
-        }
-
-        FillBar.Value = 0;
-        var animation = new DoubleAnimation
-        {
-            To = target,
-            Duration = MotionSettings.QuotaRevealDuration,
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
-            EnableDependentAnimation = true,
-        };
-
-        Storyboard.SetTarget(animation, FillBar);
-        Storyboard.SetTargetProperty(animation, nameof(ProgressBar.Value));
-
-        _storyboard = new Storyboard();
-        _storyboard.Children.Add(animation);
-        _storyboard.Begin();
-    }
-
-    private void OnUnloaded(object sender, RoutedEventArgs e)
-    {
-        _storyboard?.Stop();
-        _storyboard = null;
-    }
-
     private void OnLoaded(object sender, RoutedEventArgs e) => ApplyCurrentValues();
 
     private static void OnValueChanged(
@@ -118,7 +68,7 @@ public sealed partial class AnimatedProgressBar : UserControl
         DependencyPropertyChangedEventArgs args)
     {
         _ = args;
-        if (dependencyObject is AnimatedProgressBar progressBar)
+        if (dependencyObject is QuotaMeter progressBar)
         {
             progressBar.ApplyCurrentValues();
         }
@@ -126,12 +76,14 @@ public sealed partial class AnimatedProgressBar : UserControl
 
     private void ApplyCurrentValues()
     {
-        if (FillBar is null)
+        if (FillRing is null)
         {
             return;
         }
 
-        FillBar.Value = SpendDonutGeometry.ClampPercent(TargetValue);
+        FillRing.Visibility = IsBar ? Visibility.Collapsed : Visibility.Visible;
+        FillBar.Visibility = IsBar ? Visibility.Visible : Visibility.Collapsed;
+        FillRing.Value = FillBar.Value = SpendDonutGeometry.ClampPercent(TargetValue);
         UpdateForeground(SpendDonutGeometry.ClampPercent(RemainingValue));
     }
 
@@ -140,7 +92,7 @@ public sealed partial class AnimatedProgressBar : UserControl
 
     private void UpdateForeground(double remainingPercent)
     {
-        FillBar.Foreground = QuotaUsageLevelPolicy.Evaluate((decimal)remainingPercent) switch
+        FillBar.Foreground = FillRing.Foreground = QuotaUsageLevelPolicy.Evaluate((decimal)remainingPercent) switch
         {
             QuotaUsageLevel.Healthy => HealthyBrushProxy.Background,
             QuotaUsageLevel.Caution => CautionBrushProxy.Background,

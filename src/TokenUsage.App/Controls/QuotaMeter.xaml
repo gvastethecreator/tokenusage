@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <UserControl
-    x:Class="TokenUsage.App.Controls.AnimatedProgressBar"
+    x:Class="TokenUsage.App.Controls.QuotaMeter"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     AutomationProperties.AccessibilityView="Raw"
@@ -12,15 +12,17 @@
             <Border x:Name="WarningBrushProxy" Background="{ThemeResource QuotaWarningBrush}" />
             <Border x:Name="CriticalBrushProxy" Background="{ThemeResource QuotaCriticalBrush}" />
         </Grid>
-        <ProgressBar
-            x:Name="FillBar"
+        <ProgressRing
+            x:Name="FillRing"
+            Width="{x:Bind Width, Mode=OneWay}"
+            Height="{x:Bind Height, Mode=OneWay}"
+            IsIndeterminate="False"
+            Background="{ThemeResource ControlStrongFillColorDefaultBrush}"
             AutomationProperties.Name="{x:Bind AutomationName, Mode=OneWay}"
             Maximum="100"
-            RenderTransformOrigin="0.5,0.5"
-            Value="0">
-            <ProgressBar.RenderTransform>
-                <ScaleTransform ScaleY="{x:Bind IndicatorScale, Mode=OneWay}" />
-            </ProgressBar.RenderTransform>
-        </ProgressBar>
+            Value="0" />
+        <ProgressBar x:Name="FillBar" Maximum="100" Minimum="0" IsIndeterminate="False"
+            Height="{x:Bind Height, Mode=OneWay}" Visibility="Collapsed"
+            AutomationProperties.Name="{x:Bind AutomationName, Mode=OneWay}" />
     </Grid>
 </UserControl>

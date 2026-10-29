@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.UI.Xaml;
 using TokenUsage.Core.Automation;
 using TokenUsage.Core.Usage;
+using TokenUsage.App.ViewModels.Dashboard;
 
 namespace TokenUsage.App.ViewModels.Reports;
 
@@ -24,13 +25,11 @@ public enum UsageReportHighlightAction
 /// already on screen; highlights never infer causes, savings, or productivity. Each one opens
 /// the evidence behind it.
 /// </summary>
-public sealed record UsageReportHighlight(string Icon, string Label, string Value, string Detail,
+public sealed record UsageReportHighlight(string Label, string Value, string Detail,
     UsageReportHighlightAction Action, string Target)
 {
     public IReadOnlyList<UsageReportSparkBar> Bars { get; init; } = [];
     public string ActionHint { get; init; } = string.Empty;
-    /// <summary>Identity tone for the tile icon; see ReportToneIcon.</summary>
-    public string Tone { get; init; } = "Blue";
     public bool HasBars => Bars.Count > 0;
     public string AutomationName => Label + ": " + Value + ". " + Detail;
 }
@@ -48,6 +47,18 @@ public sealed partial class UsageReportViewModel
 {
     private static readonly UsageTokenMixPart EmptyTokenMixPart = new(string.Empty, string.Empty, string.Empty, 0);
 
+    private TokenUsage.Core.Appearance.ReportContentSettings _reportContent = new();
+    public TokenUsage.Core.Appearance.ReportContentSettings ReportContent
+    {
+        get => _reportContent;
+        set => SetProperty(ref _reportContent, value);
+    }
+
+    public static Microsoft.UI.Xaml.Visibility ReportSectionVisibility(bool enabled, bool available) =>
+        enabled && available ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    public UsageHeatmapModel ReportHeatmap { get; private set; } = UsageHeatmapModel.Empty;
+
     public IReadOnlyList<UsageReportHighlight> Highlights { get; private set; } = [];
     public bool HasHighlights => Highlights.Count > 0;
     // The busiest-day highlight already tells the chart caption's story.
@@ -62,13 +73,10 @@ public sealed partial class UsageReportViewModel
     public string TokenMixRatioText { get; private set; } = string.Empty;
     public bool HasTokenMixRatio => TokenMixRatioText.Length > 0;
 
-    // Price coverage is a real state, so it gets a status tone with its own glyph; the caption
-    // beside it still says how many tokens are unpriced.
-    public string PriceCoverageTone => HasUnpricedSummary ? "Caution" : "Success";
-    public string PriceCoverageIcon => HasUnpricedSummary ? "alert-triangle" : "circle-check";
-
     private void RebuildHighlights(Func<UsageReportMetrics, decimal> value, Func<decimal, string> display)
     {
+        ReportHeatmap = UsageHeatmapProjector.CreateReport(_report, StartDate, EndDate, IsCostMetric, GetString);
+        OnPropertyChanged(nameof(ReportHeatmap));
         var daily = Enumerable.Range(0, RangeDayCount)
             .Select(offset => StartDate.AddDays(offset))
             .Select(date => (Date: date, Metrics: _report.Days.FirstOrDefault(day => day.Date == date)?.Metrics))
@@ -79,18 +87,18 @@ public sealed partial class UsageReportViewModel
         if (total > 0)
         {
             var peak = daily.OrderByDescending(day => day.Amount).ThenBy(day => day.Date).First();
-            highlights.Add(new("bolt", GetString("UsageHighlightPeakLabel"),
+            highlights.Add(new(GetString("UsageHighlightPeakLabel"),
                 peak.Date.ToString("ddd d MMM", CultureInfo.CurrentCulture),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightPeakFormat"),
                     display(peak.Amount), FormatPercent(peak.Amount / total)),
-                UsageReportHighlightAction.RevealDay, peak.Date.ToString("O", CultureInfo.InvariantCulture)) { Tone = "Rose" });
+                UsageReportHighlightAction.RevealDay, peak.Date.ToString("O", CultureInfo.InvariantCulture)));
 
             int activeDays = daily.Count(day => day.Amount > 0);
-            highlights.Add(new("calendar-event", GetString("UsageHighlightAverageLabel"),
+            highlights.Add(new(GetString("UsageHighlightAverageLabel"),
                 display(total / activeDays),
                 string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightAverageFormat"),
                     activeDays, daily.Length),
-                UsageReportHighlightAction.OpenDays, string.Empty) { Tone = "Blue" });
+                UsageReportHighlightAction.OpenDays, string.Empty));
 
             if (daily.Length >= 14)
             {
@@ -107,11 +115,10 @@ public sealed partial class UsageReportViewModel
                     : string.Format(CultureInfo.CurrentCulture, GetString(recent >= before
                         ? "UsageHighlightTrendUpFormat" : "UsageHighlightTrendDownFormat"),
                         FormatPercent(Math.Abs(recent - before) / before));
-                string icon = recent == before ? "calendar-event" : recent > before ? "arrow-big-up" : "arrow-big-down";
-                highlights.Add(new(icon, GetString("UsageHighlightRecentLabel"),
+
+                highlights.Add(new(GetString("UsageHighlightRecentLabel"),
                     display(recent), trend, UsageReportHighlightAction.OpenDays, string.Empty)
                 {
-                    Tone = "Teal",
                     Bars = window.Select((day, index) => new UsageReportSparkBar(
                         tallest > 0 ? Math.Max(2, (double)(28 * day.Amount / tallest)) : 2, index >= 7)).ToArray(),
                 });
@@ -121,10 +128,10 @@ public sealed partial class UsageReportViewModel
                 .ThenBy(row => row.Id, StringComparer.Ordinal).FirstOrDefault();
             if (leader is not null && value(leader.Metrics) > 0)
             {
-                highlights.Add(new("star", GetString("UsageHighlightLeaderLabel"), leader.ModelName,
+                highlights.Add(new(GetString("UsageHighlightLeaderLabel"), leader.ModelName,
                     string.Format(CultureInfo.CurrentCulture, GetString("UsageHighlightLeaderFormat"),
                         leader.ProviderName, FormatPercent(value(leader.Metrics) / total)),
-                    UsageReportHighlightAction.OpenModel, leader.Id) { Tone = "Amber" });
+                    UsageReportHighlightAction.OpenModel, leader.Id));
             }
         }
 

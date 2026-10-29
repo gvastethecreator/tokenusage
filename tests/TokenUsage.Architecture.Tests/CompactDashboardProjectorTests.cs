@@ -145,8 +145,8 @@ public sealed class CompactDashboardProjectorTests
             new FixedClock(now),
             key => key switch
             {
-                "SampleWindowSession" => "Session",
-                "SampleWindowWeekly" => "Weekly",
+                "ClaudeWindowFiveHour" => "Session",
+                "ClaudeWindowWeeklyAll" => "Weekly",
                 "LocalUsageAgentClaude" => "Claude",
                 _ => key,
             },
@@ -169,6 +169,18 @@ public sealed class CompactDashboardProjectorTests
             });
 
         Assert.Null(claude.NoticeText);
+        const string failureReason = "The session expired. Run /usage in Claude Code.";
+        var failure = new ProviderOutcome.TransientFailure(
+            new ProviderError(ProviderErrorCode.TransientSourceFailure, failureReason), snapshot);
+        ProviderCard failed = ClaudeDashboardProjector.Create(snapshot, new FixedClock(now),
+            key => key == "ClaudeQuotaRefreshFailedNotice" ? "{1} Last reading: {0}." : key,
+            outcome: failure);
+        Assert.StartsWith(failureReason, failed.NoticeText, StringComparison.Ordinal);
+        Assert.Equal(claude.Windows.Select(window => window.RemainingPercent),
+            failed.Windows.Select(window => window.RemainingPercent));
+        ProviderCard throttled = ClaudeDashboardProjector.Create(snapshot, new FixedClock(now), key => key,
+            outcome: new ProviderOutcome.Throttled(now.AddMinutes(5), snapshot));
+        Assert.Equal("ClaudeQuotaThrottledNotice", throttled.NoticeText);
         Assert.Equal("Session", Assert.Single(projection.GlobalCodexLimits).Title);
         Assert.Collection(
             projection.GlobalClaudeLimits,

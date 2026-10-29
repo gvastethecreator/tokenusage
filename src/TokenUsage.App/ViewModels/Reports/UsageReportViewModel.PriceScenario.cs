@@ -60,7 +60,7 @@ public sealed partial class UsageReportViewModel
             ? CodexPricingCatalog.ResolveLinearTariff(row.ModelId.Value, atUtc)
             : row.AgentId.Value is "claude" or "cursor" && row.ModelProviderId?.Value == "anthropic"
                 ? ClaudePricingCatalog.ResolveLinearTariff(KnownModelPricingCatalog.Canonicalize(row.ModelId.Value), row.Tokens, atUtc)
-            : row.AgentId.Value == "cursor" && row.ModelProviderId?.Value is "google" or "xai"
+            : row.AgentId.Value == "cursor" && row.ModelProviderId?.Value is "google" or "xai" or "meta"
                 ? CursorPricingCatalog.ResolveFirstPartyLinearTariff(row.ModelId.Value, atUtc)
             : new(null, UsagePriceExclusion.MissingTariff);
 
