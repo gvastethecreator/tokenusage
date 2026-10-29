@@ -110,6 +110,10 @@ if (Test-Path $vswhere) {
 }
 
 # -- 4. Build --
+if (-not $msbuild -and [System.IO.Path]::GetExtension($Project) -eq '.wapproj') {
+    throw 'The Windows Application Packaging Project requires Visual Studio MSBuild.'
+}
+
 $defaultArgs = @("/nologo")
 $hasVerbosity = $extraArgs | Where-Object { $_ -match "^[/|-]v(erbosity)?:" }
 if (-not $hasVerbosity) { $defaultArgs += "/v:m" }
@@ -152,10 +156,6 @@ if (Test-Path $analyzerDll) {
 "@ | Set-Content $tempBuildProps
         Write-Host "--> Microsoft.WindowsAppSDK.Analyzers: enabled" -ForegroundColor DarkGray
     } else {
-        if ([System.IO.Path]::GetExtension($Project) -eq '.wapproj') {
-            throw 'The Windows Application Packaging Project requires Visual Studio MSBuild.'
-        }
-
         $tempBuildProps = $null  # Don't clean up a pre-existing file
         Write-Host "--> Microsoft.WindowsAppSDK.Analyzers: skipped (existing Directory.Build.props)" -ForegroundColor DarkGray
     }

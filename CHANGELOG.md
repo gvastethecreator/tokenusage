@@ -6,6 +6,14 @@ User-facing changes for TokenUsage. Release notes include installation details a
 
 ### Fixed
 
+- Correct Gemini 3.8 Flash output estimates in Cursor to $3.75 per million tokens.
+- Show Codex quota windows by their reported duration; a 30-day window is no longer labeled Weekly.
+- Show Claude's actual quota refresh error, with session renewal steps, and distinguish rate limiting from sign-in failures.
+- Read Cursor's measured turn counters even when newer turns contain zero counters.
+- Correct Sonnet 5.5 cache-read estimates to $0.10 per million tokens.
+- Refresh Anthropic and Kimi prices from their official Markdown documents within the existing download limit.
+- Stop packaged builds when Visual Studio MSBuild is missing, instead of reporting success from a skipped build.
+
 - Build the portable resource index independently of the MSIX index so WinUI's theme resources are included at startup.
 
 - Keep Codex's 5-hour reading when its keyed limits contain more information than the legacy summary. Refresh Claude's local quota reading every 30 seconds, including percentage changes with the same observation timestamp.
@@ -14,11 +22,14 @@ User-facing changes for TokenUsage. Release notes include installation details a
 
 ### Changed
 
+- Update Microsoft.Data.Sqlite to 10.0.13 and Microsoft.NET.Test.Sdk to 18.11.0.
+- Keep unchanged usage refreshes from rewriting events, rebuilding daily totals, and invalidating reports.
 - Put usage limits in the fourth report summary cell with compact provider labels and bars.
 - Leave collapsed sections out of shared report images; expanded sections remain included.
 
 ### Added
 
+- Price Gemini 4 Argon from Google and Cursor, including Google's published December 1 transition, and Muse Wonder from Cursor.
 - Claude Code subscription limits (5-hour and weekly, plus a gateway spend limit). They come from the documented status line reading and are opt-in in Settings. They appear in the Claude card, the global limits strip, the tray, provider status, `tokenusage limits`, and report reset cycles. Any existing Claude Code status line keeps running.
 - A Claude Code `Stop` hook that refreshes TokenUsage after each task, managed like the Grok, Cursor, and ZCode hooks.
 - `tokenusage claude <install-hook|uninstall-hook|install-statusline|uninstall-statusline|status|statusline>`.

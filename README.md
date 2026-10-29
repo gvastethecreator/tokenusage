@@ -30,7 +30,7 @@ No TokenUsage account is required. Provider data stays local unless you enable a
 ## What you get
 
 - **Fast tray view** — check total spend, provider activity, Codex limits, and selected provider quotas.
-- **Detailed reports** — compare providers, ranges, metrics, charts, and tables. Shared captures respect which sections you have expanded.
+- **Detailed reports** — compare providers, ranges, and metrics. Group the detail table by model, tool/agent, API provider, project, or day; select a row to inspect measured components and pricing. The detail panel stacks below 1100 logical pixels. Shared captures include every row in the selected table and respect expanded sections.
 - **Honest data states** — reported, estimated, partial, stale, unavailable, and unpriced values remain distinct.
 - **Reset history** — inspect observed Codex reset cycles, including early resets detected before the expected date.
 - **Stable CLI output** — read usage, reports, limits, provider status, and diagnostics as human text or versioned JSON.
@@ -40,7 +40,9 @@ No TokenUsage account is required. Provider data stays local unless you enable a
 
 ### The report
 
-Tokens, known cost, priced tokens, and compact provider limits share the first row. Compare daily activity below, then expand the full breakdown when you need individual models and providers.
+Tokens, known cost, and priced tokens sit above the full-width daily chart. Provider limits follow in a compact row. The heatmap uses the leading provider's color for each day and follows the selected period, filters, and cost or token metric. Select a day to inspect its detail.
+
+In Options > Appearance, choose rings, bars, or numbers only for compact limits. Options > Reports lets you show or hide each report section; changes are saved and apply to open reports.
 
 <img src="docs/assets/screenshots/report-overview.png" alt="Sample usage report with four summary columns, Codex and Claude limit rows, daily cost, and provider composition" width="100%" />
 
@@ -68,7 +70,7 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 | Provider | Local usage | Cost | Live quota |
 |---|---|---|---|
 | Codex | Yes | Reported or estimated | Yes, through the official local `app-server` |
-| Claude Code | Yes | Reported or estimated | Yes, opt-in, from the documented status line `rate_limits` (5-hour and weekly) |
+| Claude Code | Yes | Reported or estimated | Yes, opt-in account usage (5-hour, weekly all models, and named model limits) |
 | Cursor | Yes, partial | Estimated when the model matches | Not available through the current contract |
 | Grok Build | Yes | Reported or estimated | Not available through an approved interface |
 | ZCode | Yes, counters per request | Estimated when the model matches | Not available through an approved interface |

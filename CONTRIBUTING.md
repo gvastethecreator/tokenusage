@@ -56,7 +56,7 @@ Document these items in the issue:
 - terms, policy, and privacy limits
 - reproducible commands or steps.
 
-Never read another application's credential store. Never copy its session token. Never store prompts, responses, commands, tool calls, emails, account identifiers, or full local paths.
+Do not add reads of another application's credential store. The documented Claude account-limits opt-in reads only the existing Claude Code access token, expiry, and plan fields in memory; Claude Code owns renewal. It must never persist or log that token. Account-management flows must use their existing secure stores. Never store prompts, responses, commands, tool calls, emails, or full local paths in usage records or diagnostics.
 
 ### When maintainers cannot test the provider
 
