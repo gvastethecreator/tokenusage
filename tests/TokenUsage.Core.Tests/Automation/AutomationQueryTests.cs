@@ -129,6 +129,14 @@ public sealed class AutomationQueryTests
         Assert.Empty(emptyLoaded.TimeBuckets);
         Assert.Equal(4, report.Models.Count);
         Assert.Equal(600, report.TimeBuckets.Sum(row => row.Usage.Tokens.Total));
+        UsageReportMetrics groupedModel = Assert.Single(report.Models.GroupBy(row => row.ModelId)
+            .Select(group => UsageReportQuery.CombineMetrics(group.Select(row => row.Metrics))));
+        Assert.Equal(report.Totals, groupedModel);
+        Assert.Equal(report.Totals, UsageReportQuery.CombineMetrics(report.Models
+            .GroupBy(row => row.ModelProviderId)
+            .Select(group => UsageReportQuery.CombineMetrics(group.Select(row => row.Metrics)))));
+        Assert.Equal(report.Totals, UsageReportQuery.CombineMetrics(report.Agents.Select(row => row.Metrics)));
+        Assert.Equal(report.Totals, UsageReportQuery.CombineMetrics(report.Days.Select(row => row.Metrics)));
 
         UsageReport selected = UsageReportQuery.FilterByModel(report, new AgentId("codex"),
             new ModelProviderId("openai"), new ModelId("gpt-test"));
@@ -493,10 +501,17 @@ public sealed class AutomationQueryTests
         using var folder = new TemporaryFolder();
         UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
         var measured = new UsageDetailMetadata(input: UsageComponentAvailability.Measured,
+            output: UsageComponentAvailability.Measured, reasoning: UsageComponentAvailability.Measured,
             cacheRead: UsageComponentAvailability.Measured, cacheWrite: UsageComponentAvailability.Measured);
-        var unavailable = new UsageDetailMetadata(cacheRead: UsageComponentAvailability.Unavailable);
+        var unavailable = new UsageDetailMetadata(output: UsageComponentAvailability.Unavailable,
+            reasoning: UsageComponentAvailability.Unavailable, cacheRead: UsageComponentAvailability.Unavailable,
+            cacheWrite: UsageComponentAvailability.Unavailable);
+        var outputUnavailable = new UsageDetailMetadata(input: UsageComponentAvailability.Measured,
+            output: UsageComponentAvailability.Unavailable, reasoning: UsageComponentAvailability.Unavailable,
+            cacheRead: UsageComponentAvailability.Measured, cacheWrite: UsageComponentAvailability.Measured);
         await repository.IngestAsync([
-            CreateUsageEvent("cache-large", CostObservation.Unavailable(), effort: "high", tokens: new(100, 0, 0, 900, 0), detail: measured),
+            CreateUsageEvent("cache-large", CostObservation.Unavailable(), effort: "high", tokens: new(100, 40, 10, 900, 0), detail: measured),
+            CreateUsageEvent("cache-output-unavailable", CostObservation.Unavailable(), effort: "high", tokens: new(0, 0, 0, 0, 0), detail: outputUnavailable),
             CreateUsageEvent("cache-small", CostObservation.Unavailable(), effort: "low", tokens: new(10, 0, 0, 0, 0), detail: measured),
             CreateUsageEvent("cache-zero", CostObservation.Unavailable(), effort: "none", tokens: new(0, 0, 0, 0, 0), detail: measured),
             CreateUsageEvent("cache-unknown", CostObservation.Unavailable()),
@@ -507,22 +522,44 @@ public sealed class AutomationQueryTests
         var query = new UsageReportQuery(folder.DatabasePath);
         DateOnly day = DateOnly.FromDateTime(Now.UtcDateTime);
         UsageReport report = await query.ReadAsync(day.AddDays(-3), day, includeConfigurations: true);
-        Assert.Equal(new UsageCacheComposition(900, 1010, 3, 1, 1, 1), report.CacheComposition);
+        Assert.Equal(new UsageCacheComposition(900, 1010, 4, 1, 1, 1), report.CacheComposition);
         Assert.Equal(900m / 1010m * 100m, report.CacheComposition!.CacheReadPercent);
+        UsageReportComponents components = UsageReportQuery.Components(report);
+        Assert.Equal(new UsageComponentSummary(110, 4, 2, 0, 1), components.Input);
+        Assert.Equal(new UsageComponentSummary(40, 3, 1, 2, 1), components.Output);
+        Assert.Equal(new UsageComponentSummary(10, 3, 1, 2, 1), components.Reasoning);
+        Assert.Equal(new UsageComponentSummary(900, 4, 1, 1, 1), components.CacheRead);
+        Assert.Equal(new UsageComponentSummary(0, 4, 1, 1, 1), components.CacheWrite);
+        UsageReportComponents high = UsageReportQuery.Components(report, new() { ReasoningEfforts = ["high"] }, day);
+        Assert.Equal(new UsageComponentSummary(40, 1, 0, 1, 0), high.Output);
+        Assert.Equal(new UsageComponentSummary(0, 0, 0, 0, 1),
+            UsageReportQuery.Components(report, date: day.AddDays(-3)).Output);
         UsageReport small = UsageReportQuery.Select(report, new() { ReasoningEfforts = ["low"] });
         Assert.Equal(new UsageCacheComposition(0, 10, 1, 0, 0, 0), small.CacheComposition);
         Assert.Equal(0m, small.CacheComposition!.CacheReadPercent);
         UsageReport zero = UsageReportQuery.Select(report, new() { ReasoningEfforts = ["none"] });
         Assert.Equal(1, zero.CacheComposition!.EligibleRecords);
         Assert.Null(zero.CacheComposition.CacheReadPercent);
+        Assert.Equal(new UsageComponentSummary(0, 1, 0, 0, 0), UsageReportQuery.Components(zero).Output);
         UsageReport unknown = UsageReportQuery.Select(report, new() { ReasoningEfforts = [null] });
         Assert.Equal(new UsageCacheComposition(0, 0, 0, 1, 1, 0), unknown.CacheComposition);
         UsageReport repriced = await query.RepriceAtAsync(report, day.AddDays(-3), day, Now,
             (row, _) => CostObservation.CatalogEstimated(1m, "cache-test", row.ModelId.Value));
         Assert.Equal(report.CacheComposition, repriced.CacheComposition);
+        Assert.Equal(components, UsageReportQuery.Components(repriced));
+        UsageReport repricedHigh = UsageReportQuery.Select(repriced, new() { ReasoningEfforts = ["high"] });
+        Assert.Null(repricedHigh.Totals.ReportedCostUsd);
+        Assert.Equal(2m, repricedHigh.Totals.EstimatedCostUsd);
+        Assert.Equal(high, UsageReportQuery.Components(repricedHigh));
         UsageReport exact = await query.ReadExactAsync(Now, Now.AddMinutes(1), includeConfigurations: true);
-        Assert.Equal(new UsageCacheComposition(900, 1010, 3, 1, 1, 0), exact.CacheComposition);
+        Assert.Equal(new UsageCacheComposition(900, 1010, 4, 1, 1, 0), exact.CacheComposition);
+        Assert.Equal(new UsageComponentSummary(40, 3, 1, 2, 0), UsageReportQuery.Components(exact).Output);
+        IReadOnlyList<UsageOverviewObservation> observations = await repository.ReadOverviewObservationsAsync(
+            day, day, 0, 0, 0);
+        Assert.Equal(UsageReportQuery.Components(exact), UsageReportQuery.Components(observations, exact.Totals.EventCount));
         Assert.Null((await query.ReadAsync(day, day)).CacheComposition);
+        Assert.Equal(new UsageComponentSummary(0, 0, 0, 0, exact.Totals.EventCount),
+            UsageReportQuery.Components(await query.ReadAsync(day, day)).Output);
     }
 
     [Fact]

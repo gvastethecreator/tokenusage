@@ -15,15 +15,16 @@ public sealed class CodexRefreshCoordinatorTests
     {
         using var folder = new TemporaryFolder();
         var client = new StubClient();
-        var coordinator = new CodexRefreshCoordinator(
+        var clock = new FixedTimeProvider(Now);
+        var registration = CodexRefreshCoordinator.CreateRegistration(
             folder.Path,
-            new FixedTimeProvider(Now),
+            clock,
             new StubFactory(client));
 
         IReadOnlyList<CacheFirstEvent> first = await CollectAsync(
-            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(registration, clock, forceRefresh: false, CancellationToken.None));
         IReadOnlyList<CacheFirstEvent> second = await CollectAsync(
-            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(registration, clock, forceRefresh: false, CancellationToken.None));
 
         Assert.IsType<SnapshotCacheReadResult.Empty>(
             Assert.IsType<CacheFirstEvent.CachePublished>(first[0]).ReadResult);
@@ -48,17 +49,18 @@ public sealed class CodexRefreshCoordinatorTests
     {
         using var folder = new TemporaryFolder();
         var client = new StubClient();
-        var coordinator = new CodexRefreshCoordinator(
+        var clock = new FixedTimeProvider(Now);
+        var registration = CodexRefreshCoordinator.CreateRegistration(
             folder.Path,
-            new FixedTimeProvider(Now),
+            clock,
             new StubFactory(client));
-        await CollectAsync(CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
+        await CollectAsync(CoordinatorRefresh.Run(registration, clock, forceRefresh: false, CancellationToken.None));
         client.UsageException = new CodexRequestTimeoutException();
 
         IReadOnlyList<CacheFirstEvent> refresh = await CollectAsync(
-            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(registration, clock, forceRefresh: false, CancellationToken.None));
         IReadOnlyList<CacheFirstEvent> after = await CollectAsync(
-            CoordinatorRefresh.Run(coordinator, forceRefresh: false, CancellationToken.None));
+            CoordinatorRefresh.Run(registration, clock, forceRefresh: false, CancellationToken.None));
 
         CacheFirstEvent.ProviderCompleted completed =
             Assert.IsType<CacheFirstEvent.ProviderCompleted>(refresh[1]);

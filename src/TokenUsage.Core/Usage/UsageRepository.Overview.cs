@@ -25,7 +25,9 @@ public sealed partial class UsageRepository
                    e.input_tokens, e.output_tokens, e.reasoning_tokens, e.cache_read_tokens, e.cache_write_tokens,
                    e.cost_kind, e.reported_cost_micros, e.estimated_cost_micros,
                    e.observed_model_id, e.reasoning_effort, e.service_tier,
-                   a.session_key, a.parent_session_key, p.project_key, p.mapping_kind
+                   a.session_key, a.parent_session_key, p.project_key, p.mapping_kind,
+                   e.input_availability, e.output_availability, e.reasoning_availability,
+                   e.cache_read_availability, e.cache_write_availability
             FROM usage_event e
             LEFT JOIN session_attribution a
                 ON a.event_key = e.event_key
@@ -84,7 +86,15 @@ public sealed partial class UsageRepository
                         : null,
                 reader.IsDBNull(12) ? null : new ModelId(reader.GetString(12)),
                 reader.IsDBNull(13) ? null : reader.GetString(13),
-                reader.IsDBNull(14) ? null : reader.GetString(14)));
+                reader.IsDBNull(14) ? null : reader.GetString(14))
+            {
+                DetailMetadata = new UsageDetailMetadata(
+                    input: (UsageComponentAvailability)reader.GetInt32(19),
+                    output: (UsageComponentAvailability)reader.GetInt32(20),
+                    reasoning: (UsageComponentAvailability)reader.GetInt32(21),
+                    cacheRead: (UsageComponentAvailability)reader.GetInt32(22),
+                    cacheWrite: (UsageComponentAvailability)reader.GetInt32(23)),
+            });
         }
 
         return rows;

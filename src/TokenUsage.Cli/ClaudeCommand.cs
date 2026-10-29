@@ -1,13 +1,16 @@
 using System.Globalization;
+using TokenUsage.Core.Credentials;
+using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Runtime.Windows.Claude;
+using TokenUsage.Runtime.Windows.Providers;
 
 namespace TokenUsage.Cli;
 
 public static class ClaudeCommand
 {
     public const string UsageText =
-        "Usage: tokenusage claude <install-hook|uninstall-hook|install-statusline|uninstall-statusline|status|statusline>";
+        "Usage: tokenusage claude <install-hook|uninstall-hook|enable-limits|disable-limits|install-statusline|uninstall-statusline|recover-history|status|statusline>";
 
     public static async Task<int> RunAsync(
         IReadOnlyList<string> arguments,
@@ -23,6 +26,10 @@ public static class ClaudeCommand
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(standardOutput);
         ArgumentNullException.ThrowIfNull(standardError);
+
+        if (arguments.Count > 0 && arguments[0] == "recover-history")
+            return await ClaudeHistoryCommand.ExecuteAsync(arguments.Skip(1).ToArray(),
+                standardOutput, standardError, resolveDataDirectory, cancellationToken).ConfigureAwait(false);
 
         if (arguments.Count != 1)
         {
@@ -48,6 +55,35 @@ public static class ClaudeCommand
         {
             switch (arguments[0])
             {
+                case "enable-limits":
+                {
+                    string? dataDirectory = TryResolve(resolveDataDirectory);
+                    if (dataDirectory is null)
+                    {
+                        await standardError.WriteLineAsync("The TokenUsage data directory could not be resolved.").ConfigureAwait(false);
+                        return UsageCommand.NoDataExitCode;
+                    }
+                    await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(dataDirectory))
+                        .EnableAsync(cancellationToken).ConfigureAwait(false);
+                    await standardOutput.WriteLineAsync("Claude limits enabled through your Claude Code sign-in.").ConfigureAwait(false);
+                    return UsageCommand.SuccessExitCode;
+                }
+                case "disable-limits":
+                {
+                    string? dataDirectory = TryResolve(resolveDataDirectory);
+                    if (dataDirectory is null)
+                    {
+                        await standardError.WriteLineAsync("The TokenUsage data directory could not be resolved.").ConfigureAwait(false);
+                        return UsageCommand.NoDataExitCode;
+                    }
+                    if (!await DisableLimitsAsync(dataDirectory, clock ?? TimeProvider.System, cancellationToken).ConfigureAwait(false))
+                    {
+                        await standardError.WriteLineAsync("Claude limits are disabled, but the cached reading could not be removed.").ConfigureAwait(false);
+                        return UsageCommand.NoDataExitCode;
+                    }
+                    await standardOutput.WriteLineAsync("Claude limits disabled.").ConfigureAwait(false);
+                    return UsageCommand.SuccessExitCode;
+                }
                 case "install-hook":
                     installer.InstallHook();
                     await standardOutput.WriteLineAsync(
@@ -61,16 +97,30 @@ public static class ClaudeCommand
                     return UsageCommand.SuccessExitCode;
                 case "install-statusline":
                     installer.InstallStatusLine();
+                    if (TryResolve(resolveDataDirectory) is { } enabledDataDirectory)
+                        await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(enabledDataDirectory))
+                            .EnableAsync(cancellationToken).ConfigureAwait(false);
                     await standardOutput.WriteLineAsync(
-                            "Claude Code status line wrapper installed. TokenUsage keeps only the 5-hour and weekly limit readings; a previous status line keeps running.")
+                            "Claude limits enabled through your Claude Code sign-in. The status line wrapper preserves your previous command.")
                         .ConfigureAwait(false);
                     return UsageCommand.SuccessExitCode;
                 case "uninstall-statusline":
+                {
                     installer.UninstallStatusLine();
+                    string? dataDirectory = TryResolve(resolveDataDirectory);
+                    if (dataDirectory is not null)
+                    {
+                        if (!await DisableLimitsAsync(dataDirectory, clock ?? TimeProvider.System, cancellationToken).ConfigureAwait(false))
+                        {
+                            await standardError.WriteLineAsync("Claude limits are disabled, but the cached reading could not be removed.").ConfigureAwait(false);
+                            return UsageCommand.NoDataExitCode;
+                        }
+                    }
                     await standardOutput.WriteLineAsync(
                             "Claude Code status line wrapper removed; any previous status line was restored.")
                         .ConfigureAwait(false);
                     return UsageCommand.SuccessExitCode;
+                }
                 case "status":
                     await WriteStatusAsync(installer, resolveDataDirectory, standardOutput, clock ?? TimeProvider.System)
                         .ConfigureAwait(false);
@@ -84,10 +134,11 @@ public static class ClaudeCommand
                                            or UnauthorizedAccessException
                                            or InvalidDataException
                                            or InvalidOperationException
+                                           or TimeoutException
                                            or System.Text.Json.JsonException)
         {
             await standardError.WriteLineAsync(
-                    "Unable to inspect or update the Claude Code settings.")
+                    "Unable to inspect or update the Claude limits preference or Claude Code settings.")
                 .ConfigureAwait(false);
             return UsageCommand.NoDataExitCode;
         }
@@ -108,11 +159,20 @@ public static class ClaudeCommand
                 : "Claude Code status line wrapper: not installed; run 'tokenusage claude install-statusline'")
             .ConfigureAwait(false);
         string? dataDirectory = TryResolve(resolveDataDirectory);
-        ClaudeRateLimitSnapshot? reading = dataDirectory is null
+        ClaudeLimitsConsentStatus consent = dataDirectory is null ? ClaudeLimitsConsentStatus.NotEnabled
+            : await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(dataDirectory))
+                .ReadOrMigrateAsync(installer.GetStatusLineStatus() == ClaudeIntegrationStatus.Installed)
+                .ConfigureAwait(false);
+        await standardOutput.WriteLineAsync(consent == ClaudeLimitsConsentStatus.Enabled
+                ? "Claude limits access: enabled"
+                : consent == ClaudeLimitsConsentStatus.Disabled ? "Claude limits access: disabled"
+                : "Claude limits access: not enabled; run 'tokenusage claude enable-limits'")
+            .ConfigureAwait(false);
+        ClaudeRateLimitSnapshot? reading = dataDirectory is null || consent != ClaudeLimitsConsentStatus.Enabled
             ? null
             : new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(dataDirectory)).Load();
         await standardOutput.WriteLineAsync(reading is null
-                ? "Claude Code limits: no reading yet"
+                ? "Claude Code status line limits: no reading yet"
                 : string.Format(
                     CultureInfo.InvariantCulture,
                     "Claude Code limits: {0} (observed {1:u})",
@@ -122,8 +182,8 @@ public static class ClaudeCommand
     }
 
     /// <summary>
-    /// The status line entry point. It must stay quiet and fast: every failure still exits 0,
-    /// because Claude Code shows whatever the command prints on each update.
+    /// The status line entry point forwards the previous command's output and exit code.
+    /// A local cache failure must not prevent the user's command from running.
     /// </summary>
     private static async Task<int> RunStatusLineAsync(
         ClaudeSettingsInstaller installer,
@@ -136,37 +196,37 @@ public static class ClaudeCommand
     {
         byte[] input = await ReadBoundedAsync(standardInput, cancellationToken).ConfigureAwait(false);
         DateTimeOffset nowUtc = clock.GetUtcNow().ToUniversalTime();
-        ClaudeRateLimitSnapshot? reading = null;
-        if (ClaudeStatusLineRateLimits.TryParse(input, nowUtc, out ClaudeRateLimitSnapshot? parsed))
+        ClaudeStatusLineRateLimits.TryParse(input, nowUtc, out ClaudeRateLimitSnapshot? reading);
+        bool isForwarded = Environment.GetEnvironmentVariable(
+            ClaudeStatusLineForwarder.ReentrancyEnvironmentVariable) == "1";
+        try
         {
-            reading = parsed;
-            try
+            string? dataDirectory = TryResolve(resolveDataDirectory);
+            if (!isForwarded && reading is not null && dataDirectory is not null)
             {
-                string? dataDirectory = TryResolve(resolveDataDirectory);
-                if (dataDirectory is not null)
-                {
-                    new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(dataDirectory)).Save(parsed!);
-                }
-            }
-            catch (Exception exception) when (exception is IOException
-                                               or UnauthorizedAccessException
-                                               or System.Security.SecurityException)
-            {
-                // A locked sidecar must not blank the user's status line.
+                await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(dataDirectory))
+                    .RunIfEnabledAsync(installer.GetStatusLineStatus() == ClaudeIntegrationStatus.Installed,
+                        () => new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(dataDirectory)).Save(reading),
+                        cancellationToken).ConfigureAwait(false);
             }
         }
+        catch (Exception exception) when (exception is IOException
+                                               or UnauthorizedAccessException
+                                               or System.Text.Json.JsonException
+                                               or TimeoutException
+                                               or System.Security.SecurityException)
+        {
+            // A locked sidecar must not blank the user's status line.
+        }
 
-        string? previousCommand = installer.GetPreviousStatusLineCommand();
+        string? previousCommand = isForwarded ? null : installer.GetPreviousStatusLineCommand();
         if (previousCommand is not null)
         {
-            string? forwarded = await forwarder
+            ClaudeStatusLineForwardResult forwarded = await forwarder
                 .RunAsync(previousCommand, input, cancellationToken)
                 .ConfigureAwait(false);
-            if (forwarded is not null)
-            {
-                await standardOutput.WriteAsync(forwarded).ConfigureAwait(false);
-                return UsageCommand.SuccessExitCode;
-            }
+            await standardOutput.WriteAsync(forwarded.StandardOutput).ConfigureAwait(false);
+            return forwarded.ExitCode;
         }
 
         if (reading is not null && FormatLimits(reading, nowUtc) is { Length: > 0 } limits)
@@ -175,6 +235,17 @@ public static class ClaudeCommand
         }
 
         return UsageCommand.SuccessExitCode;
+    }
+
+    private static async Task<bool> DisableLimitsAsync(string dataDirectory, TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(dataDirectory))
+            .DisableAsync(cancellationToken).ConfigureAwait(false);
+        new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(dataDirectory)).Delete();
+        ManualCredentialChangeResult result = await WindowsProviderCatalog.CreateComposition(dataDirectory, clock)
+            .ResetProviderCacheAsync("claude", cancellationToken).ConfigureAwait(false);
+        return result != ManualCredentialChangeResult.CacheCleanupFailed;
     }
 
     internal static string FormatLimits(ClaudeRateLimitSnapshot reading, DateTimeOffset nowUtc) =>
@@ -230,7 +301,7 @@ public static class ClaudeCommand
         }
     }
 
-    private static string? TryResolve(Func<string?>? resolveDataDirectory)
+    internal static string? TryResolve(Func<string?>? resolveDataDirectory)
     {
         try
         {

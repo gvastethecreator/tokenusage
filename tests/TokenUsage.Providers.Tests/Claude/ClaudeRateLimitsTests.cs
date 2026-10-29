@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Providers.Claude;
 
@@ -7,6 +8,40 @@ namespace TokenUsage.Providers.Tests.Claude;
 public sealed class ClaudeRateLimitsTests
 {
     private static readonly DateTimeOffset Now = new(2026, 9, 24, 12, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void AccountUsageKeepsAllNamedLimitsIncludingInactiveSessionAndModelPool()
+    {
+        using var json = JsonDocument.Parse("""
+            { "seven_day": { "utilization": 76 }, "limits": [
+              { "kind": "session", "percent": 0, "resets_at": null, "is_active": false },
+              { "kind": "weekly_all", "percent": 100, "resets_at": "2026-10-02T19:00:00-03:00", "is_active": true },
+              { "kind": "weekly_scoped", "percent": 26, "resets_at": "2026-10-02T19:00:00-03:00",
+                "is_active": false, "scope": { "model": { "id": null, "display_name": "Fable" }, "surface": null } }
+            ] }
+            """);
+
+        ProviderSnapshot snapshot = ClaudeUsageSnapshotMapper.Map(json.RootElement, Now, "UTC", "Max (5x)");
+        ProgressMetricSnapshot[] windows = snapshot.Metrics.OfType<ProgressMetricSnapshot>().ToArray();
+        Assert.Equal([0m, 100m, 26m], windows.Select(window => window.Used));
+        Assert.Null(windows[0].ResetsAtUtc);
+        Assert.Equal(new DateTimeOffset(2026, 10, 2, 22, 0, 0, TimeSpan.Zero), windows[1].ResetsAtUtc);
+        Assert.Equal("Fable", windows[2].LabelEvidence?.ProviderMetricName);
+        Assert.StartsWith(ClaudeUsageSnapshotMapper.ScopedWeeklyMetricPrefix, windows[2].Id.Value);
+        Assert.Equal("Max (5x)", snapshot.PlanLabel);
+        Assert.All(windows, window => Assert.Equal(SourceKind.PrivateRemoteApi, window.Provenance.SourceKind));
+    }
+
+    [Theory]
+    [InlineData("""{"seven_day":{"utilization":76}}""")]
+    [InlineData("""{"limits":[{"kind":"session","percent":"0"}]}""")]
+    [InlineData("""{"limits":[{"kind":"weekly_scoped","percent":26,"scope":null}]}""")]
+    [InlineData("""{"limits":[{"kind":"session","percent":0,"resets_at":123}]}""")]
+    public void IncompleteAccountContractDoesNotBecomeAQuotaReading(string payload)
+    {
+        using var json = JsonDocument.Parse(payload);
+        Assert.Throws<JsonException>(() => ClaudeUsageSnapshotMapper.Map(json.RootElement, Now, "UTC"));
+    }
 
     // Shape from https://code.claude.com/docs/en/statusline (available data), trimmed.
     private const string Payload =

@@ -91,6 +91,17 @@ public sealed class CodexDashboardProjectorTests
         Assert.DoesNotContain("Bearer", rendered, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(1440, "1 d")]
+    [InlineData(10080, "Weekly")]
+    [InlineData(43200, "30 d")]
+    public void BaseQuotaTitleUsesTheReportedDuration(int minutes, string expectedTitle)
+    {
+        QuotaWindow window = Assert.Single(CreateCard(25m, Now.AddDays(1), minutes).Windows);
+
+        Assert.Equal(expectedTitle, window.Title);
+    }
+
     [Fact]
     public void MissingDurationResetOrActivityHidesPaceWithoutHidingQuota()
     {
@@ -479,6 +490,7 @@ public sealed class CodexDashboardProjectorTests
         "CodexPaceOnTrackFormat" => "{0}% projected · on pace",
         "CodexPaceBehindFormat" => "{0}% projected · above pace",
         "CodexPaceBehindEtaFormat" => "{0}% projected · limit in {1}",
+        "CodexDurationDaysFormat" => "{0:0.#} d",
         "CodexDurationHoursFormat" => "{0} h",
         "CodexDurationMinutesFormat" => "{0} min",
         "CodexDurationHoursMinutesFormat" => "{0} h {1} min",

@@ -67,10 +67,10 @@ public sealed partial class CodexUsageEventSource
             };
             using var connection = new SqliteConnection(builder.ToString());
             connection.Open();
-            ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
-            ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
 
-            HashSet<string> columns = GetColumns(connection, "threads", cancellationToken);
+            HashSet<string> columns = LocalUsageSqlite.GetColumns(connection, "threads", cancellationToken);
             if (!columns.Contains("rollout_path") || !columns.Contains("model"))
             {
                 state.UnsupportedSchema = true;
@@ -130,36 +130,6 @@ public sealed partial class CodexUsageEventSource
             state.MarkPartial();
             return null;
         }
-    }
-
-    private static void ExecuteControl(
-        SqliteConnection connection,
-        string text,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = text;
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        command.ExecuteNonQuery();
-    }
-
-    private static HashSet<string> GetColumns(
-        SqliteConnection connection,
-        string table,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info({table});";
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        using SqliteDataReader reader = command.ExecuteReader();
-        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        while (reader.Read())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            columns.Add(reader.GetString(1));
-        }
-
-        return columns;
     }
 
     private static string? ResolveIndexedPath(string rawPath, string[] roots)

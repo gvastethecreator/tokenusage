@@ -3,6 +3,8 @@ using System.Text;
 
 namespace TokenUsage.Runtime.Windows.Claude;
 
+public sealed record ClaudeStatusLineForwardResult(string StandardOutput, int ExitCode);
+
 /// <summary>
 /// Runs the status line command the user had before TokenUsage wrapped it, with the same
 /// input Claude Code sent, and returns what it printed. Claude Code on Windows runs these
@@ -11,6 +13,7 @@ namespace TokenUsage.Runtime.Windows.Claude;
 public sealed class ClaudeStatusLineForwarder
 {
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
+    public const string ReentrancyEnvironmentVariable = "TOKENUSAGE_CLAUDE_STATUSLINE_FORWARDED";
     private const int MaximumOutputCharacters = 16 * 1024;
 
     private readonly Func<string?> _findBash;
@@ -22,13 +25,15 @@ public sealed class ClaudeStatusLineForwarder
         _timeout = timeout ?? DefaultTimeout;
     }
 
-    public async Task<string?> RunAsync(
+    public async Task<ClaudeStatusLineForwardResult> RunAsync(
         string command,
         byte[] standardInput,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
         ArgumentNullException.ThrowIfNull(standardInput);
+        if (Environment.GetEnvironmentVariable(ReentrancyEnvironmentVariable) == "1")
+            return new(string.Empty, 0);
 
         string? bash = _findBash();
         var startInfo = new ProcessStartInfo
@@ -41,6 +46,7 @@ public sealed class ClaudeStatusLineForwarder
             CreateNoWindow = true,
             StandardOutputEncoding = new UTF8Encoding(false),
         };
+        startInfo.Environment[ReentrancyEnvironmentVariable] = "1";
         if (bash is null)
         {
             startInfo.ArgumentList.Add("/d");
@@ -59,13 +65,13 @@ public sealed class ClaudeStatusLineForwarder
         {
             if (!process.Start())
             {
-                return null;
+                return new(string.Empty, 127);
             }
         }
         catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
                                            or InvalidOperationException)
         {
-            return null;
+            return new(string.Empty, 127);
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -89,7 +95,8 @@ public sealed class ClaudeStatusLineForwarder
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
             await drainError.ConfigureAwait(false);
             string text = await output.ConfigureAwait(false);
-            return text.Length > MaximumOutputCharacters ? text[..MaximumOutputCharacters] : text;
+            return new(text.Length > MaximumOutputCharacters ? text[..MaximumOutputCharacters] : text,
+                process.ExitCode);
         }
         catch (OperationCanceledException)
         {
@@ -99,7 +106,7 @@ public sealed class ClaudeStatusLineForwarder
                 throw;
             }
 
-            return null;
+            return new(string.Empty, 124);
         }
     }
 

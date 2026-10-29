@@ -47,6 +47,13 @@ public enum DashboardVisualizationMode
     Heatmap,
 }
 
+public enum QuotaDisplayStyle
+{
+    Rings,
+    Bars,
+    Numbers,
+}
+
 public enum ReportChartStyle
 {
     Smooth,
@@ -91,7 +98,9 @@ public sealed record AppearanceSettings
         TrayPopoverSettings? trayPopover = null,
         ReportChartStyle reportChartStyle = ReportChartStyle.Bars,
         ReportChartGrouping reportChartGrouping = ReportChartGrouping.Combined,
-        bool markReportBestValues = true)
+        bool markReportBestValues = true,
+        QuotaDisplayStyle quotaDisplay = QuotaDisplayStyle.Rings,
+        ReportContentSettings? reportContent = null)
     {
         if (!Enum.IsDefined(theme))
         {
@@ -129,6 +138,11 @@ public sealed record AppearanceSettings
         if (!Enum.IsDefined(reportChartGrouping))
             throw new ArgumentOutOfRangeException(nameof(reportChartGrouping));
 
+        if (!Enum.IsDefined(quotaDisplay))
+            throw new ArgumentOutOfRangeException(nameof(quotaDisplay));
+
+        ReportContent = reportContent ?? new();
+        QuotaDisplay = quotaDisplay;
         Theme = theme;
         ReportChartStyle = reportChartStyle;
         ReportChartGrouping = reportChartGrouping;
@@ -160,4 +174,23 @@ public sealed record AppearanceSettings
     public ReportChartGrouping ReportChartGrouping { get; }
 
     public bool MarkReportBestValues { get; }
+
+    public QuotaDisplayStyle QuotaDisplay { get; }
+
+    public ReportContentSettings ReportContent { get; }
 }
+
+public sealed record ReportContentSettings(
+    bool Summary = true,
+    bool Chart = true,
+    bool Limits = true,
+    bool Heatmap = true,
+    bool Highlights = true,
+    bool Models = true,
+    bool TokenComposition = true,
+    bool Projects = true,
+    bool Tools = true,
+    bool FullBreakdown = true,
+    bool Resets = true,
+    bool Activity = true,
+    bool Measurement = true);

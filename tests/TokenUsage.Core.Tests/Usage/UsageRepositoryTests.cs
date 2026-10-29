@@ -210,13 +210,12 @@ public sealed class UsageRepositoryTests
                 parserVersion: "claude-jsonl/2"),
         ]);
 
-        UsageIngestResult result = await repository.UpsertAgentEventsAsync(
-            new AgentId("claude"),
-            [CreateEvent(
-                "claude-stream",
-                tokens: new TokenBreakdown(300, 60, 0, 40, 0),
-                agentId: "claude",
-                parserVersion: "claude-jsonl/2")]);
+        UsageEvent updated = CreateEvent(
+            "claude-stream",
+            tokens: new TokenBreakdown(300, 60, 0, 40, 0),
+            agentId: "claude",
+            parserVersion: "claude-jsonl/2");
+        UsageIngestResult result = await repository.UpsertAgentEventsAsync(updated.AgentId, [updated]);
 
         Assert.Equal(new UsageIngestResult(1, 0), result);
         DailyUsageRollup rollup = Assert.Single(await repository.QueryDailyRollupsByAgentAsync(
@@ -225,6 +224,12 @@ public sealed class UsageRepositoryTests
             new AgentId("claude")));
         Assert.Equal(400, rollup.Tokens.Total);
         Assert.Equal(1, rollup.EventCount);
+        UsageDataRevision revision = await repository.ReadDataRevisionAsync();
+        Assert.Equal(new UsageIngestResult(0, 1),
+            await repository.UpsertAgentEventsAsync(updated.AgentId, [updated]));
+        Assert.Equal(revision, await repository.ReadDataRevisionAsync());
+        Assert.Equal(rollup, Assert.Single(await repository.QueryDailyRollupsByAgentAsync(
+            rollup.Date, rollup.Date, updated.AgentId)));
     }
 
     [Fact]
@@ -1595,6 +1600,65 @@ public sealed class UsageRepositoryTests
     private static OpaqueAttributionKey DeriveKey(string domain, string identifier) =>
         new HmacOpaqueKeyDeriver(Enumerable.Repeat((byte)0x5A, 32).ToArray())
             .Derive(domain, "codex", identifier);
+
+    [Fact]
+    public async Task HistoryRecoveryPreservesRecordedPricesAndRetiredTotalsWhileMergingNumericGrowth()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        var now = new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero);
+        var agent = new AgentId("claude");
+        UsageEvent baseline = CreateEvent("stream", now.AddMinutes(-10), agentId: "claude",
+            cost: CostObservation.CatalogEstimated(0.5m, "original", "model-rate"));
+        await repository.IngestAsync([baseline]);
+        UsageEvent replay = CreateEvent("stream", now.AddMinutes(-9), agentId: "claude",
+            cost: CostObservation.CatalogEstimated(9m, "new", "model-rate"),
+            detailMetadata: new UsageDetailMetadata(input: UsageComponentAvailability.Measured,
+                output: UsageComponentAvailability.Measured, reasoning: UsageComponentAvailability.Unavailable));
+        UsageRecoveryResult existing = await repository.RecoverAgentEventsAsync(agent, [replay], now);
+        Assert.Equal(1, existing.Existing);
+        UsageEvent saved = Assert.Single(await repository.QueryUsageEventsAsync(now.AddHours(-1), now));
+        Assert.Equal(baseline.Cost, saved.Cost);
+        Assert.Equal(baseline.OccurredAtUtc, saved.OccurredAtUtc);
+        Assert.Equal(UsageComponentAvailability.Measured, saved.DetailMetadata.Input);
+        Assert.Equal(UsageComponentAvailability.Measured, saved.DetailMetadata.Output);
+        Assert.Equal(UsageComponentAvailability.Unavailable, saved.DetailMetadata.Reasoning);
+
+        UsageEvent growth = CreateEvent("stream", now.AddMinutes(-8),
+            tokens: new TokenBreakdown(100, 30, 5, 20, 0), agentId: "claude",
+            cost: CostObservation.CatalogEstimated(0.75m, "original", "model-rate"));
+        await repository.RecoverAgentEventsAsync(agent, [growth], now);
+        saved = Assert.Single(await repository.QueryUsageEventsAsync(now.AddHours(-1), now));
+        Assert.Equal(30, saved.Tokens.Output);
+        Assert.Equal(0.75m, saved.Cost.EstimatedCostUsd);
+        growth = CreateEvent("stream", now.AddMinutes(-7),
+            tokens: new TokenBreakdown(100, 35, 5, 20, 0), agentId: "claude",
+            cost: CostObservation.CatalogEstimated(9m, "new", "model-rate"));
+        UsageRecoveryResult preserved = await repository.RecoverAgentEventsAsync(agent, [growth], now);
+        Assert.Equal(1, preserved.UnpricedGrowth);
+        Assert.Equal(1, preserved.Exclusions.ConflictingPriceEvidence);
+        Assert.Equal(1, preserved.Excluded);
+        saved = Assert.Single(await repository.QueryUsageEventsAsync(now.AddHours(-1), now));
+        Assert.Equal(30, saved.Tokens.Output);
+        Assert.Equal(0.75m, saved.Cost.EstimatedCostUsd);
+        Assert.Equal("original", saved.Cost.CatalogVersion);
+
+        UsageEvent retired = CreateEvent("retired", now.AddDays(-2), agentId: "claude");
+        await repository.IngestAsync([retired]);
+        await repository.ApplyRetentionAsync(now, retentionDays: 1);
+        DateOnly day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(retired.OccurredAtUtc,
+            TimeZoneInfo.FindSystemTimeZoneById(retired.GroupingTimeZoneId)).DateTime);
+        DailyUsageRollup before = Assert.Single(await repository.QueryDailyRollupsByAgentAsync(day, day, agent));
+        UsageRecoveryResult excluded = await repository.RecoverAgentEventsAsync(agent,
+            [retired, CreateEvent("new-on-retired-day", now.AddDays(-2), agentId: "claude"),
+                CreateEvent("outside-retention", now.AddDays(-401), agentId: "claude")], now);
+        Assert.Equal(3, excluded.Excluded);
+        Assert.Equal(1, excluded.Exclusions.OutsideRetention);
+        Assert.Equal(1, excluded.Exclusions.RetiredDetails);
+        Assert.Equal(1, excluded.Exclusions.Tombstones);
+        Assert.Equal(0, excluded.Added);
+        Assert.Equal(before, Assert.Single(await repository.QueryDailyRollupsByAgentAsync(day, day, agent)));
+    }
 
     private static UsageEvent CreateEvent(
         string localIdentity,

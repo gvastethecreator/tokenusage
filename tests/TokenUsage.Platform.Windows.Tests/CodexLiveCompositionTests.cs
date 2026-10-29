@@ -72,10 +72,10 @@ public sealed class CodexLiveCompositionTests
             Assert.Equal(
                 CodexClientAvailability.Available,
                 await factory.DetectAsync(CancellationToken.None));
-            var coordinator = new CodexRefreshCoordinator(folder.Path, clock, factory);
+            var registration = CodexRefreshCoordinator.CreateRegistration(folder.Path, clock, factory);
 
             IReadOnlyList<CacheFirstEvent> events = await CollectAsync(
-                CoordinatorRefresh.Run(coordinator, forceRefresh: true, CancellationToken.None));
+                CoordinatorRefresh.Run(registration, clock, forceRefresh: true, CancellationToken.None));
 
             Assert.IsType<SnapshotCacheReadResult.Empty>(
                 Assert.IsType<CacheFirstEvent.CachePublished>(events[0]).ReadResult);
@@ -230,28 +230,28 @@ public sealed class CodexLiveCompositionTests
                     "tokenusage-recovery-test",
                     "0.1.0",
                     requestTimeout: TimeSpan.FromSeconds(2)));
-            var coordinator = new CodexRefreshCoordinator(folder.Path, clock, factory);
+            var registration = CodexRefreshCoordinator.CreateRegistration(folder.Path, clock, factory);
 
             ProviderOutcome.Success initial = Assert.IsType<ProviderOutcome.Success>(
                 Assert.IsType<CacheFirstEvent.ProviderCompleted>(
-                    (await CollectAsync(CoordinatorRefresh.Run(coordinator, true, CancellationToken.None)))[1]).Outcome);
+                    (await CollectAsync(CoordinatorRefresh.Run(registration, clock, true, CancellationToken.None)))[1]).Outcome);
 
             Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "crash");
             ProviderOutcome crash = Assert.IsType<CacheFirstEvent.ProviderCompleted>(
-                (await CollectAsync(CoordinatorRefresh.Run(coordinator, true, CancellationToken.None)))[1]).Outcome;
+                (await CollectAsync(CoordinatorRefresh.Run(registration, clock, true, CancellationToken.None)))[1]).Outcome;
             Assert.True(crash is ProviderOutcome.TransientFailure or ProviderOutcome.ContractFailure);
             Assert.Equal(initial.Snapshot.SourceObservedAtUtc, LastGood(crash)?.SourceObservedAtUtc);
 
             Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "timeout");
             ProviderOutcome.TransientFailure timeout = Assert.IsType<ProviderOutcome.TransientFailure>(
                 Assert.IsType<CacheFirstEvent.ProviderCompleted>(
-                    (await CollectAsync(CoordinatorRefresh.Run(coordinator, true, CancellationToken.None)))[1]).Outcome);
+                    (await CollectAsync(CoordinatorRefresh.Run(registration, clock, true, CancellationToken.None)))[1]).Outcome);
             Assert.Equal(initial.Snapshot.SourceObservedAtUtc, timeout.LastGood?.SourceObservedAtUtc);
 
             Environment.SetEnvironmentVariable(FakeModeEnvironmentVariable, "contract");
             ProviderOutcome.ContractFailure contract = Assert.IsType<ProviderOutcome.ContractFailure>(
                 Assert.IsType<CacheFirstEvent.ProviderCompleted>(
-                    (await CollectAsync(CoordinatorRefresh.Run(coordinator, true, CancellationToken.None)))[1]).Outcome);
+                    (await CollectAsync(CoordinatorRefresh.Run(registration, clock, true, CancellationToken.None)))[1]).Outcome);
             Assert.Equal(initial.Snapshot.SourceObservedAtUtc, contract.LastGood?.SourceObservedAtUtc);
 
             string replacementDirectory = Path.Combine(binaryFolder.Path, "replacement");
@@ -266,7 +266,7 @@ public sealed class CodexLiveCompositionTests
 
             ProviderOutcome.Success recovered = Assert.IsType<ProviderOutcome.Success>(
                 Assert.IsType<CacheFirstEvent.ProviderCompleted>(
-                    (await CollectAsync(CoordinatorRefresh.Run(coordinator, true, CancellationToken.None)))[1]).Outcome);
+                    (await CollectAsync(CoordinatorRefresh.Run(registration, clock, true, CancellationToken.None)))[1]).Outcome);
 
             Assert.True(recovered.Snapshot.SourceObservedAtUtc >= initial.Snapshot.SourceObservedAtUtc);
             Assert.Equal("codex", recovered.Snapshot.ProviderId.Value);
@@ -319,9 +319,9 @@ public sealed class CodexLiveCompositionTests
             await client.HandshakeAsync(CancellationToken.None);
         }
 
-        var coordinator = new CodexRefreshCoordinator(folder.Path, clock, factory);
+        var registration = CodexRefreshCoordinator.CreateRegistration(folder.Path, clock, factory);
         ProviderOutcome outcome = Assert.IsType<CacheFirstEvent.ProviderCompleted>(
-            (await CollectAsync(CoordinatorRefresh.Run(coordinator, true, CancellationToken.None)))[1]).Outcome;
+            (await CollectAsync(CoordinatorRefresh.Run(registration, clock, true, CancellationToken.None)))[1]).Outcome;
         ProviderSnapshot snapshot = outcome switch
         {
             ProviderOutcome.Success success => success.Snapshot,

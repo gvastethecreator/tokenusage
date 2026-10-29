@@ -72,7 +72,7 @@ public static class UsageCommand
             return NoDataExitCode;
         }
 
-        if (options.Format == OutputFormat.Json)
+        if (options.Format == CliOutputFormat.Json)
         {
             await standardOutput.WriteLineAsync(UsageJson.Serialize(
                     generatedAt,
@@ -100,7 +100,7 @@ public static class UsageCommand
         out string error)
     {
         int days = DefaultDays;
-        OutputFormat format = OutputFormat.Human;
+        CliOutputFormat format = CliOutputFormat.Human;
         bool hasDays = false;
         bool hasFormat = false;
 
@@ -139,7 +139,7 @@ public static class UsageCommand
                     }
 
                     if (++index >= arguments.Count
-                        || !TryParseFormat(arguments[index], out format))
+                        || !FormatOnlyCommandParser.TryParseFormat(arguments[index], out format))
                     {
                         return Invalid(
                             "Option '--format' must be 'human' or 'json'.",
@@ -161,24 +161,6 @@ public static class UsageCommand
         options = new UsageOptions(days, format);
         error = string.Empty;
         return true;
-    }
-
-    private static bool TryParseFormat(string value, out OutputFormat format)
-    {
-        if (string.Equals(value, "human", StringComparison.Ordinal))
-        {
-            format = OutputFormat.Human;
-            return true;
-        }
-
-        if (string.Equals(value, "json", StringComparison.Ordinal))
-        {
-            format = OutputFormat.Json;
-            return true;
-        }
-
-        format = default;
-        return false;
     }
 
     private static bool Invalid(
@@ -242,11 +224,6 @@ public static class UsageCommand
 
     private static string FormatCost(decimal? value) => CliCostText.Format(value);
 
-    private readonly record struct UsageOptions(int Days, OutputFormat Format);
+    private readonly record struct UsageOptions(int Days, CliOutputFormat Format);
 
-    private enum OutputFormat
-    {
-        Human,
-        Json,
-    }
 }

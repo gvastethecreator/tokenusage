@@ -55,7 +55,8 @@ public sealed class AppearanceSettingsStoreTests
                 showProviderName: true,
                 isEnabled: false),
             chartStyle,
-            ReportChartGrouping.Model);
+            ReportChartGrouping.Model, quotaDisplay: QuotaDisplayStyle.Bars,
+            reportContent: new ReportContentSettings(Chart: false, Heatmap: true, Models: false, Measurement: false));
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
         var loaded = Assert.IsType<AppearanceSettingsLoadResult.Loaded>(await store.LoadAsync());
@@ -65,6 +66,7 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(5, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal(serializedStyle, json.RootElement.GetProperty("reportChartStyle").GetString());
         Assert.Equal("model", json.RootElement.GetProperty("reportChartGrouping").GetString());
+        Assert.Equal("bars", json.RootElement.GetProperty("quotaDisplay").GetString());
         Assert.True(json.RootElement.GetProperty("markReportBestValues").GetBoolean());
         Assert.True(expected.MarkReportBestValues);
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());

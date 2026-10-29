@@ -100,7 +100,11 @@ public sealed class CodexUsageEventSourceTests
         UsageSourceReadResult first = await source.ReadAsync();
         Assert.Collection(first.Events.OrderBy(item => item.OccurredAtUtc),
             item => Assert.Equal(0.6m, item.Cost.EstimatedCostUsd),
-            item => Assert.Equal(0.8m, item.Cost.EstimatedCostUsd));
+            item =>
+            {
+                Assert.Equal(CostKind.Unavailable, item.Cost.Kind);
+                Assert.Null(item.Cost.EstimatedCostUsd);
+            });
 
         // Reusing persisted counters must reproduce the same historical prices.
         UsageSourceReadResult second = await source.ReadAsync();

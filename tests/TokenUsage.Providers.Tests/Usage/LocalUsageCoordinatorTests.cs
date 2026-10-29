@@ -6,6 +6,7 @@ using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.Core.Providers;
+using TokenUsage.Core.Automation;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Fakes;
 using TokenUsage.Providers.Claude;
@@ -145,6 +146,40 @@ public sealed class LocalUsageCoordinatorTests
         Assert.DoesNotContain(
             card.SpendBreakdown.Models,
             row => row.ModelName == "outside");
+    }
+
+    [Fact]
+    public void ReportHeatmapUsesSelectedDatesMetricAndUnknownPrices()
+    {
+        DateOnly start = new(2026, 9, 8);
+        UsageReport report = UsageReportQuery.Build(
+        [
+            Rollup(start.AddDays(-1), "codex", "outside", 9999, 999m, null, 0),
+            Rollup(start, "codex", "cost-peak", 40, 9m, null, 0),
+            Rollup(start, "claude", "token-leader", 60, 1m, null, 0),
+            Rollup(start.AddDays(2), "claude", "unpriced", 50, null, null, 50),
+            Rollup(start.AddDays(3), "codex", "token-peak", 400, 1m, null, 0),
+        ]);
+        var costs = UsageHeatmapProjector.CreateReport(report, start, start.AddDays(3), true, Strings);
+        var tokens = UsageHeatmapProjector.CreateReport(report, start, start.AddDays(3), false, Strings);
+        Assert.Equal("codex", costs.Cells[0].DominantProviderId);
+        Assert.Equal("claude", tokens.Cells[0].DominantProviderId);
+        Assert.Null(costs.Cells[2].DominantProviderId);
+        Assert.Equal("claude", tokens.Cells[2].DominantProviderId);
+        Assert.Null(tokens.Cells[1].DominantProviderId);
+        Assert.Equal(4, costs.Cells.Count);
+        Assert.Equal(start, costs.Cells[0].Date);
+        Assert.Equal(start.AddDays(3), costs.Cells[^1].Date);
+        Assert.Equal(550, costs.Cells.Sum(cell => cell.TotalTokens));
+        Assert.Equal(4, costs.Cells[0].Level);
+        Assert.Equal(2, costs.Cells[^1].Level);
+        Assert.Equal(4, tokens.Cells[^1].Level);
+        Assert.Equal(2, tokens.Cells[0].Level);
+        Assert.Equal(0, costs.Cells[1].EventCount);
+        Assert.Equal(0, costs.Cells[1].Level);
+        Assert.Null(costs.Cells[2].TotalCostUsd);
+        Assert.Contains("gasto no disponible", costs.Cells[2].AccessibleName, StringComparison.Ordinal);
+        Assert.Contains(costs.Cells[2].Tooltip!.Rows, row => row.Value == "50");
     }
 
     [Fact]

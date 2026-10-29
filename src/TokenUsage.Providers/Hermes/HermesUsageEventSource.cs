@@ -199,8 +199,8 @@ public sealed class HermesUsageEventSource :
             };
             using var connection = new SqliteConnection(builder.ToString());
             connection.Open();
-            ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
-            ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
+            LocalUsageSqlite.ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
             return QuerySessions(connection, path, output, cancellationToken);
         }
         catch (OperationCanceledException)
@@ -221,7 +221,7 @@ public sealed class HermesUsageEventSource :
         Dictionary<string, UsageEvent> output,
         CancellationToken cancellationToken)
     {
-        HashSet<string> columns = GetColumns(connection, "sessions", cancellationToken);
+        HashSet<string> columns = LocalUsageSqlite.GetColumns(connection, "sessions", cancellationToken);
         if (!HasColumns(columns, "id", "input_tokens", "output_tokens"))
         {
             return false;
@@ -436,37 +436,8 @@ public sealed class HermesUsageEventSource :
         }
     }
 
-    private static HashSet<string> GetColumns(
-        SqliteConnection connection,
-        string table,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info({table})";
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        using SqliteDataReader reader = command.ExecuteReader();
-        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        while (reader.Read())
-        {
-            columns.Add(reader.GetString(1));
-        }
-
-        return columns;
-    }
-
     private static bool HasColumns(HashSet<string> columns, params string[] expected) =>
         expected.All(columns.Contains);
-
-    private static void ExecuteControl(
-        SqliteConnection connection,
-        string text,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = text;
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        command.ExecuteNonQuery();
-    }
 
     private static string Hash(string value) => Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(value)))

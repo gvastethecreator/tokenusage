@@ -137,6 +137,10 @@ public interface IWindowedSnapshotUsageEventSource : IUsageEventSource
     int ReconciliationWindowDays { get; }
 }
 
+public interface IHistoryPreservingUsageEventSource : IWindowedSnapshotUsageEventSource
+{
+}
+
 public interface ISourceScopedUsageEventSource : IWindowedSnapshotUsageEventSource
 {
     UsageSourceInstanceId SourceInstance { get; }

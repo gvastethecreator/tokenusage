@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
@@ -243,7 +244,7 @@ public sealed class ClaudeUsageEventSourceTests
 
     [Theory]
     [InlineData("claude-sonnet-4-6", 8.085)]
-    [InlineData("claude-sonnet-5-5", 5.39)]
+    [InlineData("claude-sonnet-5-5", 5.37)]
     public async Task EstimatesExactModelsAndLeavesUnknownModelsUnpriced(string model, decimal expectedUsd)
     {
         using var corpus = new ClaudeCorpus();
@@ -322,7 +323,8 @@ public sealed class ClaudeUsageEventSourceTests
     public async Task InvalidOptionalCountersAndUnknownSpeedDoNotBreakTheScan()
     {
         using var corpus = new ClaudeCorpus();
-        corpus.WriteLines(
+        corpus.WriteRaw(string.Join(Environment.NewLine,
+        [
             UsageLine("message-negative", "request-negative", 10, 2, cacheRead: -50),
             UsageLine("message-valid", "request-valid", 20, 4),
             UsageLine("message-split", "request-split", 25, 5).Replace(
@@ -332,9 +334,16 @@ public sealed class ClaudeUsageEventSourceTests
             UsageLine("message-speed", "request-speed", 30, 6).Replace(
                 "\"cache_creation_input_tokens\":0",
                 "\"cache_creation_input_tokens\":0,\"speed\":\"turbo\"",
-                StringComparison.Ordinal));
+                StringComparison.Ordinal),
+            UsageLine("message-synthetic", "request-synthetic", 0, 0, model: "<synthetic>"),
+            UsageLine("message-user", "request-user", 30, 6).Replace(
+                "\"type\":\"assistant\"", "\"type\":\"user\"", StringComparison.Ordinal),
+            "{\"type\":\"queue-operation\",\"metadata\":{\"usage\":{}}}",
+            "{\"type\":\"assistant\",\"message\":{\"usage\":"
+        ]) + Environment.NewLine);
 
-        UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
+        var source = corpus.CreateSource();
+        UsageSourceReadResult result = await source.ReadAsync();
         IReadOnlyList<UsageEvent> events = result.Events;
 
         Assert.Equal(3, events.Count);
@@ -346,6 +355,8 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(UsageComponentAvailability.Unknown,
             Assert.Single(events, row => row.Tokens.Input == 25).DetailMetadata.CacheWrite);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
+        Assert.Equal(2, source.LastScanProgress.ExcludedRecords);
+        Assert.Equal(2, source.LastScanProgress.RetainedUnreadableRecords);
     }
 
     [Fact]
@@ -433,6 +444,143 @@ public sealed class ClaudeUsageEventSourceTests
 
         Assert.Equal(15m, cost.EstimatedCostUsd);
         Assert.Equal(ClaudePricingCatalog.Version, cost.CatalogVersion);
+    }
+
+    [Fact]
+    public async Task BoundedReadsResumeOnlyAfterPersistenceAndMergeStreamingAcrossRestarts()
+    {
+        using var corpus = new ClaudeCorpus();
+        string first = UsageLine("stream-private-id", "request", 10, 2, content: "PRIVATE CONTENT");
+        string second = UsageLine("stream-private-id", "request", 20, 8, content: "PRIVATE CONTENT");
+        corpus.WriteLines(first, second);
+        long budget = Encoding.UTF8.GetByteCount(first + Environment.NewLine);
+        string checkpoint = Path.Combine(corpus.ConfigRoot, "progress.json");
+        ClaudeUsageEventSource Source() => new("UTC", configDirectoryOverride: corpus.ConfigRoot,
+            maximumFileBytes: budget, maximumReadBytes: budget, checkpointPath: checkpoint);
+
+        var source = Source();
+        UsageSourceReadResult read = await source.ReadAsync();
+        UsageEvent initial = Assert.Single(read.Events);
+        Assert.Equal(10, initial.Tokens.Input);
+        Assert.Equal(UsageSourceReadStatus.Partial, read.Status);
+        Assert.Equal(budget, source.LastScanProgress.BytesRead);
+        await read.Checkpoint!.PersistAsync(() => Task.FromResult(false));
+        Assert.False(File.Exists(checkpoint));
+        read = await source.ReadAsync();
+        Assert.Equal(initial, Assert.Single(read.Events));
+        await Assert.ThrowsAsync<IOException>(() => read.Checkpoint!.PersistAsync(
+            () => throw new IOException("fixture persistence failure")));
+        Assert.False(File.Exists(checkpoint));
+        read = await source.ReadAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => read.Checkpoint!.PersistAsync(
+            () => Task.FromCanceled<bool>(new CancellationToken(canceled: true))));
+        Assert.False(File.Exists(checkpoint));
+        read = await source.ReadAsync();
+        await read.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+
+        source = Source();
+        read = await source.ReadAsync();
+        UsageEvent final = Assert.Single(read.Events);
+        Assert.Equal(initial.EventKey, final.EventKey);
+        Assert.Equal(new TokenBreakdown(20, 8, 0, 0, 0), final.Tokens);
+        await read.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        string saved = await File.ReadAllTextAsync(checkpoint);
+        Assert.DoesNotContain("PRIVATE CONTENT", saved, StringComparison.Ordinal);
+        Assert.DoesNotContain("stream-private-id", saved, StringComparison.Ordinal);
+        Assert.DoesNotContain(corpus.ProjectRoot, saved, StringComparison.Ordinal);
+        source = Source();
+        read = await source.ReadAsync();
+        Assert.Empty(read.Events);
+        Assert.Equal(0, source.LastScanProgress.BytesRead);
+    }
+
+    [Fact]
+    public async Task AppendedTailCompletesWithoutDroppingItsRecordAndTruncationResetsOnlyThatFile()
+    {
+        using var corpus = new ClaudeCorpus();
+        string first = UsageLine("first", "request", 10, 2);
+        string second = UsageLine("second", "request", 20, 8);
+        corpus.WriteRaw(first + Environment.NewLine + second[..(second.Length / 2)]);
+        var source = corpus.CreateSource();
+        UsageSourceReadResult read = await source.ReadAsync();
+        Assert.Equal(10, Assert.Single(read.Events).Tokens.Input);
+        await read.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        string path = Path.Combine(corpus.ProjectRoot, "session.jsonl");
+        await File.AppendAllTextAsync(path, second[(second.Length / 2)..] + Environment.NewLine);
+        read = await source.ReadAsync();
+        Assert.Equal(20, Assert.Single(read.Events).Tokens.Input);
+        await read.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Empty((await source.ReadAsync()).Events);
+
+        corpus.WriteLines(UsageLine("replacement", "request", 30, 9));
+        read = await source.ReadAsync();
+        Assert.Equal(30, Assert.Single(read.Events).Tokens.Input);
+    }
+
+    [Fact]
+    public async Task FileLimitRotatesPastTheFirstFileAndUnchangedFilesAreExhausted()
+    {
+        using var corpus = new ClaudeCorpus();
+        corpus.WriteFile("a.jsonl", UsageLine("a", "request", 10, 2));
+        corpus.WriteFile("b.jsonl", UsageLine("b", "request", 20, 4));
+        var source = corpus.CreateSource(maximumFiles: 1);
+        UsageSourceReadResult first = await source.ReadAsync();
+        Assert.Equal(10, Assert.Single(first.Events).Tokens.Input);
+        await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        UsageSourceReadResult second = await source.ReadAsync();
+        Assert.Equal(20, Assert.Single(second.Events).Tokens.Input);
+        Assert.Equal(0, source.LastScanProgress.PendingFiles);
+        await second.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Empty((await source.ReadAsync()).Events);
+        Assert.Equal(0, source.LastScanProgress.PendingFiles);
+    }
+
+    [Fact]
+    public async Task ReplacementWithSameSizeCreationAndBoundaryStillReplaysWhenItsPrefixChanges()
+    {
+        using var corpus = new ClaudeCorpus();
+        string original = UsageLine("same-message", "request", 10, 2,
+            timestamp: "2026-07-22T12:00:00.000Z");
+        corpus.WriteLines(original);
+        var source = corpus.CreateSource();
+        UsageSourceReadResult first = await source.ReadAsync();
+        await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        string path = Path.Combine(corpus.ProjectRoot, "session.jsonl");
+        DateTime creation = File.GetCreationTimeUtc(path);
+        string replacement = original.Replace("2026-07-22T12:00:00.000Z", "2026-07-22T11:00:00.000Z",
+            StringComparison.Ordinal);
+        Assert.Equal(original.Length, replacement.Length);
+        Assert.Equal(original[^64..], replacement[^64..]);
+        corpus.WriteLines(replacement);
+        File.SetCreationTimeUtc(path, creation);
+        UsageEvent replayed = Assert.Single((await source.ReadAsync()).Events);
+        Assert.Equal(new DateTimeOffset(2026, 7, 22, 11, 0, 0, TimeSpan.Zero), replayed.OccurredAtUtc);
+    }
+
+    [Fact]
+    public async Task FutureNumericRecordsRemainDeferredUntilTheClockReachesTheirTimestamp()
+    {
+        using var corpus = new ClaudeCorpus();
+        var clock = new MutableClock(DateTimeOffset.UtcNow);
+        DateTimeOffset future = clock.Now.AddDays(1);
+        corpus.WriteLines(UsageLine("future", "request", 10, 2, timestamp: future.ToString("O")));
+        var source = new ClaudeUsageEventSource("UTC", configDirectoryOverride: corpus.ConfigRoot, clock: clock);
+        UsageSourceReadResult first = await source.ReadAsync();
+        Assert.Single(first.Events);
+        Assert.Equal(1, source.LastScanProgress.DeferredFutureMessages);
+        await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+        Assert.Empty((await source.ReadAsync()).Events);
+        clock.Now = future.AddSeconds(1);
+        UsageSourceReadResult eligible = await source.ReadAsync();
+        Assert.Single(eligible.Events);
+        Assert.Equal(0, source.LastScanProgress.BytesRead);
+        Assert.Equal(0, source.LastScanProgress.DeferredFutureMessages);
+    }
+
+    private sealed class MutableClock(DateTimeOffset now) : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = now;
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 
     private static string UsageLine(

@@ -8,7 +8,7 @@ internal sealed record UsageExactTiming(AgentId AgentId, ModelProviderId? Host, 
 internal sealed record UsageExactElapsed(int Index, DailyUsageRollup Usage);
 internal sealed record UsageConfigurationRollup(ModelId? ObservedModel, string? Effort, string? Tier,
     DailyUsageRollup Usage, int? Hour, int? ElapsedIndex, UsageTimePrecision Precision, UsageRecordKind Kind,
-    UsageComponentAvailability InputSplit);
+    UsageComponentAvailability InputSplit, UsageDetailMetadata DetailMetadata);
 
 public sealed record UsageObservedConfiguration(AgentId AgentId, ModelProviderId? Host, ModelId Model,
     ModelId? ObservedModel, string? Effort, string? Tier, UsageReportMetrics Metrics);
@@ -188,7 +188,7 @@ public sealed record UsageReportMetricDelta(
     decimal EstimatedCostUsd,
     long UnpricedTokens);
 
-public sealed class UsageReportQuery
+public sealed partial class UsageReportQuery
 {
     private readonly string _databasePath;
 
@@ -670,7 +670,7 @@ public sealed class UsageReportQuery
             .ThenBy(row => row.Effort, StringComparer.Ordinal)
             .ThenBy(row => row.Tier, StringComparer.Ordinal).ToArray();
 
-    private static UsageConfigurationRollup[] BuildConfigurationRollups(
+    internal static UsageConfigurationRollup[] BuildConfigurationRollups(
         IReadOnlyList<UsageEvent> events, DateOnly from, DateOnly to, DateTimeOffset? exactStart = null)
     {
         var zones = new Dictionary<string, TimeZoneInfo>(StringComparer.Ordinal);
@@ -683,6 +683,9 @@ public sealed class UsageReportQuery
                 && DateOnly.FromDateTime(row.Local.DateTime) <= to)
             .GroupBy(row => (row.Event.ObservedModelId, row.Event.ReasoningEffort, row.Event.ServiceTier,
                 row.Event.TimePrecision, row.Event.DetailMetadata.RecordKind,
+                Input: row.Event.DetailMetadata.Input, Output: row.Event.DetailMetadata.Output,
+                Reasoning: row.Event.DetailMetadata.Reasoning, CacheRead: row.Event.DetailMetadata.CacheRead,
+                CacheWrite: row.Event.DetailMetadata.CacheWrite,
                 InputSplit: InputSplitAvailability(row.Event.DetailMetadata),
                 Hour: row.Event.TimePrecision == UsageTimePrecision.Timestamp
                     && row.Event.DetailMetadata.RecordKind is not (UsageRecordKind.Snapshot or UsageRecordKind.DailyAggregate)
@@ -693,7 +696,10 @@ public sealed class UsageReportQuery
             .SelectMany(group => UsageRollupAggregator.Aggregate(group.Select(row => row.Event))
                 .Select(row => new UsageConfigurationRollup(group.Key.ObservedModelId,
                     group.Key.ReasoningEffort, group.Key.ServiceTier, row, group.Key.Hour, group.Key.Elapsed,
-                    group.Key.TimePrecision, group.Key.RecordKind, group.Key.InputSplit))).ToArray();
+                    group.Key.TimePrecision, group.Key.RecordKind, group.Key.InputSplit,
+                    new UsageDetailMetadata(input: group.Key.Input, output: group.Key.Output,
+                        reasoning: group.Key.Reasoning, cacheRead: group.Key.CacheRead,
+                        cacheWrite: group.Key.CacheWrite)))).ToArray();
     }
 
     private static UsageComponentAvailability InputSplitAvailability(UsageDetailMetadata detail) =>

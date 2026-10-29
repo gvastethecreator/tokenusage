@@ -1000,10 +1000,6 @@ public sealed partial class CodexUsageEventSource
         return TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
     }
 
-    private static bool CanSubtract(TokenBreakdown current, TokenBreakdown previous) =>
-        TotalInput(current) >= TotalInput(previous)
-        && TotalOutput(current) >= TotalOutput(previous);
-
     private static TokenBreakdown Difference(
         TokenBreakdown current,
         TokenBreakdown? previous)

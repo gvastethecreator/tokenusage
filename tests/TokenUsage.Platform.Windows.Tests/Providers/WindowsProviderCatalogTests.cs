@@ -156,7 +156,7 @@ public sealed class WindowsProviderCatalogTests
             options: new WindowsProviderCompositionOptions(TimeZoneId: "UTC"));
 
         Assert.Equal(
-            ["codex"],
+            ["claude", "codex"],
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Equal(
@@ -183,7 +183,7 @@ public sealed class WindowsProviderCatalogTests
                 EnableOptInProviders: true));
 
         Assert.Equal(
-            ["codex", "openrouter", "vercel-ai-gateway"],
+            ["claude", "codex", "openrouter", "vercel-ai-gateway"],
             composition.RefreshHost.Registrations.Select(
                 registration => registration.Provider.Descriptor.Id.Value));
         Assert.Throws<ArgumentNullException>(() => WindowsProviderCatalog.CreateComposition(
@@ -196,6 +196,7 @@ public sealed class WindowsProviderCatalogTests
     [Theory]
     [InlineData("openrouter")]
     [InlineData("vercel-ai-gateway")]
+    [InlineData("claude")]
     public async Task CredentialChangeClearsOnlyThatProvidersCachedReading(string providerId)
     {
         using var folder = new TemporaryFolder();

@@ -67,6 +67,10 @@ public sealed class SessionModuleTests
             option.Value == AppDensityMode.Compact);
         surface.SelectedDashboardVisualization = surface.DashboardVisualizationOptions.Single(
             option => option.Value == DashboardVisualizationMode.Heatmap);
+        surface.SelectedQuotaDisplay = surface.QuotaDisplayOptions.Single(option => option.Value == QuotaDisplayStyle.Numbers);
+        surface.ShowReportChart = false;
+        surface.ShowReportModels = false;
+        surface.ShowReportMeasurement = false;
         await surface.WaitForPendingSaveAsync();
 
         Assert.Equal(AppThemeMode.Dark, surface.Settings.Theme);
@@ -74,10 +78,16 @@ public sealed class SessionModuleTests
         Assert.Equal(
             DashboardVisualizationMode.Heatmap,
             surface.Settings.DashboardVisualization);
+        Assert.Equal(QuotaDisplayStyle.Numbers, surface.Settings.QuotaDisplay);
         Assert.True(surface.IsEditable);
         var reloaded = new AppearanceSession(
             new AppearanceSettingsStore(path, TimeProvider.System));
         await reloaded.InitializeAsync();
+        Assert.Equal(QuotaDisplayStyle.Numbers, reloaded.Settings.QuotaDisplay);
+        Assert.False(reloaded.Settings.ReportContent.Chart);
+        Assert.False(reloaded.Settings.ReportContent.Models);
+        Assert.False(reloaded.Settings.ReportContent.Measurement);
+        Assert.True(reloaded.Settings.ReportContent.Heatmap);
         Assert.Equal(AppThemeMode.Dark, reloaded.Settings.Theme);
         Assert.Equal(AppDensityMode.Compact, reloaded.Settings.Density);
         Assert.Equal(
@@ -102,6 +112,31 @@ public sealed class SessionModuleTests
         Assert.Equal(SampleScenario.Partial, surface.SelectedSampleScenario.Value);
         Assert.Equal(1, modeChanges);
         Assert.Equal(1, scenarioChanges);
+    }
+
+    [Fact]
+    public async Task ClaudeRecoveryKeepsFinalResultAfterQueuedProgress()
+    {
+        var surface = new GeneralOptionsViewModel(key => key);
+        var context = new QueuedProgressContext();
+        surface.BindClaudeActions(() => { }, () => Task.CompletedTask, (dryRun, progress, token) =>
+        {
+            Assert.True(dryRun);
+            progress.Report("2 added");
+            return Task.FromResult("Preview: 2 added");
+        });
+        SynchronizationContext? previous = SynchronizationContext.Current;
+        Task command;
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(context);
+            command = surface.PreviewClaudeRecoveryCommand.ExecuteAsync(null);
+        }
+        finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        await command;
+        context.Drain();
+        Assert.False(surface.IsRecoveringClaudeHistory);
+        Assert.Equal("Preview: 2 added", surface.ClaudeRecoveryStatus);
     }
 
     [Fact]
@@ -628,15 +663,14 @@ public sealed class SessionModuleTests
             key => key);
         await personalization.Initialization;
         var providerStatus = new ProviderStatusSurfaceViewModel(key => key);
-        await using AppSessionHost appSession = CreateCodexAppSession(folder.Root, clock);
-        var claude = new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(folder.Root));
-        claude.Save(new(clock.GetUtcNow(), [new("seven_day", 27, clock.GetUtcNow().AddDays(4))]));
+        var claude = new ClaudeLimitsProvider(clock);
+        await using AppSessionHost appSession = CreateCodexAppSession(folder.Root, clock, claudeProvider: claude);
         var live = new LiveDashboardSession(
             appSession,
             new LocalUsageCoordinator(
                 Path.Combine(folder.Root, "usage.db"),
                 new SingleCodexUsageSource(clock),
-                clock), claudeRateLimits: claude);
+                clock));
         using var surface = new DashboardSurfaceViewModel(
             new SampleDashboardSession(new SampleRefreshCoordinator(
                 Path.Combine(folder.Root, "sample"),
@@ -647,7 +681,7 @@ public sealed class SessionModuleTests
             appearance,
             personalization,
             providerStatus,
-            key => key,
+            key => key == "ClaudeUsedPercentFormat" ? "{0:0}% used" : key,
             synchronizationContext: null);
 
         await surface.RefreshCommand.ExecuteAsync(null);
@@ -662,18 +696,46 @@ public sealed class SessionModuleTests
         Assert.True(surface.HasGlobalProviderLimits);
         Assert.True(surface.SelectedProviderHasLimits);
         Assert.Single(surface.GlobalClaudeLimits);
-        // A status-line update must reach both bars without a full provider refresh.
-        claude.Save(new(clock.GetUtcNow(), [
+        var bothWindows = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var changedUsage = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var failedRefresh = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        surface.PropertyChanged += (_, _) =>
+        {
+            if (surface.GlobalClaudeLimits.Count == 2) bothWindows.TrySetResult();
+            if (surface.GlobalClaudeLimits.Count == 2 && surface.GlobalClaudeLimits[0].ColorRemainingPercent == 62d)
+                changedUsage.TrySetResult();
+            if (surface.HasClaudeLimitsNotice) failedRefresh.TrySetResult();
+        };
+        // A Claude-only provider refresh must update the shared dashboard windows.
+        claude.Windows = [
             new("five_hour", 23, clock.GetUtcNow().AddHours(3)),
-            new("seven_day", 27, clock.GetUtcNow().AddDays(4))]));
-        await surface.RefreshLocalQuotaAsync();
+            new("seven_day", 27, clock.GetUtcNow().AddDays(4))];
+        await appSession.RefreshAsync(AppSessionRefreshReason.Manual, true, new ProviderId("claude"));
+        await bothWindows.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, surface.GlobalClaudeLimits.Count);
         Assert.Equal(77d, surface.GlobalClaudeLimits[0].ColorRemainingPercent);
-        claude.Save(new(clock.GetUtcNow(), [
+        Assert.StartsWith("ClaudeWindowFiveHour: 23% used.", surface.GlobalClaudeLimits[0].UsedAutomationName, StringComparison.Ordinal);
+        claude.Windows = [
             new("five_hour", 38, clock.GetUtcNow().AddHours(3)),
-            new("seven_day", 27, clock.GetUtcNow().AddDays(4))]));
-        await surface.RefreshLocalQuotaAsync();
+            new("seven_day", 27, clock.GetUtcNow().AddDays(4))];
+        await appSession.RefreshAsync(AppSessionRefreshReason.Manual, true, new ProviderId("claude"));
+        await changedUsage.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(62d, surface.GlobalClaudeLimits[0].ColorRemainingPercent);
+        claude.Fail = true;
+        await appSession.RefreshAsync(AppSessionRefreshReason.Manual, true, new ProviderId("claude"));
+        await failedRefresh.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(62d, surface.GlobalClaudeLimits[0].ColorRemainingPercent);
+        Assert.Equal("ClaudeQuotaRefreshFailedNotice", surface.ClaudeLimitsNotice);
+        Assert.Equal(surface.ClaudeLimitsNotice, surface.GetProviderLimits("claude")[0].ReadingNotice);
+        Assert.Empty(surface.GetProviderLimits("claude")[1].ReadingNotice);
+        claude.Fail = false;
+        await surface.RefreshCommand.ExecuteAsync(null);
+        Assert.False(surface.HasClaudeLimitsNotice);
+        Assert.Empty(surface.GetProviderLimits("claude")[0].ReadingNotice);
+        clock.Advance(TimeSpan.FromMinutes(11));
+        await surface.RefreshLocalQuotaAsync();
+        Assert.Equal("ClaudeQuotaStaleNotice", surface.ClaudeLimitsNotice);
+        Assert.Equal(surface.ClaudeLimitsNotice, surface.GetProviderLimits("claude")[0].ReadingNotice);
     }
 
     [Fact]
@@ -875,18 +937,35 @@ public sealed class SessionModuleTests
     private static AppSessionHost CreateCodexAppSession(
         string root,
         TimeProvider clock,
-        IProviderRuntime? provider = null)
+        IProviderRuntime? provider = null,
+        IProviderRuntime? claudeProvider = null)
     {
-        var refresh = new ProviderRefreshHost(
-        [
+        var registrations = new List<ProviderRefreshRegistration>
+        {
             new ProviderRefreshRegistration(
                 provider ?? new CodexLimitsProvider(clock),
                 new SnapshotStore(Path.Combine(root, "codex-cache.json"), clock)),
-        ], clock);
+        };
+        if (claudeProvider is not null)
+            registrations.Add(new(claudeProvider, new SnapshotStore(Path.Combine(root, "claude-cache.json"), clock)));
+        var refresh = new ProviderRefreshHost(registrations, clock);
         var alerts = new AlertHost(
             new AlertDecisionStore(Path.Combine(root, "codex-alert-decisions.json"), clock),
             new AlertSettingsStore(Path.Combine(root, "codex-alert-settings.json"), clock));
         return new AppSessionHost(refresh, alerts, clock);
+    }
+
+    private sealed class ClaudeLimitsProvider(TimeProvider clock) : IProviderRuntime
+    {
+        public ProviderDescriptor Descriptor { get; } = new(new ProviderId("claude"), "Claude");
+        public IReadOnlyList<ClaudeRateLimitWindow> Windows { get; set; } =
+            [new("seven_day", 27, clock.GetUtcNow().AddDays(4))];
+        public bool Fail { get; set; }
+        public Task<ProviderOutcome> RefreshAsync(RefreshContext context, CancellationToken cancellationToken) =>
+            Task.FromResult<ProviderOutcome>(Fail
+                ? new ProviderOutcome.TransientFailure(new ProviderError(ProviderErrorCode.TransientSourceFailure, "offline"), context.LastGood)
+                : new ProviderOutcome.Success(ClaudeRateLimitSnapshotMapper.Map(
+                    new(clock.GetUtcNow(), Windows), clock.GetUtcNow(), "UTC")!));
     }
 
     private sealed class EmptyProvider : IProviderRuntime
@@ -1122,13 +1201,25 @@ public sealed class SessionModuleTests
         }
     }
 
+    private sealed class QueuedProgressContext : SynchronizationContext
+    {
+        private readonly Queue<Action> _callbacks = new();
+        public override void Post(SendOrPostCallback callback, object? state) =>
+            _callbacks.Enqueue(() => callback(state));
+        public void Drain()
+        {
+            while (_callbacks.TryDequeue(out Action? callback)) callback();
+        }
+    }
+
     private sealed class FixedTimeProvider : TimeProvider
     {
-        private readonly DateTimeOffset _utcNow;
+        private DateTimeOffset _utcNow;
 
         public FixedTimeProvider(DateTimeOffset utcNow) => _utcNow = utcNow.ToUniversalTime();
 
         public override DateTimeOffset GetUtcNow() => _utcNow;
+        public void Advance(TimeSpan elapsed) => _utcNow += elapsed;
     }
 
     private sealed class MemoryManualProviderCredentialStore : IManualProviderCredentialStore

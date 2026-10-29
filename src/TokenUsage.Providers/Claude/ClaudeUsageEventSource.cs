@@ -11,7 +11,7 @@ using TokenUsage.Providers.Pricing;
 namespace TokenUsage.Providers.Claude;
 
 public sealed class ClaudeUsageEventSource :
-    IWindowedSnapshotUsageEventSource,
+    IHistoryPreservingUsageEventSource,
     IRootDetectingUsageEventSource
 {
     public const string ParserVersion = "claude-jsonl/4";
@@ -19,6 +19,13 @@ public sealed class ClaudeUsageEventSource :
     private readonly string? _configDirectoryOverride;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
+    private readonly long _maximumReadBytes;
+    private readonly bool _includeHistoricalFiles;
+    private readonly string? _checkpointPath;
+    private readonly ClaudeUsageCheckpointStore _checkpoints;
+    private readonly TimeProvider _clock;
+
+    public ClaudeUsageScanProgress LastScanProgress { get; private set; } = new(0, 0, 0, 0, 0, false);
 
     public ClaudeUsageEventSource(
         string groupingTimeZoneId,
@@ -26,7 +33,11 @@ public sealed class ClaudeUsageEventSource :
         string? configDirectoryOverride = null,
         int maximumFiles = 10_000,
         long maximumFileBytes = 64 * 1024 * 1024,
-        int maximumLineCharacters = 8 * 1024 * 1024)
+        int maximumLineCharacters = 8 * 1024 * 1024,
+        string? checkpointPath = null,
+        long maximumReadBytes = 256 * 1024 * 1024,
+        bool includeHistoricalFiles = false,
+        TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
@@ -37,6 +48,12 @@ public sealed class ClaudeUsageEventSource :
         _configDirectoryOverride = configDirectoryOverride
             ?? Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
         _budget = new LocalScanBudget(maximumFiles, maximumFileBytes, maximumLineCharacters);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumReadBytes, 1);
+        _maximumReadBytes = maximumReadBytes;
+        _includeHistoricalFiles = includeHistoricalFiles;
+        _clock = clock ?? TimeProvider.System;
+        _checkpointPath = checkpointPath;
+        _checkpoints = new ClaudeUsageCheckpointStore(checkpointPath, groupingTimeZoneId);
     }
 
     public SourceKind SourceKind => SourceKind.LocalLog;
@@ -51,153 +68,252 @@ public sealed class ClaudeUsageEventSource :
         _homeDirectory,
         _configDirectoryOverride).Count > 0;
 
-    public async Task<UsageSourceReadResult> ReadAsync(
-        CancellationToken cancellationToken = default) =>
-        await Task.Run(() => ReadCore(cancellationToken), cancellationToken)
-            .ConfigureAwait(false);
+    public ClaudeUsageEventSource CreateHistorySource(bool dryRun = false, TimeProvider? clock = null) => new(
+        _groupingTimeZoneId, _homeDirectory, _configDirectoryOverride,
+        _budget.MaximumFiles, _budget.MaximumFileBytes, _budget.MaximumLineBytes,
+        dryRun ? null : _checkpointPath, _maximumReadBytes, includeHistoricalFiles: true, clock: clock ?? _clock);
 
-    private UsageSourceReadResult ReadCore(CancellationToken cancellationToken)
+    public async Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<string> projectDirectories = ClaudeConfigLocator.FindProjectDirectories(
-            _homeDirectory,
-            _configDirectoryOverride);
-        if (projectDirectories.Count == 0)
-        {
-            return new UsageSourceReadResult(
-                [],
-                UsageSourceReadStatus.NoData,
-                UsageSourceIssueKind.RootUnavailable);
-        }
-
-        var candidates = new List<Candidate>();
-        var scanState = new LocalScanState(_budget);
-        foreach (string projectDirectory in projectDirectories)
-        {
-            foreach (string file in EnumerateJsonlFiles(
-                         projectDirectory,
-                         scanState,
-                         cancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!scanState.TryConsumeFile())
-                {
-                    return CreateResult(candidates, scanState);
-                }
-
-                if (!ReadFile(file, candidates, cancellationToken))
-                {
-                    scanState.MarkPartial();
-                }
-            }
-        }
-
-        return CreateResult(candidates, scanState);
+        var prepared = await _checkpoints.PrepareAsync(
+            state => ReadCore(state, cancellationToken), cancellationToken).ConfigureAwait(false);
+        return prepared.Result with { Checkpoint = prepared.Checkpoint };
     }
 
-    private bool ReadFile(
-        string path,
-        List<Candidate> candidates,
-        CancellationToken cancellationToken)
+    private UsageSourceReadResult ReadCore(CheckpointState state, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<string> roots = ClaudeConfigLocator.FindProjectDirectories(
+            _homeDirectory, _configDirectoryOverride);
+        if (roots.Count == 0)
+        {
+            LastScanProgress = new(0, 0, 0, 0, 0, false);
+            return new([], UsageSourceReadStatus.NoData, UsageSourceIssueKind.RootUnavailable);
+        }
+
+        var scan = new LocalScanState(_budget);
+        string[] files = roots.SelectMany(root => EnumerateJsonlFiles(root, scan, cancellationToken))
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        int start = Array.FindIndex(files, file => Hash(Path.GetFullPath(file)) == state.NextFileHash);
+        if (start < 0) start = 0;
+        var changed = new Dictionary<string, Candidate>(StringComparer.Ordinal);
+        long bytesRead = 0;
+        long advanced = 0;
+        int excluded = 0;
+        int pending = 0;
+        int visited = 0;
+        bool readErrors = scan.IsPartial;
+        for (; visited < files.Length; visited++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (visited >= _budget.MaximumFiles || bytesRead >= _maximumReadBytes) break;
+            string path = files[(start + visited) % files.Length];
+            FileReadProgress result = ReadFile(path, state, changed,
+                Math.Min(_budget.MaximumFileBytes, _maximumReadBytes - bytesRead), cancellationToken);
+            bytesRead += result.BytesRead;
+            advanced += result.BytesAdvanced;
+            excluded += result.ExcludedRecords;
+            readErrors |= result.ReadError;
+        }
+        foreach (string path in files)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                if (!_includeHistoricalFiles && info.LastWriteTimeUtc < _clock.GetUtcNow().ToUniversalTime().AddDays(-ReconciliationWindowDays))
+                    continue;
+                if (!state.Files.TryGetValue(Hash(Path.GetFullPath(path)), out FileCheckpoint? file)
+                    || !file.ReadToEnd || file.ObservedLength != info.Length
+                    || file.CreationTicks != info.CreationTimeUtc.Ticks || file.Offset > info.Length) pending++;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                or System.Security.SecurityException) { pending++; readErrors = true; }
+        }
+        state.NextFileHash = files.Length == 0 ? null : Hash(Path.GetFullPath(files[(start + visited) % files.Length]));
+        foreach (string key in state.Messages.Where(pair => pair.Value.OccurredAtUtc < _clock.GetUtcNow().ToUniversalTime().AddDays(-400))
+                     .Select(pair => pair.Key).ToArray()) state.Messages.Remove(key);
+        foreach (var pair in state.Messages.Where(pair => pair.Value.AwaitingClock
+                     && pair.Value.OccurredAtUtc <= _clock.GetUtcNow()).ToArray())
+        {
+            Candidate eligible = pair.Value with { AwaitingClock = false };
+            state.Messages[pair.Key] = eligible;
+            changed[pair.Key] = eligible;
+        }
+        int unreadableRecords = state.Files.Values.Sum(file => file.UnreadableRecords);
+        int futureMessages = state.Messages.Values.Count(candidate => candidate.AwaitingClock);
+        readErrors |= unreadableRecords > 0;
+        LastScanProgress = new(bytesRead, advanced, visited, pending, excluded, readErrors)
+        { RetainedUnreadableRecords = unreadableRecords, DeferredFutureMessages = futureMessages };
+        List<UsageEvent> events = CreateEvents(changed.Values.OrderBy(candidate => candidate.OccurredAtUtc)
+            .ThenBy(candidate => candidate.SourceOrdinal, StringComparer.Ordinal));
+        bool partial = pending > 0 || readErrors;
+        return new(events, partial ? UsageSourceReadStatus.Partial
+            : events.Count == 0 && state.Messages.Count == 0
+                ? UsageSourceReadStatus.NoData : UsageSourceReadStatus.Complete);
+    }
+
+    private FileReadProgress ReadFile(string path, CheckpointState state,
+        Dictionary<string, Candidate> changed, long limit, CancellationToken cancellationToken)
     {
         try
         {
             var info = new FileInfo(path);
-            if (!info.Exists || info.Length > _budget.MaximumFileBytes)
+            if (!info.Exists) return new(0, 0, 0, true);
+            if (!_includeHistoricalFiles && info.LastWriteTimeUtc < _clock.GetUtcNow().ToUniversalTime().AddDays(-ReconciliationWindowDays))
+                return new(0, 0, 0, false);
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete, 64 * 1024, FileOptions.SequentialScan);
+            string key = Hash(Path.GetFullPath(path));
+            state.Files.TryGetValue(key, out FileCheckpoint? file);
+            if (file is null || file.CreationTicks != info.CreationTimeUtc.Ticks || file.Offset > stream.Length
+                || (file.Offset > 0 && file.BoundaryHash != BoundaryHash(stream, file.Offset))
+                || (file.PrefixHash is not null && (stream.Length < file.PrefixLength
+                    || file.PrefixHash != PrefixHash(stream, file.PrefixLength))))
             {
-                return false;
+                file = new FileCheckpoint { CreationTicks = info.CreationTimeUtc.Ticks };
+                state.Files[key] = file;
             }
-
-            if (info.LastWriteTimeUtc < DateTimeOffset.UtcNow.AddDays(-ReconciliationWindowDays))
+            if (file.PrefixHash is null || file.PrefixLength == 0 && stream.Length > 0)
             {
-                return true;
+                file.PrefixLength = (int)Math.Min(64, stream.Length);
+                file.PrefixHash = PrefixHash(stream, file.PrefixLength);
             }
-
-            using var stream = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete,
-                bufferSize: 64 * 1024,
-                FileOptions.SequentialScan);
-            byte[] readBuffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
-            var lineBuffer = new ArrayBufferWriter<byte>(64 * 1024);
-            int lineNumber = 0;
-            bool lineTooLong = false;
-            bool complete = true;
+            long initial = file.Offset;
+            stream.Position = initial;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+            var line = new ArrayBufferWriter<byte>();
+            long read = 0;
+            long position = initial;
+            bool skipping = file.SkippingLongLine;
+            int excluded = 0;
+            bool readError = false;
             try
             {
-                int bytesRead;
-                while ((bytesRead = stream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+                while (read < limit)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    ReadOnlySpan<byte> remaining = readBuffer.AsSpan(0, bytesRead);
+                    int count = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, limit - read));
+                    if (count == 0) break;
+                    read += count;
+                    ReadOnlySpan<byte> remaining = buffer.AsSpan(0, count);
                     while (!remaining.IsEmpty)
                     {
-                        int newlineIndex = remaining.IndexOf((byte)'\n');
-                        ReadOnlySpan<byte> segment = newlineIndex >= 0
-                            ? remaining[..newlineIndex]
-                            : remaining;
-                        if (!lineTooLong
-                            && lineBuffer.WrittenCount + segment.Length <= _budget.MaximumLineBytes)
+                        int newline = remaining.IndexOf((byte)'\n');
+                        ReadOnlySpan<byte> segment = newline >= 0 ? remaining[..newline] : remaining;
+                        if (!skipping && line.WrittenCount + segment.Length <= _budget.MaximumLineBytes)
+                            line.Write(segment);
+                        else if (!skipping)
                         {
-                            lineBuffer.Write(segment);
+                            skipping = true;
+                            line.Clear();
+                            excluded++;
+                            file.UnreadableRecords++;
+                            readError = true;
                         }
-                        else if (!segment.IsEmpty)
+                        position += segment.Length + (newline >= 0 ? 1 : 0);
+                        if (newline >= 0)
                         {
-                            lineTooLong = true;
+                            file.LineNumber++;
+                            if (!skipping)
+                            {
+                                var parsed = new List<Candidate>();
+                                bool valid = ProcessLine(path, file.LineNumber, line.WrittenMemory, false, parsed);
+                                if (!valid) { excluded++; file.UnreadableRecords++; readError = true; }
+                                MergeCandidates(parsed, state, changed);
+                            }
+                            line.Clear();
+                            skipping = false;
+                            file.Offset = position;
+                            file.SkippingLongLine = false;
                         }
-
-                        if (newlineIndex < 0)
+                        else if (skipping)
                         {
-                            break;
+                            file.Offset = position;
+                            file.SkippingLongLine = true;
                         }
-
-                        lineNumber++;
-                        complete &= ProcessLine(
-                            path,
-                            lineNumber,
-                            lineBuffer.WrittenMemory,
-                            lineTooLong,
-                            candidates);
-                        lineBuffer.Clear();
-                        lineTooLong = false;
-                        remaining = remaining[(newlineIndex + 1)..];
+                        if (newline < 0) break;
+                        remaining = remaining[(newline + 1)..];
                     }
                 }
-
-                if (lineTooLong)
-                {
-                    complete = false;
-                }
-                else if (lineBuffer.WrittenCount > 0)
-                {
-                    // Claude may still be writing the last JSONL record. Parse a
-                    // complete record when possible, but do not downgrade the
-                    // whole snapshot for an unfinished non-newline tail.
-                    _ = ProcessLine(
-                        path,
-                        lineNumber + 1,
-                        lineBuffer.WrittenMemory,
-                        lineTooLong: false,
-                        candidates);
-                }
             }
-            finally
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
+            if (!skipping && position == stream.Length && line.WrittenCount > 0)
             {
-                ArrayPool<byte>.Shared.Return(readBuffer);
+                var parsed = new List<Candidate>();
+                if (ProcessLine(path, file.LineNumber + 1, line.WrittenMemory, false, parsed))
+                    MergeCandidates(parsed, state, changed);
             }
-
-            return complete;
+            file.BoundaryHash = BoundaryHash(stream, file.Offset);
+            // An unfinished final record stays behind the cursor until its newline arrives.
+            file.ObservedLength = stream.Length;
+            file.ReadToEnd = position >= file.ObservedLength;
+            return new(read, Math.Max(0, file.Offset - initial), excluded, readError);
         }
-        catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException
-                                           or NotSupportedException
-                                           or System.Security.SecurityException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or NotSupportedException or System.Security.SecurityException)
         {
-            // Another process may rotate or lock a session while it is being scanned.
-            return false;
+            return new(0, 0, 0, true);
         }
     }
+
+    private void MergeCandidates(IEnumerable<Candidate> candidates, CheckpointState state,
+        Dictionary<string, Candidate> changed)
+    {
+        foreach (Candidate candidate in candidates)
+        {
+            string identity = CreateEventKey(candidate).Value;
+            Candidate numeric = candidate with
+            { MessageId = null, EventIdentity = identity, AwaitingClock = candidate.OccurredAtUtc > _clock.GetUtcNow() };
+            Candidate merged = state.Messages.TryGetValue(identity, out Candidate? previous)
+                ? MergeStreaming(previous, numeric) : numeric;
+            if (previous != merged) changed[identity] = merged;
+            state.Messages[identity] = merged;
+        }
+    }
+
+    private static string PrefixHash(FileStream stream, int length)
+    {
+        stream.Position = 0;
+        Span<byte> bytes = stackalloc byte[length];
+        stream.ReadExactly(bytes);
+        return Convert.ToHexString(SHA256.HashData(bytes));
+    }
+
+    private static string BoundaryHash(FileStream stream, long offset)
+    {
+        stream.Position = Math.Max(0, offset - 64);
+        Span<byte> bytes = stackalloc byte[(int)Math.Min(64, offset)];
+        stream.ReadExactly(bytes);
+        return Convert.ToHexString(SHA256.HashData(bytes));
+    }
+
+    internal sealed class CheckpointState
+    {
+        public CheckpointState() { }
+        public int SchemaVersion { get; set; } = 1;
+        public string Parser { get; set; } = ParserVersion;
+        public string TimeZone { get; set; } = string.Empty;
+        public string? NextFileHash { get; set; }
+        public Dictionary<string, FileCheckpoint> Files { get; set; } = new(StringComparer.Ordinal);
+        public Dictionary<string, Candidate> Messages { get; set; } = new(StringComparer.Ordinal);
+    }
+
+    internal sealed class FileCheckpoint
+    {
+        public FileCheckpoint() { }
+        public long CreationTicks { get; set; }
+        public long Offset { get; set; }
+        public long ObservedLength { get; set; }
+        public bool ReadToEnd { get; set; }
+        public int PrefixLength { get; set; }
+        public string? PrefixHash { get; set; }
+        public int UnreadableRecords { get; set; }
+        public int LineNumber { get; set; }
+        public bool SkippingLongLine { get; set; }
+        public string? BoundaryHash { get; set; }
+    }
+
+    private sealed record FileReadProgress(long BytesRead, long BytesAdvanced,
+        int ExcludedRecords, bool ReadError);
 
     private static bool ProcessLine(
         string path,
@@ -316,24 +432,6 @@ public sealed class ClaudeUsageEventSource :
         }
     }
 
-    private UsageSourceReadResult CreateResult(
-        List<Candidate> candidates,
-        LocalScanState scanState)
-    {
-        List<UsageEvent> events = CreateEvents(Deduplicate(candidates));
-        UsageSourceReadStatus status = scanState.IsPartial
-            ? UsageSourceReadStatus.Partial
-            : events.Count == 0
-                ? UsageSourceReadStatus.NoData
-                : UsageSourceReadStatus.Complete;
-        return new UsageSourceReadResult(
-            events,
-            status,
-            status == UsageSourceReadStatus.NoData
-                ? UsageSourceIssueKind.Empty
-                : null);
-    }
-
     private List<UsageEvent> CreateEvents(IEnumerable<Candidate> candidates)
     {
         var events = new List<UsageEvent>();
@@ -368,34 +466,6 @@ public sealed class ClaudeUsageEventSource :
         }
 
         return events;
-    }
-
-    private static Candidate[] Deduplicate(IEnumerable<Candidate> input)
-    {
-        var byMessageId = new Dictionary<string, Candidate>(StringComparer.Ordinal);
-        var withoutMessageId = new List<Candidate>();
-        foreach (Candidate candidate in input)
-        {
-            if (candidate.MessageId is null)
-            {
-                withoutMessageId.Add(candidate);
-                continue;
-            }
-
-            if (!byMessageId.TryGetValue(candidate.MessageId, out Candidate? current))
-            {
-                byMessageId[candidate.MessageId] = candidate;
-                continue;
-            }
-
-            Candidate replacement = MergeStreaming(current, candidate);
-            byMessageId[candidate.MessageId] = replacement;
-        }
-
-        return byMessageId.Values.Concat(withoutMessageId)
-            .OrderBy(candidate => candidate.OccurredAtUtc)
-            .ThenBy(candidate => candidate.SourceOrdinal, StringComparer.Ordinal)
-            .ToArray();
     }
 
     private static Candidate MergeStreaming(Candidate current, Candidate candidate)
@@ -454,9 +524,14 @@ public sealed class ClaudeUsageEventSource :
         {
             using JsonDocument document = JsonDocument.Parse(utf8);
             JsonElement root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return false;
             if (!TryGetString(root, "type", out string? type)
-                || !string.Equals(type, "assistant", StringComparison.Ordinal)
-                || !TryGetString(root, "timestamp", out string? timestampText)
+                || !string.Equals(type, "assistant", StringComparison.Ordinal))
+            {
+                candidates = [];
+                return true;
+            }
+            if (!TryGetString(root, "timestamp", out string? timestampText)
                 || !DateTimeOffset.TryParse(
                     timestampText,
                     CultureInfo.InvariantCulture,
@@ -466,9 +541,16 @@ public sealed class ClaudeUsageEventSource :
                 || !root.TryGetProperty("message", out JsonElement message)
                 || message.ValueKind != JsonValueKind.Object
                 || !TryGetString(message, "model", out string? model)
-                || string.IsNullOrWhiteSpace(model)
-                || string.Equals(model, "<synthetic>", StringComparison.OrdinalIgnoreCase)
-                || !message.TryGetProperty("usage", out JsonElement usage)
+                || string.IsNullOrWhiteSpace(model))
+            {
+                return false;
+            }
+            if (string.Equals(model, "<synthetic>", StringComparison.OrdinalIgnoreCase))
+            {
+                candidates = [];
+                return true;
+            }
+            if (!message.TryGetProperty("usage", out JsonElement usage)
                 || usage.ValueKind != JsonValueKind.Object
                 || !TryGetNonNegativeInt64(usage, "input_tokens", out long input)
                 || !TryGetNonNegativeInt64(usage, "output_tokens", out long output))
@@ -680,6 +762,7 @@ public sealed class ClaudeUsageEventSource :
 
     private static UsageEventKey CreateEventKey(Candidate candidate)
     {
+        if (candidate.EventIdentity is { } key) return new UsageEventKey(key);
         string identity = candidate.MessageId is not null
             ? $"claude\0{candidate.MessageId}"
             : $"claude\0{candidate.SourceOrdinal}";
@@ -696,7 +779,7 @@ public sealed class ClaudeUsageEventSource :
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))
             .ToLowerInvariant();
 
-    private sealed record Candidate(
+    internal sealed record Candidate(
         DateTimeOffset OccurredAtUtc,
         string Model,
         TokenBreakdown Tokens,
@@ -707,7 +790,11 @@ public sealed class ClaudeUsageEventSource :
         decimal? ReportedCostUsd,
         bool IsFast,
         string SourceOrdinal,
-        UsageDetailMetadata? DetailMetadata = null);
+        UsageDetailMetadata? DetailMetadata = null)
+    {
+        public string? EventIdentity { get; init; }
+        public bool AwaitingClock { get; init; }
+    }
 
     private static UsageDetailMetadata ReadComponentAvailability(JsonElement usage)
     {

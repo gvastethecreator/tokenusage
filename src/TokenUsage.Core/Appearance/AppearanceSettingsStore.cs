@@ -119,7 +119,30 @@ public sealed class AppearanceSettingsStore
         ReadTrayPopover(root),
         ReadRequiredEnum<ReportChartStyle>(root, "reportChartStyle"),
         ReadRequiredEnum<ReportChartGrouping>(root, "reportChartGrouping"),
-        ReadOptionalBoolean(root, "markReportBestValues", true));
+        ReadOptionalBoolean(root, "markReportBestValues", true),
+        root.TryGetProperty("quotaDisplay", out _)
+            ? ReadRequiredEnum<QuotaDisplayStyle>(root, "quotaDisplay") : QuotaDisplayStyle.Rings,
+        ReadReportContent(root));
+
+    private static ReportContentSettings ReadReportContent(JsonElement root)
+    {
+        if (!root.TryGetProperty("reportContent", out JsonElement content)) return new();
+        EnsureObject(content);
+        return new(
+            ReadOptionalBoolean(content, "summary", true),
+            ReadOptionalBoolean(content, "chart", true),
+            ReadOptionalBoolean(content, "limits", true),
+            ReadOptionalBoolean(content, "heatmap", true),
+            ReadOptionalBoolean(content, "highlights", true),
+            ReadOptionalBoolean(content, "models", true),
+            ReadOptionalBoolean(content, "tokenComposition", true),
+            ReadOptionalBoolean(content, "projects", true),
+            ReadOptionalBoolean(content, "tools", true),
+            ReadOptionalBoolean(content, "fullBreakdown", true),
+            ReadOptionalBoolean(content, "resets", true),
+            ReadOptionalBoolean(content, "activity", true),
+            ReadOptionalBoolean(content, "measurement", true));
+    }
 
     private static TrayPopoverSettings ReadTrayPopover(JsonElement root)
     {
@@ -248,6 +271,22 @@ public sealed class AppearanceSettingsStore
             writer.WriteString("reportChartStyle", ToStorageValue(settings.ReportChartStyle));
             writer.WriteString("reportChartGrouping", ToStorageValue(settings.ReportChartGrouping));
             writer.WriteBoolean("markReportBestValues", settings.MarkReportBestValues);
+            writer.WriteString("quotaDisplay", ToStorageValue(settings.QuotaDisplay));
+            writer.WriteStartObject("reportContent");
+            writer.WriteBoolean("summary", settings.ReportContent.Summary);
+            writer.WriteBoolean("chart", settings.ReportContent.Chart);
+            writer.WriteBoolean("limits", settings.ReportContent.Limits);
+            writer.WriteBoolean("heatmap", settings.ReportContent.Heatmap);
+            writer.WriteBoolean("highlights", settings.ReportContent.Highlights);
+            writer.WriteBoolean("models", settings.ReportContent.Models);
+            writer.WriteBoolean("tokenComposition", settings.ReportContent.TokenComposition);
+            writer.WriteBoolean("projects", settings.ReportContent.Projects);
+            writer.WriteBoolean("tools", settings.ReportContent.Tools);
+            writer.WriteBoolean("fullBreakdown", settings.ReportContent.FullBreakdown);
+            writer.WriteBoolean("resets", settings.ReportContent.Resets);
+            writer.WriteBoolean("activity", settings.ReportContent.Activity);
+            writer.WriteBoolean("measurement", settings.ReportContent.Measurement);
+            writer.WriteEndObject();
             writer.WriteString(
                 "dashboardVisualization",
                 ToStorageValue(settings.DashboardVisualization));

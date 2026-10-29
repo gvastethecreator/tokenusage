@@ -201,14 +201,14 @@ public sealed class AntigravityUsageEventSource :
         };
         using var connection = new SqliteConnection(builder.ToString());
         connection.Open();
-        ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
-        ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
+        LocalUsageSqlite.ExecuteControl(connection, "PRAGMA busy_timeout=250", cancellationToken);
+        LocalUsageSqlite.ExecuteControl(connection, "PRAGMA query_only=ON", cancellationToken);
 
-        HashSet<string> metadataColumns = GetColumns(
+        HashSet<string> metadataColumns = LocalUsageSqlite.GetColumns(
             connection,
             "gen_metadata",
             cancellationToken);
-        HashSet<string> stepColumns = GetColumns(connection, "steps", cancellationToken);
+        HashSet<string> stepColumns = LocalUsageSqlite.GetColumns(connection, "steps", cancellationToken);
         if (!HasColumns(metadataColumns, "idx", "data")
             || !HasColumns(stepColumns, "idx", "step_payload"))
         {
@@ -352,36 +352,6 @@ public sealed class AntigravityUsageEventSource :
         }
 
         return null;
-    }
-
-    private static void ExecuteControl(
-        SqliteConnection connection,
-        string text,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = text;
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        command.ExecuteNonQuery();
-    }
-
-    private static HashSet<string> GetColumns(
-        SqliteConnection connection,
-        string table,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info({table})";
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        using SqliteDataReader reader = command.ExecuteReader();
-        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        while (reader.Read())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            columns.Add(reader.GetString(1));
-        }
-
-        return columns;
     }
 
     private static bool HasColumns(HashSet<string> columns, params string[] expected) =>

@@ -39,7 +39,7 @@ public static class RefreshCommand
         ArgumentNullException.ThrowIfNull(clock);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!TryParse(arguments, out OutputFormat format, out string error))
+        if (!TryParse(arguments, out CliOutputFormat format, out string error))
         {
             await standardError.WriteLineAsync(error).ConfigureAwait(false);
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
@@ -65,7 +65,7 @@ public static class RefreshCommand
 
         DateTimeOffset generatedAt = clock.GetUtcNow().ToUniversalTime();
         generatedAt = generatedAt.AddTicks(-(generatedAt.Ticks % TimeSpan.TicksPerSecond));
-        if (format == OutputFormat.Json)
+        if (format == CliOutputFormat.Json)
         {
             RefreshDocument document = CreateDocument(generatedAt, result);
             await standardOutput.WriteLineAsync(JsonSerializer.Serialize(document, JsonOptions))
@@ -83,10 +83,10 @@ public static class RefreshCommand
 
     private static bool TryParse(
         IReadOnlyList<string> arguments,
-        out OutputFormat format,
+        out CliOutputFormat format,
         out string error)
     {
-        format = OutputFormat.Human;
+        format = CliOutputFormat.Human;
         if (arguments.Count == 0)
         {
             error = string.Empty;
@@ -95,7 +95,7 @@ public static class RefreshCommand
 
         if (arguments.Count == 2
             && string.Equals(arguments[0], "--format", StringComparison.Ordinal)
-            && TryParseFormat(arguments[1], out format))
+            && FormatOnlyCommandParser.TryParseFormat(arguments[1], out format))
         {
             error = string.Empty;
             return true;
@@ -105,24 +105,6 @@ public static class RefreshCommand
             && string.Equals(arguments[0], "--format", StringComparison.Ordinal)
             ? "Option '--format' must be set once to 'human' or 'json'."
             : "Unknown refresh argument.";
-        return false;
-    }
-
-    private static bool TryParseFormat(string value, out OutputFormat format)
-    {
-        if (string.Equals(value, "human", StringComparison.Ordinal))
-        {
-            format = OutputFormat.Human;
-            return true;
-        }
-
-        if (string.Equals(value, "json", StringComparison.Ordinal))
-        {
-            format = OutputFormat.Json;
-            return true;
-        }
-
-        format = default;
         return false;
     }
 
@@ -193,12 +175,6 @@ public static class RefreshCommand
         UsageSourceIssueKind.UnresolvedHistory => "unresolved-history",
         _ => throw new ArgumentOutOfRangeException(nameof(issue)),
     };
-
-    private enum OutputFormat
-    {
-        Human,
-        Json,
-    }
 
     private sealed record RefreshDocument(
         string SchemaVersion,

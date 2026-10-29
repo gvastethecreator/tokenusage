@@ -72,7 +72,7 @@ public sealed class WindowsProviderDiagnosticsQuery
                     "vercel-ai-gateway" => vercelDetection,
                     _ => localDetection[entry.Id.Value],
                 },
-                entry.Id.Value == "codex"
+                entry.CacheDirectoryName is not null && entry.LocalUsageAgentId is not null
                     ? CombineData(
                         MapCacheData(caches[entry.Id.Value]),
                         usage.ProviderData[entry.Id.Value])
@@ -204,7 +204,7 @@ public sealed class WindowsProviderDiagnosticsQuery
 
             checks.Add(new DoctorCheck(
                 entry.DataCheckId!,
-                entry.CacheDirectoryName is not null
+                entry.CacheDirectoryName is not null && !entry.DataCheckId!.StartsWith("local-usage-", StringComparison.Ordinal)
                     ? MapCacheCheck(caches[entry.Id.Value])
                     : MapUsageCheck(usage.ProviderData[entry.Id.Value])));
         }

@@ -16,6 +16,7 @@ using TokenUsage.Providers.Mux;
 using TokenUsage.Providers.OpenCode;
 using TokenUsage.Providers.Zcode;
 using TokenUsage.Runtime.Windows.Codex;
+using TokenUsage.Runtime.Windows.Claude;
 using TokenUsage.Runtime.Windows.OpenRouter;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 
@@ -118,17 +119,17 @@ public sealed record WindowsProviderCompositionOptions(
 
 public sealed class WindowsProviderComposition
 {
-    private readonly IReadOnlyDictionary<string, ProviderRefreshRegistration> _manualKeyRegistrations;
+    private readonly IReadOnlyDictionary<string, ProviderRefreshRegistration> _resettableRegistrations;
 
     internal WindowsProviderComposition(
         ProviderRefreshHost refreshHost,
         IReadOnlyList<IUsageEventSource> localUsageSources,
-        IReadOnlyDictionary<string, ProviderRefreshRegistration> manualKeyRegistrations,
+        IReadOnlyDictionary<string, ProviderRefreshRegistration> resettableRegistrations,
         CodexAccountService accounts)
     {
         RefreshHost = refreshHost;
         LocalUsageSources = localUsageSources;
-        _manualKeyRegistrations = manualKeyRegistrations;
+        _resettableRegistrations = resettableRegistrations;
         Accounts = accounts;
     }
 
@@ -139,7 +140,7 @@ public sealed class WindowsProviderComposition
     public IReadOnlyList<IUsageEventSource> LocalUsageSources { get; }
 
     /// <summary>
-    /// Removes the cached reading of a provider whose saved key just changed or was removed.
+    /// Removes the cached reading after a saved key or provider opt-in changes.
     /// It runs under the provider's operation gate, so a refresh that read the old key either
     /// finished before the removal or starts after it with the new key.
     /// </summary>
@@ -148,7 +149,7 @@ public sealed class WindowsProviderComposition
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-        if (!_manualKeyRegistrations.TryGetValue(
+        if (!_resettableRegistrations.TryGetValue(
                 providerId,
                 out ProviderRefreshRegistration? registration))
         {
@@ -201,10 +202,15 @@ public static class WindowsProviderCatalog
                 localUsageFactory: timeZoneId => new AmpUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("claude"),
-                cacheDirectoryName: null,
+                cacheDirectoryName: "claude",
                 localUsageAgentId: "claude",
                 detectionCheckId: null,
                 dataCheckId: "local-usage-claude",
+                compose: context => new ProviderBinding(
+                    RefreshRegistration: ClaudeUsageRuntime.CreateRegistration(
+                        context.DataDirectory, context.CacheDirectory("claude"), context.Clock, context.TimeZoneId),
+                    LocalUsageSource: new ClaudeUsageEventSource(context.TimeZoneId,
+                        checkpointPath: Path.Combine(context.DataDirectory, "scanner", "claude-usage.v1.json"), clock: context.Clock)),
                 localUsageFactory: timeZoneId => new ClaudeUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("codex"),
@@ -213,10 +219,10 @@ public static class WindowsProviderCatalog
                 detectionCheckId: "codex-cli",
                 dataCheckId: "codex-cache",
                 compose: context => new ProviderBinding(
-                    RefreshRegistration: new CodexRefreshCoordinator(
+                    RefreshRegistration: CodexRefreshCoordinator.CreateRegistration(
                         context.CacheDirectory("codex"),
                         context.Clock,
-                        context.CodexClientFactory).CreateRegistration(),
+                        context.CodexClientFactory),
                     LocalUsageSource: new CodexUsageEventSource(
                         context.TimeZoneId,
                         clientFactory: context.CodexClientFactory,
@@ -402,8 +408,8 @@ public static class WindowsProviderCatalog
             .Where(item => item.Binding.LocalUsageSource is not null)
             .Select(item => item.Binding.LocalUsageSource!)
             .ToArray();
-        Dictionary<string, ProviderRefreshRegistration> manualKeyRegistrations = bindings
-            .Where(item => item.Entry.Module.AcceptsManualCredential
+        Dictionary<string, ProviderRefreshRegistration> resettableRegistrations = bindings
+            .Where(item => (item.Entry.Module.AcceptsManualCredential || item.Entry.Id.Value == "claude")
                 && item.Binding.RefreshRegistration is not null)
             .ToDictionary(
                 item => item.Entry.Id.Value,
@@ -418,7 +424,7 @@ public static class WindowsProviderCatalog
         return new WindowsProviderComposition(
             refreshHost,
             Array.AsReadOnly(usageSources),
-            manualKeyRegistrations.AsReadOnly(), accounts);
+            resettableRegistrations.AsReadOnly(), accounts);
     }
 
     private static ProviderBinding CreateVercelBinding(CompositionContext context)

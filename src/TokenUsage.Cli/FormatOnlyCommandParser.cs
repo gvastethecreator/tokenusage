@@ -44,7 +44,7 @@ internal static class FormatOnlyCommandParser
         return true;
     }
 
-    private static bool TryParseFormat(string value, out CliOutputFormat format)
+    internal static bool TryParseFormat(string value, out CliOutputFormat format)
     {
         if (string.Equals(value, "human", StringComparison.Ordinal))
         {

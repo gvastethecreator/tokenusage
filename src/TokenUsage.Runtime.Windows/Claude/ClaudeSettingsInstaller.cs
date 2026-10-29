@@ -247,13 +247,15 @@ public sealed class ClaudeSettingsInstaller
 
     private static bool IsOwnStatusLine(JsonNode? statusLine) =>
         statusLine is JsonObject value
+        && value["type"] is JsonValue type
+        && type.TryGetValue(out string? kind)
+        && kind == "command"
         && value["command"] is JsonValue command
         && command.TryGetValue(out string? text)
         && IsOwnCommand(text);
 
     private static bool IsOwnCommand(string command) =>
-        command.Contains("tokenusage", StringComparison.OrdinalIgnoreCase)
-        && command.Contains("claude statusline", StringComparison.Ordinal);
+        string.Equals(command.Trim(), StatusLineCommand, StringComparison.OrdinalIgnoreCase);
 
     private static JsonNode? FindHookRegistration(JsonObject document)
     {

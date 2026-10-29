@@ -4,29 +4,22 @@ using TokenUsage.Providers.Codex;
 
 namespace TokenUsage.Runtime.Windows.Codex;
 
-public sealed class CodexRefreshCoordinator
+public static class CodexRefreshCoordinator
 {
-    private readonly SnapshotStore _store;
-    private readonly IProviderRuntime _provider;
-
-    public CodexRefreshCoordinator(
+    public static ProviderRefreshRegistration CreateRegistration(
         string cacheDirectory,
         TimeProvider clock,
         ICodexQuotaClientFactory clientFactory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cacheDirectory);
-        Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(clientFactory);
 
         string cachePath = Path.Combine(
             Path.GetFullPath(cacheDirectory),
             SnapshotStore.DefaultFileName);
-        _store = new SnapshotStore(cachePath, clock);
-        _provider = new ResilientProviderRuntime(new CodexProviderRuntime(clientFactory));
+        return new ProviderRefreshRegistration(
+            new ResilientProviderRuntime(new CodexProviderRuntime(clientFactory)),
+            new SnapshotStore(cachePath, clock));
     }
-
-    public TimeProvider Clock { get; }
-
-    public ProviderRefreshRegistration CreateRegistration() =>
-        new(_provider, _store);
 }

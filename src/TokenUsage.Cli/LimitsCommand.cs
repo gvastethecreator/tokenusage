@@ -76,7 +76,7 @@ public static class LimitsCommand
         DateTimeOffset generatedAt = TruncateToSecond(clock.GetUtcNow().ToUniversalTime());
         var outputClock = new FixedTimeProvider(generatedAt);
 
-        if (options.Format == OutputFormat.Json)
+        if (options.Format == CliOutputFormat.Json)
         {
             await standardOutput.WriteLineAsync(
                 LimitsDocument.Serialize(generatedAt, selected, outputClock)).ConfigureAwait(false);
@@ -99,7 +99,7 @@ public static class LimitsCommand
         string? providerId = null;
         bool forceRefresh = false;
         bool hasForce = false;
-        OutputFormat format = OutputFormat.Human;
+        CliOutputFormat format = CliOutputFormat.Human;
         bool hasFormat = false;
 
         for (int index = 0; index < arguments.Count; index++)
@@ -124,7 +124,7 @@ public static class LimitsCommand
                     }
 
                     if (++index >= arguments.Count
-                        || !TryParseFormat(arguments[index], out format))
+                        || !FormatOnlyCommandParser.TryParseFormat(arguments[index], out format))
                     {
                         return Invalid(
                             "Option '--format' must be 'human' or 'json'.",
@@ -167,24 +167,6 @@ public static class LimitsCommand
         {
             return false;
         }
-    }
-
-    private static bool TryParseFormat(string value, out OutputFormat format)
-    {
-        if (string.Equals(value, "human", StringComparison.Ordinal))
-        {
-            format = OutputFormat.Human;
-            return true;
-        }
-
-        if (string.Equals(value, "json", StringComparison.Ordinal))
-        {
-            format = OutputFormat.Json;
-            return true;
-        }
-
-        format = default;
-        return false;
     }
 
     private static bool Invalid(
@@ -272,13 +254,7 @@ public static class LimitsCommand
     private readonly record struct LimitsOptions(
         string? ProviderId,
         bool ForceRefresh,
-        OutputFormat Format);
-
-    private enum OutputFormat
-    {
-        Human,
-        Json,
-    }
+        CliOutputFormat Format);
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {

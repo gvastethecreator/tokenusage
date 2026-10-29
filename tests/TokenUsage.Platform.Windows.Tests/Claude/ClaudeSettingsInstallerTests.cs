@@ -1,11 +1,59 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using TokenUsage.Core.Usage;
 using TokenUsage.Runtime.Windows.Claude;
 
 namespace TokenUsage.Platform.Windows.Tests.Claude;
 
 public sealed class ClaudeSettingsInstallerTests
 {
+    [Fact]
+    public async Task LimitsMigrationRecognizesOnlyTheDirectCommandAndNeverOverridesConsent()
+    {
+        using var home = new TemporaryClaudeHome();
+        var installer = home.CreateInstaller();
+        var consent = new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(home.Root));
+        home.WriteSettings("""{"statusLine":{"type":"command","command":"wrapper --command 'tokenusage claude statusline'"}}""");
+        string original = File.ReadAllText(installer.SettingsPath);
+
+        Assert.Equal(ClaudeIntegrationStatus.NotInstalled, installer.GetStatusLineStatus());
+        Assert.Equal(ClaudeLimitsConsentStatus.NotEnabled, await consent.ReadOrMigrateAsync(false));
+        Assert.Equal(original, File.ReadAllText(installer.SettingsPath));
+        installer.InstallStatusLine();
+        Assert.Equal(ClaudeLimitsConsentStatus.NotEnabled, await consent.ReadOrMigrateAsync(true));
+        var legacyConsent = new ClaudeLimitsConsentStore(Path.Combine(home.Root, "legacy-consent.json"));
+        Assert.Equal(ClaudeLimitsConsentStatus.Enabled, await legacyConsent.ReadOrMigrateAsync(true));
+        Assert.Equal(ClaudeLimitsConsentStatus.Enabled, await legacyConsent.ReadOrMigrateAsync(false));
+        await legacyConsent.DisableAsync();
+        Assert.Equal(ClaudeLimitsConsentStatus.Disabled, await legacyConsent.ReadOrMigrateAsync(true));
+        Assert.Equal("wrapper --command 'tokenusage claude statusline'", installer.GetPreviousStatusLineCommand());
+    }
+
+    [Fact]
+    public async Task ForwardingSetsAnInheritedRecursionMarkerAndPreservesFailures()
+    {
+        var forwarder = new ClaudeStatusLineForwarder(findBash: () => null);
+        string marker = ClaudeStatusLineForwarder.ReentrancyEnvironmentVariable;
+        ClaudeStatusLineForwardResult success = await forwarder.RunAsync($"echo %{marker}%", []);
+        Assert.Equal(0, success.ExitCode);
+        Assert.Equal("1" + Environment.NewLine, success.StandardOutput);
+        ClaudeStatusLineForwardResult failure = await forwarder.RunAsync("echo misleading& exit /b 7", []);
+        Assert.Equal(7, failure.ExitCode);
+        Assert.Equal("misleading" + Environment.NewLine, failure.StandardOutput);
+        string? previous = Environment.GetEnvironmentVariable(marker);
+        try
+        {
+            Environment.SetEnvironmentVariable(marker, "1");
+            ClaudeStatusLineForwardResult nested = await forwarder.RunAsync("echo nested", []);
+            Assert.Equal(0, nested.ExitCode);
+            Assert.Equal(string.Empty, nested.StandardOutput);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(marker, previous);
+        }
+    }
+
     [Fact]
     public void InstallHookAddsTheRefreshTriggerAndKeepsOtherSettings()
     {

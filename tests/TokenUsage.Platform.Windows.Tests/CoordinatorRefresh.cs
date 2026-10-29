@@ -1,6 +1,5 @@
 using TokenUsage.Core.Cache;
 using TokenUsage.Core.Providers;
-using TokenUsage.Runtime.Windows.Codex;
 using TokenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace TokenUsage.Platform.Windows.Tests;
@@ -8,10 +7,11 @@ namespace TokenUsage.Platform.Windows.Tests;
 internal static class CoordinatorRefresh
 {
     public static IAsyncEnumerable<CacheFirstEvent> Run(
-        CodexRefreshCoordinator coordinator,
+        ProviderRefreshRegistration registration,
+        TimeProvider clock,
         bool forceRefresh,
         CancellationToken cancellationToken) =>
-        new ProviderRefreshHost([coordinator.CreateRegistration()], coordinator.Clock)
+        new ProviderRefreshHost([registration], clock)
             .RunProviderAsync(new ProviderId("codex"), forceRefresh, cancellationToken);
 
     public static IAsyncEnumerable<CacheFirstEvent> Run(

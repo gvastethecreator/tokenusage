@@ -17,6 +17,8 @@ public sealed record UsageOverviewObservation(
     string? ReasoningEffort,
     string? ServiceTier)
 {
+    public UsageDetailMetadata DetailMetadata { get; init; } = UsageDetailMetadata.Unknown;
+
     public bool SessionUnassigned => SessionKey is null;
 
     public bool ProjectUnassigned => ProjectKey is null;

@@ -210,19 +210,20 @@ public sealed partial class UsageRepository
                 cancellationToken)
             .ConfigureAwait(false);
 
-        DateOnly[] dates = previousDates.Concat(supersededDates)
-            .Concat(written
-            .Select(usageEvent => UsageRollupAggregator.CivilDate(usageEvent))
-            )
-            .Distinct()
-            .ToArray();
-        await RebuildAgentRollupsForDatesAsync(
-                connection,
-                transaction,
-                agentId,
-                dates,
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (written.Length > 0 || supersededDates.Count > 0)
+        {
+            DateOnly[] dates = previousDates.Concat(supersededDates)
+                .Concat(written.Select(UsageRollupAggregator.CivilDate))
+                .Distinct()
+                .ToArray();
+            await RebuildAgentRollupsForDatesAsync(
+                    connection,
+                    transaction,
+                    agentId,
+                    dates,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return new UsageIngestResult(written.Length, batch.Length - written.Length);
     }
@@ -770,6 +771,12 @@ public sealed partial class UsageRepository
         string operation)
     {
         EnsureWritable();
+        return ValidateAgentBatchContent(agentId, events, operation);
+    }
+
+    private static UsageEvent[] ValidateAgentBatchContent(
+        AgentId agentId, IEnumerable<UsageEvent> events, string operation)
+    {
         ArgumentNullException.ThrowIfNull(agentId);
         ArgumentNullException.ThrowIfNull(events);
         UsageEvent[] batch = events.ToArray();
@@ -1243,7 +1250,25 @@ public sealed partial class UsageRepository
             output_availability = excluded.output_availability,
             reasoning_availability = excluded.reasoning_availability,
             cache_read_availability = excluded.cache_read_availability,
-            cache_write_availability = excluded.cache_write_availability;
+            cache_write_availability = excluded.cache_write_availability
+        WHERE (agent_id, model_provider_id, model_id, occurred_at_utc, grouping_time_zone_id,
+            civil_date, input_tokens, output_tokens, reasoning_tokens, cache_read_tokens,
+            cache_write_tokens, cost_kind, reported_cost_micros, estimated_cost_micros,
+            catalog_version, exact_price_match, parser_version, coverage_kind, time_precision,
+            interval_started_at_utc, observed_model_id, reasoning_effort, service_tier,
+            source_instance_id, record_kind, representation_revision, input_availability,
+            output_availability, reasoning_availability, cache_read_availability, cache_write_availability)
+        IS NOT (excluded.agent_id, excluded.model_provider_id, excluded.model_id,
+            excluded.occurred_at_utc, excluded.grouping_time_zone_id, excluded.civil_date,
+            excluded.input_tokens, excluded.output_tokens, excluded.reasoning_tokens,
+            excluded.cache_read_tokens, excluded.cache_write_tokens, excluded.cost_kind,
+            excluded.reported_cost_micros, excluded.estimated_cost_micros, excluded.catalog_version,
+            excluded.exact_price_match, excluded.parser_version, excluded.coverage_kind,
+            excluded.time_precision, excluded.interval_started_at_utc, excluded.observed_model_id,
+            excluded.reasoning_effort, excluded.service_tier, excluded.source_instance_id,
+            excluded.record_kind, excluded.representation_revision, excluded.input_availability,
+            excluded.output_availability, excluded.reasoning_availability,
+            excluded.cache_read_availability, excluded.cache_write_availability);
         """;
 
     private static async Task<UsageEvent[]> WriteEventsAsync(

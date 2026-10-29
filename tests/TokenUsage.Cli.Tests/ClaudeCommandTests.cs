@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Text;
+using TokenUsage.Core.Cache;
 using TokenUsage.Cli;
 using TokenUsage.Core.Providers;
+using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Runtime.Windows.Claude;
 
@@ -64,7 +66,8 @@ public sealed class ClaudeCommandTests
         Assert.Contains("limits: no reading yet", output.ToString(), StringComparison.Ordinal);
 
         Assert.Equal(0, await ClaudeCommand.RunAsync(["uninstall-hook"], TextWriter.Null, TextWriter.Null, installer: installer));
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["uninstall-statusline"], TextWriter.Null, TextWriter.Null, installer: installer));
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["uninstall-statusline"], TextWriter.Null, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer));
         Assert.Equal(ClaudeIntegrationStatus.NotInstalled, installer.GetHookStatus());
         Assert.Equal(ClaudeIntegrationStatus.NotInstalled, installer.GetStatusLineStatus());
     }
@@ -73,6 +76,7 @@ public sealed class ClaudeCommandTests
     public async Task StatusLineStoresTheReadingAndPrintsTheLimits()
     {
         using var home = new TemporaryRoot();
+        home.CreateInstaller().InstallStatusLine();
         var output = new StringWriter(CultureInfo.InvariantCulture);
 
         int exitCode = await ClaudeCommand.RunAsync(
@@ -115,6 +119,67 @@ public sealed class ClaudeCommandTests
         // findstr echoes the matching input line, proving the previous command got the payload.
         Assert.Contains("secret-project", output.ToString(), StringComparison.Ordinal);
         Assert.NotNull(new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(home.DataDirectory)).Load());
+
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["disable-limits"], TextWriter.Null, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer));
+        output.GetStringBuilder().Clear();
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["statusline"], output, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory,
+            standardInput: new MemoryStream(Encoding.UTF8.GetBytes(Payload)), installer: installer,
+            forwarder: new ClaudeStatusLineForwarder(findBash: () => null)));
+        Assert.Contains("secret-project", output.ToString(), StringComparison.Ordinal);
+        Assert.False(File.Exists(ClaudeRateLimitStore.DefaultPath(home.DataDirectory)));
+        Assert.Equal(ClaudeIntegrationStatus.Installed, installer.GetStatusLineStatus());
+    }
+
+    [Fact]
+    public async Task ExplicitLimitsConsentPreservesAnExternalWrapperAndNeverComesFromCachedNumbers()
+    {
+        using var home = new TemporaryRoot();
+        var installer = home.CreateInstaller();
+        home.WriteSettings("""{"statusLine":{"type":"command","command":"wrapper --command 'tokenusage claude statusline'"}}""");
+        string settings = File.ReadAllText(installer.SettingsPath);
+        var limits = new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(home.DataDirectory));
+        var originalReading = new ClaudeRateLimitSnapshot(Now, [new("seven_day", 76m, Now.AddDays(4))]);
+        limits.Save(originalReading);
+        var output = new StringWriter(CultureInfo.InvariantCulture);
+
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["statusline"], output, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer,
+            clock: new LimitsCommandTests.FixedTimeProvider(Now),
+            standardInput: new MemoryStream(Encoding.UTF8.GetBytes(Payload))));
+        Assert.Equal("5h 24% · 7d 41%" + Environment.NewLine, output.ToString());
+        Assert.Equal(76m, Assert.Single(limits.Load()!.Windows).UsedPercent);
+        var consent = new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(home.DataDirectory));
+        Assert.Equal(ClaudeLimitsConsentStatus.NotEnabled, await consent.ReadOrMigrateAsync(false));
+
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["enable-limits"], TextWriter.Null, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer));
+        Assert.Equal(ClaudeLimitsConsentStatus.Enabled, await consent.ReadOrMigrateAsync(false));
+        Assert.Equal(settings, File.ReadAllText(installer.SettingsPath));
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["disable-limits"], TextWriter.Null, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer));
+        Assert.Equal(ClaudeLimitsConsentStatus.Disabled, await consent.ReadOrMigrateAsync(true));
+        Assert.Equal(settings, File.ReadAllText(installer.SettingsPath));
+        Assert.Null(limits.Load());
+    }
+
+    [Fact]
+    public async Task AFailedPreviousCommandPreservesItsOutputAndExitCode()
+    {
+        using var home = new TemporaryRoot();
+        var installer = home.CreateInstaller();
+        home.WriteSettings("""{"statusLine":{"type":"command","command":"echo misleading& exit /b 7"}}""");
+        installer.InstallStatusLine();
+        var output = new StringWriter(CultureInfo.InvariantCulture);
+
+        Assert.Equal(7, await ClaudeCommand.RunAsync(["statusline"], output, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer,
+            clock: new LimitsCommandTests.FixedTimeProvider(Now),
+            standardInput: new MemoryStream(Encoding.UTF8.GetBytes(Payload)),
+            forwarder: new ClaudeStatusLineForwarder(findBash: () => null)));
+
+        Assert.Equal("misleading" + Environment.NewLine, output.ToString());
     }
 
     [Fact]
@@ -137,17 +202,21 @@ public sealed class ClaudeCommandTests
     }
 
     [Fact]
-    public async Task LimitsAccessReadsTheStoredClaudeReading()
+    public async Task LimitsAccessReadsTheSharedClaudeCacheInsteadOfTheStatusLineSidecar()
     {
         using var home = new TemporaryRoot();
         var clock = new LimitsCommandTests.FixedTimeProvider(Now);
         new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(home.DataDirectory)).Save(
-            new ClaudeRateLimitSnapshot(Now, [new("five_hour", 40m, Now.AddHours(1))]));
+            new ClaudeRateLimitSnapshot(Now, [new("seven_day", 76m, Now.AddDays(4))]));
+        ProviderRefreshRegistration registration = LocalLimitsCliAccess.CreateLiveHost(home.DataDirectory, clock)
+            .Registrations.Single(item => item.Provider.Descriptor.Id.Value == "claude");
+        await registration.Store.UpsertLastGoodAsync(ClaudeRateLimitSnapshotMapper.Map(
+            new(Now, [new("five_hour", 40m, Now.AddHours(1))]), Now, "UTC")!);
 
         IReadOnlyList<ProviderSnapshot> snapshots = await LocalLimitsCliAccess.ReadAsync(
             home.DataDirectory,
             providerId: "claude",
-            forceRefresh: true,
+            forceRefresh: false,
             clock,
             CancellationToken.None);
 

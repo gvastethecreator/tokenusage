@@ -405,6 +405,18 @@ public sealed class LocalUsageRefreshTests
         Assert.Equal(1, second.Rollups.Sum(r => r.EventCount));
         Assert.Equal(1_100, second.Rollups.Sum(r => r.Tokens.Total));
         Assert.Equal(0.75m, second.Rollups.Sum(r => r.EstimatedCostUsd ?? 0m));
+
+        var checkpoint = new TrackingCheckpoint();
+        var conflicting = new HistoryPreservingWindowedSource(new AgentId("cursor"), "test/1", 35,
+            new UsageSourceReadResult(
+                [CreateEvent("cursor", "bubble-1", new DateTimeOffset(2026, 7, 21, 10, 0, 0, TimeSpan.Zero),
+                    1_000, 200, CostObservation.CatalogEstimated(1.5m, "different-catalog", "composer-2.5"))],
+                UsageSourceReadStatus.Partial) { Checkpoint = checkpoint });
+        LocalUsageRefreshResult preserved = await new LocalUsageRefresh(folder.DatabasePath, conflicting, clock).RefreshAsync();
+        Assert.Equal(0, checkpoint.Commits);
+        Assert.Equal(1_100, preserved.Rollups.Sum(row => row.Tokens.Total));
+        Assert.Equal(0.75m, preserved.Rollups.Sum(row => row.EstimatedCostUsd ?? 0m));
+        Assert.Equal(UsageSourceIssueKind.UnresolvedHistory, Assert.Single(preserved.SourceDiagnostics).Issue);
     }
 
     [Fact]
@@ -859,7 +871,7 @@ public sealed class LocalUsageRefreshTests
             Task.FromResult(_result);
     }
 
-    private sealed class ScriptedWindowedSource : IWindowedSnapshotUsageEventSource
+    private class ScriptedWindowedSource : IWindowedSnapshotUsageEventSource
     {
         private readonly UsageSourceReadResult _result;
 
@@ -885,6 +897,12 @@ public sealed class LocalUsageRefreshTests
 
         public Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(_result);
+    }
+
+    private sealed class HistoryPreservingWindowedSource(AgentId agentId, string parser,
+        int windowDays, UsageSourceReadResult result) : ScriptedWindowedSource(agentId, parser, windowDays, result),
+        IHistoryPreservingUsageEventSource
+    {
     }
 
     private sealed class ScriptedSnapshotSource(AgentId agentId, UsageSourceReadResult result) : ISnapshotUsageEventSource

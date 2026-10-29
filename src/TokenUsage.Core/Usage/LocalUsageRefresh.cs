@@ -330,12 +330,24 @@ public sealed class LocalUsageRefresh
                         && (result.Status == UsageSourceReadStatus.Complete || !await repository.HasDifferentParserInRangeAsync(windowedSource.AgentId,
                             windowedSource.EventParserVersion, reconcileFrom, today, cancellationToken).ConfigureAwait(false)))
                     {
-                        await repository.UpsertAgentEventsAsync(
-                            windowedSource.AgentId,
-                            eventsInWindow.Concat(olderEvents).ToArray(),
-                            result.Status == UsageSourceReadStatus.Complete
-                                ? result.SupersededEventKeys : [],
-                            cancellationToken).ConfigureAwait(false);
+                        if (source is IHistoryPreservingUsageEventSource)
+                        {
+                            UsageRecoveryResult recovered = await repository.RecoverAgentEventsAsync(windowedSource.AgentId,
+                                eventsInWindow.Concat(olderEvents).ToArray(),
+                                _clock.GetUtcNow().ToUniversalTime(), cancellationToken: cancellationToken).ConfigureAwait(false);
+                            if (recovered.Exclusions.ConflictingIdentity > 0 || recovered.Exclusions.ConflictingPriceEvidence > 0)
+                            {
+                                canCommitCheckpoint = false;
+                                readResults[index] = UnresolvedSourceRead(result);
+                            }
+                        }
+                        else
+                            await repository.UpsertAgentEventsAsync(
+                                windowedSource.AgentId,
+                                eventsInWindow.Concat(olderEvents).ToArray(),
+                                result.Status == UsageSourceReadStatus.Complete
+                                    ? result.SupersededEventKeys : [],
+                                cancellationToken).ConfigureAwait(false);
                     }
                     else canCommitCheckpoint = result.Events.Count == 0;
                 }
