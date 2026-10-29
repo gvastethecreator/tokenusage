@@ -16,9 +16,10 @@ listed in [CONTRIBUTING.md](../CONTRIBUTING.md):
 
 Both commands inspect every project in `TokenUsage.slnx`, including the Windows
 packaging project. `deps-check.ps1` lists direct package updates and exits with
-code 1 when updates are available. `audit.ps1` reports known vulnerabilities,
-including transitive dependencies. Review its output; a successful command
-does not mean that no vulnerabilities were reported.
+code 1 when updates are available. Both commands verify that a managed project
+covers each packaging dependency. `audit.ps1` reports known vulnerabilities,
+including transitive dependencies, and exits with code 1 if it finds one or
+cannot complete a project audit.
 
 ## Apply an update
 

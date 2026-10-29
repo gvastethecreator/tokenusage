@@ -6,18 +6,13 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-09-30";
+    public const string Version = "openai-api-2026-10-02";
     private const long LongContextThreshold = 272_000;
 
-    // Promotional rates switch to the list rate on the day after the published
-    // cutoff. A resolve without a timestamp prices at the rate valid now.
-    private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
-        new(StringComparer.Ordinal)
-        {
-            ["gpt-5.6-sol"] = new(
-                new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero),
-                new("gpt-5.6-sol", 5m, 0.5m, 30m, 6.25m, true)),
-        };
+    // The official page guarantees this promotion through November 21, but
+    // publishes no successor rate. Later observations require new evidence.
+    private static readonly DateTimeOffset SolReviewDueUtc =
+        new(2026, 11, 22, 0, 0, 0, TimeSpan.Zero);
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
@@ -58,8 +53,6 @@ public static class CodexPricingCatalog
         if (atUtc.Offset != TimeSpan.Zero) throw new ArgumentException("Catalog dates must use UTC.", nameof(atUtc));
         if (!TryResolveRates(model.Trim().ToLowerInvariant(), out Rates rates))
             return new(null, UsagePriceExclusion.MissingTariff);
-        if (ListRatesFromUtc.TryGetValue(rates.PriceMatch, out DatedRates? dated)
-            && atUtc >= dated.ListEffectiveFromUtc) rates = dated.ListRates;
         if (!EvidenceEntries.Any(item => item.ExactPriceMatch == rates.PriceMatch && item.IsEffectiveAt(atUtc)))
             return new(null, UsagePriceExclusion.MissingTariff);
         // Exclude the whole threshold-based regime, even if this observation is below its threshold.
@@ -82,10 +75,10 @@ public static class CodexPricingCatalog
             return CostObservation.Unavailable();
         }
 
-        if (ListRatesFromUtc.TryGetValue(rates.PriceMatch, out DatedRates? dated)
-            && (occurredAtUtc ?? DateTimeOffset.UtcNow) >= dated.ListEffectiveFromUtc)
+        if (!EvidenceEntries.Any(item => item.ExactPriceMatch == rates.PriceMatch
+                && item.IsEffectiveAt(occurredAtUtc ?? DateTimeOffset.UtcNow)))
         {
-            rates = dated.ListRates;
+            return CostObservation.Unavailable();
         }
 
         decimal inputMultiplier = 1m;
@@ -153,10 +146,6 @@ public static class CodexPricingCatalog
         decimal CacheWrite,
         bool HasLongContext);
 
-    private sealed record DatedRates(
-        DateTimeOffset ListEffectiveFromUtc,
-        Rates ListRates);
-
     private static List<PricingRateEvidence> BuildEvidence()
     {
         string[] priceMatches = RatesByModel.Values
@@ -166,18 +155,13 @@ public static class CodexPricingCatalog
         var evidence = new List<PricingRateEvidence>();
         foreach (string priceMatch in priceMatches)
         {
-            if (ListRatesFromUtc.TryGetValue(priceMatch, out DatedRates? dated))
+            if (priceMatch == "gpt-5.6-sol")
             {
                 evidence.Add(PricingEvidence.Promotion(
                     Version,
                     priceMatch,
                     PricingOfficialSources.OpenAi,
-                    dated.ListEffectiveFromUtc));
-                evidence.Add(PricingEvidence.FollowOn(
-                    Version,
-                    priceMatch,
-                    PricingOfficialSources.OpenAi,
-                    dated.ListEffectiveFromUtc));
+                    SolReviewDueUtc));
             }
             else
             {

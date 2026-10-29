@@ -19,11 +19,10 @@ public sealed class CursorUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "cursor-local-token-metrics/5";
+    public const string ParserVersion = "cursor-local-token-metrics/6";
     public const long DefaultMaximumDatabaseBytes = 64L * 1024 * 1024 * 1024;
     public const int DefaultMaximumValueBytes = 16 * 1024 * 1024;
     private const int LookbackDays = 35;
-    private const int TurnTokenProbeRows = 64;
     private const long MaximumPlausibleContextTokens = 16 * 1024 * 1024;
     private readonly string _cursorHome;
     private readonly string _databasePath;
@@ -220,15 +219,11 @@ public sealed class CursorUsageEventSource :
             return;
         }
 
-        HashSet<string> composersWithTurnTokens = HasRecentTurnCounters(
-                connection,
-                cancellationToken)
-            ? ReadBubbleTokenRows(
-                connection,
-                output,
-                state,
-                cancellationToken)
-            : [];
+        HashSet<string> composersWithTurnTokens = ReadBubbleTokenRows(
+            connection,
+            output,
+            state,
+            cancellationToken);
 
         _supersededEventKeys.AddRange(composersWithTurnTokens.Select(composer =>
             new UsageEventKey(Hash($"cursor\0composer-state-v1\0composerData:{composer}"))));
@@ -247,6 +242,7 @@ public sealed class CursorUsageEventSource :
               FROM cursorDiskKV
               WHERE key GLOB 'composerData:*'
                 AND length(value) <= $value_limit
+                AND json_valid(value)
             ),
             composer_rows AS (
               SELECT
@@ -344,47 +340,11 @@ public sealed class CursorUsageEventSource :
             output[usageEvent.EventKey.Value] = usageEvent;
         }
 
-        MarkSkippedComposerRows(
+        MarkSkippedRows(
             connection,
             composersWithTurnTokens,
             state,
             cancellationToken);
-    }
-
-    /// <summary>
-    /// Recent agent turns are enough to tell whether this Cursor build stores
-    /// real per-turn counters. A scan of every bubble row would parse hundreds
-    /// of thousands of conversation blobs when those counters are still zero.
-    /// </summary>
-    private bool HasRecentTurnCounters(
-        SqliteConnection connection,
-        CancellationToken cancellationToken)
-    {
-        using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT
-              CAST(COALESCE(json_extract(value, '$.tokenCount.inputTokens'), 0) AS INTEGER) AS input_tokens,
-              CAST(COALESCE(json_extract(value, '$.tokenCount.outputTokens'), 0) AS INTEGER) AS output_tokens
-            FROM cursorDiskKV
-            WHERE key GLOB 'bubbleId:*'
-              AND length(value) <= $value_limit
-            ORDER BY ROWID DESC
-            LIMIT $probe_limit
-            """;
-        command.Parameters.AddWithValue("$value_limit", _maximumValueBytes);
-        command.Parameters.AddWithValue("$probe_limit", TurnTokenProbeRows);
-        using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
-        using SqliteDataReader reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (LocalUsageSqlite.GetNonNegativeOrZero(reader, 0) + LocalUsageSqlite.GetNonNegativeOrZero(reader, 1) > 0)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>
@@ -426,6 +386,7 @@ public sealed class CursorUsageEventSource :
               FROM cursorDiskKV
               WHERE key GLOB 'bubbleId:*'
                 AND length(value) <= $value_limit
+                AND json_valid(value)
             )
             SELECT
               key,
@@ -645,11 +606,10 @@ public sealed class CursorUsageEventSource :
     }
 
     /// <summary>
-    /// A skipped composer blob is only a truncated scan when that conversation has no
-    /// turn counters. A blob we cannot read for a conversation that already has bubbles
-    /// does not keep refresh from replacing stored events.
+    /// Skipped turns make the scan partial. A skipped composer is redundant when
+    /// that conversation already has measured turn counters.
     /// </summary>
-    private void MarkSkippedComposerRows(
+    private void MarkSkippedRows(
         SqliteConnection connection,
         HashSet<string> composersWithTurnTokens,
         LocalScanState state,
@@ -657,17 +617,16 @@ public sealed class CursorUsageEventSource :
     {
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = """
-            WITH composer_rows AS (
+            WITH candidate_rows AS (
               SELECT key, value, length(value) AS value_bytes
               FROM cursorDiskKV
-              WHERE key GLOB 'composerData:*'
+              WHERE key GLOB 'composerData:*' OR key GLOB 'bubbleId:*'
             )
             SELECT key
-            FROM composer_rows
+            FROM candidate_rows
             WHERE CASE
               WHEN value_bytes > $value_limit THEN 1
-              WHEN value_bytes <= 65536 THEN NOT json_valid(CAST(value AS TEXT))
-              ELSE 0
+              ELSE NOT json_valid(CAST(value AS TEXT))
             END = 1
             LIMIT $row_limit
             """;
@@ -863,6 +822,8 @@ public sealed class CursorUsageEventSource :
                 new ModelProviderId("google"),
             _ when normalized.Contains("grok", StringComparison.Ordinal) =>
                 new ModelProviderId("xai"),
+            _ when KnownModelPricingCatalog.Canonicalize(normalized) is "muse-spark-1.3" or "muse-wonder-1.0" =>
+                new ModelProviderId("meta"),
             _ when normalized.StartsWith("gpt-", StringComparison.Ordinal)
                 || normalized.StartsWith('o')
                 || normalized.Contains("openai", StringComparison.Ordinal) =>

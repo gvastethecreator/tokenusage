@@ -58,7 +58,7 @@
 
   <ItemGroup Condition="'$(_TokenUsageCanBuildWap)' == 'true'">
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
   </ItemGroup>
 
   <Target Name="Build" Condition="'$(_TokenUsageCanBuildWap)' != 'true'">

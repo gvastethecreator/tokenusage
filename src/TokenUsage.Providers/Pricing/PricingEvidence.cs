@@ -192,7 +192,7 @@ public static class PricingEvidence
 
 public static class PricingOfficialSources
 {
-    private static readonly DateOnly ReviewDate = new(2026, 9, 22);
+    private static readonly DateOnly ReviewDate = new(2026, 10, 19);
 
     public static PricingSourceEvidence OpenAi { get; } = new(
         "openai-model-pricing",
@@ -203,25 +203,25 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence OpenAiAstra { get; } = new(
         "openai-astra-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-6-astra"),
-        new DateOnly(2026, 9, 22),
+        ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence OpenAiFlagship { get; } = new(
         "openai-flagship-pricing",
         new Uri("https://developers.openai.com/api/docs/pricing"),
-        new DateOnly(2026, 9, 30),
+        ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence OpenAiCyber { get; } = new(
         "openai-cyber-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-5.6-cyber"),
-        new DateOnly(2026, 9, 30),
+        ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Anthropic { get; } = new(
         "anthropic-model-pricing",
-        new Uri("https://platform.claude.com/docs/en/about-claude/pricing"),
-        new DateOnly(2026, 9, 30),
+        new Uri("https://platform.claude.com/docs/en/about-claude/pricing.md"),
+        ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Google { get; } = new(
@@ -244,7 +244,31 @@ public static class PricingOfficialSources
 
     public static PricingSourceEvidence CursorGemini { get; } = new(
         "cursor-gemini-3-8-pricing",
-        new Uri("https://prod.cursor.com/docs/models/gemini-3-8-flash"),
+        new Uri("https://cursor.com/docs/models/gemini-3-8-flash"),
+        ReviewDate,
+        PricingBillingScope.HostSpecific);
+
+    public static PricingSourceEvidence CursorGrok { get; } = new(
+        "cursor-grok-4-7-pricing",
+        new Uri("https://cursor.com/docs/models/grok-4-7"),
+        ReviewDate,
+        PricingBillingScope.HostSpecific);
+
+    public static PricingSourceEvidence CursorArgon { get; } = new(
+        "cursor-gemini-4-argon-pricing",
+        new Uri("https://cursor.com/docs/models/gemini-4-argon"),
+        ReviewDate,
+        PricingBillingScope.HostSpecific);
+
+    public static PricingSourceEvidence CursorWonder { get; } = new(
+        "cursor-muse-wonder-pricing",
+        new Uri("https://cursor.com/docs/models/muse-wonder"),
+        ReviewDate,
+        PricingBillingScope.HostSpecific);
+
+    public static PricingSourceEvidence CursorMuse { get; } = new(
+        "cursor-muse-spark-pricing",
+        new Uri("https://cursor.com/docs/models/muse-spark-1-3"),
         ReviewDate,
         PricingBillingScope.HostSpecific);
 
@@ -256,7 +280,7 @@ public static class PricingOfficialSources
 
     public static PricingSourceEvidence Moonshot { get; } = new(
         "moonshot-model-pricing",
-        new Uri("https://platform.kimi.ai/docs/pricing/chat"),
+        new Uri("https://platform.kimi.ai/docs/pricing/chat.md"),
         ReviewDate,
         PricingBillingScope.DirectProviderApi);
 }

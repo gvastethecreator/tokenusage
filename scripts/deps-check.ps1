@@ -18,17 +18,38 @@ if (-not (Test-Path -LiteralPath (Join-Path $env:WapProjPath 'Microsoft.DesktopB
     throw 'Visual Studio Desktop Bridge build tools are missing.'
 }
 
-$json = dotnet list $solution package --outdated --format json | Out-String
-if ($LASTEXITCODE -ne 0) {
-    throw "NuGet dependency check failed with exit code $LASTEXITCODE."
+# The packaging references are shared with the app; NuGet cannot list a .wapproj.
+[xml] $solutionXml = Get-Content -LiteralPath $solution -Raw
+$projects = @($solutionXml.SelectNodes('//Project') | Where-Object { $_.Path.EndsWith('.csproj') })
+if ($projects.Count -eq 0) { throw 'No managed projects found in the solution.' }
+$references = @{}
+foreach ($project in $projects) {
+    [xml] $projectXml = Get-Content -LiteralPath (Join-Path $root $project.Path) -Raw
+    foreach ($reference in $projectXml.SelectNodes('//PackageReference')) {
+        $references["$($reference.Include)@$($reference.Version)"] = $true
+    }
 }
-if ([string]::IsNullOrWhiteSpace($json)) {
-    throw 'NuGet dependency check returned no result.'
+foreach ($project in $solutionXml.SelectNodes('//Project') | Where-Object { $_.Path.EndsWith('.wapproj') }) {
+    [xml] $packageXml = Get-Content -LiteralPath (Join-Path $root $project.Path) -Raw
+    foreach ($reference in $packageXml.SelectNodes('//*[local-name()="PackageReference"]')) {
+        $key = "$($reference.Include)@$($reference.Version)"
+        if (-not $references.ContainsKey($key)) {
+            throw "Packaging dependency $key is not covered by a managed project update check."
+        }
+    }
 }
-
-$result = $json | ConvertFrom-Json
+$results = foreach ($project in $projects) {
+    $path = Join-Path $root $project.Path
+    $json = dotnet list $path package --outdated --format json | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        throw "NuGet dependency check failed for $($project.Path) with exit code $LASTEXITCODE."
+    }
+    $result = $json | ConvertFrom-Json
+    if (-not $result.projects) { throw "NuGet returned no project result for $path." }
+    $result.projects
+}
 $pending = @()
-foreach ($project in $result.projects) {
+foreach ($project in $results) {
     foreach ($framework in $project.frameworks) {
         foreach ($package in $framework.topLevelPackages) {
             $projectPath = [System.IO.Path]::GetFullPath($project.path)
@@ -42,8 +63,8 @@ foreach ($project in $result.projects) {
     }
 }
 if ($pending.Count -gt 0) {
-    $pending | Format-Table -AutoSize
+    $pending | Format-Table -AutoSize | Out-String -Width 240 | Write-Host
     exit 1
 }
 
-Write-Host 'No direct package updates reported for the full solution.' -ForegroundColor Green
+Write-Host "No direct package updates reported for $($projects.Count) managed projects." -ForegroundColor Green

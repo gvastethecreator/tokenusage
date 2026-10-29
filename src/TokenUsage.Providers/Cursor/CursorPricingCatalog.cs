@@ -10,21 +10,24 @@ namespace TokenUsage.Providers.Cursor;
 /// </summary>
 public static class CursorPricingCatalog
 {
-    public const string Version = "cursor-models-2026-09-22";
-    private const long GrokFourSevenFastLongContextThreshold = 200_000;
+    public const string Version = "cursor-models-2026-10-19";
+    private const long GrokFourSevenLongContextThreshold = 256_000;
 
     private static readonly Dictionary<string, Rates> FirstPartyRatesByModel =
         new(StringComparer.Ordinal)
         {
             ["composer-2.5"] = new(0.5m, 0.2m, 2.5m),
             ["composer-2.5-fast"] = new(3m, 0.5m, 15m),
-            ["gemini-3.8-flash"] = new(0.75m, 0.075m, 3.5m),
+            ["gemini-3.8-flash"] = new(0.75m, 0.075m, 3.75m),
+            ["gemini-4-argon"] = new(2m, 0.1m, 10m, CacheWrite: 0m),
             ["grok-4.5"] = new(2m, 0.5m, 6m),
             ["grok-4.5-fast"] = new(4m, 1m, 18m),
             ["grok-4.6"] = new(2m, 0.5m, 6m),
             ["grok-4.6-fast"] = new(4m, 1m, 12m),
             ["grok-4.7"] = new(2m, 0.5m, 6m),
             ["grok-4.7-fast"] = new(4m, 1m, 12m),
+            ["muse-spark-1.3"] = new(1.25m, 0.15m, 4.25m, CacheWrite: 0m),
+            ["muse-wonder-1.0"] = new(4m, 0.2m, 20m, CacheWrite: 0m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -36,10 +39,10 @@ public static class CursorPricingCatalog
         if (!FirstPartyRatesByModel.TryGetValue(normalized, out Rates? rates)
             || !EvidenceEntries.Any(item => item.ExactPriceMatch == normalized && item.IsEffectiveAt(atUtc)))
             return new(null, UsagePriceExclusion.MissingTariff);
-        if (normalized == "grok-4.7-fast")
+        if (normalized is "grok-4.7" or "grok-4.7-fast")
             return new(null, UsagePriceExclusion.NonLinearRegime);
         return new(new(Version, normalized, "cursor-published-linear/v1", rates.Input,
-            rates.Output, rates.Output, rates.CacheRead, rates.Input), null);
+            rates.Output, rates.Output, rates.CacheRead, rates.CacheWrite ?? rates.Input), null);
     }
 
     public static CostObservation Resolve(
@@ -56,12 +59,18 @@ public static class CursorPricingCatalog
             return KnownModelPricingCatalog.Resolve(model, occurredAtUtc, tokens);
         }
 
-        decimal multiplier = normalized == "grok-4.7-fast"
-            && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite) > GrokFourSevenFastLongContextThreshold
-                ? 1.5m : 1m;
+        // Cursor publishes a 256k input threshold, distinct from the xAI API's 200k tier.
+        bool longContext = checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
+            > GrokFourSevenLongContextThreshold;
+        decimal multiplier = longContext ? normalized switch
+        {
+            "grok-4.7" => 2m,
+            "grok-4.7-fast" => 1.5m,
+            _ => 1m,
+        } : 1m;
         return CostObservation.CatalogEstimated(
             LinearTokenPrice.Estimate(tokens, rates.Input, rates.CacheRead, rates.Output,
-                inputMultiplier: multiplier, outputMultiplier: multiplier),
+                cacheWrite: rates.CacheWrite, inputMultiplier: multiplier, outputMultiplier: multiplier),
             Version,
             normalized);
     }
@@ -69,7 +78,8 @@ public static class CursorPricingCatalog
     private sealed record Rates(
         decimal Input,
         decimal CacheRead,
-        decimal Output);
+        decimal Output,
+        decimal? CacheWrite = null);
 
     private static PricingRateEvidence[] BuildEvidence()
     {
@@ -78,9 +88,15 @@ public static class CursorPricingCatalog
             .Select(priceMatch => PricingEvidence.Ongoing(
                 Version,
                 priceMatch,
-                priceMatch == "gemini-3.8-flash"
-                    ? PricingOfficialSources.CursorGemini
-                    : PricingOfficialSources.Cursor))
+                priceMatch switch
+                {
+                    "gemini-3.8-flash" => PricingOfficialSources.CursorGemini,
+                    "gemini-4-argon" => PricingOfficialSources.CursorArgon,
+                    "grok-4.7" or "grok-4.7-fast" => PricingOfficialSources.CursorGrok,
+                    "muse-spark-1.3" => PricingOfficialSources.CursorMuse,
+                    "muse-wonder-1.0" => PricingOfficialSources.CursorWonder,
+                    _ => PricingOfficialSources.Cursor,
+                }))
             .ToArray();
         PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
         return evidence;

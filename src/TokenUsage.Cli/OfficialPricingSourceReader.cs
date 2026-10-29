@@ -42,11 +42,16 @@ internal sealed class OfficialPricingSourceReader : IDisposable
 
         try
         {
+            // ResponseHeadersRead ends HttpClient.Timeout at the headers.
+            // Keep the deadline active through the bounded response body.
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(RequestTimeout);
+            CancellationToken readToken = timeout.Token;
             using var request = new HttpRequestMessage(HttpMethod.Get, definition.Source.OfficialUri);
             using HttpResponseMessage response = await _client.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken)
+                    readToken)
                 .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
@@ -57,6 +62,7 @@ internal sealed class OfficialPricingSourceReader : IDisposable
             if (mediaType is null
                 || !(mediaType.Equals("text/html", StringComparison.OrdinalIgnoreCase)
                      || mediaType.Equals("text/plain", StringComparison.OrdinalIgnoreCase)
+                     || mediaType.Equals("text/markdown", StringComparison.OrdinalIgnoreCase)
                      || mediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase)))
             {
                 return Failed(definition, PricingRefreshReadStatus.UnsupportedContentType);
@@ -68,12 +74,12 @@ internal sealed class OfficialPricingSourceReader : IDisposable
                 return Failed(definition, PricingRefreshReadStatus.Oversized);
             }
 
-            await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken)
+            await using Stream stream = await response.Content.ReadAsStreamAsync(readToken)
                 .ConfigureAwait(false);
             byte[] bytes = await ReadBoundedAsync(
                     stream,
                     definition.MaximumBytes,
-                    cancellationToken)
+                    readToken)
                 .ConfigureAwait(false);
             if (bytes.Length > definition.MaximumBytes)
             {

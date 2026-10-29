@@ -8,14 +8,16 @@ namespace TokenUsage.Providers.Pricing;
 /// </summary>
 public static class GooglePricingCatalog
 {
-    public const string Version = "google-api-2026-09-02";
+    public const string Version = "google-api-2026-10-19";
     private const long LongContextThreshold = 200_000;
 
-    // The Gemini 3.6, 3.7, and 3.8 Flash promotional rates end on 2027-01-01. A
-    // resolve without a timestamp prices at the rate valid now.
+    // A resolve without a timestamp prices at the rate valid now.
     private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
         new(StringComparer.Ordinal)
         {
+            ["gemini-4-argon"] = new(
+                new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero),
+                new("gemini-4-argon", 4m, 0.2m, 20m)),
             ["gemini-3.6-flash"] = new(
                 new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero),
                 new("gemini-3.6-flash", 1.5m, 0.15m, 7.5m)),
@@ -70,6 +72,7 @@ public static class GooglePricingCatalog
             ["gemini-3.6-flash"] = new("gemini-3.6-flash", 0.75m, 0.075m, 3.75m),
             ["gemini-3.7-flash"] = new("gemini-3.7-flash", 0.75m, 0.075m, 3.75m),
             ["gemini-3.8-flash"] = new("gemini-3.8-flash", 0.75m, 0.075m, 3.75m),
+            ["gemini-4-argon"] = new("gemini-4-argon", 2m, 0.1m, 10m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =

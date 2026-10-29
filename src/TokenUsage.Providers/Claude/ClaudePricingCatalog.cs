@@ -5,8 +5,9 @@ namespace TokenUsage.Providers.Claude;
 
 public static class ClaudePricingCatalog
 {
-    public const string Version = "anthropic-api-2026-09-30";
+    public const string Version = "anthropic-api-2026-10-12";
     private const decimal TokensPerMillion = 1_000_000m;
+    private static readonly DateTimeOffset Haiku55LaunchUtc = new(2026, 10, 7, 0, 0, 0, TimeSpan.Zero);
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new Dictionary<string, Rates>(StringComparer.Ordinal)
@@ -15,6 +16,7 @@ public static class ClaudePricingCatalog
             ["claude-fable-5-1"] = new(10m, 50m, 12.5m, 20m, 0.25m),
             ["claude-haiku-4-5"] = new(1m, 5m, 1.25m, 2m, 0.1m),
             ["claude-haiku-4-5-20251001"] = new(1m, 5m, 1.25m, 2m, 0.1m),
+            ["claude-haiku-5-5"] = new(0.1m, 0.5m, 0.125m, 0.2m, 0.01m),
             ["claude-mythos-5"] = new(10m, 50m, 12.5m, 20m, 1m),
             ["claude-mythos-5-1"] = new(10m, 50m, 12.5m, 20m, 0.25m),
             ["claude-opus-4-5"] = new(5m, 25m, 6.25m, 10m, 0.5m),
@@ -31,7 +33,7 @@ public static class ClaudePricingCatalog
             ["claude-sonnet-4-5-20250929"] = new(3m, 15m, 3.75m, 6m, 0.3m),
             ["claude-sonnet-4-6"] = new(3m, 15m, 3.75m, 6m, 0.3m),
             ["claude-sonnet-5"] = new(2m, 10m, 2.5m, 4m, 0.2m),
-            ["claude-sonnet-5-5"] = new(2m, 10m, 2.5m, 4m, 0.2m),
+            ["claude-sonnet-5-5"] = new(2m, 10m, 2.5m, 4m, 0.1m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -44,6 +46,8 @@ public static class ClaudePricingCatalog
         if (!TryResolveRates(model, false, out Rates rates, out string match)
             || !EvidenceEntries.Any(item => item.ExactPriceMatch == match && item.IsEffectiveAt(atUtc)))
             return new(null, UsagePriceExclusion.MissingTariff);
+        if (match == "claude-haiku-5-5")
+            return new(null, UsagePriceExclusion.NonLinearRegime);
         // The retained generic event has no 5-minute/1-hour cache-write split.
         if (tokens.CacheWrite > 0 || tokens.Reasoning > 0)
             return new(null, UsagePriceExclusion.UnknownComponents);
@@ -58,7 +62,8 @@ public static class ClaudePricingCatalog
         long cacheWrite5Minutes,
         long cacheWrite1Hour,
         decimal? reportedCostUsd,
-        bool isFast)
+        bool isFast,
+        bool perRequestTokenCounters = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         if (occurredAtUtc.Offset != TimeSpan.Zero)
@@ -80,13 +85,23 @@ public static class ClaudePricingCatalog
             return CostObservation.Unavailable();
         }
 
+        decimal multiplier = 1m;
+        if (priceMatch == "claude-haiku-5-5")
+        {
+            // Session totals cannot establish the per-request pricing tier.
+            if (!perRequestTokenCounters || occurredAtUtc < Haiku55LaunchUtc)
+                return CostObservation.Unavailable();
+            if (checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite) > 100_000)
+                multiplier = 5m;
+        }
+
         decimal amount =
             ((tokens.Input * rates.Input)
              + (tokens.Output * rates.Output)
              + (cacheWrite5Minutes * rates.CacheWrite5Minutes)
              + (cacheWrite1Hour * rates.CacheWrite1Hour)
              + (tokens.CacheRead * rates.CacheRead))
-            / TokensPerMillion;
+            * multiplier / TokensPerMillion;
         return CostObservation.CatalogEstimated(RoundUsd(amount), Version, priceMatch);
     }
 
@@ -174,7 +189,8 @@ public static class ClaudePricingCatalog
             evidence.Add(PricingEvidence.Ongoing(
                 Version,
                 priceMatch,
-                PricingOfficialSources.Anthropic));
+                PricingOfficialSources.Anthropic,
+                priceMatch == "claude-haiku-5-5" ? Haiku55LaunchUtc : null));
         }
 
         PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);

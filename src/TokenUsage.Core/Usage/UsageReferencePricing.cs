@@ -81,6 +81,11 @@ public static class UsageReferencePricing
             .GroupBy(row => (row.AgentId, row.ModelProviderId, row.ModelId,
                 row.ObservedModelId, row.ReasoningEffort, row.ServiceTier))
             .ToDictionary(group => group.Key, group => UsageReportQuery.Aggregate(UsageRollupAggregator.Aggregate(group)));
+        var configurationRollupPrices = UsageReportQuery.BuildConfigurationRollups(
+                eligible.Where(row => supportedDays.Contains((UsageRollupAggregator.CivilDate(row),
+                    row.AgentId, row.ModelProviderId, row.ModelId))).ToArray(), DateOnly.MinValue, DateOnly.MaxValue)
+            .GroupBy(ConfigurationRollupKey)
+            .ToDictionary(group => group.Key, group => UsageReportQuery.Aggregate(group.Select(row => row.Usage)));
         string zone = original.GroupingTimeZoneIds.Count == 1 ? original.GroupingTimeZoneIds[0] : "mixed-or-unknown";
         UsageReport result = UsageReportQuery.Build(original.ModelDays.Select(row =>
         {
@@ -101,6 +106,21 @@ public static class UsageReferencePricing
             PopulationTokens = original.PopulationTokens,
             ModelProfiles = original.ModelProfiles,
             ConfigurationSelection = original.ConfigurationSelection,
+            HasConfigurationDetails = original.HasConfigurationDetails,
+            ConfigurationRollups = original.ConfigurationRollups.Select(configuration =>
+            {
+                configurationRollupPrices.TryGetValue(ConfigurationRollupKey(configuration), out UsageReportMetrics? price);
+                DailyUsageRollup row = configuration.Usage;
+                long supported = price is null ? 0 : price.Tokens.Total - price.UnpricedTokens;
+                if (supported > row.Tokens.Total) { price = null; supported = 0; }
+                return configuration with { Usage = new DailyUsageRollup(row.Date, row.GroupingTimeZoneId,
+                    row.AgentId, row.ModelProviderId, row.ModelId, row.Tokens, null, price?.EstimatedCostUsd,
+                    row.Tokens.Total - supported,
+                    Math.Clamp(row.EventCount - (price?.EventCount - price?.UnavailableCostEventCount ?? 0), 0, row.EventCount),
+                    row.EventCount, supported == 0 ? CoverageKind.Unpriced : CoverageKind.Partial) };
+            }).ToArray(),
+            ExcludedConfigurations = original.ExcludedConfigurations,
+            ConfigurationHistoryGaps = original.ConfigurationHistoryGaps,
             ConfigurationCoverage = original.ConfigurationCoverage,
             ActivityCoverage = original.ActivityCoverage,
             CacheComposition = original.CacheComposition,
@@ -130,6 +150,12 @@ public static class UsageReferencePricing
                 .Select(row => row.Cost.CatalogVersion!).Distinct().Order().ToArray(),
         };
     }
+
+    private static (DateOnly Date, string Zone, AgentId Agent, ModelProviderId? Host, ModelId Model,
+        ModelId? Observed, string? Effort, string? Tier, int? Hour, UsageTimePrecision Precision,
+        UsageRecordKind Kind, UsageDetailMetadata Detail) ConfigurationRollupKey(UsageConfigurationRollup row) =>
+        (row.Usage.Date, row.Usage.GroupingTimeZoneId, row.Usage.AgentId, row.Usage.ModelProviderId,
+            row.Usage.ModelId, row.ObservedModel, row.Effort, row.Tier, row.Hour, row.Precision, row.Kind, row.DetailMetadata);
 
     private static bool MatchesConfiguration(UsageReport report, UsageEvent row) =>
         report.ConfigurationSelection is not { } selection

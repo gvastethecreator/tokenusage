@@ -80,7 +80,8 @@ public static class KnownModelPricingCatalog
                 tokens.CacheWrite,
                 cacheWrite1Hour: 0,
                 reportedCostUsd: null,
-                isFast: false);
+                isFast: false,
+                perRequestTokenCounters: perRequestTokenCounters);
         }
 
         if (normalized.StartsWith("gpt-", StringComparison.Ordinal)

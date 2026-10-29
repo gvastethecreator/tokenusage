@@ -70,8 +70,8 @@ public sealed class PricingCommandTests
         Assert.Equal(0, firstExit);
         Assert.Equal(0, secondExit);
         Assert.Equal(first.ToString(), second.ToString());
-        Assert.Contains("Current. No pull request is needed.", first.ToString());
-        Assert.Contains("`glm-5.3-flash` switches", first.ToString());
+        Assert.Contains("Markers match. Manual review is still required to verify prices and model coverage.", first.ToString());
+        Assert.Contains("`glm-5.3-flash` needs its next rate reviewed", first.ToString());
     }
 
     [Fact]
@@ -156,6 +156,8 @@ public sealed class PricingCommandTests
 
         Assert.Equal(4, exitCode);
         Assert.Contains("Failed: at least one source could not be checked", output.ToString());
+        Assert.Contains("Price checks are incomplete", output.ToString());
+        Assert.DoesNotContain("Markers match.", output.ToString());
         Assert.DoesNotContain("<!doctype", output.ToString());
     }
 

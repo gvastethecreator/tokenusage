@@ -57,7 +57,8 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.Anthropic,
             "anthropic-model-pricing.html",
-            ["Claude Sonnet 5.5", "$2", "$2.50", "$10", "Claude Opus 5.5", "$4", "$0.20", "$20"]),
+            ["Claude Sonnet 5.5", "$2", "$2.50", "$10", "Claude Opus 5.5", "$4", "$0.20", "$20",
+             "Claude Haiku 5.5", "100,000", "$0.10", "$0.50", "$0.125", "$0.625", "$0.01", "$0.05"]),
         Define(
             PricingOfficialSources.Cursor,
             "cursor-model-pricing.html",
@@ -65,15 +66,32 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.CursorGemini,
             "cursor-gemini-3-8-pricing.html",
-            ["Gemini 3.8 Flash", "$0.75", "$0.075", "$3.50"]),
+            ["Gemini 3.8 Flash", "$0.75", "$0.075", "$3.75"]),
+        Define(
+            PricingOfficialSources.CursorArgon,
+            "cursor-gemini-4-argon-pricing.html",
+            ["Gemini 4 Argon", "$<!-- -->2", "$<!-- -->0.1", "$<!-- -->10"]),
+        Define(
+            PricingOfficialSources.CursorWonder,
+            "cursor-muse-wonder-pricing.html",
+            ["muse-wonder-1.0", "$<!-- -->4", "$<!-- -->0.2", "$<!-- -->20", "no long-context multiplier", "no cache-write charge"]),
+        Define(
+            PricingOfficialSources.CursorGrok,
+            "cursor-grok-4-7-pricing.html",
+            ["Grok 4.7", "256k", "$2", "$0.50", "$6", "$4", "$1", "$12", "3x"]),
+        Define(
+            PricingOfficialSources.CursorMuse,
+            "cursor-muse-spark-pricing.html",
+            ["muse-spark-1.3", "$1.25", "$0.15", "$4.25", "no long-context multiplier", "no cache-write charge"]),
         Define(
             PricingOfficialSources.Google,
             "google-gemini-api-pricing.html",
-            ["Gemini 3.8 Flash", "$0.75", "$0.075", "$3.75", "December 31, 2026"]),
+            ["Gemini 3.8 Flash", "$0.75", "$0.075", "$3.75", "December 31, 2026",
+             "Gemini 4 Argon", "$2.00", "$0.10", "$10.00", "November 30, 2026", "December 1, 2026", "$4.00", "$0.20", "$20.00"]),
         Define(
             PricingOfficialSources.Moonshot,
             "moonshot-model-pricing.html",
-            ["Kimi K3", "$3", "0.3", "15"]),
+            ["kimi-k3", "{\"$\"}3.00", "{\"$\"}6.00", "{\"$\"}0.30", "{\"$\"}15.00", "TTL 5min", "TTL 1h"]),
         Define(
             PricingOfficialSources.OpenAi,
             "openai-model-pricing.html",
@@ -184,7 +202,7 @@ public static class PricingRefreshEvaluator
                 ? Camel(check.ReadStatus)
                 : check.RequiresReview
                     ? $"review required ({check.MatchedMarkers}/{check.TotalMarkers} markers)"
-                    : $"current ({check.TotalMarkers}/{check.TotalMarkers} markers)";
+                    : $"markers matched ({check.TotalMarkers}/{check.TotalMarkers})";
             builder.Append("| ").Append(check.SourceId)
                 .Append(" | ").Append(Camel(check.BillingScope))
                 .Append(" | ").Append(status)
@@ -200,9 +218,13 @@ public static class PricingRefreshEvaluator
                 "Unstructured source projections changed. Review the official pages and "
                 + "prepare catalog edits manually; this refresh did not edit a price.");
         }
+        else if (result.SourceChecks.Any(check => check.ReadStatus != PricingRefreshReadStatus.Available))
+        {
+            builder.AppendLine("Price checks are incomplete because at least one source could not be read.");
+        }
         else
         {
-            builder.AppendLine("No catalog price change was detected by the supported projections.");
+            builder.AppendLine("Expected markers are present. This check does not compare model-price rows or detect new models.");
         }
 
         builder.AppendLine();
@@ -240,9 +262,9 @@ public static class PricingRefreshEvaluator
             foreach (PricingDiagnostic promotion in promotions)
             {
                 builder.Append("- `").Append(promotion.ExactPriceMatch)
-                    .Append("` switches at ")
+                    .Append("` needs its next rate reviewed by ")
                     .Append(promotion.EffectiveUntilUtc!.Value.ToString("O"))
-                    .AppendLine("; the successor rate is already versioned.");
+                    .AppendLine("; apply only a verified successor rate.");
             }
         }
 
@@ -253,7 +275,7 @@ public static class PricingRefreshEvaluator
             ? "Failed: at least one source could not be checked or a promotion lacks a successor."
             : result.RequiresReview
                 ? "Review required. The workflow may update one draft pull request; a human must edit, approve, and merge it."
-                : "Current. No pull request is needed.");
+                : "Markers match. Manual review is still required to verify prices and model coverage.");
         return builder.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 

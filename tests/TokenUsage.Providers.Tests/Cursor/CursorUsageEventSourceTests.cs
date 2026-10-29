@@ -66,18 +66,22 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(UsageSourceIssueKind.Empty, result.Issue);
     }
 
-    [Fact]
-    public async Task ReadsAllowlistedComposerEstimateAsCatalogPricedUsage()
+    [Theory]
+    [InlineData("grok-4.5", "xai", 0.444968)]
+    [InlineData("muse-spark-1.3", "meta", 0.278105)]
+    [InlineData("muse-wonder-1.0", "meta", 0.889936)]
+    [InlineData("gemini-4-argon", "google", 0.444968)]
+    public async Task ReadsAllowlistedComposerEstimateAsCatalogPricedUsage(string model, string provider, decimal expectedUsd)
     {
         using var corpus = new CursorCorpus();
+        corpus.WriteRaw("composerData:malformed", "{");
+        corpus.WriteRaw("bubbleId:conversation-1:malformed", "{");
         corpus.WriteComposer(
             "conversation-1",
             checkpointMilliseconds: 1_786_488_925_618,
-            model: "grok-4.5",
+            model: model,
             estimatedContextTokens: 222_484,
             privatePrompt: "this content must not become part of the event");
-        corpus.WriteRaw("composerData:malformed", "{");
-
         CursorUsageEventSource source = corpus.CreateSource();
         UsageSourceReadResult result = await source.ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
@@ -85,14 +89,14 @@ public sealed class CursorUsageEventSourceTests
         Assert.Equal(SourceKind.LocalDatabase, source.SourceKind);
         Assert.Equal(UsageSourceReadStatus.Partial, result.Status);
         Assert.Equal(UsageSourceIssueKind.PartialScan, result.Issue);
-        Assert.Equal("xai", usageEvent.ModelProviderId?.Value);
-        Assert.Equal("grok-4.5", usageEvent.ModelId.Value);
+        Assert.Equal(provider, usageEvent.ModelProviderId?.Value);
+        Assert.Equal(model, usageEvent.ModelId.Value);
         Assert.Equal(new TokenBreakdown(222_484, 0, 0, 0, 0), usageEvent.Tokens);
         Assert.Equal(
             DateTimeOffset.FromUnixTimeMilliseconds(1_786_488_925_618),
             usageEvent.OccurredAtUtc);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal(0.444968m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(expectedUsd, usageEvent.Cost.EstimatedCostUsd);
         Assert.Equal(CursorPricingCatalog.Version, usageEvent.Cost.CatalogVersion);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(CursorUsageEventSource.ParserVersion, usageEvent.ParserVersion);
@@ -398,20 +402,24 @@ public sealed class CursorUsageEventSourceTests
         corpus.WriteComposer("conversation-1", 1_786_488_925_618, "gpt-5", 90_000);
         corpus.WriteBubble(
             "conversation-1",
-            "bubble-empty",
-            "2026-08-12T10:00:00.000Z",
-            "gpt-5",
-            inputTokens: 0,
-            outputTokens: 0,
-            privateText: "private");
-        corpus.WriteBubble(
-            "conversation-1",
             "bubble-counted",
             "2026-08-12T10:05:00.000Z",
             "gpt-5",
             inputTokens: 1_000_000,
             outputTokens: 100_000,
             privateText: "private");
+
+        for (int index = 0; index < 64; index++)
+        {
+            corpus.WriteBubble(
+                "conversation-1",
+                $"bubble-empty-{index}",
+                "2026-08-12T10:10:00.000Z",
+                "gpt-5",
+                inputTokens: 0,
+                outputTokens: 0,
+                privateText: "private");
+        }
 
         UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
         UsageEvent usageEvent = Assert.Single(result.Events);
