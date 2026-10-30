@@ -8,7 +8,6 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using TokenUsage.App.ViewModels.Reports;
-using TokenUsage.Core.Appearance;
 using Windows.System;
 
 namespace TokenUsage.App.Controls;
@@ -33,9 +32,7 @@ public sealed partial class UsageTrendChart
         if (Data.UnavailableText is not null || Data.Days.Count == 0 || PlotCanvas.ActualWidth <= 0) return;
         double x = e.GetCurrentPoint(PlotCanvas).Position.X;
         double fraction = Math.Clamp(x / PlotCanvas.ActualWidth, 0, 1);
-        int index = Data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars
-            ? Math.Min(Data.Days.Count - 1, (int)(fraction * Data.Days.Count))
-            : (int)Math.Round(fraction * (Data.Days.Count - 1));
+        int index = (int)Math.Round(fraction * (Data.Days.Count - 1));
         _hoverIndex = index; // Logical selection is immediate; only the visual movement is coalesced.
         _pendingHoverIndex = index;
         if (!MotionSettings.AreAnimationsEnabled())
@@ -101,7 +98,7 @@ public sealed partial class UsageTrendChart
         _displayedHoverIndex = index;
         EmphasizeDay(index);
         BuildHoverContent(index);
-        double x = Data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || Data.Days.Count == 1
+        double x = Data.Days.Count == 1
             ? (index + 0.5) * PlotCanvas.ActualWidth / Data.Days.Count
             : index * PlotCanvas.ActualWidth / (Data.Days.Count - 1);
         double absoluteX = GetAxisWidth() + GetAxisGap() + x;

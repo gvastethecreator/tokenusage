@@ -345,7 +345,6 @@ public sealed class CompactDashboardProjectorTests
             400,
             200,
             600,
-            style: TokenUsage.Core.Appearance.ReportChartStyle.Smooth,
             pointKinds: series.PointKinds);
         Assert.Equal(path.Points[29], path.Segments[^1].To);
         Assert.False(path.Segments[^1].IsTrailingContinuation);

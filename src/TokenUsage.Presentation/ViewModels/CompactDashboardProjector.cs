@@ -222,7 +222,7 @@ public static class CompactDashboardProjector
                         {
                             PointKinds = points.Select(item => item.Kind).ToArray(),
                         },
-                    ], TokenUsage.Core.Appearance.ReportChartStyle.Smooth),
+                    ]),
             getProviderLimits(providerId));
     }
 

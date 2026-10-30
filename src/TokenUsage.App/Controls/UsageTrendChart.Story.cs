@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using TokenUsage.App.ViewModels.Reports;
-using TokenUsage.Core.Appearance;
 
 namespace TokenUsage.App.Controls;
 
@@ -18,7 +17,6 @@ public sealed partial class UsageTrendChart
     private const double DimmedColumnOpacity = 0.4;
     private readonly Dictionary<int, Canvas> _barColumns = [];
     private Canvas? _marksLayer;
-    private int _slotsPerDay = 1;
     private int? _emphasizedDay;
 
     private Canvas BarColumn(int slot)
@@ -48,7 +46,6 @@ public sealed partial class UsageTrendChart
         _barColumns.Clear();
         _marksLayer = null;
         _emphasizedDay = null;
-        _slotsPerDay = data.Style == ReportChartStyle.TwoHourBars ? 12 : 1;
     }
 
     // Columns rise from the baseline with a short left-to-right stagger. The bars already sit
@@ -64,7 +61,7 @@ public sealed partial class UsageTrendChart
             grow.InsertKeyFrame(0, 0);
             grow.InsertKeyFrame(1, 1, compositor.CreateCubicBezierEasingFunction(new Vector2(0.2f, 0.9f), new Vector2(0.3f, 1)));
             grow.Duration = MotionSettings.ReportChartGrowDuration;
-            grow.DelayTime = MotionSettings.ReportChartGrowStagger * (slot / _slotsPerDay);
+            grow.DelayTime = MotionSettings.ReportChartGrowStagger * slot;
             grow.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
             visual.StartAnimation("Scale.Y", grow);
         }
@@ -76,7 +73,7 @@ public sealed partial class UsageTrendChart
         fade.InsertKeyFrame(0, 0);
         fade.InsertKeyFrame(1, 1);
         fade.Duration = TimeSpan.FromMilliseconds(200);
-        fade.DelayTime = MotionSettings.ReportChartGrowStagger * (_barColumns.Keys.Max() / _slotsPerDay)
+        fade.DelayTime = MotionSettings.ReportChartGrowStagger * _barColumns.Keys.Max()
             + MotionSettings.ReportChartGrowDuration * 0.7;
         fade.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
         marks.StartAnimation("Opacity", fade);
@@ -121,7 +118,7 @@ public sealed partial class UsageTrendChart
         _emphasizedDay = day;
         foreach ((int slot, Canvas column) in _barColumns)
         {
-            int columnDay = slot / _slotsPerDay;
+            int columnDay = slot;
             if (previous is not null && day is not null && columnDay != previous && columnDay != day) continue;
             Visual visual = ElementCompositionPreview.GetElementVisual(column);
             float opacity = day is null || columnDay == day ? 1f : (float)DimmedColumnOpacity;
@@ -139,16 +136,13 @@ public sealed partial class UsageTrendChart
         }
     }
 
-    // Average per active day and the peak day, drawn only where they are honest: daily bars or
-    // lines of one metric. Shares, comparisons, and two-hour buckets have no single "day total".
+    // Average per active day, drawn only where it is honest: a line of one metric. Shares and
+    // comparisons have no single "day total", and independent lines would put the average of a
+    // sum next to lines it does not describe.
     private void RenderReferenceMarks(UsageReportTrendDataset data, double width, double height, UsageTrendScale scale)
     {
-        if (IsPreview || data.IsComparison || data.Metric == UsageReportMetric.Share
-            || data.Style == ReportChartStyle.TwoHourBars || data.Days.Count < 3 || scale.Maximum <= 0) return;
-        // A day total only exists on screen when series stack (bars, area) or there is one series;
-        // independent lines would put the average of a sum next to lines it does not describe.
-        bool showsDayTotal = data.Style is ReportChartStyle.Bars or ReportChartStyle.Area || data.Series.Count == 1;
-        if (!showsDayTotal) return;
+        if (data.IsComparison || data.Metric == UsageReportMetric.Share
+            || data.Days.Count < 3 || scale.Maximum <= 0 || data.Series.Count != 1) return;
 
         double[] totals = [.. Enumerable.Range(0, data.Days.Count).Select(day => data.Series.Sum(series =>
             day < series.Values.Count && double.IsFinite(series.Values[day]) ? Math.Max(0, series.Values[day]) : 0))];
@@ -168,30 +162,13 @@ public sealed partial class UsageTrendChart
             Opacity = IsHighContrast ? 1 : 0.75, IsHitTestVisible = false,
         });
 
-        Windows.Foundation.Rect? peakRect = null;
-        if (data.Style is ReportChartStyle.Bars || data.Days.Count == 1)
-        {
-            int peak = Array.IndexOf(totals, totals.Max());
-            double peakX = (peak + 0.5) * width / data.Days.Count;
-            double peakY = baseline - scale.Normalize(totals[peak]) * available;
-            peakRect = AddMarkLabel(FormatValue(totals[peak], data.Metric, exact: true), peakX, peakY, alignRight: false);
-        }
-
         string averageText = string.Format(System.Globalization.CultureInfo.CurrentCulture,
             GetString("UsageReportChartAverageFormat"), FormatValue(average, data.Metric, exact: true));
-        Windows.Foundation.Rect averageRect = AddMarkLabel(averageText, width, averageY, alignRight: true);
-        if (peakRect is { } occupied && Intersects(occupied, averageRect))
-        {
-            // The peak sits over the right edge; move the average label to the left edge instead.
-            _marksLayer.Children.RemoveAt(_marksLayer.Children.Count - 1);
-            AddMarkLabel(averageText, 0, averageY, alignRight: false, anchorLeft: true);
-        }
+        AddMarkLabel(averageText, width, averageY);
     }
 
-    private static bool Intersects(Windows.Foundation.Rect a, Windows.Foundation.Rect b) =>
-        a.X < b.X + b.Width && b.X < a.X + a.Width && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
-
-    private Windows.Foundation.Rect AddMarkLabel(string text, double x, double y, bool alignRight, bool anchorLeft = false)
+    // The label ends at x, so the average reads at the right edge of the line it describes.
+    private void AddMarkLabel(string text, double x, double y)
     {
         var label = new Border
         {
@@ -206,12 +183,11 @@ public sealed partial class UsageTrendChart
             },
         };
         label.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
-        double left = anchorLeft ? x : alignRight ? x - label.DesiredSize.Width : x - label.DesiredSize.Width / 2;
+        double left = x - label.DesiredSize.Width;
         left = Math.Clamp(left, 0, Math.Max(0, PlotCanvas.ActualWidth - label.DesiredSize.Width));
         double top = Math.Max(0, y - label.DesiredSize.Height - 3);
         Canvas.SetLeft(label, left);
         Canvas.SetTop(label, top);
         _marksLayer!.Children.Add(label);
-        return new Windows.Foundation.Rect(left, top, label.DesiredSize.Width, label.DesiredSize.Height);
     }
 }

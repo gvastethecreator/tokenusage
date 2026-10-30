@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using TokenUsage.App.ViewModels.Reports;
-using TokenUsage.Core.Appearance;
 using Windows.Foundation;
 using Windows.UI;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
@@ -14,11 +13,12 @@ public sealed partial class UsageTrendChart
 {
     private void RenderSeries(UsageReportTrendDataset data, double width, double height, UsageTrendScale scale)
     {
-        IReadOnlyList<double>[] values = data.Series.Select(series => data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values).ToArray();
-        if (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
+        IReadOnlyList<double>[] values = data.Series.Select(series => series.Values).ToArray();
+        // A single day has no line to draw, so it shows as a bar.
+        if (data.Days.Count == 1)
         {
-            foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, UsageTrendLayouts.BarSlots(data.Style, data.Days.Count),
-                width, height, scale.Maximum, top: IsPreview ? 2 : TopPadding, bottom: IsPreview ? 2 : BottomPadding,
+            foreach (UsageTrendBar item in UsageTrendLayouts.Bars(values, data.Days.Count,
+                width, height, scale.Maximum, top: TopPadding, bottom: BottomPadding,
                 emphasizeSmallValues: scale.EmphasizeSmallValues, stacked: !data.IsComparison))
             {
                 // A one-pixel seam keeps adjacent stacked segments readable when two providers share a hue family.
@@ -26,9 +26,8 @@ public sealed partial class UsageTrendChart
                 var bar = new Border
                 {
                     Width = item.Width, Height = item.Height - seam,
-                    Background = IsPreview ? SeriesBrush(data.Series[item.SeriesIndex]) : BarBrush(data.Series[item.SeriesIndex]),
-                    CornerRadius = !item.IsTop ? new CornerRadius(0)
-                        : IsPreview ? new CornerRadius(1, 1, 0, 0) : new CornerRadius(4, 4, 0, 0),
+                    Background = BarBrush(data.Series[item.SeriesIndex]),
+                    CornerRadius = !item.IsTop ? new CornerRadius(0) : new CornerRadius(4, 4, 0, 0),
                     BorderBrush = IsHighContrast ? TextBrushProxy.Background : null,
                     BorderThickness = new Thickness(IsHighContrast ? 1 : 0),
                     UseLayoutRounding = false,
@@ -38,100 +37,28 @@ public sealed partial class UsageTrendChart
                 Canvas.SetTop(bar, item.Y + seam);
                 BarColumn(item.DayIndex).Children.Add(bar);
             }
-            if (!IsPreview)
+            foreach (UsageTrendBaselineStub stub in UsageTrendLayouts.EmptyDayStubs(
+                values, data.Days.Count, width, height, top: TopPadding, bottom: BottomPadding))
             {
-                IReadOnlyList<double>[] stubSeries = data.Style == ReportChartStyle.TwoHourBars
-                    ? data.Series.Select(series => series.Values).ToArray()
-                    : values;
-                foreach (UsageTrendBaselineStub stub in UsageTrendLayouts.EmptyDayStubs(
-                    stubSeries, data.Days.Count, width, height, top: TopPadding, bottom: BottomPadding))
+                var hairline = new Border
                 {
-                    var hairline = new Border
-                    {
-                        Width = stub.Width,
-                        Height = stub.Height,
-                        Background = TextBrushProxy.Background,
-                        Opacity = 0.35,
-                        IsHitTestVisible = false,
-                    };
-                    Canvas.SetLeft(hairline, stub.X);
-                    Canvas.SetTop(hairline, stub.Y);
-                    _seriesCanvas.Children.Add(hairline);
-                }
-            }
-            return;
-        }
-
-        if (data.Style == ReportChartStyle.Area)
-        {
-            bool stacked = !data.IsComparison;
-            IReadOnlyList<UsageTrendPointKind>?[]? kinds = stacked
-                ? [.. data.Series.Select(series => (IReadOnlyList<UsageTrendPointKind>?)series.PointKinds)]
-                : null;
-            var bands = UsageTrendLayouts.Bands(values, data.IsComparison, kinds,
-                percentage: data.Metric == UsageReportMetric.Share);
-            for (int index = 0; index < bands.Count; index++)
-            {
-                UsageTrendPath upper = Path(bands[index].Upper, ReportChartStyle.Line, data.Series[index], stacked);
-                UsageTrendPath lower = Path(bands[index].Lower, ReportChartStyle.Line, data.Series[index], stacked);
-                if (upper.Segments.Count > 0)
-                {
-                    int start = 0;
-                    while (start < upper.Segments.Count)
-                    {
-                        UsageTrendSpanKind kind = upper.Segments[start].SpanKind;
-                        int end = start;
-                        while (end + 1 < upper.Segments.Count
-                            && upper.Segments[end + 1].SpanKind == kind
-                            && upper.Segments[end + 1].Fade == upper.Segments[start].Fade)
-                        {
-                            end++;
-                        }
-
-                        var top = new List<UsageTrendPoint> { upper.Segments[start].From };
-                        for (int vertex = start; vertex <= end; vertex++)
-                            top.Add(upper.Segments[vertex].To);
-                        var figure = new PathFigure
-                        {
-                            StartPoint = ToPoint(top[0]),
-                            IsClosed = true,
-                            IsFilled = true,
-                        };
-                        for (int vertex = 1; vertex < top.Count; vertex++)
-                            figure.Segments.Add(new LineSegment { Point = ToPoint(top[vertex]) });
-                        for (int vertex = top.Count - 1; vertex >= 0; vertex--)
-                            figure.Segments.Add(new LineSegment { Point = ToPoint(LowerAt(lower, top[vertex].X)) });
-                        var spanGeometry = new PathGeometry();
-                        spanGeometry.Figures.Add(figure);
-                        if (!IsHighContrast) _seriesCanvas.Children.Add(new XamlPath
-                        {
-                            Data = spanGeometry,
-                            Fill = upper.Segments[start].Fade is null ? AreaBrush(data.Series[index])
-                                : FadeBrush(data.Series[index], upper.Segments[start].Fade, top[0].X, top[^1].X),
-                            UseLayoutRounding = false,
-                            Opacity = data.IsComparison ? 0.25 : 0.72,
-                            IsHitTestVisible = false,
-                        });
-                        start = end + 1;
-                    }
-                }
-                AddLine(upper, data.Series[index], index);
+                    Width = stub.Width,
+                    Height = stub.Height,
+                    Background = TextBrushProxy.Background,
+                    Opacity = 0.35,
+                    IsHitTestVisible = false,
+                };
+                Canvas.SetLeft(hairline, stub.X);
+                Canvas.SetTop(hairline, stub.Y);
+                _seriesCanvas.Children.Add(hairline);
             }
             return;
         }
 
         for (int index = 0; index < data.Series.Count; index++)
-            AddLine(Path(values[index], data.Style, data.Series[index]), data.Series[index], index,
-                fillToBaseline: !IsPreview && data.Series.Count == 1 ? height - BottomPadding : null);
-
-        UsageTrendPath Path(
-            IReadOnlyList<double> source,
-            ReportChartStyle style,
-            UsageReportTrendSeries series,
-            bool includeCarriedVertices = false) =>
-            UsageTrendGeometry.CreatePath(
-                source, width, height, scale.Maximum, IsPreview ? 2 : TopPadding, IsPreview ? 2 : BottomPadding,
-                style, scale.EmphasizeSmallValues, series.PointKinds, includeCarriedVertices);
+            AddLine(UsageTrendGeometry.CreatePath(values[index], width, height, scale.Maximum, TopPadding, BottomPadding,
+                    scale.EmphasizeSmallValues, data.Series[index].PointKinds),
+                data.Series[index], index, fillToBaseline: data.Series.Count == 1 ? height - BottomPadding : null);
     }
 
     private static UsageReportResetKind[] ResetKinds(UsageReportTrendDataset data) =>
@@ -142,7 +69,7 @@ public sealed partial class UsageTrendChart
         var packed = UsageReportResetMarkers.PackDays(data.Days);
         foreach (UsageReportResetMark mark in packed)
         {
-            double x = data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1
+            double x = data.Days.Count == 1
                 ? (mark.DayIndex + 0.5) * width / data.Days.Count
                 : mark.DayIndex * width / Math.Max(1, data.Days.Count - 1);
             Shape marker = CreateResetSymbol(mark.Kind);
@@ -174,7 +101,7 @@ public sealed partial class UsageTrendChart
 
     private void BuildResetLegend(UsageReportTrendDataset data)
     {
-        var kinds = IsPreview ? [] : ResetKinds(data);
+        var kinds = ResetKinds(data);
         ResetLegend.Visibility = kinds.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         ResetLegend.ItemsSource = kinds.Select(kind =>
         {
@@ -284,7 +211,7 @@ public sealed partial class UsageTrendChart
             {
                 Data = new PathGeometry { Figures = { figure } },
                 Stroke = FadeBrush(series, segment.Fade, segment.From.X, segment.To.X),
-                StrokeThickness = IsPreview ? 2 : 2.25,
+                StrokeThickness = 2.25,
                 StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
@@ -343,37 +270,9 @@ public sealed partial class UsageTrendChart
 
     private static Point ToPoint(UsageTrendPoint point) => new(point.X, point.Y);
 
-    private static UsageTrendPoint LowerAt(UsageTrendPath lower, double x)
-    {
-        if (lower.Points.Count == 0)
-        {
-            return new(x, 0);
-        }
-
-        UsageTrendPoint best = lower.Points[0];
-        double bestDelta = Math.Abs(best.X - x);
-        double baseline = best.Y;
-        foreach (UsageTrendPoint point in lower.Points)
-        {
-            double delta = Math.Abs(point.X - x);
-            if (delta < bestDelta)
-            {
-                best = point;
-                bestDelta = delta;
-            }
-
-            if (double.IsFinite(point.Y) && (!double.IsFinite(baseline) || point.Y > baseline))
-            {
-                baseline = point.Y;
-            }
-        }
-
-        return double.IsFinite(best.Y) ? best : new(x, baseline);
-    }
-
     private void BuildLegend(UsageReportTrendDataset data)
     {
-        bool spans = !IsPreview && HasUnobservedSpans(data);
+        bool spans = HasUnobservedSpans(data);
         SpanNote.Text = spans ? GetString("UsageReportChartUnobservedLegend") : string.Empty;
         SpanNote.Visibility = spans ? Visibility.Visible : Visibility.Collapsed;
         var items = new List<Grid>();
@@ -400,7 +299,6 @@ public sealed partial class UsageTrendChart
     }
 
     private static bool HasUnobservedSpans(UsageReportTrendDataset data) =>
-        data.Style is not ReportChartStyle.Bars and not ReportChartStyle.TwoHourBars
-        && data.Series.Any(series => series.PointKinds.Any(kind => kind == UsageTrendPointKind.Unobserved)
+        data.Series.Any(series => series.PointKinds.Any(kind => kind == UsageTrendPointKind.Unobserved)
             || (series.PointKinds.Count == 0 && series.Values.Any(value => UsageTrendGeometry.ClassifyValue(value) == UsageTrendPointKind.Unobserved)));
 }

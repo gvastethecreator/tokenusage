@@ -32,6 +32,7 @@ User-facing changes for TokenUsage. Release notes include installation details a
 - Optional session, project, tool, MCP, command, and file attribution, with its backfill, aliases, explorer, and operation views. Upgrading to usage schema 13 deletes the stored links, operation records, and consent; numeric usage is unchanged.
 - Report views for saved comparisons, linear price scenarios, measurement details, activity windows, change explanations, and per-section toggles.
 - `tokenusage report --format json-v2|csv|html` and `--selection-file`. `report` keeps `human` and `json` (`tokenusage.report.v1`).
+- The Report charts appearance option. The report has no chart styles, and the provider trend always draws a smooth line (one bar for a single day).
 
 ### Changed
 

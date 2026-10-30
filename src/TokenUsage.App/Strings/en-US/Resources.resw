@@ -458,21 +458,8 @@
   <data name="NotificationsSaveError.Message" xml:space="preserve"><value>Notifications could not be saved. Check folder permissions and try again.</value></data>
   <data name="DataCollectionBackgroundLabel.Text" xml:space="preserve"><value>Collect after each task</value></data>
   <data name="DataCollectionBackgroundDescription.Text" xml:space="preserve"><value>Collect usage when a task ends, even with TokenUsage closed. The interval below applies only while the app is open.</value></data>
-  <data name="ReportChartsAppearanceTitle.Text" xml:space="preserve"><value>Report charts</value></data>
-  <data name="ReportChartStyleSelector.AutomationProperties.Name" xml:space="preserve"><value>Report chart style</value></data>
-  <data name="ReportChartStyleSmooth" xml:space="preserve"><value>Smooth curve</value></data>
-  <data name="ReportChartStyleLine" xml:space="preserve"><value>Straight line</value></data>
-  <data name="ReportChartStyleStep" xml:space="preserve"><value>Steps</value></data>
-  <data name="ReportChartStyleBars" xml:space="preserve"><value>Daily bars</value></data>
-  <data name="ReportChartStyleArea" xml:space="preserve"><value>Stacked area</value></data>
   <data name="UsageReportMoreModelsFormat" xml:space="preserve"><value>+{0} models · see the legend</value></data>
   <data name="UsageReportKnownOnly" xml:space="preserve"><value>known values</value></data>
-  <data name="ReportChartStyleTwoHourBars" xml:space="preserve"><value>2-hour bars · 12/day</value></data>
-  <data name="ReportCycleChartStyleButton.AutomationProperties.Name" xml:space="preserve"><value>Next chart style</value></data>
-  <data name="ReportChartStyleTooltipFormat" xml:space="preserve"><value>Chart style: {0}. Click to switch to the next style.</value></data>
-  <data name="ReportSmallValuesButton.AutomationProperties.Name" xml:space="preserve"><value>Emphasize small values using a square-root scale</value></data>
-  <data name="ReportSmallValuesButton.ToolTipService.ToolTip" xml:space="preserve"><value>Square-root scale makes small values easier to see. Turn off for a linear scale. Amounts are unchanged.</value></data>
-  <data name="ReportSquareRootScaleSuffix" xml:space="preserve"><value> · √ scale</value></data>
   <data name="DashboardLayoutCardsTitle.Text" xml:space="preserve"><value>Provider cards</value></data>
   <data name="OptionsGeneralTabLabel.Text" xml:space="preserve"><value>General</value></data>
   <data name="OptionsNotificationsTabLabel.Text" xml:space="preserve"><value>Alerts</value></data>
@@ -572,19 +559,6 @@
   <data name="ReportHeatmapUnpriced" xml:space="preserve"><value>Unpriced tokens</value></data>
   <data name="ReportHeatmapLeadingProvider" xml:space="preserve"><value>Leading provider</value></data>
   <data name="OptionsAdvancedTabLabel.Text" xml:space="preserve"><value>Advanced</value></data>
-  <data name="ReportOptionSummary.Content" xml:space="preserve"><value>Totals</value></data>
-  <data name="ReportOptionChart.Content" xml:space="preserve"><value>Daily chart</value></data>
-  <data name="ReportOptionLimits.Content" xml:space="preserve"><value>Usage limits</value></data>
-  <data name="ReportOptionHeatmap.Content" xml:space="preserve"><value>Heatmap</value></data>
-  <data name="ReportOptionHighlights.Content" xml:space="preserve"><value>Highlights</value></data>
-  <data name="ReportOptionModels.Content" xml:space="preserve"><value>Top models</value></data>
-  <data name="ReportOptionTokenComposition.Content" xml:space="preserve"><value>Token composition</value></data>
-  <data name="ReportOptionProjects.Content" xml:space="preserve"><value>Projects</value></data>
-  <data name="ReportOptionTools.Content" xml:space="preserve"><value>Tools and activity preview</value></data>
-  <data name="ReportOptionFullBreakdown.Content" xml:space="preserve"><value>Full breakdown</value></data>
-  <data name="ReportOptionResets.Content" xml:space="preserve"><value>Recorded resets</value></data>
-  <data name="ReportOptionActivity.Content" xml:space="preserve"><value>Activity details</value></data>
-  <data name="ReportOptionMeasurement.Content" xml:space="preserve"><value>Measurement details</value></data>
   <data name="ReportTitle.Text" xml:space="preserve"><value>Report</value></data>
   <data name="ReportPeriod7.Content" xml:space="preserve"><value>7 days</value></data>
   <data name="ReportPeriod30.Content" xml:space="preserve"><value>30 days</value></data>

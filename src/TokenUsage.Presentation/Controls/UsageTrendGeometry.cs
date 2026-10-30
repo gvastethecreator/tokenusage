@@ -1,4 +1,3 @@
-using TokenUsage.Core.Appearance;
 
 namespace TokenUsage.App.Controls;
 
@@ -151,32 +150,6 @@ public static class UsageTrendGeometry
             .Where(value => value <= maximum)];
     }
 
-    public static IReadOnlyList<double> ContinueMeasuredValues(
-        IReadOnlyList<double> values,
-        IReadOnlyList<UsageTrendPointKind>? kinds)
-    {
-        ArgumentNullException.ThrowIfNull(values);
-        var continued = new double[values.Count];
-        double last = 0;
-        bool hasMeasured = false;
-        for (int index = 0; index < values.Count; index++)
-        {
-            if (KindAt(values, kinds, index) == UsageTrendPointKind.Measured
-                && double.IsFinite(values[index]))
-            {
-                last = Math.Max(0, values[index]);
-                hasMeasured = true;
-                continued[index] = last;
-            }
-            else
-            {
-                continued[index] = hasMeasured ? last : 0;
-            }
-        }
-
-        return continued;
-    }
-
     public static UsageTrendPath CreatePath(
         IReadOnlyList<double> values,
         double width,
@@ -184,7 +157,6 @@ public static class UsageTrendGeometry
         double maximum,
         double topPadding = 8,
         double bottomPadding = 0,
-        ReportChartStyle style = ReportChartStyle.Smooth,
         bool emphasizeSmallValues = false,
         IReadOnlyList<UsageTrendPointKind>? pointKinds = null,
         bool includeCarriedVertices = false)
@@ -219,26 +191,6 @@ public static class UsageTrendGeometry
             UsageTrendSpanKind span = SpanKindBetween(from, to, kinds);
             return new(from.Point, control1, control2, to.Point, span, to.IsTrailing,
                 span == UsageTrendSpanKind.Observed ? null : FadeBetween(from, to, points, kinds));
-        }
-
-        if (style is ReportChartStyle.Line or ReportChartStyle.Area)
-        {
-            return new UsageTrendPath(points, drawn.Zip(drawn.Skip(1),
-                (from, to) => Segment(from, to, from.Point, to.Point)).ToArray());
-        }
-        if (style == ReportChartStyle.Step)
-        {
-            var steps = drawn.Zip(drawn.Skip(1), (from, to) =>
-            {
-                var corner = new UsageTrendPoint(to.Point.X, from.Point.Y);
-                UsageTrendSegment segment = Segment(from, to, from.Point, to.Point);
-                return new[]
-                {
-                    segment with { Control1 = from.Point, Control2 = corner, To = corner },
-                    segment with { From = corner, Control1 = corner, Control2 = to.Point },
-                };
-            }).SelectMany(segments => segments).ToArray();
-            return new UsageTrendPath(points, steps);
         }
 
         double[] tangents = CreateMonotoneTangents(vertices);

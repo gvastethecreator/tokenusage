@@ -34,10 +34,8 @@ public sealed class AppearanceSettingsStoreTests
         Assert.False(File.Exists(store.DocumentPath));
     }
 
-    [Theory]
-    [InlineData(ReportChartStyle.Area, "area")]
-    [InlineData(ReportChartStyle.TwoHourBars, "twohourbars")]
-    public async Task SaveAndLoadRoundTripUsesVersionFiveContract(ReportChartStyle chartStyle, string serializedStyle)
+    [Fact]
+    public async Task SaveAndLoadRoundTripUsesVersionFiveContract()
     {
         using var directory = new TempDirectory();
         var store = CreateStore(directory);
@@ -54,7 +52,6 @@ public sealed class AppearanceSettingsStoreTests
                 providerCount: 2,
                 showProviderName: true,
                 isEnabled: false),
-            chartStyle,
             quotaDisplay: QuotaDisplayStyle.Bars);
 
         Assert.IsType<AppearanceSettingsSaveResult.Saved>(await store.SaveAsync(expected));
@@ -63,11 +60,11 @@ public sealed class AppearanceSettingsStoreTests
         Assert.Equal(expected, loaded.Settings);
         using JsonDocument json = JsonDocument.Parse(await File.ReadAllBytesAsync(store.DocumentPath));
         Assert.Equal(5, json.RootElement.GetProperty("schemaVersion").GetInt32());
-        Assert.Equal(serializedStyle, json.RootElement.GetProperty("reportChartStyle").GetString());
         Assert.Equal("bars", json.RootElement.GetProperty("quotaDisplay").GetString());
         // Settings of the removed report layout are no longer written.
         Assert.False(json.RootElement.TryGetProperty("reportChartGrouping", out _));
         Assert.False(json.RootElement.TryGetProperty("reportContent", out _));
+        Assert.False(json.RootElement.TryGetProperty("reportChartStyle", out _));
         Assert.Equal("dark", json.RootElement.GetProperty("theme").GetString());
         Assert.Equal(
             "heatmap",

@@ -560,7 +560,6 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UnifiedOptionsView", distinctIds, StringComparer.Ordinal);
         Assert.Contains("NotificationsSection", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportChartStyleSelector", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
@@ -742,10 +741,6 @@ public sealed class ArchitectureRulesTests
 
         string trendChartCode = ReadCsharpSources(Path.Combine(appRoot, "Controls"), "UsageTrendChart");
         Assert.Contains("UsageTrendLayouts.EmptyDayStubs", trendChartCode, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "data.Days.Count * (data.Style == ReportChartStyle.TwoHourBars ? 12 : 1)",
-            trendChartCode,
-            StringComparison.Ordinal);
         Assert.Contains("UsageTrendLayouts.Bars", trendChartCode, StringComparison.Ordinal);
 
     }

@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
-using TokenUsage.Core.Appearance;
 using Microsoft.UI.Xaml.Shapes;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Foundation;
@@ -34,16 +33,6 @@ public sealed partial class UsageTrendChart : UserControl
     private Microsoft.UI.Composition.InsetClip? _entranceClip;
     private UsageReportTrendDataset? _lastAnimatedData;
 
-
-    public static readonly DependencyProperty IsPreviewProperty = DependencyProperty.Register(
-        nameof(IsPreview), typeof(bool), typeof(UsageTrendChart),
-        new PropertyMetadata(false, OnDataChanged));
-
-    public bool IsPreview
-    {
-        get => (bool)GetValue(IsPreviewProperty);
-        set => SetValue(IsPreviewProperty, value);
-    }
 
     public static readonly DependencyProperty DataProperty = DependencyProperty.Register(
         nameof(Data),
@@ -181,9 +170,6 @@ public sealed partial class UsageTrendChart : UserControl
             return;
         }
 
-        ChartLayoutRoot.RowSpacing = IsPreview ? 0 : 6;
-        PlotCanvas.IsHitTestVisible = !IsPreview;
-        DateLabels.Visibility = IsPreview ? Visibility.Collapsed : Visibility.Visible;
         FinishEntrance();
         PlotCanvas.Children.Clear();
         YAxisCanvas.Children.Clear();
@@ -195,7 +181,7 @@ public sealed partial class UsageTrendChart : UserControl
         HoverCard.Visibility = Visibility.Collapsed;
 
         UsageReportTrendDataset data = Data ?? UsageReportTrendDataset.Empty;
-        _topPadding = IsPreview ? 8 : UsageReportResetMarkers.TopPaddingFor(UsageReportResetMarkers.PackDays(data.Days));
+        _topPadding = UsageReportResetMarkers.TopPaddingFor(UsageReportResetMarkers.PackDays(data.Days));
         _fillBrushes.Clear();
         bool hasSeries = data.UnavailableText is null && data.Days.Count > 0 && data.Series.Count > 0;
         EmptyText.Text = data.UnavailableText ?? GetString("UsageTrendEmptyText");
@@ -217,29 +203,22 @@ public sealed partial class UsageTrendChart : UserControl
             return;
         }
 
-        IReadOnlyList<double>[] scaleValues = [.. data.Series.Select(series =>
-            data.Style == ReportChartStyle.TwoHourBars ? series.TimeValues : series.Values)];
-        bool stackedArea = data.Style == ReportChartStyle.Area && data.Days.Count > 1 && !data.IsComparison;
-        bool stackedBars = (data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars || data.Days.Count == 1)
-            && !data.IsComparison;
+        IReadOnlyList<double>[] scaleValues = [.. data.Series.Select(series => series.Values)];
+        // Only a single day draws stacked bars; lines compare series at their own heights.
+        bool stackedBars = data.Days.Count == 1 && !data.IsComparison;
         UsageTrendScale scale = data.Metric == UsageReportMetric.Share
             ? new UsageTrendScale(100, [0, 25, 50, 75, 100])
-            : UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(
-                scaleValues,
-                stackedArea || stackedBars,
-                stackedArea
-                    ? [.. data.Series.Select(series => (IReadOnlyList<UsageTrendPointKind>?)series.PointKinds)]
-                    : null),
+            : UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(scaleValues, stackedBars),
                 emphasizeSmallValues: data.EmphasizeSmallValues);
         Brush gridBrush = GridBrushProxy.Background;
         Brush textBrush = TextBrushProxy.Background;
 
         foreach (double tick in UsageTrendGeometry.SelectTicksForHeight(scale.Ticks, height))
         {
-            double baseline = height - (IsPreview ? 2 : BottomPadding);
+            double baseline = height - BottomPadding;
             double y = scale.Maximum == 0
                 ? baseline
-                : baseline - (scale.Normalize(tick) * (baseline - (IsPreview ? 2 : TopPadding)));
+                : baseline - (scale.Normalize(tick) * (baseline - TopPadding));
             PlotCanvas.Children.Add(new Line
             {
                 X1 = 0,
@@ -253,7 +232,6 @@ public sealed partial class UsageTrendChart : UserControl
                 IsHitTestVisible = false,
             });
 
-            if (IsPreview) continue;
             var label = new TextBlock
             {
                 Text = FormatValue(tick, data.Metric),
@@ -276,9 +254,9 @@ public sealed partial class UsageTrendChart : UserControl
         PlotCanvas.Children.Add(_seriesCanvas);
         ResetBarColumns(data);
         RenderSeries(data, width, height, scale);
-        if (!IsPreview) RenderResetMarkers(data, width);
+        RenderResetMarkers(data, width);
         RenderReferenceMarks(data, width, height, scale);
-        bool animate = !IsPreview && !IsCaptureMode && !ReferenceEquals(_lastAnimatedData, data) && MotionSettings.AreAnimationsEnabled();
+        bool animate = !IsCaptureMode && !ReferenceEquals(_lastAnimatedData, data) && MotionSettings.AreAnimationsEnabled();
         if (animate && _barColumns.Count > 0)
         {
             StartColumnGrow(height - BottomPadding);
@@ -297,7 +275,6 @@ public sealed partial class UsageTrendChart : UserControl
         }
         _lastAnimatedData = data;
 
-        if (IsPreview) return;
         _crosshair = new Line
         {
             X1 = 0,
@@ -359,12 +336,11 @@ public sealed partial class UsageTrendChart : UserControl
     private void UpdateDateTicks(UsageReportTrendDataset data, double width)
     {
         DateTicksCanvas.Children.Clear();
-        if (IsPreview || data.Days.Count < WeeklyTickMinimumDays || width <= 0) return;
-        bool slots = data.Style is ReportChartStyle.Bars or ReportChartStyle.TwoHourBars;
+        if (data.Days.Count < WeeklyTickMinimumDays || width <= 0) return;
         const double edgeClearance = 64;
         for (int index = 7; index < data.Days.Count - 1; index += 7)
         {
-            double x = slots ? (index + 0.5) * width / data.Days.Count : index * width / (data.Days.Count - 1);
+            double x = index * width / (data.Days.Count - 1);
             if (x < edgeClearance || x > width - edgeClearance) continue;
             var label = new TextBlock
             {

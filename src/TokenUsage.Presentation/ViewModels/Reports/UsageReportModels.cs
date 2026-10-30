@@ -1,5 +1,4 @@
 using TokenUsage.App.Controls;
-using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Usage;
 
 namespace TokenUsage.App.ViewModels.Reports;
@@ -28,8 +27,6 @@ public sealed record UsageReportTrendSeries(
     IReadOnlyList<double> Values,
     string? ModelId = null)
 {
-    public IReadOnlyList<double> TimeValues { get; init; } = [];
-
     public IReadOnlyList<UsageTrendPointKind> PointKinds { get; init; } = [];
 
     public string? LegendName { get; init; }
@@ -41,7 +38,6 @@ public sealed record UsageReportTrendDataset(
     UsageReportMetric Metric,
     IReadOnlyList<UsageReportTrendDay> Days,
     IReadOnlyList<UsageReportTrendSeries> Series,
-    ReportChartStyle Style = ReportChartStyle.Bars,
     bool IsComparison = false,
     bool EmphasizeSmallValues = false)
 {
@@ -59,7 +55,7 @@ public sealed record UsageReportTrendDataset(
     {
         if (ReferenceEquals(left, right)) return true;
         if (left is null || right is null) return false;
-        return left.Metric == right.Metric && left.Style == right.Style && left.IsComparison == right.IsComparison
+        return left.Metric == right.Metric && left.IsComparison == right.IsComparison
             && left.EmphasizeSmallValues == right.EmphasizeSmallValues && left.UnavailableText == right.UnavailableText
             && left.Days.SequenceEqual(right.Days, TrendDayComparer.Instance)
             && left.Series.SequenceEqual(right.Series, TrendSeriesComparer.Instance);
@@ -80,7 +76,7 @@ public sealed record UsageReportTrendDataset(
             x is not null && y is not null
             && x.Id == y.Id && x.ProviderId == y.ProviderId && x.Name == y.Name && x.ColorHex == y.ColorHex
             && x.ModelId == y.ModelId && x.LegendName == y.LegendName
-            && x.Values.SequenceEqual(y.Values) && x.TimeValues.SequenceEqual(y.TimeValues)
+            && x.Values.SequenceEqual(y.Values)
             && x.PointKinds.SequenceEqual(y.PointKinds);
         public int GetHashCode(UsageReportTrendSeries obj) => obj.Id.GetHashCode(StringComparison.Ordinal);
     }

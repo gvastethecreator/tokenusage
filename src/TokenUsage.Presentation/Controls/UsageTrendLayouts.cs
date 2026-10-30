@@ -1,30 +1,12 @@
-using TokenUsage.Core.Appearance;
-
 namespace TokenUsage.App.Controls;
 
 public readonly record struct UsageTrendBar(int SeriesIndex, int DayIndex, double X, double Y, double Width, double Height, bool IsTop = true);
 public readonly record struct UsageTrendBaselineStub(int DayIndex, double X, double Y, double Width, double Height);
-public sealed record UsageTrendBand(IReadOnlyList<double> Lower, IReadOnlyList<double> Upper);
 
 public static class UsageTrendLayouts
 {
-    public static int BarSlots(ReportChartStyle style, int days) =>
-        days <= 0 ? 0 : days * (style == ReportChartStyle.TwoHourBars ? 12 : 1);
-
-    public static double Peak(
-        IReadOnlyList<IReadOnlyList<double>> series,
-        bool stacked,
-        IReadOnlyList<IReadOnlyList<UsageTrendPointKind>?>? kinds = null)
+    public static double Peak(IReadOnlyList<IReadOnlyList<double>> series, bool stacked)
     {
-        if (stacked && kinds is not null)
-        {
-            IReadOnlyList<double>[] continued = [.. series.Select((values, index) =>
-                index < kinds.Count && kinds[index] is { Count: > 0 } seriesKinds
-                    ? UsageTrendGeometry.ContinueMeasuredValues(values, seriesKinds)
-                    : values)];
-            return Peak(continued, stacked: true);
-        }
-
         int count = series.Select(values => values.Count).DefaultIfEmpty(0).Max();
         return Enumerable.Range(0, count).Select(day => stacked
             ? series.Sum(values => day < values.Count && double.IsFinite(values[day]) ? Math.Max(0, values[day]) : 0)
@@ -108,62 +90,5 @@ public static class UsageTrendLayouts
             stubs.Add(new(day, day * dayWidth + dayWidth * 0.1, baseline - 2, barWidth, 2));
         }
         return stubs;
-    }
-
-    public static IReadOnlyList<UsageTrendBand> Bands(
-        IReadOnlyList<IReadOnlyList<double>> series,
-        bool independent,
-        IReadOnlyList<IReadOnlyList<UsageTrendPointKind>?>? kinds = null,
-        bool percentage = false)
-    {
-        int days = series.Select(values => values.Count).DefaultIfEmpty(0).Max();
-        bool[] measuredDays = percentage && !independent
-            ? [.. Enumerable.Range(0, days).Select(day => series.Select((values, index) =>
-                day < values.Count && UsageTrendGeometry.KindAt(values,
-                    kinds is not null && index < kinds.Count ? kinds[index] : null, day)
-                    == UsageTrendPointKind.Measured).Any(measured => measured))]
-            : [];
-        var cumulative = new double[days];
-        var bands = new List<UsageTrendBand>();
-        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++)
-        {
-            IReadOnlyList<double> values = series[seriesIndex];
-            IReadOnlyList<UsageTrendPointKind>? seriesKinds = kinds is not null && seriesIndex < kinds.Count
-                ? kinds[seriesIndex]
-                : null;
-            bool continueSeries = !independent && seriesKinds is { Count: > 0 };
-            IReadOnlyList<double> source = continueSeries
-                ? UsageTrendGeometry.ContinueMeasuredValues(values, seriesKinds)
-                : values;
-            double[] lower = independent ? new double[days] : (double[])cumulative.Clone();
-            double[] upper = new double[days];
-            double lastShare = 0;
-            for (int day = 0; day < days; day++)
-            {
-                double value = day < source.Count ? source[day] : 0;
-                if (percentage && !independent)
-                {
-                    // A measured day replaces the complete composition. Carry only
-                    // across days with no measurements, never into another series' share.
-                    if (measuredDays[day])
-                        lastShare = day < values.Count
-                            && UsageTrendGeometry.KindAt(values, seriesKinds, day) == UsageTrendPointKind.Measured
-                            && double.IsFinite(values[day]) ? Math.Max(0, values[day]) : 0;
-                    value = lastShare;
-                }
-                if (continueSeries)
-                {
-                    upper[day] = lower[day] + Math.Max(0, value);
-                    cumulative[day] += Math.Max(0, value);
-                }
-                else
-                {
-                    upper[day] = double.IsFinite(value) ? lower[day] + Math.Max(0, value) : double.NaN;
-                    if (double.IsFinite(value)) cumulative[day] += Math.Max(0, value);
-                }
-            }
-            bands.Add(new(lower, upper));
-        }
-        return bands;
     }
 }

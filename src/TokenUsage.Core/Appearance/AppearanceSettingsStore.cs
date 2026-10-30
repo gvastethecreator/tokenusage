@@ -117,7 +117,6 @@ public sealed class AppearanceSettingsStore
         ReadRequiredEnum<ResetTimeDisplayMode>(root, "resetTimeDisplay"),
         ReadRequiredEnum<DashboardVisualizationMode>(root, "dashboardVisualization"),
         ReadTrayPopover(root),
-        ReadRequiredEnum<ReportChartStyle>(root, "reportChartStyle"),
         root.TryGetProperty("quotaDisplay", out _)
             ? ReadRequiredEnum<QuotaDisplayStyle>(root, "quotaDisplay") : QuotaDisplayStyle.Rings);
 
@@ -245,7 +244,6 @@ public sealed class AppearanceSettingsStore
             writer.WriteBoolean("increaseTransparency", settings.IncreaseTransparency);
             writer.WriteString("usageDisplay", ToStorageValue(settings.UsageDisplay));
             writer.WriteString("resetTimeDisplay", ToStorageValue(settings.ResetTimeDisplay));
-            writer.WriteString("reportChartStyle", ToStorageValue(settings.ReportChartStyle));
             writer.WriteString("quotaDisplay", ToStorageValue(settings.QuotaDisplay));
             writer.WriteString(
                 "dashboardVisualization",

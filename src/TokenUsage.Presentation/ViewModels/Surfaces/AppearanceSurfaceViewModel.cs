@@ -52,10 +52,6 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             .Select(style => new AppearanceOption<QuotaDisplayStyle>(style, _getString("QuotaDisplay" + style)))
             .ToArray();
         SelectedQuotaDisplay = QuotaDisplayOptions[0];
-        ReportChartStyleOptions = Enum.GetValues<ReportChartStyle>()
-            .Select(style => new ReportChartStyleOption(style, _getString("ReportChartStyle" + style)))
-            .ToArray();
-        SelectedReportChartStyle = ReportChartStyleOptions.Single(option => option.Value == ReportChartStyle.Bars);
         TrayPopoverPrimaryOptions = CreateTrayMetricOptions(includeNone: false);
         TrayPopoverSecondaryOptions = CreateTrayMetricOptions(includeNone: true);
         TrayPopoverProviderCountOptions = Enumerable
@@ -89,13 +85,6 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
     public partial AppearanceOption<QuotaDisplayStyle> SelectedQuotaDisplay { get; set; }
 
     partial void OnSelectedQuotaDisplayChanged(AppearanceOption<QuotaDisplayStyle> value) => QueueSave();
-
-    public IReadOnlyList<ReportChartStyleOption> ReportChartStyleOptions { get; }
-
-    [ObservableProperty]
-    public partial ReportChartStyleOption SelectedReportChartStyle { get; set; }
-
-    partial void OnSelectedReportChartStyleChanged(ReportChartStyleOption value) => QueueSave();
 
     public event EventHandler<AppearanceSettings>? SettingsChanged;
 
@@ -277,7 +266,6 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
         try
         {
             SelectedQuotaDisplay = QuotaDisplayOptions.Single(option => option.Value == settings.QuotaDisplay);
-            SelectedReportChartStyle = ReportChartStyleOptions.Single(option => option.Value == settings.ReportChartStyle);
             SelectedTheme = ThemeOptions.Single(option => option.Value == settings.Theme);
             SelectedDensity = DensityOptions.Single(option => option.Value == settings.Density);
             IncreaseTransparency = settings.IncreaseTransparency;
@@ -309,7 +297,6 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
         if (_isApplyingSettings
             || _session.IsReadOnly
             || SelectedQuotaDisplay is null
-            || SelectedReportChartStyle is null
             || SelectedTheme is null
             || SelectedDensity is null
             || SelectedUsageDisplay is null
@@ -335,7 +322,6 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
                 SelectedTrayPopoverProviderCount.Value,
                 ShowTrayPopoverProviderName,
                 ShowTrayPopover),
-            SelectedReportChartStyle.Value,
             SelectedQuotaDisplay.Value);
         Settings = settings;
         SettingsChanged?.Invoke(this, settings);
