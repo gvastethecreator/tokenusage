@@ -10,7 +10,9 @@ public sealed partial class ProviderAccountChoice : ObservableObject
     public ProviderAccountChoice(ProviderAccountInfo account, Func<string, string> text)
     {
         Key = account.InstanceKey.AccountKey!;
-        Label = account.Alias ?? string.Format(CultureInfo.CurrentCulture, text("CodexAccountProfileFormat"), account.Number);
+        string provider = account.InstanceKey.ProviderId.Value == "claude" ? "Claude" : "Codex";
+        Label = provider + " · " + (account.Alias
+            ?? string.Format(CultureInfo.CurrentCulture, text("CodexAccountProfileFormat"), account.Number));
         if (account.IsActive) Label += " · " + text("CodexAccountActive");
         IsSelected = account.IsSelected;
         CanSelect = account.Status == ProviderAccountStatus.Available || account.IsSelected;

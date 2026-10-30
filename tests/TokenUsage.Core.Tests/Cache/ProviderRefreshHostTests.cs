@@ -39,26 +39,26 @@ public sealed class ProviderRefreshHostTests
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(Now);
         var codexStore = new SnapshotStore(Path.Combine(folder.Root, "codex", SnapshotStore.DefaultFileName), clock);
-        var vercelStore = new SnapshotStore(Path.Combine(folder.Root, "vercel", SnapshotStore.DefaultFileName), clock);
+        var zcodeStore = new SnapshotStore(Path.Combine(folder.Root, "zcode", SnapshotStore.DefaultFileName), clock);
 
         ProviderSnapshot codexCached = CreateSnapshot("codex", 10m);
-        ProviderSnapshot vercelCached = CreateSnapshot("vercel-ai-gateway", 20m);
+        ProviderSnapshot zcodeCached = CreateSnapshot("zcode", 20m);
         await codexStore.UpsertLastGoodAsync(codexCached);
-        await vercelStore.UpsertLastGoodAsync(vercelCached);
+        await zcodeStore.UpsertLastGoodAsync(zcodeCached);
 
         var codexProvider = new RecordingProvider(
             new ProviderId("codex"),
             "Codex",
             new ProviderOutcome.Success(CreateSnapshot("codex", 80m)));
-        var vercelProvider = new RecordingProvider(
-            new ProviderId("vercel-ai-gateway"),
-            "Vercel AI Gateway",
-            new ProviderOutcome.Success(CreateSnapshot("vercel-ai-gateway", 90m)));
+        var zcodeProvider = new RecordingProvider(
+            new ProviderId("zcode"),
+            "ZCode",
+            new ProviderOutcome.Success(CreateSnapshot("zcode", 90m)));
 
         var host = new ProviderRefreshHost(
             [
                 new ProviderRefreshRegistration(codexProvider, codexStore),
-                new ProviderRefreshRegistration(vercelProvider, vercelStore),
+                new ProviderRefreshRegistration(zcodeProvider, zcodeStore),
             ],
             clock);
 
@@ -70,9 +70,9 @@ public sealed class ProviderRefreshHostTests
             Assert.IsType<CacheFirstEvent.CachePublished>(events.Current);
         Assert.Equal(2, published.Snapshots.Count);
         Assert.Contains(published.Snapshots, s => s.ProviderId.Value == "codex");
-        Assert.Contains(published.Snapshots, s => s.ProviderId.Value == "vercel-ai-gateway");
+        Assert.Contains(published.Snapshots, s => s.ProviderId.Value == "zcode");
         Assert.Equal(0, codexProvider.RefreshCalls);
-        Assert.Equal(0, vercelProvider.RefreshCalls);
+        Assert.Equal(0, zcodeProvider.RefreshCalls);
 
         Assert.True(await events.MoveNextAsync());
         CacheFirstEvent.ProviderCompleted first =
@@ -82,13 +82,13 @@ public sealed class ProviderRefreshHostTests
         CacheFirstEvent.ProviderCompleted second =
             Assert.IsType<CacheFirstEvent.ProviderCompleted>(events.Current);
         Assert.Equal(
-            ["codex", "vercel-ai-gateway"],
+            ["codex", "zcode"],
             new[] { first.ProviderId.Value, second.ProviderId.Value }
                 .OrderBy(id => id, StringComparer.Ordinal));
         Assert.Equal(1, codexProvider.RefreshCalls);
-        Assert.Equal(1, vercelProvider.RefreshCalls);
+        Assert.Equal(1, zcodeProvider.RefreshCalls);
         Assert.True(codexProvider.LastContext?.ForceRefresh);
-        Assert.True(vercelProvider.LastContext?.ForceRefresh);
+        Assert.True(zcodeProvider.LastContext?.ForceRefresh);
 
         Assert.False(await events.MoveNextAsync());
     }

@@ -396,7 +396,7 @@ public sealed partial class UsageTrendChart : UserControl
                 System.Globalization.CultureInfo.CurrentCulture,
                 "{0:0.#}%",
                 value),
-            _ => UsageReportViewModel.FormatCompactTokens(value),
+            _ => UsageValueFormatter.CompactTokens(value),
         };
 
     private string GetString(string key)

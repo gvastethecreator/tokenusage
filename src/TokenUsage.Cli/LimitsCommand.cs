@@ -37,7 +37,7 @@ public static class LimitsCommand
         {
             await standardError.WriteLineAsync(error).ConfigureAwait(false);
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         IReadOnlyList<ProviderSnapshot> snapshots;
@@ -62,7 +62,7 @@ public static class LimitsCommand
         {
             await standardError.WriteLineAsync("Unable to read provider limits.")
                 .ConfigureAwait(false);
-            return UsageCommand.NoDataExitCode;
+            return CliApplication.NoDataExitCode;
         }
 
         ProviderSnapshot[] selected = snapshots
@@ -87,8 +87,8 @@ public static class LimitsCommand
         }
 
         return !selected.Any(snapshot => snapshot.Metrics.Count > 0)
-            ? UsageCommand.NoDataExitCode
-            : UsageCommand.SuccessExitCode;
+            ? CliApplication.NoDataExitCode
+            : CliApplication.SuccessExitCode;
     }
 
     private static bool TryParse(

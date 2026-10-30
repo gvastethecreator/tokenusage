@@ -19,14 +19,6 @@ public sealed partial class CodexUsageEventSource :
     private readonly ICodexQuotaClientFactory? _clientFactory;
     private readonly TimeProvider _clock;
     private readonly CodexUsageCheckpointStore? _checkpointStore;
-    private readonly IAttributionConsentSource? _attributionConsent;
-    private readonly IOpaqueKeyDeriver? _attributionKeys;
-    private AttributionConsent? _scanConsent;
-    private AttributionConsent? _scanProjectConsent;
-    public DateOnly? SessionAttributionBackfillFrom { get; set; }
-    public DateOnly? SessionAttributionBackfillTo { get; set; }
-    public DateOnly? ProjectAttributionBackfillFrom { get; set; }
-    public DateOnly? ProjectAttributionBackfillTo { get; set; }
 
     public CodexUsageEventSource(
         string groupingTimeZoneId,
@@ -36,9 +28,7 @@ public sealed partial class CodexUsageEventSource :
         int maximumLineCharacters = DefaultLineBytes,
         ICodexQuotaClientFactory? clientFactory = null,
         string? checkpointPath = null,
-        TimeProvider? clock = null,
-        IAttributionConsentSource? attributionConsent = null,
-        IOpaqueKeyDeriver? attributionKeys = null)
+        TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
@@ -56,8 +46,6 @@ public sealed partial class CodexUsageEventSource :
         _checkpointStore = checkpointPath is null
             ? null
             : new CodexUsageCheckpointStore(checkpointPath, _clock, SourceAuthority);
-        _attributionConsent = attributionConsent;
-        _attributionKeys = attributionKeys;
     }
 
     public SourceKind SourceKind => _clientFactory is null
@@ -72,27 +60,9 @@ public sealed partial class CodexUsageEventSource :
     public UsageSourceInstanceId SourceInstance => SourceAuthority;
 
 
-    public void ClearStoredSessionAttribution() => _checkpointStore?.ClearSessionAttribution();
-
-    public void ClearStoredProjectAttribution() => _checkpointStore?.ClearProjectAttribution();
-
-    public ParentChildAccountingKind ParentChildAccounting { get; } = ParentChildAccountingKind.Exclusive;
-
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default)
     {
-        _scanConsent = await LoadConsentAsync(AttributionCapability.CodexSession, cancellationToken)
-            .ConfigureAwait(false);
-        _scanProjectConsent = await LoadConsentAsync(AttributionCapability.CodexProject, cancellationToken)
-            .ConfigureAwait(false);
-        _scanMcpConsent = await LoadConsentAsync(AttributionCapability.CodexMcp, cancellationToken)
-            .ConfigureAwait(false);
-        _scanSkillsConsent = await LoadConsentAsync(AttributionCapability.CodexSkills, cancellationToken)
-            .ConfigureAwait(false);
-        _scanCommandsConsent = await LoadConsentAsync(AttributionCapability.CodexCommands, cancellationToken)
-            .ConfigureAwait(false);
-        _scanFilesConsent = await LoadConsentAsync(AttributionCapability.CodexFiles, cancellationToken)
-            .ConfigureAwait(false);
         ScanResult scan;
         IUsageReadCheckpoint? checkpoint = null;
         if (_checkpointStore is null)
@@ -120,25 +90,5 @@ public sealed partial class CodexUsageEventSource :
     {
         public UsageSourceInstanceId? SourceInstance { get; init; }
         public IReadOnlyList<UsageEvent> Observations { get; init; } = [];
-        public IReadOnlyList<UsageSessionLink> SessionLinks { get; init; } = [];
-        public IReadOnlyList<UsageProjectLink> ProjectLinks { get; init; } = [];
-        public IReadOnlyList<UsageOperationFact> Operations { get; init; } = [];
     }
-
-    private async Task<AttributionConsent?> LoadConsentAsync(
-        AttributionCapability capability,
-        CancellationToken cancellationToken)
-    {
-        if (_attributionConsent is null)
-        {
-            return null;
-        }
-
-        AttributionConsent loaded = await _attributionConsent.LoadAsync(capability, cancellationToken)
-            .ConfigureAwait(false);
-        return loaded.Capability.Value == capability.Value
-            ? loaded
-            : new AttributionConsent(capability, AttributionConsentState.Disabled, 0, DateTimeOffset.UnixEpoch);
-    }
-
 }

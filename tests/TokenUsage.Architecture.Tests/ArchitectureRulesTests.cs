@@ -117,21 +117,14 @@ public sealed class ArchitectureRulesTests
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();
         string automation = Path.Combine(repoRoot, "src", "TokenUsage.Core", "Automation");
         string cli = Path.Combine(repoRoot, "src", "TokenUsage.Cli");
-        Assert.False(File.Exists(Path.Combine(automation, "UsageJson.cs")));
         Assert.False(File.Exists(Path.Combine(automation, "ReportJson.cs")));
         Assert.False(File.Exists(Path.Combine(automation, "LimitsDocument.cs")));
-        Assert.True(File.Exists(Path.Combine(cli, "UsageJson.cs")));
         Assert.True(File.Exists(Path.Combine(cli, "ReportJson.cs")));
         Assert.True(File.Exists(Path.Combine(cli, "LimitsDocument.cs")));
 
-        string usageCommand = File.ReadAllText(Path.Combine(
-            cli,
-            "UsageCommand.cs"));
         string reportCommand = File.ReadAllText(Path.Combine(
             cli,
             "ReportCommand.cs"));
-        Assert.Contains("UsageJson.Serialize", usageCommand, StringComparison.Ordinal);
-        Assert.DoesNotContain("private sealed record UsageDocument", usageCommand, StringComparison.Ordinal);
         Assert.Contains("ReportJson.Serialize", reportCommand, StringComparison.Ordinal);
         Assert.DoesNotContain("private sealed record ReportDocument", reportCommand, StringComparison.Ordinal);
     }
@@ -148,7 +141,6 @@ public sealed class ArchitectureRulesTests
             "AppComposition.cs"));
 
         Assert.Contains("WindowsProviderCatalog.CreateComposition", composition, StringComparison.Ordinal);
-        Assert.Contains("WindowsManualProviderCredentialStore", composition, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticUsageEventSource", composition, StringComparison.Ordinal);
 
         string providerCatalog = File.ReadAllText(Path.Combine(
@@ -241,7 +233,7 @@ public sealed class ArchitectureRulesTests
             "src",
             "TokenUsage.Cli",
             "CliApplication.cs"));
-        Assert.Contains("new UsageQuery", cliApplication, StringComparison.Ordinal);
+        Assert.Contains("new UsageReportQuery", cliApplication, StringComparison.Ordinal);
         Assert.Contains("new LimitsQuery", cliLimits, StringComparison.Ordinal);
         Assert.Contains(
             "new WindowsProviderDiagnosticsQuery",
@@ -306,19 +298,19 @@ public sealed class ArchitectureRulesTests
                 appRoot,
                 "Views",
                 "Options",
-                "AppearanceOptionsView.xaml")),
+                "AdvancedOptionsView.xaml")),
             StringComparison.Ordinal);
 
         string[] requiredViews =
         [
             Path.Combine("Dashboard", "CompactUsageDashboard.xaml"),
+            Path.Combine("Options", "AdvancedOptionsView.xaml"),
             Path.Combine("Options", "AppearanceOptionsView.xaml"),
             Path.Combine("Options", "GeneralOptionsView.xaml"),
             Path.Combine("Options", "OptionsView.xaml"),
             Path.Combine("Options", "PersonalizationOptionsView.xaml"),
             Path.Combine("Options", "ProviderStatusView.xaml"),
-            Path.Combine("Options", "ProviderCredentialEditor.xaml"),
-            Path.Combine("Reports", "UsageReportPage.xaml"),
+            Path.Combine("Reports", "ReportPage.xaml"),
         ];
 
         foreach (string relativePath in requiredViews)
@@ -344,6 +336,7 @@ public sealed class ArchitectureRulesTests
             "GeneralOptionsView.xaml",
             "AppearanceOptionsView.xaml",
             "ProviderStatusView.xaml",
+            "AdvancedOptionsView.xaml",
         ];
 
         for (int index = 0; index < categoryFiles.Length; index++)
@@ -375,11 +368,11 @@ public sealed class ArchitectureRulesTests
             optionsDocument.Root!.Elements().SelectMany(element => element.Descendants()),
             element => element.Name.LocalName == "PersonalizationOptionsView");
 
-        XDocument appearanceDocument = XDocument.Load(Path.Combine(
+        XDocument advancedDocument = XDocument.Load(Path.Combine(
             optionsRoot,
-            "AppearanceOptionsView.xaml"));
+            "AdvancedOptionsView.xaml"));
         Assert.Contains(
-            appearanceDocument.Descendants(),
+            advancedDocument.Descendants(),
             element => element.Name.LocalName == "PersonalizationOptionsView");
     }
 
@@ -397,18 +390,12 @@ public sealed class ArchitectureRulesTests
             XDocument.Load(Path.Combine(optionsRoot, "GeneralOptionsView.xaml")),
             XDocument.Load(Path.Combine(optionsRoot, "NotificationsOptionsView.xaml")),
             XDocument.Load(Path.Combine(optionsRoot, "AppearanceOptionsView.xaml")),
+            XDocument.Load(Path.Combine(optionsRoot, "AdvancedOptionsView.xaml")),
         ];
         string[] requiredAutomationIds =
         [
             "CloseWhenInactiveToggle",
             "ClaudeLimitsToggle",
-            "CodexSessionAttributionToggle",
-            "CodexProjectAttributionToggle",
-            "CursorSessionAttributionToggle",
-            "CodexMcpAttributionToggle",
-            "CodexSkillsAttributionToggle",
-            "CodexCommandsAttributionToggle",
-            "CodexFilesAttributionToggle",
             "AlertsMasterToggle",
             "QuotaThresholdAlertToggle",
             "ExhaustionForecastAlertToggle",
@@ -513,16 +500,6 @@ public sealed class ArchitectureRulesTests
             Assert.DoesNotContain("Text=\"{Binding PaceText}\"", xaml, StringComparison.Ordinal);
         }
 
-        string report = File.ReadAllText(Path.Combine(
-            appRoot,
-            "Views",
-            "Reports",
-            "UsageReportPage.xaml"));
-        Assert.Contains("Text=\"{x:Bind Window.PaceText}\"", report, StringComparison.Ordinal);
-        Assert.Contains(
-            "AutomationProperties.Name=\"{x:Bind Window.PaceAutomationName}\"",
-            report,
-            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -547,92 +524,15 @@ public sealed class ArchitectureRulesTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Contains("UsageOverviewCards", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageOverviewCostDetails", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageOverviewPartialWarning", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerClearHidden", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerAdvancedFilters", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerSourceDetails", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerEmptyClear", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerSourceWarning", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerContextPath", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportChartAppearance", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportBreakdownCaption", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportCompactSort", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportCompactSortDirection", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerWorkflowEvidence", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageComparisonState", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageComparisonAdvanced", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetLogExpander", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportNoticesButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportFiltersToggle", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerValues", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageBreakdownRow", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageBreakdownBack", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportApiProviderButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportProjectButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageBreakdownTable", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageBreakdownTotal", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageBreakdownEvidence", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerOpenOutlier", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageLinearScenarioChoice", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplanationBreakdown", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplanationBreakdownReturn", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplanationSummary", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplanationLoad", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageDashboardOperationsViewAll", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageDashboardActivityViewAll", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageComparisonRows", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplanationEvidence", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplanationReturn", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageActivity", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageActivityLoad", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageActivityWindowCount", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageActivityMore", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageConfigurationTier", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerHost", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerSearch", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerDetailChart", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerBackToModel", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerOpenProjects", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerCloseProjects", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerOpenOperations", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerOpenUnlinkedOperations", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerCloseOperations", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerOperations", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerMixedOperationsHeading", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerMixedOperations", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerOpenOperationSession", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerDerivedActivity", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerDerivedActivityReturn", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerWorkflowIndicators", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerWorkflowReturn", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("CodexMcpAttributionToggle", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("CodexSkillsAttributionToggle", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("CodexCommandsAttributionToggle", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("CodexFilesAttributionToggle", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerProjects", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageExplorerExpandSession", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageDistributionSummary", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CompactThemeLogoButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("ReportThemeLogoButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AutomaticUpdatesToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CheckAppUpdatesButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DownloadAppUpdateButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("RetryAppUpdateButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("FinishAppUpdateButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("CancelAppUpdateButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageComparisonEvidence", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageComparisonReferenceDate", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportErrorMessage", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportRetryButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionBackgroundToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("DataCollectionOpenRefreshSelector", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("AttributionBackfillSource", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("AttributionBackfillFrom", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("AttributionBackfillTo", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("AttributionBackfillRun", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("AttributionBackfillStatus", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AlertsMasterToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("QuotaAlertThresholdNumberBox", distinctIds, StringComparer.Ordinal);
         Assert.Contains("QuotaThresholdAlertToggle", distinctIds, StringComparer.Ordinal);
@@ -645,32 +545,22 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("AppearanceTrayProviderCountSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AppearanceTrayProviderNameToggle", distinctIds, StringComparer.Ordinal);
         Assert.Contains("TraySummaryEmptyState", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("CompactGlobalCostBreakdown", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("CompactCoverageHint", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderVisualizationButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderShareButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportKpis", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportPaces", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportDailyChart", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportWaterfall", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportResets", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportRows", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportShareButton", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportPeriod30", distinctIds, StringComparer.Ordinal);
+        Assert.Contains("ReportGroupModel", distinctIds, StringComparer.Ordinal);
         Assert.Contains("HeaderOptionsButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("UnifiedOptionsView", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportCaptureButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportExportButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportPreviousProviderButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportNextProviderButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetCycleButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetCycleSelector", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetCycleGroupSelector", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportPreviousResetCycleButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportNextResetCycleButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportCompareCycleWarning", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportCompareRatesButton", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportMarkBest", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageComparisonRateBaselineDate", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetLog", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetLogQuota", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetLogClass", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportResetCount", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportPeriodSelector", distinctIds, StringComparer.Ordinal);
         Assert.Contains("NotificationsSection", distinctIds, StringComparer.Ordinal);
         Assert.Contains("ReportChartStyleSelector", distinctIds, StringComparer.Ordinal);
-        Assert.Contains("UsageReportModelChartButton", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport1DayButton", distinctIds, StringComparer.Ordinal);
         Assert.DoesNotContain("UsageReport3DaysButton", distinctIds, StringComparer.Ordinal);
         Assert.Contains("AboutSection", distinctIds, StringComparer.Ordinal);
@@ -753,125 +643,6 @@ public sealed class ArchitectureRulesTests
         Assert.DoesNotContain(
             "previous.DashboardVisualization != current.DashboardVisualization",
             mainWindowCode,
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ReportMotionUsesExclusiveTabsAndLeafTransitionChannels()
-    {
-        string repoRoot = ProjectReferenceGraph.FindRepoRoot();
-        string reportRoot = Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.App",
-            "Views",
-            "Reports");
-        string reportXaml = File.ReadAllText(Path.Combine(reportRoot, "UsageReportPage.xaml"));
-        Assert.Contains(
-            "x:Key=\"SectionTabRadioButtonStyle\" TargetType=\"RadioButton\"",
-            File.ReadAllText(Path.Combine(repoRoot, "src", "TokenUsage.App", "App.xaml")),
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "IsEnabled=\"{x:Bind ViewModel.HasProviderOptions, Mode=OneWay}\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "Visibility=\"{x:Bind ViewModel.IsProviderPickerVisible, Mode=OneWay}\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"ReportProviderCarousel\"", reportXaml, StringComparison.Ordinal);
-        Assert.Contains(
-            "ProviderTabCarouselLayout.ReportMaximumPageSize",
-            File.ReadAllText(Path.Combine(reportRoot, "UsageReportPage.xaml.cs")),
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "<Setter Property=\"MinWidth\" Value=\"0\" />",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "x:Name=\"ReportDragRegion\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("GeneratedDuration", reportXaml, StringComparison.Ordinal);
-        foreach (string requiredName in new[]
-        {
-            "UsageReportScopeTabs",
-            "UsageReportMetricTabs",
-            "UsageReportValueModeTabs",
-            "UsageReportChartLayoutTabs",
-            "UsageReportBreakdownTabs",
-            "ReportSummaryTokensValue",
-            "ReportSummaryCostValue",
-            "ReportSummaryCoverageValue",
-            "ReportCompositionLegendRoot",
-            "ReportCompositionBar",
-            "GlobalChartTransitionRoot",
-            "ProviderChartContentRoot",
-            "DashboardCompositionCard",
-            "DashboardModelsRows",
-            "DashboardProjectsRows",
-            "DashboardFullBreakdown",
-            "ReportProviderLimitsContentRoot",
-            "BreakdownRowsView",
-            "BreakdownDetail",
-            "UsageReportApiProviderButton",
-            "UsageReportCompareButton",
-            "UsageReportCompareAxisTabs",
-            "ReportCompareSummary",
-            "ReportCompareChart",
-            "ReportCompareRows",
-        })
-        {
-            Assert.Contains(requiredName, reportXaml, StringComparison.Ordinal);
-        }
-
-        Assert.DoesNotContain("ReportDataTransitionTransform", reportXaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("ReportSummaryValuesRoot", reportXaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("ReportCacheValuesRoot", reportXaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("BreakdownContentRoot", reportXaml, StringComparison.Ordinal);
-        Assert.Contains("x:Uid=\"UsageReportPeriodSelector\"", reportXaml, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"ReportHeaderRoot\"", reportXaml, StringComparison.Ordinal);
-        Assert.Contains(
-            "x:Name=\"ReportScrollViewer\"\n            Grid.Row=\"1\"",
-            reportXaml.ReplaceLineEndings("\n"),
-            StringComparison.Ordinal);
-
-        string reportViewModel = File.ReadAllText(Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.App",
-            "ViewModels",
-            "Reports",
-            "UsageReportViewModel.cs"));
-        Assert.Contains("SelectUsedProviderIds", reportViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("ActiveLocalUsageEntries", reportViewModel, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ReportProviderScopeFiltersOneDurableReadInMemory()
-    {
-        string reportViewModel = File.ReadAllText(Path.Combine(
-            ProjectReferenceGraph.FindRepoRoot(),
-            "src",
-            "TokenUsage.App",
-            "ViewModels",
-            "Reports",
-            "UsageReportViewModel.cs"));
-
-        const string durableRead = "query.ReadAsync(";
-        int durableReadIndex = reportViewModel.IndexOf(durableRead, StringComparison.Ordinal);
-        Assert.True(durableReadIndex >= 0);
-        Assert.DoesNotContain(
-            durableRead,
-            reportViewModel[(durableReadIndex + durableRead.Length)..],
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "UsageReportQuery.FilterByAgent",
-            reportViewModel,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "await _refreshSourceAsync()",
-            reportViewModel,
             StringComparison.Ordinal);
     }
 
@@ -969,38 +740,6 @@ public sealed class ArchitectureRulesTests
             compactXaml,
             StringComparison.Ordinal);
 
-        string reportXaml = File.ReadAllText(Path.Combine(
-            appRoot,
-            "Views",
-            "Reports",
-            "UsageReportPage.xaml"));
-        Assert.Contains("x:Name=\"ReportProviderCarousel\"", reportXaml, StringComparison.Ordinal);
-        Assert.Contains(
-            "AutomationProperties.AutomationId=\"UsageReportPreviousProviderButton\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "AutomationProperties.AutomationId=\"UsageReportNextProviderButton\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "AutomationProperties.Name=\"{x:Bind Name}\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "GroupName=\"UsageReportProviderTabs\"",
-            reportXaml,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "x:Name=\"ReportProviderTabsTransitionRoot\" Margin=\"2,0\"",
-            reportXaml,
-            StringComparison.Ordinal);
-
-        string reportCode = ReadCsharpSources(
-            Path.Combine(appRoot, "Views", "Reports"),
-            "UsageReportPage");
-        Assert.Contains("PlayProviderTabsTransition", reportCode, StringComparison.Ordinal);
-
         string trendChartCode = ReadCsharpSources(Path.Combine(appRoot, "Controls"), "UsageTrendChart");
         Assert.Contains("UsageTrendLayouts.EmptyDayStubs", trendChartCode, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -1009,19 +748,6 @@ public sealed class ArchitectureRulesTests
             StringComparison.Ordinal);
         Assert.Contains("UsageTrendLayouts.Bars", trendChartCode, StringComparison.Ordinal);
 
-        string compareCode = ReadCsharpSources(
-            Path.Combine(appRoot, "ViewModels", "Reports"),
-            "UsageReportViewModel");
-        Assert.Contains("UsageComparison.ReloadsForCatalogDate(UseReferencePrices, IsCompareRatesAxis)", compareCode, StringComparison.Ordinal);
-        Assert.Contains("UsageComparison.OverlaysSingleReferencePrice(", compareCode, StringComparison.Ordinal);
-        Assert.Contains("CompareCatalogDatesAsync", compareCode, StringComparison.Ordinal);
-        Assert.Contains("NotApplicableFixedCohortRow(GetString(\"UsageComparisonVolumeChange\"))", compareCode, StringComparison.Ordinal);
-        Assert.Contains("NotApplicableFixedCohortRow(GetString(\"UsageComparisonMixChange\"))", compareCode, StringComparison.Ordinal);
-        Assert.Contains("GetString(\"UsageComparisonFixedCohortNotApplicable\")", compareCode, StringComparison.Ordinal);
-        Assert.Contains(
-            "UsageComparison.UsesFixedCohortRows(ActiveRateMethodId) ? GetString(\"UsageComparisonCatalogValue\")",
-            compareCode,
-            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1055,32 +781,17 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("Kind=\"share\"", mainPageXaml, StringComparison.Ordinal);
 
         string reportPageXaml = File.ReadAllText(Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.App",
-            "Views",
-            "Reports",
-            "UsageReportPage.xaml"));
+            repoRoot, "src", "TokenUsage.App", "Views", "Reports", "ReportPage.xaml"));
         Assert.Contains("x:Name=\"ReportCaptureBrand\"", reportPageXaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"TokenUsage\"", reportPageXaml, StringComparison.Ordinal);
-
+        Assert.Contains("Kind=\"share\"", reportPageXaml, StringComparison.Ordinal);
         string reportPageCode = File.ReadAllText(Path.Combine(
-            repoRoot,
-            "src",
-            "TokenUsage.App",
-            "Views",
-            "Reports",
-            "UsageReportPage.xaml.cs"));
-        Assert.Contains("ReportControlBar.Opacity = 0", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportCoverageHintButton.Opacity = 0", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("Opacity=\"0\"", reportPageXaml, StringComparison.Ordinal);
+            repoRoot, "src", "TokenUsage.App", "Views", "Reports", "ReportPage.xaml.cs"));
+        Assert.Contains("ReportActions.Opacity = 0", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCaptureBrand.Opacity = 1", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ShareCaptureService.CaptureScrollableAsync", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportScrollViewer", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportControlBar.Opacity = controlBarOpacity", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("ReportCoverageHintButton.Opacity = coverageHintOpacity", reportPageCode, StringComparison.Ordinal);
+        Assert.Contains("ReportActions.Opacity = actionsOpacity", reportPageCode, StringComparison.Ordinal);
         Assert.Contains("ReportCaptureBrand.Opacity = captureBrandOpacity", reportPageCode, StringComparison.Ordinal);
-        Assert.Contains("Kind=\"share\"", reportPageXaml, StringComparison.Ordinal);
 
         string shareCaptureCode = File.ReadAllText(Path.Combine(
             repoRoot,
@@ -1092,15 +803,15 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("CaptureScrollableAsync", shareCaptureCode, StringComparison.Ordinal);
         Assert.Contains("CropVertical", shareCaptureCode, StringComparison.Ordinal);
 
-        string generalOptionsCode = File.ReadAllText(Path.Combine(
+        string advancedOptionsCode = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
             "TokenUsage.App",
             "Views",
             "Options",
-            "GeneralOptionsView.xaml.cs"));
-        Assert.Contains("DispatcherQueue.TryEnqueue", generalOptionsCode, StringComparison.Ordinal);
-        Assert.DoesNotContain("private async void OnLoaded", generalOptionsCode, StringComparison.Ordinal);
+            "AdvancedOptionsView.xaml.cs"));
+        Assert.Contains("DispatcherQueue.TryEnqueue", advancedOptionsCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("private async void OnLoaded", advancedOptionsCode, StringComparison.Ordinal);
     }
 
     private static string ReadCsharpSources(string directory, string filePrefix)

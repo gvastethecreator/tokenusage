@@ -40,11 +40,13 @@ output path for a retry after resolving the cause. The source is opened read-onl
 These copies protect TokenUsage's own usage store. They do not back up provider
 logs, credentials, or other application data.
 
-## Codex account quotas
+## Account quotas
 
 Account quotas are additive. They do not migrate the usage database or change
-event keys, prices, totals, attribution, or scanner checkpoints. Selection is in
-`accounts/codex/selection.v1.json`. Each opaque account directory contains its own
+event keys, prices, totals, or scanner checkpoints. Selection is in
+`accounts/codex/selection.v1.json` for code-swap profiles and
+`accounts/claude/selection.v1.json` for claude-swap profiles. Each opaque account
+directory contains its own
 snapshot cache, quota reset history, observation journal, and alert decision
 state. Documents bind their schema version, provider, and account key. The
 observation journal stores the same binding in its metadata table.
@@ -56,7 +58,8 @@ observations do not assign shared tokens or costs to account cycles.
 
 The account namespace marks activation even with an empty selection. Do not
 delete it to disable queries: save an empty selection in Settings. Missing or
-invalid selection data must not restart the old global Codex history writer.
+invalid selection data must not restart the old global history writer for that
+provider.
 Other providers and local usage collection continue. Corrupt, mismatched, and
 future documents are preserved for recovery; they are not replaced with empty
 state. Writes use existing atomic file replacement and document locks.
@@ -112,176 +115,36 @@ neither timestamp nor the data revision.
 Migration derives a successful time only when the stored latest result proves one.
 An earlier partial result leaves that time unknown. The migration uses the same
 transaction, backup and writer-version protection as other history upgrades.
-Reports shows both dates in its collection summary and measurement details. A
-missing successful date is shown as not recorded; unresolved history is identified
-as requiring verification rather than a complete collection.
 
-## Activity evidence
+## Reset cycles in reports
 
-Daily report charts do not load hourly detail. Two-hour chart styles request it
-through the report's bounded load path and cancel obsolete selections.
-`UsageReport.HasTimeBucketDetails` distinguishes an unloaded report from a loaded
-empty result. While detail is unloaded, timing coverage is unknown. Saved daily
-snapshots show an unavailable message when viewed as a two-hour chart; they do
-not read current data or draw zero usage. Exact-cycle and configuration detail
-keep their own timing evidence.
+Reports reads each quota's reset history. A cycle covers its provider schedule:
+the expected reset minus the window length. The stored start is used only when it
+is later, for example after an early reset. A reset that happened while
+TokenUsage was not running therefore does not stretch the next cycle backwards.
+Pace curves read quota observations inside that span. A drop in used quota inside
+it, such as an early reset or a claude-swap account switch, starts a new line
+instead of drawing usage going backwards.
 
-Loading retained detail also projects activity coverage for the selected tool,
-host, model and configuration. Timestamped observations, interval observations,
-non-placeable usage and totals without retained detail remain separate. Their
-record/token totals reconcile with the report. Activity clock buckets contain only
-supported timestamped usage; explicit snapshots and daily aggregates do not gain
-hourly support from an observation timestamp.
+Cycle token totals count records with a timestamp or a bounded interval inside the
+span. Records with daily or unknown timing are left out, not spread across
+cycles. Account quotas show no token totals: local logs cannot be assigned to one
+account, so a ratio would be invented.
 
-Exact queries use half-open boundaries. Intervals that cross the selected boundary
-and records without supported usage time are excluded explicitly. Reference-price
-changes preserve activity token counts. The Reports Activity expander loads this
-shared detail on demand. It shows the four coverage groups and two-hour local
-clock windows in each recorded time zone. Repeated daylight-saving hours are
-combined, not interpreted as equal elapsed durations. The list starts with 24
-windows and adds 24 on request; changing the selection resets the display limit.
-These rows count observations, not proved final requests or measured durations.
+## Removed attribution (schema 13)
 
-Measurement details distinguishes Codex reader capabilities from the observation
-count in the current selection. Reader support does not guarantee available
-records. Zero matching observations does not establish zero usage. The count can
-include aggregate history without retained detail; Activity supplies that separate
-coverage. Last success and latest attempt describe collection, not completeness
-of the selected model, period, account or PC.
-
-## Session attribution
-
-Schema 9 adds `session_attribution`, an optional side table keyed by the existing
-event key. It stores only app-owned opaque session and parent keys plus the
-consent epoch that admitted the link. Native session IDs, paths, prompts, and
-working directories are not stored. Consent lives in a JSON document outside the
-usage database, so restoring a `.pre-vN` copy cannot revive permission.
-
-Attribution starts off. Enabling it does not rewrite historic numeric events.
-Automatic links start at enablement: Codex snapshots already-known observation
-keys when the consent epoch changes, and Cursor persists the same watermark beside
-the local database. Occurrence timestamps are not the only boundary. Disabled
-readers select epoch 0, so a restored backup cannot expose restored links even if
-those rows still exist in SQLite. Revoke and purge delete rows in
-`session_attribution` and derived checkpoint keys. They do not delete
-`usage_event`, daily rollups, prices, or event keys. A crash that leaves purge
-pending keeps the capability disabled until the purge finishes. Re-enabling
-starts a new epoch and does not republish purged links. Historical attribution
-requires an explicit bounded backfill of a retained source range. A successful
-explicit admission is recorded in the Codex checkpoint for that consent epoch so
-ordinary refresh and source restart keep the link after the temporary range is
-cleared. Session and project committed keys stay independent. A new epoch still
-starts empty and does not rebuild purged admissions. Events without
-a live matching epoch remain Unassigned.
-
-Default report snapshots omit aliases and persistent attribution keys. Session
-and project populations, when exported, use ephemeral IDs that are valid only
-inside that file. Money amounts are exact invariant decimals, not a six-place
-display format.
-
-Session outliers (`session-outlier/v1`) use comparable attributed session totals
-from the live consent epoch. They do not require RequestFinal. Request input-size
-distributions stay gated on proved final observations.
-
-## Project attribution
-
-Schema 10 adds `project_attribution`, an optional side table keyed by the same
-event key. It stores an opaque project key, the consent epoch, and mapping kind
-(`observed`, `user-mapped`, or `ambiguous`). Ambiguous rows may omit the key.
-Working directories, native IDs, and paths are not stored. Project consent is a
-separate JSON choice from session consent. User-mapped rows survive observed
-backfill. Revoke and purge delete project links and local aliases. They do not
-delete `usage_event`, daily rollups, prices, or event keys.
-
-Schema 10 also adds `session_attribution.capability` so Cursor composer links
-can share the session table without mixing Codex epochs.
-
-## Operation facts
-
-Schema 11 adds `operation_fact`, an optional adjunct keyed by an app-owned opaque
-operation identity. It stores a capability, consent epoch, kind
-(`tool`, `mcp`, `skill`, `spawn`, `command`, `file`), bounded tool/server labels,
-an outcome enum, timestamps, an optional opaque session key, and a quantity.
-Arguments, URIs, command text, paths, prompts, and tool outputs are not stored.
-Each capability (`codex-mcp`, `codex-skills`, `codex-commands`, `codex-files`) is
-an independent Settings choice, off by default, with its own epoch. Enabling it
-does not rewrite numeric usage. Historical facts require an explicit bounded
-backfill. Revoke and purge delete `operation_fact` rows for that capability and
-derived checkpoint admissions. They do not delete `usage_event`, daily rollups,
-prices, or event keys. Re-enabling starts a new epoch and does not republish
-purged facts. Codex DynamicToolCall names are allowlisted to `Read` and `Edit`.
-Command families are derived transiently from argv and stored as a family label
-only. File rows store an HMAC of a normalized path, never the path.
-
-Schema 12 adds nullable `operation_fact.source_instance`. New opaque operation
-keys include the collector's source authority in HMAC material, so two homes
-with the same provider `call_id` stay distinct. Opening a schema-11 database
-adds the column as NULL and keeps admitted history. A later observation that
-carries the recovered unnamed-authority key deletes that NULL row in the same
-transaction before inserting the authority-scoped key, so one logical call
-stays one invocation. Two genuine source authorities still count two. When a
-NULL-authority row and a named-authority row coexist without that recovered
-key, Reports does not treat their sum as an exact combined count: named rows
-are the exact population, and the unrecovered legacy rows are listed separately
-until an explicit backfill matches them. Unique identity remains
-`operation_key`. Capability purge remains available when identity cannot be
-recovered.
-
-Reports derives `derived-activity/v1` at query time from admitted operation facts.
-The counting unit is ranking invocations after `GROUP BY kind, tool, server`, not
-distinct `operation_key` rows. The partition is exclusive: edit (file or
-allowlisted Edit), read/search (allowlisted Read or search family), test (test
-family), delegate (spawn), and Unknown. MCP, generic shell, and Skill (if it
-ever appeared) are Unknown. Prompt text is not classified. Cost by category is
-unavailable. Category evidence is the ranked rows whose `Classify` matches that
-bucket; mixed and proved ranking rows are disjoint and both are included.
-`workflow-indicators/v1` counts
-same-file verification-separated edits when a completed admitted test-family
-operation sits strictly between two completed ordered edits of the same opaque
-file identity. A missing end is incomplete, not a zero-duration completion.
-Failed verifications with a proved end still count. Concurrent completed pairs
-are excluded; file/file and edit/test exclusions are stored separately so a
-revoked commands permission cannot keep a joint count. Clicking that indicator
-opens the contributing event sequence (the two edits and the between test),
-not every test-family ranking row or every session that touched the file.
-Frozen workflow counts carry the files/commands consent epochs internally and
-drop joint fields when either epoch is revoked or replaced. First-edit latency
-stays unavailable: no proved task start is retained, and RequestFinal is not used as a
-substitute. Both method versions are
-written on frozen snapshots; they are not stored in SQLite. CSV and HTML export
-the same method, unit, category counts, eligible/excluded populations and
-unavailable reasons as JSON. Operation navigation reuses the opened
-project/session/model scope for ranking, timeline, derived activity, workflow
-and export. Explicit operational backfill replays the unchanged prefix even
-when the log has grown, then scans the new suffix; ordinary refresh does not.
-
-The retained-detail query also provides `measured-input-cache-share/v1`. Its
-numerator is measured cache-read tokens; its denominator is measured input plus
-cache-read plus cache-write tokens. All three components must be measured for a
-record to qualify. It sums amounts before division and never averages percentages.
-Unknown components, unavailable components and missing retained detail form
-separate exclusion counts. A measured zero denominator has no percentage; a
-positive denominator with zero cache reads has a measured zero percent. Selection
-and reference repricing preserve these rules. Reports can load this shared detail
-from its explanation card and display the eligible amounts and exclusions.
-
-`observed-change-explanations/v1` compares calendar snapshots with equal period
-lengths and known matching parser definitions and time zones. Unsupported axes,
-exact intervals or scenario methods return explicit limitations. Cost explanations
-also require matching pricing definitions and fully priced observations. Changes
-of at least 10 percentage points in price or retained-detail coverage are reported
-before contributions; unknown detail coverage remains unknown. This does not
-estimate coverage of all PC activity.
-
-For compatible snapshots, up to two model contributions and the remaining-model
-amount reconcile exactly with the observed change. No percentage of a near-zero
-net change is calculated. Missing model detail blocks the explanation if its sum
-does not match the report. The result keeps its metric, selection, rule version,
-coverage differences and cache evidence. Reports saves this result with the selected
-metric and displays it without rewriting its version on load. Older snapshots show
-that the explanation is absent. A different stored rule version or metric is not
-silently interpreted under the current rules. The evidence and model-breakdown
-actions lead to existing report detail and provide a keyboard return path.
+Schema 13 drops `session_attribution`, `project_attribution`, `operation_fact`,
+and `saved_usage_comparison`. Optional session, project, and tool attribution and
+saved report comparisons were removed. The upgrade deletes those tables with their
+rows and triggers in the same backed-up transaction as other history upgrades.
+Claude records written by parser `claude-jsonl/4` always held each message's own
+timestamp but stored its precision as unknown; the same upgrade marks them as
+timestamped so reset-cycle totals include them. Token counts, daily rollups,
+prices, and event keys are unchanged. TokenUsage
+also deletes its `attribution-consent.v1.json` and `attribution-aliases.v1.json`
+documents. Earlier versions wrote `<state db>.attribution-admission.v1.json` next
+to Cursor's local database. It holds only a numeric watermark; TokenUsage no
+longer reads it and does not delete files in another client's directory.
 
 ## Codex collection progress
 

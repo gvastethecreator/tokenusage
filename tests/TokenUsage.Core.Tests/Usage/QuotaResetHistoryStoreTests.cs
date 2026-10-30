@@ -392,42 +392,6 @@ public sealed class QuotaResetHistoryStoreTests
     }
 
     [Fact]
-    public void ResetCountUsesHalfOpenRangeAndCanFilterOfficialWindow()
-    {
-        DateTimeOffset fromUtc = InitialObservation;
-        QuotaResetHistory history = new(
-            [
-                CreateWindow("quota.primary", 300m),
-                CreateWindow("quota.codex-bengalfox.primary", 300m),
-            ],
-            [
-                CreateResetRecord("quota.primary", fromUtc, QuotaResetDetectionKind.Scheduled),
-                CreateResetRecord("quota.codex-bengalfox.primary", fromUtc.AddDays(1), QuotaResetDetectionKind.Early),
-                CreateResetRecord("quota.primary", fromUtc.AddDays(2), QuotaResetDetectionKind.Observed),
-            ],
-            []);
-
-        Assert.Equal(2, QuotaResetCountQuery.Count(
-            history,
-            "codex",
-            fromUtc,
-            fromUtc.AddDays(2)));
-        Assert.Equal(1, QuotaResetCountQuery.Count(
-            history,
-            "codex",
-            fromUtc,
-            fromUtc.AddDays(2),
-            metricId: "quota.primary"));
-        Assert.Equal(
-            new QuotaResetCountSummary(2, Scheduled: 1, Early: 1, Observed: 0),
-            QuotaResetCountQuery.Summarize(
-                history,
-                "codex",
-                fromUtc,
-                fromUtc.AddDays(2)));
-    }
-
-    [Fact]
     public async Task ChangedWindowDurationKeepsOldCadenceInHistoryWithoutCountingItAsCurrent()
     {
         using var folder = new TemporaryFolder();
@@ -459,13 +423,6 @@ public sealed class QuotaResetHistoryStoreTests
         Assert.Equal(10_080m, cycles[0].WindowDurationMinutes);
         Assert.False(cycles[1].IsCurrent);
         Assert.Equal(300m, cycles[1].WindowDurationMinutes);
-        Assert.Equal(1, QuotaResetCountQuery.Count(
-            history,
-            "codex",
-            InitialObservation,
-            firstReset.AddDays(1)));
-        Assert.Equal(0, QuotaResetCountQuery.Summarize(history, "codex", InitialObservation,
-            firstReset.AddDays(1), currentWindowsOnly: true).Total);
     }
 
     [Fact]

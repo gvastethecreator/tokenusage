@@ -12,9 +12,6 @@ public sealed partial class UsageRepository
     public async Task<UsageSourceStoreResult> StoreSourceObservationsAsync(AgentId agentId,
         UsageSourceInstanceId sourceInstance, string parserVersion, DateOnly from, DateOnly to,
         IEnumerable<UsageEvent> observations, bool complete,
-        IReadOnlyList<UsageSessionLink>? sessionLinks = null,
-        IReadOnlyList<UsageProjectLink>? projectLinks = null,
-        IReadOnlyList<UsageOperationFact>? operations = null,
         CancellationToken token = default)
     {
         EnsureWritable();
@@ -106,20 +103,6 @@ public sealed partial class UsageRepository
         }
         UsageEvent[] written = await WriteEventsAsync(connection, transaction, admitted, EventWriteKind.Upsert,
             token).ConfigureAwait(false);
-        await ReplaceSessionLinksOnAsync(
-            connection,
-            transaction,
-            sessionLinks ?? [],
-            written.Select(row => row.EventKey.Value).ToHashSet(StringComparer.Ordinal),
-            token).ConfigureAwait(false);
-        await ReplaceProjectLinksOnAsync(
-            connection,
-            transaction,
-            projectLinks ?? [],
-            written.Select(row => row.EventKey.Value).ToHashSet(StringComparer.Ordinal),
-            preserveUserMapped: true,
-            token).ConfigureAwait(false);
-        await UpsertOperationFactsOnAsync(connection, transaction, operations ?? [], token).ConfigureAwait(false);
         if (authoritative)
             await RebuildAgentRollupsInRangeAsync(connection, transaction, agentId, from, to, token).ConfigureAwait(false);
         await RebuildAgentRollupsForDatesAsync(connection, transaction, agentId,

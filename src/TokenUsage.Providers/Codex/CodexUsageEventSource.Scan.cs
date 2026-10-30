@@ -28,7 +28,6 @@ public sealed partial class CodexUsageEventSource
             && checkpoints.Files.Values.Any(file => foundPaths.Contains(file.AuthorityPathHash));
         DateOnly recentFrom = RecentFrom();
         long initialBytesRemaining = MaximumInitialRecentScanBytes;
-        CaptureAdmissionWatermarks(checkpoints);
         foreach (SessionFile file in files.OrderByDescending(TryGetLastWriteTimeUtc))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -93,37 +92,9 @@ public sealed partial class CodexUsageEventSource
             }
 
             checkpoint.ObservationIdentity = file.SessionIdentity;
-            ApplyScanConsentToCheckpoint(checkpoint);
-            FillOpaqueSessionKeys(file.Path, checkpoint, cancellationToken);
-            StampCheckpointedProjectObservations(checkpoint);
-            bool operationalReplay = ShouldReplayOperationalEvents();
             if (checkpoint.Offset == info.Length)
             {
-                if (operationalReplay)
-                {
-                    using var replay = new FileStream(
-                        file.Path,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.ReadWrite | FileShare.Delete,
-                        1024 * 1024,
-                        FileOptions.SequentialScan);
-                    ReplayOperationalLines(replay, checkpoint, state, cancellationToken);
-                }
-
                 return;
-            }
-
-            if (operationalReplay)
-            {
-                using var historical = new FileStream(
-                    file.Path,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.ReadWrite | FileShare.Delete,
-                    1024 * 1024,
-                    FileOptions.SequentialScan);
-                ReplayOperationalLines(historical, checkpoint, state, cancellationToken, checkpoint.Offset);
             }
 
             using var stream = new FileStream(
@@ -221,95 +192,7 @@ public sealed partial class CodexUsageEventSource
         }
     }
 
-    private void ReplayOperationalLines(
-        FileStream stream,
-        CodexUsageFileCheckpoint checkpoint,
-        LocalScanState state,
-        CancellationToken cancellationToken,
-        long? stopExclusive = null)
-    {
-        byte[] buffer = new byte[1024 * 1024];
-        using var line = new MemoryStream(capacity: Math.Min(state.MaximumLineBytes, 64 * 1024));
-        bool oversized = false;
-        long absoluteOffset = stream.Position;
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            int bytesRead = stream.Read(buffer, 0, buffer.Length);
-            if (bytesRead == 0)
-            {
-                break;
-            }
-
-            int segmentStart = 0;
-            while (segmentStart < bytesRead)
-            {
-                int newline = Array.IndexOf(buffer, (byte)'\n', segmentStart, bytesRead - segmentStart);
-                int segmentEnd = newline >= 0 ? newline : bytesRead;
-                AppendRecentLineSegment(
-                    line,
-                    buffer.AsSpan(segmentStart, segmentEnd - segmentStart),
-                    state.MaximumLineBytes,
-                    ref oversized);
-                if (newline < 0)
-                {
-                    break;
-                }
-
-                long lineEnd = checked(absoluteOffset + newline + 1L);
-                if (stopExclusive is { } stop && lineEnd > stop)
-                {
-                    return;
-                }
-
-                if (!oversized)
-                {
-                    ReadOnlyMemory<byte> utf8 = line.GetBuffer().AsMemory(0, checked((int)line.Length));
-                    if (!utf8.IsEmpty && utf8.Span[^1] == (byte)'\r')
-                    {
-                        utf8 = utf8[..^1];
-                    }
-
-                    ProcessOperationalReplayLine(utf8, checkpoint);
-                }
-
-                line.SetLength(0);
-                oversized = false;
-                segmentStart = newline + 1;
-            }
-
-            absoluteOffset = checked(absoluteOffset + bytesRead);
-        }
-    }
-
-    private void ProcessOperationalReplayLine(ReadOnlyMemory<byte> utf8, CodexUsageFileCheckpoint checkpoint)
-    {
-        if (!MightBeOperational(utf8.Span))
-        {
-            return;
-        }
-
-        try
-        {
-            using JsonDocument document = JsonDocument.Parse(utf8);
-            JsonElement root = document.RootElement;
-            if (!TryGetString(root, "type", out string? recordType)
-                || !string.Equals(recordType, "event_msg", StringComparison.Ordinal)
-                || !root.TryGetProperty("payload", out JsonElement payload)
-                || payload.ValueKind != JsonValueKind.Object
-                || !TryGetString(payload, "type", out string? eventType))
-            {
-                return;
-            }
-
-            _ = TryObserveOperationalEvent(eventType!, root, payload, checkpoint);
-        }
-        catch (JsonException)
-        {
-        }
-    }
-
-    private bool IsNonUsageRecord(ReadOnlySpan<byte> prefix)
+    private static bool IsNonUsageRecord(ReadOnlySpan<byte> prefix)
     {
         // Read only the envelope, not message text which can itself mention token_count.
         // A truncated or unrecognized envelope is not evidence that a line is irrelevant.
@@ -332,23 +215,8 @@ public sealed partial class CodexUsageEventSource
                 {
                     if (reader.TokenType != JsonTokenType.String) return false;
                     if (reader.ValueTextEquals("token_count") || reader.ValueTextEquals("task_started")) return false;
-                    // Large tool results are not numeric usage. When their optional
-                    // attribution is off, skipping the body cannot make usage partial.
-                    if (_attributionKeys is null
-                        || (_scanMcpConsent is not { State: AttributionConsentState.Enabled }
-                            && _scanSkillsConsent is not { State: AttributionConsentState.Enabled }
-                            && _scanCommandsConsent is not { State: AttributionConsentState.Enabled }
-                            && _scanFilesConsent is not { State: AttributionConsentState.Enabled })) return true;
-                    return !reader.ValueTextEquals("mcp_tool_call_begin")
-                        && !reader.ValueTextEquals("mcp_tool_call_end")
-                        && !reader.ValueTextEquals("item_started")
-                        && !reader.ValueTextEquals("item_completed")
-                        && !reader.ValueTextEquals("collab_agent_spawn_begin")
-                        && !reader.ValueTextEquals("collab_agent_spawn_end")
-                        && !reader.ValueTextEquals("exec_command_begin")
-                        && !reader.ValueTextEquals("exec_command_end")
-                        && !reader.ValueTextEquals("patch_apply_begin")
-                        && !reader.ValueTextEquals("patch_apply_end");
+                    // Large tool results and other event bodies are not numeric usage.
+                    return true;
                 }
             }
         }
@@ -393,8 +261,7 @@ public sealed partial class CodexUsageEventSource
         bool mightBeUsage = bytes.IndexOf("token_count"u8) >= 0;
         bool mightBeSessionMeta = bytes.IndexOf("session_meta"u8) >= 0;
         bool mightBeTaskStarted = bytes.IndexOf("task_started"u8) >= 0;
-        bool mightBeOperational = MightBeOperational(bytes);
-        if (!mightBeContext && !mightBeUsage && !mightBeSessionMeta && !mightBeTaskStarted && !mightBeOperational)
+        if (!mightBeContext && !mightBeUsage && !mightBeSessionMeta && !mightBeTaskStarted)
         {
             return;
         }
@@ -430,7 +297,6 @@ public sealed partial class CodexUsageEventSource
                     && effort is "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max" or "ultra" ? effort : null;
                 checkpoint.Tier = TryGetString(payload, "service_tier", out string? tier)
                     && tier is "standard" or "fast" or "batch" or "flex" or "priority" ? tier : null;
-                ApplyProjectFromPayload(payload, checkpoint);
                 return;
             }
 
@@ -443,11 +309,6 @@ public sealed partial class CodexUsageEventSource
             if (string.Equals(eventType, "task_started", StringComparison.Ordinal))
             {
                 ObserveTaskStarted(root, payload, checkpoint);
-                return;
-            }
-
-            if (TryObserveOperationalEvent(eventType!, root, payload, checkpoint))
-            {
                 return;
             }
 
@@ -560,26 +421,11 @@ public sealed partial class CodexUsageEventSource
                 : UsageRecordKind.Unknown;
             string observedModel = isTurnObservation ? checkpoint.Model : "unknown";
             string observationKey = Hash($"codex-observation\0{checkpoint.ObservationIdentity}\0{timestamp:O}\0{checkpoint.Offset}");
-            string? projectKey = checkpoint.ProjectKey;
-            long? projectEpoch = checkpoint.ProjectEpoch;
-            string? mapping = projectKey is not null
-                ? ProjectMappingKindCodec.ToWire(ProjectMappingKind.Observed)
-                : checkpoint.SawMultipleProjects && _scanProjectConsent is { State: AttributionConsentState.Enabled }
-                    ? ProjectMappingKindCodec.ToWire(ProjectMappingKind.Ambiguous)
-                    : null;
-            if (mapping is not null && projectEpoch is null && _scanProjectConsent is { State: AttributionConsentState.Enabled })
-            {
-                projectEpoch = _scanProjectConsent.Epoch;
-            }
-
             checkpoint.Observations.Add(new CodexNumericObservation(observationKey, timestamp,
                 observedModel, delta, precision, precision == UsageTimePrecision.Interval ? previousTimestamp : null,
                 isTurnObservation ? checkpoint.ObservedModel : null,
                 isTurnObservation ? checkpoint.Effort : null, isTurnObservation ? checkpoint.Tier : null,
-                measured, kind, RepresentationRevision: 1,
-                ProjectKey: projectKey,
-                ProjectEpoch: projectEpoch,
-                ProjectMappingKind: mapping));
+                measured, kind, RepresentationRevision: 1));
 
         }
         catch (Exception exception) when (exception is JsonException
@@ -592,7 +438,7 @@ public sealed partial class CodexUsageEventSource
         }
     }
 
-    private void ObserveSessionMeta(
+    private static void ObserveSessionMeta(
         JsonElement root,
         JsonElement payload,
         CodexUsageFileCheckpoint checkpoint)
@@ -603,8 +449,6 @@ public sealed partial class CodexUsageEventSource
         }
 
         checkpoint.SawSessionMeta = true;
-        ApplySessionIdentity(payload, checkpoint);
-        ApplyProjectFromPayload(payload, checkpoint);
         if (!IsChildSessionMeta(payload))
         {
             return;
@@ -617,253 +461,6 @@ public sealed partial class CodexUsageEventSource
             out DateTimeOffset createdAt)
             ? createdAt.ToUnixTimeSeconds()
             : null;
-    }
-
-    private void CaptureAdmissionWatermarks(CodexUsageCheckpointState checkpoints)
-    {
-        if (_scanConsent is { State: AttributionConsentState.Enabled }
-            && checkpoints.SessionAdmissionEpoch != _scanConsent.Epoch)
-        {
-            checkpoints.SessionAdmissionEventKeys.Clear();
-            checkpoints.SessionCommittedEventKeys.Clear();
-            foreach (CodexUsageFileCheckpoint file in checkpoints.Files.Values)
-            {
-                foreach (CodexNumericObservation observation in file.Observations)
-                {
-                    checkpoints.SessionAdmissionEventKeys.Add(observation.Key);
-                }
-            }
-
-            checkpoints.SessionAdmissionEpoch = _scanConsent.Epoch;
-        }
-
-        if (_scanProjectConsent is { State: AttributionConsentState.Enabled }
-            && checkpoints.ProjectAdmissionEpoch != _scanProjectConsent.Epoch)
-        {
-            checkpoints.ProjectAdmissionEventKeys.Clear();
-            checkpoints.ProjectCommittedEventKeys.Clear();
-            foreach (CodexUsageFileCheckpoint file in checkpoints.Files.Values)
-            {
-                foreach (CodexNumericObservation observation in file.Observations)
-                {
-                    checkpoints.ProjectAdmissionEventKeys.Add(observation.Key);
-                }
-            }
-
-            checkpoints.ProjectAdmissionEpoch = _scanProjectConsent.Epoch;
-        }
-
-        CaptureOperationAdmissionWatermarks(checkpoints);
-    }
-
-    private void ApplyScanConsentToCheckpoint(CodexUsageFileCheckpoint checkpoint)
-    {
-        StripDisabledOperationLabels(checkpoint);
-        if (_scanConsent is not { State: AttributionConsentState.Enabled })
-        {
-            checkpoint.SessionKey = null;
-            checkpoint.ParentSessionKey = null;
-            checkpoint.AttributionEpoch = null;
-        }
-
-        if (_scanProjectConsent is { State: AttributionConsentState.Enabled })
-        {
-            return;
-        }
-
-        checkpoint.ProjectKey = null;
-        checkpoint.ProjectEpoch = null;
-        checkpoint.SawMultipleProjects = false;
-        if (checkpoint.Observations.Exists(item => item.ProjectKey is not null || item.ProjectMappingKind is not null))
-        {
-            CodexNumericObservation[] stripped = checkpoint.Observations
-                .Select(item => item with { ProjectKey = null, ProjectEpoch = null, ProjectMappingKind = null })
-                .ToArray();
-            checkpoint.Observations.Clear();
-            checkpoint.Observations.AddRange(stripped);
-        }
-    }
-
-    private void FillOpaqueSessionKeys(
-        string path,
-        CodexUsageFileCheckpoint checkpoint,
-        CancellationToken cancellationToken)
-    {
-        if (_attributionKeys is null)
-        {
-            return;
-        }
-
-        bool sessionReady = _scanConsent is not { State: AttributionConsentState.Enabled }
-            || (checkpoint.SessionKey is not null && checkpoint.AttributionEpoch == _scanConsent.Epoch);
-        bool projectReady = _scanProjectConsent is not { State: AttributionConsentState.Enabled }
-            || checkpoint.ProjectKey is not null;
-        if (sessionReady && projectReady)
-        {
-            return;
-        }
-
-        try
-        {
-            using var stream = new FileStream(
-                path,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete,
-                64 * 1024,
-                FileOptions.SequentialScan);
-            byte[] buffer = new byte[64 * 1024];
-            using var line = new MemoryStream(capacity: 16 * 1024);
-            long scanned = 0;
-            const long maximumBytes = 8L * 1024 * 1024;
-            while (scanned < maximumBytes)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                if (bytesRead == 0)
-                {
-                    return;
-                }
-
-                int segmentStart = 0;
-                while (segmentStart < bytesRead)
-                {
-                    int newline = Array.IndexOf(buffer, (byte)'\n', segmentStart, bytesRead - segmentStart);
-                    int segmentEnd = newline >= 0 ? newline : bytesRead;
-                    line.Write(buffer, segmentStart, segmentEnd - segmentStart);
-                    scanned += segmentEnd - segmentStart;
-                    if (newline < 0)
-                    {
-                        break;
-                    }
-
-                    ReadOnlyMemory<byte> utf8 = line.GetBuffer().AsMemory(0, checked((int)line.Length));
-                    if (!utf8.IsEmpty && utf8.Span[^1] == (byte)'\r')
-                    {
-                        utf8 = utf8[..^1];
-                    }
-
-                    line.SetLength(0);
-                    if (utf8.Span.IndexOf("session_meta"u8) >= 0
-                        && TryApplySessionMetaBytes(utf8, checkpoint))
-                    {
-                        return;
-                    }
-
-                    segmentStart = newline + 1;
-                    if (scanned >= maximumBytes)
-                    {
-                        return;
-                    }
-                }
-            }
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or UnauthorizedAccessException
-                                           or NotSupportedException
-                                           or ArgumentException
-                                           or JsonException)
-        {
-            // Missing or unreadable session_meta leaves the file Unassigned.
-        }
-    }
-
-    private bool TryApplySessionMetaBytes(ReadOnlyMemory<byte> utf8, CodexUsageFileCheckpoint checkpoint)
-    {
-        using JsonDocument document = JsonDocument.Parse(utf8);
-        JsonElement root = document.RootElement;
-        return TryGetString(root, "type", out string? recordType)
-            && string.Equals(recordType, "session_meta", StringComparison.Ordinal)
-            && root.TryGetProperty("payload", out JsonElement payload)
-            && payload.ValueKind == JsonValueKind.Object
-            && (ApplySessionIdentity(payload, checkpoint) | ApplyProjectSideEffect(payload, checkpoint));
-    }
-
-    private void StampCheckpointedProjectObservations(CodexUsageFileCheckpoint checkpoint)
-    {
-        if (_scanProjectConsent is not { State: AttributionConsentState.Enabled }
-            || checkpoint.ProjectEpoch is not > 0
-            || checkpoint.Observations.Count == 0
-            || !checkpoint.Observations.Exists(item => item.ProjectMappingKind is null))
-        {
-            return;
-        }
-
-        bool ambiguous = checkpoint.SawMultipleProjects || checkpoint.ProjectKey is null;
-        CodexNumericObservation[] stamped = checkpoint.Observations
-            .Select(item => item.ProjectMappingKind is not null
-                ? item
-                : item with
-                {
-                    ProjectKey = ambiguous ? null : checkpoint.ProjectKey,
-                    ProjectEpoch = checkpoint.ProjectEpoch,
-                    ProjectMappingKind = ProjectMappingKindCodec.ToWire(
-                        ambiguous ? ProjectMappingKind.Ambiguous : ProjectMappingKind.Observed),
-                })
-            .ToArray();
-        checkpoint.Observations.Clear();
-        checkpoint.Observations.AddRange(stamped);
-    }
-
-    private bool ApplyProjectSideEffect(JsonElement payload, CodexUsageFileCheckpoint checkpoint)
-    {
-        ApplyProjectFromPayload(payload, checkpoint);
-        return checkpoint.ProjectKey is not null;
-    }
-
-    private bool ApplySessionIdentity(JsonElement payload, CodexUsageFileCheckpoint checkpoint)
-    {
-        if (_scanConsent is not { State: AttributionConsentState.Enabled }
-            || _attributionKeys is null)
-        {
-            return false;
-        }
-
-        if (!TryGetString(payload, "id", out string? nativeId)
-            || !OpaqueNativeId.TryNormalize(nativeId, out string identifier))
-        {
-            return false;
-        }
-
-        checkpoint.SessionKey = _attributionKeys.Derive(OpaqueKeyDomains.CodexSession, AgentId.Value, identifier).Value;
-        checkpoint.AttributionEpoch = _scanConsent.Epoch;
-        string? parentNative = null;
-        if (TryGetString(payload, "parent_thread_id", out string? parent)
-            && OpaqueNativeId.TryNormalize(parent, out string parentId))
-        {
-            parentNative = parentId;
-        }
-        else if (TryGetString(payload, "forked_from_id", out string? forked)
-            && OpaqueNativeId.TryNormalize(forked, out string forkedId))
-        {
-            parentNative = forkedId;
-        }
-
-        checkpoint.ParentSessionKey = parentNative is null
-            ? null
-            : _attributionKeys.Derive(OpaqueKeyDomains.CodexParent, AgentId.Value, parentNative).Value;
-        return true;
-    }
-
-    private void ApplyProjectFromPayload(JsonElement payload, CodexUsageFileCheckpoint checkpoint)
-    {
-        if (_scanProjectConsent is not { State: AttributionConsentState.Enabled }
-            || _attributionKeys is null
-            || !TryGetString(payload, "cwd", out string? cwd)
-            || !OpaqueWorkspaceFingerprint.TryFingerprint(cwd, out string fingerprint))
-        {
-            return;
-        }
-
-        string opaque = _attributionKeys.Derive(OpaqueKeyDomains.CodexProject, AgentId.Value, fingerprint).Value;
-        if (checkpoint.ProjectKey is not null
-            && !string.Equals(checkpoint.ProjectKey, opaque, StringComparison.Ordinal))
-        {
-            checkpoint.SawMultipleProjects = true;
-        }
-
-        checkpoint.ProjectKey = opaque;
-        checkpoint.ProjectEpoch = _scanProjectConsent.Epoch;
     }
 
     private static void ObserveTaskStarted(
@@ -1044,8 +641,6 @@ public sealed partial class CodexUsageEventSource
         {
             checkpoint.Observations.RemoveAll(item => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(
                 item.Timestamp, TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId)).DateTime) < recentFrom);
-            checkpoint.Operations.RemoveAll(item => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(
-                item.StartedAt, TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId)).DateTime) < recentFrom);
         }
     }
 
@@ -1068,61 +663,6 @@ public sealed partial class CodexUsageEventSource
             UsageSourceReadStatus.NoData => UsageSourceIssueKind.Empty,
             _ => null,
         };
-        UsageSessionLink[] sessionLinks = checkpoints.Files.Values
-            .Where(file => file.SessionKey is not null
-                && file.AttributionEpoch is > 0
-                && OpaqueAttributionKey.IsHexSha256(file.SessionKey)
-                && (file.ParentSessionKey is null || OpaqueAttributionKey.IsHexSha256(file.ParentSessionKey)))
-            .SelectMany(file => file.Observations
-                .Where(item => AttributionAdmission.AdmitsAutomaticLink(
-                    _scanConsent,
-                    item.Timestamp,
-                    item.Key,
-                    checkpoints.SessionAdmissionEventKeys,
-                    SessionAttributionBackfillFrom,
-                    SessionAttributionBackfillTo,
-                    checkpoints.SessionCommittedEventKeys))
-                .Select(item => new UsageSessionLink(
-                new UsageEventKey(item.Key),
-                new OpaqueAttributionKey(file.SessionKey!),
-                file.ParentSessionKey is null ? null : new OpaqueAttributionKey(file.ParentSessionKey),
-                file.AttributionEpoch!.Value)))
-            .DistinctBy(link => link.EventKey.Value)
-            .ToArray();
-        UsageProjectLink[] projectLinks = checkpoints.Files.Values
-            .SelectMany(file => file.Observations
-                .Where(item => item.ProjectEpoch is > 0
-                    && item.ProjectMappingKind is not null
-                    && (item.ProjectKey is null || OpaqueAttributionKey.IsHexSha256(item.ProjectKey))
-                    && AttributionAdmission.AdmitsAutomaticLink(
-                        _scanProjectConsent,
-                        item.Timestamp,
-                        item.Key,
-                        checkpoints.ProjectAdmissionEventKeys,
-                        ProjectAttributionBackfillFrom,
-                        ProjectAttributionBackfillTo,
-                        checkpoints.ProjectCommittedEventKeys))
-                .Select(item => new UsageProjectLink(
-                    new UsageEventKey(item.Key),
-                    item.ProjectKey is null ? null : new OpaqueAttributionKey(item.ProjectKey),
-                    item.ProjectEpoch!.Value,
-                    ProjectMappingKindCodec.TryParse(item.ProjectMappingKind, out ProjectMappingKind kind)
-                        ? kind
-                        : ProjectMappingKind.Ambiguous)))
-            .DistinctBy(link => link.EventKey.Value)
-            .ToArray();
-        foreach (UsageSessionLink link in sessionLinks)
-        {
-            checkpoints.SessionCommittedEventKeys.Add(link.EventKey.Value);
-        }
-
-        foreach (UsageProjectLink link in projectLinks)
-        {
-            checkpoints.ProjectCommittedEventKeys.Add(link.EventKey.Value);
-        }
-
-        IReadOnlyList<UsageOperationFact> operations = AdmitOperations(checkpoints);
-
         return new ScanResult(
             status,
             issue ?? UsageSourceIssueKind.None)
@@ -1131,9 +671,6 @@ public sealed partial class CodexUsageEventSource
             Observations = checkpoints.Files.Values.SelectMany(item => item.Observations)
                 .Select(item => CreateObservationEvent(item, checkpoints.SourceAuthority))
                 .DistinctBy(item => item.EventKey).OrderBy(item => item.OccurredAtUtc).ToArray(),
-            SessionLinks = sessionLinks,
-            ProjectLinks = projectLinks,
-            Operations = operations,
         };
     }
 }

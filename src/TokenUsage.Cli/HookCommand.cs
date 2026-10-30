@@ -19,7 +19,7 @@ public static class HookCommand
             || !string.Equals(arguments[0], "stop", StringComparison.Ordinal))
         {
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         return await RunStopAsync(runRefresh, standardInput).ConfigureAwait(false);
@@ -61,6 +61,6 @@ public static class HookCommand
             }
         }
 
-        return UsageCommand.SuccessExitCode;
+        return CliApplication.SuccessExitCode;
     }
 }

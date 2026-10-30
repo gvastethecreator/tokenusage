@@ -23,31 +23,10 @@ TokenUsage also includes adapted provider marks copied from
 `janekbaraniewski/openusage` at commit
 `ddc05f24b159bfd1a24bbf641dcfb841410a77ab`:
 
-- `alibaba-cloud.svg`
 - `amp.svg`
-- `anthropic.svg`
-- `deepseek.svg`
-- `droid.svg`
-- `gemini-api.svg`
-- `gemini-cli.svg`
 - `goose.svg`
-- `groq.svg`
 - `hermes.svg`
-- `kilo-code.svg`
-- `kimi.svg`
-- `kiro.svg`
-- `mistral.svg`
-- `moonshot.svg`
 - `mux.svg`
-- `ollama.svg`
-- `openai.svg`
-- `openclaw.svg`
-- `perplexity.svg`
-- `pi.svg`
-- `qwen-cli.svg`
-- `roo-code.svg`
-- `xai.svg`
-- `zed.svg`
 
 Their vector paths are unchanged. TokenUsage replaces `currentColor` with its
 own provider palette so the external SVG files remain visible in both themes.
@@ -59,9 +38,6 @@ The provider foundation also includes adapted marks copied from
 `487cc8f19a9a28676f6924aafa48dee79ad7a7f6`:
 
 - `copilot.svg`
-- `devin.svg`
-- `openrouter.svg`
-- `zai.svg`
 
 Their vector paths identify the corresponding providers. TokenUsage applies
 its own accessible palette and does not use the OpenUsage product mark.

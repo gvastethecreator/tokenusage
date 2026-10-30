@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="TokenUsage.App.Views.Options.AdvancedOptionsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:options="using:TokenUsage.App.Views.Options">
+
+    <Border
+        AutomationProperties.AutomationId="AdvancedSection"
+        Style="{StaticResource OptionsCategoryCardStyle}">
+        <StackPanel Spacing="12">
+            <Expander x:Name="ScreenshotsExpander" AutomationProperties.AutomationId="ScreenshotsExpander" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header><TextBlock x:Uid="GeneralScreenshotGroupTitle" TextWrapping="Wrap" /></Expander.Header>
+                <StackPanel Spacing="16">
+                    <Grid ColumnSpacing="8" RowSpacing="7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            x:Uid="ShareCaptureFolderTitle"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock
+                            x:Name="ShareCaptureFolderPath"
+                            x:Uid="ShareCaptureFolderPath"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            AutomationProperties.AutomationId="ShareCaptureFolderPath"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                            VerticalAlignment="Center" />
+                        <StackPanel
+                            Grid.Row="2"
+                            Grid.ColumnSpan="2"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                x:Uid="ShareCaptureFolderBrowseButton"
+                                AutomationProperties.AutomationId="ShareCaptureFolderBrowseButton"
+                                Click="OnShareCaptureFolderBrowseClicked"
+                                Padding="10,5" />
+                            <Button
+                                x:Uid="ShareCaptureFolderResetButton"
+                                AutomationProperties.AutomationId="ShareCaptureFolderResetButton"
+                                Click="OnShareCaptureFolderResetClicked"
+                                Padding="10,5"
+                                Style="{StaticResource SubtleButtonStyle}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+            <Expander x:Name="ClaudeHistoryExpander" AutomationProperties.AutomationId="ClaudeHistoryExpander" IsExpanded="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header><TextBlock x:Uid="ClaudeRecoveryTitle" TextWrapping="Wrap" /></Expander.Header>
+                <StackPanel Spacing="4">
+                    <TextBlock x:Uid="ClaudeRecoveryDescription" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                    <StackPanel Spacing="8">
+                        <Button x:Uid="ClaudeRecoveryPreview" AutomationProperties.AutomationId="ClaudeRecoveryPreview" Command="{x:Bind General.PreviewClaudeRecoveryCommand}" />
+                        <Button x:Uid="ClaudeRecoveryStart" AutomationProperties.AutomationId="ClaudeRecoveryStart" Command="{x:Bind General.RecoverClaudeHistoryCommand}" />
+                        <Button x:Uid="ClaudeRecoveryCancel" AutomationProperties.AutomationId="ClaudeRecoveryCancel" Command="{x:Bind General.CancelClaudeRecoveryCommand}" Visibility="{x:Bind General.IsRecoveringClaudeHistory, Mode=OneWay}" />
+                    </StackPanel>
+                    <ProgressBar IsIndeterminate="True" Visibility="{x:Bind General.IsRecoveringClaudeHistory, Mode=OneWay}" />
+                    <TextBlock Text="{x:Bind General.ClaudeRecoveryStatus, Mode=OneWay}" AutomationProperties.AutomationId="ClaudeRecoveryStatus" AutomationProperties.LiveSetting="Polite" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" />
+                </StackPanel>
+            </Expander>
+            <options:PersonalizationOptionsView
+                x:Name="PersonalizationView"
+                HorizontalAlignment="Stretch"
+                ViewModel="{x:Bind Personalization, Mode=OneWay}" />
+        </StackPanel>
+    </Border>
+</UserControl>

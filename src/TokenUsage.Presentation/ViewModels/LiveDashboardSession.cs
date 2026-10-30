@@ -51,8 +51,10 @@ public sealed class LiveDashboardSession : IDisposable
 
     public ProviderSnapshot? LastCodexSnapshot { get; private set; }
 
-    public bool UsesCodexAccounts => _accounts?.WasActivated == true;
-    public IReadOnlyList<CodexAccountQuota> AccountQuotas { get; private set; } = [];
+    public bool UsesCodexAccounts => _accounts?.IsActivated("codex") == true;
+
+    public bool UsesClaudeAccounts => _accounts?.IsActivated("claude") == true;
+    public IReadOnlyList<AccountQuota> AccountQuotas { get; private set; } = [];
 
     /// <summary>
     /// Tokens the local store recorded inside each Codex quota window, keyed by the quota
@@ -98,15 +100,20 @@ public sealed class LiveDashboardSession : IDisposable
 
     private void UpdateAccountQuotas(AppSessionState state)
     {
-        if (!UsesCodexAccounts || _getString is null) { AccountQuotas = []; return; }
-        LastCodexSnapshot = null;
-        LastCodexOutcome = null;
-        CodexWindowUsedTokens = new Dictionary<string, long>();
-        CodexAccountQuota[] next = _accounts!.Accounts.Where(account => account.IsSelected).Select(account =>
+        if (_accounts?.WasActivated != true || _getString is null) { AccountQuotas = []; return; }
+        if (UsesCodexAccounts)
+        {
+            LastCodexSnapshot = null;
+            LastCodexOutcome = null;
+            CodexWindowUsedTokens = new Dictionary<string, long>();
+        }
+
+        AccountQuota[] next = _accounts!.Accounts
+            .Where(account => account.IsSelected && _accounts.IsActivated(account.InstanceKey.ProviderId.Value)).Select(account =>
         {
             ProviderSnapshot? snapshot = state.Snapshots.FirstOrDefault(item => item.InstanceKey == account.InstanceKey);
             state.Outcomes.TryGetValue(account.InstanceKey.Value, out ProviderOutcome? outcome);
-            return CodexAccountQuota.Create(account, snapshot, outcome, Clock, _getString);
+            return AccountQuota.Create(account, snapshot, outcome, Clock, _getString);
         }).ToArray();
         if (next.Length != AccountQuotas.Count
             || next.Where((account, index) => !account.HasSameContent(AccountQuotas[index])).Any())
@@ -444,7 +451,7 @@ public sealed class LiveDashboardSession : IDisposable
         bool outcomeChanged = outcome is not null && !ReferenceEquals(outcome, LastCodexOutcome);
         if (!snapshotChanged && !outcomeChanged)
         {
-            if (UsesCodexAccounts)
+            if (_accounts?.WasActivated == true)
             {
                 PublishChanged(version);
             }
@@ -647,7 +654,8 @@ public sealed class LiveDashboardSession : IDisposable
     {
         AppSessionState state = _host.Current;
         state.Outcomes.TryGetValue("claude", out ProviderOutcome? outcome);
-        ProviderSnapshot? snapshot = outcome switch
+        // Selected claude-swap accounts replace the single active-account reading.
+        ProviderSnapshot? snapshot = UsesClaudeAccounts ? null : outcome switch
         {
             ProviderOutcome.Success success => success.Snapshot,
             ProviderOutcome.PartialSuccess partial => partial.Snapshot,
@@ -655,7 +663,7 @@ public sealed class LiveDashboardSession : IDisposable
             ProviderOutcome.ContractFailure failure => failure.LastGood,
             ProviderOutcome.Throttled throttled => throttled.LastGood,
             ProviderOutcome.NotConfigured or ProviderOutcome.UnsupportedAccount => null,
-            _ => state.Snapshots.FirstOrDefault(item => item.ProviderId.Value == "claude"),
+            _ => state.Snapshots.FirstOrDefault(item => item.ProviderId.Value == "claude" && item.InstanceKey.AccountKey is null),
         };
         ProviderSnapshot? previous = LastClaudeSnapshot;
         bool outcomeChanged = !ReferenceEquals(outcome, LastClaudeOutcome);

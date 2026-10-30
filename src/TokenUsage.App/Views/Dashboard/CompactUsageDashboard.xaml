@@ -186,7 +186,7 @@
             <StackPanel Spacing="5">
                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.GlobalActivity, Mode=OneWay}">
                     <ItemsRepeater.Layout>
-                    <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="100" ItemsStretch="Fill" MinColumnSpacing="8" Orientation="Horizontal" />
+                    <UniformGridLayout MaximumRowsOrColumns="2" MinItemWidth="100" ItemsStretch="Fill" MinColumnSpacing="8" Orientation="Horizontal" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="dashboard:DashboardActivitySummary">
@@ -232,30 +232,7 @@
                         <FontIcon FontSize="12" Glyph="&#xE946;" IsTextScaleFactorEnabled="False" />
                     </Button>
                 </StackPanel>
-                <TextBlock
-                    AutomationProperties.AutomationId="CompactGlobalCostBreakdown"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    IsTextScaleFactorEnabled="True"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="{x:Bind ViewModel.GlobalCostBreakdownText, Mode=OneWay}"
-                    TextWrapping="Wrap"
-                    Visibility="{x:Bind ViewModel.HasGlobalCostBreakdown, Mode=OneWay}" />
             </StackPanel>
-
-            <ItemsRepeater Height="5" ItemsSource="{x:Bind ViewModel.ProviderSummaries, Mode=OneWay}">
-                <ItemsRepeater.Layout>
-                    <StackLayout Orientation="Horizontal" Spacing="0" />
-                </ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
-                    <DataTemplate x:DataType="dashboard:DashboardProviderSummary">
-                        <controls:ProviderColorSwatch
-                            ColorHex="{x:Bind ColorHex}"
-                            Height="5"
-                            ProviderId="{x:Bind ProviderId}"
-                            Width="{x:Bind CompositionWidth}" />
-                    </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
 
             <Grid
                 x:Name="VisualizationTransitionHost"
@@ -414,7 +391,7 @@
                 Padding="8,8"
                 Spacing="6"
                 Visibility="{x:Bind ViewModel.HasGlobalProviderLimits, Mode=OneWay}">
-                <controls:CodexAccountQuotaList Items="{x:Bind ViewModel.AccountQuotas, Mode=OneWay}"
+                <controls:AccountQuotaList Items="{x:Bind ViewModel.AccountQuotas, Mode=OneWay}"
                                                Visibility="{x:Bind ViewModel.HasAccountQuotas, Mode=OneWay}" />
                 <StackPanel Spacing="5" Visibility="{x:Bind ViewModel.HasGlobalCodexLimits, Mode=OneWay}">
 
@@ -645,7 +622,7 @@
                     <RectangleGeometry x:Name="ProviderLimitsClip" />
                 </Grid.Clip>
                 <StackPanel Padding="12,9" Spacing="5">
-                    <controls:CodexAccountQuotaList Items="{x:Bind ViewModel.SelectedAccountQuotas, Mode=OneWay}" />
+                    <controls:AccountQuotaList Items="{x:Bind ViewModel.SelectedAccountQuotas, Mode=OneWay}" />
                     <TextBlock x:Uid="CompactProviderCardLimitsTitle" Style="{StaticResource SectionLabelStyle}" />
                     <ItemsRepeater
                         x:Name="ProviderQuotaTilesRepeater"

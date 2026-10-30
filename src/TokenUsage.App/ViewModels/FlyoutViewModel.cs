@@ -36,11 +36,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AlertSettingsStore? alertSettings = null,
         IAlertNotificationSink? alertNotifications = null,
         UpdateOptionsViewModel? updates = null,
-        AttributionConsentStore? attributionConsent = null,
-        string? usageDatabasePath = null,
-        Func<AttributionCapability, CancellationToken, Task>? clearAttributionDerivedStores = null,
-        AttributionAliasStore? attributionAliases = null,
-        Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null,
         ClaudeRateLimitStore? claudeRateLimits = null,
         ClaudeSettingsInstaller? claudeSettings = null,
         Func<CancellationToken, Task<bool>>? clearClaudeLimitsCache = null,
@@ -66,16 +61,12 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         AppearanceOptions.SettingsChanged += OnAppearanceSettingsChanged;
         GeneralOptions = new GeneralOptionsViewModel(
             GetString,
-            dataCollectionSettings,
-            attributionConsent,
-            usageDatabasePath,
-            clearAttributionDerivedStores,
-            attributionAliases,
-            runAttributionBackfill);
+            dataCollectionSettings);
         GeneralOptions.BackgroundCollectionChanged += OnBackgroundCollectionChanged;
         GeneralOptions.DataCollectionRefreshChanged += OnDataCollectionRefreshChanged;
         ConfigureClaude(claudeRateLimits, claudeSettings, dataDirectory, appSessionHost);
 
+        Accounts = accounts;
         ProviderStatus = new ProviderStatusSurfaceViewModel(
             GetString,
             accounts,
@@ -177,6 +168,9 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
     public DashboardSurfaceViewModel Dashboard { get; }
 
     public OptionsSurfaceViewModel Options { get; }
+
+    /// <summary>code-swap and claude-swap accounts; the report reads their quota histories.</summary>
+    public IProviderAccountService? Accounts { get; }
 
     public AppearanceSettings Appearance => AppearanceOptions.Settings;
 

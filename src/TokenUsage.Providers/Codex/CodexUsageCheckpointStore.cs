@@ -113,81 +113,6 @@ internal sealed class CodexUsageCheckpointStore
                 throw new InvalidDataException("The Codex checkpoint belongs to another profile; the original was preserved.");
             // Earlier checkpoints did not prove a profile binding. Preserve them as unbound.
             var state = new CodexUsageCheckpointState { SourceAuthority = boundAuthority };
-            if (document.SessionAdmissionEpoch is > 0)
-            {
-                state.SessionAdmissionEpoch = document.SessionAdmissionEpoch;
-                foreach (string key in document.SessionAdmissionEventKeys ?? [])
-                {
-                    if (OpaqueAttributionKey.IsHexSha256(key))
-                    {
-                        state.SessionAdmissionEventKeys.Add(key);
-                    }
-                }
-
-                foreach (string key in document.SessionCommittedEventKeys ?? [])
-                {
-                    if (OpaqueAttributionKey.IsHexSha256(key))
-                    {
-                        state.SessionCommittedEventKeys.Add(key);
-                    }
-                }
-            }
-
-            if (document.ProjectAdmissionEpoch is > 0)
-            {
-                state.ProjectAdmissionEpoch = document.ProjectAdmissionEpoch;
-                foreach (string key in document.ProjectAdmissionEventKeys ?? [])
-                {
-                    if (OpaqueAttributionKey.IsHexSha256(key))
-                    {
-                        state.ProjectAdmissionEventKeys.Add(key);
-                    }
-                }
-
-                foreach (string key in document.ProjectCommittedEventKeys ?? [])
-                {
-                    if (OpaqueAttributionKey.IsHexSha256(key))
-                    {
-                        state.ProjectCommittedEventKeys.Add(key);
-                    }
-                }
-            }
-
-            foreach (OperationAdmissionV1 admission in document.OperationAdmissions ?? [])
-            {
-                if (string.IsNullOrWhiteSpace(admission.Capability)
-                    || admission.Epoch is not > 0)
-                {
-                    continue;
-                }
-
-                try
-                {
-                    _ = new AttributionCapability(admission.Capability);
-                }
-                catch (ArgumentException)
-                {
-                    continue;
-                }
-
-                CodexOperationAdmissionState bucket = state.AdmissionFor(admission.Capability);
-                bucket.Epoch = admission.Epoch;
-                foreach (string key in admission.Keys ?? [])
-                {
-                    if (OpaqueAttributionKey.IsHexSha256(key))
-                    {
-                        bucket.Keys.Add(key);
-                    }
-                }
-
-                foreach (string key in admission.CommittedKeys ?? [])
-                {
-                    if (OpaqueAttributionKey.IsHexSha256(key))
-                    {
-                        bucket.CommittedKeys.Add(key);
-                    }
-                }
-            }
             foreach (FileV1 file in document.Files)
             {
                 if (string.IsNullOrWhiteSpace(file.SessionIdentity)
@@ -213,67 +138,13 @@ internal sealed class CodexUsageCheckpointStore
                 checkpoint.ObservedModel = file.ObservedModel;
                 checkpoint.Effort = file.Effort;
                 checkpoint.Tier = file.Tier;
-                if (OpaqueAttributionKey.IsHexSha256(file.SessionKey ?? string.Empty)
-                    && file.AttributionEpoch is > 0)
-                {
-                    checkpoint.SessionKey = file.SessionKey;
-                    checkpoint.AttributionEpoch = file.AttributionEpoch;
-                    checkpoint.ParentSessionKey = OpaqueAttributionKey.IsHexSha256(file.ParentSessionKey ?? string.Empty)
-                        ? file.ParentSessionKey
-                        : null;
-                }
-                if (OpaqueAttributionKey.IsHexSha256(file.ProjectKey ?? string.Empty)
-                    && file.ProjectEpoch is > 0)
-                {
-                    checkpoint.ProjectKey = file.ProjectKey;
-                    checkpoint.ProjectEpoch = file.ProjectEpoch;
-                    checkpoint.SawMultipleProjects = file.SawMultipleProjects;
-                }
                 checkpoint.Observations.AddRange(file.Observations.Select(item => new CodexNumericObservation(
                     item.Key, item.Timestamp, item.Model, ToTokens(item.Tokens)!, item.Precision, item.IntervalStart, item.ObservedModel, item.Effort, item.Tier,
                     document.SchemaVersion == SchemaVersion ? item.Measured : CodexMeasuredComponents.None,
                     // Match the metadata retained by the usage database migration.
                     // Older checkpoints did not record a kind, even for timed intervals.
                     document.SchemaVersion == SchemaVersion ? item.RecordKind : UsageRecordKind.Unknown,
-                    document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null,
-                    document.SchemaVersion == SchemaVersion ? item.ProjectKey : null,
-                    document.SchemaVersion == SchemaVersion ? item.ProjectEpoch : null,
-                    document.SchemaVersion == SchemaVersion ? item.ProjectMappingKind : null)));
-                foreach (OperationV1 operation in file.Operations ?? [])
-                {
-                    if (!OpaqueAttributionKey.IsHexSha256(operation.Key)
-                        || string.IsNullOrWhiteSpace(operation.Capability)
-                        || operation.Quantity < 1
-                        || !UsageOperationKindCodec.TryParse(operation.Kind, out _)
-                        || !UsageOperationOutcomeCodec.TryParse(operation.Outcome, out _))
-                    {
-                        continue;
-                    }
-
-                    bool unlabeled = string.IsNullOrEmpty(operation.Tool);
-                    if (!unlabeled
-                        && (!BoundedOperationLabel.TryNormalize(operation.Tool, out _)
-                            || (operation.Server is not null
-                                && !BoundedOperationLabel.TryNormalize(operation.Server, out _))
-                            || (operation.SessionKey is not null
-                                && !OpaqueAttributionKey.IsHexSha256(operation.SessionKey))))
-                    {
-                        continue;
-                    }
-
-                    checkpoint.Operations.Add(new CodexOperationObservation(
-                        operation.Key,
-                        operation.StartedAt,
-                        operation.EndedAt,
-                        operation.Kind,
-                        unlabeled ? string.Empty : operation.Tool,
-                        unlabeled ? null : operation.Server,
-                        operation.Outcome,
-                        operation.Capability,
-                        unlabeled ? null : operation.SessionKey,
-                        operation.Quantity,
-                        operation.LegacyKey));
-                }
+                    document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null)));
                 if ((checkpoint.PreviousMeasured & ~CodexMeasuredComponents.All) != 0
                     || checkpoint.Observations.Any(item => (item.Measured & ~CodexMeasuredComponents.All) != 0
                         || !Enum.IsDefined(item.RecordKind) || item.RepresentationRevision is <= 0))
@@ -307,32 +178,6 @@ internal sealed class CodexUsageCheckpointStore
         {
             SchemaVersion = SchemaVersion,
             SourceAuthority = state.SourceAuthority?.Value,
-            SessionAdmissionEpoch = state.SessionAdmissionEpoch,
-            SessionAdmissionEventKeys = state.SessionAdmissionEventKeys.Order(StringComparer.Ordinal).ToList(),
-            SessionCommittedEventKeys = state.SessionCommittedEventKeys.Count == 0
-                ? null
-                : state.SessionCommittedEventKeys.Order(StringComparer.Ordinal).ToList(),
-            ProjectAdmissionEpoch = state.ProjectAdmissionEpoch,
-            ProjectAdmissionEventKeys = state.ProjectAdmissionEventKeys.Order(StringComparer.Ordinal).ToList(),
-            ProjectCommittedEventKeys = state.ProjectCommittedEventKeys.Count == 0
-                ? null
-                : state.ProjectCommittedEventKeys.Order(StringComparer.Ordinal).ToList(),
-            OperationAdmissions = state.OperationAdmissions.Count == 0
-                ? null
-                : state.OperationAdmissions
-                    .OrderBy(item => item.Key, StringComparer.Ordinal)
-                    .Select(item => new OperationAdmissionV1
-                    {
-                        Capability = item.Key,
-                        Epoch = item.Value.Epoch,
-                        Keys = item.Value.Keys.Count == 0
-                            ? null
-                            : item.Value.Keys.Order(StringComparer.Ordinal).ToList(),
-                        CommittedKeys = item.Value.CommittedKeys.Count == 0
-                            ? null
-                            : item.Value.CommittedKeys.Order(StringComparer.Ordinal).ToList(),
-                    })
-                    .ToList(),
             Files = state.Files
                 .OrderBy(item => item.Key, StringComparer.Ordinal)
                 .Select(item => new FileV1
@@ -349,12 +194,6 @@ internal sealed class CodexUsageCheckpointStore
                     PreviousTimestamp = item.Value.PreviousTimestamp,
                     PreviousMeasured = item.Value.PreviousMeasured,
                     ReplayThroughUtc = item.Value.ReplayThroughUtc,
-                    SessionKey = item.Value.SessionKey,
-                    ParentSessionKey = item.Value.ParentSessionKey,
-                    AttributionEpoch = item.Value.AttributionEpoch,
-                    ProjectKey = item.Value.ProjectKey,
-                    ProjectEpoch = item.Value.ProjectEpoch,
-                    SawMultipleProjects = item.Value.SawMultipleProjects,
                     ObservedModel = item.Value.ObservedModel, Effort = item.Value.Effort, Tier = item.Value.Tier,
                     Observations = item.Value.Observations.Select(value => new ObservationV1
                     {
@@ -363,127 +202,11 @@ internal sealed class CodexUsageCheckpointStore
                         ObservedModel = value.ObservedModel, Effort = value.Effort, Tier = value.Tier,
                         Measured = value.Measured,
                         RecordKind = value.RecordKind, RepresentationRevision = value.RepresentationRevision,
-                        ProjectKey = value.ProjectKey,
-                        ProjectEpoch = value.ProjectEpoch,
-                        ProjectMappingKind = value.ProjectMappingKind,
                     }).ToList(),
-                    Operations = item.Value.Operations.Count == 0
-                        ? null
-                        : item.Value.Operations.Select(value => new OperationV1
-                        {
-                            Key = value.Key,
-                            StartedAt = value.StartedAt,
-                            EndedAt = value.EndedAt,
-                            Kind = value.Kind,
-                            Tool = value.Tool,
-                            Server = value.Server,
-                            Outcome = value.Outcome,
-                            Capability = value.Capability,
-                            SessionKey = value.SessionKey,
-                            Quantity = value.Quantity,
-                            LegacyKey = value.LegacyKey,
-                        }).ToList(),
                 })
                 .ToList(),
         };
         _document.WriteAtomically(stream => JsonSerializer.Serialize(stream, document, SerializerOptions));
-    }
-
-    public void ClearSessionAttribution()
-    {
-        _document.RunLockedAsync(() =>
-        {
-            if (!_document.Exists)
-            {
-                return true;
-            }
-
-            CodexUsageCheckpointState state = Load();
-            foreach (CodexUsageFileCheckpoint checkpoint in state.Files.Values)
-            {
-                checkpoint.SessionKey = null;
-                checkpoint.ParentSessionKey = null;
-                checkpoint.AttributionEpoch = null;
-                if (checkpoint.Operations.Count == 0)
-                {
-                    continue;
-                }
-
-                CodexOperationObservation[] stripped = checkpoint.Operations
-                    .Select(item => item with { SessionKey = null })
-                    .ToArray();
-                checkpoint.Operations.Clear();
-                checkpoint.Operations.AddRange(stripped);
-            }
-
-            Write(state);
-            return true;
-        }).GetAwaiter().GetResult();
-    }
-
-    public void ClearProjectAttribution()
-    {
-        _document.RunLockedAsync(() =>
-        {
-            if (!_document.Exists)
-            {
-                return true;
-            }
-
-            CodexUsageCheckpointState state = Load();
-            foreach (CodexUsageFileCheckpoint checkpoint in state.Files.Values)
-            {
-                checkpoint.ProjectKey = null;
-                checkpoint.ProjectEpoch = null;
-                checkpoint.SawMultipleProjects = false;
-                if (checkpoint.Observations.Count == 0)
-                {
-                    continue;
-                }
-
-                CodexNumericObservation[] stripped = checkpoint.Observations
-                    .Select(item => item with { ProjectKey = null, ProjectEpoch = null, ProjectMappingKind = null })
-                    .ToArray();
-                checkpoint.Observations.Clear();
-                checkpoint.Observations.AddRange(stripped);
-            }
-
-            Write(state);
-            return true;
-        }).GetAwaiter().GetResult();
-    }
-
-    public void ClearOperationAttribution(string capability)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(capability);
-        _document.RunLockedAsync(() =>
-        {
-            if (!_document.Exists)
-            {
-                return true;
-            }
-
-            CodexUsageCheckpointState state = Load();
-            CodexOperationAdmissionState bucket = state.AdmissionFor(capability);
-            foreach (CodexUsageFileCheckpoint checkpoint in state.Files.Values)
-            {
-                foreach (CodexOperationObservation operation in checkpoint.Operations)
-                {
-                    if (operation.Capability == capability)
-                    {
-                        bucket.Keys.Add(operation.Key);
-                    }
-                }
-
-                checkpoint.Operations.RemoveAll(item => item.Capability == capability);
-            }
-
-            bucket.CommittedKeys.Clear();
-            bucket.Epoch = null;
-
-            Write(state);
-            return true;
-        }).GetAwaiter().GetResult();
     }
 
     private static CodexUsageCheckpointState RejectInvalid() =>
@@ -519,13 +242,6 @@ internal sealed class CodexUsageCheckpointStore
     {
         public string? SourceAuthority { get; init; }
         public int SchemaVersion { get; init; }
-        public long? SessionAdmissionEpoch { get; init; }
-        public List<string>? SessionAdmissionEventKeys { get; init; }
-        public List<string>? SessionCommittedEventKeys { get; init; }
-        public long? ProjectAdmissionEpoch { get; init; }
-        public List<string>? ProjectAdmissionEventKeys { get; init; }
-        public List<string>? ProjectCommittedEventKeys { get; init; }
-        public List<OperationAdmissionV1>? OperationAdmissions { get; init; }
 
         public List<FileV1> Files { get; init; } = [];
     }
@@ -555,15 +271,8 @@ internal sealed class CodexUsageCheckpointStore
         public DateTimeOffset? PreviousTimestamp { get; init; }
         public CodexMeasuredComponents PreviousMeasured { get; init; }
         public DateTimeOffset? ReplayThroughUtc { get; init; }
-        public string? SessionKey { get; init; }
-        public string? ParentSessionKey { get; init; }
-        public long? AttributionEpoch { get; init; }
-        public string? ProjectKey { get; init; }
-        public long? ProjectEpoch { get; init; }
-        public bool SawMultipleProjects { get; init; }
 
         public List<ObservationV1> Observations { get; init; } = [];
-        public List<OperationV1>? Operations { get; init; }
 
     }
 
@@ -581,32 +290,6 @@ internal sealed class CodexUsageCheckpointStore
         public string? Tier { get; init; }
         public UsageTimePrecision Precision { get; init; }
         public DateTimeOffset? IntervalStart { get; init; }
-        public string? ProjectKey { get; init; }
-        public long? ProjectEpoch { get; init; }
-        public string? ProjectMappingKind { get; init; }
-    }
-
-    private sealed class OperationAdmissionV1
-    {
-        public string Capability { get; init; } = string.Empty;
-        public long? Epoch { get; init; }
-        public List<string>? Keys { get; init; }
-        public List<string>? CommittedKeys { get; init; }
-    }
-
-    private sealed class OperationV1
-    {
-        public string Key { get; init; } = string.Empty;
-        public DateTimeOffset StartedAt { get; init; }
-        public DateTimeOffset? EndedAt { get; init; }
-        public string Kind { get; init; } = string.Empty;
-        public string Tool { get; init; } = string.Empty;
-        public string? Server { get; init; }
-        public string Outcome { get; init; } = string.Empty;
-        public string Capability { get; init; } = string.Empty;
-        public string? SessionKey { get; init; }
-        public int Quantity { get; init; } = 1;
-        public string? LegacyKey { get; init; }
     }
 
     private sealed class TokensV1
@@ -628,33 +311,6 @@ internal sealed class CodexUsageCheckpointState
     public UsageSourceInstanceId? SourceAuthority { get; set; }
     public Dictionary<string, CodexUsageFileCheckpoint> Files { get; } =
         new(StringComparer.Ordinal);
-    public long? SessionAdmissionEpoch { get; set; }
-    public HashSet<string> SessionAdmissionEventKeys { get; } = new(StringComparer.Ordinal);
-    public HashSet<string> SessionCommittedEventKeys { get; } = new(StringComparer.Ordinal);
-    public long? ProjectAdmissionEpoch { get; set; }
-    public HashSet<string> ProjectAdmissionEventKeys { get; } = new(StringComparer.Ordinal);
-    public HashSet<string> ProjectCommittedEventKeys { get; } = new(StringComparer.Ordinal);
-    public Dictionary<string, CodexOperationAdmissionState> OperationAdmissions { get; } =
-        new(StringComparer.Ordinal);
-
-    public CodexOperationAdmissionState AdmissionFor(string capability)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(capability);
-        if (!OperationAdmissions.TryGetValue(capability, out CodexOperationAdmissionState? bucket))
-        {
-            bucket = new CodexOperationAdmissionState();
-            OperationAdmissions[capability] = bucket;
-        }
-
-        return bucket;
-    }
-}
-
-internal sealed class CodexOperationAdmissionState
-{
-    public long? Epoch { get; set; }
-    public HashSet<string> Keys { get; } = new(StringComparer.Ordinal);
-    public HashSet<string> CommittedKeys { get; } = new(StringComparer.Ordinal);
 }
 
 internal sealed class CodexUsageFileCheckpoint(
@@ -673,15 +329,8 @@ internal sealed class CodexUsageFileCheckpoint(
     public DateTimeOffset? PreviousTimestamp { get; set; }
     public CodexMeasuredComponents PreviousMeasured { get; set; }
     public DateTimeOffset? ReplayThroughUtc { get; set; }
-    public string? SessionKey { get; set; }
-    public string? ParentSessionKey { get; set; }
-    public long? AttributionEpoch { get; set; }
-    public string? ProjectKey { get; set; }
-    public long? ProjectEpoch { get; set; }
-    public bool SawMultipleProjects { get; set; }
 
     public List<CodexNumericObservation> Observations { get; } = [];
-    public List<CodexOperationObservation> Operations { get; } = [];
 
     public string PathHash { get; set; } = pathHash;
     public string AuthorityPathHash { get; set; } = pathHash;
@@ -703,21 +352,7 @@ internal sealed class CodexUsageFileCheckpoint(
 internal sealed record CodexNumericObservation(string Key, DateTimeOffset Timestamp,
     string Model, TokenBreakdown Tokens, UsageTimePrecision Precision, DateTimeOffset? IntervalStart, string? ObservedModel, string? Effort, string? Tier,
     CodexMeasuredComponents Measured = CodexMeasuredComponents.None,
-    UsageRecordKind RecordKind = UsageRecordKind.Unknown, long? RepresentationRevision = null,
-    string? ProjectKey = null, long? ProjectEpoch = null, string? ProjectMappingKind = null);
-
-internal sealed record CodexOperationObservation(
-    string Key,
-    DateTimeOffset StartedAt,
-    DateTimeOffset? EndedAt,
-    string Kind,
-    string Tool,
-    string? Server,
-    string Outcome,
-    string Capability,
-    string? SessionKey,
-    int Quantity = 1,
-    string? LegacyKey = null);
+    UsageRecordKind RecordKind = UsageRecordKind.Unknown, long? RepresentationRevision = null);
 
 [Flags]
 internal enum CodexMeasuredComponents

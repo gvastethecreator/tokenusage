@@ -67,9 +67,6 @@ public sealed class SessionModuleTests
         surface.SelectedDashboardVisualization = surface.DashboardVisualizationOptions.Single(
             option => option.Value == DashboardVisualizationMode.Heatmap);
         surface.SelectedQuotaDisplay = surface.QuotaDisplayOptions.Single(option => option.Value == QuotaDisplayStyle.Numbers);
-        surface.ShowReportChart = false;
-        surface.ShowReportModels = false;
-        surface.ShowReportMeasurement = false;
         await surface.WaitForPendingSaveAsync();
 
         Assert.Equal(AppThemeMode.Dark, surface.Settings.Theme);
@@ -83,10 +80,6 @@ public sealed class SessionModuleTests
             new AppearanceSettingsStore(path, TimeProvider.System));
         await reloaded.InitializeAsync();
         Assert.Equal(QuotaDisplayStyle.Numbers, reloaded.Settings.QuotaDisplay);
-        Assert.False(reloaded.Settings.ReportContent.Chart);
-        Assert.False(reloaded.Settings.ReportContent.Models);
-        Assert.False(reloaded.Settings.ReportContent.Measurement);
-        Assert.True(reloaded.Settings.ReportContent.Heatmap);
         Assert.Equal(AppThemeMode.Dark, reloaded.Settings.Theme);
         Assert.Equal(AppDensityMode.Compact, reloaded.Settings.Density);
         Assert.Equal(
@@ -179,11 +172,11 @@ public sealed class SessionModuleTests
             codexOutcome: null,
             hasPublishedDashboard: false,
             SampleDataState.Idle,
-            []);
+            [new ProviderStatusRow("amp", "Amp", "Detected", "Refresh", [], "ProviderStatus.amp")]);
 
-        surface.FocusProvider("gemini-cli");
+        surface.FocusProvider("amp");
 
-        Assert.Equal("gemini-cli", surface.FocusedProviderId);
+        Assert.Equal("amp", surface.FocusedProviderId);
         Assert.True(surface.IsAdditionalProvidersExpanded);
     }
 

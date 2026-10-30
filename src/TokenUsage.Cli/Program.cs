@@ -15,13 +15,6 @@ if (CliApplication.IsHelpRequest(args))
     return await CliApplication.WriteHelpAsync(Console.Out);
 }
 
-// Cursor local integration management does not open TokenUsage application storage. Keep it
-// usable from an unpackaged CLI build where ApplicationData is unavailable.
-if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal))
-{
-    return await CursorCommand.RunAsync(args.Skip(1).ToArray(), Console.Out, Console.Error);
-}
-
 if (args.Length > 0 && string.Equals(args[0], "recover-usage", StringComparison.Ordinal))
     return await RecoverUsageCommand.RunAsync(args.Skip(1).ToArray(), Console.Out, Console.Error);
 
@@ -36,18 +29,15 @@ if (args.Length > 0 && string.Equals(args[0], "pricing", StringComparison.Ordina
         TimeProvider.System);
 }
 
-// ZCode hook management and the Stop-hook trigger follow the same unpackaged-safe rule.
-// A hook host that pipes a payload gives redirected input; a detached launch on a hidden
-// console gives console input, which never reaches end-of-stream, so it must not be drained.
+// Provider hooks run without application storage. A hook host that pipes a payload gives
+// redirected input; a detached launch on a hidden console gives console input, which never
+// reaches end-of-stream, so it must not be drained.
 TextReader? hookStandardInput = Console.IsInputRedirected ? Console.In : null;
-if (args.Length > 0 && string.Equals(args[0], "zcode", StringComparison.Ordinal))
+
+// The ZCode hook registration calls `zcode stop-hook`; it is the same trigger.
+if (args is ["zcode", "stop-hook"])
 {
-    return await ZcodeCommand.RunAsync(
-        args.Skip(1).ToArray(),
-        Console.Out,
-        Console.Error,
-        runRefresh: RefreshLocalUsageForHook,
-        standardInput: hookStandardInput);
+    return await HookCommand.RunStopAsync(RefreshLocalUsageForHook, hookStandardInput);
 }
 
 // The generic refresh trigger every provider hook calls.
@@ -61,9 +51,8 @@ if (args.Length > 0 && string.Equals(args[0], "hook", StringComparison.Ordinal))
         standardInput: hookStandardInput);
 }
 
-// Claude Code integration management follows the same unpackaged-safe rule. The status line
-// wrapper also stores the numeric limit reading, so it resolves application data lazily and
-// keeps working (without storing) when that storage is unavailable.
+// The Claude Code status line wrapper also stores the numeric limit reading, so it resolves
+// application data lazily and keeps working (without storing) when that storage is unavailable.
 if (args.Length > 0 && string.Equals(args[0], "claude", StringComparison.Ordinal))
 {
     return await ClaudeCommand.RunAsync(
@@ -73,12 +62,6 @@ if (args.Length > 0 && string.Equals(args[0], "claude", StringComparison.Ordinal
         resolveDataDirectory: () => TokenUsageDataDirectory.Resolve(
             () => ApplicationData.Current.LocalFolder.Path),
         standardInput: Console.IsInputRedirected ? Console.OpenStandardInput() : null);
-}
-
-// Grok hook management follows the same unpackaged-safe rule.
-if (args.Length > 0 && string.Equals(args[0], "grok", StringComparison.Ordinal))
-{
-    return await GrokCommand.RunAsync(args.Skip(1).ToArray(), Console.Out, Console.Error);
 }
 
 async Task<int> RefreshLocalUsageForHook()
@@ -122,7 +105,7 @@ try
 catch (Exception)
 {
     await Console.Error.WriteLineAsync("Unable to resolve TokenUsage local data.");
-    return UsageCommand.NoDataExitCode;
+    return CliApplication.NoDataExitCode;
 }
 
 return await CliApplication.RunAsync(

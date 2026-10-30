@@ -41,8 +41,6 @@ public static class ProviderStatusPolicy
         ProviderStatusKind.Partial => "ProviderStatusSummaryPartial",
         ProviderStatusKind.Missing => "ProviderStatusSummaryMissing",
         ProviderStatusKind.Pending => "ProviderStatusSummaryPending",
-        ProviderStatusKind.Prepared => "ProviderStatusSummaryPrepared",
-        ProviderStatusKind.Optional => "ProviderStatusSummaryOptional",
         ProviderStatusKind.Blocked => "ProviderStatusSummaryBlocked",
         _ => "ProviderStatusUnavailable",
     };

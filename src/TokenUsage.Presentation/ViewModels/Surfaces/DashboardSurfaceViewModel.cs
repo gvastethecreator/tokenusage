@@ -184,7 +184,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     [NotifyPropertyChangedFor(nameof(HasGlobalProviderLimits))]
     [NotifyPropertyChangedFor(nameof(SelectedProviderHasLimits))]
     [NotifyPropertyChangedFor(nameof(SelectedAccountQuotas))]
-    public partial IReadOnlyList<CodexAccountQuota> AccountQuotas { get; private set; } = [];
+    public partial IReadOnlyList<AccountQuota> AccountQuotas { get; private set; } = [];
 
     public bool HasAccountQuotas => AccountQuotas.Count > 0;
     public bool UsesCodexAccounts => _liveSession.UsesCodexAccounts;
@@ -232,10 +232,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public partial string GlobalTokensText { get; private set; } = "0";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasGlobalCostBreakdown))]
+    [NotifyPropertyChangedFor(nameof(HasCoverageHint))]
+    [NotifyPropertyChangedFor(nameof(CoverageHintText))]
     public partial string? GlobalCostBreakdownText { get; private set; }
-
-    public bool HasGlobalCostBreakdown => !string.IsNullOrWhiteSpace(GlobalCostBreakdownText);
 
     public bool IsLoading => ResultSurface == FlyoutSurfaceState.Loading;
 
@@ -275,9 +274,13 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         _ => "HeaderVisualizationToList",
     });
 
-    public bool HasCoverageHint => !string.IsNullOrWhiteSpace(LocalUsage.NoticeText);
+    public bool HasCoverageHint => !string.IsNullOrWhiteSpace(CoverageHintText);
 
-    public string CoverageHintText => LocalUsage.NoticeText;
+    // The reported/estimated split lives in the hint so the headline stays one number.
+    public string CoverageHintText => string.Join(
+        Environment.NewLine + Environment.NewLine,
+        new[] { GlobalCostBreakdownText, LocalUsage.NoticeText }
+            .Where(text => !string.IsNullOrWhiteSpace(text)));
 
     public DashboardProviderSummary? SelectedProviderSummary => SelectedProvider is null
         ? null
@@ -299,7 +302,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public bool SelectedProviderHasUnpricedData =>
         SelectedProviderSummary?.HasUnpricedData ?? false;
 
-    public IReadOnlyList<CodexAccountQuota> SelectedAccountQuotas => SelectedProvider?.ProviderId == "codex" ? AccountQuotas : [];
+    public IReadOnlyList<AccountQuota> SelectedAccountQuotas => SelectedProvider is { } provider
+        ? AccountQuotas.Where(account => account.ProviderId == provider.ProviderId).ToArray()
+        : [];
 
     public bool SelectedProviderHasLimits => SelectedProviderLimits.Count > 0 || SelectedAccountQuotas.Count > 0;
 
@@ -416,7 +421,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             return;
         }
 
-        if (UsesCodexAccounts)
+        if (UsesCodexAccounts || _liveSession.UsesClaudeAccounts)
         {
             _liveSession.RefreshAccountQuotas();
             AccountQuotas = StyleAccounts(_liveSession.AccountQuotas);
@@ -468,18 +473,6 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _appearance.SelectedDashboardVisualization = option;
         }
     }
-
-    public UsageReportRequest CreateReportRequest(DateOnly? focusDate = null) => new(
-        Scope == DashboardScopeMode.Provider
-            ? UsageReportScope.Provider
-            : UsageReportScope.Global,
-        Scope == DashboardScopeMode.Provider ? SelectedProvider?.ProviderId : null,
-        windowDays: 30,
-        metric: UsageReportMetric.Cost,
-        breakdown: focusDate is null
-            ? UsageReportBreakdown.Model
-            : UsageReportBreakdown.Day,
-        focusDate: focusDate);
 
     /// <summary>
     /// Quota windows for one provider, taken from the projection the panel is already showing.
@@ -1036,7 +1029,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         windows.All(window => window.DisplayStyle == _appearance.Settings.QuotaDisplay) ? windows
             : windows.Select(window => window with { DisplayStyle = _appearance.Settings.QuotaDisplay }).ToArray();
 
-    private IReadOnlyList<CodexAccountQuota> StyleAccounts(IReadOnlyList<CodexAccountQuota> accounts) =>
+    private IReadOnlyList<AccountQuota> StyleAccounts(IReadOnlyList<AccountQuota> accounts) =>
         accounts.All(account => account.Windows.All(window => window.DisplayStyle == _appearance.Settings.QuotaDisplay)) ? accounts
             : accounts.Select(account => account with { Windows = StyleWindows(account.Windows) }).ToArray();
 

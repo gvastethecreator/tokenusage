@@ -7,7 +7,6 @@ namespace TokenUsage.App.Views.Options;
 public sealed partial class AppearanceOptionsView : UserControl
 {
     private AppearanceSurfaceViewModel? _viewModel;
-    private PersonalizationSurfaceViewModel? _personalizationViewModel;
     private bool _isInitialized;
 
     public AppearanceOptionsView()
@@ -24,20 +23,7 @@ public sealed partial class AppearanceOptionsView : UserControl
         set
         {
             _viewModel = value ?? throw new ArgumentNullException(nameof(value));
-            if (_isInitialized && _viewModel is not null && _personalizationViewModel is not null)
-            {
-                Bindings.Update();
-            }
-        }
-    }
-
-    public PersonalizationSurfaceViewModel? PersonalizationViewModel
-    {
-        get => _personalizationViewModel;
-        set
-        {
-            _personalizationViewModel = value ?? throw new ArgumentNullException(nameof(value));
-            if (_isInitialized && _viewModel is not null && _personalizationViewModel is not null)
+            if (_isInitialized)
             {
                 Bindings.Update();
             }
@@ -45,8 +31,6 @@ public sealed partial class AppearanceOptionsView : UserControl
     }
 
     public UIElement PrimaryAction => AppearanceThemeSelector;
-
-    public UIElement PersonalizationPrimaryAction => PersonalizationView.PrimaryAction;
 
     public void ApplyLayout(double width)
     {

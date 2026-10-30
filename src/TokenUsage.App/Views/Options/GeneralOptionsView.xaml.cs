@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Microsoft.UI.Xaml.Controls;
-using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Surfaces;
 
 namespace TokenUsage.App.Views.Options;
@@ -11,7 +10,6 @@ public sealed partial class GeneralOptionsView : UserControl
 {
     private GeneralOptionsViewModel? _viewModel;
     private bool _isInitialized;
-    private bool _isShareCaptureFolderPathQueued;
 
     public GeneralOptionsView()
     {
@@ -21,13 +19,6 @@ public sealed partial class GeneralOptionsView : UserControl
         {
             (DataCollectionBackgroundToggle, "DataCollectionBackgroundDescription.Text"),
             (ClaudeLimitsToggle, "ClaudeLimitsDescription.Text"),
-            (CodexSessionAttributionToggle, "CodexSessionAttributionDescription.Text"),
-            (CodexProjectAttributionToggle, "CodexProjectAttributionDescription.Text"),
-            (CursorSessionAttributionToggle, "CursorSessionAttributionDescription.Text"),
-            (CodexMcpAttributionToggle, "CodexMcpAttributionDescription.Text"),
-            (CodexSkillsAttributionToggle, "CodexSkillsAttributionDescription.Text"),
-            (CodexCommandsAttributionToggle, "CodexCommandsAttributionDescription.Text"),
-            (CodexFilesAttributionToggle, "CodexFilesAttributionDescription.Text"),
         })
         {
             string description = resources.GetString(key.Replace('.', '/'));
@@ -41,7 +32,6 @@ public sealed partial class GeneralOptionsView : UserControl
         }
 
         _isInitialized = true;
-        Loaded += OnLoaded;
     }
 
     public GeneralOptionsViewModel? ViewModel
@@ -58,57 +48,4 @@ public sealed partial class GeneralOptionsView : UserControl
     }
 
     public UIElement PrimaryAction => CloseWhenInactiveToggle;
-
-    private void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        if (_isShareCaptureFolderPathQueued)
-        {
-            return;
-        }
-
-        _isShareCaptureFolderPathQueued = DispatcherQueue.TryEnqueue(
-            LoadShareCaptureFolderPathAsync);
-    }
-
-    private async void LoadShareCaptureFolderPathAsync()
-    {
-        try
-        {
-            ShareCaptureFolderPath.Text = await ShareCaptureService.GetDestinationPathAsync();
-        }
-        finally
-        {
-            _isShareCaptureFolderPathQueued = false;
-        }
-    }
-
-    private async void OnShareCaptureFolderBrowseClicked(object sender, RoutedEventArgs e)
-    {
-        if (App.Window is not MainWindow window)
-        {
-            return;
-        }
-
-        using IDisposable guard = window.SuppressDeactivateHide();
-        string? path = await ShareCaptureService.PickDestinationAsync(
-            App.WindowHandle);
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            ShareCaptureFolderPath.Text = path;
-        }
-    }
-
-    private async void OnShareCaptureFolderResetClicked(object sender, RoutedEventArgs e) =>
-        ShareCaptureFolderPath.Text = await ShareCaptureService.ResetDestinationAsync();
-
-    private async void OnAttributionBackfillRunClicked(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel is null)
-        {
-            return;
-        }
-
-        await ViewModel.RunAttributionBackfillAsync();
-    }
-
 }

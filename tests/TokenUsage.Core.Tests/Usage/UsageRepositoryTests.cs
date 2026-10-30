@@ -49,7 +49,7 @@ public sealed class UsageRepositoryTests
         var query = new TokenUsage.Core.Automation.UsageReportQuery(folder.DatabasePath);
         var date = new DateOnly(2026, 7, 22);
         var report = await query.ReadAsync(date, date, includeTimeBuckets: true);
-        var filtered = TokenUsage.Core.Automation.UsageReportQuery.FilterByAgent(report, new AgentId("grok"));
+        var filtered = await query.ReadAsync(date, date, new AgentId("grok"), includeTimeBuckets: true);
         Assert.Equal([0, 2, 22], filtered.TimeBuckets.Select(item => item.Hour));
         Assert.Equal(2, filtered.TimeBuckets[0].Usage.EventCount);
         Assert.All(filtered.TimeBuckets, item => Assert.Equal(date, item.Usage.Date));
@@ -328,7 +328,7 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (13, '2026-07-22T12:00:00Z');
+                VALUES (14, '2026-07-22T12:00:00Z');
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -336,7 +336,7 @@ public sealed class UsageRepositoryTests
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(13, error.ActualVersion);
+        Assert.Equal(14, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -466,7 +466,6 @@ public sealed class UsageRepositoryTests
                 ALTER TABLE usage_event DROP COLUMN reasoning_effort;
                 ALTER TABLE usage_event DROP COLUMN service_tier;
                 DROP TABLE account_usage_daily;
-                DROP TABLE saved_usage_comparison;
                 DROP TABLE usage_collection_state;
                 DELETE FROM schema_migration WHERE version IN (2, 3, 4, 5);
                 DROP TABLE usage_event_tombstone;
@@ -516,7 +515,6 @@ public sealed class UsageRepositoryTests
                 ALTER TABLE usage_event DROP COLUMN reasoning_effort;
                 ALTER TABLE usage_event DROP COLUMN service_tier;
                 DROP TABLE account_usage_daily;
-                DROP TABLE saved_usage_comparison;
                 DROP TABLE usage_collection_state;
                 DELETE FROM schema_migration WHERE version IN (3, 4, 5);
                 """;
@@ -571,7 +569,7 @@ public sealed class UsageRepositoryTests
             }
         }
 
-        Assert.Equal(12, UsageRepository.CurrentSchemaVersion);
+        Assert.Equal(13, UsageRepository.CurrentSchemaVersion);
         Assert.Contains("ix_usage_event_agent_civil_date", names);
         Assert.Contains("ix_usage_event_occurred_at_utc", names);
         Assert.Contains("ix_daily_usage_rollup_agent_civil_date", names);
@@ -902,9 +900,6 @@ public sealed class UsageRepositoryTests
                 ALTER TABLE usage_event DROP COLUMN cache_read_availability;
                 ALTER TABLE usage_event DROP COLUMN cache_write_availability;
                 ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc;
-                DROP TABLE IF EXISTS session_attribution;
-                DROP TABLE IF EXISTS project_attribution;
-                DROP TABLE IF EXISTS operation_fact;
                 DELETE FROM schema_migration WHERE version >= 7;
                 CREATE TRIGGER fail_detail_upgrade BEFORE UPDATE ON usage_data_revision
                 BEGIN SELECT RAISE(ABORT, 'synthetic migration failure'); END;
@@ -923,7 +918,7 @@ public sealed class UsageRepositoryTests
             Assert.Equal(6L, await check.ExecuteScalarAsync());
         }
         await Assert.ThrowsAsync<SqliteException>(() => UsageRepository.OpenAsync(folder.DatabasePath));
-        string backup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v12-*.db"));
+        string backup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, $"*.pre-v{UsageRepository.CurrentSchemaVersion}-*.db"));
         byte[] backupHash = SHA256.HashData(await File.ReadAllBytesAsync(backup));
         await using (var verify = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
         {
@@ -968,8 +963,8 @@ public sealed class UsageRepositoryTests
         await Assert.ThrowsAsync<SqliteException>(() => invalidCommand.ExecuteNonQueryAsync());
         Assert.Equal(enriched, Assert.Single(await repository.QueryUsageEventsAsync(from, to)));
         Assert.Equal(backupHash, SHA256.HashData(await File.ReadAllBytesAsync(backup)));
-        Assert.Equal(2, Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v12-*.db").Length);
-        string cleanBackup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, "*.pre-v12-*.db"), path => path != backup);
+        Assert.Equal(2, Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, $"*.pre-v{UsageRepository.CurrentSchemaVersion}-*.db").Length);
+        string cleanBackup = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(folder.DatabasePath)!, $"*.pre-v{UsageRepository.CurrentSchemaVersion}-*.db"), path => path != backup);
         string recoveredPath = Path.Combine(Path.GetDirectoryName(folder.DatabasePath)!, "recovered.db");
         UsageRepository recovered = await UsageRepository.RecoverCopyAsync(cleanBackup, recoveredPath);
         Assert.Equal(original, Assert.Single(await recovered.QueryUsageEventsAsync(from, to)));
@@ -990,8 +985,43 @@ public sealed class UsageRepositoryTests
             command.CommandText = "DROP TRIGGER \"" + name.Replace("\"", "\"\"", StringComparison.Ordinal) + "\";";
             await command.ExecuteNonQueryAsync();
         }
-        command.CommandText = "DROP TABLE IF EXISTS operation_fact; DROP TABLE IF EXISTS project_attribution; DROP TABLE IF EXISTS session_attribution; DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
+        command.CommandText = "DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
         await command.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public async Task VersionThirteenDropsRemovedTablesAndMarksClaudeMessageTimes()
+    {
+        using var folder = new TemporaryFolder();
+        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
+        await repository.IngestAsync(
+        [
+            CreateEvent("claude-message", agentId: "claude", parserVersion: "claude-jsonl/4"),
+            CreateEvent("grok-session"),
+        ]);
+        await using (var setup = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            setup.CreateFunction("tokenusage_writer_schema", () => UsageRepository.CurrentSchemaVersion);
+            await using SqliteCommand command = setup.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE operation_fact (event_key TEXT);
+                CREATE TABLE saved_usage_comparison (revision_id TEXT);
+                UPDATE usage_event SET time_precision = 0;
+                DELETE FROM schema_migration WHERE version = 13;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await UsageRepository.OpenAsync(folder.DatabasePath);
+
+        await using var verify = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False");
+        await verify.OpenAsync();
+        await using SqliteCommand check = verify.CreateCommand();
+        check.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name IN ('operation_fact', 'saved_usage_comparison');";
+        Assert.Equal(0L, await check.ExecuteScalarAsync());
+        check.CommandText = "SELECT group_concat(agent_id || ':' || time_precision, ',') FROM (SELECT agent_id, time_precision FROM usage_event ORDER BY agent_id);";
+        Assert.Equal("claude:1,grok:0", await check.ExecuteScalarAsync());
     }
 
     [Fact]
@@ -1009,9 +1039,6 @@ public sealed class UsageRepositoryTests
             await using var command = setup.CreateCommand();
             command.CommandText = """
                 ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc;
-                DROP TABLE IF EXISTS session_attribution;
-                DROP TABLE IF EXISTS project_attribution;
-                DROP TABLE IF EXISTS operation_fact;
                 DELETE FROM schema_migration WHERE version >= 8;
                 CREATE TRIGGER fail_freshness BEFORE UPDATE ON usage_collection_state
                 BEGIN SELECT RAISE(ABORT, 'freshness migration failure'); END;
@@ -1153,453 +1180,6 @@ public sealed class UsageRepositoryTests
         Assert.Equal(before, await repository.ReadDataRevisionAsync());
         Assert.Equal(b, Assert.Single(await repository.QueryUsageEventsAsync(from, from.AddDays(1))));
     }
-
-    [Fact]
-    public async Task SessionLinksStayOffUntilConsentAndPurgeKeepsRollupTotals()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent linked = CreateEvent("session-link", agentId: "codex");
-        UsageEvent unassigned = CreateEvent("session-unassigned", agentId: "codex");
-        await repository.IngestAsync([linked, unassigned]);
-        DailyUsageRollup before = Assert.Single(await repository.QueryDailyRollupsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22)));
-        var sessionKey = DeriveKey(OpaqueKeyDomains.CodexSession, "alpha");
-        await repository.ReplaceSessionLinksAsync(
-        [
-            new UsageSessionLink(linked.EventKey, sessionKey, parentSessionKey: null, consentEpoch: 1),
-        ]);
-        Assert.Equal(1, await repository.CountSessionLinksAsync(1));
-        IReadOnlyList<UsageSessionContribution> rows = await repository.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("codex"));
-        Assert.Contains(rows, row => row.IsUnassigned && row.SelectedTokens.Total == unassigned.Tokens.Total);
-        UsageSessionContribution session = Assert.Single(rows, row => !row.IsUnassigned);
-        Assert.Equal(sessionKey, session.SessionKey);
-        Assert.Equal(linked.Tokens.Total, session.SelectedTokens.Total);
-        Assert.Equal(linked.Tokens.Total, session.SessionTokens.Total);
-        IReadOnlyList<UsageSessionContribution> staleEpoch = await repository.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            2,
-            new AgentId("codex"));
-        Assert.All(staleEpoch, row => Assert.True(row.IsUnassigned));
-        Assert.Equal(1, await repository.PurgeSessionLinksAsync());
-        Assert.Equal(0, await repository.CountSessionLinksAsync());
-        DailyUsageRollup after = Assert.Single(await repository.QueryDailyRollupsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22)));
-        Assert.Equal(before.Tokens.Total, after.Tokens.Total);
-        Assert.Equal(before.EventCount, after.EventCount);
-        Assert.Equal(before.ReportedCostUsd, after.ReportedCostUsd);
-    }
-
-    [Fact]
-    public async Task AttributionContributionsHonorModelSearch()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent sol = CreateEvent("search-sol", agentId: "codex", modelId: "gpt-6-sol");
-        UsageEvent astra = CreateEvent("search-astra", agentId: "codex", modelId: "gpt-6-astra");
-        await repository.IngestAsync([sol, astra]);
-        OpaqueAttributionKey solSession = DeriveKey(OpaqueKeyDomains.CodexSession, "search-sol");
-        OpaqueAttributionKey astraSession = DeriveKey(OpaqueKeyDomains.CodexSession, "search-astra");
-        OpaqueAttributionKey solProject = DeriveKey(OpaqueKeyDomains.CodexProject, "search-sol");
-        OpaqueAttributionKey astraProject = DeriveKey(OpaqueKeyDomains.CodexProject, "search-astra");
-        await repository.ReplaceSessionLinksAsync([
-            new UsageSessionLink(sol.EventKey, solSession, parentSessionKey: null, consentEpoch: 1),
-            new UsageSessionLink(astra.EventKey, astraSession, parentSessionKey: null, consentEpoch: 1),
-        ]);
-        await repository.ReplaceProjectLinksAsync([
-            new UsageProjectLink(sol.EventKey, solProject, 1, ProjectMappingKind.Observed),
-            new UsageProjectLink(astra.EventKey, astraProject, 1, ProjectMappingKind.Observed),
-        ]);
-        DateOnly day = new(2026, 7, 22);
-        IReadOnlyList<UsageSessionContribution> sessions = await repository.ReadSessionContributionsAsync(
-            day, day, 1, new AgentId("codex"), modelSearch: "sol");
-        IReadOnlyList<UsageProjectContribution> projects = await repository.ReadProjectContributionsAsync(
-            day, day, 1, new AgentId("codex"), modelSearch: "sol");
-        Assert.Equal(sol.Tokens.Total, Assert.Single(sessions).SelectedTokens.Total);
-        Assert.Equal(sol.Tokens.Total, Assert.Single(projects).SelectedTokens.Total);
-    }
-
-    [Fact]
-    public async Task RestoredBackupLinksStayHiddenFromANewConsentEpoch()
-    {
-        using var folder = new TemporaryFolder();
-        string recoveredPath = Path.Combine(Path.GetDirectoryName(folder.DatabasePath)!, "recovered.v1.db");
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent usageEvent = CreateEvent("restored-link", agentId: "codex");
-        await repository.IngestAsync([usageEvent]);
-        await repository.ReplaceSessionLinksAsync(
-        [
-            new UsageSessionLink(
-                usageEvent.EventKey,
-                DeriveKey(OpaqueKeyDomains.CodexSession, "restored"),
-                parentSessionKey: null,
-                consentEpoch: 1),
-        ]);
-        UsageRepository recovered = await UsageRepository.RecoverCopyAsync(folder.DatabasePath, recoveredPath);
-        Assert.Equal(1, await recovered.CountSessionLinksAsync(1));
-        await repository.PurgeSessionLinksAsync();
-        Assert.Equal(0, await repository.CountSessionLinksAsync());
-        IReadOnlyList<UsageSessionContribution> hidden = await recovered.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            3,
-            new AgentId("codex"));
-        Assert.All(hidden, row => Assert.True(row.IsUnassigned));
-        Assert.Equal(usageEvent.Tokens.Total, hidden.Sum(row => row.SelectedTokens.Total));
-        IReadOnlyList<UsageSessionContribution> disabled = await recovered.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            0,
-            new AgentId("codex"));
-        Assert.All(disabled, row => Assert.True(row.IsUnassigned));
-        Assert.Equal(usageEvent.Tokens.Total, disabled.Sum(row => row.SelectedTokens.Total));
-    }
-
-    [Fact]
-    public async Task PurgeCursorSessionLinksLeavesCodexLinksAndTotals()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent codex = CreateEvent("codex-keep", agentId: "codex");
-        UsageEvent cursor = CreateEvent("cursor-drop", agentId: "cursor");
-        await repository.IngestAsync([codex, cursor]);
-        await repository.ReplaceSessionLinksAsync(
-        [
-            new UsageSessionLink(
-                codex.EventKey,
-                DeriveKey(OpaqueKeyDomains.CodexSession, "codex-keep"),
-                parentSessionKey: null,
-                consentEpoch: 1,
-                AttributionCapability.CodexSession),
-            new UsageSessionLink(
-                cursor.EventKey,
-                DeriveKey(OpaqueKeyDomains.CursorSession, "cursor-drop"),
-                parentSessionKey: null,
-                consentEpoch: 1,
-                AttributionCapability.CursorSession),
-        ]);
-        Assert.Equal(2, await repository.CountSessionLinksAsync());
-        Assert.Equal(1, await repository.PurgeSessionLinksAsync(AttributionCapability.CursorSession));
-        Assert.Equal(1, await repository.CountSessionLinksAsync());
-        IReadOnlyList<UsageSessionContribution> codexRows = await repository.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("codex"),
-            capability: AttributionCapability.CodexSession);
-        Assert.Contains(codexRows, row => !row.IsUnassigned);
-        IReadOnlyList<UsageSessionContribution> cursorRows = await repository.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("cursor"),
-            capability: AttributionCapability.CursorSession);
-        Assert.All(cursorRows, row => Assert.True(row.IsUnassigned));
-        Assert.Equal(
-            codex.Tokens.Total + cursor.Tokens.Total,
-            (await repository.QueryDailyRollupsAsync(
-                new DateOnly(2026, 7, 22),
-                new DateOnly(2026, 7, 22))).Sum(row => row.Tokens.Total));
-    }
-
-    [Fact]
-    public async Task SessionContributionsHonorSelectedEffortWithoutChangingWholeSessionTotals()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent low = new(
-            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("effort-low"))).ToLowerInvariant()),
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-5"),
-            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
-            "UTC",
-            new TokenBreakdown(10, 0, 0, 0, 0),
-            CostObservation.ProviderReported(0.01m),
-            "fixture/1",
-            CoverageKind.Complete,
-            UsageTimePrecision.Timestamp,
-            reasoningEffort: "low");
-        UsageEvent high = new(
-            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("effort-high"))).ToLowerInvariant()),
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-5"),
-            new DateTimeOffset(2026, 7, 22, 13, 0, 0, TimeSpan.Zero),
-            "UTC",
-            new TokenBreakdown(90, 0, 0, 0, 0),
-            CostObservation.ProviderReported(0.09m),
-            "fixture/1",
-            CoverageKind.Complete,
-            UsageTimePrecision.Timestamp,
-            reasoningEffort: "high");
-        await repository.IngestAsync([low, high]);
-        var sessionKey = DeriveKey(OpaqueKeyDomains.CodexSession, "effort-session");
-        await repository.ReplaceSessionLinksAsync(
-        [
-            new UsageSessionLink(low.EventKey, sessionKey, parentSessionKey: null, 1),
-            new UsageSessionLink(high.EventKey, sessionKey, parentSessionKey: null, 1),
-        ]);
-        UsageSessionContribution selected = Assert.Single(
-            await repository.ReadSessionContributionsAsync(
-                new DateOnly(2026, 7, 22),
-                new DateOnly(2026, 7, 22),
-                1,
-                new AgentId("codex"),
-                detail: new UsageDetailSelection([], ["low"], [])));
-        Assert.Equal(10, selected.SelectedTokens.Total);
-        Assert.Equal(100, selected.SessionTokens.Total);
-    }
-
-    [Fact]
-    public async Task ProjectLinksKeepObservedAmbiguousAliasAndPurgeWithoutChangingTotals()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent first = CreateEvent("project-a", agentId: "codex", tokens: new TokenBreakdown(80, 20, 0, 0, 0));
-        UsageEvent second = CreateEvent("project-b", agentId: "codex", tokens: new TokenBreakdown(40, 10, 0, 0, 0));
-        UsageEvent unassigned = CreateEvent("project-unassigned", agentId: "codex");
-        UsageEvent ambiguous = CreateEvent("project-ambiguous", agentId: "codex", tokens: new TokenBreakdown(10, 0, 0, 0, 0));
-        await repository.IngestAsync([first, second, unassigned, ambiguous]);
-        DailyUsageRollup before = Assert.Single(await repository.QueryDailyRollupsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22)));
-        var projectA = DeriveKey(OpaqueKeyDomains.CodexProject, "workspace-a");
-        var projectB = DeriveKey(OpaqueKeyDomains.CodexProject, "workspace-b");
-        await repository.ReplaceProjectLinksAsync(
-        [
-            new UsageProjectLink(first.EventKey, projectA, 1, ProjectMappingKind.Observed),
-            new UsageProjectLink(second.EventKey, projectB, 1, ProjectMappingKind.Observed),
-            new UsageProjectLink(ambiguous.EventKey, null, 1, ProjectMappingKind.Ambiguous),
-        ]);
-        IReadOnlyList<UsageProjectContribution> rows = await repository.ReadProjectContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("codex"));
-        Assert.Contains(rows, row => row.IsUnassigned && row.SelectedTokens.Total == unassigned.Tokens.Total);
-        Assert.Contains(rows, row => row.IsAmbiguous && row.SelectedTokens.Total == ambiguous.Tokens.Total);
-        Assert.Equal(first.Tokens.Total, Assert.Single(rows, row => row.ProjectKey == projectA).SelectedTokens.Total);
-        Assert.Equal(second.Tokens.Total, Assert.Single(rows, row => row.ProjectKey == projectB).SelectedTokens.Total);
-        await repository.MapEventsToProjectAsync([second.EventKey], projectA, 1);
-        UsageProjectContribution remapped = Assert.Single(
-            await repository.ReadProjectContributionsAsync(
-                new DateOnly(2026, 7, 22),
-                new DateOnly(2026, 7, 22),
-                1,
-                new AgentId("codex")),
-            row => row.ProjectKey == projectA && row.MappingKind == ProjectMappingKind.UserMapped);
-        Assert.Equal(second.Tokens.Total, remapped.SelectedTokens.Total);
-        await repository.ReplaceAttributionLinksForEventsAsync(
-            [],
-            [new UsageProjectLink(second.EventKey, projectB, 1, ProjectMappingKind.Observed)],
-            [second.EventKey.Value]);
-        Assert.DoesNotContain(
-            await repository.ReadProjectContributionsAsync(
-                new DateOnly(2026, 7, 22),
-                new DateOnly(2026, 7, 22),
-                1,
-                new AgentId("codex")),
-            row => row.ProjectKey == projectB);
-        Assert.Equal(
-            second.Tokens.Total,
-            Assert.Single(
-                await repository.ReadProjectContributionsAsync(
-                    new DateOnly(2026, 7, 22),
-                    new DateOnly(2026, 7, 22),
-                    1,
-                    new AgentId("codex")),
-                row => row.ProjectKey == projectA && row.MappingKind == ProjectMappingKind.UserMapped).SelectedTokens.Total);
-        DailyUsageRollup afterLinks = Assert.Single(await repository.QueryDailyRollupsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22)));
-        Assert.Equal(before.Tokens.Total, afterLinks.Tokens.Total);
-        Assert.Equal(3, await repository.PurgeProjectLinksAsync());
-        Assert.Equal(0, await repository.CountProjectLinksAsync());
-        DailyUsageRollup afterPurge = Assert.Single(await repository.QueryDailyRollupsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22)));
-        Assert.Equal(before.Tokens.Total, afterPurge.Tokens.Total);
-        Assert.Equal(before.EventCount, afterPurge.EventCount);
-        await using var connection = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False");
-        await connection.OpenAsync();
-        await using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "SELECT sql FROM sqlite_master WHERE sql LIKE '%cwd%' OR sql LIKE '%private-project-path%';";
-        Assert.Null(await command.ExecuteScalarAsync());
-    }
-
-    [Fact]
-    public async Task RemapUnassignedProjectEventsHonorsSelectedEffort()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageEvent observed = new(
-            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("remap-observed"))).ToLowerInvariant()),
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-5"),
-            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
-            "UTC",
-            new TokenBreakdown(10, 0, 0, 0, 0),
-            CostObservation.ProviderReported(0.01m),
-            "fixture/1",
-            CoverageKind.Complete,
-            UsageTimePrecision.Timestamp,
-            reasoningEffort: "low");
-        UsageEvent unassignedLow = new(
-            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("remap-low"))).ToLowerInvariant()),
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-5"),
-            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
-            "UTC",
-            new TokenBreakdown(20, 0, 0, 0, 0),
-            CostObservation.ProviderReported(0.02m),
-            "fixture/1",
-            CoverageKind.Complete,
-            UsageTimePrecision.Timestamp,
-            reasoningEffort: "low");
-        UsageEvent unassignedHigh = new(
-            new UsageEventKey(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("remap-high"))).ToLowerInvariant()),
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-5"),
-            new DateTimeOffset(2026, 7, 22, 12, 0, 0, TimeSpan.Zero),
-            "UTC",
-            new TokenBreakdown(90, 0, 0, 0, 0),
-            CostObservation.ProviderReported(0.09m),
-            "fixture/1",
-            CoverageKind.Complete,
-            UsageTimePrecision.Timestamp,
-            reasoningEffort: "high");
-        await repository.IngestAsync([observed, unassignedLow, unassignedHigh]);
-        var project = DeriveKey(OpaqueKeyDomains.CodexProject, "workspace-kept");
-        await repository.ReplaceProjectLinksAsync(
-        [
-            new UsageProjectLink(observed.EventKey, project, 1, ProjectMappingKind.Observed),
-        ]);
-        IReadOnlyList<UsageEventKey> selected = await repository.ReadUnassignedProjectEventKeysAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("codex"),
-            new ModelProviderId("openai"),
-            new ModelId("gpt-5"),
-            new UsageDetailSelection([], ["low"], []));
-        Assert.Equal(unassignedLow.EventKey, Assert.Single(selected));
-        await repository.MapEventsToProjectAsync(selected, project, 1);
-        IReadOnlyList<UsageProjectContribution> rows = await repository.ReadProjectContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("codex"));
-        Assert.Equal(
-            10,
-            Assert.Single(rows, row => row.ProjectKey == project && row.MappingKind == ProjectMappingKind.Observed)
-                .SelectedTokens.Total);
-        Assert.Equal(
-            20,
-            Assert.Single(rows, row => row.ProjectKey == project && row.MappingKind == ProjectMappingKind.UserMapped)
-                .SelectedTokens.Total);
-        Assert.Equal(90, Assert.Single(rows, row => row.IsUnassigned).SelectedTokens.Total);
-    }
-
-    [Fact]
-    public async Task RequestFinalDistributionsUseNearestRankThresholds()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        UsageDistributionEligibility empty = await repository.ReadDistributionEligibilityAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            new AgentId("grok"));
-        Assert.Equal(UsageStatisticAvailability.Unavailable, empty.Availability);
-        UsageEvent[] finals = Enumerable.Range(1, 100)
-            .Select(index => CreateEvent(
-                $"final-{index}",
-                tokens: new TokenBreakdown(index, 0, 0, 0, 0),
-                detailMetadata: new UsageDetailMetadata(
-                    recordKind: UsageRecordKind.RequestFinal,
-                    input: UsageComponentAvailability.Measured)))
-            .ToArray();
-        await repository.IngestAsync(finals);
-        UsageDistributionEligibility measured = await repository.ReadDistributionEligibilityAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            new AgentId("grok"));
-        Assert.Equal(UsageStatisticAvailability.Measured, measured.Availability);
-        Assert.Equal(100, measured.EligibleFinalCount);
-        Assert.Equal(50, measured.MedianInputTokens);
-        Assert.Equal(95, measured.Percentile95InputTokens);
-    }
-
-    [Fact]
-    public async Task AttributedSessionOutliersDoNotRequireRequestFinal()
-    {
-        using var folder = new TemporaryFolder();
-        UsageRepository repository = await UsageRepository.OpenAsync(folder.DatabasePath);
-        var events = new List<UsageEvent>();
-        var links = new List<UsageSessionLink>();
-        for (int index = 0; index < 15; index++)
-        {
-            UsageEvent usageEvent = CreateEvent($"lo-{index}", tokens: new TokenBreakdown(50, 0, 0, 0, 0), agentId: "codex");
-            events.Add(usageEvent);
-            links.Add(new UsageSessionLink(
-                usageEvent.EventKey,
-                DeriveKey(OpaqueKeyDomains.CodexSession, $"lo-{index}"),
-                parentSessionKey: null,
-                consentEpoch: 1));
-        }
-
-        for (int index = 0; index < 15; index++)
-        {
-            UsageEvent usageEvent = CreateEvent($"hi-{index}", tokens: new TokenBreakdown(150, 0, 0, 0, 0), agentId: "codex");
-            events.Add(usageEvent);
-            links.Add(new UsageSessionLink(
-                usageEvent.EventKey,
-                DeriveKey(OpaqueKeyDomains.CodexSession, $"hi-{index}"),
-                parentSessionKey: null,
-                consentEpoch: 1));
-        }
-
-        UsageEvent spike = CreateEvent("spike", tokens: new TokenBreakdown(10_000, 0, 0, 0, 0), agentId: "codex");
-        events.Add(spike);
-        links.Add(new UsageSessionLink(
-            spike.EventKey,
-            DeriveKey(OpaqueKeyDomains.CodexSession, "spike"),
-            parentSessionKey: null,
-            consentEpoch: 1));
-        await repository.IngestAsync(events);
-        await repository.ReplaceSessionLinksAsync(links);
-        UsageDistributionEligibility distribution = await repository.ReadDistributionEligibilityAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            new AgentId("codex"));
-        Assert.Equal(UsageStatisticAvailability.Unavailable, distribution.Availability);
-        IReadOnlyList<UsageSessionContribution> rows = await repository.ReadSessionContributionsAsync(
-            new DateOnly(2026, 7, 22),
-            new DateOnly(2026, 7, 22),
-            1,
-            new AgentId("codex"));
-        UsageSessionOutlier outlier = UsageSessionOutlier.Evaluate(rows
-            .Where(row => !row.IsUnassigned && row.SessionKey is not null)
-            .Select(row => (row.SessionKey!.Value, row.SelectedTokens.Total))
-            .ToArray());
-        Assert.Equal(UsageStatisticAvailability.Measured, outlier.Availability);
-        Assert.Equal(DeriveKey(OpaqueKeyDomains.CodexSession, "spike"), new OpaqueAttributionKey(outlier.SessionKey!));
-        Assert.Equal(10_000, outlier.SessionTokens);
-    }
-
-    private static OpaqueAttributionKey DeriveKey(string domain, string identifier) =>
-        new HmacOpaqueKeyDeriver(Enumerable.Repeat((byte)0x5A, 32).ToArray())
-            .Derive(domain, "codex", identifier);
 
     [Fact]
     public async Task HistoryRecoveryPreservesRecordedPricesAndRetiredTotalsWhileMergingNumericGrowth()

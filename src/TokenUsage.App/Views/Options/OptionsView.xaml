@@ -71,13 +71,13 @@
                 </StackPanel>
             </RadioButton>
 
-            <RadioButton x:Name="ReportsTab" Grid.Row="2" Grid.ColumnSpan="2"
-                AutomationProperties.AutomationId="OptionsReportsTab" AutomationProperties.LabeledBy="{Binding ElementName=ReportsTabLabel}" GroupName="OptionsSections"
+            <RadioButton x:Name="AdvancedTab" Grid.Row="2" Grid.ColumnSpan="2"
+                AutomationProperties.AutomationId="OptionsAdvancedTab" AutomationProperties.LabeledBy="{Binding ElementName=AdvancedTabLabel}" GroupName="OptionsSections"
                 Style="{StaticResource SectionTabRadioButtonStyle}" HorizontalAlignment="Stretch" Padding="10,8"
                 Tag="4" Checked="OnOptionTabChecked">
                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE9D9;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
-                    <TextBlock x:Name="ReportsTabLabel" x:Uid="OptionsReportsTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <FontIcon Glyph="&#xE9E9;" FontSize="13" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock x:Name="AdvancedTabLabel" x:Uid="OptionsAdvancedTabLabel" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </StackPanel>
             </RadioButton>
         </Grid>
@@ -118,42 +118,16 @@
             </ScrollViewer>
             <ScrollViewer x:Name="AppearanceScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
                 <options:AppearanceOptionsView x:Name="AppearanceView" Margin="0"
-                    PersonalizationViewModel="{x:Bind ViewModel.Personalization, Mode=OneWay}"
                     ViewModel="{x:Bind ViewModel.Appearance, Mode=OneWay}" />
             </ScrollViewer>
             <ScrollViewer x:Name="ProvidersScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
                 <options:ProviderStatusView x:Name="ProviderStatusView" Margin="0"
                     ViewModel="{x:Bind ViewModel.ProviderStatus, Mode=OneWay}" />
             </ScrollViewer>
-            <ScrollViewer x:Name="ReportsScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="4" Padding="12,8">
-                    <CheckBox x:Name="ReportSummaryOption" x:Uid="ReportOptionSummary" AutomationProperties.AutomationId="ReportOptionSummary"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportSummary, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportChartOption" x:Uid="ReportOptionChart" AutomationProperties.AutomationId="ReportOptionChart"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportChart, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportLimitsOption" x:Uid="ReportOptionLimits" AutomationProperties.AutomationId="ReportOptionLimits"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportLimits, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportHeatmapOption" x:Uid="ReportOptionHeatmap" AutomationProperties.AutomationId="ReportOptionHeatmap"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportHeatmap, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportHighlightsOption" x:Uid="ReportOptionHighlights" AutomationProperties.AutomationId="ReportOptionHighlights"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportHighlights, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportModelsOption" x:Uid="ReportOptionModels" AutomationProperties.AutomationId="ReportOptionModels"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportModels, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportTokenCompositionOption" x:Uid="ReportOptionTokenComposition" AutomationProperties.AutomationId="ReportOptionTokenComposition"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportTokenComposition, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportProjectsOption" x:Uid="ReportOptionProjects" AutomationProperties.AutomationId="ReportOptionProjects"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportProjects, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportToolsOption" x:Uid="ReportOptionTools" AutomationProperties.AutomationId="ReportOptionTools"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportTools, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportFullBreakdownOption" x:Uid="ReportOptionFullBreakdown" AutomationProperties.AutomationId="ReportOptionFullBreakdown"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportFullBreakdown, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportResetsOption" x:Uid="ReportOptionResets" AutomationProperties.AutomationId="ReportOptionResets"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportResets, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportActivityOption" x:Uid="ReportOptionActivity" AutomationProperties.AutomationId="ReportOptionActivity"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportActivity, Mode=TwoWay}" />
-                    <CheckBox x:Name="ReportMeasurementOption" x:Uid="ReportOptionMeasurement" AutomationProperties.AutomationId="ReportOptionMeasurement"
-                        IsChecked="{x:Bind ViewModel.Appearance.ShowReportMeasurement, Mode=TwoWay}" />
-                </StackPanel>
+            <ScrollViewer x:Name="AdvancedScroll" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+                <options:AdvancedOptionsView x:Name="AdvancedView" Margin="0"
+                    General="{x:Bind ViewModel.General, Mode=OneWay}"
+                    Personalization="{x:Bind ViewModel.Personalization, Mode=OneWay}" />
             </ScrollViewer>
         </Grid>
     </Grid>

@@ -17,8 +17,7 @@ also holds prompts, responses, tool calls and results, file references, and
 paths. Those values are skipped while parsing and are never materialized,
 stored, logged, or shown.
 
-This gate does not change the Copilot Billing REST connection or the Copilot
-CLI gate. [Copilot CLI](COPILOT-CLI.md) stays `policy-blocked`. The quota stays
+This gate covers only VS Code. Copilot CLI is not read. The quota stays
 unavailable: VS Code does not cache `quota_snapshots` on disk, and
 `/copilot_internal/user` stays forbidden.
 

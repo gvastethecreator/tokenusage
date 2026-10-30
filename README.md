@@ -29,43 +29,33 @@ No TokenUsage account is required. Provider data stays local unless you enable a
 
 ## What you get
 
-- **Fast tray view** — check total spend, provider activity, Codex limits, and selected provider quotas.
-- **Detailed reports** — compare providers, ranges, and metrics. Group the detail table by model, tool/agent, API provider, project, or day; select a row to inspect measured components and pricing. The detail panel stacks below 1100 logical pixels. Shared captures include every row in the selected table and respect expanded sections.
+- **Fast tray view** — check today's usage, the period, the per-agent breakdown, and quota.
+- **A report that answers questions** — will each quota last to its reset, why usage changed from the previous period, and how much work each quota point covered across recent resets.
+- **Multiple accounts** — show separate quotas for code-swap (Codex) and claude-swap (Claude) profiles.
 - **Honest data states** — reported, estimated, partial, stale, unavailable, and unpriced values remain distinct.
-- **Reset history** — inspect observed Codex reset cycles, including early resets detected before the expected date.
-- **Stable CLI output** — read usage, reports, limits, provider status, and diagnostics as human text or versioned JSON.
+- **Stable CLI output** — read reports, limits, and diagnostics as human text or versioned JSON.
 - **Local-first and English-only** — keep the interface predictable without indexing conversations or commands.
 
 ## Product tour
 
 ### The report
 
-Tokens, known cost, and priced tokens sit above the full-width daily chart. Provider limits follow in a compact row. The heatmap uses the leading provider's color for each day and follows the selected period, filters, and cost or token metric. Select a day to inspect its detail.
+Choose 7, 30, or 90 days. Each period is compared with the one before it.
 
-In Options > Appearance, choose rings, bars, or numbers only for compact limits. Options > Reports lets you show or hide each report section; changes are saved and apply to open reports.
+- **Summary** — tokens, approximate spend at API list prices, daily average, and how many quotas run out before their reset at the current pace.
+- **Will it last to the reset?** — used quota across each daily or longer window, with earlier cycles in gray and a dashed projection that stops where the quota runs out.
+- **Tokens per day** — stacked by agent, with the previous period as a dashed line.
+- **Why did it change?** — a waterfall from the previous total to the current one through the agents and models that changed most.
+- **Recent resets** — used quota, cycle tokens, and tokens per 1% for the last four cycles of each quota.
+- **Detail** — tokens, change, spend, share, and active days by agent, model, or day.
 
-<img src="docs/assets/screenshots/report-overview.png" alt="Sample usage report with four summary columns, Codex and Claude limit rows, daily cost, and provider composition" width="100%" />
+The share button saves the whole report as one image. In Options > Appearance, choose rings, bars, or numbers only for compact limits. Rare options live in Options > Advanced.
 
-Shared captures include expanded sections and leave collapsed sections out. They preserve the report's current selection.
-
-### Open the detail you want to share
-
-<img src="docs/assets/screenshots/report-expanded.png" alt="The same sample report with its full model and provider breakdown expanded in the shared image" width="100%" />
-
-These are fresh captures of the native application with synthetic sample data. They contain no account data or personal paths. The banner mascot is an illustration generated with imagegen.
+The banner mascot is an illustration generated with imagegen.
 
 ## Provider support
 
-TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a working integration.
-
-| State | Count | Meaning |
-|---|---:|---|
-| Active | 12 | A bounded reader produces real local usage data. |
-| Opt-in | 2 | A remote reader runs after you save your own API key. |
-| Prepared | 33 | Identity, capabilities, and status exist. No reader runs. |
-| Policy blocked | 9 | The known source is unsafe, private, unstable, or not permitted. |
-
-### Active readers
+TokenUsage reads twelve tools. Each one has a bounded local reader.
 
 | Provider | Local usage | Cost | Live quota |
 |---|---|---|---|
@@ -82,14 +72,9 @@ TokenUsage maintains a 56-provider catalog. A catalog entry is not the same as a
 | Hermes | Yes, partial | Reported or estimated | No common quota source |
 | GitHub Copilot | Yes, VS Code chat sessions, partial | Recorded AI credits before plan allowances | No remaining-quota source |
 
-OpenRouter and Vercel AI Gateway are opt-in remote connections. OpenRouter reads
-key limits and UTC spending totals. Vercel reads the saved key's usage, available
-budget, and team credit balance. These account readings stay separate from local
-usage totals. Save or remove your key in Settings; keys use Windows Credential Locker.
+See the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, and publication gates.
 
-See the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, planned providers, and publication gates.
-
-TokenUsage never creates fake activity for prepared or blocked providers. Missing data appears as missing data.
+TokenUsage never creates fake activity. Missing data appears as missing data.
 
 ## How the data works
 
@@ -110,7 +95,6 @@ An API-rate estimate is not a subscription invoice. A local usage total is not a
 
 - No prompt, response, conversation, command, tool call, email, or account identifier enters usage storage.
 - TokenUsage does not copy another application's session token or read its credential store.
-- User-supplied keys use Windows Credential Locker.
 - Local API access and telemetry stay off by default.
 - Logs, diagnostics, fixtures, issues, and pull requests must not contain credentials or customer content.
 
@@ -190,11 +174,9 @@ Install the package and enable its execution alias. Then run:
 
 ```powershell
 tokenusage refresh
-tokenusage usage --days 7 --format human
 tokenusage report --days 30 --format human
 tokenusage report --from 2026-07-01 --to 2026-07-31 --agent codex --format json
 tokenusage limits --format json
-tokenusage providers --format human
 tokenusage doctor --format human
 tokenusage pricing audit --format human
 tokenusage pricing refresh --dry-run
@@ -206,7 +188,7 @@ content or edits a price. See [pricing evidence and refresh](docs/PRICING.md).
 
 Run `tokenusage refresh` before a report when the app has not updated the local store. Refresh writes normalized numeric records from installed providers.
 
-The JSON contracts use versioned names such as `tokenusage.usage.v1`, `tokenusage.report.v1`, and `tokenusage.providers.v1`.
+The JSON contracts use versioned names such as `tokenusage.report.v1`, `tokenusage.limits.v1`, and `tokenusage.doctor.v1`.
 
 ## Documentation
 

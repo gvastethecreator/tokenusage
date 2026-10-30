@@ -68,7 +68,7 @@ per million tokens. Above 100,000 prompt tokens, all five rates multiply by
 five. Input, cache reads, and cache writes count toward that threshold;
 output does not. The shared catalog also resolves provider-prefixed IDs.
 Session totals without per-request counters stay unpriced unless a cost was
-reported. Linear price scenarios exclude Haiku 5.5 because its tier can change.
+reported.
 
 Grok 4.7 uses the [official xAI rates](https://docs.x.ai/developers/pricing):
 $2 input, $0.50 cached input, and $6 output, doubling at 200,000 prompt tokens.
@@ -76,7 +76,7 @@ Grok Build Fast costs $4, $1, and $12 up to 200,000 prompt tokens, then
 $6, $1.50, and $18. [Cursor's Grok 4.7](https://cursor.com/docs/models/grok-4-7)
 uses its own threshold: above 256,000 input tokens, Standard doubles and
 Fast costs $6, $1.50, and $18. Cached input counts toward the input window;
-output does not. Both Cursor variants are excluded from linear price scenarios.
+output does not.
 GLM-5.3-FlashX uses the
 [official Z.ai rates](https://docs.z.ai/guides/overview/pricing): $0.37 input,
 $0.075 cached input, and $1.25 output.
@@ -126,52 +126,7 @@ no longer distributes account totals across local models or invents a timestamp
 at local noon. Existing historical prices remain as recorded, with legacy timing
 explicitly unknown.
 
-The Compare view can reprice a matching supported cohort at a selected reference
-date. The reference is off by default and does not rewrite stored events. Codex
-and Cursor use their existing catalogs; unsupported providers, tiers, or missing
-raw history remain excluded and visible. Cost per million uses priced tokens,
-not the full partially priced population. Saved comparisons freeze the selected
-reference, catalog versions, exclusions, data revision, and displayed results.
-
-The Rates axis prices the same retained observations at two catalog dates.
-Only observations that are priceable under both dates and the same policy
-enter the comparison. Volume and mix are not applicable to this fixed-cohort
-experiment. Equal token totals with disjoint priced identities make the
-comparison unavailable; they are not a tariff delta. A legitimate catalog
-price of zero is distinct from an unavailable cost. Catalog dates are list-rate
-scenarios, not a bill or a historical cause of spend.
-
 Known usage cost is not an invoice, subscription charge, or USD-per-quota value.
-
-Periods also offers a historical linear reference scenario. It keeps recorded
-tables unchanged and explains eligible catalog value in the order volume, mix
-of models and token components, then price (`sequential-vmp-linear/v1`). Both
-periods and their retained observations come from one SQLite snapshot. Each
-cell needs rates at both reference dates, an explicit standard tier, measured
-disjoint components, and compatible measurement and pricing regimes. Missing
-detail and unsupported cells are counted outside the calculation; missing
-configuration membership is not inferred for retired detail.
-Timestamped records and intervals wholly inside the selected civil-day period
-can enter the scenario. Unknown timing, cumulative snapshots, daily aggregates,
-and intervals crossing the period boundary remain outside it.
-
-Codex and Cursor OpenAI models reuse published linear catalog entries. Models
-with long-context thresholds remain excluded even below the threshold. Claude
-and Cursor Anthropic rows are eligible only without cache-write or separate
-reasoning tokens, because the retained generic record does not preserve the
-cache-write duration split. Eligible Cursor first-party entries reuse their
-existing catalog; an unknown host still excludes the row. No rates, discounts,
-or billing charges are inferred from daily averages.
-
-Amounts and effects round separately to six USD decimal places, away from zero;
-a separate residual reconciles those rounded effects with the scenario delta.
-Zero eligible volume leaves effects unavailable. Saved scenarios retain cells,
-rates, dates, policy, exclusions, precision, and method instead of repricing on
-open. These order-dependent calculations do not establish causes, invoice
-savings, or model quality. The fixed-cohort Rates method remains available.
-
-Quota efficiency remains unavailable without evidenced consumption and matching
-pool attribution, even when a cycle has ended.
 
 Run the local audit:
 

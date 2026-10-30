@@ -7,6 +7,7 @@ using Windows.Graphics;
 using Windows.UI.ViewManagement;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Alerts;
+using TokenUsage.Core.Providers;
 using TokenUsage.App.Composition;
 using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Tray;
@@ -120,7 +121,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             RootPage.ViewModel.CloseWhenInactive = false;
             RootPage.ViewModel.IsSampleModeEnabled = useSampleForTest;
-            _ = DispatcherQueue.TryEnqueue(() => OpenUsageReport(UsageReportRequest.Global));
+            _ = DispatcherQueue.TryEnqueue(OpenUsageReport);
         }
     }
 
@@ -289,9 +290,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (target.Area == AlertActivationArea.QuotaReport)
         {
-            OpenUsageReport(new UsageReportRequest(
-                UsageReportScope.Provider,
-                target.ProviderId));
+            OpenUsageReport();
             return;
         }
 
@@ -617,12 +616,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void OnHideRequested(object? sender, EventArgs e) => HideFlyout();
 
-    private void OnUsageReportRequested(object? sender, UsageReportRequestedEventArgs e) =>
-        OpenUsageReport(e.Request);
+    private void OnUsageReportRequested(object? sender, EventArgs e) => OpenUsageReport();
 
-    private void OpenUsageReport(UsageReportRequest request)
+    private void OpenUsageReport()
     {
-        ArgumentNullException.ThrowIfNull(request);
         if (_reportWindow is null)
         {
             string localFolderPath = TokenUsageDataDirectory.Resolve(
@@ -637,37 +634,13 @@ public sealed partial class MainWindow : Window, IDisposable
             uint reportDpi = MonitorPlacementContextProvider.GetWindowDpi(_windowHandle);
             _reportWindow = new UsageReportWindow(
                 databasePath,
-                resetHistoryPath,
-                () => RootPage.ViewModel.Dashboard.RefreshLiveAsync(),
                 RootPage.ViewModel.Appearance,
-                request,
-                RootPage.ViewModel.Dashboard.GetProviderLimits,
-                RootPage.ViewModel.Dashboard.GetProviderCreditSummary,
+                () => GetReportQuotaSources(resetHistoryPath),
                 display.WorkArea,
-                reportDpi,
-                grouping => RootPage.ViewModel.Options.Appearance.SelectedReportChartGrouping = grouping,
-                style => RootPage.ViewModel.Options.Appearance.SelectedReportChartStyle =
-                    RootPage.ViewModel.Options.Appearance.ReportChartStyleOptions.Single(option => option.Value == style),
-                theme =>
-                {
-                    var appearance = RootPage.ViewModel.Options.Appearance;
-                    if (appearance.CanChangeTheme)
-                        appearance.SelectedTheme = appearance.ThemeOptions.Single(option => option.Value == theme);
-                },
-                marked => RootPage.ViewModel.Options.Appearance.SetMarkReportBestValues(marked),
-                attributionConsent: RootPage.ViewModel.GeneralOptions.AttributionConsent,
-                attributionAliases: RootPage.ViewModel.GeneralOptions.AttributionAliases,
-                attributionOptions: RootPage.ViewModel.GeneralOptions,
-                getAccountQuotas: () => RootPage.ViewModel.Dashboard.AccountQuotas,
-                usesCodexAccounts: () => RootPage.ViewModel.Dashboard.UsesCodexAccounts);
+                reportDpi);
             _reportWindow.Closed += OnUsageReportWindowClosed;
             RootPage.ViewModel.Dashboard.PropertyChanged += OnDashboardChangedForReport;
         }
-        else
-        {
-            _reportWindow.ApplyRequest(request);
-        }
-
         _reportWindow.Activate();
     }
 
@@ -677,7 +650,28 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         if (e.PropertyName is nameof(RootPage.ViewModel.Dashboard.ActiveSample)
             or nameof(RootPage.ViewModel.Dashboard.AccountQuotas)
-            or nameof(RootPage.ViewModel.Dashboard.UsesCodexAccounts)) _reportWindow?.RefreshLimits();
+            or nameof(RootPage.ViewModel.Dashboard.UsesCodexAccounts)) _reportWindow?.Reload();
+    }
+
+    // The panel's own history holds one reading per provider; a provider read through
+    // code-swap or claude-swap accounts is shown per account instead. Local tokens cannot be
+    // assigned to one account, so only the panel's own readings get tokens per quota point.
+    private List<ReportQuotaSource> GetReportQuotaSources(string resetHistoryPath)
+    {
+        IProviderAccountService? accounts = RootPage.ViewModel.Accounts;
+        var globalProviders = new HashSet<string>(["codex", "claude", "zcode"], StringComparer.Ordinal);
+        if (accounts?.IsActivated("codex") == true) globalProviders.Remove("codex");
+        if (accounts?.IsActivated("claude") == true) globalProviders.Remove("claude");
+        var sources = new List<ReportQuotaSource> { new("", resetHistoryPath, null, globalProviders, TokensAttributable: true) };
+        foreach (ProviderAccountHistory history in accounts?.SelectedHistories() ?? [])
+        {
+            string providerId = history.Account.InstanceKey.ProviderId.Value;
+            string name = history.Account.Alias ?? string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                _resources.GetString("CodexAccountProfileFormat"), history.Account.Number);
+            sources.Add(new ReportQuotaSource($"{ReportProjection.AgentName(providerId)} · {name}", history.HistoryPath,
+                history.Account.InstanceKey, new HashSet<string>([providerId], StringComparer.Ordinal), TokensAttributable: false));
+        }
+        return sources;
     }
 
     private void OnUsageReportWindowClosed(object sender, WindowEventArgs args)

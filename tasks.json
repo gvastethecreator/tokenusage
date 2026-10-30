@@ -1,6 +1,6 @@
 {
-  "updatedOn": "2026-10-19",
-  "objective": "Update stable dependencies and provider evidence, replace the local build, and review old workspace artifacts for cleanup.",
+  "updatedOn": "2026-10-30",
+  "objective": "Slim the product, rebuild the report around quota pace, change, and resets, add claude-swap accounts, and remove attribution.",
   "baseline": {
     "publicHead": "746efbba86b483855978e4e01ce2a85e2c9a5e89",
     "publishedRelease": "v0.0.1-preview.5",
@@ -10,6 +10,39 @@
     "releaseCheckedOn": "2026-09-30"
   },
   "tasks": [
+    {
+      "id": "slim-providers-and-ui-2026-10-29",
+      "title": "Slim providers and UI, rebuild the report, add claude-swap accounts, and remove attribution",
+      "status": "in_review",
+      "steps": [
+        "Commit the pending work as a baseline.",
+        "Remove leftover prepared, blocked, and opt-in provider code, strings, docs, and tests.",
+        "Remove the usage, providers, cursor, grok, and zcode management commands and the redundant claude subcommands.",
+        "Show today, the 30-day period, the per-agent list, and quota on the dashboard by default.",
+        "Move screenshots, Claude history, and dashboard layout to an Advanced tab.",
+        "Rebuild the report: quota pace to the reset, a change waterfall, tokens per day, recent resets with tokens per 1%, and a detail table.",
+        "Add claude-swap (cswap list --json) accounts next to code-swap accounts.",
+        "Remove session, project, and operation attribution, saved comparisons, and their views; schema 13 drops the tables.",
+        "Run build and tests, refresh the code map, capture the report, dashboard, and accounts, and replace the local install."
+      ],
+      "decisions": [
+        "No OpenRouter or Vercel key exists on this machine, so both opt-in connections stay removed.",
+        ".roadtrip calls tokenusage.exe report --from --to [--agent] --format json (tokenusage.report.v1); report is unchanged.",
+        "Installed ZCode hooks call zcode stop-hook, so that one entry point stays and routes to hook stop.",
+        "The donut and heatmap views stay as an opt-in header toggle; the list is the default.",
+        "Report cycles follow the provider schedule (expected reset minus the window); the stored start is used only when later.",
+        "Account quotas show no token ratio because local logs cannot be assigned to one account.",
+        "Claude parser 4 already stored message timestamps; schema 13 marks them as timestamped instead of bumping the parser, because a parser change with partial reads withholds batches and would stall a large Claude history.",
+        "claude-swap usage is read from its own cache; TokenUsage sends no request and opens no profile credentials."
+      ],
+      "nextAction": "Review the diff and decide on commit; regenerate README report screenshots with synthetic data if wanted.",
+      "validation": {
+        "build": "dotnet build TokenUsage.slnx -c Debug -p:Platform=x64 passed; Release MSIX built.",
+        "tests": "1195 tests passed across 5 projects (Architecture 89, CLI 96, Windows 183, Core 291, Providers 536). Claude source tests need CLAUDE_CONFIG_DIR unset.",
+        "ui": "Portable Debug build on a scratch LocalState copy: report (top, change, resets, detail), dashboard with claude-swap accounts, and Options accounts captured.",
+        "installation": "Registered 0.0.1.31; usage DB migrated to schema 13; 561760 events retained, 0 recorded-price changes, no token regressions, 6 SQLite quick checks passed, 3 Codex profiles preserved. Backup in .local/backups/report-cswap-20261030."
+      }
+    },
     {
       "id": "project-refresh-2026-10-19",
       "title": "Refresh dependencies and providers, replace the local build, and review cleanup",

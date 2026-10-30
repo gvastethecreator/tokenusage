@@ -43,7 +43,7 @@ public static class RefreshCommand
         {
             await standardError.WriteLineAsync(error).ConfigureAwait(false);
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         LocalUsageRefreshResult result;
@@ -60,7 +60,7 @@ public static class RefreshCommand
         {
             await standardError.WriteLineAsync("Unable to refresh local usage data.")
                 .ConfigureAwait(false);
-            return UsageCommand.NoDataExitCode;
+            return CliApplication.NoDataExitCode;
         }
 
         DateTimeOffset generatedAt = clock.GetUtcNow().ToUniversalTime();
@@ -77,8 +77,8 @@ public static class RefreshCommand
         }
 
         return result.Rollups.Count > 0
-            ? UsageCommand.SuccessExitCode
-            : UsageCommand.NoDataExitCode;
+            ? CliApplication.SuccessExitCode
+            : CliApplication.NoDataExitCode;
     }
 
     private static bool TryParse(

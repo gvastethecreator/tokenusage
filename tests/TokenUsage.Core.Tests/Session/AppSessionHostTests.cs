@@ -100,19 +100,19 @@ public sealed class AppSessionHostTests
     {
         using var folder = new TemporaryFolder();
         var codex = new RecordingProvider("codex", CreateSnapshot("codex", 25m));
-        var vercel = new RecordingProvider(
-            "vercel-ai-gateway",
-            CreateSnapshot("vercel-ai-gateway", 50m));
-        await using AppSessionHost host = CreateHost(folder, [codex, vercel]);
+        var zcode = new RecordingProvider(
+            "zcode",
+            CreateSnapshot("zcode", 50m));
+        await using AppSessionHost host = CreateHost(folder, [codex, zcode]);
 
         await host.RefreshAsync(AppSessionRefreshReason.Manual, forceRefresh: true);
         await host.RefreshAsync(
             AppSessionRefreshReason.ProviderAction,
             forceRefresh: true,
-            vercel.Descriptor.Id);
+            zcode.Descriptor.Id);
 
         Assert.Equal(1, codex.RefreshCalls);
-        Assert.Equal(2, vercel.RefreshCalls);
+        Assert.Equal(2, zcode.RefreshCalls);
         Assert.Equal(2, host.Current.Snapshots.Count);
     }
 

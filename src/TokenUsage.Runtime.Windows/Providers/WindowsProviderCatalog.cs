@@ -16,6 +16,7 @@ using TokenUsage.Providers.OpenCode;
 using TokenUsage.Providers.Zcode;
 using TokenUsage.Runtime.Windows.Codex;
 using TokenUsage.Runtime.Windows.Claude;
+using TokenUsage.Runtime.Windows.Accounts;
 
 namespace TokenUsage.Runtime.Windows.Providers;
 
@@ -93,8 +94,6 @@ public sealed class WindowsProviderCatalogEntry
 public sealed record WindowsProviderCompositionOptions(
     string? TimeZoneId = null,
     ICodexQuotaClientFactory? CodexClientFactory = null,
-    IAttributionConsentSource? AttributionConsent = null,
-    IOpaqueKeyDeriver? AttributionKeys = null,
     bool CodexActiveAccountOnly = false);
 
 public sealed class WindowsProviderComposition
@@ -105,7 +104,7 @@ public sealed class WindowsProviderComposition
         ProviderRefreshHost refreshHost,
         IReadOnlyList<IUsageEventSource> localUsageSources,
         IReadOnlyDictionary<string, ProviderRefreshRegistration> resettableRegistrations,
-        CodexAccountService accounts)
+        ProviderAccountServices accounts)
     {
         RefreshHost = refreshHost;
         LocalUsageSources = localUsageSources;
@@ -115,7 +114,7 @@ public sealed class WindowsProviderComposition
 
     public ProviderRefreshHost RefreshHost { get; }
 
-    public CodexAccountService Accounts { get; }
+    public ProviderAccountServices Accounts { get; }
 
     public IReadOnlyList<IUsageEventSource> LocalUsageSources { get; }
 
@@ -202,9 +201,7 @@ public static class WindowsProviderCatalog
                             context.DataDirectory,
                             "scanner",
                             "codex-usage.v1.json"),
-                        clock: context.Clock,
-                        attributionConsent: context.AttributionConsent,
-                        attributionKeys: context.AttributionKeys)),
+                        clock: context.Clock)),
                 localUsageFactory: timeZoneId => new CodexUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("grok"),
@@ -244,9 +241,7 @@ public static class WindowsProviderCatalog
                 compose: context => new ProviderBinding(
                     LocalUsageSource: new CursorUsageEventSource(
                         context.TimeZoneId,
-                        clock: context.Clock,
-                        attributionConsent: context.AttributionConsent,
-                        attributionKeys: context.AttributionKeys)),
+                        clock: context.Clock)),
                 localUsageFactory: timeZoneId => new CursorUsageEventSource(timeZoneId)),
             new(
                 ProviderModuleCatalog.Get("zcode"),
@@ -306,9 +301,7 @@ public static class WindowsProviderCatalog
             Path.GetFullPath(dataDirectory),
             options.TimeZoneId ?? TimeZoneInfo.Local.Id,
             clock,
-            options.CodexClientFactory ?? new CodexAppServerQuotaClientFactory(clock),
-            options.AttributionConsent,
-            options.AttributionKeys);
+            options.CodexClientFactory ?? new CodexAppServerQuotaClientFactory(clock));
         (WindowsProviderCatalogEntry Entry, ProviderBinding Binding)[] bindings = Entries
             .Select(entry => (entry, entry.Compose(context)))
             .ToArray();
@@ -328,10 +321,12 @@ public static class WindowsProviderCatalog
                 item => item.Binding.RefreshRegistration!,
                 StringComparer.Ordinal);
 
-        var accounts = new CodexAccountService(dataDirectory, clock);
+        var accounts = new ProviderAccountServices(
+            new SwapAccountService(dataDirectory, clock, new CodexSwapSource(clock)),
+            new SwapAccountService(dataDirectory, clock, new ClaudeSwapSource()));
         var refreshHost = new ProviderRefreshHost(registrations, clock)
         {
-            ResolveRegistrationsAsync = (items, token) => accounts.ResolveAsync(items, token, options.CodexActiveAccountOnly),
+            ResolveRegistrationsAsync = (items, token) => accounts.ResolveAsync(items, options.CodexActiveAccountOnly, token),
         };
         return new WindowsProviderComposition(
             refreshHost,
@@ -345,9 +340,7 @@ internal sealed record CompositionContext(
     string DataDirectory,
     string TimeZoneId,
     TimeProvider Clock,
-    ICodexQuotaClientFactory CodexClientFactory,
-    IAttributionConsentSource? AttributionConsent = null,
-    IOpaqueKeyDeriver? AttributionKeys = null)
+    ICodexQuotaClientFactory CodexClientFactory)
 {
     public string CacheDirectory(string name) => Path.Combine(
         DataDirectory,

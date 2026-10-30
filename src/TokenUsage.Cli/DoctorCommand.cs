@@ -37,7 +37,7 @@ public static class DoctorCommand
         {
             await standardError.WriteLineAsync(error).ConfigureAwait(false);
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         DoctorCheck[] checks;
@@ -55,7 +55,7 @@ public static class DoctorCommand
         {
             await standardError.WriteLineAsync("Unable to run doctor checks.")
                 .ConfigureAwait(false);
-            return UsageCommand.NoDataExitCode;
+            return CliApplication.NoDataExitCode;
         }
 
         DateTimeOffset generatedAt = clock.GetUtcNow().ToUniversalTime();
@@ -82,7 +82,7 @@ public static class DoctorCommand
             }
         }
 
-        return UsageCommand.SuccessExitCode;
+        return CliApplication.SuccessExitCode;
     }
 
     private sealed record DoctorDocument(

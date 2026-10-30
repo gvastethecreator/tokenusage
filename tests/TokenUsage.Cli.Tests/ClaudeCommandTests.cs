@@ -27,7 +27,8 @@ public sealed class ClaudeCommandTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("install-hook|status")]
+    [InlineData("install-statusline|statusline")]
+    [InlineData("install-hook")]
     [InlineData("nonsense")]
     public async Task InvalidArgumentsReturnTwoWithUsage(string argumentLine)
     {
@@ -46,30 +47,21 @@ public sealed class ClaudeCommandTests
     }
 
     [Fact]
-    public async Task InstallStatusAndUninstallRoundTrip()
+    public async Task InstallAndUninstallStatusLineRoundTrip()
     {
         using var home = new TemporaryRoot();
         ClaudeSettingsInstaller installer = home.CreateInstaller();
-        var output = new StringWriter(CultureInfo.InvariantCulture);
 
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["install-hook"], output, TextWriter.Null, installer: installer));
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["install-statusline"], output, TextWriter.Null, installer: installer));
-        Assert.Equal(0, await ClaudeCommand.RunAsync(
-            ["status"],
-            output,
-            TextWriter.Null,
-            resolveDataDirectory: () => home.DataDirectory,
-            installer: installer));
+        Assert.Equal(0, await ClaudeCommand.RunAsync(["install-statusline"], TextWriter.Null, TextWriter.Null,
+            resolveDataDirectory: () => home.DataDirectory, installer: installer));
+        Assert.Equal(ClaudeIntegrationStatus.Installed, installer.GetStatusLineStatus());
+        var consent = new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(home.DataDirectory));
+        Assert.Equal(ClaudeLimitsConsentStatus.Enabled, await consent.ReadOrMigrateAsync(true));
 
-        Assert.Contains("Stop hook: installed", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("status line wrapper: installed", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("limits: no reading yet", output.ToString(), StringComparison.Ordinal);
-
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["uninstall-hook"], TextWriter.Null, TextWriter.Null, installer: installer));
         Assert.Equal(0, await ClaudeCommand.RunAsync(["uninstall-statusline"], TextWriter.Null, TextWriter.Null,
             resolveDataDirectory: () => home.DataDirectory, installer: installer));
-        Assert.Equal(ClaudeIntegrationStatus.NotInstalled, installer.GetHookStatus());
         Assert.Equal(ClaudeIntegrationStatus.NotInstalled, installer.GetStatusLineStatus());
+        Assert.Equal(ClaudeLimitsConsentStatus.Disabled, await consent.ReadOrMigrateAsync(false));
     }
 
     [Fact]
@@ -120,8 +112,10 @@ public sealed class ClaudeCommandTests
         Assert.Contains("secret-project", output.ToString(), StringComparison.Ordinal);
         Assert.NotNull(new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(home.DataDirectory)).Load());
 
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["disable-limits"], TextWriter.Null, TextWriter.Null,
-            resolveDataDirectory: () => home.DataDirectory, installer: installer));
+        // Settings turns limits off this way; forwarding must keep working without storing.
+        await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(home.DataDirectory))
+            .DisableAsync(CancellationToken.None);
+        new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(home.DataDirectory)).Delete();
         output.GetStringBuilder().Clear();
         Assert.Equal(0, await ClaudeCommand.RunAsync(["statusline"], output, TextWriter.Null,
             resolveDataDirectory: () => home.DataDirectory,
@@ -133,7 +127,7 @@ public sealed class ClaudeCommandTests
     }
 
     [Fact]
-    public async Task ExplicitLimitsConsentPreservesAnExternalWrapperAndNeverComesFromCachedNumbers()
+    public async Task StatusLineWithoutConsentPreservesAnExternalWrapperAndStoresNothing()
     {
         using var home = new TemporaryRoot();
         var installer = home.CreateInstaller();
@@ -152,16 +146,7 @@ public sealed class ClaudeCommandTests
         Assert.Equal(76m, Assert.Single(limits.Load()!.Windows).UsedPercent);
         var consent = new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(home.DataDirectory));
         Assert.Equal(ClaudeLimitsConsentStatus.NotEnabled, await consent.ReadOrMigrateAsync(false));
-
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["enable-limits"], TextWriter.Null, TextWriter.Null,
-            resolveDataDirectory: () => home.DataDirectory, installer: installer));
-        Assert.Equal(ClaudeLimitsConsentStatus.Enabled, await consent.ReadOrMigrateAsync(false));
         Assert.Equal(settings, File.ReadAllText(installer.SettingsPath));
-        Assert.Equal(0, await ClaudeCommand.RunAsync(["disable-limits"], TextWriter.Null, TextWriter.Null,
-            resolveDataDirectory: () => home.DataDirectory, installer: installer));
-        Assert.Equal(ClaudeLimitsConsentStatus.Disabled, await consent.ReadOrMigrateAsync(true));
-        Assert.Equal(settings, File.ReadAllText(installer.SettingsPath));
-        Assert.Null(limits.Load());
     }
 
     [Fact]

@@ -64,13 +64,6 @@ public enum ReportChartStyle
     TwoHourBars,
 }
 
-public enum ReportChartGrouping
-{
-    Combined,
-    Provider,
-    Model,
-}
-
 /// <summary>
 /// Immutable user-facing appearance preferences.
 /// </summary>
@@ -97,10 +90,7 @@ public sealed record AppearanceSettings
         DashboardVisualizationMode dashboardVisualization = DashboardVisualizationMode.List,
         TrayPopoverSettings? trayPopover = null,
         ReportChartStyle reportChartStyle = ReportChartStyle.Bars,
-        ReportChartGrouping reportChartGrouping = ReportChartGrouping.Combined,
-        bool markReportBestValues = true,
-        QuotaDisplayStyle quotaDisplay = QuotaDisplayStyle.Rings,
-        ReportContentSettings? reportContent = null)
+        QuotaDisplayStyle quotaDisplay = QuotaDisplayStyle.Rings)
     {
         if (!Enum.IsDefined(theme))
         {
@@ -135,18 +125,12 @@ public sealed record AppearanceSettings
             throw new ArgumentOutOfRangeException(nameof(reportChartStyle));
         }
 
-        if (!Enum.IsDefined(reportChartGrouping))
-            throw new ArgumentOutOfRangeException(nameof(reportChartGrouping));
-
         if (!Enum.IsDefined(quotaDisplay))
             throw new ArgumentOutOfRangeException(nameof(quotaDisplay));
 
-        ReportContent = reportContent ?? new();
         QuotaDisplay = quotaDisplay;
         Theme = theme;
         ReportChartStyle = reportChartStyle;
-        ReportChartGrouping = reportChartGrouping;
-        MarkReportBestValues = markReportBestValues;
         Density = density;
         IncreaseTransparency = increaseTransparency;
         UsageDisplay = usageDisplay;
@@ -171,26 +155,5 @@ public sealed record AppearanceSettings
 
     public ReportChartStyle ReportChartStyle { get; }
 
-    public ReportChartGrouping ReportChartGrouping { get; }
-
-    public bool MarkReportBestValues { get; }
-
     public QuotaDisplayStyle QuotaDisplay { get; }
-
-    public ReportContentSettings ReportContent { get; }
 }
-
-public sealed record ReportContentSettings(
-    bool Summary = true,
-    bool Chart = true,
-    bool Limits = true,
-    bool Heatmap = true,
-    bool Highlights = true,
-    bool Models = true,
-    bool TokenComposition = true,
-    bool Projects = true,
-    bool Tools = true,
-    bool FullBreakdown = true,
-    bool Resets = true,
-    bool Activity = true,
-    bool Measurement = true);

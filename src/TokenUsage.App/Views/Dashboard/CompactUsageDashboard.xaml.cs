@@ -40,7 +40,7 @@ public sealed partial class CompactUsageDashboard : UserControl
         Unloaded += OnUnloaded;
     }
 
-    public event EventHandler<UsageReportRequestedEventArgs>? ReportRequested;
+    public event EventHandler? ReportRequested;
 
 
     public event EventHandler? LayoutAnimationProgressed;
@@ -197,9 +197,7 @@ public sealed partial class CompactUsageDashboard : UserControl
     }
 
     private void OnHeatmapDayInvoked(object? sender, UsageHeatmapDayInvokedEventArgs e) =>
-        ReportRequested?.Invoke(
-            this,
-            new UsageReportRequestedEventArgs(ViewModel.CreateReportRequest(e.Cell.Date)));
+        ReportRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnQuotaTilesSizeChanged(object sender, SizeChangedEventArgs e)
     {

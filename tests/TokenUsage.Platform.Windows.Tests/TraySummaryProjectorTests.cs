@@ -184,7 +184,6 @@ public sealed class TraySummaryProjectorTests
         AccessibleName: providerId,
         ColorHex: "#10A37F",
         AutomationId: $"CompactProvider.{providerId}",
-        CompositionWidth: 0,
         HasData: costUsd > 0m || tokensText != "—",
         HasCostData: costUsd > 0m);
 

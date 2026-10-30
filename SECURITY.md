@@ -22,4 +22,4 @@ The maintainer will confirm the report, assess its scope, and coordinate a fix b
 
 ## Security boundaries
 
-TokenUsage must not copy credentials from another app, read another app's credential store, or add customer content to diagnostics. User-supplied provider keys belong in Windows Credential Locker. Logs and fixtures must use clear fake values.
+TokenUsage must not copy credentials from another app, read another app's credential store, or add customer content to diagnostics. Local secrets belong in Windows Credential Locker. Logs and fixtures must use clear fake values.

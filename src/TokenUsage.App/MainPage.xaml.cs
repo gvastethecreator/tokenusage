@@ -54,7 +54,6 @@ public sealed partial class MainPage : Page, IDisposable
         InitializeComponent();
         _lastSurfaceState = ViewModel.SurfaceState;
         _lastOptionsSection = ViewModel.ActiveOptionsSection;
-        ApplyTextScaleLayout();
         ApplyBodyScrollMode();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         KeyDown += OnKeyDown;
@@ -77,7 +76,7 @@ public sealed partial class MainPage : Page, IDisposable
         appearance.SelectedTheme = appearance.ThemeOptions.Single(option => option.Value == theme);
     }
 
-    public event EventHandler<UsageReportRequestedEventArgs>? UsageReportRequested;
+    public event EventHandler? UsageReportRequested;
 
     public event EventHandler? LayoutAnimationProgressed;
 
@@ -115,9 +114,7 @@ public sealed partial class MainPage : Page, IDisposable
     }
 
     private void OnUsageReportButtonClick(object sender, RoutedEventArgs e) =>
-        UsageReportRequested?.Invoke(
-            this,
-            new UsageReportRequestedEventArgs(ViewModel.Dashboard.CreateReportRequest()));
+        UsageReportRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnVisualizationToggleClick(object sender, RoutedEventArgs e) =>
         DashboardSurfaceView.CycleVisualizationWithTransition();
@@ -170,9 +167,8 @@ public sealed partial class MainPage : Page, IDisposable
         }
     }
 
-    private void OnDashboardReportRequested(
-        object sender,
-        UsageReportRequestedEventArgs e) => UsageReportRequested?.Invoke(this, e);
+    private void OnDashboardReportRequested(object? sender, EventArgs e) =>
+        UsageReportRequested?.Invoke(this, e);
 
     private void OnDashboardLayoutAnimationProgressed(object? sender, EventArgs e) =>
         LayoutAnimationProgressed?.Invoke(this, EventArgs.Empty);
@@ -422,19 +418,6 @@ public sealed partial class MainPage : Page, IDisposable
         OptionsSection.ProviderStatus => 2,
         _ => 1,
     };
-
-    private void ApplyTextScaleLayout()
-    {
-        if (new UISettings().TextScaleFactor < 1.5)
-        {
-            return;
-        }
-
-        FooterIdentityColumn.Width = new GridLength(0);
-        FlyoutFooterIdentity.Visibility = Visibility.Collapsed;
-        FlyoutStatusText.Opacity = 0;
-        FlyoutStatusText.IsHitTestVisible = false;
-    }
 
     private static string GetDashboardLayoutPath(string localFolderPath)
     {

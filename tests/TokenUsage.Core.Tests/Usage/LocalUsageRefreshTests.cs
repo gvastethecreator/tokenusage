@@ -210,7 +210,7 @@ public sealed class LocalUsageRefreshTests
                 command.CommandText = "DROP TRIGGER \"" + trigger.Replace("\"", "\"\"", StringComparison.Ordinal) + "\";";
                 await command.ExecuteNonQueryAsync();
             }
-            command.CommandText = "DROP TABLE IF EXISTS operation_fact; DROP TABLE IF EXISTS project_attribution; DROP TABLE IF EXISTS session_attribution; DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
+            command.CommandText = "DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -573,140 +573,6 @@ public sealed class LocalUsageRefreshTests
         Assert.Equal(250, (await new LocalUsageRefresh(folder.DatabasePath, emptyComplete, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
     }
 
-    [Fact]
-    public async Task RevokeBeforePersistDropsStaleSessionLinksAndKeepsNumericTotals()
-    {
-        using var folder = new TemporaryFolder();
-        var clock = new FixedTimeProvider(Now);
-        var sourceInstance = new UsageSourceInstanceId(new string('c', 64));
-        UsageEvent usageEvent = CreateEvent("codex", "linked-event", Now.AddMinutes(-1), 40, 10,
-            CostObservation.Unavailable(), sourceInstance: sourceInstance);
-        var sessionKey = new HmacOpaqueKeyDeriver(Enumerable.Repeat((byte)0x11, 32).ToArray())
-            .Derive(OpaqueKeyDomains.CodexSession, "codex", "stale-write");
-        var consent = new MutableConsent(new AttributionConsent(
-            AttributionCapability.CodexSession,
-            AttributionConsentState.Enabled,
-            Epoch: 4,
-            UpdatedAtUtc: Now));
-        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var checkpoint = new GatedCheckpoint(gate.Task);
-        var source = new ScopedSource(
-            sourceInstance,
-            "test/1",
-            new UsageSourceReadResult([usageEvent], UsageSourceReadStatus.Complete)
-            {
-                Checkpoint = checkpoint,
-                SessionLinks =
-                [
-                    new UsageSessionLink(usageEvent.EventKey, sessionKey, parentSessionKey: null, 4),
-                ],
-            });
-        Task<LocalUsageRefreshResult> refresh = new LocalUsageRefresh(
-            folder.DatabasePath,
-            source,
-            clock,
-            consent).RefreshAsync();
-        consent.Current = consent.Current with
-        {
-            State = AttributionConsentState.DisabledAfterPurge,
-            Epoch = 5,
-        };
-        gate.SetResult();
-        LocalUsageRefreshResult result = await refresh;
-        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
-        Assert.Equal(50, result.Rollups.Sum(row => row.Tokens.Total));
-        Assert.Equal(0, await repository.CountSessionLinksAsync());
-        Assert.Equal(1, checkpoint.Commits);
-    }
-
-    [Fact]
-    public async Task RevokeBeforePersistDropsStaleProjectLinksAndKeepsNumericTotals()
-    {
-        using var folder = new TemporaryFolder();
-        var clock = new FixedTimeProvider(Now);
-        var sourceInstance = new UsageSourceInstanceId(new string('d', 64));
-        UsageEvent usageEvent = CreateEvent("codex", "project-event", Now.AddMinutes(-1), 40, 10,
-            CostObservation.Unavailable(), sourceInstance: sourceInstance);
-        var projectKey = new HmacOpaqueKeyDeriver(Enumerable.Repeat((byte)0x12, 32).ToArray())
-            .Derive(OpaqueKeyDomains.CodexProject, "codex", "stale-project");
-        var consent = new MutableConsent(new AttributionConsent(
-            AttributionCapability.CodexProject,
-            AttributionConsentState.Enabled,
-            Epoch: 4,
-            UpdatedAtUtc: Now));
-        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var checkpoint = new GatedCheckpoint(gate.Task);
-        var source = new ScopedSource(
-            sourceInstance,
-            "test/1",
-            new UsageSourceReadResult([usageEvent], UsageSourceReadStatus.Complete)
-            {
-                Checkpoint = checkpoint,
-                ProjectLinks =
-                [
-                    new UsageProjectLink(usageEvent.EventKey, projectKey, 4, ProjectMappingKind.Observed),
-                ],
-            });
-        Task<LocalUsageRefreshResult> refresh = new LocalUsageRefresh(
-            folder.DatabasePath,
-            source,
-            clock,
-            consent).RefreshAsync();
-        consent.Current = consent.Current with
-        {
-            State = AttributionConsentState.DisabledAfterPurge,
-            Epoch = 5,
-        };
-        gate.SetResult();
-        LocalUsageRefreshResult result = await refresh;
-        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
-        Assert.Equal(50, result.Rollups.Sum(row => row.Tokens.Total));
-        Assert.Equal(0, await repository.CountProjectLinksAsync());
-        Assert.Equal(1, checkpoint.Commits);
-    }
-
-    [Fact]
-    public async Task SecondConsentLoadDropsQueuedSessionLinks()
-    {
-        using var folder = new TemporaryFolder();
-        var clock = new FixedTimeProvider(Now);
-        var sourceInstance = new UsageSourceInstanceId(new string('e', 64));
-        UsageEvent usageEvent = CreateEvent("codex", "queued-event", Now.AddMinutes(-1), 40, 10,
-            CostObservation.Unavailable(), sourceInstance: sourceInstance);
-        var sessionKey = new HmacOpaqueKeyDeriver(Enumerable.Repeat((byte)0x13, 32).ToArray())
-            .Derive(OpaqueKeyDomains.CodexSession, "codex", "queued-write");
-        var consent = new CountingConsent(
-            new AttributionConsent(
-                AttributionCapability.CodexSession,
-                AttributionConsentState.Enabled,
-                Epoch: 4,
-                UpdatedAtUtc: Now),
-            new AttributionConsent(
-                AttributionCapability.CodexSession,
-                AttributionConsentState.DisabledAfterPurge,
-                Epoch: 5,
-                UpdatedAtUtc: Now),
-            enabledLoads: 2);
-        var source = new ScopedSource(
-            sourceInstance,
-            "test/1",
-            new UsageSourceReadResult([usageEvent], UsageSourceReadStatus.Complete)
-            {
-                SessionLinks =
-                [
-                    new UsageSessionLink(usageEvent.EventKey, sessionKey, parentSessionKey: null, 4),
-                ],
-            });
-        LocalUsageRefreshResult result = await new LocalUsageRefresh(
-            folder.DatabasePath,
-            source,
-            clock,
-            consent).RefreshAsync();
-        UsageRepository repository = await UsageRepository.OpenReadOnlyAsync(folder.DatabasePath);
-        Assert.Equal(50, result.Rollups.Sum(row => row.Tokens.Total));
-        Assert.Equal(0, await repository.CountSessionLinksAsync());
-    }
-
     private sealed class TrackingCheckpoint : IUsageReadCheckpoint
     {
         public int Commits { get; private set; }
@@ -728,32 +594,6 @@ public sealed class LocalUsageRefreshTests
                 Commits++;
             }
         }
-    }
-
-    private sealed class CountingConsent(
-        AttributionConsent enabled,
-        AttributionConsent revoked,
-        int enabledLoads) : IAttributionConsentSource
-    {
-        private int _loads;
-
-        public Task<AttributionConsent> LoadAsync(
-            AttributionCapability capability,
-            CancellationToken cancellationToken = default)
-        {
-            int load = Interlocked.Increment(ref _loads);
-            return Task.FromResult(load <= enabledLoads ? enabled : revoked);
-        }
-    }
-
-    private sealed class MutableConsent(AttributionConsent current) : IAttributionConsentSource
-    {
-        public AttributionConsent Current { get; set; } = current;
-
-        public Task<AttributionConsent> LoadAsync(
-            AttributionCapability capability,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Current);
     }
 
     private sealed class ScopedSource(UsageSourceInstanceId sourceInstance, string parser,

@@ -116,9 +116,6 @@ public sealed partial class CodexUsageEventSource
             scan.Issue)
         {
             SourceInstance = scan.SourceInstance,
-            SessionLinks = scan.SessionLinks,
-            ProjectLinks = scan.ProjectLinks,
-            OperationFacts = scan.Operations,
         };
 
     private UsageEvent CreateObservationEvent(CodexNumericObservation observation, UsageSourceInstanceId? sourceInstance)

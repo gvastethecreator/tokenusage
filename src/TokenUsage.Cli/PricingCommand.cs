@@ -40,7 +40,7 @@ public static class PricingCommand
         if (arguments.Count == 0)
         {
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         if (arguments[0] == "refresh")
@@ -58,7 +58,7 @@ public static class PricingCommand
         if (arguments[0] != "audit")
         {
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         if (!FormatOnlyCommandParser.TryParse(
@@ -68,7 +68,7 @@ public static class PricingCommand
         {
             await standardError.WriteLineAsync(error).ConfigureAwait(false);
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         try
@@ -125,8 +125,8 @@ public static class PricingCommand
 
             return diagnostics.Any(item =>
                 item.Kind == PricingDiagnosticKind.ExpiredPromotionWithoutSuccessor)
-                ? UsageCommand.NoDataExitCode
-                : UsageCommand.SuccessExitCode;
+                ? CliApplication.NoDataExitCode
+                : CliApplication.SuccessExitCode;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -136,7 +136,7 @@ public static class PricingCommand
         {
             await standardError.WriteLineAsync("Unable to audit pricing evidence.")
                 .ConfigureAwait(false);
-            return UsageCommand.NoDataExitCode;
+            return CliApplication.NoDataExitCode;
         }
     }
 
@@ -159,7 +159,7 @@ public static class PricingCommand
         if (!PricingRefreshOptions.TryParse(arguments, out PricingRefreshOptions options))
         {
             await standardError.WriteLineAsync(UsageText).ConfigureAwait(false);
-            return UsageCommand.InvalidUsageExitCode;
+            return CliApplication.InvalidUsageExitCode;
         }
 
         string repositoryRoot = Path.GetFullPath(workingDirectory);
@@ -210,8 +210,8 @@ public static class PricingCommand
             }
 
             return result.HasHardFailure
-                ? UsageCommand.NoDataExitCode
-                : UsageCommand.SuccessExitCode;
+                ? CliApplication.NoDataExitCode
+                : CliApplication.SuccessExitCode;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -221,7 +221,7 @@ public static class PricingCommand
         {
             await standardError.WriteLineAsync("Unable to refresh pricing sources.")
                 .ConfigureAwait(false);
-            return UsageCommand.NoDataExitCode;
+            return CliApplication.NoDataExitCode;
         }
         finally
         {

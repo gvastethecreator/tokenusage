@@ -277,11 +277,6 @@
                 Message="{x:Bind ViewModel.StatusText, Mode=OneWay}"
                 Severity="Warning"
                 Visibility="{x:Bind ViewModel.IsStatusVisible, Mode=OneWay}" />
-            <Border Height="1" Background="{ThemeResource TokenUsageStrokeBrush}" />
-            <options:PersonalizationOptionsView
-                x:Name="PersonalizationView"
-                HorizontalAlignment="Stretch"
-                ViewModel="{x:Bind PersonalizationViewModel, Mode=OneWay}" />
         </StackPanel>
     </Border>
 </UserControl>

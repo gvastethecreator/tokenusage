@@ -75,12 +75,6 @@ public sealed record UsageSourceReadResult
 
     public IReadOnlyList<AccountUsageAggregate> AccountAggregates { get; init; } = [];
 
-    public IReadOnlyList<UsageSessionLink> SessionLinks { get; init; } = [];
-
-    public IReadOnlyList<UsageProjectLink> ProjectLinks { get; init; } = [];
-
-    public IReadOnlyList<UsageOperationFact> OperationFacts { get; init; } = [];
-
     /// <summary>Previously emitted estimates explicitly replaced by this read's measurements.
     /// Missing source files alone never prove that a stored event is obsolete.</summary>
     public IReadOnlyList<UsageEventKey> SupersededEventKeys { get; init; } = [];

@@ -66,22 +66,19 @@ public sealed class LocalUsageRefresh
     private readonly string _databasePath;
     private readonly IReadOnlyList<IUsageEventSource> _sources;
     private readonly TimeProvider _clock;
-    private readonly IAttributionConsentSource? _attributionConsent;
 
     public LocalUsageRefresh(
         string databasePath,
         IUsageEventSource source,
-        TimeProvider clock,
-        IAttributionConsentSource? attributionConsent = null)
-        : this(databasePath, [source], clock, attributionConsent)
+        TimeProvider clock)
+        : this(databasePath, [source], clock)
     {
     }
 
     public LocalUsageRefresh(
         string databasePath,
         IReadOnlyList<IUsageEventSource> sources,
-        TimeProvider clock,
-        IAttributionConsentSource? attributionConsent = null)
+        TimeProvider clock)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         ArgumentNullException.ThrowIfNull(sources);
@@ -93,7 +90,6 @@ public sealed class LocalUsageRefresh
         _databasePath = databasePath;
         _sources = sources;
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        _attributionConsent = attributionConsent;
     }
 
     public SourceKind SourceKind => HasMultipleRealSources
@@ -280,9 +276,6 @@ public sealed class LocalUsageRefresh
                         UsageSourceStoreResult stored = await repository.StoreSourceObservationsAsync(source.AgentId,
                             sourceInstance, scopedSource.EventParserVersion, from, today, admittedWindow,
                             complete: result.Status == UsageSourceReadStatus.Complete && allInWindow,
-                            sessionLinks: await FilterLiveSessionLinksAsync(result.SessionLinks, cancellationToken).ConfigureAwait(false),
-                            projectLinks: await FilterLiveProjectLinksAsync(result.ProjectLinks, cancellationToken).ConfigureAwait(false),
-                            operations: await FilterLiveOperationsAsync(result.OperationFacts, cancellationToken).ConfigureAwait(false),
                             token: cancellationToken).ConfigureAwait(false);
                         canCommitCheckpoint = allInWindow && stored.WithheldCount == 0;
                         if (stored.HasUnresolvedHistory || !allInWindow)
@@ -355,17 +348,6 @@ public sealed class LocalUsageRefresh
                 {
                     await repository.IngestAsync(result.Events, cancellationToken)
                         .ConfigureAwait(false);
-                }
-
-                if (source is not ISourceScopedUsageEventSource && result.Events.Count > 0)
-                {
-                    await repository.ReplaceAttributionLinksForEventsAsync(
-                        await FilterLiveSessionLinksAsync(result.SessionLinks, cancellationToken)
-                            .ConfigureAwait(false),
-                        await FilterLiveProjectLinksAsync(result.ProjectLinks, cancellationToken)
-                            .ConfigureAwait(false),
-                        result.Events.Select(row => row.EventKey.Value).ToHashSet(StringComparer.Ordinal),
-                        cancellationToken).ConfigureAwait(false);
                 }
 
                 return canCommitCheckpoint;
@@ -478,85 +460,6 @@ public sealed class LocalUsageRefresh
         {
             return UsageSourceIssueKind.AccessBlocked;
         }
-    }
-
-    private async Task<IReadOnlyList<UsageSessionLink>> FilterLiveSessionLinksAsync(
-        IReadOnlyList<UsageSessionLink> links,
-        CancellationToken cancellationToken)
-    {
-        if (links.Count == 0 || _attributionConsent is null)
-        {
-            return [];
-        }
-
-        AttributionConsent[] consents =
-        [
-            await _attributionConsent.LoadAsync(AttributionCapability.CodexSession, cancellationToken)
-                .ConfigureAwait(false),
-            await _attributionConsent.LoadAsync(AttributionCapability.CursorSession, cancellationToken)
-                .ConfigureAwait(false),
-        ];
-        IReadOnlyList<UsageSessionLink> admitted = AttributionAdmission.FilterByLiveConsent(links, consents);
-        consents =
-        [
-            await _attributionConsent.LoadAsync(AttributionCapability.CodexSession, cancellationToken)
-                .ConfigureAwait(false),
-            await _attributionConsent.LoadAsync(AttributionCapability.CursorSession, cancellationToken)
-                .ConfigureAwait(false),
-        ];
-        return AttributionAdmission.FilterByLiveConsent(admitted, consents);
-    }
-
-    private async Task<IReadOnlyList<UsageProjectLink>> FilterLiveProjectLinksAsync(
-        IReadOnlyList<UsageProjectLink> links,
-        CancellationToken cancellationToken)
-    {
-        if (links.Count == 0 || _attributionConsent is null)
-        {
-            return [];
-        }
-
-        AttributionConsent consent = await _attributionConsent
-            .LoadAsync(AttributionCapability.CodexProject, cancellationToken)
-            .ConfigureAwait(false);
-        IReadOnlyList<UsageProjectLink> admitted = AttributionAdmission.FilterProjectByLiveConsent(links, consent);
-        consent = await _attributionConsent
-            .LoadAsync(AttributionCapability.CodexProject, cancellationToken)
-            .ConfigureAwait(false);
-        return AttributionAdmission.FilterProjectByLiveConsent(admitted, consent);
-    }
-
-    private async Task<IReadOnlyList<UsageOperationFact>> FilterLiveOperationsAsync(
-        IReadOnlyList<UsageOperationFact> facts,
-        CancellationToken cancellationToken)
-    {
-        if (facts.Count == 0 || _attributionConsent is null)
-        {
-            return [];
-        }
-
-        AttributionCapability[] capabilities =
-        [
-            AttributionCapability.CodexMcp,
-            AttributionCapability.CodexSkills,
-            AttributionCapability.CodexCommands,
-            AttributionCapability.CodexFiles,
-        ];
-        var admitted = new List<UsageOperationFact>();
-        foreach (AttributionCapability capability in capabilities)
-        {
-            AttributionConsent consent = await _attributionConsent
-                .LoadAsync(capability, cancellationToken)
-                .ConfigureAwait(false);
-            IReadOnlyList<UsageOperationFact> subset =
-                AttributionAdmission.FilterOperationsByLiveConsent(facts, consent);
-            consent = await _attributionConsent
-                .LoadAsync(capability, cancellationToken)
-                .ConfigureAwait(false);
-            admitted.AddRange(AttributionAdmission.FilterOperationsByLiveConsent(subset, consent));
-        }
-
-        return admitted;
     }
 
     private static async Task<UsageSourceReadResult> ReadSourceSafelyAsync(

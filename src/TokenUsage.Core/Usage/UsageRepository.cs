@@ -39,7 +39,7 @@ public sealed record UsageReportReadSnapshot(
 
 public sealed partial class UsageRepository
 {
-    public const int CurrentSchemaVersion = 12;
+    public const int CurrentSchemaVersion = 13;
     public const string RetentionCursorId = "usage-retention/v1";
     private const int SqliteVariableChunkSize = 400;
     private const decimal MicrosPerUsd = 1_000_000m;
@@ -617,20 +617,37 @@ public sealed partial class UsageRepository
             connection,
             transaction,
             """
-            DELETE FROM project_attribution;
-            DELETE FROM session_attribution;
             DELETE FROM usage_event;
             DELETE FROM usage_event_tombstone;
             DELETE FROM daily_usage_rollup;
             DELETE FROM source_cursor;
             DELETE FROM pricing_catalog;
             DELETE FROM account_usage_daily;
-            DELETE FROM saved_usage_comparison;
             DELETE FROM usage_collection_state;
             """,
             cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Versions 9 through 12 stored opt-in session, project, and tool attribution, and versions 5
+    /// through 12 stored saved report comparisons. Those features were removed; dropping the tables
+    /// also removes their rows and triggers. Claude parser 4 always stored each message's own
+    /// timestamp but left its precision unknown, which kept Claude out of reset-cycle totals; the
+    /// same upgrade records it, so no logs need to be read again.
+    /// </summary>
+    private static Task ApplyVersionThirteenAsync(SqliteConnection connection,
+        SqliteTransaction transaction, CancellationToken token) =>
+        ExecuteAsync(connection, transaction, """
+            DROP TABLE IF EXISTS operation_fact;
+            DROP TABLE IF EXISTS project_attribution;
+            DROP TABLE IF EXISTS session_attribution;
+            DROP TABLE IF EXISTS saved_usage_comparison;
+            UPDATE usage_event SET time_precision = 1
+                WHERE agent_id = 'claude' AND parser_version = 'claude-jsonl/4' AND time_precision = 0;
+            INSERT INTO schema_migration(version, applied_at_utc)
+                VALUES (13, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+            """, token);
 
     private async Task EnsureMigratedAsync(CancellationToken cancellationToken)
     {
@@ -712,25 +729,10 @@ public sealed partial class UsageRepository
             await ApplyCollectionFreshnessSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
             currentVersion = 8;
         }
-        if (currentVersion == 8)
+        if (currentVersion is >= 8 and < 13)
         {
-            await ApplyAttributionSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
-            currentVersion = 9;
-        }
-        if (currentVersion == 9)
-        {
-            await ApplyProjectAttributionSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
-            currentVersion = 10;
-        }
-        if (currentVersion == 10)
-        {
-            await ApplyOperationFactSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
-            currentVersion = 11;
-        }
-        if (currentVersion == 11)
-        {
-            await ApplyOperationSourceInstanceSchemaAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
-            currentVersion = 12;
+            await ApplyVersionThirteenAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            currentVersion = 13;
         }
         if (await ReadSchemaVersionAsync(connection, transaction, cancellationToken).ConfigureAwait(false) != CurrentSchemaVersion)
             throw new InvalidDataException("The usage migration did not reach the required schema version.");

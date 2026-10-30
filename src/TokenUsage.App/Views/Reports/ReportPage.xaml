@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="TokenUsage.App.Views.Reports.ReportPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:TokenUsage.App.Controls"
+    xmlns:reports="using:TokenUsage.App.ViewModels.Reports"
+    xmlns:views="using:TokenUsage.App.Views.Reports"
+    Background="{ThemeResource TokenUsageShellBrush}">
+
+    <Page.Resources>
+        <Style x:Key="ReportCardStyle" TargetType="Border" BasedOn="{StaticResource TokenUsageCardStyle}">
+            <Setter Property="Padding" Value="16,14" />
+        </Style>
+        <Style x:Key="ReportCardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+        <Style x:Key="ReportChipStyle" TargetType="RadioButton" BasedOn="{StaticResource SectionTabRadioButtonStyle}">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="ReportHeaderRoot" Padding="24,14,0,10" ColumnSpacing="12" Background="{ThemeResource TokenUsageShellBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="ReportCaptionInset" Width="0" />
+            </Grid.ColumnDefinitions>
+            <Grid x:Name="ReportDragRegion" Background="Transparent" Grid.ColumnSpan="1">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Uid="ReportTitle" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Grid>
+            <StackPanel x:Name="ReportActions" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,16,0">
+                <RadioButton x:Name="Period7" Tag="7" GroupName="ReportPeriod" Style="{StaticResource ReportChipStyle}"
+                             AutomationProperties.AutomationId="ReportPeriod7" Checked="OnPeriodChecked" x:Uid="ReportPeriod7" />
+                <RadioButton x:Name="Period30" Tag="30" GroupName="ReportPeriod" Style="{StaticResource ReportChipStyle}" IsChecked="True"
+                             AutomationProperties.AutomationId="ReportPeriod30" Checked="OnPeriodChecked" x:Uid="ReportPeriod30" />
+                <RadioButton x:Name="Period90" Tag="90" GroupName="ReportPeriod" Style="{StaticResource ReportChipStyle}"
+                             AutomationProperties.AutomationId="ReportPeriod90" Checked="OnPeriodChecked" x:Uid="ReportPeriod90" />
+                <Button x:Uid="ReportShareButton" AutomationProperties.AutomationId="ReportShareButton" Click="OnShareClick"
+                        Style="{StaticResource SubtleButtonStyle}" Padding="8" Margin="8,0,0,0">
+                    <controls:TablerIcon Kind="share" />
+                </Button>
+            </StackPanel>
+            <StackPanel x:Name="ReportCaptureBrand" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                        Margin="0,0,16,0" Opacity="0" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
+                <Image Source="{ThemeResource TokenUsageAppIconSource}" Width="24" Height="24" />
+                <TextBlock Text="TokenUsage" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <ScrollViewer x:Name="ReportScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="ReportCaptureRoot" Padding="24,4,24,24" Spacing="12" Background="{ThemeResource TokenUsageShellBrush}">
+                <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+                <InfoBar IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}" IsClosable="False" Severity="Warning"
+                         Message="{x:Bind ViewModel.ErrorText, Mode=OneWay}" />
+                <TextBlock x:Name="ShareStatus" Visibility="Collapsed" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Kpis, Mode=OneWay}" AutomationProperties.AutomationId="ReportKpis">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MaximumRowsOrColumns="4" MinItemWidth="200" MinColumnSpacing="12" MinRowSpacing="12" ItemsStretch="Fill" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="reports:ReportKpi">
+                            <Border Style="{StaticResource ReportCardStyle}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{x:Bind Label}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{x:Bind Value}" FontFamily="Consolas" FontSize="26" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind Detail}" FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{x:Bind views:ReportPage.ToneBrush(Tone)}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+
+                <Border Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.HasPaces, Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <Grid>
+                            <TextBlock x:Uid="ReportPaceTitle" Style="{StaticResource ReportCardTitleStyle}" />
+                            <TextBlock x:Uid="ReportPaceLegend" HorizontalAlignment="Right" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Paces, Mode=OneWay}" AutomationProperties.AutomationId="ReportPaces">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout MaximumRowsOrColumns="3" MinItemWidth="300" MinColumnSpacing="20" MinRowSpacing="16" ItemsStretch="Fill" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:ReportPace">
+                                    <StackPanel Spacing="4" AutomationProperties.Name="{x:Bind Title}">
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <controls:ProviderMarkImage ProviderId="{x:Bind ProviderId}" Width="18" Height="18" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind Used}" FontFamily="Consolas" />
+                                        </Grid>
+                                        <controls:PaceChart Height="150" Data="{x:Bind}" />
+                                        <TextBlock Text="{x:Bind Verdict}" FontSize="13" TextWrapping="Wrap"
+                                                   Foreground="{x:Bind views:ReportPage.ToneBrush(Tone)}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource ReportCardStyle}">
+                    <StackPanel Spacing="8">
+                        <Grid>
+                            <TextBlock x:Uid="ReportDailyTitle" Style="{StaticResource ReportCardTitleStyle}" />
+                            <TextBlock x:Uid="ReportDailyLegend" HorizontalAlignment="Right" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+                        <controls:DailyTokensChart Height="230" Data="{x:Bind ViewModel.Daily, Mode=OneWay}"
+                                                   AutomationProperties.AutomationId="ReportDailyChart" />
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Daily.Series, Mode=OneWay}">
+                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="14" /></ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:ReportSeries">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <controls:ProviderColorSwatch ColorHex="{x:Bind ColorHex}" ProviderId="{x:Bind AgentId}" Width="10" Height="10" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Bind Name}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource ReportCardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="ReportWhyTitle" Style="{StaticResource ReportCardTitleStyle}" />
+                        <controls:WaterfallChart Height="240" Data="{x:Bind ViewModel.Steps, Mode=OneWay}"
+                                                 AutomationProperties.AutomationId="ReportWaterfall" />
+                        <TextBlock x:Uid="ReportWhyNote" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource ReportCardStyle}" Visibility="{x:Bind ViewModel.HasResets, Mode=OneWay}">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Uid="ReportResetsTitle" Style="{StaticResource ReportCardTitleStyle}" />
+                        <Grid ColumnSpacing="12" Padding="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" /><ColumnDefinition Width="1.4*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Uid="ReportColumnQuota" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnCycle" Grid.Column="1" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnEndUsed" Grid.Column="2" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnCycleTokens" Grid.Column="3" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnPerPoint" Grid.Column="4" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnChange" Grid.Column="5" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </Grid>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Resets, Mode=OneWay}" AutomationProperties.AutomationId="ReportResets">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:ReportReset">
+                                    <Grid ColumnSpacing="12" Padding="0,6" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" /><ColumnDefinition Width="1.4*" /><ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Quota}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Cycle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind EndUsed}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                        <TextBlock Grid.Column="3" Text="{x:Bind Tokens}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                        <TextBlock Grid.Column="4" Text="{x:Bind TokensPerPercent}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                        <TextBlock Grid.Column="5" Text="{x:Bind Change}" HorizontalAlignment="Right" FontFamily="Consolas"
+                                                   Foreground="{x:Bind views:ReportPage.ToneBrush(ChangeTone)}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <TextBlock x:Uid="ReportResetsNote" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource ReportCardStyle}">
+                    <StackPanel Spacing="6">
+                        <Grid>
+                            <TextBlock x:Uid="ReportDetailTitle" Style="{StaticResource ReportCardTitleStyle}" VerticalAlignment="Center" />
+                            <StackPanel x:Name="ReportGroupingChips" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                                <RadioButton Tag="Agent" GroupName="ReportGrouping" IsChecked="True" Style="{StaticResource ReportChipStyle}"
+                                             AutomationProperties.AutomationId="ReportGroupAgent" Checked="OnGroupingChecked" x:Uid="ReportGroupAgent" />
+                                <RadioButton Tag="Model" GroupName="ReportGrouping" Style="{StaticResource ReportChipStyle}"
+                                             AutomationProperties.AutomationId="ReportGroupModel" Checked="OnGroupingChecked" x:Uid="ReportGroupModel" />
+                                <RadioButton Tag="Day" GroupName="ReportGrouping" Style="{StaticResource ReportChipStyle}"
+                                             AutomationProperties.AutomationId="ReportGroupDay" Checked="OnGroupingChecked" x:Uid="ReportGroupDay" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnSpacing="12" Padding="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Uid="ReportColumnName" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnTokens" Grid.Column="1" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnDelta" Grid.Column="2" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnCost" Grid.Column="3" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnShare" Grid.Column="4" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                            <TextBlock x:Uid="ReportColumnActiveDays" Grid.Column="5" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </Grid>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" AutomationProperties.AutomationId="ReportRows">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="reports:ReportRow">
+                                    <Grid ColumnSpacing="12" Padding="0,6" BorderBrush="{ThemeResource TokenUsageStrokeBrush}" BorderThickness="0,1,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <controls:ProviderMarkImage ProviderId="{x:Bind ProviderId}" Width="16" Height="16"
+                                                                        Visibility="{x:Bind views:ReportPage.Show(ProviderId)}" />
+                                            <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Tokens}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind Delta}" HorizontalAlignment="Right" FontFamily="Consolas"
+                                                   Foreground="{x:Bind views:ReportPage.ToneBrush(DeltaTone)}" />
+                                        <TextBlock Grid.Column="3" Text="{x:Bind Cost}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                        <TextBlock Grid.Column="4" Text="{x:Bind Share}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                        <TextBlock Grid.Column="5" Text="{x:Bind ActiveDays}" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

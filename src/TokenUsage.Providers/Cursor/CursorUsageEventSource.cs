@@ -31,15 +31,7 @@ public sealed class CursorUsageEventSource :
     private readonly int _maximumRows;
     private readonly int _maximumValueBytes;
     private readonly TimeProvider _clock;
-    private readonly IAttributionConsentSource? _attributionConsent;
-    private readonly IOpaqueKeyDeriver? _attributionKeys;
-    private readonly string _opaqueSource;
-    private AttributionConsent? _scanConsent;
-    private readonly List<UsageSessionLink> _scanSessionLinks = [];
     private readonly List<UsageEventKey> _supersededEventKeys = [];
-    private HashSet<string> _scanHistoricalEventKeys = new(StringComparer.Ordinal);
-    public DateOnly? AttributionBackfillFrom { get; set; }
-    public DateOnly? AttributionBackfillTo { get; set; }
 
     public CursorUsageEventSource(
         string groupingTimeZoneId,
@@ -49,9 +41,7 @@ public sealed class CursorUsageEventSource :
         long maximumDatabaseBytes = DefaultMaximumDatabaseBytes,
         int maximumRows = 100_000,
         int maximumValueBytes = DefaultMaximumValueBytes,
-        TimeProvider? clock = null,
-        IAttributionConsentSource? attributionConsent = null,
-        IOpaqueKeyDeriver? attributionKeys = null)
+        TimeProvider? clock = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(groupingTimeZoneId);
         _ = TimeZoneInfo.FindSystemTimeZoneById(groupingTimeZoneId);
@@ -68,10 +58,6 @@ public sealed class CursorUsageEventSource :
         _maximumRows = maximumRows;
         _maximumValueBytes = maximumValueBytes;
         _clock = clock ?? TimeProvider.System;
-        _attributionConsent = attributionConsent;
-        _attributionKeys = attributionKeys;
-        _opaqueSource = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(_databasePath)))
-            .ToLowerInvariant();
     }
 
     public AgentId AgentId { get; } = new("cursor");
@@ -87,21 +73,6 @@ public sealed class CursorUsageEventSource :
     public async Task<UsageSourceReadResult> ReadAsync(
         CancellationToken cancellationToken = default)
     {
-        _scanConsent = null;
-        if (_attributionConsent is not null)
-        {
-            AttributionConsent loaded = await _attributionConsent
-                .LoadAsync(AttributionCapability.CursorSession, cancellationToken)
-                .ConfigureAwait(false);
-            _scanConsent = loaded.Capability.Value == AttributionCapability.CursorSession.Value
-                ? loaded
-                : new AttributionConsent(
-                    AttributionCapability.CursorSession,
-                    AttributionConsentState.Disabled,
-                    0,
-                    DateTimeOffset.UnixEpoch);
-        }
-
         return await Task.Run(() => ReadCore(cancellationToken), cancellationToken)
             .ConfigureAwait(false);
     }
@@ -126,9 +97,7 @@ public sealed class CursorUsageEventSource :
 
         var state = new LocalScanState(_budget);
         var events = new Dictionary<string, UsageEvent>(StringComparer.Ordinal);
-        _scanSessionLinks.Clear();
         _supersededEventKeys.Clear();
-        _scanHistoricalEventKeys = LoadAdmissionKeys();
         bool accessBlocked = false;
         try
         {
@@ -160,11 +129,6 @@ public sealed class CursorUsageEventSource :
             .OrderBy(item => item.OccurredAtUtc)
             .ThenBy(item => item.EventKey.Value, StringComparer.Ordinal)
             .ToArray();
-        if (!accessBlocked)
-        {
-            PersistAdmissionKeys(ordered.Select(item => item.EventKey.Value));
-        }
-
         if (ordered.Length == 0)
         {
             return new UsageSourceReadResult(
@@ -184,12 +148,8 @@ public sealed class CursorUsageEventSource :
                 ordered,
                 UsageSourceReadStatus.Partial,
                 UsageSourceIssueKind.PartialScan)
-            {
-                SessionLinks = _scanSessionLinks.ToArray(),
-            }
             : new UsageSourceReadResult(ordered, UsageSourceReadStatus.Complete)
             {
-                SessionLinks = _scanSessionLinks.ToArray(),
                 SupersededEventKeys = _supersededEventKeys.ToArray(),
             };
     }
@@ -450,7 +410,6 @@ public sealed class CursorUsageEventSource :
                     cacheRead: UsageComponentAvailability.Unavailable,
                     cacheWrite: UsageComponentAvailability.Unavailable));
             output[usageEvent.EventKey.Value] = usageEvent;
-            TryAddComposerSessionLink(usageEvent.EventKey, candidate.ComposerId, usageEvent.OccurredAtUtc);
         }
 
         return composers;
@@ -508,101 +467,6 @@ public sealed class CursorUsageEventSource :
         return !string.IsNullOrWhiteSpace(composerId)
             && composerId.Length <= 200
             && composerId.All(character => !char.IsControl(character));
-    }
-
-    private void TryAddComposerSessionLink(UsageEventKey eventKey, string composerId, DateTimeOffset occurredAtUtc)
-    {
-        if (_scanConsent is not { State: AttributionConsentState.Enabled }
-            || _attributionKeys is null
-            || !AttributionAdmission.AdmitsAutomaticLink(
-                _scanConsent,
-                occurredAtUtc,
-                eventKey.Value,
-                _scanHistoricalEventKeys,
-                AttributionBackfillFrom,
-                AttributionBackfillTo))
-        {
-            return;
-        }
-
-        string identifier;
-        if (!OpaqueNativeId.TryNormalize(composerId, out identifier)
-            && !OpaqueWorkspaceFingerprint.TryFingerprint(composerId, out identifier))
-        {
-            return;
-        }
-
-        _scanSessionLinks.Add(new UsageSessionLink(
-            eventKey,
-            _attributionKeys.Derive(OpaqueKeyDomains.CursorSession, _opaqueSource, identifier),
-            parentSessionKey: null,
-            _scanConsent.Epoch,
-            AttributionCapability.CursorSession));
-    }
-
-    private string AdmissionPath => _databasePath + ".attribution-admission.v1.json";
-
-    private HashSet<string> LoadAdmissionKeys()
-    {
-        string path = AdmissionPath;
-        if (!File.Exists(path))
-        {
-            return new HashSet<string>(StringComparer.Ordinal);
-        }
-
-        try
-        {
-            using FileStream stream = File.OpenRead(path);
-            using JsonDocument document = JsonDocument.Parse(stream);
-            if (!document.RootElement.TryGetProperty("eventKeys", out JsonElement keys)
-                || keys.ValueKind != JsonValueKind.Array)
-            {
-                return new HashSet<string>(StringComparer.Ordinal);
-            }
-
-            var observed = new HashSet<string>(StringComparer.Ordinal);
-            foreach (JsonElement key in keys.EnumerateArray())
-            {
-                if (key.ValueKind == JsonValueKind.String
-                    && key.GetString() is { Length: 64 } value)
-                {
-                    observed.Add(value);
-                }
-            }
-
-            return observed;
-        }
-        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
-        {
-            return new HashSet<string>(StringComparer.Ordinal);
-        }
-    }
-
-    private void PersistAdmissionKeys(IEnumerable<string> eventKeys)
-    {
-        string path = AdmissionPath;
-        string staging = path + ".part";
-        var payload = new
-        {
-            eventKeys = eventKeys.Distinct(StringComparer.Ordinal).ToArray(),
-        };
-        try
-        {
-            File.WriteAllText(
-                staging,
-                JsonSerializer.Serialize(payload));
-            File.Move(staging, path, overwrite: true);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            try
-            {
-                File.Delete(staging);
-            }
-            catch (IOException)
-            {
-            }
-        }
     }
 
     /// <summary>

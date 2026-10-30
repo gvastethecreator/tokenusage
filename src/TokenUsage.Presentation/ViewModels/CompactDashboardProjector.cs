@@ -290,7 +290,6 @@ public static class CompactDashboardProjector
                         : $"{name}: {getString("ProviderStatusNoData")}",
                     ProviderColorPreference.Resolve(providerId, customColorHex: null),
                     $"CompactProvider.{providerId}",
-                    share <= 0d ? 0d : Math.Max(2d, share * 4.36d),
                     hasData,
                     hasCostData,
                     isPartial,
@@ -328,8 +327,7 @@ public static class CompactDashboardProjector
                 string.Format(CultureInfo.CurrentCulture, "{0:0.#}%", share),
                 $"{slice.ProviderName}: {costText}, {share:0.#}%",
                 slice.ColorHex ?? ProviderColorPreference.Resolve(slice.ProviderId, customColorHex: null),
-                $"CompactProvider.{slice.ProviderId}",
-                Math.Max(2d, share * 4.36d));
+                $"CompactProvider.{slice.ProviderId}");
         }).ToArray();
     }
 
@@ -347,10 +345,6 @@ public static class CompactDashboardProjector
             new(
                 getString("CompactActivityToday"),
                 UsageValueFormatter.CompactTokens(SumSince(1)),
-                getString("CompactActivityTokens")),
-            new(
-                getString("CompactActivity7Days"),
-                UsageValueFormatter.CompactTokens(SumSince(7)),
                 getString("CompactActivityTokens")),
             new(
                 getString("CompactActivity30Days"),

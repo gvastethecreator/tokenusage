@@ -47,7 +47,7 @@ public sealed partial class TraySummaryWindow : Window, IDisposable
         IReadOnlyList<TrayProviderSummary> items,
         AppearanceSettings appearance,
         PlatformRect iconBounds,
-        IReadOnlyList<CodexAccountQuota>? accounts = null)
+        IReadOnlyList<AccountQuota>? accounts = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(items);

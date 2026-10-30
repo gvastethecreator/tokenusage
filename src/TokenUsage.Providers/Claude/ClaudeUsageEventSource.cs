@@ -462,7 +462,10 @@ public sealed class ClaudeUsageEventSource :
                 candidate.Tokens,
                 cost,
                 ParserVersion,
-                coverage, detailMetadata: candidate.DetailMetadata));
+                coverage,
+                // Each assistant message carries its own timestamp, so reset-cycle totals can place it.
+                timePrecision: UsageTimePrecision.Timestamp,
+                detailMetadata: candidate.DetailMetadata));
         }
 
         return events;

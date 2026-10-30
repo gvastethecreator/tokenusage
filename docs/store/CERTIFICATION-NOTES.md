@@ -26,8 +26,7 @@ No TokenUsage account or test credentials are required.
 
    ```powershell
    tokenusage doctor --format human
-   tokenusage providers --format human
-   tokenusage usage --days 7 --format human
+   tokenusage report --days 7 --format human
    ```
 
 8. The execution alias is registered by the package. A newly opened terminal can be required after installation.

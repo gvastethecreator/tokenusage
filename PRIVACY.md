@@ -54,11 +54,11 @@ Local records may include:
 - language, appearance, and application settings;
 - diagnostic state that does not intentionally contain credentials or customer content.
 
-Optional attribution is off until the user enables it in Settings. When enabled, TokenUsage may store app-owned opaque session or project keys derived from approved structured fields. Native session IDs, working directories, full paths, prompts, and aliases are not written to the usage database. Separate optional switches count Codex tools/MCP, agent spawns, command families, and opaque file operations. Those switches store opaque call or file IDs and bounded names only. They do not store prompts, command text, arguments, URIs, paths, or tool-call contents. Enablement links only newly admitted observations; a separate Settings backfill can cover a retained date range. Turning the option off removes those links and any local aliases. Restoring an old usage database cannot revive permission or expose restored links in the app. It does not delete numeric usage, daily totals, prices, or event keys. Shared reports omit aliases and persistent attribution keys by default; session, project, and operation rows use file-local IDs.
+TokenUsage does not record sessions, projects, tools, commands, or files. Earlier versions offered optional attribution for these; upgrading deletes the stored attribution links, operation records, saved comparisons, consent, and aliases. Numeric usage, daily totals, prices, and event keys are kept.
 
-Claude limits are read only when the user enables them in Settings or runs `tokenusage claude enable-limits`. The versioned `claude-limits-consent.v1.json` document in TokenUsage data is independent of Claude Code settings. An existing direct TokenUsage status line registration may migrate once; third-party wrappers do not grant permission. The legacy `install-statusline` command still explicitly enables limits. TokenUsage reads the current Claude Code access token from `.credentials.json` in memory and sends it only to `https://api.anthropic.com/api/oauth/usage`, the private usage endpoint used by Claude Code. Redirects are disabled. Claude Code owns token renewal; TokenUsage does not copy, save, or renew tokens and does not send model prompts. Quota caches contain percentages, reset and observation times, the plan label, and provider-supplied scope names such as Fable.
+Claude limits are read only when the user enables them in Settings. The versioned `claude-limits-consent.v1.json` document in TokenUsage data is independent of Claude Code settings. An existing direct TokenUsage status line registration may migrate once; third-party wrappers do not grant permission. The legacy `install-statusline` command still explicitly enables limits. TokenUsage reads the current Claude Code access token from `.credentials.json` in memory and sends it only to `https://api.anthropic.com/api/oauth/usage`, the private usage endpoint used by Claude Code. Redirects are disabled. Claude Code owns token renewal; TokenUsage does not copy, save, or renew tokens and does not send model prompts. Quota caches contain percentages, reset and observation times, the plan label, and provider-supplied scope names such as Fable.
 
-The optional `install-statusline` command wraps Claude Code's `statusLine`. A previous command is saved in `tokenusage-statusline.json` next to Claude Code's settings and receives the same input. Its exit code is preserved, and an inherited execution marker prevents recursive forwarding. The numeric sidecar stores only `rate_limits`, reset times, and the observation time while consent is enabled. `disable-limits` stops account requests and numeric sidecar storage, removes cached limits, and leaves forwarding intact. `uninstall-statusline` still restores the previous command and disables limits. Settings never rewrites a third-party status line wrapper.
+The optional `install-statusline` command wraps Claude Code's `statusLine`. A previous command is saved in `tokenusage-statusline.json` next to Claude Code's settings and receives the same input. Its exit code is preserved, and an inherited execution marker prevents recursive forwarding. The numeric sidecar stores only `rate_limits`, reset times, and the observation time while consent is enabled. Turning limits off stops account requests and numeric sidecar storage, removes cached limits, and leaves forwarding intact. `uninstall-statusline` still restores the previous command and disables limits. Settings never rewrites a third-party status line wrapper.
 
 Claude log checkpoints store offsets, file and event hashes, format identity, and numeric merge state. They do not store prompts, responses, commands, credentials, native message IDs, or full source paths. Recovery reads bounded batches and saves progress only after numeric persistence. It reports exclusions caused by retention, retired detail, or ambiguous evidence, and never reconstructs deleted detail from retained daily totals.
 
@@ -70,8 +70,9 @@ When a user explicitly supplies a credential for a supported opt-in integration,
 
 TokenUsage does not copy credentials from another application's private credential store.
 
-Codex accounts are optional. Settings discovers profiles through the installed
-`xswap list --json` command. Email, source account IDs, and effective profile paths
+Codex and Claude accounts are optional. Settings discovers profiles through the
+installed `xswap list --json` (code-swap) and `cswap list --json` (claude-swap)
+commands. Email, source account IDs, and effective profile paths
 are used in memory to verify a reading. They are not saved in quota caches,
 diagnostics, or exports. Account storage uses an opaque HMAC key derived from
 the source account and user IDs. Windows Credential Locker protects the local
@@ -84,6 +85,11 @@ accounts use `account/read` and `account/rateLimits/read`; they do not add local
 session scans or account usage imports. Display aliases and profile numbers are
 saved with the selection. Aliases that contain email addresses, paths, or source
 identity values are replaced by a profile number.
+
+For Claude profiles, TokenUsage reads only the usage percentages and reset times
+that claude-swap already cached. It sends no request for those profiles, does
+not open their credentials, and does not switch profiles. The email and
+organization ID are used in memory to derive the opaque account key.
 
 ## 5. Network activity
 
@@ -196,7 +202,7 @@ Los registros locales pueden incluir:
 - idioma, apariencia y configuración de la aplicación;
 - estado de diagnóstico que no debe contener credenciales ni contenido del usuario.
 
-La atribución opcional permanece desactivada hasta que el usuario la habilite en Configuración. Si se habilita, TokenUsage puede guardar claves opacas de sesión o proyecto derivadas de campos estructurados aprobados. No guarda identificadores nativos, directorios de trabajo, rutas completas, prompts ni alias en la base de uso. Desactivar la opción elimina esos vínculos y los alias locales. No borra el uso numérico, los totales diarios, los precios ni las claves de evento.
+TokenUsage no registra sesiones, proyectos, herramientas, comandos ni archivos. Versiones anteriores ofrecían atribución opcional; al actualizar se eliminan los vínculos, registros de operaciones, comparaciones guardadas, consentimientos y alias. Se conservan el uso numérico, los totales diarios, los precios y las claves de evento.
 
 Los datos permanecen en el dispositivo salvo que el usuario habilite explícitamente una integración documentada que se comunique con un servicio externo.
 

@@ -21,7 +21,7 @@ public sealed partial class UsageRepository
 
         string[] tables = ["schema_migration", "usage_event", "daily_usage_rollup", "source_cursor",
             "pricing_catalog", "usage_event_tombstone", "account_usage_daily", "usage_collection_state",
-            "saved_usage_comparison", "usage_data_revision"];
+            "usage_data_revision"];
         foreach (string table in tables)
         foreach (string operation in new[] { "INSERT", "UPDATE", "DELETE" })
         {

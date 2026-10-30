@@ -10,41 +10,6 @@ namespace TokenUsage.Providers.Tests.Pricing;
 
 public sealed class KnownModelPricingCatalogTests
 {
-    [Fact]
-    public void LinearTariffsReuseCatalogRatesAndExcludeThresholdModelsEvenBelowThreshold()
-    {
-        var date = new DateTimeOffset(2026, 9, 13, 0, 0, 0, TimeSpan.Zero);
-        UsageLinearTariff rates = Assert.IsType<UsageLinearTariff>(CodexPricingCatalog.ResolveLinearTariff("gpt-5-mini", date).Tariff);
-        var tokens = new TokenBreakdown(123_000, 4_000, 500, 20_000, 3_000);
-        decimal explicitCost = (tokens.Input * rates.Input + tokens.Output * rates.Output
-            + tokens.Reasoning * rates.Reasoning + tokens.CacheRead * rates.CacheRead + tokens.CacheWrite * rates.CacheWrite) / 1_000_000m;
-        Assert.Equal(CodexPricingCatalog.Resolve("gpt-5-mini", tokens, date).EstimatedCostUsd,
-            decimal.Round(explicitCost, 6, MidpointRounding.AwayFromZero));
-        Assert.Equal(UsagePriceExclusion.NonLinearRegime, CodexPricingCatalog.ResolveLinearTariff("gpt-5.6-sol", date).Exclusion);
-        Assert.NotNull(CodexPricingCatalog.Resolve("gpt-5.6-sol", new(1, 0, 0, 0, 0), date).EstimatedCostUsd);
-        Assert.Equal(UsagePriceExclusion.MissingTariff, CodexPricingCatalog.ResolveLinearTariff("not-a-model", date).Exclusion);
-        var claudeTokens = new TokenBreakdown(1000, 200, 0, 300, 0);
-        UsageLinearTariff claude = Assert.IsType<UsageLinearTariff>(ClaudePricingCatalog.ResolveLinearTariff("claude-sonnet-5", claudeTokens, date).Tariff);
-        Assert.Equal(ClaudePricingCatalog.Resolve("claude-sonnet-5", date, claudeTokens, 0, 0, null, false).EstimatedCostUsd,
-            (1000 * claude.Input + 200 * claude.Output + 300 * claude.CacheRead) / 1_000_000m);
-        Assert.Equal(UsagePriceExclusion.UnknownComponents,
-            ClaudePricingCatalog.ResolveLinearTariff("claude-sonnet-5", new(1000, 200, 0, 300, 1), date).Exclusion);
-        UsageLinearTariff cursor = Assert.IsType<UsageLinearTariff>(CursorPricingCatalog.ResolveFirstPartyLinearTariff("grok-4.6", date).Tariff);
-        Assert.Equal(CursorPricingCatalog.Resolve("grok-4.6", date, tokens).EstimatedCostUsd,
-            decimal.Round((tokens.Input * cursor.Input + tokens.Output * cursor.Output + tokens.Reasoning * cursor.Reasoning
-                + tokens.CacheRead * cursor.CacheRead + tokens.CacheWrite * cursor.CacheWrite) / 1_000_000m, 6, MidpointRounding.AwayFromZero));
-        Assert.Equal(UsagePriceExclusion.NonLinearRegime,
-            CursorPricingCatalog.ResolveFirstPartyLinearTariff("grok-4.7-fast", date).Exclusion);
-        Assert.Equal(UsagePriceExclusion.NonLinearRegime,
-            CursorPricingCatalog.ResolveFirstPartyLinearTariff("grok-4.7", date).Exclusion);
-        UsageLinearTariff muse = Assert.IsType<UsageLinearTariff>(
-            CursorPricingCatalog.ResolveFirstPartyLinearTariff("muse-spark-1.3", date).Tariff);
-        Assert.Equal(0m, muse.CacheWrite);
-        Assert.Equal(0.15m, CursorPricingCatalog.Resolve("muse-spark-1.3", date,
-            new TokenBreakdown(0, 0, 0, 1_000_000, 1_000_000)).EstimatedCostUsd);
-        Assert.Equal(CostKind.Unavailable, KnownModelPricingCatalog.Resolve("muse-spark-1.3", date, tokens).Kind);
-    }
-
     private static readonly DateTimeOffset OccurredAtUtc =
         new(2026, 8, 12, 12, 0, 0, TimeSpan.Zero);
 
@@ -58,8 +23,6 @@ public sealed class KnownModelPricingCatalogTests
         CostObservation cost = CursorPricingCatalog.Resolve("meta/muse-wonder-1.0", OccurredAtUtc, tokens);
 
         Assert.Equal(3.62m, cost.EstimatedCostUsd);
-        Assert.Equal(0m, CursorPricingCatalog.ResolveFirstPartyLinearTariff(
-            "muse-wonder-1.0", OccurredAtUtc).Tariff!.CacheWrite);
         Assert.Equal(CostKind.Unavailable, KnownModelPricingCatalog.Resolve(
             "muse-wonder-1.0", OccurredAtUtc, tokens).Kind);
     }
@@ -438,8 +401,6 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(decimal.Parse(expectedUsd, CultureInfo.InvariantCulture), cost.EstimatedCostUsd);
         Assert.Equal("claude-haiku-5-5", cost.ExactPriceMatch);
         Assert.True(PricingCatalogAudit.CanReproduce(cost, date, PricingEvidenceCatalog.AllRates));
-        Assert.Equal(UsagePriceExclusion.NonLinearRegime,
-            ClaudePricingCatalog.ResolveLinearTariff("claude-haiku-5-5", tokens, date).Exclusion);
     }
 
     [Fact]

@@ -118,20 +118,12 @@ public sealed class LocalProviderDiagnosticsAccessTests
         string databasePath = Path.Combine(dataRoot, "scanner", "usage.v1.db");
         string cachePath = Path.Combine(
             dataRoot, "cache", "providers", "codex", SnapshotStore.DefaultFileName);
-        string vercelCachePath = Path.Combine(
-            dataRoot,
-            "cache",
-            "providers",
-            "vercel-ai-gateway",
-            SnapshotStore.DefaultFileName);
         Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
         Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
-        Directory.CreateDirectory(Path.GetDirectoryName(vercelCachePath)!);
         byte[] databaseBytes = Encoding.UTF8.GetBytes("Bearer database secret@example.test");
         byte[] cacheBytes = Encoding.UTF8.GetBytes("{ \"schemaVersion\": 1, \"snapshots\": [");
         await File.WriteAllBytesAsync(databasePath, databaseBytes);
         await File.WriteAllBytesAsync(cachePath, cacheBytes);
-        await File.WriteAllBytesAsync(vercelCachePath, cacheBytes);
         try
         {
             var factory = new StubCodexFactory(
@@ -141,7 +133,6 @@ public sealed class LocalProviderDiagnosticsAccessTests
                 dataRoot,
                 factory,
                 _ => throw new UnauthorizedAccessException("private path"),
-                _ => Task.FromException<bool>(new IOException("private credential store")),
                 CancellationToken.None);
 
             Assert.All(result.Providers, provider =>
@@ -150,8 +141,7 @@ public sealed class LocalProviderDiagnosticsAccessTests
                 Assert.Equal(ProviderDataStatus.Unreadable, provider.Data));
             Assert.Equal(databaseBytes, await File.ReadAllBytesAsync(databasePath));
             Assert.Equal(cacheBytes, await File.ReadAllBytesAsync(cachePath));
-            Assert.Equal(cacheBytes, await File.ReadAllBytesAsync(vercelCachePath));
-            Assert.Equal(3, Directory.GetFiles(dataRoot, "*", SearchOption.AllDirectories).Length);
+            Assert.Equal(2, Directory.GetFiles(dataRoot, "*", SearchOption.AllDirectories).Length);
         }
         finally
         {

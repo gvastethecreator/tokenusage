@@ -82,12 +82,11 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(UsageComponentAvailability.Measured, usageEvent.DetailMetadata.CacheWrite);
         Assert.Equal(UsageComponentAvailability.Unavailable, usageEvent.DetailMetadata.Reasoning);
         Assert.Equal(UsageRecordKind.Unknown, usageEvent.DetailMetadata.RecordKind);
+        Assert.Equal(UsageTimePrecision.Timestamp, usageEvent.TimePrecision);
         Assert.DoesNotContain("message", usageEvent.EventKey.Value, StringComparison.Ordinal);
         Assert.DoesNotContain(
             typeof(UsageEvent).GetProperties().Select(property => property.Name),
             name => name.Contains("content", StringComparison.OrdinalIgnoreCase));
-        Assert.Empty(result.SessionLinks);
-        Assert.Empty(result.ProjectLinks);
     }
 
     [Fact]

@@ -41,9 +41,6 @@ public sealed partial class UsageRepository
                 PRIMARY KEY(agent_id, provider_date));
             CREATE TABLE usage_collection_state (
                 agent_id TEXT PRIMARY KEY, attempted_at_utc TEXT NOT NULL, status INTEGER NOT NULL, issue INTEGER NOT NULL);
-            CREATE TABLE saved_usage_comparison (
-                revision_id TEXT NOT NULL PRIMARY KEY, created_at_utc TEXT NOT NULL,
-                definition_json TEXT NOT NULL, result_json TEXT NOT NULL);
             INSERT INTO schema_migration(version, applied_at_utc) VALUES (5, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
             """, cancellationToken);
 

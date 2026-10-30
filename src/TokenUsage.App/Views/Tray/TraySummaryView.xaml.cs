@@ -46,7 +46,7 @@ public sealed partial class TraySummaryView : UserControl
     public void Apply(
         IReadOnlyList<TrayProviderSummary> items,
         AppearanceSettings appearance,
-        IReadOnlyList<CodexAccountQuota>? accounts = null)
+        IReadOnlyList<AccountQuota>? accounts = null)
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(appearance);

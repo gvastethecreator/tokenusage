@@ -67,7 +67,6 @@ public sealed record DashboardProviderSummary(
     string AccessibleName,
     string ColorHex,
     string AutomationId,
-    double CompositionWidth,
     bool HasData = true,
     bool HasCostData = true,
     bool IsPartial = false,
@@ -399,8 +398,6 @@ public enum ProviderStatusKind
     Partial,
     Missing,
     Pending,
-    Prepared,
-    Optional,
     Blocked,
 }
 

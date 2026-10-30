@@ -1,18 +1,11 @@
 # Provider support and data sources
 
-TokenUsage separates observed local usage, remote account readings, and quota.
-A catalog entry does not mean a reader is available. Missing data stays missing;
-the app does not create sample activity for prepared or blocked providers.
+TokenUsage separates observed local usage, account readings, and quota.
+Missing data stays missing; the app does not create sample activity.
 
 The [provider catalog](../src/TokenUsage.Providers/Catalog/ProviderModuleCatalog.cs)
-defines the current stages:
-
-| Stage | Count | Behavior |
-|---|---:|---|
-| Active | 12 | A bounded reader collects approved local usage. |
-| Opt-in | 2 | A remote reader runs after you save your own API key. |
-| Prepared | 33 | The catalog describes the provider, but no reader runs. Saving a supported credential does not enable a reader. |
-| Policy blocked | 9 | The available source does not meet the repository's source or privacy requirements. |
+lists the twelve tools TokenUsage reads. Each one has a bounded local reader.
+A provider without a working reader is not listed.
 
 ## Compatibility review
 
@@ -50,7 +43,7 @@ stay unpriced. API-rate estimates are not subscription invoices. See
 
 ## Codex
 
-Settings → Providers → Codex accounts can show quotas for selected code-swap
+Settings → Providers → Accounts can show quotas for selected code-swap
 profiles. Use **Find accounts**, select the profiles, then **Save selection**.
 New profiles remain unselected. Each account shows its available windows, plan,
 reset times, active state, and reading status. Percentages are never added across
@@ -87,40 +80,30 @@ resets, plan, and available spending controls. The `base_model_inference` pool
 is shown as `GPT reserve`. Account-day totals have no proved matching local
 scope or timezone, so they are not added to local model totals.
 
-Session, parent, and project links require separate consent and use opaque
-identities. Enabling consent does not backfill existing observations; Settings
-can admit a retained date range. Revoke removes links while keeping numeric
-usage. See [attribution rules](USAGE-STORAGE.md#session-attribution).
-
-Codex `token_count` is not a proved finalized request. Request distributions
-remain unavailable. Session outliers can still use at least 30 comparable
-attributed sessions when the relevant consent is on.
-
 ## Claude
 
 The local reader uses `%USERPROFILE%\.claude\projects`, or the equivalent under
-`CLAUDE_CONFIG_DIR`. It projects tokens, model, date, and recorded cost when
-present. It omits prompt and response content. Sessions that were not saved
+`CLAUDE_CONFIG_DIR`. It projects tokens, model, message timestamp, and recorded
+cost when present. It omits prompt and response content. Sessions that were not saved
 are outside coverage. Large files are streamed in batches of up to 64 MiB per
 file and 256 MiB per iteration, rotating between files. Checkpoints retain
 hashed identities, offsets, fingerprints, and numeric streaming merge state;
 they advance only after database persistence. Incomplete trailing lines resume
 when writing continues. File replacement or truncation resets only that cursor.
 
-Settings offers a recovery preview, progress, and cancellation. The CLI equivalent
-is `tokenusage claude recover-history [--dry-run] [--format json]` (Ctrl+C cancels).
+Settings → Advanced offers a recovery preview, progress, and cancellation.
 Recovery scans all available files, including those outside the normal 35-day
 window, and respects 400-day detail retention, retired totals, and tombstones.
 A repeat with unchanged sources adds no consumption. Excluded records are reported
 by reason. Existing recorded prices are preserved; an ambiguous price change does
 not silently revalue stored usage.
 
-Quota is opt-in through Settings or `tokenusage claude enable-limits`.
+Quota is opt-in through Settings.
 The versioned TokenUsage consent is independent of `statusLine`; a Ghostex or
 other wrapper can remain in place. Only a direct, recognizable TokenUsage
-registration migrates automatically. `disable-limits` stops OAuth reads and
-status line persistence while preserving forwarding. The legacy status line
-installation and removal commands remain available.
+registration migrates automatically. Turning limits off stops OAuth reads and
+status line persistence while preserving forwarding. The legacy
+`tokenusage claude install-statusline|uninstall-statusline` commands remain available.
 With that opt-in, TokenUsage reads the current Claude Code access token from
 `.credentials.json` in memory and calls `https://api.anthropic.com/api/oauth/usage`.
 This is a private endpoint used by Claude Code, not a documented public API.
@@ -151,8 +134,16 @@ without changing the command. `CLAUDE_CONFIG_DIR` applies to both settings
 and the credential file. Token reads and responses are limited to 64 KiB, and
 requests have a 15-second timeout with redirects disabled.
 
-Session, parent, project, and operational attribution stay blocked for Claude.
-`message.id` is not a session ID, and `isSidechain` is not a proved parent edge.
+Settings → Providers → Accounts can also show quotas for selected claude-swap
+profiles. Discovery runs `cswap list --json` (schema 1) from `PATH` or
+`%USERPROFILE%\.local\bin`. TokenUsage reads the usage that claude-swap already
+cached for each profile. It sends no request of its own and does not open profile
+credentials. Missing usage falls back to claude-swap's last good reading and its
+observation time. Identity is the email plus organization ID; a changed identity
+blocks that reading. Expired or missing logins ask the user to sign in again
+through claude-swap. Profiles share `~/.claude/projects`, so local tokens and
+costs stay on the single Claude entry. While Claude accounts are selected, the
+dashboard shows the account rows instead of the global Claude quota.
 
 ## Cursor
 
@@ -191,20 +182,9 @@ before the plan allowance; that is not the net account charge. Remaining quota
 is unavailable. The [VS Code source gate](source-gates/COPILOT-VSCODE.md)
 defines the allowlist, format limits, and privacy boundary.
 
-The Billing REST client is a separate manual connection. Its contract uses a
-user-supplied fine-grained token in Credential Locker, `Plan: read` for a paid
-personal account, or `Administration: read` and administrator access for an
-organization. It reports used credits, discounts, and net charges. Organization
-results are entity totals. Free, Student, legacy annual, and ordinary-member
-cases are outside the validated subset. The client has no effective allocation
-or balance and does not invent remaining quota from plan tables. Public billing
-activation still requires an authorized account smoke check and credential
-deletion check.
-
 Copilot CLI telemetry remains blocked: its exporter mixes metrics with other
 signals and identity. It requires a documented metrics-only export that filters
-content and identity before writing. See the separate
-[Copilot CLI gate](source-gates/COPILOT-CLI.md). TokenUsage never borrows editor
+content and identity before writing. TokenUsage never borrows editor
 or GitHub CLI authentication, `hosts.yml`, or private Copilot endpoints.
 
 ## Other local sources
@@ -212,9 +192,7 @@ or GitHub CLI authentication, `hosts.yml`, or private Copilot endpoints.
 **Grok Build** reads `GROK_HOME/logs/unified.jsonl` first and session
 `updates.jsonl` snapshots when needed. A summary is optional if the snapshot
 already provides model and time. Reported cost takes precedence over estimates.
-Grok Bot is a separate prepared provider: Build logs and xAI API credits are
-not Bot usage or quota. Its desktop profile and cloud-computer session are
-outside the approved sources.
+Build logs and xAI API credits are not Grok Bot usage or quota.
 
 **OpenCode** uses `%USERPROFILE%\.local\share\opencode`, accepts SQLite and
 legacy JSON, and excludes `auth.json`. It deduplicates across formats without
@@ -242,73 +220,20 @@ by another application, does not establish an installed Hermes source.
 
 When background collection is on, detected Claude, Cursor, Grok, and ZCode
 clients can use task-completion hooks. The hook discards its payload and only
-requests a refresh of TokenUsage's own data. The CLI exposes
-`tokenusage <provider> install-hook|status|uninstall-hook`; uninstall preserves
-the rest of the client's configuration. Hooks do not supply token counters or
+requests a refresh of TokenUsage's own data. The app installs the hooks when it
+opens and removes them when background collection is off; removal preserves the
+rest of the client's configuration. Hooks do not supply token counters or
 remaining quota.
-
-## Opt-in remote connections
-
-Keys belong to the user and are stored in Windows Credential Locker. Removing
-a key disables its connection. These readings remain separate from observed
-local totals to avoid counting the same activity twice.
-
-### OpenRouter
-
-The active path calls only `GET /api/v1/key` with the saved key. It reports that
-key's limit, remaining budget, and spending today, this week, and this month
-using UTC boundaries. It does not report tokens. Account credit and activity
-endpoints that require a management key are outside this path.
-
-Ordinary refresh reuses a reading for ten minutes. Throttling preserves the
-last available reading and honors `Retry-After`. Missing or rejected credentials
-require setup; unsupported responses do not become zero usage.
-
-### Vercel AI Gateway
-
-The connection accepts an API key and optional key ID. Requests use a fixed
-gateway origin without redirects. The usage report covers the saved key's last
-30 UTC days and requires an eligible Pro or Enterprise plan; report requests
-can incur provider charges. Team credits are a separate balance. Key quota is
-best effort: an unavailable quota endpoint does not imply an unlimited budget.
-
-Ordinary refresh reuses a reading for at least one hour. Forced refresh can
-request another paid report. Real-account validation remains separate from
-fixture and local test evidence.
-
-## Prepared and blocked providers
-
-Prepared providers have no active reader. The catalog is the source of truth
-for their names, capabilities, aliases, and accepted credential types. Saving
-a credential for a prepared provider does not prove that its API is integrated.
-Devin's retained experimental client, for example, remains outside active
-composition until its organization-scoped permission and live-account checks
-pass. It reports ACUs, not dollars or remaining quota.
-
-The nine blocked catalog entries are Perplexity, Z.ai, Gemini CLI, Kilo Code,
-Zed, Kimi CLI, Kimi Code, Cline, and Cline CLI. Their source gate must change
-before a reader can be enabled. Quota can also be blocked for an active local
-provider; a safe token source does not grant permission to read credentials
-or call private account endpoints.
-
-Gemini CLI's current chat and telemetry files mix counters with content or
-identity. Its interactive `/stats` command is not a passive history export.
-The [Gemini CLI gate](source-gates/GEMINI-CLI.md) requires a documented
-metrics-only source. Do not infer Gemini API cost or Google quota from local
-CLI observations.
 
 ## Measurement limits
 
 Reports describe observed usage, not model quality or all activity on the PC.
 Quota observations are sampled levels, not a complete consumption ledger.
-Current sources do not prove model-to-quota-pool attribution, so normalized
-quota ratios remain unavailable. Reset-cycle comparisons use Codex and the
-opt-in Claude reading, expose gaps, and compare a shared elapsed duration.
-
-Exact-time charts exclude daily or unknown timing. Optional operational facts
-and attribution have independent consent, bounded backfill, and revocation
-rules. Raw retention, immutable snapshots, source authority, derived report
-methods, and recovery limits are documented in
+Reset cycles follow the provider schedule. Tokens per quota point divide this
+PC's recorded tokens by the points used, so use on other devices or the web lowers
+the ratio. Account quotas show no ratio because local tokens cannot be assigned to
+one account. Cycle totals exclude daily or unknown timing. Raw retention, source
+authority, reset cycles, and recovery limits are documented in
 [usage storage](USAGE-STORAGE.md). A new collection cannot reconstruct quota
 history that was never observed.
 

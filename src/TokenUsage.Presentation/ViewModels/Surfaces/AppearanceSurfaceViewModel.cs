@@ -56,7 +56,6 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
             .Select(style => new ReportChartStyleOption(style, _getString("ReportChartStyle" + style)))
             .ToArray();
         SelectedReportChartStyle = ReportChartStyleOptions.Single(option => option.Value == ReportChartStyle.Bars);
-        SelectedReportChartGrouping = ReportChartGrouping.Combined;
         TrayPopoverPrimaryOptions = CreateTrayMetricOptions(includeNone: false);
         TrayPopoverSecondaryOptions = CreateTrayMetricOptions(includeNone: true);
         TrayPopoverProviderCountOptions = Enumerable
@@ -91,81 +90,12 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
 
     partial void OnSelectedQuotaDisplayChanged(AppearanceOption<QuotaDisplayStyle> value) => QueueSave();
 
-    [ObservableProperty]
-    public partial bool ShowReportSummary { get; set; }
-
-    partial void OnShowReportSummaryChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportChart { get; set; }
-
-    partial void OnShowReportChartChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportLimits { get; set; }
-
-    partial void OnShowReportLimitsChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportHeatmap { get; set; }
-
-    partial void OnShowReportHeatmapChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportHighlights { get; set; }
-
-    partial void OnShowReportHighlightsChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportModels { get; set; }
-
-    partial void OnShowReportModelsChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportTokenComposition { get; set; }
-
-    partial void OnShowReportTokenCompositionChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportProjects { get; set; }
-
-    partial void OnShowReportProjectsChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportTools { get; set; }
-
-    partial void OnShowReportToolsChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportFullBreakdown { get; set; }
-
-    partial void OnShowReportFullBreakdownChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportResets { get; set; }
-
-    partial void OnShowReportResetsChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportActivity { get; set; }
-
-    partial void OnShowReportActivityChanged(bool value) => QueueSave();
-
-    [ObservableProperty]
-    public partial bool ShowReportMeasurement { get; set; }
-
-    partial void OnShowReportMeasurementChanged(bool value) => QueueSave();
-
     public IReadOnlyList<ReportChartStyleOption> ReportChartStyleOptions { get; }
 
     [ObservableProperty]
     public partial ReportChartStyleOption SelectedReportChartStyle { get; set; }
 
-    [ObservableProperty]
-    public partial ReportChartGrouping SelectedReportChartGrouping { get; set; }
-
     partial void OnSelectedReportChartStyleChanged(ReportChartStyleOption value) => QueueSave();
-    partial void OnSelectedReportChartGroupingChanged(ReportChartGrouping value) => QueueSave();
 
     public event EventHandler<AppearanceSettings>? SettingsChanged;
 
@@ -346,22 +276,8 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
         _isApplyingSettings = true;
         try
         {
-            ShowReportSummary = settings.ReportContent.Summary;
-            ShowReportChart = settings.ReportContent.Chart;
-            ShowReportLimits = settings.ReportContent.Limits;
-            ShowReportHeatmap = settings.ReportContent.Heatmap;
-            ShowReportHighlights = settings.ReportContent.Highlights;
-            ShowReportModels = settings.ReportContent.Models;
-            ShowReportTokenComposition = settings.ReportContent.TokenComposition;
-            ShowReportProjects = settings.ReportContent.Projects;
-            ShowReportTools = settings.ReportContent.Tools;
-            ShowReportFullBreakdown = settings.ReportContent.FullBreakdown;
-            ShowReportResets = settings.ReportContent.Resets;
-            ShowReportActivity = settings.ReportContent.Activity;
-            ShowReportMeasurement = settings.ReportContent.Measurement;
             SelectedQuotaDisplay = QuotaDisplayOptions.Single(option => option.Value == settings.QuotaDisplay);
             SelectedReportChartStyle = ReportChartStyleOptions.Single(option => option.Value == settings.ReportChartStyle);
-            SelectedReportChartGrouping = settings.ReportChartGrouping;
             SelectedTheme = ThemeOptions.Single(option => option.Value == settings.Theme);
             SelectedDensity = DensityOptions.Single(option => option.Value == settings.Density);
             IncreaseTransparency = settings.IncreaseTransparency;
@@ -420,26 +336,7 @@ public sealed partial class AppearanceSurfaceViewModel : ObservableObject
                 ShowTrayPopoverProviderName,
                 ShowTrayPopover),
             SelectedReportChartStyle.Value,
-            SelectedReportChartGrouping,
-            Settings.MarkReportBestValues, SelectedQuotaDisplay.Value,
-            new ReportContentSettings(ShowReportSummary, ShowReportChart, ShowReportLimits, ShowReportHeatmap, ShowReportHighlights, ShowReportModels, ShowReportTokenComposition, ShowReportProjects, ShowReportTools, ShowReportFullBreakdown, ShowReportResets, ShowReportActivity, ShowReportMeasurement));
-        Settings = settings;
-        SettingsChanged?.Invoke(this, settings);
-        IsBusy = true;
-        int version = ++_saveVersion;
-        lock (_saveSync)
-        {
-            _pendingSave = SaveAfterAsync(_pendingSave, settings, version);
-        }
-    }
-
-    public void SetMarkReportBestValues(bool value)
-    {
-        if (Settings.MarkReportBestValues == value || _session.IsReadOnly) return;
-        var settings = new AppearanceSettings(
-            Settings.Theme, Settings.Density, Settings.IncreaseTransparency,
-            Settings.UsageDisplay, Settings.ResetTimeDisplay, Settings.DashboardVisualization,
-            Settings.TrayPopover, Settings.ReportChartStyle, Settings.ReportChartGrouping, value, Settings.QuotaDisplay, Settings.ReportContent);
+            SelectedQuotaDisplay.Value);
         Settings = settings;
         SettingsChanged?.Invoke(this, settings);
         IsBusy = true;

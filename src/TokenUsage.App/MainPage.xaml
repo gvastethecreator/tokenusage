@@ -54,7 +54,6 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" ColumnSpacing="8" Visibility="{x:Bind ViewModel.IsUsageSurface, Mode=OneWay}">
@@ -270,44 +269,6 @@
                 </Grid>
             </ScrollViewer>
 
-            <Grid Grid.Row="2" ColumnSpacing="8" Visibility="Collapsed">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="FooterIdentityColumn" Width="0" />
-                    <ColumnDefinition x:Name="FooterStatusColumn" Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock
-                    x:Name="FlyoutFooterIdentity"
-                    x:Uid="FlyoutFooterIdentity"
-                    Grid.Column="0"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    MaxWidth="120"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    TextTrimming="CharacterEllipsis"
-                    VerticalAlignment="Center"
-                    Visibility="Collapsed" />
-
-                <TextBlock
-                    x:Name="FlyoutStatusText"
-                    AutomationProperties.AutomationId="FlyoutStatusText"
-                    AutomationProperties.LiveSetting="Polite"
-                    Grid.Column="1"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="{x:Bind ViewModel.StatusText, Mode=OneWay}"
-                    TextAlignment="Center"
-                    TextTrimming="CharacterEllipsis"
-                    VerticalAlignment="Center" />
-
-                <Button
-                    x:Name="FooterOptionsButton"
-                    x:Uid="FooterOptionsButton"
-                    AutomationProperties.AutomationId="FooterOptionsButton"
-                    Command="{x:Bind ViewModel.OpenOptionsCommand}"
-                    Visibility="Collapsed" />
-
-            </Grid>
         </Grid>
         </Border>
         <InfoBar

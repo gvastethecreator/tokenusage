@@ -5,13 +5,8 @@ namespace TokenUsage.Cli.Tests;
 
 public sealed class ProviderDiagnosticsCliProcessTests
 {
-    [Theory]
-    [InlineData("providers", "tokenusage.providers.v1", 12)]
-    [InlineData("doctor", "tokenusage.doctor.v1", 14)]
-    public async Task RealCommandsDetectWithoutStartingCodexOrCreatingAppData(
-        string command,
-        string schemaVersion,
-        int expectedRows)
+    [Fact]
+    public async Task DoctorDetectsWithoutStartingCodexOrCreatingAppData()
     {
         string dataRoot = Path.Combine(
             Path.GetTempPath(),
@@ -23,7 +18,7 @@ public sealed class ProviderDiagnosticsCliProcessTests
         string privatePath = Path.Combine(dataRoot, "private-account@example.test-Bearer-secret");
         try
         {
-            ProcessResult result = await RunAsync(command, dataRoot, markerPath, privatePath);
+            ProcessResult result = await RunAsync("doctor", dataRoot, markerPath, privatePath);
 
             Assert.Equal(0, result.ExitCode);
             Assert.Equal(string.Empty, result.StandardError);
@@ -34,10 +29,9 @@ public sealed class ProviderDiagnosticsCliProcessTests
             Assert.DoesNotContain("@example.test", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
             using JsonDocument document = JsonDocument.Parse(result.StandardOutput);
             Assert.Equal(
-                schemaVersion,
+                "tokenusage.doctor.v1",
                 document.RootElement.GetProperty("schemaVersion").GetString());
-            string rowName = command == "providers" ? "providers" : "checks";
-            Assert.Equal(expectedRows, document.RootElement.GetProperty(rowName).GetArrayLength());
+            Assert.Equal(14, document.RootElement.GetProperty("checks").GetArrayLength());
         }
         finally
         {

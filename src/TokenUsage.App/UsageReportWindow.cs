@@ -4,8 +4,6 @@ using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 using Windows.UI.ViewManagement;
 using TokenUsage.App.ViewModels.Reports;
-using TokenUsage.App.ViewModels;
-using TokenUsage.App.ViewModels.Dashboard;
 using TokenUsage.App.Views.Reports;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Platform.Windows.Display;
@@ -18,46 +16,19 @@ public sealed class UsageReportWindow : Window, IDisposable
     private readonly ResourceLoader _resources = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly UISettings _uiSettings = new();
-    private readonly UsageReportViewModel _viewModel;
-    private readonly UsageReportPage _page;
+    private readonly ReportViewModel _viewModel;
+    private readonly ReportPage _page;
     private bool _disposed;
 
     public UsageReportWindow(
         string databasePath,
-        string resetHistoryPath,
-        Func<Task> refreshSourceAsync,
         AppearanceSettings appearance,
-        UsageReportRequest request,
-        Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
-        Func<string, ProviderCreditSummary?> getProviderCreditSummary,
+        Func<IReadOnlyList<ReportQuotaSource>> getQuotaSources,
         PlatformRect workArea,
-        uint dpi,
-        Action<ReportChartGrouping>? saveChartGrouping = null,
-        Action<ReportChartStyle>? saveChartStyle = null,
-        Action<AppThemeMode>? saveTheme = null,
-        Action<bool>? saveMarkBest = null,
-        TokenUsage.Core.Usage.AttributionConsentStore? attributionConsent = null,
-        TokenUsage.Core.Usage.AttributionAliasStore? attributionAliases = null,
-        TokenUsage.App.ViewModels.Surfaces.GeneralOptionsViewModel? attributionOptions = null,
-        Func<IReadOnlyList<CodexAccountQuota>>? getAccountQuotas = null,
-        Func<bool>? usesCodexAccounts = null)
+        uint dpi)
     {
-        _viewModel = new UsageReportViewModel(
-            databasePath,
-            refreshSourceAsync,
-            request,
-            getProviderLimits,
-            new TokenUsage.Core.Usage.QuotaResetHistoryStore(resetHistoryPath),
-            getProviderCreditSummary: getProviderCreditSummary,
-            attributionConsent: attributionConsent,
-            attributionAliases: attributionAliases,
-            getAccountQuotas: getAccountQuotas,
-            usesCodexAccounts: usesCodexAccounts);
-        if (attributionOptions is not null)
-        {
-            _viewModel.ObserveAttribution(attributionOptions);
-        }
-        _page = new UsageReportPage(_viewModel);
+        _viewModel = new ReportViewModel(databasePath, getQuotaSources, GetString);
+        _page = new ReportPage(_viewModel);
         Content = _page;
         ExtendsContentIntoTitleBar = true;
         if (AppWindowTitleBar.IsCustomizationSupported())
@@ -68,10 +39,6 @@ public sealed class UsageReportWindow : Window, IDisposable
         SetTitleBar(_page.DragRegion);
         _page.Loaded += (_, _) => UpdateCaptionInset();
         _page.SizeChanged += (_, _) => UpdateCaptionInset();
-        _page.ChartGroupingChanged += (_, grouping) => saveChartGrouping?.Invoke(grouping);
-        _page.ChartStyleChanged += (_, style) => saveChartStyle?.Invoke(style);
-        _page.MarkBestChanged += (_, marked) => saveMarkBest?.Invoke(marked);
-        _page.ThemeChangeRequested += (_, theme) => saveTheme?.Invoke(theme);
         Title = GetString("UsageReportWindowTitle");
         AppWindow.Title = Title;
         AppWindow.SetIcon(MainWindow.GetIconPath());
@@ -89,10 +56,8 @@ public sealed class UsageReportWindow : Window, IDisposable
         ApplyTitleBarAppearance(settings);
     }
 
-    public void ApplyRequest(UsageReportRequest request) => _viewModel.ApplyRequest(request);
-
-    /// <summary>Reads quota windows again after the main panel published new ones.</summary>
-    public void RefreshLimits() => _viewModel.RefreshLimits();
+    /// <summary>Reads usage and quota histories again after the main panel published new ones.</summary>
+    public void Reload() => _ = _viewModel.LoadAsync();
 
     private void ConfigureSize(PlatformRect workArea, uint dpi)
     {
@@ -162,7 +127,6 @@ public sealed class UsageReportWindow : Window, IDisposable
 
         _disposed = true;
         Closed -= OnClosed;
-        _viewModel.Dispose();
         GC.SuppressFinalize(this);
     }
 
