@@ -163,7 +163,9 @@ public sealed class DailyTokensChart : ReportChart
         double max = Math.Max(1, daily.Days.Max(day => Math.Max(day.Total, day.PreviousTotal))) * 1.1;
         double slot = (width - left) / daily.Days.Count, bar = Math.Max(2, slot * 0.7);
         double Y(double value) => height - bottom - value / max * (height - bottom - top);
-        for (int step = 0; step <= 3; step++)
+        // With no usage the 0..1 scale would label fractional gridlines "0, 0, 1, 1"; keep only the baseline.
+        int gridSteps = daily.Days.All(day => day.Total == 0 && day.PreviousTotal == 0) ? 0 : 3;
+        for (int step = 0; step <= gridSteps; step++)
         {
             double value = max / 1.1 * step / 3;
             Line(left, Y(value), width, Y(value), GridLine);

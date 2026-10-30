@@ -83,4 +83,19 @@ public sealed class ReportProjectionTests
         Assert.Equal("ReportNotAttributable", shared.Tokens);
         Assert.Equal("—", shared.TokensPerPercent);
     }
+
+    [Fact]
+    public async Task ReportBeforeTheFirstRefreshIsEmptyInsteadOfAReadFailure()
+    {
+        string database = Path.Combine(Path.GetTempPath(), "tokenusage-report-first-run",
+            Guid.NewGuid().ToString("N"), "scanner", "usage.v1.db");
+        var period = ReportPeriod.LastDays(DateOnly.FromDateTime(Now.UtcDateTime), 30);
+
+        ReportUsage usage = await ReportUsageReader.ReadAsync(database, period);
+
+        Assert.False(usage.IsRecorded);
+        Assert.Equal(0, usage.Current.Totals.Tokens.Total);
+        Assert.Equal(0, usage.Previous.Totals.Tokens.Total);
+        Assert.False(File.Exists(database));
+    }
 }

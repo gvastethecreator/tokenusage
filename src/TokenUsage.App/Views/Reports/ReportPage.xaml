@@ -66,6 +66,8 @@
                 <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
                 <InfoBar IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}" IsClosable="False" Severity="Warning"
                          Message="{x:Bind ViewModel.ErrorText, Mode=OneWay}" />
+                <InfoBar IsOpen="{x:Bind ViewModel.HasNoUsage, Mode=OneWay}" IsClosable="False" Severity="Informational"
+                         Message="{x:Bind ViewModel.NoUsageText, Mode=OneWay}" AutomationProperties.AutomationId="ReportNoUsage" />
                 <TextBlock x:Name="ShareStatus" Visibility="Collapsed" FontSize="12" TextWrapping="Wrap"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 

@@ -615,5 +615,6 @@
   <data name="ReportColumnShare.Text" xml:space="preserve"><value>Share</value></data>
   <data name="ReportColumnActiveDays.Text" xml:space="preserve"><value>Active days</value></data>
   <data name="ReportNew" xml:space="preserve"><value>new</value></data>
+  <data name="ReportNoUsageYet" xml:space="preserve"><value>No usage recorded yet. The report fills in after TokenUsage reads your tools for the first time.</value></data>
   <data name="ReportLoadFailed" xml:space="preserve"><value>The report could not read local usage. Try again after the next refresh.</value></data>
 </root>

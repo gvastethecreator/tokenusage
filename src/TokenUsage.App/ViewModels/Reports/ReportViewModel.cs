@@ -42,6 +42,7 @@ public sealed partial class ReportViewModel : ObservableObject
     [ObservableProperty] public partial string Subtitle { get; private set; } = "";
     [ObservableProperty] public partial bool IsLoading { get; private set; }
     [ObservableProperty] public partial string? ErrorText { get; private set; }
+    [ObservableProperty] public partial string? NoUsageText { get; private set; }
     [ObservableProperty] public partial IReadOnlyList<ReportKpi> Kpis { get; private set; } = [];
     [ObservableProperty] public partial IReadOnlyList<ReportPace> Paces { get; private set; } = [];
     [ObservableProperty] public partial ReportDaily? Daily { get; private set; }
@@ -52,12 +53,14 @@ public sealed partial class ReportViewModel : ObservableObject
     public bool HasPaces => Paces.Count > 0;
     public bool HasResets => Resets.Count > 0;
     public bool HasError => ErrorText is not null;
+    public bool HasNoUsage => NoUsageText is not null;
 
     partial void OnPeriodDaysChanged(int value) => _ = LoadAsync();
     partial void OnGroupingChanged(ReportGrouping value) => UpdateRows();
     partial void OnPacesChanged(IReadOnlyList<ReportPace> value) => OnPropertyChanged(nameof(HasPaces));
     partial void OnResetsChanged(IReadOnlyList<ReportReset> value) => OnPropertyChanged(nameof(HasResets));
     partial void OnErrorTextChanged(string? value) => OnPropertyChanged(nameof(HasError));
+    partial void OnNoUsageTextChanged(string? value) => OnPropertyChanged(nameof(HasNoUsage));
 
     public async Task LoadAsync()
     {
@@ -68,12 +71,13 @@ public sealed partial class ReportViewModel : ObservableObject
             DateTimeOffset now = _clock.GetUtcNow();
             DateOnly today = DateOnly.FromDateTime(now.ToLocalTime().DateTime);
             ReportPeriod period = ReportPeriod.LastDays(today, PeriodDays);
-            var query = new UsageReportQuery(_databasePath);
-            UsageReport current = await query.ReadAsync(period.From, period.To);
-            UsageReport previous = await query.ReadAsync(period.Previous.From, period.Previous.To);
-            IReadOnlyList<ReportQuotaInput> quotas = await ReadQuotasAsync(query, now);
+            ReportUsage usage = await ReportUsageReader.ReadAsync(_databasePath, period);
+            (UsageReport current, UsageReport previous) = (usage.Current, usage.Previous);
+            IReadOnlyList<ReportQuotaInput> quotas = await ReadQuotasAsync(
+                usage.IsRecorded ? new UsageReportQuery(_databasePath) : null, now);
             if (version != _loadVersion) return;
 
+            NoUsageText = usage.IsRecorded ? null : _text("ReportNoUsageYet");
             _current = current;
             _previous = previous;
             ReportPace[] paces = quotas.Select(quota => ReportProjection.Pace(quota, now, _text))
@@ -92,7 +96,9 @@ public sealed partial class ReportViewModel : ObservableObject
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
             or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException)
         {
-            if (version == _loadVersion) ErrorText = _text("ReportLoadFailed");
+            if (version != _loadVersion) return;
+            NoUsageText = null;
+            ErrorText = _text("ReportLoadFailed");
         }
         finally
         {
@@ -106,7 +112,7 @@ public sealed partial class ReportViewModel : ObservableObject
             Rows = ReportProjection.Rows(_current, _previous, Grouping, _text);
     }
 
-    private async Task<IReadOnlyList<ReportQuotaInput>> ReadQuotasAsync(UsageReportQuery query, DateTimeOffset now)
+    private async Task<IReadOnlyList<ReportQuotaInput>> ReadQuotasAsync(UsageReportQuery? query, DateTimeOffset now)
     {
         var inputs = new List<ReportQuotaInput>();
         foreach (ReportQuotaSource source in _getQuotaSources())
@@ -136,7 +142,7 @@ public sealed partial class ReportViewModel : ObservableObject
                             .Observations;
                     }
                     Dictionary<DateTimeOffset, long>? tokens = null;
-                    if (source.TokensAttributable)
+                    if (source.TokensAttributable && query is not null)
                     {
                         tokens = [];
                         foreach (QuotaResetCycle cycle in cycles.TakeLast(Cycles))
