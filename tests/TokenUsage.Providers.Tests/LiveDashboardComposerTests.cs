@@ -34,7 +34,6 @@ public sealed class LiveDashboardComposerTests
         DashboardSnapshot result = LiveDashboardComposer.Create(
             [],
             localUsage,
-            [],
             "Live",
             Summarize);
 
@@ -51,48 +50,12 @@ public sealed class LiveDashboardComposerTests
         DashboardSnapshot result = LiveDashboardComposer.Create(
             [],
             localUsage: null,
-            [],
             "Updated now",
             Summarize);
 
         Assert.False(result.HasSpend);
         Assert.Equal("Updated now", result.PeriodLabel);
         Assert.Empty(result.SpendSlices);
-    }
-
-    [Fact]
-    public void AccountSpendJoinsLocalSpendWithoutDuplicatingAProvider()
-    {
-        var localUsage = new LocalUsageCard(
-            "Local usage",
-            "Local logs",
-            "Last 30 days",
-            "",
-            [],
-            [],
-            new LocalUsageSpendBreakdown(
-                "Spend",
-                "1 agent",
-                "$4.00",
-                "Local spend",
-                [new SpendSlice("claude", "Claude", 4, "$4.00")],
-                []),
-            []);
-
-        DashboardSnapshot result = LiveDashboardComposer.Create(
-            [],
-            localUsage,
-            [
-                new SpendSlice("vercel-ai-gateway", "Vercel AI Gateway", 6, "$6.00"),
-                new SpendSlice("claude", "Claude account", 99, "$99.00"),
-            ],
-            "Live",
-            Summarize);
-
-        Assert.Equal(2, result.SpendSlices.Count);
-        Assert.Equal(10d, result.SpendSlices.Sum(slice => slice.Amount));
-        Assert.Equal("$10.00", result.TotalSpendAmount);
-        Assert.Equal("2 providers, $10.00", result.SpendAccessibleName);
     }
 
     private static DashboardSpendSummary Summarize(IReadOnlyList<SpendSlice> slices)

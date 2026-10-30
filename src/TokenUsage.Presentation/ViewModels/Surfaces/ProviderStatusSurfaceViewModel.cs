@@ -2,14 +2,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
 using TokenUsage.App.ViewModels.Dashboard;
-using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
-using TokenUsage.Providers.Catalog;
 
 namespace TokenUsage.App.ViewModels.Surfaces;
-
-public readonly record struct ManualCredentialOperationResult(bool Succeeded, string StatusText);
 
 public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
 {
@@ -26,9 +22,6 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     ];
 
     private readonly Func<string, string> _getString;
-    private readonly IManualProviderCredentialStore? _manualCredentials;
-    private readonly Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? _credentialChanged;
-    private readonly HashSet<string> _configuredManualIds = new(StringComparer.Ordinal);
     private Func<Task>? _refresh;
     private ProviderOutcome? _codexOutcome;
     private bool _hasPublishedDashboard;
@@ -36,22 +29,14 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     private IReadOnlyList<ProviderStatusRow> _localProviders = [];
     private ProviderSnapshot? _claudeQuota;
     private ProviderOutcome? _claudeOutcome;
-    private bool _hasSnapshot;
+    
 
-    /// <param name="credentialChanged">
-    /// Runs after a key is saved or removed. It drops the provider's cached reading, which
-    /// belongs to the previous key, and reports whether the provider has a live source.
-    /// </param>
     public ProviderStatusSurfaceViewModel(
         Func<string, string> getString,
-        IManualProviderCredentialStore? manualCredentials = null,
-        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null,
         IProviderAccountService? accounts = null,
         Func<Task>? refreshAccounts = null)
     {
         _getString = getString ?? throw new ArgumentNullException(nameof(getString));
-        _manualCredentials = manualCredentials;
-        _credentialChanged = credentialChanged;
         Accounts = new ProviderAccountsViewModel(accounts, getString, refreshAccounts);
     }
 
@@ -84,202 +69,6 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
     public string AdditionalProvidersToggleGlyph =>
         IsAdditionalProvidersExpanded ? "\uE738" : "\uE710";
 
-    public async Task LoadManualCredentialsAsync(CancellationToken cancellationToken = default)
-    {
-        _configuredManualIds.Clear();
-        if (_manualCredentials is null)
-        {
-            if (_hasSnapshot)
-            {
-                Project();
-            }
-
-            return;
-        }
-
-        foreach (ProviderModuleDefinition entry in ProviderModuleCatalog.ManualCredentialEntries)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                if (await _manualCredentials
-                    .IsConfiguredAsync(entry.Id.Value, cancellationToken)
-                    .ConfigureAwait(true))
-                {
-                    _configuredManualIds.Add(entry.Id.Value);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                // Presence checks must not block startup. Save and remove still report locker errors.
-            }
-        }
-
-        if (_hasSnapshot)
-        {
-            Project();
-        }
-    }
-
-    public async Task<ManualCredentialOperationResult> SaveManualCredentialAsync(
-        string providerId,
-        string apiKey,
-        string? secondaryValue,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-        if (_manualCredentials is null)
-        {
-            return new(false, _getString("ProviderCredentialNotSupported"));
-        }
-
-        ProviderModuleDefinition module;
-        try
-        {
-            module = ProviderModuleCatalog.Get(providerId);
-        }
-        catch (InvalidOperationException)
-        {
-            return new(false, _getString("ProviderCredentialNotSupported"));
-        }
-
-        if (!module.AcceptsManualCredential)
-        {
-            return new(false, _getString("ProviderCredentialNotSupported"));
-        }
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            return new(false, _getString("ProviderCredentialMissingKey"));
-        }
-
-        string? secondary = string.IsNullOrWhiteSpace(secondaryValue)
-            ? null
-            : secondaryValue.Trim();
-        if (module.ManualCredentialKind.RequiresSecondaryField() && secondary is null)
-        {
-            return new(false, _getString("ProviderCredentialMissingSecondary"));
-        }
-
-        try
-        {
-            await _manualCredentials
-                .SaveAsync(providerId, new ManualProviderSecret(apiKey, secondary), cancellationToken)
-                .ConfigureAwait(true);
-        }
-        catch (ArgumentException)
-        {
-            return new(false, _getString("ProviderCredentialMissingSecondary"));
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            return new(false, _getString("ProviderCredentialLocalFailure"));
-        }
-
-        _configuredManualIds.Add(providerId);
-        if (_hasSnapshot)
-        {
-            Project();
-        }
-
-        return new(true, await ApplyCredentialChangeAsync(
-                providerId,
-                "ProviderCredentialSaved",
-                cancellationToken)
-            .ConfigureAwait(true));
-    }
-
-    public async Task<ManualCredentialOperationResult> DeleteManualCredentialAsync(
-        string providerId,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-        if (_manualCredentials is null)
-        {
-            return new(false, _getString("ProviderCredentialNotSupported"));
-        }
-
-        try
-        {
-            _ = await _manualCredentials
-                .DeleteAsync(providerId, cancellationToken)
-                .ConfigureAwait(true);
-        }
-        catch (ArgumentException)
-        {
-            return new(false, _getString("ProviderCredentialNotSupported"));
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            return new(false, _getString("ProviderCredentialLocalFailure"));
-        }
-
-        _configuredManualIds.Remove(providerId);
-        if (_hasSnapshot)
-        {
-            Project();
-        }
-
-        return new(true, await ApplyCredentialChangeAsync(
-                providerId,
-                "ProviderCredentialRemoved",
-                cancellationToken)
-            .ConfigureAwait(true));
-    }
-
-    /// <summary>
-    /// A cached reading belongs to the key that produced it. After a key change the cache is
-    /// dropped first, then a live refresh reads the provider again with the current key (or
-    /// finds none). Returns the status text for the change.
-    /// </summary>
-    private async Task<string> ApplyCredentialChangeAsync(
-        string providerId,
-        string successKey,
-        CancellationToken cancellationToken)
-    {
-        if (_credentialChanged is null)
-        {
-            return _getString(successKey);
-        }
-
-        ManualCredentialChangeResult result;
-        try
-        {
-            result = await _credentialChanged(providerId, cancellationToken).ConfigureAwait(true);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or InvalidOperationException)
-        {
-            result = ManualCredentialChangeResult.CacheCleanupFailed;
-        }
-
-        if (result != ManualCredentialChangeResult.NoLiveSource)
-        {
-            _ = RefreshAsync();
-        }
-
-        return _getString(result == ManualCredentialChangeResult.CacheCleanupFailed
-            ? "ProviderCredentialCacheCleanupFailed"
-            : successKey);
-    }
-
     public void Update(
         ProviderOutcome? codexOutcome,
         bool hasPublishedDashboard,
@@ -295,7 +84,6 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
         _hasPublishedDashboard = hasPublishedDashboard;
         _dataState = dataState;
         _localProviders = localProviders;
-        _hasSnapshot = true;
         Project();
     }
 
@@ -326,18 +114,7 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
                 StringComparison.Ordinal))
             .Select(row => string.Equals(row.ProviderId, "claude", StringComparison.Ordinal)
                 ? WithClaudeQuota(row)
-                : row)
-            .Select(WithManualCredential));
-        HashSet<string> includedIds = providers
-            .Select(provider => provider.ProviderId)
-            .ToHashSet(StringComparer.Ordinal);
-        // A local tool that also takes a pasted key (GitHub Copilot) keeps its key row
-        // until its local source reports, so the credential stays reachable.
-        providers.AddRange(ProviderModuleCatalog.Entries
-            .Where(entry => !includedIds.Contains(entry.Id.Value))
-            .Where(entry => !ProviderModuleCatalog.IsActiveLocalUsageProvider(entry.Id.Value)
-                || entry.AcceptsManualCredential)
-            .Select(CreateCatalogRow));
+                : row));
         Providers = providers;
         PrimaryProviders = PrimaryProviderIds
             .Select(id => providers.FirstOrDefault(provider => string.Equals(
@@ -354,8 +131,6 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
             .Where(provider => !primaryIds.Contains(provider.ProviderId))
             .ToArray();
     }
-
-    public string CredentialBusyText => _getString("ProviderCredentialBusy");
 
     public void BindRefresh(Func<Task> refresh)
     {
@@ -496,159 +271,6 @@ public sealed partial class ProviderStatusSurfaceViewModel : ObservableObject
                 _ => _getString("ProviderStatusUnavailable"),
             },
         };
-
-    /// <summary>
-    /// A local usage row for a provider that also accepts a pasted key carries the
-    /// same key controls as its catalog row.
-    /// </summary>
-    private ProviderStatusRow WithManualCredential(ProviderStatusRow row)
-    {
-        ProviderModuleDefinition? module = ProviderModuleCatalog.Entries.FirstOrDefault(entry =>
-            string.Equals(entry.Id.Value, row.ProviderId, StringComparison.Ordinal));
-        if (module is not { AcceptsManualCredential: true })
-        {
-            return row;
-        }
-
-        ProviderStatusRow catalog = CreateCatalogRow(module);
-        return row with
-        {
-            CanConfigure = catalog.CanConfigure,
-            HasSavedCredential = catalog.HasSavedCredential,
-            RequiresSecondaryField = catalog.RequiresSecondaryField,
-            SecondaryFieldLabel = catalog.SecondaryFieldLabel,
-            SecondaryFieldPlaceholder = catalog.SecondaryFieldPlaceholder,
-            CredentialHelpText = catalog.CredentialHelpText,
-            SecretFieldLabel = catalog.SecretFieldLabel,
-            SecretFieldPlaceholder = catalog.SecretFieldPlaceholder,
-            ConfigureAutomationName = catalog.ConfigureAutomationName,
-        };
-    }
-
-    private ProviderStatusRow CreateCatalogRow(ProviderModuleDefinition module)
-    {
-        bool isActive = module.Stage == ProviderModuleStage.Active;
-        bool isBlocked = module.Stage == ProviderModuleStage.PolicyBlocked;
-        bool isOptional = module.Stage == ProviderModuleStage.OptIn;
-        bool canConfigure = module.AcceptsManualCredential;
-        bool hasSavedCredential = canConfigure && _configuredManualIds.Contains(module.Id.Value);
-        string stage = _getString(module.Stage switch
-        {
-            ProviderModuleStage.Active => "ProviderStatusUnavailable",
-            ProviderModuleStage.PolicyBlocked => "ProviderStatusBlocked",
-            ProviderModuleStage.OptIn => "ProviderStatusOptional",
-            _ => "ProviderStatusPrepared",
-        });
-        string rootState = hasSavedCredential
-            ? _getString("ProviderStatusRootKeySaved")
-            : stage;
-        string unavailable = _getString("ProviderStatusUnavailable");
-        string CapabilityValue(params ProviderCapability[] capabilities) => isActive
-            ? unavailable
-            : isBlocked
-            ? stage
-            : capabilities.Any(module.Capabilities.Contains)
-                ? stage
-                : unavailable;
-
-        string providerId = module.Id.Value;
-        ProviderStatusKind statusKind = isActive
-            ? ProviderStatusKind.Missing
-            : isBlocked
-            ? ProviderStatusKind.Blocked
-            : isOptional
-                ? ProviderStatusKind.Optional
-                : ProviderStatusKind.Prepared;
-        (string secondaryLabel, string secondaryPlaceholder) = GetSecondaryField(
-            providerId,
-            module.ManualCredentialKind);
-        bool isCopilot = string.Equals(providerId, "copilot", StringComparison.Ordinal);
-        return new ProviderStatusRow(
-            providerId,
-            module.DisplayName,
-            rootState,
-            _getString(hasSavedCredential
-                ? isOptional
-                    ? "ProviderStatusRecoveryKeySavedLive"
-                    : "ProviderStatusRecoveryKeySaved"
-                : module.Stage switch
-                {
-                    ProviderModuleStage.Active => "ProviderStatusRecoveryRefresh",
-                    ProviderModuleStage.PolicyBlocked => "ProviderStatusRecoveryPolicyContract",
-                    ProviderModuleStage.OptIn => "ProviderStatusRecoveryOptional",
-                    _ => "ProviderStatusRecoveryManualSetup",
-                }),
-            [
-                new(
-                    _getString("ProviderStatusQuota"),
-                    CapabilityValue(ProviderCapability.Limits),
-                    $"ProviderStatus.{providerId}.Quota"),
-                new(
-                    _getString("ProviderStatusUsage"),
-                    CapabilityValue(ProviderCapability.Usage, ProviderCapability.LocalUsage),
-                    $"ProviderStatus.{providerId}.Usage"),
-                new(
-                    _getString("ProviderStatusSpend"),
-                    CapabilityValue(ProviderCapability.Spend),
-                    $"ProviderStatus.{providerId}.Spend"),
-                new(
-                    _getString("ProviderStatusCoverage"),
-                    stage,
-                    $"ProviderStatus.{providerId}.Coverage"),
-            ],
-            $"ProviderStatus.{providerId}")
-        {
-            StatusKind = statusKind,
-            CompactState = hasSavedCredential
-                ? _getString("ProviderStatusSummaryKeySaved")
-                : GetCompactState(statusKind),
-            CanConfigure = canConfigure,
-            HasSavedCredential = hasSavedCredential,
-            RequiresSecondaryField = module.ManualCredentialKind.RequiresSecondaryField(),
-            SecondaryFieldLabel = secondaryLabel,
-            SecondaryFieldPlaceholder = secondaryPlaceholder,
-            CredentialHelpText = isCopilot
-                ? _getString("ProviderCredentialCopilotHelp")
-                : string.Empty,
-            SecretFieldLabel = isCopilot
-                ? _getString("ProviderCredentialCopilotTokenLabel")
-                : string.Empty,
-            SecretFieldPlaceholder = isCopilot
-                ? _getString("ProviderCredentialCopilotTokenPlaceholder")
-                : string.Empty,
-            ConfigureAutomationName = string.Format(
-                CultureInfo.CurrentCulture,
-                _getString("ProviderConfigureButtonAutomationFormat"),
-                module.DisplayName),
-        };
-    }
-
-    private (string Label, string Placeholder) GetSecondaryField(
-        string providerId,
-        ManualCredentialKind kind)
-    {
-        if (string.Equals(providerId, "copilot", StringComparison.Ordinal))
-        {
-            return (
-                _getString("ProviderCredentialCopilotOrganizationLabel"),
-                _getString("ProviderCredentialCopilotOrganizationPlaceholder"));
-        }
-
-        return kind switch
-        {
-            ManualCredentialKind.ApiKeyAndOptionalKeyId => (
-                _getString("ProviderCredentialKeyIdLabel"),
-                _getString("ProviderCredentialKeyIdPlaceholder")),
-            ManualCredentialKind.ApiKeyAndOptionalOrganization
-                or ManualCredentialKind.ApiKeyAndOrganization => (
-                _getString("ProviderCredentialOrganizationLabel"),
-                _getString("ProviderCredentialOrganizationPlaceholder")),
-            ManualCredentialKind.ApiKeyAndEndpoint => (
-                _getString("ProviderCredentialEndpointLabel"),
-                _getString("ProviderCredentialEndpointPlaceholder")),
-            _ => (string.Empty, string.Empty),
-        };
-    }
 
     private static ProviderStatusKind GetCodexStatusKind(
         ProviderOutcome? outcome,

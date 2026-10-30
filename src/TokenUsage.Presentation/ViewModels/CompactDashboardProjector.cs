@@ -39,8 +39,7 @@ public static class CompactDashboardProjector
         LocalUsageCard localUsage,
         string? selectedProviderId,
         Func<string, string> getString,
-        Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
-        IReadOnlyList<DashboardProviderSummary>? apiProviderSummaries = null)
+        Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits)
     {
         ArgumentNullException.ThrowIfNull(rollups);
         ArgumentNullException.ThrowIfNull(detectedProviderIds);
@@ -52,7 +51,6 @@ public static class CompactDashboardProjector
         {
             rollups = [];
             detectedProviderIds = [];
-            apiProviderSummaries = [];
             localUsage = LocalUsageCardProjector.Create([], today, getString);
         }
 
@@ -73,17 +71,9 @@ public static class CompactDashboardProjector
         DailyUsageRollup[] windowed = rollups
             .Where(rollup => rollup.Date >= from && rollup.Date <= today)
             .ToArray();
-        DashboardProviderSummary[] localSummaries = isSampleMode && windowed.Length == 0
+        DashboardProviderSummary[] summaries = isSampleMode && windowed.Length == 0
             ? CreateFallbackProviderSummaries(activeSample, getString)
             : CreateProviderSummaries(windowed, detectedProviderIds, getString);
-        // Providers read through a saved key get a row and a tab, but their spend stays out of
-        // the totals: a gateway can also carry requests a local tool already recorded.
-        DashboardProviderSummary[] summaries =
-        [
-            .. localSummaries,
-            .. (apiProviderSummaries ?? []).Where(api => !localSummaries.Any(local =>
-                string.Equals(local.ProviderId, api.ProviderId, StringComparison.Ordinal))),
-        ];
         string? nextSelectedId = summaries.Any(summary => string.Equals(
             summary.ProviderId,
             selectedProviderId,
@@ -103,7 +93,7 @@ public static class CompactDashboardProjector
                     nextSelectedId,
                     StringComparison.Ordinal)))
             .ToArray();
-        SpendSlice[] spendSlices = localSummaries
+        SpendSlice[] spendSlices = summaries
             .Where(summary => summary.CostUsd > 0m)
             .Select(summary => new SpendSlice(
                 summary.ProviderId,
@@ -113,9 +103,9 @@ public static class CompactDashboardProjector
                 summary.ColorHex,
                 summary.CostText))
             .ToArray();
-        decimal totalCost = localSummaries.Sum(summary => summary.CostUsd);
-        long totalTokens = localSummaries.Sum(summary => summary.TotalTokens);
-        string globalCostText = localSummaries.Length == 0 && activeSample is not null
+        decimal totalCost = summaries.Sum(summary => summary.CostUsd);
+        long totalTokens = summaries.Sum(summary => summary.TotalTokens);
+        string globalCostText = summaries.Length == 0 && activeSample is not null
             ? activeSample.TotalSpendAmount
             : UsageValueFormatter.Usd(totalCost, getString);
         // The headline blends provider-reported dollars with catalog estimates;
@@ -163,7 +153,7 @@ public static class CompactDashboardProjector
                 CultureInfo.CurrentCulture,
                 getString("CompactGlobalFooterFormat"),
                 globalCostText,
-                localSummaries.Length),
+                summaries.Length),
             globalTokensText,
             globalCostBreakdownText,
             nextSelectedId,

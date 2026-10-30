@@ -17,8 +17,7 @@ public sealed class WindowsProviderDiagnosticsQueryTests
         var query = new WindowsProviderDiagnosticsQuery(
             dataDirectory,
             new MissingCodexFactory(),
-            _ => false,
-            _ => throw new InvalidOperationException("Deferred Vercel must not be detected."));
+            _ => false);
 
         ProviderDiagnosticsSnapshot result = await query.ExecuteAsync();
 
@@ -33,9 +32,6 @@ public sealed class WindowsProviderDiagnosticsQueryTests
         Assert.Contains(result.Checks, check => check.Id == "local-usage-claude");
         Assert.Contains(result.Checks, check => check.Id == "local-usage-cursor");
         Assert.Contains(result.Checks, check => check.Id == "local-usage-hermes");
-        Assert.DoesNotContain(
-            result.Providers,
-            provider => provider.Id == "vercel-ai-gateway");
         Assert.All(result.Providers, provider =>
             Assert.Equal(ProviderDetectionStatus.Missing, provider.Detection));
         Assert.False(Directory.Exists(dataDirectory));

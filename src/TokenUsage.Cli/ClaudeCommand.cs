@@ -1,5 +1,4 @@
 using System.Globalization;
-using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Claude;
 using TokenUsage.Runtime.Windows.Claude;
@@ -243,9 +242,8 @@ public static class ClaudeCommand
         await new ClaudeLimitsConsentStore(ClaudeLimitsConsentStore.DefaultPath(dataDirectory))
             .DisableAsync(cancellationToken).ConfigureAwait(false);
         new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(dataDirectory)).Delete();
-        ManualCredentialChangeResult result = await WindowsProviderCatalog.CreateComposition(dataDirectory, clock)
-            .ResetProviderCacheAsync("claude", cancellationToken).ConfigureAwait(false);
-        return result != ManualCredentialChangeResult.CacheCleanupFailed;
+        return await WindowsProviderCatalog.CreateComposition(dataDirectory, clock)
+            .ClearClaudeLimitsCacheAsync(cancellationToken).ConfigureAwait(false);
     }
 
     internal static string FormatLimits(ClaudeRateLimitSnapshot reading, DateTimeOffset nowUtc) =>

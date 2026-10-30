@@ -5,7 +5,6 @@ using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Runtime.Windows.Codex;
 using TokenUsage.Runtime.Windows.Providers;
-using TokenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace TokenUsage.Runtime.Windows.Automation;
 
@@ -14,30 +13,26 @@ public sealed class WindowsProviderDiagnosticsQuery
     private readonly string _dataDirectory;
     private readonly ICodexQuotaClientFactory _codexFactory;
     private readonly Func<string, bool> _detectLocalProvider;
-    private readonly Func<CancellationToken, Task<bool>> _detectVercel;
 
     public WindowsProviderDiagnosticsQuery(string dataDirectory, TimeProvider clock)
         : this(
             dataDirectory,
             new CodexAppServerQuotaClientFactory(
                 clock ?? throw new ArgumentNullException(nameof(clock))),
-            DetectLocalProvider,
-            new VercelGatewayCredentialStore().IsConfiguredAsync)
+            DetectLocalProvider)
     {
     }
 
     public WindowsProviderDiagnosticsQuery(
         string dataDirectory,
         ICodexQuotaClientFactory codexFactory,
-        Func<string, bool> detectLocalProvider,
-        Func<CancellationToken, Task<bool>> detectVercel)
+        Func<string, bool> detectLocalProvider)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         _dataDirectory = Path.GetFullPath(dataDirectory);
         _codexFactory = codexFactory ?? throw new ArgumentNullException(nameof(codexFactory));
         _detectLocalProvider = detectLocalProvider
             ?? throw new ArgumentNullException(nameof(detectLocalProvider));
-        _detectVercel = detectVercel ?? throw new ArgumentNullException(nameof(detectVercel));
     }
 
     public async Task<ProviderDiagnosticsSnapshot> ExecuteAsync(
@@ -48,13 +43,6 @@ public sealed class WindowsProviderDiagnosticsQuery
             .ConfigureAwait(false);
         Dictionary<string, ProviderDetectionStatus> localDetection =
             DetectLocalProviders(cancellationToken);
-        bool isVercelActive = WindowsProviderCatalog.Entries.Any(entry => string.Equals(
-            entry.Id.Value,
-            "vercel-ai-gateway",
-            StringComparison.Ordinal));
-        ProviderDetectionStatus vercelDetection = isVercelActive
-            ? await DetectVercelAsync(cancellationToken).ConfigureAwait(false)
-            : ProviderDetectionStatus.Missing;
         UsageInspection usage = await InspectUsageAsync(
             Path.Combine(_dataDirectory, "scanner", "usage.v1.db"),
             cancellationToken).ConfigureAwait(false);
@@ -69,7 +57,6 @@ public sealed class WindowsProviderDiagnosticsQuery
                 entry.Id.Value switch
                 {
                     "codex" => codexDetection,
-                    "vercel-ai-gateway" => vercelDetection,
                     _ => localDetection[entry.Id.Value],
                 },
                 entry.CacheDirectoryName is not null && entry.LocalUsageAgentId is not null
@@ -83,7 +70,6 @@ public sealed class WindowsProviderDiagnosticsQuery
             .ToArray();
         List<DoctorCheck> checks = CreateChecks(
             codexDetection,
-            vercelDetection,
             usage,
             caches);
 
@@ -144,25 +130,6 @@ public sealed class WindowsProviderDiagnosticsQuery
         return detection;
     }
 
-    private async Task<ProviderDetectionStatus> DetectVercelAsync(
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await _detectVercel(cancellationToken).ConfigureAwait(false)
-                ? ProviderDetectionStatus.Detected
-                : ProviderDetectionStatus.Missing;
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            return ProviderDetectionStatus.Unavailable;
-        }
-    }
-
     private async Task<Dictionary<string, SnapshotCacheProbeResult>> InspectCachesAsync(
         CancellationToken cancellationToken)
     {
@@ -185,7 +152,6 @@ public sealed class WindowsProviderDiagnosticsQuery
 
     private static List<DoctorCheck> CreateChecks(
         ProviderDetectionStatus codexDetection,
-        ProviderDetectionStatus vercelDetection,
         UsageInspection usage,
         Dictionary<string, SnapshotCacheProbeResult> caches)
     {
@@ -194,12 +160,9 @@ public sealed class WindowsProviderDiagnosticsQuery
         {
             if (entry.DetectionCheckId is not null)
             {
-                ProviderDetectionStatus detection = entry.Id.Value == "codex"
-                    ? codexDetection
-                    : vercelDetection;
                 checks.Add(new DoctorCheck(
                     entry.DetectionCheckId,
-                    MapDetectionCheck(detection)));
+                    MapDetectionCheck(codexDetection)));
             }
 
             checks.Add(new DoctorCheck(

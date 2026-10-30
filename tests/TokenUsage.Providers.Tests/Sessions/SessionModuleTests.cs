@@ -6,7 +6,6 @@ using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Alerts;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Cache;
-using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Session;
@@ -267,36 +266,12 @@ public sealed class SessionModuleTests
             [localCodex, local]);
         await surface.RefreshCommand.ExecuteAsync(null);
 
-        string[] expectedProviderIds =
-        [
-            "codex",
-            "grok",
-            .. ProviderModuleCatalog.Entries
-                .Select(entry => entry.Id.Value)
-                .Where(id => id is not "codex" and not "grok"
-                    && (!ProviderModuleCatalog.IsActiveLocalUsageProvider(id)
-                        || ProviderModuleCatalog.Get(id).AcceptsManualCredential)),
-        ];
-        Assert.Equal(expectedProviderIds, surface.Providers.Select(provider => provider.ProviderId));
-        string[] primaryProviderIds =
-        [
-            "codex",
-            "grok",
-            "copilot",
-        ];
+        Assert.Equal(["codex", "grok"], surface.Providers.Select(provider => provider.ProviderId));
         Assert.Equal(
-            primaryProviderIds,
+            ["codex", "grok"],
             surface.PrimaryProviders.Select(provider => provider.ProviderId));
-        Assert.Equal(
-            surface.Providers.Count - primaryProviderIds.Length,
-            surface.AdditionalProviders.Count);
-        Assert.DoesNotContain(
-            surface.AdditionalProviders,
-            provider => primaryProviderIds.Contains(provider.ProviderId, StringComparer.Ordinal));
-        Assert.True(surface.HasAdditionalProviders);
-        Assert.False(surface.IsAdditionalProvidersExpanded);
-        surface.IsAdditionalProvidersExpanded = true;
-        Assert.Equal("ProviderStatusShowLessFormat", surface.AdditionalProvidersToggleLabel);
+        Assert.Empty(surface.AdditionalProviders);
+        Assert.False(surface.HasAdditionalProviders);
         ProviderStatusRow codex = surface.Providers[0];
         Assert.Equal("Detected", codex.RootState);
         Assert.Equal(
@@ -307,133 +282,7 @@ public sealed class SessionModuleTests
             "Complete",
             codex.Capabilities.Single(capability =>
                 capability.AutomationId == "ProviderStatus.codex.Usage").Value);
-        ProviderStatusRow openrouter = surface.Providers.Single(provider =>
-            provider.ProviderId == "openrouter");
-        Assert.Equal("ProviderStatusOptional", openrouter.RootState);
-        Assert.True(openrouter.CanConfigure);
-        Assert.False(openrouter.HasSavedCredential);
-        Assert.Equal("ProviderStatusSummaryOptional", openrouter.CompactState);
-        Assert.Equal("ProviderStatusRecoveryOptional", openrouter.RecoveryText);
-        Assert.DoesNotContain(surface.Providers, provider => provider.ProviderId == "claude");
-        Assert.False(surface.Providers.Single(provider => provider.ProviderId == "zai").CanConfigure);
-        Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").CanConfigure);
-        Assert.True(surface.Providers.Single(provider => provider.ProviderId == "devin").RequiresSecondaryField);
-        Assert.True(surface.Providers.Single(provider => provider.ProviderId == "vercel-ai-gateway").CanConfigure);
-        ProviderStatusRow copilot = surface.Providers.Single(provider =>
-            provider.ProviderId == "copilot");
-        Assert.True(copilot.CanConfigure);
-        Assert.Equal("ProviderCredentialCopilotHelp", copilot.CredentialHelpText);
-        Assert.Equal("ProviderCredentialCopilotTokenLabel", copilot.SecretFieldLabel);
-        Assert.Equal("ProviderCredentialCopilotTokenPlaceholder", copilot.SecretFieldPlaceholder);
-        Assert.Equal("ProviderCredentialCopilotOrganizationLabel", copilot.SecondaryFieldLabel);
-        Assert.Equal("ProviderCredentialCopilotOrganizationPlaceholder", copilot.SecondaryFieldPlaceholder);
-        Assert.False(copilot.RequiresSecondaryField);
-        Assert.True(copilot.HasSecondaryField);
-        Assert.Equal(
-            "ProviderStatusBlocked",
-            surface.Providers.Single(provider => provider.ProviderId == "zai").RootState);
         Assert.Equal(1, refreshCalls);
-    }
-
-    [Fact]
-    public async Task ProviderStatusSurfaceSavesAndRemovesAManualKeyWithoutReadingIt()
-    {
-        var store = new MemoryManualProviderCredentialStore();
-        var surface = new ProviderStatusSurfaceViewModel(key => key, store);
-        surface.Update(
-            codexOutcome: null,
-            hasPublishedDashboard: false,
-            SampleDataState.Idle,
-            []);
-
-        ManualCredentialOperationResult missing = await surface.SaveManualCredentialAsync(
-            "openrouter",
-            apiKey: "  ",
-            secondaryValue: null);
-        Assert.False(missing.Succeeded);
-        Assert.Equal("ProviderCredentialMissingKey", missing.StatusText);
-
-        ManualCredentialOperationResult blocked = await surface.SaveManualCredentialAsync(
-            "zai",
-            "secret-key",
-            secondaryValue: null);
-        Assert.False(blocked.Succeeded);
-        Assert.Equal("ProviderCredentialNotSupported", blocked.StatusText);
-        Assert.False(await store.IsConfiguredAsync("openrouter"));
-
-        ManualCredentialOperationResult missingOrg = await surface.SaveManualCredentialAsync(
-            "devin",
-            "cog_key",
-            secondaryValue: null);
-        Assert.False(missingOrg.Succeeded);
-        Assert.Equal("ProviderCredentialMissingSecondary", missingOrg.StatusText);
-
-        ManualCredentialOperationResult saved = await surface.SaveManualCredentialAsync(
-            "openrouter",
-            "secret-key",
-            secondaryValue: null);
-        Assert.True(saved.Succeeded);
-        ProviderStatusRow openrouter = surface.Providers.Single(provider =>
-            provider.ProviderId == "openrouter");
-        Assert.True(openrouter.HasSavedCredential);
-        Assert.Equal("ProviderStatusRootKeySaved", openrouter.RootState);
-        Assert.Equal("ProviderStatusSummaryKeySaved", openrouter.CompactState);
-        Assert.True(await store.IsConfiguredAsync("openrouter"));
-
-        ManualCredentialOperationResult removed = await surface.DeleteManualCredentialAsync("openrouter");
-        Assert.True(removed.Succeeded);
-        openrouter = surface.Providers.Single(provider => provider.ProviderId == "openrouter");
-        Assert.False(openrouter.HasSavedCredential);
-        Assert.False(await store.IsConfiguredAsync("openrouter"));
-    }
-
-    [Fact]
-    public async Task KeyChangeOfALiveSourceClearsItsCacheThenRefreshes()
-    {
-        var store = new MemoryManualProviderCredentialStore();
-        var changed = new List<string>();
-        int refreshCalls = 0;
-        var surface = new ProviderStatusSurfaceViewModel(
-            key => key,
-            store,
-            (providerId, _) =>
-            {
-                changed.Add(providerId);
-                return Task.FromResult(providerId switch
-                {
-                    "openrouter" => ManualCredentialChangeResult.CacheCleared,
-                    "vercel-ai-gateway" => ManualCredentialChangeResult.CacheCleanupFailed,
-                    _ => ManualCredentialChangeResult.NoLiveSource,
-                });
-            });
-        surface.BindRefresh(() =>
-        {
-            refreshCalls++;
-            return Task.CompletedTask;
-        });
-
-        ManualCredentialOperationResult saved = await surface.SaveManualCredentialAsync(
-            "openrouter",
-            "secret-key",
-            secondaryValue: null);
-        ManualCredentialOperationResult removed = await surface.DeleteManualCredentialAsync("openrouter");
-        ManualCredentialOperationResult prepared = await surface.SaveManualCredentialAsync(
-            "openai",
-            "secret-key",
-            secondaryValue: null);
-        ManualCredentialOperationResult failed = await surface.SaveManualCredentialAsync(
-            "vercel-ai-gateway",
-            "secret-key",
-            secondaryValue: null);
-
-        Assert.Equal(["openrouter", "openrouter", "openai", "vercel-ai-gateway"], changed);
-        Assert.Equal("ProviderCredentialSaved", saved.StatusText);
-        Assert.Equal("ProviderCredentialRemoved", removed.StatusText);
-        Assert.Equal("ProviderCredentialSaved", prepared.StatusText);
-        Assert.True(failed.Succeeded);
-        Assert.Equal("ProviderCredentialCacheCleanupFailed", failed.StatusText);
-        // The prepared provider has no live source, so its key change does not refresh.
-        Assert.Equal(3, refreshCalls);
     }
 
     [Fact]
@@ -796,129 +645,6 @@ public sealed class SessionModuleTests
         Assert.Equal(1, codexProvider.ForceRefreshRequests.Count(force => force));
     }
 
-    [Fact]
-    public async Task LiveDashboardShowsApiProviderCardsWithoutAddingTheirSpendToTotals()
-    {
-        using var folder = new TemporaryFolder();
-        var clock = new FixedTimeProvider(
-            new DateTimeOffset(2026, 8, 9, 18, 0, 0, TimeSpan.Zero));
-        var general = new GeneralOptionsViewModel(key => key);
-        var appearance = new AppearanceSurfaceViewModel(
-            new AppearanceSession(new AppearanceSettingsStore(
-                Path.Combine(folder.Root, "appearance.json"),
-                clock)),
-            key => key);
-        await appearance.Initialization;
-        var personalization = new PersonalizationSurfaceViewModel(
-            new DashboardLayoutEditor(new DashboardLayoutStore(
-                Path.Combine(folder.Root, "layout.json"),
-                clock)),
-            key => key);
-        await personalization.Initialization;
-        var refresh = new ProviderRefreshHost(
-        [
-            new ProviderRefreshRegistration(
-                new FixedOutcomeProvider(
-                    "vercel-ai-gateway",
-                    new ProviderOutcome.Success(VercelSnapshot(clock.GetUtcNow()))),
-                new SnapshotStore(Path.Combine(folder.Root, "vercel-cache.json"), clock)),
-            new ProviderRefreshRegistration(
-                new FixedOutcomeProvider(
-                    "openrouter",
-                    new ProviderOutcome.NotConfigured("OpenRouter is not configured.")),
-                new SnapshotStore(Path.Combine(folder.Root, "openrouter-cache.json"), clock)),
-        ], clock);
-        await using var appSession = new AppSessionHost(
-            refresh,
-            new AlertHost(
-                new AlertDecisionStore(Path.Combine(folder.Root, "alert-decisions.json"), clock),
-                new AlertSettingsStore(Path.Combine(folder.Root, "alert-settings.json"), clock)),
-            clock);
-        var live = new LiveDashboardSession(
-            appSession,
-            new LocalUsageCoordinator(
-                Path.Combine(folder.Root, "usage.db"),
-                new SingleCodexUsageSource(clock),
-                clock));
-        using var surface = new DashboardSurfaceViewModel(
-            sampleSession: null,
-            live,
-            general,
-            appearance,
-            personalization,
-            new ProviderStatusSurfaceViewModel(key => key),
-            key => key,
-            synchronizationContext: null);
-
-        await surface.RefreshCommand.ExecuteAsync(null);
-
-        Assert.Contains(surface.ActiveSample.Providers, card => card.ProviderId == "vercel-ai-gateway");
-        Assert.DoesNotContain(surface.ActiveSample.Providers, card => card.ProviderId == "openrouter");
-        DashboardProviderSummary vercel = Assert.Single(
-            surface.ProviderSummaries,
-            summary => summary.ProviderId == "vercel-ai-gateway");
-        Assert.Equal(12.5m, vercel.CostUsd);
-        Assert.DoesNotContain(surface.ProviderSummaries, summary => summary.ProviderId == "openrouter");
-        Assert.DoesNotContain(surface.GlobalSpendSlices, slice => slice.ProviderId == "vercel-ai-gateway");
-        QuotaWindow budget = Assert.Single(surface.GetProviderLimits("vercel-ai-gateway"));
-        Assert.Equal("VercelQuotaTitle", budget.Title);
-
-        surface.SelectProvider("vercel-ai-gateway");
-
-        Assert.True(surface.SelectedProviderHasLimits);
-        Assert.Equal("CompactProviderVercelCoverageHint", surface.SelectedProviderCoverageHintText);
-        Assert.Equal("CompactPeriod30Days", surface.SelectedProviderPeriodText);
-    }
-
-    private static ProviderSnapshot VercelSnapshot(DateTimeOffset now)
-    {
-        var provenance = new DataProvenance(
-            SourceKind.ManualKey,
-            MeasurementKind.ProviderReported,
-            "test-vercel/1");
-        return new ProviderSnapshot(
-            new ProviderId("vercel-ai-gateway"),
-            "Vercel AI Gateway",
-            planLabel: null,
-            now,
-            now,
-            "UTC",
-            [
-                new ScalarMetricSnapshot(new MetricId("spend.gateway.total.30d"), 12.5m, "usd", provenance),
-                new ScalarMetricSnapshot(new MetricId("usage.tokens.input.30d"), 1000m, "tokens", provenance),
-                new ScalarMetricSnapshot(new MetricId("usage.tokens.output.30d"), 250m, "tokens", provenance),
-                new ScalarMetricSnapshot(new MetricId("credits.gateway.balance"), 95.5m, "usd", provenance),
-                new ProgressMetricSnapshot(
-                    new MetricId("quota.gateway.key.budget"),
-                    3.5m,
-                    10m,
-                    new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero),
-                    provenance,
-                    "usd",
-                    ProgressResetCadence.Monthly,
-                    isActive: true),
-            ],
-            CoverageKind.Complete,
-            3,
-            [
-                new ProviderCapabilitySnapshot(
-                    new CapabilityId("quota.gateway.key.budget"),
-                    ProviderCapabilityState.Available,
-                    provenance),
-            ]);
-    }
-
-    private sealed class FixedOutcomeProvider(string providerId, ProviderOutcome outcome)
-        : IProviderRuntime
-    {
-        public ProviderDescriptor Descriptor { get; } = new(new ProviderId(providerId), providerId);
-
-        public Task<ProviderOutcome> RefreshAsync(
-            RefreshContext context,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(outcome);
-    }
-
     private static AppSessionHost CreateAppSession(string root, TimeProvider clock)
     {
         var provider = new EmptyProvider();
@@ -1220,46 +946,5 @@ public sealed class SessionModuleTests
 
         public override DateTimeOffset GetUtcNow() => _utcNow;
         public void Advance(TimeSpan elapsed) => _utcNow += elapsed;
-    }
-
-    private sealed class MemoryManualProviderCredentialStore : IManualProviderCredentialStore
-    {
-        private readonly Dictionary<string, ManualProviderSecret> _secrets = new(StringComparer.Ordinal);
-
-        public Task<bool> IsConfiguredAsync(
-            string providerId,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(_secrets.ContainsKey(providerId));
-        }
-
-        public Task SaveAsync(
-            string providerId,
-            ManualProviderSecret secret,
-            CancellationToken cancellationToken = default)
-        {
-            ArgumentNullException.ThrowIfNull(secret);
-            cancellationToken.ThrowIfCancellationRequested();
-            _secrets[providerId] = secret;
-            return Task.CompletedTask;
-        }
-
-        public Task<bool> DeleteAsync(
-            string providerId,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(_secrets.Remove(providerId));
-        }
-
-        public Task<ManualProviderSecret?> ReadAsync(
-            string providerId,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            _secrets.TryGetValue(providerId, out ManualProviderSecret? secret);
-            return Task.FromResult(secret);
-        }
     }
 }

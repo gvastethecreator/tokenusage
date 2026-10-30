@@ -192,8 +192,6 @@ public sealed class ArchitectureRulesTests
             "TokenUsage.App",
             "ViewModels",
             "FlyoutViewModel.cs"));
-        Assert.DoesNotContain("Vercel.RefreshAsync", flyoutViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("VercelGatewaySettingsViewModel", flyoutViewModel, StringComparison.Ordinal);
         string providerStatusSurface = File.ReadAllText(Path.Combine(
             repoRoot,
             "src",
@@ -270,7 +268,6 @@ public sealed class ArchitectureRulesTests
             "<dashboardViews:CompactUsageDashboard",
             mainPage,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("VercelApiKeyBox", mainPage, StringComparison.Ordinal);
         Assert.DoesNotContain("DashboardLayoutProviderList", mainPage, StringComparison.Ordinal);
         Assert.DoesNotContain("UsageProductCard", mainPage, StringComparison.Ordinal);
         Assert.Contains("OptionsSurfaceViewModel Options", flyout, StringComparison.Ordinal);
@@ -284,7 +281,6 @@ public sealed class ArchitectureRulesTests
             "Views",
             "Options",
             "OptionsView.xaml"));
-        Assert.DoesNotContain("VercelConnectionView", optionsView, StringComparison.Ordinal);
         Assert.Contains("UnifiedOptionsView", optionsView, StringComparison.Ordinal);
         XNamespace optionsNamespace = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         XDocument optionsDocument = XDocument.Parse(optionsView);

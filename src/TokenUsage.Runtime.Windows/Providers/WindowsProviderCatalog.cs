@@ -1,5 +1,4 @@
 using TokenUsage.Core.Cache;
-using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Amp;
@@ -17,8 +16,6 @@ using TokenUsage.Providers.OpenCode;
 using TokenUsage.Providers.Zcode;
 using TokenUsage.Runtime.Windows.Codex;
 using TokenUsage.Runtime.Windows.Claude;
-using TokenUsage.Runtime.Windows.OpenRouter;
-using TokenUsage.Runtime.Windows.VercelAiGateway;
 
 namespace TokenUsage.Runtime.Windows.Providers;
 
@@ -49,20 +46,14 @@ public sealed class WindowsProviderCatalogEntry
         DataCheckId = dataCheckId;
         _compose = compose;
         _localUsageFactory = localUsageFactory;
-        bool needsRuntime = module.Stage is ProviderModuleStage.Active or ProviderModuleStage.OptIn;
-        if (needsRuntime && (_compose is null && _localUsageFactory is null))
+        if (_compose is null && _localUsageFactory is null)
         {
             throw new ArgumentException("A provider integration factory is required.");
         }
 
-        if (needsRuntime && string.IsNullOrWhiteSpace(dataCheckId))
+        if (string.IsNullOrWhiteSpace(dataCheckId))
         {
             throw new ArgumentException("A provider data check is required.", nameof(dataCheckId));
-        }
-
-        if (!needsRuntime && (_compose is not null || _localUsageFactory is not null))
-        {
-            throw new ArgumentException("A prepared provider cannot activate a runtime factory.");
         }
     }
 
@@ -74,8 +65,6 @@ public sealed class WindowsProviderCatalogEntry
 
     public IReadOnlyList<ProviderCapability> Capabilities => Module.Capabilities;
 
-    public ProviderModuleStage Stage => Module.Stage;
-
     public string? CacheDirectoryName { get; }
 
     public AgentId? LocalUsageAgentId { get; }
@@ -83,8 +72,6 @@ public sealed class WindowsProviderCatalogEntry
     public string? DetectionCheckId { get; }
 
     public string? DataCheckId { get; }
-
-    public bool IsEnabledByDefault => Stage == ProviderModuleStage.Active;
 
     public IRootDetectingUsageEventSource? CreateLocalUsageSource(string timeZoneId)
     {
@@ -103,16 +90,9 @@ public sealed class WindowsProviderCatalogEntry
     }
 }
 
-/// <summary>
-/// <see cref="EnableOptInProviders"/> composes every opt-in provider (Vercel AI Gateway and
-/// OpenRouter). An opt-in runtime reads its saved key first and returns "not configured"
-/// without a network call when there is none, so saving a key is the user's opt-in.
-/// </summary>
 public sealed record WindowsProviderCompositionOptions(
     string? TimeZoneId = null,
     ICodexQuotaClientFactory? CodexClientFactory = null,
-    VercelGatewayRefreshCoordinator? VercelCoordinator = null,
-    bool EnableOptInProviders = false,
     IAttributionConsentSource? AttributionConsent = null,
     IOpaqueKeyDeriver? AttributionKeys = null,
     bool CodexActiveAccountOnly = false);
@@ -140,20 +120,14 @@ public sealed class WindowsProviderComposition
     public IReadOnlyList<IUsageEventSource> LocalUsageSources { get; }
 
     /// <summary>
-    /// Removes the cached reading after a saved key or provider opt-in changes.
-    /// It runs under the provider's operation gate, so a refresh that read the old key either
-    /// finished before the removal or starts after it with the new key.
+    /// Removes the cached Claude quota reading after limits are turned off. It runs under the
+    /// provider's operation gate, so a refresh either finished before the removal or starts after it.
     /// </summary>
-    public async Task<ManualCredentialChangeResult> ResetProviderCacheAsync(
-        string providerId,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> ClearClaudeLimitsCacheAsync(CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-        if (!_resettableRegistrations.TryGetValue(
-                providerId,
-                out ProviderRefreshRegistration? registration))
+        if (!_resettableRegistrations.TryGetValue("claude", out ProviderRefreshRegistration? registration))
         {
-            return ManualCredentialChangeResult.NoLiveSource;
+            return true;
         }
 
         IAsyncDisposable? lease = registration.OperationGate is null
@@ -162,21 +136,19 @@ public sealed class WindowsProviderComposition
         try
         {
             SnapshotCacheRemoveResult result = await registration.Store
-                .RemoveProviderAsync(new ProviderId(providerId), CancellationToken.None)
+                .RemoveProviderAsync(new ProviderId("claude"), CancellationToken.None)
                 .ConfigureAwait(false);
             // An unreadable cache is quarantined, so the old reading is gone either way.
             return result is SnapshotCacheRemoveResult.Removed
                 or SnapshotCacheRemoveResult.Missing
-                or SnapshotCacheRemoveResult.Unreadable
-                ? ManualCredentialChangeResult.CacheCleared
-                : ManualCredentialChangeResult.CacheCleanupFailed;
+                or SnapshotCacheRemoveResult.Unreadable;
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
             or TimeoutException
             or InvalidOperationException)
         {
-            return ManualCredentialChangeResult.CacheCleanupFailed;
+            return false;
         }
         finally
         {
@@ -315,89 +287,29 @@ public static class WindowsProviderCatalog
                         context.TimeZoneId,
                         clock: context.Clock)),
                 localUsageFactory: timeZoneId => new CopilotVsCodeUsageEventSource(timeZoneId)),
-            new(
-                ProviderModuleCatalog.Get("devin"),
-                cacheDirectoryName: null,
-                localUsageAgentId: null,
-                detectionCheckId: null,
-                dataCheckId: null),
-            new(
-                ProviderModuleCatalog.Get("openrouter"),
-                cacheDirectoryName: "openrouter",
-                localUsageAgentId: null,
-                detectionCheckId: null,
-                dataCheckId: "openrouter-cache",
-                compose: CreateOpenRouterBinding),
-            new(
-                ProviderModuleCatalog.Get("zai"),
-                cacheDirectoryName: null,
-                localUsageAgentId: null,
-                detectionCheckId: null,
-                dataCheckId: null),
-            new(
-                ProviderModuleCatalog.Get("vercel-ai-gateway"),
-                cacheDirectoryName: "vercel-ai-gateway",
-                localUsageAgentId: null,
-                detectionCheckId: "vercel-ai-gateway-credential",
-                dataCheckId: "vercel-ai-gateway-cache",
-                compose: CreateVercelBinding),
         ]);
 
-    private static readonly IReadOnlyList<WindowsProviderCatalogEntry> Catalog =
+    public static IReadOnlyList<WindowsProviderCatalogEntry> Entries { get; } =
         Array.AsReadOnly(IntegratedCatalog
-            .Concat(ProviderModuleCatalog.Entries
-                .Where(module => IntegratedCatalog.All(entry => entry.Id != module.Id))
-                .Select(module => new WindowsProviderCatalogEntry(
-                    module,
-                    cacheDirectoryName: null,
-                    localUsageAgentId: null,
-                    detectionCheckId: null,
-                    dataCheckId: null)))
             .OrderBy(entry => entry.Module.Id.Value, StringComparer.Ordinal)
             .ToArray());
-
-    public static IReadOnlyList<WindowsProviderCatalogEntry> AllEntries { get; } = Catalog;
-
-    public static IReadOnlyList<WindowsProviderCatalogEntry> Entries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => entry.IsEnabledByDefault).ToArray());
-
-    public static IReadOnlyList<WindowsProviderCatalogEntry> DeferredEntries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => entry.Stage == ProviderModuleStage.OptIn).ToArray());
-
-    public static IReadOnlyList<WindowsProviderCatalogEntry> PreparedEntries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => entry.Stage == ProviderModuleStage.Prepared).ToArray());
-
-    public static IReadOnlyList<WindowsProviderCatalogEntry> PolicyBlockedEntries { get; } =
-        Array.AsReadOnly(Catalog.Where(entry => entry.Stage == ProviderModuleStage.PolicyBlocked).ToArray());
 
     public static WindowsProviderComposition CreateComposition(
         string dataDirectory,
         TimeProvider clock,
-        HttpClient? apiHttpClient = null,
         WindowsProviderCompositionOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         ArgumentNullException.ThrowIfNull(clock);
         options ??= new WindowsProviderCompositionOptions();
-        if (options.EnableOptInProviders && apiHttpClient is null)
-        {
-            throw new ArgumentNullException(
-                nameof(apiHttpClient),
-                "Opt-in providers need an HTTP client when they are enabled.");
-        }
-
         var context = new CompositionContext(
             Path.GetFullPath(dataDirectory),
             options.TimeZoneId ?? TimeZoneInfo.Local.Id,
             clock,
             options.CodexClientFactory ?? new CodexAppServerQuotaClientFactory(clock),
-            apiHttpClient,
-            options.VercelCoordinator,
             options.AttributionConsent,
             options.AttributionKeys);
-        (WindowsProviderCatalogEntry Entry, ProviderBinding Binding)[] bindings = Catalog
-            .Where(entry => entry.Stage == ProviderModuleStage.Active
-                || options.EnableOptInProviders && entry.Stage == ProviderModuleStage.OptIn)
+        (WindowsProviderCatalogEntry Entry, ProviderBinding Binding)[] bindings = Entries
             .Select(entry => (entry, entry.Compose(context)))
             .ToArray();
         ProviderRefreshRegistration[] registrations = bindings
@@ -409,7 +321,7 @@ public static class WindowsProviderCatalog
             .Select(item => item.Binding.LocalUsageSource!)
             .ToArray();
         Dictionary<string, ProviderRefreshRegistration> resettableRegistrations = bindings
-            .Where(item => (item.Entry.Module.AcceptsManualCredential || item.Entry.Id.Value == "claude")
+            .Where(item => item.Entry.Id.Value == "claude"
                 && item.Binding.RefreshRegistration is not null)
             .ToDictionary(
                 item => item.Entry.Id.Value,
@@ -424,25 +336,9 @@ public static class WindowsProviderCatalog
         return new WindowsProviderComposition(
             refreshHost,
             Array.AsReadOnly(usageSources),
-            resettableRegistrations.AsReadOnly(), accounts);
+            resettableRegistrations.AsReadOnly(),
+            accounts);
     }
-
-    private static ProviderBinding CreateVercelBinding(CompositionContext context)
-    {
-        VercelGatewayRefreshCoordinator coordinator = context.VercelCoordinator
-            ?? new VercelGatewayRefreshCoordinator(
-                context.CacheDirectory("vercel-ai-gateway"),
-                context.Clock,
-                context.RequireApiHttpClient());
-        return new ProviderBinding(RefreshRegistration: coordinator.CreateRegistration());
-    }
-
-    private static ProviderBinding CreateOpenRouterBinding(CompositionContext context) =>
-        new(RefreshRegistration: new OpenRouterRefreshCoordinator(
-                context.CacheDirectory("openrouter"),
-                context.Clock,
-                context.RequireApiHttpClient())
-            .CreateRegistration());
 }
 
 internal sealed record CompositionContext(
@@ -450,8 +346,6 @@ internal sealed record CompositionContext(
     string TimeZoneId,
     TimeProvider Clock,
     ICodexQuotaClientFactory CodexClientFactory,
-    HttpClient? ApiHttpClient,
-    VercelGatewayRefreshCoordinator? VercelCoordinator,
     IAttributionConsentSource? AttributionConsent = null,
     IOpaqueKeyDeriver? AttributionKeys = null)
 {
@@ -460,9 +354,6 @@ internal sealed record CompositionContext(
         "cache",
         "providers",
         name);
-
-    public HttpClient RequireApiHttpClient() => ApiHttpClient
-        ?? throw new InvalidOperationException("An opt-in provider is enabled without an HTTP client.");
 }
 
 internal sealed record ProviderBinding(

@@ -8,24 +8,16 @@ public static class LiveDashboardComposer
     public static DashboardSnapshot Create(
         IReadOnlyList<ProviderCard> providers,
         LocalUsageCard? localUsage,
-        IReadOnlyList<SpendSlice> additionalSpendSlices,
         string fallbackPeriodLabel,
         Func<IReadOnlyList<SpendSlice>, DashboardSpendSummary> spendSummaryFormatter)
     {
         ArgumentNullException.ThrowIfNull(providers);
-        ArgumentNullException.ThrowIfNull(additionalSpendSlices);
         ArgumentNullException.ThrowIfNull(fallbackPeriodLabel);
         ArgumentNullException.ThrowIfNull(spendSummaryFormatter);
 
         LocalUsageSpendBreakdown? spend = localUsage?.SpendBreakdown;
-        SpendSlice[] slices = (spend?.AgentSlices ?? [])
-            .Concat(additionalSpendSlices.Where(additional =>
-                !(spend?.AgentSlices ?? []).Any(local => string.Equals(
-                    local.ProviderId,
-                    additional.ProviderId,
-                    StringComparison.Ordinal))))
-            .ToArray();
-        bool hasSpend = slices.Length > 0;
+        IReadOnlyList<SpendSlice> slices = spend?.AgentSlices ?? [];
+        bool hasSpend = slices.Count > 0;
         DashboardSpendSummary summary = hasSpend
             ? spendSummaryFormatter(slices)
             : new DashboardSpendSummary(string.Empty, string.Empty, string.Empty);

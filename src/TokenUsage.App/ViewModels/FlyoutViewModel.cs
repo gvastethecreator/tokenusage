@@ -7,7 +7,6 @@ using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Appearance;
 using TokenUsage.Core.Alerts;
-using TokenUsage.Core.Credentials;
 using TokenUsage.Core.Layout;
 using Microsoft.UI.Dispatching;
 using TokenUsage.Core.Session;
@@ -24,7 +23,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
     private readonly ResourceLoader _resources = new();
     private FlyoutSurfaceState _resultSurface = FlyoutSurfaceState.Loading;
     private bool _disposed;
-    private readonly Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? _resetProviderCache;
+    private readonly Func<CancellationToken, Task<bool>>? _clearClaudeLimitsCache;
 
     public FlyoutViewModel(
         SampleRefreshCoordinator? sampleRefreshCoordinator,
@@ -33,7 +32,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         DashboardLayoutStore dashboardLayoutStore,
         AppearanceSettingsStore appearanceSettingsStore,
         QuotaResetHistoryStore quotaResetHistory,
-        IManualProviderCredentialStore? manualCredentials = null,
         DataCollectionSettingsStore? dataCollectionSettings = null,
         AlertSettingsStore? alertSettings = null,
         IAlertNotificationSink? alertNotifications = null,
@@ -45,7 +43,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         Func<DateOnly, DateOnly, AttributionCapability, CancellationToken, Task>? runAttributionBackfill = null,
         ClaudeRateLimitStore? claudeRateLimits = null,
         ClaudeSettingsInstaller? claudeSettings = null,
-        Func<string, CancellationToken, Task<ManualCredentialChangeResult>>? credentialChanged = null,
+        Func<CancellationToken, Task<bool>>? clearClaudeLimitsCache = null,
         IProviderAccountService? accounts = null,
         string? dataDirectory = null)
     {
@@ -54,7 +52,7 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(dashboardLayoutStore);
         ArgumentNullException.ThrowIfNull(appearanceSettingsStore);
         ArgumentNullException.ThrowIfNull(quotaResetHistory);
-        _resetProviderCache = credentialChanged;
+        _clearClaudeLimitsCache = clearClaudeLimitsCache;
 
         OptionsNavigation = new OptionsNavigationViewModel();
         OptionsNavigation.PropertyChanged += OnOptionsNavigationPropertyChanged;
@@ -80,8 +78,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
         ProviderStatus = new ProviderStatusSurfaceViewModel(
             GetString,
-            manualCredentials,
-            credentialChanged,
             accounts,
             () => appSessionHost.RefreshAsync(AppSessionRefreshReason.Manual, forceRefresh: true));
         Options = new OptionsSurfaceViewModel(
@@ -127,8 +123,8 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     private async void OnClaudeLimitsChanged(object? sender, EventArgs args)
     {
-        if (!_disposed && !GeneralOptions.IsClaudeLimitsEnabled && _resetProviderCache is not null)
-            await _resetProviderCache("claude", CancellationToken.None);
+        if (!_disposed && !GeneralOptions.IsClaudeLimitsEnabled && _clearClaudeLimitsCache is not null)
+            await _clearClaudeLimitsCache(CancellationToken.None);
         if (!_disposed)
         {
             Dashboard.RefreshCommand.Execute(null);
@@ -236,7 +232,6 @@ public partial class FlyoutViewModel : ObservableObject, IDisposable
 
     public async Task StartAsync()
     {
-        await ProviderStatus.LoadManualCredentialsAsync().ConfigureAwait(true);
         await Dashboard.StartAsync().ConfigureAwait(true);
     }
 

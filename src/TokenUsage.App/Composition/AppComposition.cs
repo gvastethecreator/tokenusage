@@ -10,9 +10,7 @@ using TokenUsage.Providers.Claude;
 using TokenUsage.Providers.Codex;
 using TokenUsage.Providers.Cursor;
 using TokenUsage.Runtime.Windows.Attribution;
-using TokenUsage.Runtime.Windows.Credentials;
 using TokenUsage.Runtime.Windows.Providers;
-using TokenUsage.Runtime.Windows.VercelAiGateway;
 using TokenUsage.Runtime.Windows;
 using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Updates;
@@ -40,18 +38,6 @@ public static class AppComposition
         Timeout = TimeSpan.FromMinutes(2),
     });
 
-    // Opt-in provider APIs (Vercel AI Gateway, OpenRouter). Redirects are not followed, so a
-    // saved key is only ever sent to the documented host.
-    private static readonly Lazy<HttpClient> ApiHttpClient = new(() => new HttpClient(new HttpClientHandler
-    {
-        AllowAutoRedirect = false,
-        UseCookies = false,
-        UseDefaultCredentials = false,
-    })
-    {
-        Timeout = TimeSpan.FromSeconds(30),
-    });
-
     public static FlyoutViewModel CreateFlyoutViewModel(
         string localFolderPath,
         TimeProvider? clock = null,
@@ -72,38 +58,12 @@ public static class AppComposition
             resolvedClock, isCodexHistoryFrozen: () => new TokenUsage.Core.Providers.ProviderAccountSelectionStore(
                 localFolderPath, new TokenUsage.Core.Providers.ProviderId("codex")).WasActivated);
 
-        WindowsProviderCompositionOptions? providerOptions = null;
-#if DEBUG || UI_TEST_FIXTURES
-        if (Environment.GetCommandLineArgs().Contains(
-                "--test-vercel-fake",
-                StringComparer.OrdinalIgnoreCase))
-        {
-            string vercelCache = Path.Combine(
-                localFolderPath,
-                "cache",
-                "providers",
-                "vercel-ai-gateway");
-            providerOptions = new WindowsProviderCompositionOptions(
-                VercelCoordinator: new VercelGatewayRefreshCoordinator(
-                    new SnapshotStore(
-                        Path.Combine(vercelCache, SnapshotStore.DefaultFileName),
-                        resolvedClock),
-                    new DebugVercelCredentialStore(),
-                    new DebugVercelReportClient(),
-                    new DebugVercelQuotaClient(),
-                    new DebugVercelCreditsClient(),
-                    resolvedClock));
-        }
-#endif
         var attributionConsent = new AttributionConsentStore(
             GetAttributionConsentPath(localFolderPath),
             resolvedClock);
         IOpaqueKeyDeriver? attributionKeys = new WindowsAttributionSecretStore().TryCreateDeriver();
-        // Opt-in providers are always composed: each one reads its saved key first and makes
-        // no network call without one, so saving a key in the provider list is the opt-in.
-        providerOptions = (providerOptions ?? new WindowsProviderCompositionOptions()) with
+        var providerOptions = new WindowsProviderCompositionOptions
         {
-            EnableOptInProviders = true,
             AttributionConsent = attributionConsent,
             AttributionKeys = attributionKeys,
         };
@@ -111,7 +71,6 @@ public static class AppComposition
         WindowsProviderComposition providers = WindowsProviderCatalog.CreateComposition(
             localFolderPath,
             resolvedClock,
-            ApiHttpClient.Value,
             providerOptions);
         var attributionAliases = new AttributionAliasStore(
             GetAttributionAliasPath(localFolderPath),
@@ -159,7 +118,6 @@ public static class AppComposition
             new DashboardLayoutStore(dashboardLayoutPath, resolvedClock),
             new AppearanceSettingsStore(appearanceSettingsPath, resolvedClock),
             quotaResetHistory,
-            new WindowsManualProviderCredentialStore(),
             dataCollectionSettings,
             alertSettings,
             alertNotifications ?? NullAlertNotificationSink.Instance,
@@ -262,7 +220,7 @@ public static class AppComposition
                 }
             },
             new ClaudeRateLimitStore(ClaudeRateLimitStore.DefaultPath(localFolderPath)),
-            credentialChanged: providers.ResetProviderCacheAsync,
+            clearClaudeLimitsCache: providers.ClearClaudeLimitsCacheAsync,
             accounts: providers.Accounts,
             dataDirectory: localFolderPath);
     }

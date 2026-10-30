@@ -54,15 +54,11 @@ public static class ProviderColorPreference
         ["codex"] = "#8AB4F8",
         ["copilot"] = "#8B5CF6",
         ["cursor"] = "#D7D7D7",
-        ["devin"] = "#7C3AED",
         ["grok"] = "#7C5CFC",
         ["goose"] = "#06B6D4",
         ["hermes"] = "#D97706",
         ["mux"] = "#F59E0B",
         ["opencode"] = "#E5488C",
-        ["openrouter"] = "#6366F1",
-        ["vercel-ai-gateway"] = "#6B7280",
-        ["zai"] = "#2D5BFF",
         ["zcode"] = "#E3A92B",
     };
 
