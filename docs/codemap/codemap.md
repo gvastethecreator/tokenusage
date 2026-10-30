@@ -1,15 +1,15 @@
 # Code map: tokenusage
 
-Generated: 2026-10-30T08:37:22Z | Commit: `4552ec282520` | Schema: 2
-Generation: `ede73183ee4c9530bbe30c1c23e0210bd8be873b17d02b583eb0158cc84e20b5`
+Generated: 2026-10-30T09:17:55Z | Commit: `f74c6c4cba59` | Schema: 2
+Generation: `1d26535d12fcde6dd2eca88c191b2e18e96f3c1bcbc2a074690bc7fd3bc73429`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
-Nodes: 473 | Edges: 2902 | Flows: 0
+Nodes: 475 | Edges: 2911 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 435 analyzed of 466 included files.
+- Analysis: **partial**; 437 analyzed of 468 included files.
 - Configuration files: 0; omitted untracked files: 0.
-- Unresolved references and analysis limits: 1268.
+- Unresolved references and analysis limits: 1267.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -34,7 +34,7 @@ Nodes: 473 | Edges: 2902 | Flows: 0
 - `src/TokenUsage.App/Controls/AccountQuotaList.xaml` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/AccountQuotaList.xaml.cs` | module | Repository | callers: none | callees: external:csharp:Microsoft, src/TokenUsage.Presentation/ViewModels/AccountQuota.cs | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/MotionSettings.cs` | module | Repository | callers: src/TokenUsage.App/Controls/ReportShareBar.cs, src/TokenUsage.App/Controls/ReportShareBar.cs, src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs, src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs | callees: external:csharp:Windows | tests: 0 | entry: none
-- Showing 20 of 473 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 475 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 473 | Edges: 2902 | Flows: 0
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/MotionSettings.cs` | imports (type only)
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | calls
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | imports (type only)
-- Showing 50 of 2902 edges; JSON contains every edge and its evidence.
+- Showing 50 of 2911 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -111,7 +111,7 @@ Nodes: 473 | Edges: 2902 | Flows: 0
 
 ## Architecture changes
 
-- Nodes: +0 / -0; edges: +0 / -0.
+- Nodes: +2 / -0; edges: +9 / -0.
 - Boundary changes: 0; new cycles: 0.
 
 ## Read next

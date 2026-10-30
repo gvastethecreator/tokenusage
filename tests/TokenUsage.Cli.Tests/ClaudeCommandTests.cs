@@ -89,6 +89,29 @@ public sealed class ClaudeCommandTests
     }
 
     [Fact]
+    public async Task StatusLineFinishesWhenTheHostLeavesItsInputOpen()
+    {
+        // A killed host can leave the pipe open in another process; waiting for its end kept
+        // status line processes alive for hours.
+        using var home = new TemporaryRoot();
+        home.CreateInstaller().InstallStatusLine();
+        var output = new StringWriter(CultureInfo.InvariantCulture);
+
+        int exitCode = await ClaudeCommand.RunAsync(
+                ["statusline"],
+                output,
+                TextWriter.Null,
+                resolveDataDirectory: () => home.DataDirectory,
+                standardInput: new OpenPipe(Encoding.UTF8.GetBytes(Payload)),
+                clock: new LimitsCommandTests.FixedTimeProvider(Now),
+                installer: home.CreateInstaller())
+            .WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("5h 24% · 7d 41%" + Environment.NewLine, output.ToString());
+    }
+
+    [Fact]
     public async Task StatusLineForwardsTheSameInputToThePreviousCommand()
     {
         using var home = new TemporaryRoot();
@@ -208,6 +231,49 @@ public sealed class ClaudeCommandTests
         ProviderSnapshot claude = Assert.Single(snapshots);
         Assert.Equal("claude", claude.ProviderId.Value);
         Assert.Equal(60m, claude.Metrics.OfType<ProgressMetricSnapshot>().Single().RemainingPercent);
+    }
+
+    /// <summary>
+    /// Delivers its payload, then behaves like a pipe whose writer never closes: later reads
+    /// never complete and ignore cancellation, as a blocked console read does.
+    /// </summary>
+    private sealed class OpenPipe(byte[] payload) : Stream
+    {
+        private bool _sent;
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (_sent) return new ValueTask<int>(new TaskCompletionSource<int>().Task);
+            _sent = true;
+            payload.CopyTo(buffer);
+            return ValueTask.FromResult(payload.Length);
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     private sealed class TemporaryRoot : IDisposable

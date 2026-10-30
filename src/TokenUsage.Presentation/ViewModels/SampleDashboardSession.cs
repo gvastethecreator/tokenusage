@@ -49,9 +49,10 @@ public sealed class SampleDashboardSession
 
         try
         {
+            // Stay on the caller's context, like the live session: onChanged updates bound properties.
             await foreach (CacheFirstEvent refreshEvent in _coordinator
                                .RunAsync(scenario, forceRefresh, cancellationToken)
-                               .ConfigureAwait(false))
+                               .ConfigureAwait(true))
             {
                 if (version != _refreshVersion || cancellationToken.IsCancellationRequested)
                 {

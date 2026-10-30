@@ -21,6 +21,8 @@ User-facing changes for TokenUsage. Release notes include installation details a
 - Close reports safely when Windows detaches the window's theme resources.
 - Count Claude usage in reset-cycle totals. Claude records always held each message's time but marked it unknown; the schema 13 upgrade marks stored records, and new ones arrive marked. No logs are read again.
 - Place reset cycles on the provider's schedule, so a reset that happened while TokenUsage was closed no longer stretches the next cycle backwards.
+- Stop `tokenusage claude statusline` and provider hooks from waiting forever when their host is killed and leaves the input pipe open; they now read at most 2 seconds of input. Orphaned status line processes had piled up for hours.
+- Run one hook refresh at a time. A Stop hook that fires during a refresh asks for one more pass and exits, so many agents finishing together no longer stack refresh processes.
 
 ### Removed
 

@@ -9,7 +9,7 @@ public static class HookCommand
         TextWriter standardOutput,
         TextWriter standardError,
         Func<Task<int>>? runRefresh = null,
-        TextReader? standardInput = null)
+        Stream? standardInput = null)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(standardOutput);
@@ -27,26 +27,17 @@ public static class HookCommand
 
     /// <summary>
     /// The refresh trigger every provider hook calls. A redirected standard input can carry
-    /// conversation content, so it is drained and discarded; a console standard input (a
-    /// detached launch) never reaches end-of-stream, so callers pass <c>null</c> instead and
-    /// nothing is drained. Nothing is printed, and the exit code stays 0 to keep the hook
-    /// silent.
+    /// conversation content, so it is drained and discarded, within the payload deadline; a
+    /// console standard input (a detached launch) never reaches end-of-stream, so callers pass
+    /// <c>null</c> instead and nothing is drained. Nothing is printed, and the exit code stays 0
+    /// to keep the hook silent.
     /// </summary>
     internal static async Task<int> RunStopAsync(
         Func<Task<int>>? runRefresh,
-        TextReader? standardInput)
+        Stream? standardInput)
     {
-        try
-        {
-            if (standardInput is not null)
-            {
-                await standardInput.ReadToEndAsync().ConfigureAwait(false);
-            }
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or InvalidOperationException)
-        {
-        }
+        // Nothing is kept: a zero limit drains without buffering.
+        await StandardInputPayload.ReadAsync(standardInput, maximumBytes: 0, CancellationToken.None).ConfigureAwait(false);
 
         if (runRefresh is not null)
         {

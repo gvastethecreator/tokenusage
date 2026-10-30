@@ -265,7 +265,7 @@ public sealed class ArchitectureRulesTests
         Assert.Contains("OptionsSurfaceViewModel Options", flyout, StringComparison.Ordinal);
         Assert.Contains("DashboardSurfaceViewModel Dashboard", flyout, StringComparison.Ordinal);
         Assert.DoesNotContain("SampleDashboardCatalog.Build", flyout, StringComparison.Ordinal);
-        Assert.Contains("_ = ViewModel.StartAsync();", mainPageCode, StringComparison.Ordinal);
+        Assert.Contains("DispatcherQueue.TryEnqueue(() => _ = ViewModel.StartAsync());", mainPageCode, StringComparison.Ordinal);
         Assert.DoesNotContain("_ = SessionHost.StartAsync();", mainPageCode, StringComparison.Ordinal);
 
         string optionsView = File.ReadAllText(Path.Combine(

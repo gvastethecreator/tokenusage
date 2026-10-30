@@ -28,8 +28,8 @@ public sealed class HookCommandTests
     [Fact]
     public async Task StopDrainsInputRunsRefreshAndStaysSilent()
     {
-        var payload = new StringReader(
-            """{"prompt":"private content","transcript_path":"C:\\temp\\x.jsonl"}""");
+        var payload = new MemoryStream(
+            """{"prompt":"private content","transcript_path":"C:\\temp\\x.jsonl"}"""u8.ToArray());
         bool refreshed = false;
         var output = new StringWriter(CultureInfo.InvariantCulture);
         var error = new StringWriter(CultureInfo.InvariantCulture);
@@ -86,10 +86,35 @@ public sealed class HookCommandTests
             output,
             error,
             runRefresh: () => throw new IOException("C:\\Users\\private\\secret"),
-            standardInput: new StringReader("{}"));
+            standardInput: new MemoryStream("{}"u8.ToArray()));
 
         Assert.Equal(0, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
+    public async Task OverlappingHookRefreshesRunOnceMoreInsteadOfStacking()
+    {
+        var gate = new HookRefreshGate("TokenUsage.Tests." + Guid.NewGuid().ToString("N"));
+        var firstPass = new TaskCompletionSource();
+        var release = new TaskCompletionSource();
+        int passes = 0;
+        Task<bool> first = gate.RunAsync(async () =>
+        {
+            if (Interlocked.Increment(ref passes) == 1)
+            {
+                firstPass.SetResult();
+                await release.Task;
+            }
+        });
+        await firstPass.Task;
+
+        bool[] waiting = await Task.WhenAll(gate.RunAsync(() => Task.CompletedTask), gate.RunAsync(() => Task.CompletedTask));
+        release.SetResult();
+
+        Assert.Equal([false, false], waiting);
+        Assert.True(await first);
+        Assert.Equal(2, passes);
     }
 }

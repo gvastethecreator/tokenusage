@@ -184,7 +184,10 @@ public static class SampleDashboardCatalog
             Format(text, "SampleSpendAccessibleNameFormat", totalText, localizedSlices.Length, details),
             localizedSlices,
             providers,
-            Format(text, "SampleUsdCompactFormat", total));
+            Format(text, "SampleUsdCompactFormat", total),
+            // About $0.80 per million tokens, with today a busier than average day.
+            TodayTokens: (long)(total * 1_250_000 / 30 * 1.4),
+            PeriodTokens: (long)(total * 1_250_000));
     }
 
     private static SpendSlice Spend(
@@ -220,6 +223,7 @@ public static class SampleDashboardCatalog
             windows.Select(window => window with
             {
                 AutomationName = $"{name}, {window.AutomationName}. {window.ResetText}",
+                UsedPercentText = Format(text, "ClaudeUsedPercentFormat", 100 - window.RemainingPercent),
             }).ToArray(),
             []), text);
 

@@ -143,7 +143,9 @@ public static class CompactDashboardProjector
             options,
             spendSlices,
             heatmap,
-            CreateActivitySummaries(windowed, today, getString),
+            isSampleMode && windowed.Length == 0 && activeSample is not null
+                ? CreateActivitySummaries(activeSample.TodayTokens, activeSample.PeriodTokens, getString)
+                : CreateActivitySummaries(SumSince(windowed, today, 1), SumSince(windowed, today, 30), getString),
             GetLimitsOnce("codex"),
             GetLimitsOnce("claude"),
             GetLimitsOnce("zcode"),
@@ -331,27 +333,24 @@ public static class CompactDashboardProjector
         }).ToArray();
     }
 
-    private static IReadOnlyList<DashboardActivitySummary> CreateActivitySummaries(
-        IReadOnlyList<DailyUsageRollup> rollups,
-        DateOnly today,
-        Func<string, string> getString)
-    {
-        long SumSince(int days) => rollups
-            .Where(item => item.Date >= today.AddDays(-(days - 1)) && item.Date <= today)
-            .Sum(item => item.Tokens.Total);
+    private static long SumSince(IReadOnlyList<DailyUsageRollup> rollups, DateOnly today, int days) => rollups
+        .Where(item => item.Date >= today.AddDays(-(days - 1)) && item.Date <= today)
+        .Sum(item => item.Tokens.Total);
 
-        return
+    private static IReadOnlyList<DashboardActivitySummary> CreateActivitySummaries(
+        long todayTokens,
+        long periodTokens,
+        Func<string, string> getString) =>
         [
             new(
                 getString("CompactActivityToday"),
-                UsageValueFormatter.CompactTokens(SumSince(1)),
+                UsageValueFormatter.CompactTokens(todayTokens),
                 getString("CompactActivityTokens")),
             new(
                 getString("CompactActivity30Days"),
-                UsageValueFormatter.CompactTokens(SumSince(30)),
+                UsageValueFormatter.CompactTokens(periodTokens),
                 getString("CompactActivityTokens")),
         ];
-    }
 }
 
 public sealed record CompactSelectedProviderProjection(

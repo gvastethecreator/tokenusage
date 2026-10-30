@@ -38,9 +38,17 @@ No TokenUsage account is required. Provider data stays local unless you enable a
 
 ## Product tour
 
+### The tray view
+
+Today's and the last 30 days' tokens, spend by tool, and each quota with its reset.
+
+<img src="docs/assets/screenshots/tray-overview.webp" alt="Tray view with today's and 30-day tokens, spend by tool, and Codex and Claude quota windows" width="360" />
+
 ### The report
 
 Choose 7, 30, or 90 days. Each period is compared with the one before it.
+
+<img src="docs/assets/screenshots/report-overview.webp" alt="Report summary, weekly Claude and Codex quota pace with a projection to the reset, and tokens per day by agent" width="100%" />
 
 - **Summary** — tokens, approximate spend at API list prices, daily average, and how many quotas run out before their reset at the current pace.
 - **Will it last to the reset?** — used quota across each daily or longer window, with earlier cycles in gray and a dashed projection that stops where the quota runs out.
@@ -49,9 +57,11 @@ Choose 7, 30, or 90 days. Each period is compared with the one before it.
 - **Recent resets** — used quota, cycle tokens, and tokens per 1% for the last four cycles of each quota.
 - **Detail** — tokens, change, spend, share, and active days by agent, model, or day.
 
+<img src="docs/assets/screenshots/report-changes.webp" alt="Waterfall from the previous period's tokens to the current total by agent and model, and recent weekly resets with tokens per 1%" width="100%" />
+
 The share button saves the whole report as one image. In Options > Appearance, choose rings, bars, or numbers only for compact limits. Rare options live in Options > Advanced.
 
-The banner mascot is an illustration generated with imagegen.
+These captures use synthetic sample data and contain no account data. The banner mascot is an illustration generated with imagegen.
 
 ## Provider support
 

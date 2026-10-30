@@ -348,7 +348,9 @@ public sealed record DashboardSnapshot(
     string SpendAccessibleName,
     IReadOnlyList<SpendSlice> SpendSlices,
     IReadOnlyList<ProviderCard> Providers,
-    string CompactTotalSpendAmount = "")
+    string CompactTotalSpendAmount = "",
+    long TodayTokens = 0,
+    long PeriodTokens = 0)
 {
     public bool HasSpend => SpendSlices.Count > 0;
 

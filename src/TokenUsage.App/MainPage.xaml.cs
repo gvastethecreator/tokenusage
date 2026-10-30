@@ -61,7 +61,9 @@ public sealed partial class MainPage : Page, IDisposable
         _relativeTimeTimer.Interval = TimeSpan.FromSeconds(30);
         _relativeTimeTimer.Tick += OnRelativeTimeTimerElapsed;
         _relativeTimeTimer.Start();
-        _ = ViewModel.StartAsync();
+        // Start after the window finishes constructing, so its launch options (such as sample
+        // mode for captures) apply before the first pass reads any local usage.
+        _ = DispatcherQueue.TryEnqueue(() => _ = ViewModel.StartAsync());
     }
 
     public event EventHandler? HideRequested;

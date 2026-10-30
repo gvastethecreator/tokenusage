@@ -32,7 +32,7 @@ if (args.Length > 0 && string.Equals(args[0], "pricing", StringComparison.Ordina
 // Provider hooks run without application storage. A hook host that pipes a payload gives
 // redirected input; a detached launch on a hidden console gives console input, which never
 // reaches end-of-stream, so it must not be drained.
-TextReader? hookStandardInput = Console.IsInputRedirected ? Console.In : null;
+Stream? hookStandardInput = Console.IsInputRedirected ? Console.OpenStandardInput() : null;
 
 // The ZCode hook registration calls `zcode stop-hook`; it is the same trigger.
 if (args is ["zcode", "stop-hook"])
@@ -87,7 +87,8 @@ async Task<int> RefreshLocalUsageForHook()
             return 0;
         }
 
-        await LocalUsageCliAccess.RefreshAsync(hookDataDirectory, TimeProvider.System);
+        await HookRefreshGate.ForDataDirectory(hookDataDirectory)
+            .RunAsync(() => LocalUsageCliAccess.RefreshAsync(hookDataDirectory, TimeProvider.System));
         return 0;
     }
     catch (Exception)

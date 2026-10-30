@@ -108,7 +108,8 @@ public static class ClaudeCommand
         TimeProvider clock,
         CancellationToken cancellationToken)
     {
-        byte[] input = await ReadBoundedAsync(standardInput, cancellationToken).ConfigureAwait(false);
+        byte[] input = await StandardInputPayload.ReadAsync(standardInput,
+            ClaudeStatusLineRateLimits.MaximumPayloadBytes, cancellationToken).ConfigureAwait(false);
         DateTimeOffset nowUtc = clock.GetUtcNow().ToUniversalTime();
         ClaudeStatusLineRateLimits.TryParse(input, nowUtc, out ClaudeRateLimitSnapshot? reading);
         bool isForwarded = Environment.GetEnvironmentVariable(
@@ -176,43 +177,6 @@ public static class ClaudeCommand
                         _ => "spend",
                     },
                     window.UsedPercent)));
-
-    private static async Task<byte[]> ReadBoundedAsync(Stream? input, CancellationToken cancellationToken)
-    {
-        if (input is null)
-        {
-            return [];
-        }
-
-        try
-        {
-            using var buffer = new MemoryStream();
-            byte[] chunk = new byte[16 * 1024];
-            int read;
-            while ((read = await input.ReadAsync(chunk, cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                if (buffer.Length + read > ClaudeStatusLineRateLimits.MaximumPayloadBytes)
-                {
-                    // Keep draining so the writer does not block, but stop buffering.
-                    while (await input.ReadAsync(chunk, cancellationToken).ConfigureAwait(false) > 0)
-                    {
-                    }
-
-                    return [];
-                }
-
-                buffer.Write(chunk, 0, read);
-            }
-
-            return buffer.ToArray();
-        }
-        catch (Exception exception) when (exception is IOException
-                                           or InvalidOperationException
-                                           or NotSupportedException)
-        {
-            return [];
-        }
-    }
 
     internal static string? TryResolve(Func<string?>? resolveDataDirectory)
     {
