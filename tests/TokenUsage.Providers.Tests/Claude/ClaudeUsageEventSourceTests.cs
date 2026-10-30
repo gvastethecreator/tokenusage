@@ -37,7 +37,8 @@ public sealed class ClaudeUsageEventSourceTests
             Path.GetTempPath(),
             "tokenusage-claude-missing",
             Guid.NewGuid().ToString("N"));
-        var source = new ClaudeUsageEventSource("UTC", homeDirectory: home);
+        var source = new ClaudeUsageEventSource("UTC", homeDirectory: home,
+            configDirectoryOverride: Path.Combine(home, ".claude"));
 
         UsageSourceReadResult result = await source.ReadAsync();
 
