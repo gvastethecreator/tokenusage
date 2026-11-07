@@ -39,7 +39,8 @@ public static class CompactDashboardProjector
         LocalUsageCard localUsage,
         string? selectedProviderId,
         Func<string, string> getString,
-        Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits)
+        Func<string, IReadOnlyList<QuotaWindow>> getProviderLimits,
+        bool includeVisualizations = true)
     {
         ArgumentNullException.ThrowIfNull(rollups);
         ArgumentNullException.ThrowIfNull(detectedProviderIds);
@@ -125,19 +126,20 @@ public static class CompactDashboardProjector
         string globalTokensText = totalTokens == 0
             ? localUsage.TotalTokensMetric.Value
             : UsageValueFormatter.CompactTokens(totalTokens);
-        UsageHeatmapModel heatmap = windowed.Length == 0
+        UsageHeatmapModel heatmap = !includeVisualizations ? UsageHeatmapModel.Empty : windowed.Length == 0
             ? localUsage.Heatmap
             : UsageHeatmapProjector.Create(
                 windowed,
                 today,
                 getString,
                 "CompactUsageHeatmap");
-        CompactSelectedProviderProjection selected = CreateSelectedProvider(
+        CompactSelectedProviderProjection selected = includeVisualizations ? CreateSelectedProvider(
             nextSelectedId,
             rollups,
             today,
             getString,
-            GetLimitsOnce);
+            GetLimitsOnce) : new CompactSelectedProviderProjection(UsageHeatmapModel.Empty,
+                UsageReportTrendDataset.Empty, nextSelectedId is null ? [] : GetLimitsOnce(nextSelectedId));
         return new CompactDashboardProjection(
             summaries,
             options,

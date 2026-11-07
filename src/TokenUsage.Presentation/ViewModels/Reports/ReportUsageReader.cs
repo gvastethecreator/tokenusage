@@ -11,8 +11,10 @@ public static class ReportUsageReader
     /// Reads a period and the one before it. The usage database appears with the first refresh;
     /// until then nothing was recorded, so both periods are empty instead of a read failure.
     /// </summary>
-    public static async Task<ReportUsage> ReadAsync(string databasePath, ReportPeriod period)
+    public static Task<ReportUsage> ReadAsync(string databasePath, ReportPeriod period,
+        CancellationToken cancellationToken = default) => Task.Run(async () =>
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!File.Exists(databasePath))
         {
             UsageReport empty = UsageReportQuery.Build([]);
@@ -21,8 +23,8 @@ public static class ReportUsageReader
 
         var query = new UsageReportQuery(databasePath);
         return new ReportUsage(
-            await query.ReadAsync(period.From, period.To),
-            await query.ReadAsync(period.Previous.From, period.Previous.To),
+            await query.ReadAsync(period.From, period.To, cancellationToken: cancellationToken),
+            await query.ReadAsync(period.Previous.From, period.Previous.To, cancellationToken: cancellationToken),
             IsRecorded: true);
-    }
+    }, cancellationToken);
 }

@@ -14,7 +14,7 @@ public sealed record ReportQuotaSource(string Prefix, string HistoryPath, Provid
 /// The usage report: how much was used against the previous period and why it changed, whether
 /// each quota lasts to its reset, and how recent resets compare.
 /// </summary>
-public sealed partial class ReportViewModel : ObservableObject
+public sealed partial class ReportViewModel : ObservableObject, IDisposable
 {
     // The current cycle and three before it: enough to compare, short enough to scan.
     private const int Cycles = 4;
@@ -25,6 +25,9 @@ public sealed partial class ReportViewModel : ObservableObject
     private UsageReport? _current;
     private UsageReport? _previous;
     private int _loadVersion;
+    private readonly SemaphoreSlim _readGate = new(1, 1);
+    private CancellationTokenSource? _loadCancellation;
+    private bool _disposed;
 
     public ReportViewModel(string databasePath, Func<IReadOnlyList<ReportQuotaSource>> getQuotaSources,
         Func<string, string> text, TimeProvider? clock = null)
@@ -64,18 +67,35 @@ public sealed partial class ReportViewModel : ObservableObject
 
     public async Task LoadAsync()
     {
+        if (_disposed) return;
         int version = ++_loadVersion;
+        _loadCancellation?.Cancel();
+        using var cancellation = new CancellationTokenSource();
+        _loadCancellation = cancellation;
+        CancellationToken token = cancellation.Token;
         IsLoading = true;
         try
         {
+            // Cancel superseded work, and keep at most one store read in progress even if a
+            // synchronous SQLite command needs a moment to observe cancellation.
+            ReportUsage usage;
+            IReadOnlyList<ReportQuotaInput> quotas;
             DateTimeOffset now = _clock.GetUtcNow();
             DateOnly today = DateOnly.FromDateTime(now.ToLocalTime().DateTime);
             ReportPeriod period = ReportPeriod.LastDays(today, PeriodDays);
-            ReportUsage usage = await ReportUsageReader.ReadAsync(_databasePath, period);
+            await _readGate.WaitAsync(token);
+            try
+            {
+                usage = await ReportUsageReader.ReadAsync(_databasePath, period, token);
+                quotas = await ReadQuotasAsync(
+                    usage.IsRecorded ? new UsageReportQuery(_databasePath) : null, now, token);
+            }
+            finally
+            {
+                _readGate.Release();
+            }
             (UsageReport current, UsageReport previous) = (usage.Current, usage.Previous);
-            IReadOnlyList<ReportQuotaInput> quotas = await ReadQuotasAsync(
-                usage.IsRecorded ? new UsageReportQuery(_databasePath) : null, now);
-            if (version != _loadVersion) return;
+            if (version != _loadVersion || token.IsCancellationRequested) return;
 
             NoUsageText = usage.IsRecorded ? null : _text("ReportNoUsageYet");
             _current = current;
@@ -93,6 +113,9 @@ public sealed partial class ReportViewModel : ObservableObject
             UpdateRows();
             ErrorText = null;
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
             or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException)
         {
@@ -102,8 +125,18 @@ public sealed partial class ReportViewModel : ObservableObject
         }
         finally
         {
-            if (version == _loadVersion) IsLoading = false;
+            if (ReferenceEquals(_loadCancellation, cancellation)) _loadCancellation = null;
+            if (version == _loadVersion && !_disposed) IsLoading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        ++_loadVersion;
+        _loadCancellation?.Cancel();
+        GC.SuppressFinalize(this);
     }
 
     private void UpdateRows()
@@ -112,13 +145,15 @@ public sealed partial class ReportViewModel : ObservableObject
             Rows = ReportProjection.Rows(_current, _previous, Grouping, _text);
     }
 
-    private async Task<IReadOnlyList<ReportQuotaInput>> ReadQuotasAsync(UsageReportQuery? query, DateTimeOffset now)
+    private async Task<IReadOnlyList<ReportQuotaInput>> ReadQuotasAsync(UsageReportQuery? query, DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
         var inputs = new List<ReportQuotaInput>();
         foreach (ReportQuotaSource source in _getQuotaSources())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var store = new QuotaResetHistoryStore(source.HistoryPath, _clock, source.Scope);
-            QuotaHistoryReadResult read = await store.ReadAsync();
+            QuotaHistoryReadResult read = await store.ReadAsync(cancellationToken);
             if (read.Availability != QuotaHistoryAvailability.Available || read.History is null) continue;
             foreach (string providerId in read.History.Windows.Select(window => window.ProviderId).Distinct()
                          .Where(source.Providers.Contains))
@@ -138,7 +173,7 @@ public sealed partial class ReportViewModel : ObservableObject
                     {
                         (DateTimeOffset from, DateTimeOffset to) = ReportProjection.Window(cycle, now);
                         if (to <= from) continue;
-                        observations[cycle.FromUtc] = (await store.Journal.ReadAsync(providerId, metric.Key, from, to))
+                        observations[cycle.FromUtc] = (await store.Journal.ReadAsync(providerId, metric.Key, from, to, cancellationToken))
                             .Observations;
                     }
                     Dictionary<DateTimeOffset, long>? tokens = null;
@@ -149,7 +184,8 @@ public sealed partial class ReportViewModel : ObservableObject
                         {
                             (DateTimeOffset from, DateTimeOffset to) = ReportProjection.Window(cycle, now);
                             if (to <= from) continue;
-                            tokens[cycle.FromUtc] = (await query.ReadExactAsync(from, to, new AgentId(providerId)))
+                            tokens[cycle.FromUtc] = (await Task.Run(() => query.ReadExactAsync(from, to,
+                                new AgentId(providerId), cancellationToken: cancellationToken), cancellationToken))
                                 .Totals.Tokens.Total;
                         }
                     }

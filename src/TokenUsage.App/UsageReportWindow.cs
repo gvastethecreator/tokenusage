@@ -19,6 +19,7 @@ public sealed class UsageReportWindow : Window, IDisposable
     private readonly ReportViewModel _viewModel;
     private readonly ReportPage _page;
     private bool _disposed;
+    private bool _reloadQueued;
 
     public UsageReportWindow(
         string databasePath,
@@ -57,7 +58,15 @@ public sealed class UsageReportWindow : Window, IDisposable
     }
 
     /// <summary>Reads usage and quota histories again after the main panel published new ones.</summary>
-    public void Reload() => _ = _viewModel.LoadAsync();
+    public void Reload()
+    {
+        if (_disposed || _reloadQueued) return;
+        _reloadQueued = _page.DispatcherQueue.TryEnqueue(() =>
+        {
+            _reloadQueued = false;
+            if (!_disposed) _ = _viewModel.LoadAsync();
+        });
+    }
 
     private void ConfigureSize(PlatformRect workArea, uint dpi)
     {
@@ -126,6 +135,7 @@ public sealed class UsageReportWindow : Window, IDisposable
         }
 
         _disposed = true;
+        _viewModel.Dispose();
         Closed -= OnClosed;
         GC.SuppressFinalize(this);
     }

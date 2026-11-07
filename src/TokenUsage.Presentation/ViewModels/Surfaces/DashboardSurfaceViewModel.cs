@@ -30,6 +30,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private CancellationTokenSource? _refreshCancellation;
     private int _projectionBatchDepth;
     private bool _compactProjectionIsStale;
+    private bool _compactVisualizationsAreStale;
+    private bool _applyingCompactProjection;
     private bool _isPanelVisible = true;
     private SampleScenario? _activeScenario;
     private bool _hasPublishedDashboard;
@@ -411,6 +413,16 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         if (isVisible)
         {
             RefreshRelativeTime();
+            EnsureVisualizationsCurrent();
+        }
+    }
+
+    /// <summary>Materializes deferred charts for a visible panel or an explicit capture.</summary>
+    public void EnsureVisualizationsCurrent()
+    {
+        if (_compactVisualizationsAreStale)
+        {
+            RebuildCompactProjectionCore(includeVisualizations: true);
         }
     }
 
@@ -586,6 +598,12 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
                     StringComparison.Ordinal),
             })
             .ToArray();
+        if (_applyingCompactProjection) return;
+        if (!_isPanelVisible)
+        {
+            _compactVisualizationsAreStale = true;
+            return;
+        }
         ApplySelectedProviderProjection(CompactDashboardProjector.CreateSelectedProvider(
             value.ProviderId,
             IsSampleModeEnabled ? [] : _localUsageRollups,
@@ -980,8 +998,9 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         RebuildCompactProjectionCore();
     }
 
-    private void RebuildCompactProjectionCore()
+    private void RebuildCompactProjectionCore(bool? includeVisualizations = null)
     {
+        bool materializeVisualizations = includeVisualizations ?? _isPanelVisible;
         CompactDashboardProjection projection = CompactDashboardProjector.Create(
             DateOnly.FromDateTime(_liveSession.Clock.GetLocalNow().DateTime),
             _localUsageRollups,
@@ -991,7 +1010,8 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             LocalUsage,
             SelectedProvider?.ProviderId,
             _getString,
-            GetProviderLimits);
+            GetProviderLimits,
+            includeVisualizations: materializeVisualizations);
         ProviderSummaries = projection.ProviderSummaries;
         ProviderOptions = projection.ProviderOptions;
         GlobalSpendSlices = projection.GlobalSpendSlices;
@@ -1000,7 +1020,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
         GlobalFooterText = projection.GlobalFooterText;
         GlobalTokensText = projection.GlobalTokensText;
         GlobalCostBreakdownText = projection.GlobalCostBreakdownText;
-        GlobalHeatmap = projection.GlobalHeatmap;
+        if (materializeVisualizations) GlobalHeatmap = projection.GlobalHeatmap;
         GlobalActivity = projection.GlobalActivity;
         GlobalCodexLimits = StyleWindows(projection.GlobalCodexLimits);
         GlobalClaudeLimits = StyleWindows(projection.GlobalClaudeLimits);
@@ -1011,15 +1031,22 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             ?? (ProviderOptions.Count == 0 ? null : ProviderOptions[0]);
         if (!Equals(SelectedProvider, nextSelection))
         {
-            SelectedProvider = nextSelection;
+            _applyingCompactProjection = true;
+            try { SelectedProvider = nextSelection; }
+            finally { _applyingCompactProjection = false; }
         }
-        else
+        if (materializeVisualizations)
         {
             ApplySelectedProviderProjection(new CompactSelectedProviderProjection(
                 projection.SelectedProviderHeatmap,
                 projection.SelectedProviderTrend,
                 projection.SelectedProviderLimits));
         }
+        else
+        {
+            SelectedProviderLimits = StyleWindows(projection.SelectedProviderLimits);
+        }
+        _compactVisualizationsAreStale = !materializeVisualizations;
 
         OnPropertyChanged(nameof(HasCoverageHint));
         OnPropertyChanged(nameof(CoverageHintText));

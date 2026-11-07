@@ -123,6 +123,7 @@ public sealed partial class MainPage : Page, IDisposable
 
     private async void OnShareCaptureClick(object sender, RoutedEventArgs e)
     {
+        ViewModel.Dashboard.EnsureVisualizationsCurrent();
         Control? source = sender as Control;
         double actionButtonsOpacity = HeaderActionButtons.Opacity;
         bool actionButtonsHitTest = HeaderActionButtons.IsHitTestVisible;
