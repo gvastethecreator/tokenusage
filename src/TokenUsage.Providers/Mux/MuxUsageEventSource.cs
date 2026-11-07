@@ -17,7 +17,7 @@ public sealed class MuxUsageEventSource :
     ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "mux-session-usage/3";
+    public const string ParserVersion = "mux-session-usage/4";
     private readonly string _sessionsDirectory;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
@@ -34,9 +34,55 @@ public sealed class MuxUsageEventSource :
         string home = homeDirectory
             ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _sessionsDirectory = Path.GetFullPath(sessionsDirectoryOverride
-            ?? Path.Combine(home, ".mux", "sessions"));
+            ?? Path.Combine(ResolveRoot(home), "sessions"));
         _groupingTimeZoneId = groupingTimeZoneId;
         _budget = new LocalScanBudget(maximumFiles, maximumFileBytes);
+    }
+
+    private static string ResolveRoot(string home)
+    {
+        // Match Xum v0.32.1: one active root, with canonical environment precedence.
+        string? configured = Environment.GetEnvironmentVariable("XUM_ROOT")
+            ?? Environment.GetEnvironmentVariable("MUX_ROOT");
+        if (!string.IsNullOrEmpty(configured)) return configured;
+
+        string suffix = Environment.GetEnvironmentVariable("NODE_ENV") == "development" ? "-dev" : "";
+        string canonical = Path.Combine(home, ".xum" + suffix);
+        if (Directory.Exists(canonical) && HasEntries(canonical)) return canonical;
+
+        string[] legacyNames = suffix.Length == 0 ? [".mux", ".cmux"] : [".mux-dev"];
+        string marker = Path.Combine(home, ".xum" + suffix + ".legacy-fallback");
+        try
+        {
+            var info = new FileInfo(marker);
+            if (info.Exists && info.Length <= 64 && (info.Attributes & FileAttributes.ReparsePoint) == 0)
+            {
+                using var stream = new FileStream(marker, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                Span<byte> bytes = stackalloc byte[65];
+                int length = stream.Read(bytes);
+                if (length <= 64)
+                {
+                    string name = Encoding.UTF8.GetString(bytes[..length]).Trim();
+                    if (legacyNames.Contains(name, StringComparer.Ordinal)
+                        && Directory.Exists(Path.Combine(home, name))) return Path.Combine(home, name);
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
+
+        if (Directory.Exists(canonical)) return canonical;
+        foreach (string name in legacyNames)
+        {
+            string legacy = Path.Combine(home, name);
+            if (Directory.Exists(legacy)) return legacy;
+        }
+        return canonical;
+    }
+
+    private static bool HasEntries(string directory)
+    {
+        try { return Directory.EnumerateFileSystemEntries(directory).Any(); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return true; }
     }
 
     public SourceKind SourceKind => SourceKind.LocalLog;
@@ -224,7 +270,7 @@ public sealed class MuxUsageEventSource :
                 costUsd,
                 6,
                 MidpointRounding.AwayFromZero))
-            : KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
+            : KnownModelPricingCatalog.Resolve(model, timestamp, tokens, perRequestTokenCounters: false);
         usageEvent = new UsageEvent(
             new UsageEventKey(Hash($"mux\0{sessionId}\0{modelKey}")),
             AgentId,

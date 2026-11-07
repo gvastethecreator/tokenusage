@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.Sqlite;
 using TokenUsage.Core.Providers;
 using TokenUsage.Core.Usage;
@@ -11,11 +12,10 @@ using TokenUsage.Providers.Pricing;
 namespace TokenUsage.Providers.OpenCode;
 
 public sealed class OpenCodeUsageEventSource :
-    IWindowedSnapshotUsageEventSource,
+    ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "opencode-local/3";
-    private const int LookbackDays = 35;
+    public const string ParserVersion = "opencode-local/4";
     private readonly string _dataRoot;
     private readonly string _groupingTimeZoneId;
     private readonly LocalScanBudget _budget;
@@ -46,9 +46,8 @@ public sealed class OpenCodeUsageEventSource :
     public SourceKind SourceKind => SourceKind.LocalDatabase;
     public AgentId AgentId { get; } = new("opencode");
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Exposes the source parser version for diagnostics.")]
     public string EventParserVersion => ParserVersion;
-
-    public int ReconciliationWindowDays => LookbackDays;
 
     public bool IsRootAvailable => Directory.Exists(_dataRoot);
 
@@ -68,7 +67,6 @@ public sealed class OpenCodeUsageEventSource :
         var state = new LocalScanState(_budget);
         var databaseEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
         var aggregateEvents = new Dictionary<string, Candidate>(StringComparer.Ordinal);
-        var aggregateSessions = new HashSet<string>(StringComparer.Ordinal);
         var incompleteDatabaseSessions = new HashSet<string>(StringComparer.Ordinal);
         foreach (string path in EnumerateDatabaseFiles(state, cancellationToken))
         {
@@ -82,22 +80,32 @@ public sealed class OpenCodeUsageEventSource :
                 path,
                 databaseEvents,
                 aggregateEvents,
-                aggregateSessions,
                 incompleteDatabaseSessions,
                 state,
                 _maximumRows,
                 cancellationToken);
         }
 
-        HashSet<string> sessionsWithMessages = databaseEvents.Values
-            .Select(candidate => candidate.SessionId)
-            .ToHashSet(StringComparer.Ordinal);
+        ILookup<string, Candidate> detailsBySession = databaseEvents.Values.ToLookup(candidate => candidate.SessionId, StringComparer.Ordinal);
         foreach ((string sessionId, Candidate aggregate) in aggregateEvents)
         {
-            if (!sessionsWithMessages.Contains(sessionId))
+            Candidate[] detail = detailsBySession[sessionId].ToArray();
+            Candidate retained = aggregate;
+            if (aggregate.RequiresDetailCoverage || detail.Length > 0)
             {
-                databaseEvents.TryAdd(Key(sessionId, aggregate.MessageId), aggregate);
+                if (TryCoverAggregate(aggregate, detail, out Candidate? residual))
+                    retained = residual;
+                else
+                {
+                    // A pruned detail store cannot replace the cumulative observation. Previously
+                    // imported messages may also survive in our store, so a positive residual is
+                    // not safe to merge without evidence of their coverage.
+                    state.IsPartial = true;
+                    foreach (Candidate candidate in detail)
+                        databaseEvents.Remove(Key(sessionId, candidate.MessageId));
+                }
             }
+            databaseEvents.TryAdd(Key(sessionId, aggregate.MessageId), retained);
         }
 
         HashSet<string> databaseSessions = databaseEvents.Values
@@ -124,6 +132,41 @@ public sealed class OpenCodeUsageEventSource :
                     : null);
     }
 
+    private static bool TryCoverAggregate(Candidate aggregate, Candidate[] detail, out Candidate residual)
+    {
+        residual = aggregate;
+        try
+        {
+            long input = 0, output = 0, reasoning = 0, cacheRead = 0, cacheWrite = 0;
+            decimal reported = 0;
+            bool allCostsReported = true;
+            foreach (Candidate candidate in detail)
+            {
+                checked
+                {
+                    input += candidate.Tokens.Input;
+                    output += candidate.Tokens.Output;
+                    reasoning += candidate.Tokens.Reasoning;
+                    cacheRead += candidate.Tokens.CacheRead;
+                    cacheWrite += candidate.Tokens.CacheWrite;
+                    if (candidate.Cost is { } cost) reported += cost;
+                    else if (candidate.Tokens.Total > 0) allCostsReported = false;
+                }
+            }
+            if (aggregate.Tokens != new TokenBreakdown(input, output, reasoning, cacheRead, cacheWrite))
+                return false;
+            if (aggregate.Cost is > 0 && (!allCostsReported
+                || decimal.Round(reported, 6, MidpointRounding.AwayFromZero)
+                    != decimal.Round(aggregate.Cost.Value, 6, MidpointRounding.AwayFromZero)))
+                return false;
+            // Retain the original key at zero. A tombstone would prevent later cumulative
+            // corrections; an absent key would leave previously imported totals in place.
+            residual = aggregate with { Tokens = new TokenBreakdown(0, 0, 0, 0, 0), Cost = 0m };
+            return true;
+        }
+        catch (OverflowException) { return false; }
+    }
+
     private string[] EnumerateDatabaseFiles(LocalScanState state, CancellationToken cancellationToken)
     {
         try
@@ -145,7 +188,6 @@ public sealed class OpenCodeUsageEventSource :
         string path,
         Dictionary<string, Candidate> messages,
         Dictionary<string, Candidate> aggregates,
-        HashSet<string> aggregateSessions,
         HashSet<string> incompleteSessions,
         LocalScanState state,
         int maximumRows,
@@ -175,18 +217,9 @@ public sealed class OpenCodeUsageEventSource :
 
             HashSet<string> messageColumns = LocalUsageSqlite.GetColumns(connection, "message", cancellationToken);
             HashSet<string> sessionColumns = LocalUsageSqlite.GetColumns(connection, "session", cancellationToken);
-            if (HasColumns(sessionColumns, "id", "time_updated", "model", "cost", "tokens_input", "tokens_output", "tokens_reasoning", "tokens_cache_read", "tokens_cache_write"))
-            {
-                ReadAggregateRows(
-                    connection,
-                    aggregates,
-                    aggregateSessions,
-                    incompleteSessions,
-                    state,
-                    maximumRows,
-                    cancellationToken);
-            }
-            else if (HasColumns(messageColumns, "id", "session_id", "time_created", "data"))
+            bool hasMessages = HasColumns(messageColumns, "id", "session_id", "time_created", "data");
+            bool hasAggregates = HasColumns(sessionColumns, "id", "time_updated", "model", "cost", "tokens_input", "tokens_output", "tokens_reasoning", "tokens_cache_read", "tokens_cache_write");
+            if (hasMessages)
             {
                 HashSet<string> partColumns = LocalUsageSqlite.GetColumns(connection, "part", cancellationToken);
                 ReadMessageRows(
@@ -198,7 +231,18 @@ public sealed class OpenCodeUsageEventSource :
                     HasColumns(partColumns, "id", "message_id", "time_created", "data"),
                     cancellationToken);
             }
-            else
+            if (hasAggregates)
+            {
+                ReadAggregateRows(
+                    connection,
+                    aggregates,
+                    hasMessages,
+                    incompleteSessions,
+                    state,
+                    maximumRows,
+                    cancellationToken);
+            }
+            if (!hasMessages && !hasAggregates)
             {
                 state.IsPartial = true;
                 state.UnsupportedSchema = true;
@@ -231,6 +275,13 @@ public sealed class OpenCodeUsageEventSource :
         bool hasPartFallback,
         CancellationToken cancellationToken)
     {
+        using (SqliteCommand invalid = connection.CreateCommand())
+        {
+            invalid.CommandText = "SELECT EXISTS(SELECT 1 FROM message WHERE NOT json_valid(data))";
+            using CancellationTokenRegistration invalidRegistration = cancellationToken.Register(invalid.Cancel);
+            if (Convert.ToInt64(invalid.ExecuteScalar(), CultureInfo.InvariantCulture) != 0)
+                state.IsPartial = true;
+        }
         using SqliteCommand command = connection.CreateCommand();
         string partJoin = hasPartFallback
             ? """
@@ -264,12 +315,9 @@ public sealed class OpenCodeUsageEventSource :
               COALESCE(json_extract(m.data, '$.tokens.cache.read'), json_extract(m.data, '$.usage.cache_read_input_tokens'), {PartValue("tokens.cache.read")})
             FROM message m
             {partJoin}
-            WHERE m.time_created >= $cutoff AND json_valid(m.data)
+            WHERE json_valid(m.data)
             LIMIT $limit
             """;
-        command.Parameters.AddWithValue(
-            "$cutoff",
-            DateTimeOffset.UtcNow.AddDays(-LookbackDays).ToUnixTimeMilliseconds());
         command.Parameters.AddWithValue("$limit", checked(maximumRows + 1L));
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
@@ -335,17 +383,14 @@ public sealed class OpenCodeUsageEventSource :
     private static void ReadAggregateRows(
         SqliteConnection connection,
         Dictionary<string, Candidate> output,
-        HashSet<string> aggregateSessions,
+        bool hasMessageTable,
         HashSet<string> incompleteSessions,
         LocalScanState state,
         int maximumRows,
         CancellationToken cancellationToken)
     {
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "SELECT id,time_updated,model,cost,tokens_input,tokens_output,tokens_reasoning,tokens_cache_read,tokens_cache_write FROM session WHERE time_updated >= $cutoff LIMIT $limit";
-        command.Parameters.AddWithValue(
-            "$cutoff",
-            DateTimeOffset.UtcNow.AddDays(-LookbackDays).ToUnixTimeMilliseconds());
+        command.CommandText = "SELECT id,time_updated,model,cost,tokens_input,tokens_output,tokens_reasoning,tokens_cache_read,tokens_cache_write FROM session LIMIT $limit";
         command.Parameters.AddWithValue("$limit", checked(maximumRows + 1L));
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
@@ -375,9 +420,33 @@ public sealed class OpenCodeUsageEventSource :
                 if (!TryCost(reader, 3, out decimal parsed)) { state.IsPartial = true; continue; }
                 cost = parsed;
             }
-            aggregateSessions.Add(sessionId);
-            output.TryAdd(sessionId, new Candidate(sessionId, "aggregate", timestamp, reader.GetString(2), new TokenBreakdown(input, outputTokens, reasoning, cacheRead, cacheWrite), cost));
+            if (!TryReadAggregateModel(reader.GetString(2), out string model, out string? provider))
+            {
+                state.IsPartial = true;
+                incompleteSessions.Add(sessionId);
+                continue;
+            }
+            output.TryAdd(sessionId, new Candidate(sessionId, "aggregate", timestamp, model, new TokenBreakdown(input, outputTokens, reasoning, cacheRead, cacheWrite), cost, provider, hasMessageTable));
         }
+    }
+
+    private static bool TryReadAggregateModel(string value, out string model, out string? provider)
+    {
+        model = value.Trim();
+        provider = null;
+        if (!model.StartsWith('{')) return model.Length > 0;
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(model);
+            JsonElement root = document.RootElement;
+            if (!root.TryGetProperty("id", out JsonElement id) || id.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(id.GetString())) return false;
+            model = id.GetString()!;
+            if (root.TryGetProperty("providerID", out JsonElement providerId) && providerId.ValueKind == JsonValueKind.String)
+                provider = providerId.GetString();
+            return true;
+        }
+        catch (JsonException) { return false; }
     }
 
     private void ReadLegacyJson(
@@ -565,7 +634,8 @@ public sealed class OpenCodeUsageEventSource :
             candidate.Cost,
             candidate.Model,
             candidate.Timestamp,
-            candidate.Tokens);
+            candidate.Tokens,
+            perRequestTokenCounters: candidate.MessageId != "aggregate");
         (ModelProviderId? providerId, ModelId modelId) = CreateModelIdentity(candidate.Provider, candidate.Model);
         return new UsageEvent(new UsageEventKey(Hash($"opencode\0{candidate.SessionId}\0{candidate.MessageId}")), AgentId, providerId,
             modelId, candidate.Timestamp, _groupingTimeZoneId, candidate.Tokens, cost, ParserVersion,
@@ -650,7 +720,7 @@ public sealed class OpenCodeUsageEventSource :
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     private static bool IsFileFailure(Exception exception) => exception is IOException or UnauthorizedAccessException or System.Security.SecurityException;
 
-    private sealed record Candidate(string SessionId, string MessageId, DateTimeOffset Timestamp, string Model, TokenBreakdown Tokens, decimal? Cost, string? Provider = null);
+    private sealed record Candidate(string SessionId, string MessageId, DateTimeOffset Timestamp, string Model, TokenBreakdown Tokens, decimal? Cost, string? Provider = null, bool RequiresDetailCoverage = false);
     private sealed class JsonFields
     {
         public string? Id { get; private set; }

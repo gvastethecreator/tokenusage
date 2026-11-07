@@ -73,7 +73,7 @@ public sealed class GrokUsageEventSourceTests
             usageEvent =>
             {
                 Assert.Equal("grok-4.1-fast", usageEvent.ModelId.Value);
-                Assert.Equal(new TokenBreakdown(0, 8, 0, 50, 0), usageEvent.Tokens);
+                Assert.Equal(new TokenBreakdown(0, 8, 0, 40, 0), usageEvent.Tokens);
                 Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
                 Assert.Equal(
                     GrokPricingCatalog.Resolve(
@@ -114,8 +114,10 @@ public sealed class GrokUsageEventSourceTests
                         ["usage"] = new Dictionary<string, object?>
                         {
                             ["inputTokens"] = 100L,
-                            ["outputTokens"] = 20L,
+                            ["outputTokens"] = 30L,
                             ["cachedReadTokens"] = 30L,
+                            ["cacheCreationTokens"] = 15L,
+                            ["reasoningTokens"] = 10L,
                             ["costUsdTicks"] = 1_250_000_000L,
                             ["current_model_id"] = "grok-4.5-build",
                             ["usageIsIncomplete"] = false,
@@ -131,7 +133,8 @@ public sealed class GrokUsageEventSourceTests
         Assert.Equal(
             DateTimeOffset.FromUnixTimeSeconds(timestamp),
             usageEvent.OccurredAtUtc);
-        Assert.Equal(new TokenBreakdown(70, 20, 0, 30, 0), usageEvent.Tokens);
+        Assert.Equal(new TokenBreakdown(55, 20, 10, 30, 15), usageEvent.Tokens);
+        Assert.Equal(130, usageEvent.Tokens.Total);
         Assert.Equal(0.125m, usageEvent.Cost.ReportedCostUsd);
     }
 
@@ -186,7 +189,7 @@ public sealed class GrokUsageEventSourceTests
         UsageEvent second = Assert.Single((await source.ReadAsync()).Events);
 
         Assert.Equal("grok-4.5-build", first.ModelId.Value);
-        Assert.Equal(new TokenBreakdown(0, 4, 0, 40, 0), first.Tokens);
+        Assert.Equal(new TokenBreakdown(0, 4, 0, 25, 0), first.Tokens);
         Assert.Equal(CostKind.CatalogEstimated, first.Cost.Kind);
         Assert.Equal(
             GrokPricingCatalog.Resolve("GROK-4.5-BUILD", first.Tokens).EstimatedCostUsd,
@@ -196,7 +199,7 @@ public sealed class GrokUsageEventSourceTests
     }
 
     [Fact]
-    public async Task SessionFallbackEstimateSkipsTheLongContextSurcharge()
+    public async Task SessionFallbackLeavesAmbiguousContextTierUnpriced()
     {
         using var corpus = new GrokCorpus();
         corpus.WriteSession(
@@ -206,10 +209,8 @@ public sealed class GrokUsageEventSourceTests
         UsageEvent sessionEvent = Assert.Single(
             (await corpus.CreateSource().ReadAsync()).Events);
 
-        // Cumulative session counters never cross a per-request threshold, so
-        // the fallback estimate stays at the base build rate (300k x $1/M).
-        Assert.Equal(CostKind.CatalogEstimated, sessionEvent.Cost.Kind);
-        Assert.Equal(0.302m, sessionEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(CostKind.Unavailable, sessionEvent.Cost.Kind);
+        Assert.Null(sessionEvent.Cost.EstimatedCostUsd);
     }
 
     [Fact]
@@ -240,6 +241,15 @@ public sealed class GrokUsageEventSourceTests
         Assert.Equal(first.OrderBy(item => item.EventKey.Value), second.OrderBy(item => item.EventKey.Value));
         UsageEvent replayed = Assert.Single(second, item => item.Tokens.Input == 100);
         Assert.Equal(10, replayed.Tokens.Output);
+
+        // A parser upgrade must re-read even a file whose checkpoint metadata is unchanged.
+        string checkpoint = Path.Combine(corpus.Root, "checkpoints", "grok-usage.v1.json");
+        File.WriteAllText(checkpoint, File.ReadAllText(checkpoint).Replace(
+            GrokUsageEventSource.ParserVersion, "grok-local/8", StringComparison.Ordinal));
+        UsageEvent reparsed = Assert.Single((await corpus.CreateSource(withCheckpoint: true).ReadAsync()).Events,
+            item => item.Tokens.Input == 999);
+        Assert.Equal(replayed.EventKey, reparsed.EventKey);
+        Assert.Equal(GrokUsageEventSource.ParserVersion, reparsed.ParserVersion);
     }
 
     [Fact]
@@ -411,9 +421,9 @@ public sealed class GrokUsageEventSourceTests
         UsageEvent usageEvent = Assert.Single(result.Events);
 
         Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
-        Assert.Equal(new TokenBreakdown(70, 20, 5, 30, 0), usageEvent.Tokens);
+        Assert.Equal(new TokenBreakdown(70, 15, 5, 30, 0), usageEvent.Tokens);
         Assert.Equal(CostKind.CatalogEstimated, usageEvent.Cost.Kind);
-        Assert.Equal(0.000126m, usageEvent.Cost.EstimatedCostUsd);
+        Assert.Equal(0.000116m, usageEvent.Cost.EstimatedCostUsd);
         Assert.Equal(GrokPricingCatalog.Version, usageEvent.Cost.CatalogVersion);
         Assert.Equal(CoverageKind.Partial, usageEvent.Coverage);
         Assert.Equal(GrokUsageEventSource.ParserVersion, corpus.CreateSource().EventParserVersion);

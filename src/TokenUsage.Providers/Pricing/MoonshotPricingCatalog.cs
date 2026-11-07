@@ -9,12 +9,14 @@ namespace TokenUsage.Providers.Pricing;
 /// </summary>
 public static class MoonshotPricingCatalog
 {
-    public const string Version = "moonshot-api-2026-10-02";
+    public const string Version = "moonshot-api-2026-11-07";
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
         {
             ["kimi-k3"] = new(3m, 0.3m, 15m),
+            ["kimi-k3.1-pro"] = new(2m, 0.2m, 10m),
+            ["kimi-k3.1-pro-highspeed"] = new(4m, 0.2m, 20m),
             ["kimi-k2.7-code"] = new(0.95m, 0.19m, 4m),
             ["kimi-k2.7-code-highspeed"] = new(1.9m, 0.38m, 8m),
             ["kimi-k2.6"] = new(0.95m, 0.16m, 4m),
@@ -34,9 +36,9 @@ public static class MoonshotPricingCatalog
             return CostObservation.Unavailable();
         }
 
-        // K3 cache writes cost $3/MTok for 5 minutes and $6/MTok for 1 hour.
+        // K3-series cache writes have separate 5-minute and 1-hour rates.
         // Generic events retain only their total, so the TTL cannot be recovered.
-        if (normalized == "kimi-k3" && tokens.CacheWrite > 0)
+        if (normalized.StartsWith("kimi-k3", StringComparison.Ordinal) && tokens.CacheWrite > 0)
             return CostObservation.Unavailable();
 
         return CostObservation.CatalogEstimated(

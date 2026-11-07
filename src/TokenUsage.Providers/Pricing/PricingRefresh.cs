@@ -91,11 +91,21 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.Moonshot,
             "moonshot-model-pricing.html",
-            ["kimi-k3", "{\"$\"}3.00", "{\"$\"}6.00", "{\"$\"}0.30", "{\"$\"}15.00", "TTL 5min", "TTL 1h"]),
+            ["kimi-k3", "$3.00 / MTok", "$6.00 / MTok", "$0.30 / MTok", "$15.00 / MTok",
+             "kimi-k3.1-pro", "kimi-k3.1-pro-highspeed", "$2.00 / MTok", "$4.00 / MTok",
+             "$0.20 / MTok", "$10.00 / MTok", "$20.00 / MTok", "$8.00 / MTok", "5m writes", "1h writes"]),
         Define(
             PricingOfficialSources.OpenAi,
             "openai-model-pricing.html",
-            ["GPT-5.6 Sol", "$4.00", "$0.40", "$20.00", "November 21, 2026"]),
+            ["GPT-5.6 Sol", "$4.00", "$0.40", "$20.00", "November 30, 2026"]),
+        Define(
+            PricingOfficialSources.OpenAiTerra,
+            "openai-terra-pricing.html",
+            ["GPT-6.1 Terra", "$1.00", "$0.05", "$1.25", "$5.00", "272K", "1.5x"]),
+        Define(
+            PricingOfficialSources.OpenAiCyberSix,
+            "openai-cyber-six-pricing.html",
+            ["gpt-6-cyber", "$20.00", "$2.00", "$25.00", "$100.00", "short-context"]),
         Define(
             PricingOfficialSources.OpenAiAstra,
             "openai-astra-pricing.html",
@@ -115,7 +125,7 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.Zai,
             "zai-model-pricing.html",
-            ["GLM-5.3-Flash", "$0.15", "$0.03", "$0.50", "GLM-5.3-FlashX"]),
+            ["GLM-5.3-Flash", "$0.15", "$0.03", "$0.50", "GLM-5.3-FlashX", "GLM-5.3-FlashX-Legal"]),
     ];
 
     private static PricingRefreshSourceDefinition Define(

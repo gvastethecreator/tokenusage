@@ -436,7 +436,7 @@ public sealed class OpenCodeUsageEventSourceTests
     }
 
     [Fact]
-    public async Task CurrentDatabaseSkipsRowsOutsideTheDashboardWindow()
+    public async Task CurrentDatabaseImportsRowsOutsideTheDashboardWindow()
     {
         using var corpus = new OpenCodeCorpus();
         corpus.CreateCurrentDatabase((
@@ -452,13 +452,98 @@ public sealed class OpenCodeUsageEventSourceTests
 
         UsageSourceReadResult result = await corpus.CreateSource().ReadAsync();
 
-        Assert.Empty(result.Events);
-        Assert.Equal(UsageSourceReadStatus.NoData, result.Status);
-        Assert.Equal(UsageSourceIssueKind.Empty, result.Issue);
+        Assert.Equal(12, Assert.Single(result.Events).Tokens.Total);
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
     }
 
-    // Fixture timestamps stay relative to the current clock so the reader's
-    // 30-day lookback window can never age a fixed epoch out of the corpus.
+    [Fact]
+    public async Task PublishedModelJsonKeepsProviderIdentityWhenOnlyAggregateIsAvailable()
+    {
+        using var corpus = new OpenCodeCorpus();
+        corpus.CreateCurrentDatabase(("session-a", RecentMs,
+            "{\"id\":\"gpt-5\",\"providerID\":\"openai\",\"variant\":\"high\"}", 1m,
+            100L, 20L, 0L, 0L, 0L));
+
+        UsageEvent usageEvent = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+
+        Assert.Equal("gpt-5", usageEvent.ModelId.Value);
+        Assert.Equal("openai", usageEvent.ModelProviderId?.Value);
+    }
+
+    [Fact]
+    public async Task DetailImportReplacesStoredAggregateAndKeepsHistoryAcrossPruningAndContinuedRefreshes()
+    {
+        using var corpus = new OpenCodeCorpus();
+        long earlier = DateTimeOffset.UtcNow.AddDays(-40).ToUnixTimeMilliseconds();
+        corpus.CreateCurrentDatabase(("session-a", RecentMs, "openai/gpt-5", 1m, 300L, 30L, 0L, 0L, 0L));
+        UsageEvent readAggregate = Assert.Single((await corpus.CreateSource().ReadAsync()).Events);
+        var aggregate = new UsageEvent(readAggregate.EventKey, readAggregate.AgentId, readAggregate.ModelProviderId,
+            readAggregate.ModelId, readAggregate.OccurredAtUtc, "UTC", readAggregate.Tokens, readAggregate.Cost,
+            "opencode-local/3", readAggregate.Coverage);
+        string destination = Path.Combine(corpus.Root, "usage.v1.db");
+        UsageRepository repository = await UsageRepository.OpenAsync(destination);
+        await repository.IngestAsync([aggregate]);
+        corpus.CreateLegacyDatabase(
+            ("message-a", "session-a", earlier, Message("message-a", "openai/gpt-5", 100, 10, 0, 0, 0, 0.2m)),
+            ("message-b", "session-a", RecentMs, Message("message-b", "anthropic/claude-sonnet-4-6", 200, 20, 0, 0, 0, 0.8m)));
+
+        UsageSourceReadResult partial = await corpus.CreateSource(maximumRows: 1).ReadAsync();
+        Assert.Equal(UsageSourceReadStatus.Partial, partial.Status);
+        Assert.Empty(partial.SupersededEventKeys);
+        await new LocalUsageRefresh(destination, corpus.CreateSource(maximumRows: 1), TimeProvider.System).RefreshAsync();
+        Assert.Equal(aggregate.EventKey, Assert.Single(await Stored()).EventKey);
+
+        UsageSourceReadResult complete = await corpus.CreateSource().ReadAsync();
+        Assert.Equal(UsageSourceReadStatus.Complete, complete.Status);
+        Assert.Empty(complete.SupersededEventKeys);
+        Assert.Equal(3, complete.Events.Count);
+        Assert.Equal(0, Assert.Single(complete.Events, item => item.EventKey == aggregate.EventKey).Tokens.Total);
+        Assert.Contains(complete.Events, item => item.OccurredAtUtc == DateTimeOffset.FromUnixTimeMilliseconds(earlier)
+            && item.ModelId.Value == "gpt-5" && item.ModelProviderId?.Value == "openai");
+        Assert.Contains(complete.Events, item => item.ModelId.Value == "claude-sonnet-4-6"
+            && item.ModelProviderId?.Value == "anthropic");
+        var refresh = new LocalUsageRefresh(destination, corpus.CreateSource(), TimeProvider.System);
+        await refresh.RefreshAsync();
+        await refresh.RefreshAsync();
+        IReadOnlyList<UsageEvent> imported = await Stored();
+        Assert.Equal(3, imported.Count);
+        Assert.Equal(330, imported.Sum(item => item.Tokens.Total));
+        Assert.Equal(0, Assert.Single(imported, item => item.EventKey == aggregate.EventKey).Tokens.Total);
+
+        // A complete enumeration of a pruned source does not prove aggregate coverage.
+        using (var connection = new SqliteConnection($"Data Source={Path.Combine(corpus.Root, "opencode.db")};Pooling=False"))
+        {
+            connection.Open();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM message WHERE id = 'message-a'";
+            command.ExecuteNonQuery();
+        }
+        Assert.Equal(UsageSourceReadStatus.Partial, (await refresh.RefreshAsync()).OverallStatus);
+        Assert.Equal(330, (await Stored()).Sum(item => item.Tokens.Total));
+
+        using (var connection = new SqliteConnection($"Data Source={Path.Combine(corpus.Root, "opencode.db")};Pooling=False"))
+        {
+            connection.Open();
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO message VALUES ('message-a','session-a',$earlier,$earlierData);
+                INSERT INTO message VALUES ('message-c','session-a',$time,$data);
+                UPDATE session SET tokens_input = 350, tokens_output = 35, cost = 1.1 WHERE id = 'session-a';
+                """;
+            command.Parameters.AddWithValue("$earlier", earlier);
+            command.Parameters.AddWithValue("$earlierData", Message("message-a", "openai/gpt-5", 100, 10, 0, 0, 0, 0.2m));
+            command.Parameters.AddWithValue("$time", RecentMs + 1);
+            command.Parameters.AddWithValue("$data", Message("message-c", "openai/gpt-5", 50, 5, 0, 0, 0, 0.1m));
+            command.ExecuteNonQuery();
+        }
+        Assert.Equal(UsageSourceReadStatus.Complete, (await refresh.RefreshAsync()).OverallStatus);
+        Assert.Equal(385, (await Stored()).Sum(item => item.Tokens.Total));
+
+        async Task<IReadOnlyList<UsageEvent>> Stored() => await repository.QueryUsageEventsAsync(
+            DateTimeOffset.FromUnixTimeMilliseconds(earlier).AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), new AgentId("opencode"));
+    }
+
+    // Keep fixtures before the current refresh clock.
     private static long RecentMs { get; } = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
 
     private static string Message(string id, string model, long input, long output, long reasoning, long cacheRead, long cacheWrite, decimal? cost) =>

@@ -189,9 +189,37 @@ public sealed class ReportCommandTests
     private static string NormalizeNewlines(string value) =>
         value.Replace("\r\n", "\n", StringComparison.Ordinal);
 
-    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    [Theory]
+    [InlineData(-3, 7)]
+    [InlineData(9, 8)]
+    public async Task RelativeRangeUsesTheLocalCivilDay(int offsetHours, int expectedDay)
+    {
+        var now = new DateTimeOffset(2026, 11, 8, 1, 0, 0, TimeSpan.Zero);
+        TimeZoneInfo zone = TimeZoneInfo.CreateCustomTimeZone(
+            "Report test zone", TimeSpan.FromHours(offsetHours), "Report test zone", "Report test zone");
+        using var output = new StringWriter(CultureInfo.InvariantCulture);
+        int exitCode = await ReportCommand.RunAsync(
+            ["--days", "1", "--format", "json"],
+            output,
+            TextWriter.Null,
+            (from, to, _, _) =>
+            {
+                Assert.Equal(new DateOnly(2026, 11, expectedDay), to);
+                Assert.Equal(to, from);
+                return Task.FromResult(CreateReport());
+            },
+            new FixedTimeProvider(now, zone));
+
+        Assert.Equal(ReportCommand.SuccessExitCode, exitCode);
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal(now, json.RootElement.GetProperty("generatedAt").GetDateTimeOffset());
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now, TimeZoneInfo? zone = null) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+
+        public override TimeZoneInfo LocalTimeZone => zone ?? TimeZoneInfo.Utc;
     }
 
     private sealed class CultureScope : IDisposable

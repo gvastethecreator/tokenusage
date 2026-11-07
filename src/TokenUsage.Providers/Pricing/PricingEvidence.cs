@@ -193,11 +193,12 @@ public static class PricingEvidence
 public static class PricingOfficialSources
 {
     private static readonly DateOnly ReviewDate = new(2026, 10, 19);
+    private static readonly DateOnly CurrentReviewDate = new(2026, 11, 7);
 
     public static PricingSourceEvidence OpenAi { get; } = new(
         "openai-model-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-5.6-sol"),
-        ReviewDate,
+        CurrentReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence OpenAiAstra { get; } = new(
@@ -209,13 +210,25 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence OpenAiFlagship { get; } = new(
         "openai-flagship-pricing",
         new Uri("https://developers.openai.com/api/docs/pricing"),
-        ReviewDate,
+        CurrentReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence OpenAiCyber { get; } = new(
         "openai-cyber-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-5.6-cyber"),
         ReviewDate,
+        PricingBillingScope.DirectProviderApi);
+
+    public static PricingSourceEvidence OpenAiCyberSix { get; } = new(
+        "openai-cyber-six-pricing",
+        new Uri("https://developers.openai.com/api/docs/models/gpt-6-cyber"),
+        CurrentReviewDate,
+        PricingBillingScope.DirectProviderApi);
+
+    public static PricingSourceEvidence OpenAiTerra { get; } = new(
+        "openai-terra-pricing",
+        new Uri("https://developers.openai.com/api/docs/models/gpt-6.1-terra"),
+        CurrentReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Anthropic { get; } = new(
@@ -226,7 +239,7 @@ public static class PricingOfficialSources
 
     public static PricingSourceEvidence Google { get; } = new(
         "google-gemini-api-pricing",
-        new Uri("https://ai.google.dev/gemini-api/docs/pricing"),
+        new Uri("https://aistudio.google.com/docs/pricing"),
         ReviewDate,
         PricingBillingScope.DirectProviderApi);
 
@@ -275,13 +288,13 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence Zai { get; } = new(
         "zai-model-pricing",
         new Uri("https://docs.z.ai/guides/overview/pricing"),
-        ReviewDate,
+        CurrentReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Moonshot { get; } = new(
         "moonshot-model-pricing",
-        new Uri("https://platform.kimi.ai/docs/pricing/chat.md"),
-        ReviewDate,
+        new Uri("https://platform.kimi.ai/docs/pricing/chat"),
+        CurrentReviewDate,
         PricingBillingScope.DirectProviderApi);
 }
 

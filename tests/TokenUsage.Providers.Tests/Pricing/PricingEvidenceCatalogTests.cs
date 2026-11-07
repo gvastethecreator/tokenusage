@@ -148,7 +148,52 @@ public sealed class PricingEvidenceCatalogTests
             PricingEvidenceCatalog.AllRates));
         Assert.False(PricingCatalogAudit.CanReproduce(
             cost,
-            new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero),
             PricingEvidenceCatalog.AllRates.Where(item => item.IsPromotional).ToArray()));
+    }
+
+    [Theory]
+    [InlineData("gpt-6.1-terra", 0.151)]
+    [InlineData("gpt-6-cyber", 3.04)]
+    [InlineData("kimi-k3.1-pro", 0.304)]
+    [InlineData("kimi-k3.1-pro-highspeed", 0.604)]
+    [InlineData("glm-5.3-flashx-legal", 0.051)]
+    public void NovemberModelsUseTheirReviewedInputCacheAndOutputPrices(string model, decimal expectedUsd)
+    {
+        DateTimeOffset occurredAt = new(2026, 11, 7, 0, 0, 0, TimeSpan.Zero);
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            model,
+            occurredAt,
+            new TokenBreakdown(100_000, 10_000, 0, 20_000, 0));
+
+        Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
+        Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
+        PricingRateEvidence evidence = Assert.Single(PricingEvidenceCatalog.AllRates,
+            item => item.CatalogVersion == cost.CatalogVersion && item.ExactPriceMatch == cost.ExactPriceMatch);
+        Assert.Equal(new DateOnly(2026, 11, 7), evidence.Source.ReviewedOn);
+    }
+
+    [Theory]
+    [InlineData("kimi-k3.1-pro")]
+    [InlineData("kimi-k3.1-pro-highspeed")]
+    public void NewKimiCacheWritesRequireTheirRetentionTier(string model)
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            model,
+            new DateTimeOffset(2026, 11, 7, 0, 0, 0, TimeSpan.Zero),
+            new TokenBreakdown(100, 10, 0, 0, 1));
+
+        Assert.Equal(CostKind.Unavailable, cost.Kind);
+    }
+
+    [Fact]
+    public void CyberSixDoesNotInventAnUnpublishedLongContextRate()
+    {
+        CostObservation cost = KnownModelPricingCatalog.Resolve(
+            "gpt-6-cyber",
+            new DateTimeOffset(2026, 11, 7, 0, 0, 0, TimeSpan.Zero),
+            new TokenBreakdown(272_001, 10, 0, 0, 0));
+
+        Assert.Equal(CostKind.Unavailable, cost.Kind);
     }
 }

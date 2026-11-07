@@ -18,7 +18,7 @@ public sealed class GooseUsageEventSource :
     ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "goose-sessions/3";
+    public const string ParserVersion = "goose-sessions/4";
     private const long DefaultMaximumDatabaseBytes = 1024L * 1024 * 1024;
     private readonly string _databasePath;
     private readonly string _groupingTimeZoneId;
@@ -133,6 +133,8 @@ public sealed class GooseUsageEventSource :
                 : "NULL";
         string providerColumn = columns.Contains("provider_name") ? "provider_name" : "NULL";
         string costColumn = columns.Contains("accumulated_cost") ? "accumulated_cost" : "NULL";
+        string cacheReadColumn = columns.Contains("accumulated_cache_read_tokens") ? "accumulated_cache_read_tokens" : "NULL";
+        string cacheWriteColumn = columns.Contains("accumulated_cache_write_tokens") ? "accumulated_cache_write_tokens" : "NULL";
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = $"""
             SELECT
@@ -146,7 +148,9 @@ public sealed class GooseUsageEventSource :
               {Column("accumulated_input_tokens", "input_tokens")},
               {Column("accumulated_output_tokens", "output_tokens")},
               {Column("accumulated_total_tokens", "total_tokens")},
-              {costColumn}
+              {costColumn},
+              {cacheReadColumn},
+              {cacheWriteColumn}
             FROM sessions
             WHERE model_config_json IS NOT NULL
               AND model_config_json != ''
@@ -169,9 +173,12 @@ public sealed class GooseUsageEventSource :
                 break;
             }
 
-            if (TryReadEvent(reader, out UsageEvent? usageEvent) && usageEvent is not null)
+            if (TryReadEvent(reader, out UsageEvent? usageEvent))
             {
-                events.Add(usageEvent);
+                if (usageEvent is not null)
+                {
+                    events.Add(usageEvent);
+                }
             }
             else
             {
@@ -215,22 +222,31 @@ public sealed class GooseUsageEventSource :
             return false;
         }
 
-        long input = GetNonNegativeOrZero(reader, 4);
-        long output = GetNonNegativeOrZero(reader, 5);
-        long total = GetNonNegativeOrZero(reader, 6);
-        long reasoning = total > input + output ? total - input - output : 0;
-        var tokens = new TokenBreakdown(input, output, reasoning, 0, 0);
-        if (tokens.Total == 0)
+        if (!TryNonNegativeTokens(reader, 4, out long input)
+            || !TryNonNegativeTokens(reader, 5, out long output)
+            || !TryNonNegativeTokens(reader, 6, out long total)
+            || !TryNonNegativeTokens(reader, 8, out long recordedCacheRead)
+            || !TryNonNegativeTokens(reader, 9, out long recordedCacheWrite))
         {
             return false;
         }
 
+        long reasoning = total > input + output ? total - input - output : 0;
+        long cacheRead = Math.Min(input, recordedCacheRead);
+        long cacheWrite = Math.Min(input - cacheRead, recordedCacheWrite);
+        var tokens = new TokenBreakdown(input - cacheRead - cacheWrite, output, reasoning, cacheRead, cacheWrite);
         bool hasCost = TryNonNegativeDecimal(reader, 7, out decimal costUsd);
+        if (tokens.Total == 0 && !(hasCost && costUsd > 0m))
+        {
+            return reader.IsDBNull(7) || (hasCost && costUsd == 0m);
+        }
+
         CostObservation cost = KnownModelPricingCatalog.ResolveReportedOrCatalog(
             hasCost ? costUsd : null,
             model,
             timestamp,
-            tokens);
+            tokens,
+            perRequestTokenCounters: false);
         string provider = reader.IsDBNull(3)
             ? string.Empty
             : reader.GetString(3);
@@ -314,24 +330,21 @@ public sealed class GooseUsageEventSource :
         return false;
     }
 
-    private static long GetNonNegativeOrZero(SqliteDataReader reader, int ordinal)
+    private static bool TryNonNegativeTokens(SqliteDataReader reader, int ordinal, out long value)
     {
+        value = 0;
         if (reader.IsDBNull(ordinal))
         {
-            return 0;
+            return true;
         }
 
-        try
+        if (reader.GetValue(ordinal) is long count && count >= 0)
         {
-            long value = Convert.ToInt64(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
-            return value >= 0 ? value : 0;
+            value = count;
+            return true;
         }
-        catch (Exception exception) when (exception is FormatException
-                                           or InvalidCastException
-                                           or OverflowException)
-        {
-            return 0;
-        }
+
+        return false;
     }
 
     private static bool TryNonNegativeDecimal(

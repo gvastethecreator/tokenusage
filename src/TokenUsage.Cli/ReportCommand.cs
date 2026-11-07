@@ -55,7 +55,7 @@ public static class ReportCommand
         DateTimeOffset generatedAt = clock.GetUtcNow().ToUniversalTime();
         generatedAt = generatedAt.AddTicks(-(generatedAt.Ticks % TimeSpan.TicksPerSecond));
         DateOnly toInclusive = options.To
-            ?? DateOnly.FromDateTime(generatedAt.UtcDateTime);
+            ?? DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(generatedAt, clock.LocalTimeZone).DateTime);
         DateOnly fromInclusive = options.From
             ?? toInclusive.AddDays(-(options.Days - 1));
         int days = toInclusive.DayNumber - fromInclusive.DayNumber + 1;

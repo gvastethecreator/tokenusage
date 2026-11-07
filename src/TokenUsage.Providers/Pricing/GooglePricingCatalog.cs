@@ -81,7 +81,8 @@ public static class GooglePricingCatalog
     public static CostObservation Resolve(
         string model,
         TokenBreakdown tokens,
-        DateTimeOffset? occurredAtUtc = null)
+        DateTimeOffset? occurredAtUtc = null,
+        bool perRequestTokenCounters = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(tokens);
@@ -105,6 +106,10 @@ public static class GooglePricingCatalog
         bool longContext = tier is not null
             && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
                 > LongContextThreshold;
+        if (longContext && !perRequestTokenCounters)
+        {
+            return CostObservation.Unavailable();
+        }
         decimal inputRate = longContext ? tier!.Input : rates.Input;
         decimal cacheRate = longContext ? tier!.CacheRead : rates.CacheRead;
         decimal outputRate = longContext ? tier!.Output : rates.Output;

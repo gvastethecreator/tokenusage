@@ -3,11 +3,36 @@
 The 2026-10-12 review checked all 13 official sources and their current model
 price tables. It corrected Sonnet 5.5 cache reads from $0.20 to $0.10 per million
 tokens in `anthropic-api-2026-10-12`. Other rates and effective dates are unchanged.
-The refresh now reads the official Markdown documents for Anthropic and Kimi.
-Anthropic's HTML page exceeds the 1 MiB bound. Kimi's Markdown exposes the exact
-table values, including its JSX currency markup. Manual inspection confirmed K3:
+The refresh reads Anthropic's official Markdown document because its HTML page
+exceeds the 1 MiB bound. The November review switched Kimi to its bounded
+official HTML pricing page: its Markdown now omits the pricing tables, while
+the HTML includes their compiled table data. Manual inspection confirmed K3:
 $3 input, $0.30 cached input, $15 output, and $3/$6 cache writes for 5min/1h.
 Markers alone do not prove that every price belongs to the expected model row.
+
+The 2026-11-07 review added these direct API rates per million tokens:
+
+| Model | Input | Cached input | Output | Official source |
+| --- | ---: | ---: | ---: | --- |
+| GPT-6.1 Terra | $1 | $0.05 | $5 | [OpenAI](https://developers.openai.com/api/docs/models/gpt-6.1-terra) |
+| GPT-6 Cyber | $20 | $2 | $100 | [OpenAI](https://developers.openai.com/api/docs/models/gpt-6-cyber) |
+| Kimi K3.1 Pro | $2 | $0.20 | $10 | [Kimi](https://platform.kimi.ai/docs/pricing/chat) |
+| Kimi K3.1 Pro Highspeed | $4 | $0.20 | $20 | [Kimi](https://platform.kimi.ai/docs/pricing/chat) |
+| GLM-5.3-FlashX-Legal | $0.37 | $0.075 | $1.25 | [Z.ai](https://docs.z.ai/guides/overview/pricing) |
+
+Their catalog versions are `openai-api-2026-11-07`, `moonshot-api-2026-11-07`,
+and `zai-api-2026-11-07`. Terra doubles input and cache rates above 272,000
+prompt tokens and multiplies output by 1.5. OpenAI publishes no long-context
+Cyber 6 rate, so those requests stay unpriced. Session totals above a model's
+context threshold also stay unpriced when their individual request sizes are
+unknown. Smaller totals can use the base rate. Updating the catalog does not
+rewrite the usage database. A later accepted provider snapshot can correct its
+own observations and estimates through the existing reconciliation rules.
+
+OpenAI cache-write estimates use the published 30-minute Standard rate. Terra's
+rate is $1.25 and Cyber 6's is $25 per million tokens before any context
+adjustment. Their 12-hour rates are $2.50 and $50. The local token records do
+not identify retention, so these estimates cannot establish a 12-hour charge.
 
 TokenUsage estimates raw API value only when a local event contains a concrete
 model and numeric token counters. It does not treat an API estimate as a
@@ -28,7 +53,7 @@ GPT-6 Astra uses the [official OpenAI rates](https://developers.openai.com/api/d
 reviewed on 2026-10-02: $10 input, $1 cached input, $12.50 cache writes, and
 $50 output per million tokens. Input and cache rates double above 272,000 prompt
 tokens. Output, including reasoning, then uses 1.5 times the standard rate.
-The current catalog version is `openai-api-2026-10-02`.
+The current catalog version is `openai-api-2026-11-07`.
 
 GPT-6 Sol and GPT-6 Luna use the [official flagship rates](https://developers.openai.com/api/docs/pricing),
 reviewed on 2026-09-22. Sol is $2 input, $0.20 cached input, $2.50 cache writes,
@@ -95,22 +120,26 @@ at $4 input, $0.20 cache reads, and $20 output. Neither new Cursor entry
 charges cache writes. Muse Wonder has no long-context multiplier. These
 host-specific rates belong to `cursor-models-2026-10-19`.
 
-[Google's direct Gemini 4 Argon rates](https://ai.google.dev/gemini-api/docs/pricing)
+[Google's direct Gemini 4 Argon rates](https://aistudio.google.com/docs/pricing)
 are $2 input, $0.10 cache reads, and $10 output through November 30, 2026.
 They become $4, $0.20, and $20 on December 1, 2026. The
 `google-api-2026-10-19` catalog applies that published transition separately
 from Cursor's rates. Argon uses implicit caching and has no long-context
-multiplier. All 15 pricing sources were reviewed on 2026-10-19.
+multiplier. That review checked the 15 pricing sources then configured on 2026-10-19.
+The November review updated the OpenAI Sol and flagship sources, Kimi, and Z.ai,
+and added dedicated Terra and Cyber 6 sources. Other source review dates remain
+unchanged.
 
 [Kimi K3](https://platform.kimi.ai/docs/pricing/chat) charges $3 per million
-five-minute cache writes and $6 for one-hour writes. Generic local events do
-not retain that duration, so K3 events with cache writes stay unpriced unless
-the source reports a cost. Other Kimi rates are unchanged. The catalog version
-is `moonshot-api-2026-10-02`.
+five-minute cache writes and $6 for one-hour writes. K3.1 Pro charges $2/$4,
+and Pro Highspeed charges $4/$8 for the same durations. Generic local events do
+not retain that duration, so K3-series events with cache writes stay unpriced
+unless the source reports a cost. Other Kimi rates are unchanged. The catalog
+version is `moonshot-api-2026-11-07`.
 
 [GPT-5.6 Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol) guarantees
-its current promotional rates at least through November 21, 2026. No successor
-rate is published. Events from November 22 stay unpriced until a rate is
+its current promotional rates through November 30, 2026. No successor
+rate is published. Events from December 1 stay unpriced until a rate is
 verified. The audit flags this evidence deadline; it does not infer a price rise.
 
 Astra remains a model within each agent's usage. Its addition does not create

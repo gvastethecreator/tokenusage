@@ -14,7 +14,7 @@ public sealed class GrokUsageEventSource :
     IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "grok-local/8";
+    public const string ParserVersion = "grok-local/9";
 
     /// <summary>
     /// Stands in for the model of a turn the log does not name. It matches no catalog rate, so the
@@ -443,7 +443,8 @@ public sealed class GrokUsageEventSource :
             long output = GetNonNegativeInt64OrZero(context, "completion_tokens");
             long reasoning = GetNonNegativeInt64OrZero(context, "reasoning_tokens");
             cacheRead = Math.Min(cacheRead, input);
-            TokenBreakdown tokens = new(input - cacheRead, output, reasoning, cacheRead, 0);
+            reasoning = Math.Min(reasoning, output);
+            TokenBreakdown tokens = new(input - cacheRead, output - reasoning, reasoning, cacheRead, 0);
             read.Events.Add(CreateEvent(
                 $"grok-unified\0{lineNumber}",
                 model,
@@ -650,16 +651,20 @@ public sealed class GrokUsageEventSource :
             "reasoning_tokens");
         long cacheWrite = GetFirstNonNegativeInt64OrZero(
             usage,
+            "cacheCreationTokens",
             "cacheWriteTokens",
             "cacheWriteInputTokens",
             "cache_write_input_tokens");
         long? costTicks = TryGetNonNegativeInt64(usage, "costUsdTicks", out long parsedCost)
             ? parsedCost
             : null;
+        cacheRead = Math.Min(cacheRead, input);
+        cacheWrite = Math.Min(cacheWrite, input - cacheRead);
+        reasoning = Math.Min(reasoning, output);
         return new Counters(
             new TokenBreakdown(
-                Math.Max(input - cacheRead, 0),
-                output,
+                input - cacheRead - cacheWrite,
+                output - reasoning,
                 reasoning,
                 cacheRead,
                 cacheWrite),

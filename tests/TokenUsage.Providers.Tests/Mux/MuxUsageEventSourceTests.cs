@@ -22,6 +22,48 @@ public sealed class MuxUsageEventSourceTests
         Assert.Empty(result.Events);
     }
 
+    [Theory]
+    [InlineData(".xum", false)]
+    [InlineData(".mux", false)]
+    [InlineData(".cmux", false)]
+    [InlineData(".mux", true)]
+    public async Task PublishedHomeSelectionReadsOneActiveRoot(string activeHome, bool markedLegacy)
+    {
+        using var folder = new TemporaryFolder();
+        if (markedLegacy)
+        {
+            Directory.CreateDirectory(Path.Combine(folder.Path, ".xum"));
+            File.WriteAllText(Path.Combine(folder.Path, ".xum.legacy-fallback"), activeHome + "\n");
+        }
+        string session = Directory.CreateDirectory(Path.Combine(folder.Path, activeHome, "sessions", "workspace-1")).FullName;
+        File.WriteAllText(Path.Combine(session, "session-usage.json"), """
+            {"version":1,"byModel":{"openai:gpt-5":{"input":{"tokens":100},"output":{"tokens":20}}},"lastRequest":{"timestamp":1794016860000}}
+            """);
+
+        UsageSourceReadResult result = await new MuxUsageEventSource("UTC", homeDirectory: folder.Path).ReadAsync();
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(120, Assert.Single(result.Events).Tokens.Total);
+    }
+
+    [Fact]
+    public async Task PopulatedCanonicalHomeWinsOverLegacyHomeAndMarker()
+    {
+        using var folder = new TemporaryFolder();
+        string canonical = Directory.CreateDirectory(Path.Combine(folder.Path, ".xum", "sessions")).FullName;
+        Directory.CreateDirectory(Path.Combine(folder.Path, ".mux", "sessions", "workspace-legacy"));
+        File.WriteAllText(Path.Combine(folder.Path, ".xum.legacy-fallback"), ".mux");
+        string session = Directory.CreateDirectory(Path.Combine(canonical, "workspace-current")).FullName;
+        File.WriteAllText(Path.Combine(session, "session-usage.json"), """
+            {"version":1,"byModel":{"openai:gpt-5":{"input":{"tokens":100},"output":{"tokens":20}}},"lastRequest":{"timestamp":1794016860000}}
+            """);
+
+        UsageSourceReadResult result = await new MuxUsageEventSource("UTC", homeDirectory: folder.Path).ReadAsync();
+
+        Assert.Equal(UsageSourceReadStatus.Complete, result.Status);
+        Assert.Equal(120, Assert.Single(result.Events).Tokens.Total);
+    }
+
     [Fact]
     public async Task ReadsAggregateTokensAndProviderReportedCost()
     {

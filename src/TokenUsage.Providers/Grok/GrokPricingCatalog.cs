@@ -56,6 +56,13 @@ public static class GrokPricingCatalog
         }
 
         long promptTokens = checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite);
+        bool longContext = rates.HasLongContext && promptTokens >= LongContextThreshold
+            || rates.PriceMatch == "grok-4.7-fast" && promptTokens > LongContextThreshold;
+        if (!applyLongContextSurcharge && longContext)
+        {
+            // Session totals do not reveal any individual request's context length.
+            return CostObservation.Unavailable();
+        }
         decimal multiplier = 1m;
         if (applyLongContextSurcharge
             && rates.PriceMatch == "grok-4.7-fast"

@@ -84,10 +84,10 @@ public sealed class CodexUsageEventSourceTests
     {
         using var corpus = new CodexCorpus();
         string promoPath = corpus.WriteSession("promo", Context("gpt-5.6-sol"),
-            Usage("2026-11-21T12:00:00Z", 100_000, 0, 10_000, 0));
+            Usage("2026-11-30T12:00:00Z", 100_000, 0, 10_000, 0));
         string listPath = corpus.WriteSession("list", Context("gpt-5.6-sol"),
-            Usage("2026-11-22T12:00:00Z", 100_000, 0, 10_000, 0));
-        DateTimeOffset observedAt = new(2026, 11, 23, 0, 0, 0, TimeSpan.Zero);
+            Usage("2026-12-01T12:00:00Z", 100_000, 0, 10_000, 0));
+        DateTimeOffset observedAt = new(2026, 12, 2, 0, 0, 0, TimeSpan.Zero);
         File.SetLastWriteTimeUtc(promoPath, observedAt.UtcDateTime);
         File.SetLastWriteTimeUtc(listPath, observedAt.UtcDateTime);
         var usage = new CodexTokenUsageSnapshot(

@@ -87,12 +87,12 @@ public static class KnownModelPricingCatalog
         if (normalized.StartsWith("gpt-", StringComparison.Ordinal)
             || normalized.StartsWith('o'))
         {
-            return CodexPricingCatalog.Resolve(normalized, tokens, occurredAtUtc);
+            return CodexPricingCatalog.Resolve(normalized, tokens, occurredAtUtc, perRequestTokenCounters);
         }
 
         if (normalized.Contains("gemini", StringComparison.Ordinal))
         {
-            return GooglePricingCatalog.Resolve(normalized, tokens, occurredAtUtc);
+            return GooglePricingCatalog.Resolve(normalized, tokens, occurredAtUtc, perRequestTokenCounters);
         }
 
         if (normalized.Contains("grok", StringComparison.Ordinal)

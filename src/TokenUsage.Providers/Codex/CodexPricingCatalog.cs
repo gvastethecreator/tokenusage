@@ -6,13 +6,13 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-10-02";
+    public const string Version = "openai-api-2026-11-07";
     private const long LongContextThreshold = 272_000;
 
-    // The official page guarantees this promotion through November 21, but
+    // The official page guarantees this promotion through November 30, but
     // publishes no successor rate. Later observations require new evidence.
     private static readonly DateTimeOffset SolReviewDueUtc =
-        new(2026, 11, 22, 0, 0, 0, TimeSpan.Zero);
+        new(2026, 12, 1, 0, 0, 0, TimeSpan.Zero);
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new(StringComparer.Ordinal)
@@ -39,9 +39,11 @@ public static class CodexPricingCatalog
             ["gpt-5.6-sol"] = new("gpt-5.6-sol", 4m, 0.4m, 20m, 5m, true),
             ["gpt-5.6-terra"] = new("gpt-5.6-terra", 2m, 0.2m, 12m, 2.5m, true),
             ["gpt-6-astra"] = new("gpt-6-astra", 10m, 1m, 50m, 12.5m, true),
+            ["gpt-6-cyber"] = new("gpt-6-cyber", 20m, 2m, 100m, 25m, true),
             ["gpt-6-luna"] = new("gpt-6-luna", 0.10m, 0.01m, 0.50m, 0.125m, true),
             ["gpt-6-sol"] = new("gpt-6-sol", 2m, 0.20m, 10m, 2.5m, true),
             ["gpt-6.1-sol"] = new("gpt-6.1-sol", 2m, 0.10m, 10m, 2.5m, true),
+            ["gpt-6.1-terra"] = new("gpt-6.1-terra", 1m, 0.05m, 5m, 1.25m, true),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -50,7 +52,8 @@ public static class CodexPricingCatalog
     public static CostObservation Resolve(
         string model,
         TokenBreakdown tokens,
-        DateTimeOffset? occurredAtUtc = null)
+        DateTimeOffset? occurredAtUtc = null,
+        bool perRequestTokenCounters = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(tokens);
@@ -73,6 +76,11 @@ public static class CodexPricingCatalog
             && checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
                 > LongContextThreshold)
         {
+            // A session total does not identify any individual request's tier.
+            // Cyber's published table contains no long-context rate.
+            if (!perRequestTokenCounters || rates.PriceMatch == "gpt-6-cyber")
+                return CostObservation.Unavailable();
+
             inputMultiplier = 2m;
             outputMultiplier = 1.5m;
         }
@@ -157,6 +165,8 @@ public static class CodexPricingCatalog
                     priceMatch switch
                     {
                         "gpt-5.6-cyber" => PricingOfficialSources.OpenAiCyber,
+                        "gpt-6-cyber" => PricingOfficialSources.OpenAiCyberSix,
+                        "gpt-6.1-terra" => PricingOfficialSources.OpenAiTerra,
                         "gpt-6-astra" => PricingOfficialSources.OpenAiAstra,
                         "gpt-6-sol" or "gpt-6.1-sol" or "gpt-6-luna" => PricingOfficialSources.OpenAiFlagship,
                         _ => PricingOfficialSources.OpenAi,

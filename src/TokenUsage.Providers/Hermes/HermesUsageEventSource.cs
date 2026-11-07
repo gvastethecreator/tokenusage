@@ -17,10 +17,12 @@ public sealed class HermesUsageEventSource :
     ISnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
-    public const string ParserVersion = "hermes-state/3";
+    public const string ParserVersion = "hermes-state/4";
     private const int DefaultMaximumDatabases = 100;
     private const int DefaultMaximumRows = 100_000;
     private const long DefaultMaximumDatabaseBytes = 1024L * 1024 * 1024;
+    private static readonly string[] TokenColumnNames =
+        ["input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_write_tokens"];
     private readonly string _homeDirectory;
     private readonly string _groupingTimeZoneId;
     private readonly int _maximumDatabases;
@@ -229,24 +231,74 @@ public sealed class HermesUsageEventSource :
 
         string NumberColumn(string name) => columns.Contains(name) ? name : "0";
         string NullableColumn(string name) => columns.Contains(name) ? name : "NULL";
+        HashSet<string> modelColumns = LocalUsageSqlite.GetColumns(connection, "session_model_usage", cancellationToken);
+        bool hasModelUsage = modelColumns.Count > 0;
+        if (hasModelUsage && !HasColumns(modelColumns,
+                "session_id", "model", "billing_provider", "billing_base_url", "billing_mode", "task",
+                "input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_write_tokens",
+                "actual_cost_usd", "first_seen", "last_seen"))
+        {
+            return false;
+        }
+
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = $"""
+        string sessionQuery = $"""
             SELECT
               id,
-              {NullableColumn("model")},
-              {NullableColumn("billing_provider")},
-              {NumberColumn("input_tokens")},
-              {NumberColumn("output_tokens")},
-              {NumberColumn("reasoning_tokens")},
-              {NumberColumn("cache_read_tokens")},
-              {NumberColumn("cache_write_tokens")},
-              {NullableColumn("actual_cost_usd")},
-              {NullableColumn("ended_at")},
-              {NullableColumn("started_at")}
+              {NullableColumn("model")} AS model,
+              {NullableColumn("billing_provider")} AS billing_provider,
+              {NumberColumn("input_tokens")} AS input_tokens,
+              {NumberColumn("output_tokens")} AS output_tokens,
+              {NumberColumn("reasoning_tokens")} AS reasoning_tokens,
+              {NumberColumn("cache_read_tokens")} AS cache_read_tokens,
+              {NumberColumn("cache_write_tokens")} AS cache_write_tokens,
+              {NullableColumn("actual_cost_usd")} AS actual_cost_usd,
+              {NullableColumn("ended_at")} AS ended_at,
+              {NullableColumn("started_at")} AS started_at,
+              NULL AS billing_base_url, NULL AS billing_mode, NULL AS task,
+              0 AS is_route, 0 AS has_routes, 1 AS valid_counters
             FROM sessions
-            ORDER BY id
-            LIMIT $limit
             """;
+        // Hermes records incremental routes separately; absolute cumulative updates
+        // remain only in sessions. Reconcile that residual rather than adding both totals.
+        // The writer includes main-loop and voice_chat usage in sessions; auxiliary
+        // tasks such as title_generation update only session_model_usage.
+        string validSessionCounters = string.Join(" AND ",
+            TokenColumnNames
+                .Select(name => $"(s.{name} IS NULL OR (typeof(s.{name}) = 'integer' AND s.{name} >= 0))"));
+        command.CommandText = hasModelUsage ? $"""
+            WITH session_totals AS ({sessionQuery}),
+            route_totals AS (
+              SELECT session_id,
+                SUM(CASE WHEN task IN ('', 'voice_chat') THEN input_tokens ELSE 0 END) AS input_tokens,
+                SUM(CASE WHEN task IN ('', 'voice_chat') THEN output_tokens ELSE 0 END) AS output_tokens,
+                SUM(CASE WHEN task IN ('', 'voice_chat') THEN reasoning_tokens ELSE 0 END) AS reasoning_tokens,
+                SUM(CASE WHEN task IN ('', 'voice_chat') THEN cache_read_tokens ELSE 0 END) AS cache_read_tokens,
+                SUM(CASE WHEN task IN ('', 'voice_chat') THEN cache_write_tokens ELSE 0 END) AS cache_write_tokens,
+                SUM(CASE WHEN task IN ('', 'voice_chat') THEN actual_cost_usd ELSE 0 END) AS actual_cost_usd,
+                COUNT(*) AS route_count
+              FROM session_model_usage
+              GROUP BY session_id
+            ), observations AS (
+              SELECT s.id, u.model, u.billing_provider, u.input_tokens, u.output_tokens, u.reasoning_tokens,
+                u.cache_read_tokens, u.cache_write_tokens, u.actual_cost_usd,
+                COALESCE(u.last_seen, s.ended_at), COALESCE(u.first_seen, s.started_at),
+                u.billing_base_url, u.billing_mode, u.task, 1, 0, 1
+              FROM session_model_usage u JOIN session_totals s ON s.id = u.session_id
+              UNION ALL
+              SELECT s.id, s.model, s.billing_provider,
+                MAX(0, COALESCE(s.input_tokens, 0) - COALESCE(r.input_tokens, 0)),
+                MAX(0, COALESCE(s.output_tokens, 0) - COALESCE(r.output_tokens, 0)),
+                MAX(0, COALESCE(s.reasoning_tokens, 0) - COALESCE(r.reasoning_tokens, 0)),
+                MAX(0, COALESCE(s.cache_read_tokens, 0) - COALESCE(r.cache_read_tokens, 0)),
+                MAX(0, COALESCE(s.cache_write_tokens, 0) - COALESCE(r.cache_write_tokens, 0)),
+                MAX(0, COALESCE(s.actual_cost_usd, 0) - COALESCE(r.actual_cost_usd, 0)),
+                s.ended_at, s.started_at, NULL, NULL, NULL, 0, COALESCE(r.route_count, 0),
+                CASE WHEN {validSessionCounters} THEN 1 ELSE 0 END
+              FROM session_totals s LEFT JOIN route_totals r ON r.session_id = s.id
+            )
+            SELECT * FROM observations ORDER BY 1, 15, 2, 3, 12, 13, 14 LIMIT $limit
+            """ : $"{sessionQuery} ORDER BY id LIMIT $limit";
         command.Parameters.AddWithValue("$limit", checked(_maximumRows + 1L));
         using CancellationTokenRegistration registration = cancellationToken.Register(command.Cancel);
         using SqliteDataReader reader = command.ExecuteReader();
@@ -261,10 +313,12 @@ public sealed class HermesUsageEventSource :
                 break;
             }
 
-            if (TryCreateEvent(reader, databasePath, out UsageEvent? usageEvent)
-                && usageEvent is not null)
+            if (TryCreateEvent(reader, databasePath, out UsageEvent? usageEvent))
             {
-                output[usageEvent.EventKey.Value] = usageEvent;
+                if (usageEvent is not null)
+                {
+                    output[usageEvent.EventKey.Value] = usageEvent;
+                }
             }
             else
             {
@@ -297,24 +351,38 @@ public sealed class HermesUsageEventSource :
             return false;
         }
 
+        if (reader.GetInt64(16) == 0
+            || !TryNonNegativeTokens(reader, 3, out long input)
+            || !TryNonNegativeTokens(reader, 4, out long output)
+            || !TryNonNegativeTokens(reader, 5, out long recordedReasoning)
+            || !TryNonNegativeTokens(reader, 6, out long cacheRead)
+            || !TryNonNegativeTokens(reader, 7, out long cacheWrite))
+        {
+            return false;
+        }
+
+        long reasoning = Math.Min(output, recordedReasoning);
+        var tokens = new TokenBreakdown(
+            input,
+            output - reasoning,
+            reasoning,
+            cacheRead,
+            cacheWrite);
+        // Keep the original session identity as its residual, even at zero, so
+        // re-import replaces older aggregate observations and future totals can grow.
+        bool isResidual = reader.GetInt64(15) > 0;
+        bool hasReportedCost = TryNonNegativeDecimal(reader, 8, out decimal reportedCost);
+        if (tokens.Total == 0 && !isResidual && !(hasReportedCost && reportedCost > 0m))
+        {
+            return reader.IsDBNull(8) || (hasReportedCost && reportedCost == 0m);
+        }
+
         if (!TryTimestamp(reader, 9, out DateTimeOffset timestamp)
             && !TryTimestamp(reader, 10, out timestamp))
         {
             return false;
         }
 
-        var tokens = new TokenBreakdown(
-            GetNonNegativeOrZero(reader, 3),
-            GetNonNegativeOrZero(reader, 4),
-            GetNonNegativeOrZero(reader, 5),
-            GetNonNegativeOrZero(reader, 6),
-            GetNonNegativeOrZero(reader, 7));
-        if (tokens.Total == 0)
-        {
-            return false;
-        }
-
-        bool hasReportedCost = TryNonNegativeDecimal(reader, 8, out decimal reportedCost);
         CostObservation cost = hasReportedCost && reportedCost > 0m
             ? CostObservation.ProviderReported(decimal.Round(
                 reportedCost,
@@ -322,10 +390,13 @@ public sealed class HermesUsageEventSource :
                 MidpointRounding.AwayFromZero))
             : string.Equals(model, "unknown", StringComparison.OrdinalIgnoreCase)
                 ? CostObservation.Unavailable()
-                : KnownModelPricingCatalog.Resolve(model, timestamp, tokens);
+                : KnownModelPricingCatalog.Resolve(model, timestamp, tokens, perRequestTokenCounters: false);
         string provider = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+        string identity = reader.GetInt64(14) == 0
+            ? $"hermes\0{databasePath}\0{sessionId}"
+            : $"hermes-model\0{databasePath}\0{sessionId}\0{model}\0{provider}\0{reader.GetString(11)}\0{reader.GetString(12)}\0{reader.GetString(13)}";
         usageEvent = new UsageEvent(
-            new UsageEventKey(Hash($"hermes\0{databasePath}\0{sessionId}")),
+            new UsageEventKey(Hash(identity)),
             AgentId,
             ModelIdentity.TryProviderId(provider),
             ModelIdentity.ToModelId(model),
@@ -334,7 +405,7 @@ public sealed class HermesUsageEventSource :
             tokens,
             cost,
             ParserVersion,
-            cost.Kind switch
+            isResidual ? CoverageKind.Partial : cost.Kind switch
             {
                 CostKind.ProviderReported => CoverageKind.Complete,
                 CostKind.CatalogEstimated => CoverageKind.Partial,
@@ -392,24 +463,21 @@ public sealed class HermesUsageEventSource :
         }
     }
 
-    private static long GetNonNegativeOrZero(SqliteDataReader reader, int ordinal)
+    private static bool TryNonNegativeTokens(SqliteDataReader reader, int ordinal, out long value)
     {
+        value = 0;
         if (reader.IsDBNull(ordinal))
         {
-            return 0;
+            return true;
         }
 
-        try
+        if (reader.GetValue(ordinal) is long count && count >= 0)
         {
-            long value = Convert.ToInt64(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
-            return value >= 0 ? value : 0;
+            value = count;
+            return true;
         }
-        catch (Exception exception) when (exception is FormatException
-                                           or InvalidCastException
-                                           or OverflowException)
-        {
-            return 0;
-        }
+
+        return false;
     }
 
     private static bool TryNonNegativeDecimal(

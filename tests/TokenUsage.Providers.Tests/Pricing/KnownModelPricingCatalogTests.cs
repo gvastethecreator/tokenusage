@@ -83,12 +83,12 @@ public sealed class KnownModelPricingCatalogTests
     [Theory]
     [InlineData("composer-2.5", "cursor-models-2026-10-19")]
     [InlineData("claude-4.5-sonnet", "anthropic-api-2026-10-12")]
-    [InlineData("gpt-5.1-codex", "openai-api-2026-10-02")]
+    [InlineData("gpt-5.1-codex", "openai-api-2026-11-07")]
     [InlineData("gemini-3.6-flash", "google-api-2026-10-19")]
     [InlineData("gemini-3.8-flash", "google-api-2026-10-19")]
     [InlineData("gemini-4-argon", "google-api-2026-10-19")]
-    [InlineData("glm-5.3-flash", "zai-api-2026-09-22")]
-    [InlineData("kimi-k3", "moonshot-api-2026-10-02")]
+    [InlineData("glm-5.3-flash", "zai-api-2026-11-07")]
+    [InlineData("kimi-k3", "moonshot-api-2026-11-07")]
     public void UsesTheOfficialCatalogVersion(string model, string catalogVersion)
     {
         CostObservation cost = KnownModelPricingCatalog.Resolve(
@@ -419,6 +419,25 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(0.123m, reported.ReportedCostUsd);
     }
 
+    [Theory]
+    [InlineData("gpt-6.1-sol", 272_000, 0.544)]
+    [InlineData("gemini-2.5-pro", 200_000, 0.25)]
+    [InlineData("grok-4.5", 199_999, 0.399998)]
+    [InlineData("grok-4.7-fast", 200_000, 0.8)]
+    public void SessionTotalsDoNotInventAPerRequestContextTier(string model, long lastCertainInput, decimal expectedUsd)
+    {
+        var date = new DateTimeOffset(2026, 11, 7, 0, 0, 0, TimeSpan.Zero);
+        CostObservation small = KnownModelPricingCatalog.Resolve(
+            model, date, new TokenBreakdown(lastCertainInput, 0, 0, 0, 0), perRequestTokenCounters: false);
+        Assert.Equal(expectedUsd, small.EstimatedCostUsd);
+
+        var ambiguous = new TokenBreakdown(lastCertainInput + 1, 0, 0, 0, 0);
+        Assert.Equal(CostKind.Unavailable,
+            KnownModelPricingCatalog.Resolve(model, date, ambiguous, perRequestTokenCounters: false).Kind);
+        Assert.Equal(CostKind.CatalogEstimated,
+            KnownModelPricingCatalog.Resolve(model, date, ambiguous, perRequestTokenCounters: true).Kind);
+    }
+
     [Fact]
     public void ClaudeFastFlagOnAModelWithoutAFastEntryKeepsBaseRates()
     {
@@ -505,7 +524,9 @@ public sealed class KnownModelPricingCatalogTests
 
     [Theory]
     [InlineData("2026-11-21T12:00:00Z", "0.6")]
-    [InlineData("2026-11-22T00:00:00Z", null)]
+    [InlineData("2026-11-22T00:00:00Z", "0.6")]
+    [InlineData("2026-11-30T23:59:59Z", "0.6")]
+    [InlineData("2026-12-01T00:00:00Z", null)]
     public void GptFiveSixSolRequiresVerifiedRatesAfterThePromoCutoff(
         string occurredAt,
         string? expectedUsd)
