@@ -27,8 +27,11 @@ public sealed class PricingWorkflowContractTests
             StringComparison.Ordinal);
         Assert.Contains("pricing refresh --update", workflow, StringComparison.Ordinal);
         Assert.Contains("fetch-depth: 0", workflow, StringComparison.Ordinal);
-        Assert.Contains("git rebase origin/main", workflow, StringComparison.Ordinal);
-        Assert.Contains("git push --force-with-lease", workflow, StringComparison.Ordinal);
+        Assert.Contains("ref: main", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("git rebase", workflow, StringComparison.Ordinal);
+        Assert.Contains(":!docs/pricing-refresh.md", workflow, StringComparison.Ordinal);
+        Assert.Contains("--force-with-lease=refs/heads/", workflow, StringComparison.Ordinal);
+        Assert.Contains("$env:EXPECTED_HEAD", workflow, StringComparison.Ordinal);
         Assert.Contains("gh pr create --draft", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("gh pr merge", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("--auto", workflow, StringComparison.Ordinal);

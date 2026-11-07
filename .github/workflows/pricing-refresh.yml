@@ -22,6 +22,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Install .NET 10 SDK
@@ -29,22 +30,27 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Prepare the single automation branch
+      - name: Check the automation branch ownership
+        id: branch
         shell: pwsh
         env:
           BRANCH_NAME: automation/pricing-refresh
         run: |
-          # The rebase below writes commits, so the bot identity must exist before it.
+          $PSNativeCommandUseErrorActionPreference = $true
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           $remoteRef = git ls-remote --heads origin $env:BRANCH_NAME
+          $expectedHead = ''
           if ($remoteRef) {
             git fetch origin "+refs/heads/$($env:BRANCH_NAME):refs/remotes/origin/$($env:BRANCH_NAME)"
-            git switch --create $env:BRANCH_NAME --track "origin/$($env:BRANCH_NAME)"
-            git rebase origin/main
-          } else {
-            git switch --create $env:BRANCH_NAME
+            $automationRef = "origin/$($env:BRANCH_NAME)"
+            $expectedHead = git rev-parse $automationRef
+            $otherChanges = git diff --name-only "origin/main...$automationRef" -- . ':!docs/pricing-refresh.md'
+            if ($otherChanges) {
+              throw 'The automation branch contains changes outside the generated pricing report.'
+            }
           }
+          "expectedHead=$expectedHead" >> $env:GITHUB_OUTPUT
 
       - name: Refresh official pricing projections
         shell: pwsh
@@ -65,10 +71,12 @@ jobs:
         shell: pwsh
         env:
           BRANCH_NAME: automation/pricing-refresh
+          EXPECTED_HEAD: ${{ steps.branch.outputs.expectedHead }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           git add -- docs/pricing-refresh.md
           git commit -m "Review official pricing source changes"
-          git push --force-with-lease origin "HEAD:refs/heads/$($env:BRANCH_NAME)"
+          git push "--force-with-lease=refs/heads/$($env:BRANCH_NAME):$($env:EXPECTED_HEAD)" origin "HEAD:refs/heads/$($env:BRANCH_NAME)"
 
       - name: Create or update one draft pull request
         if: steps.changes.outputs.changed == 'true'
@@ -84,11 +92,13 @@ jobs:
           and make any catalog or evidence edit manually. This automation never
           changes a price or merges a pull request.
           '@
+          $bodyPath = Join-Path $env:RUNNER_TEMP 'pricing-refresh-pr.md'
+          Set-Content -LiteralPath $bodyPath -Value $body -Encoding utf8
           $number = gh pr list --state open --head $env:BRANCH_NAME `
             --json number --jq '.[0].number'
           if ($number) {
-            gh pr edit $number --title 'Review official pricing source changes' --body $body
+            gh pr edit $number --title 'Review official pricing source changes' --body-file $bodyPath
           } else {
             gh pr create --draft --head $env:BRANCH_NAME --base main `
-              --title 'Review official pricing source changes' --body $body
+              --title 'Review official pricing source changes' --body-file $bodyPath
           }

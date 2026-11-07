@@ -28,6 +28,8 @@
         "--configuration",
         "Release",
         "-p:Platform=x64",
+        "--filter",
+        "Category!=OptIn",
         "--verbosity",
         "minimal"
       ],

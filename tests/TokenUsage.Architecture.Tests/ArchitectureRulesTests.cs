@@ -97,21 +97,6 @@ public sealed class ArchitectureRulesTests
     }
 
     [Fact]
-    public void RuleBlocksFutureLocalApiFromReferencingCli()
-    {
-        var invalid = new ProjectReferenceGraph(
-            ArchitectureRules.AllowedReferences.Keys,
-            [("TokenUsage.LocalApi", "TokenUsage.Cli")]);
-
-        IReadOnlyList<string> forbidden = ArchitectureRules.FindForbiddenEdges(invalid);
-
-        Assert.Contains(
-            "TokenUsage.LocalApi -> TokenUsage.Cli",
-            forbidden,
-            StringComparer.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public void CliOwnsItsStableJsonWireTypes()
     {
         string repoRoot = ProjectReferenceGraph.FindRepoRoot();

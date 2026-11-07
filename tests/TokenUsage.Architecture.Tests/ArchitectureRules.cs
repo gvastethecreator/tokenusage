@@ -25,13 +25,7 @@ public static class ArchitectureRules
                 "TokenUsage.Core",
                 "TokenUsage.Providers",
                 "TokenUsage.Runtime.Windows"),
-            ["TokenUsage.LocalApi"] = CreateSet(
-                "TokenUsage.Core",
-                "TokenUsage.Runtime.Windows"),
         };
-
-    private static readonly IReadOnlySet<string> OptionalProjects = CreateSet(
-        "TokenUsage.LocalApi");
 
     public static IReadOnlyList<string> FindForbiddenEdges(ProjectReferenceGraph graph)
     {
@@ -39,8 +33,6 @@ public static class ArchitectureRules
 
         foreach (string missing in AllowedReferences.Keys.Except(
                      graph.Projects,
-                     StringComparer.OrdinalIgnoreCase).Except(
-                     OptionalProjects,
                      StringComparer.OrdinalIgnoreCase))
         {
             violations.Add($"Missing product project: {missing}");

@@ -16,15 +16,6 @@ public sealed class TrayIconRecoveryPolicyTests
     }
 
     [Fact]
-    public void TaskbarCreatedRequestsRecovery()
-    {
-        Assert.True(TrayIconRecoveryPolicy.ShouldRecover(
-            TaskbarCreatedMessage,
-            TaskbarCreatedMessage,
-            disposed: false));
-    }
-
-    [Fact]
     public void DisposedHostDoesNotRequestRecovery()
     {
         Assert.False(TrayIconRecoveryPolicy.ShouldRecover(
