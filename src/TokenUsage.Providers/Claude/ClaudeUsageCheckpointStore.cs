@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 using TokenUsage.Core.Storage;
 using TokenUsage.Core.Usage;
@@ -15,20 +14,19 @@ public sealed record ClaudeUsageScanProgress(long BytesRead, long BytesAdvanced,
 internal sealed class ClaudeUsageCheckpointStore
 {
     private readonly VersionedDocumentFile? _document;
-    private readonly VersionedDocumentFile? _admission;
     private readonly string _timeZone;
     private readonly Lock _memoryLock = new();
     private ClaudeUsageEventSource.CheckpointState? _memory;
+    private ClaudeUsageEventSource.CheckpointState? _cached;
+    private string? _cachedAdmission;
     private long _memoryRevision;
 
     public ClaudeUsageCheckpointStore(string? path, string timeZone)
     {
         _timeZone = timeZone;
-        if (path is null) return;
-        _document = new(path, "TokenUsage.ClaudeUsageCheckpoint", TimeProvider.System,
-            "Timed out while waiting for the Claude usage checkpoint lock.");
-        _admission = new(path + ".admission", "TokenUsage.ClaudeUsageCheckpoint", TimeProvider.System,
-            "Timed out while waiting for the Claude usage checkpoint lock.");
+        if (path is not null)
+            _document = new(path, "TokenUsage.ClaudeUsageCheckpoint", TimeProvider.System,
+                "Timed out while waiting for the Claude usage checkpoint lock.");
     }
 
     public async Task<(T Result, IUsageReadCheckpoint Checkpoint)> PrepareAsync<T>(
@@ -37,36 +35,51 @@ internal sealed class ClaudeUsageCheckpointStore
         if (_document is not null)
             return await _document.RunLockedAsync(() =>
             {
-                string? expected = Fingerprint(_document);
-                string? admission = Fingerprint(_admission!);
-                ClaudeUsageEventSource.CheckpointState state = Load();
+                using var database = new UsageCheckpointDatabase(_document.DocumentPath + ".sqlite");
+                string? admission = database.Read("meta", "admission");
+                var state = _cached is not null && _cachedAdmission == admission ? _cached : Load(database);
+                _cached = null;
+                state.BeginRead();
                 T result = read(state);
-                return (result, (IUsageReadCheckpoint)new Pending(this, state, expected, admission, 0));
+                return (result, (IUsageReadCheckpoint)new Pending(this, state, admission, 0));
             }, token).ConfigureAwait(false);
         return await Task.Run(() =>
         {
             lock (_memoryLock)
             {
                 token.ThrowIfCancellationRequested();
-                var state = Load();
+                var state = _memory?.Clone() ?? new() { TimeZone = _timeZone };
+                state.BeginRead();
                 T result = read(state);
-                return (result, (IUsageReadCheckpoint)new Pending(this, state, null, null, _memoryRevision));
+                return (result, (IUsageReadCheckpoint)new Pending(this, state, null, _memoryRevision));
             }
         }, token).ConfigureAwait(false);
     }
 
-    private ClaudeUsageEventSource.CheckpointState Load()
+    private ClaudeUsageEventSource.CheckpointState Load(UsageCheckpointDatabase database)
     {
         ClaudeUsageEventSource.CheckpointState? state;
-        if (_document?.Exists == true)
+        string? header = database.Read("meta", "header");
+        if (header is not null)
+        {
+            state = JsonSerializer.Deserialize<ClaudeUsageEventSource.CheckpointState>(header)
+                ?? throw new InvalidDataException("Claude checkpoint is empty; the original was preserved.");
+            foreach (var row in database.ReadRecords("file"))
+                state.Files.Add(row.Identity, JsonSerializer.Deserialize<ClaudeUsageEventSource.FileCheckpoint>(row.Value)
+                    ?? throw new InvalidDataException("Claude checkpoint file is invalid."));
+            foreach (var row in database.ReadRecords("message"))
+                state.Messages.Add(row.Identity, JsonSerializer.Deserialize<ClaudeUsageEventSource.Candidate>(row.Value)
+                    ?? throw new InvalidDataException("Claude checkpoint message is invalid."));
+            state.Progress = database.Read("meta", "progress");
+            state.Imported = true;
+        }
+        else if (_document?.Exists == true)
         {
             using var stream = File.OpenRead(_document.DocumentPath);
             state = JsonSerializer.Deserialize<ClaudeUsageEventSource.CheckpointState>(stream)
                 ?? throw new InvalidDataException("Claude checkpoint is empty; the original was preserved.");
         }
-        else state = _memory is null ? null : JsonSerializer.Deserialize<ClaudeUsageEventSource.CheckpointState>(
-            JsonSerializer.SerializeToUtf8Bytes(_memory));
-        if (state is null) return new() { TimeZone = _timeZone };
+        else state = new() { TimeZone = _timeZone };
         if (state.SchemaVersion != 1)
             throw new NotSupportedException("Claude checkpoint schema is unsupported; the original was preserved.");
         if (state.Files is null || state.Messages is null
@@ -77,23 +90,41 @@ internal sealed class ClaudeUsageCheckpointStore
                 || pair.Value.MessageId is not null))
             throw new InvalidDataException("Claude checkpoint is invalid; the original was preserved.");
         if (state.Parser != ClaudeUsageEventSource.ParserVersion || state.TimeZone != _timeZone)
-            return new() { TimeZone = _timeZone };
+            return new() { TimeZone = _timeZone, ResetImported = state.Imported };
+        foreach (var pair in state.Messages.Where(pair => pair.Value.AwaitingClock))
+            state.AwaitingMessages.Add(pair.Key, pair.Value);
         return state;
+    }
+
+    private static void Write(UsageCheckpointDatabase database, ClaudeUsageEventSource.CheckpointState state)
+    {
+        database.Commit(() =>
+        {
+            if (state.ResetImported)
+            {
+                foreach (var row in database.ReadRecords("file").ToArray()) database.Write("file", row.Identity, null);
+                foreach (var row in database.ReadRecords("message").ToArray()) database.Write("message", row.Identity, null);
+            }
+            database.Write("meta", "header", JsonSerializer.Serialize(new ClaudeUsageEventSource.CheckpointState
+            { TimeZone = state.TimeZone, NextFileHash = state.NextFileHash, PrunedThrough = state.PrunedThrough }));
+            database.Write("meta", "progress", state.Progress);
+            IEnumerable<string> files = state.Imported ? state.DirtyFiles : state.Files.Keys;
+            foreach (string key in files)
+                database.Write("file", key, JsonSerializer.Serialize(state.Files[key]));
+            IEnumerable<string> messages = state.Imported ? state.DirtyMessages : state.Messages.Keys;
+            foreach (string key in messages)
+                database.Write("message", key, JsonSerializer.Serialize(state.Messages[key]));
+            foreach (string key in state.RemovedMessages) database.Write("message", key, null);
+        });
+        state.Imported = true;
+        state.ResetImported = false;
     }
 
     private static bool IsHash(string value) => value.Length == 64
         && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
 
-    private static string? Fingerprint(VersionedDocumentFile document)
-    {
-        if (!document.Exists) return null;
-        using var stream = File.OpenRead(document.DocumentPath);
-        return Convert.ToHexString(SHA256.HashData(stream));
-    }
-
     private sealed class Pending(ClaudeUsageCheckpointStore owner,
-        ClaudeUsageEventSource.CheckpointState state, string? expected, string? admission,
-        long revision) : IUsageReadCheckpoint
+        ClaudeUsageEventSource.CheckpointState state, string? admission, long revision) : IUsageReadCheckpoint
     {
         private bool _committed;
         public async Task PersistAsync(Func<Task<bool>> persist, CancellationToken cancellationToken = default)
@@ -104,12 +135,18 @@ internal sealed class ClaudeUsageCheckpointStore
                 await owner._document.RunLockedAsync(() =>
                 {
                     if (_committed) return true;
-                    if (Fingerprint(owner._document) != expected || Fingerprint(owner._admission!) != admission)
+                    using var database = new UsageCheckpointDatabase(owner._document.DocumentPath + ".sqlite");
+                    if (database.Read("meta", "admission") != admission)
                         throw new IOException("Claude checkpoint changed after this read; retry collection.");
                     cancellationToken.ThrowIfCancellationRequested();
-                    owner._admission!.WriteAtomically(Guid.NewGuid().ToByteArray(), 16);
+                    string fence = Guid.NewGuid().ToString("N");
+                    database.Commit(() => database.Write("meta", "admission", fence));
                     if (persist().GetAwaiter().GetResult())
-                        owner._document.WriteAtomically(stream => JsonSerializer.Serialize(stream, state));
+                    {
+                        Write(database, state);
+                        owner._cached = state;
+                        owner._cachedAdmission = fence;
+                    }
                     _committed = true;
                     return true;
                 }, cancellationToken).ConfigureAwait(false);

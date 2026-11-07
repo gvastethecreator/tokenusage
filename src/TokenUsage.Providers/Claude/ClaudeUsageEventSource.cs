@@ -77,7 +77,7 @@ public sealed class ClaudeUsageEventSource :
     {
         var prepared = await _checkpoints.PrepareAsync(
             state => ReadCore(state, cancellationToken), cancellationToken).ConfigureAwait(false);
-        return prepared.Result with { Checkpoint = prepared.Checkpoint };
+        return prepared.Result with { Checkpoint = prepared.Checkpoint, GroupingTimeZoneId = _groupingTimeZoneId };
     }
 
     private UsageSourceReadResult ReadCore(CheckpointState state, CancellationToken cancellationToken)
@@ -129,29 +129,62 @@ public sealed class ClaudeUsageEventSource :
                 or System.Security.SecurityException) { pending++; readErrors = true; }
         }
         state.NextFileHash = files.Length == 0 ? null : Hash(Path.GetFullPath(files[(start + visited) % files.Length]));
-        foreach (string key in state.Messages.Where(pair => pair.Value.OccurredAtUtc < _clock.GetUtcNow().ToUniversalTime().AddDays(-400))
-                     .Select(pair => pair.Key).ToArray()) state.Messages.Remove(key);
-        foreach (var pair in state.Messages.Where(pair => pair.Value.AwaitingClock
-                     && pair.Value.OccurredAtUtc <= _clock.GetUtcNow()).ToArray())
+        DateOnly pruneDay = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
+        if (state.PrunedThrough != pruneDay)
+        {
+            foreach (string key in state.Messages.Where(pair => pair.Value.OccurredAtUtc < _clock.GetUtcNow().ToUniversalTime().AddDays(-400))
+                         .Select(pair => pair.Key).ToArray())
+            {
+                state.Messages.Remove(key);
+                state.AwaitingMessages.Remove(key);
+                state.RemovedMessages.Add(key);
+            }
+            state.PrunedThrough = pruneDay;
+        }
+        foreach (var pair in state.AwaitingMessages.Where(pair => pair.Value.OccurredAtUtc <= _clock.GetUtcNow()).ToArray())
         {
             Candidate eligible = pair.Value with { AwaitingClock = false };
             state.Messages[pair.Key] = eligible;
             changed[pair.Key] = eligible;
+            state.AwaitingMessages.Remove(pair.Key);
         }
         int unreadableRecords = state.Files.Values.Sum(file => file.UnreadableRecords);
-        int futureMessages = state.Messages.Values.Count(candidate => candidate.AwaitingClock);
+        int futureMessages = state.AwaitingMessages.Count;
         readErrors |= unreadableRecords > 0;
         LastScanProgress = new(bytesRead, advanced, visited, pending, excluded, readErrors)
         { RetainedUnreadableRecords = unreadableRecords, DeferredFutureMessages = futureMessages };
+        foreach (string key in changed.Keys) state.DirtyMessages.Add(key);
+        if (state.Progress is null || state.DirtyFiles.Count > 0 || state.DirtyMessages.Count > 0 || state.RemovedMessages.Count > 0)
+            state.Progress = Guid.NewGuid().ToString("N");
         List<UsageEvent> events = CreateEvents(changed.Values.OrderBy(candidate => candidate.OccurredAtUtc)
             .ThenBy(candidate => candidate.SourceOrdinal, StringComparer.Ordinal));
         bool partial = pending > 0 || readErrors;
         return new(events, partial ? UsageSourceReadStatus.Partial
             : events.Count == 0 && state.Messages.Count == 0
-                ? UsageSourceReadStatus.NoData : UsageSourceReadStatus.Complete);
+                ? UsageSourceReadStatus.NoData : UsageSourceReadStatus.Complete)
+        {
+            ObservationMode = events.Count > 0 ? UsageObservationMode.Delta : UsageObservationMode.Unchanged,
+            Progress = new UsageSourceProgress("claude/" + Hash(string.Join("\0", roots)) + "/" + ParserVersion + "/" + _groupingTimeZoneId
+                + (_includeHistoricalFiles ? "/history" : "/recent"), state.PreviousProgress, state.Progress,
+                () => CreateEvents(state.Messages.Values.OrderBy(candidate => candidate.OccurredAtUtc)
+                    .ThenBy(candidate => candidate.SourceOrdinal, StringComparer.Ordinal))),
+        };
     }
 
     private FileReadProgress ReadFile(string path, CheckpointState state,
+        Dictionary<string, Candidate> changed, long limit, CancellationToken cancellationToken)
+    {
+        string key = Hash(Path.GetFullPath(path));
+        FileCheckpoint? before = state.Files.TryGetValue(key, out FileCheckpoint? file) ? file with { } : null;
+        try { return ReadFileCore(path, state, changed, limit, cancellationToken); }
+        finally
+        {
+            if (state.Files.TryGetValue(key, out FileCheckpoint? after) && before != after)
+                state.DirtyFiles.Add(key);
+        }
+    }
+
+    private FileReadProgress ReadFileCore(string path, CheckpointState state,
         Dictionary<string, Candidate> changed, long limit, CancellationToken cancellationToken)
     {
         try
@@ -267,6 +300,8 @@ public sealed class ClaudeUsageEventSource :
                 ? MergeStreaming(previous, numeric) : numeric;
             if (previous != merged) changed[identity] = merged;
             state.Messages[identity] = merged;
+            if (merged.AwaitingClock) state.AwaitingMessages[identity] = merged;
+            else state.AwaitingMessages.Remove(identity);
         }
     }
 
@@ -288,6 +323,34 @@ public sealed class ClaudeUsageEventSource :
 
     internal sealed class CheckpointState
     {
+        [System.Text.Json.Serialization.JsonIgnore] public bool Imported { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore] public bool ResetImported { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore] public string? Progress { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore] public string? PreviousProgress { get; private set; }
+        [System.Text.Json.Serialization.JsonIgnore] public HashSet<string> DirtyFiles { get; } = new(StringComparer.Ordinal);
+        [System.Text.Json.Serialization.JsonIgnore] public HashSet<string> DirtyMessages { get; } = new(StringComparer.Ordinal);
+        [System.Text.Json.Serialization.JsonIgnore] public HashSet<string> RemovedMessages { get; } = new(StringComparer.Ordinal);
+        [System.Text.Json.Serialization.JsonIgnore] public Dictionary<string, Candidate> AwaitingMessages { get; } = new(StringComparer.Ordinal);
+        public DateOnly? PrunedThrough { get; set; }
+        public void BeginRead()
+        {
+            PreviousProgress = Progress;
+            DirtyFiles.Clear();
+            DirtyMessages.Clear();
+            RemovedMessages.Clear();
+        }
+        public CheckpointState Clone()
+        {
+            var copy = new CheckpointState
+            {
+                SchemaVersion = SchemaVersion, Parser = Parser, TimeZone = TimeZone, NextFileHash = NextFileHash,
+                Progress = Progress, PrunedThrough = PrunedThrough,
+                Files = Files.ToDictionary(pair => pair.Key, pair => pair.Value with { }, StringComparer.Ordinal),
+                Messages = new(Messages, StringComparer.Ordinal),
+            };
+            foreach (var pair in AwaitingMessages) copy.AwaitingMessages.Add(pair.Key, pair.Value);
+            return copy;
+        }
         public CheckpointState() { }
         public int SchemaVersion { get; set; } = 1;
         public string Parser { get; set; } = ParserVersion;
@@ -297,7 +360,7 @@ public sealed class ClaudeUsageEventSource :
         public Dictionary<string, Candidate> Messages { get; set; } = new(StringComparer.Ordinal);
     }
 
-    internal sealed class FileCheckpoint
+    internal sealed record FileCheckpoint
     {
         public FileCheckpoint() { }
         public long CreationTicks { get; set; }

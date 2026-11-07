@@ -9,6 +9,17 @@ public enum UsageSourceReadStatus
     NoData,
 }
 
+public enum UsageObservationMode
+{
+    Snapshot,
+    Delta,
+    Unchanged,
+}
+
+/// <summary>Durable source progress, matched against the destination's receipt before a delta is used.</summary>
+public sealed record UsageSourceProgress(string CursorId, string? PreviousCursor, string Cursor,
+    Func<IReadOnlyList<UsageEvent>> SnapshotEvents);
+
 public enum UsageSourceIssueKind
 {
     None,
@@ -23,6 +34,10 @@ public enum UsageSourceIssueKind
 
 public sealed record UsageSourceReadResult
 {
+    public string? GroupingTimeZoneId { get; init; }
+    public UsageObservationMode ObservationMode { get; init; } = UsageObservationMode.Snapshot;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public UsageSourceProgress? Progress { get; init; }
     /// <summary>The profile binding proved for this read, rather than merely the configured root.</summary>
     public UsageSourceInstanceId? SourceInstance { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]

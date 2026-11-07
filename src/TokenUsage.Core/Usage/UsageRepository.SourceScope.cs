@@ -12,12 +12,14 @@ public sealed partial class UsageRepository
     public async Task<UsageSourceStoreResult> StoreSourceObservationsAsync(AgentId agentId,
         UsageSourceInstanceId sourceInstance, string parserVersion, DateOnly from, DateOnly to,
         IEnumerable<UsageEvent> observations, bool complete,
-        CancellationToken token = default)
+        UsageObservationMode observationMode = UsageObservationMode.Snapshot,
+        UsageSourceProgress? progress = null, CancellationToken token = default)
     {
         EnsureWritable();
         ArgumentNullException.ThrowIfNull(sourceInstance);
         ArgumentException.ThrowIfNullOrWhiteSpace(parserVersion);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(from, to);
+        if (!Enum.IsDefined(observationMode)) throw new ArgumentOutOfRangeException(nameof(observationMode));
         UsageEvent[] batch = ValidateAgentBatch(agentId, observations, "Source admission");
         if (batch.Any(row => row.DetailMetadata.SourceInstance != sourceInstance
             || row.ParserVersion != parserVersion || UsageRollupAggregator.CivilDate(row) < from
@@ -26,11 +28,26 @@ public sealed partial class UsageRepository
 
         await using SqliteConnection connection = await OpenConnectionAsync(token).ConfigureAwait(false);
         await using SqliteTransaction transaction = connection.BeginTransaction();
+        if (observationMode == UsageObservationMode.Unchanged && batch.Length != 0)
+            throw new ArgumentException("An unchanged read cannot contain observations.", nameof(observations));
+        if (batch.Length == 0 && observationMode != UsageObservationMode.Snapshot)
+        {
+            await WriteSourceProgressOnAsync(connection, transaction, progress, token).ConfigureAwait(false);
+            await transaction.CommitAsync(token).ConfigureAwait(false);
+            return new(0, 0, false);
+        }
         await AssociateLegacyObservationsOnAsync(connection, transaction, batch, token).ConfigureAwait(false);
+        Dictionary<string, UsageEvent> previous = (await LoadRecoveryEventsOnAsync(connection, transaction, batch, token)
+            .ConfigureAwait(false)).ToDictionary(row => row.EventKey.Value, StringComparer.Ordinal);
+        string dateFilter = observationMode == UsageObservationMode.Snapshot ? string.Empty
+            : " AND civil_date IN (" + string.Join(",", batch.Select(UsageRollupAggregator.CivilDate)
+                .Concat(previous.Values.Select(UsageRollupAggregator.CivilDate)).Distinct()
+                .Select(date => "'" + FormatDate(date) + "'")) + ")";
 
         var ambiguousDays = new HashSet<string>(StringComparer.Ordinal);
         var retiredDays = new HashSet<string>(StringComparer.Ordinal);
         var ownedKeys = new HashSet<string>(StringComparer.Ordinal);
+        var ownedDates = new Dictionary<string, DateOnly>(StringComparer.Ordinal);
         var conflictingKeys = new HashSet<string>(StringComparer.Ordinal);
         bool differentParser = false;
         await using (SqliteCommand history = connection.CreateCommand())
@@ -38,8 +55,8 @@ public sealed partial class UsageRepository
             history.Transaction = transaction;
             history.CommandText = """
                 SELECT event_key, source_instance_id, civil_date, parser_version FROM usage_event
-                WHERE agent_id = $agent AND civil_date BETWEEN $from AND $to;
-                """;
+                WHERE agent_id = $agent AND civil_date BETWEEN $from AND $to
+                """ + dateFilter + ";";
             history.Parameters.AddWithValue("$agent", agentId.Value);
             history.Parameters.AddWithValue("$from", FormatDate(from));
             history.Parameters.AddWithValue("$to", FormatDate(to));
@@ -50,6 +67,7 @@ public sealed partial class UsageRepository
                 if (!reader.IsDBNull(1) && reader.GetString(1) == sourceInstance.Value)
                 {
                     ownedKeys.Add(reader.GetString(0));
+                    ownedDates.Add(reader.GetString(0), DateOnly.ParseExact(reader.GetString(2), "yyyy-MM-dd", CultureInfo.InvariantCulture));
                     differentParser |= reader.GetString(3) != parserVersion;
                 }
                 else conflictingKeys.Add(reader.GetString(0));
@@ -64,8 +82,8 @@ public sealed partial class UsageRepository
                   AND r.event_count > (SELECT COUNT(*) FROM usage_event e
                     WHERE e.agent_id = r.agent_id AND e.civil_date = r.civil_date
                       AND e.grouping_time_zone_id = r.grouping_time_zone_id
-                      AND COALESCE(e.model_provider_id, '') = r.model_provider_id AND e.model_id = r.model_id);
-                """;
+                      AND COALESCE(e.model_provider_id, '') = r.model_provider_id AND e.model_id = r.model_id)
+                """ + dateFilter.Replace("civil_date", "r.civil_date", StringComparison.Ordinal) + ";";
             history.Parameters.AddWithValue("$agent", agentId.Value);
             history.Parameters.AddWithValue("$from", FormatDate(from));
             history.Parameters.AddWithValue("$to", FormatDate(to));
@@ -79,35 +97,53 @@ public sealed partial class UsageRepository
                 && (ownedKeys.Contains(row.EventKey.Value)
                     || !ambiguousDays.Contains(FormatDate(UsageRollupAggregator.CivilDate(row)))))).ToArray();
         bool unresolved = ambiguousDays.Count > 0 || retiredDays.Count > 0 || admitted.Length != batch.Length;
-        bool authoritative = complete && !unresolved;
+        bool authoritative = observationMode == UsageObservationMode.Snapshot && complete && !unresolved;
         if (!authoritative && differentParser)
             admitted = admitted.Where(row => tombstones.Contains(row.EventKey.Value)).ToArray();
         int withheld = batch.Length - admitted.Length;
         unresolved |= withheld > 0;
-        DateOnly[] previousDates = await LoadExistingEventDatesAsync(connection, transaction, agentId, admitted, token)
-            .ConfigureAwait(false);
+        // Replay keeps the price already recorded for the same measured counters.
+        admitted = admitted.Select(row => previous.TryGetValue(row.EventKey.Value, out UsageEvent? old)
+            && old.Tokens == row.Tokens && old.ModelId == row.ModelId && old.ModelProviderId == row.ModelProviderId
+            && old.ServiceTier == row.ServiceTier && old.Cost.Kind != CostKind.Unavailable
+                ? new UsageEvent(row.EventKey, row.AgentId, row.ModelProviderId, row.ModelId, row.OccurredAtUtc,
+                    row.GroupingTimeZoneId, row.Tokens, old.Cost, row.ParserVersion, old.Coverage,
+                    row.TimePrecision, row.IntervalStartedAtUtc, row.ObservedModelId, row.ReasoningEffort,
+                    row.ServiceTier, row.DetailMetadata) : row).ToArray();
         // Also reject cross-window/key collisions before any deletion or numeric write.
         await VerifyEventOwnershipAsync(connection, transaction, admitted, token).ConfigureAwait(false);
-        foreach (DateOnly date in previousDates)
+        foreach (DateOnly date in admitted.Where(row => previous.ContainsKey(row.EventKey.Value))
+                     .Select(row => UsageRollupAggregator.CivilDate(previous[row.EventKey.Value])).Distinct())
             await VerifyRetainedRollupsCanRebuildAsync(connection, transaction, agentId, date, date, token).ConfigureAwait(false);
+        var changedDates = new HashSet<DateOnly>();
         if (authoritative)
         {
-            await using SqliteCommand delete = connection.CreateCommand();
-            delete.Transaction = transaction;
-            delete.CommandText = "DELETE FROM usage_event WHERE agent_id = $agent AND source_instance_id = $source AND civil_date BETWEEN $from AND $to;";
-            delete.Parameters.AddWithValue("$agent", agentId.Value);
-            delete.Parameters.AddWithValue("$source", sourceInstance.Value);
-            delete.Parameters.AddWithValue("$from", FormatDate(from));
-            delete.Parameters.AddWithValue("$to", FormatDate(to));
-            await delete.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            HashSet<string> current = admitted.Select(row => row.EventKey.Value).ToHashSet(StringComparer.Ordinal);
+            foreach (string[] keys in ownedKeys.Where(key => !current.Contains(key)).Chunk(500))
+            {
+                await using SqliteCommand delete = connection.CreateCommand();
+                delete.Transaction = transaction;
+                string[] parameters = keys.Select((_, index) => "$key" + index.ToString(CultureInfo.InvariantCulture)).ToArray();
+                delete.CommandText = "DELETE FROM usage_event WHERE event_key IN (" + string.Join(",", parameters) + ");";
+                for (int index = 0; index < keys.Length; index++)
+                {
+                    delete.Parameters.AddWithValue(parameters[index], keys[index]);
+                    changedDates.Add(ownedDates[keys[index]]);
+                }
+                await delete.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
         }
         UsageEvent[] written = await WriteEventsAsync(connection, transaction, admitted, EventWriteKind.Upsert,
             token).ConfigureAwait(false);
-        if (authoritative)
-            await RebuildAgentRollupsInRangeAsync(connection, transaction, agentId, from, to, token).ConfigureAwait(false);
-        await RebuildAgentRollupsForDatesAsync(connection, transaction, agentId,
-            previousDates.Concat(written.Select(row => UsageRollupAggregator.CivilDate(row)))
-                .Where(date => !authoritative || date < from || date > to).Distinct().ToArray(), token).ConfigureAwait(false);
+        foreach (UsageEvent row in written)
+        {
+            changedDates.Add(UsageRollupAggregator.CivilDate(row));
+            if (previous.TryGetValue(row.EventKey.Value, out UsageEvent? old))
+                changedDates.Add(UsageRollupAggregator.CivilDate(old));
+        }
+        await RebuildAgentRollupsForDatesAsync(connection, transaction, agentId, changedDates.ToArray(), token).ConfigureAwait(false);
+        if (withheld == 0 && !unresolved)
+            await WriteSourceProgressOnAsync(connection, transaction, progress, token).ConfigureAwait(false);
         await transaction.CommitAsync(token).ConfigureAwait(false);
         return new(written.Length, withheld, unresolved);
     }

@@ -45,8 +45,9 @@ public sealed class ClaudeHistoryRecoveryService(UsageRepository repository,
             bool canAdvance = true;
             async Task<bool> PersistAsync()
             {
+                read = await repository.ResolveSourceReadAsync(read, cancellationToken).ConfigureAwait(false);
                 recovered = await repository.RecoverAgentEventsAsync(history.AgentId, read.Events,
-                    time.GetUtcNow().ToUniversalTime(), dryRun, cancellationToken).ConfigureAwait(false);
+                    time.GetUtcNow().ToUniversalTime(), dryRun, read.Progress, cancellationToken).ConfigureAwait(false);
                 canAdvance = recovered.Exclusions.ConflictingIdentity == 0
                     && recovered.Exclusions.ConflictingPriceEvidence == 0;
                 return canAdvance;

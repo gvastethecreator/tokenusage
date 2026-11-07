@@ -45,7 +45,7 @@ public sealed partial class CodexUsageEventSource :
         _clock = clock ?? TimeProvider.System;
         _checkpointStore = checkpointPath is null
             ? null
-            : new CodexUsageCheckpointStore(checkpointPath, _clock, SourceAuthority);
+            : new CodexUsageCheckpointStore(checkpointPath, _clock, SourceAuthority, groupingTimeZoneId);
     }
 
     public SourceKind SourceKind => _clientFactory is null
@@ -78,7 +78,8 @@ public sealed partial class CodexUsageEventSource :
         UsageSourceReadResult result = _clientFactory is null
             ? CreateFallbackResult(scan)
             : await ReadOfficialUsageAsync(scan, cancellationToken).ConfigureAwait(false);
-        return result with { Checkpoint = checkpoint };
+        return result with { Checkpoint = checkpoint, ObservationMode = scan.ObservationMode, Progress = scan.Progress,
+            GroupingTimeZoneId = _groupingTimeZoneId };
     }
 
 
@@ -88,6 +89,8 @@ public sealed partial class CodexUsageEventSource :
         UsageSourceReadStatus Status,
         UsageSourceIssueKind Issue)
     {
+        public UsageObservationMode ObservationMode { get; init; }
+        public UsageSourceProgress? Progress { get; init; }
         public UsageSourceInstanceId? SourceInstance { get; init; }
         public IReadOnlyList<UsageEvent> Observations { get; init; } = [];
     }

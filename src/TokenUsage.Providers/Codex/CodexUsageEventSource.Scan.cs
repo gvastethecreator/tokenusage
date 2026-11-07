@@ -38,7 +38,13 @@ public sealed partial class CodexUsageEventSource
         // Missing source files do not retire numeric observations; the retention horizon does.
         PruneCheckpointDays(checkpoints, recentFrom);
         if (canBindAuthority && checkpoints.Files.Values.Any(file => file.Observations.Count > 0))
+        {
             checkpoints.SourceAuthority = SourceAuthority;
+            checkpoints.ForceSnapshot = true;
+        }
+        if (checkpoints.DirtyFiles.Count > 0 || checkpoints.RemovedObservations.Count > 0
+            || checkpoints.ForceSnapshot || checkpoints.Progress is null)
+            checkpoints.Progress = Guid.NewGuid().ToString("N");
         return CreateScanResult(checkpoints, state);
     }
 
@@ -89,14 +95,10 @@ public sealed partial class CodexUsageEventSource
                     checkpoint.ReplayThroughUtc = checkpoint.PreviousTimestamp;
                 }
                 checkpoints.Files[file.SessionIdentity] = checkpoint;
+                checkpoints.DirtyFiles.Add(file.SessionIdentity);
             }
 
             checkpoint.ObservationIdentity = file.SessionIdentity;
-            if (checkpoint.Offset == info.Length)
-            {
-                return;
-            }
-
             using var stream = new FileStream(
                 file.Path,
                 FileMode.Open,
@@ -104,13 +106,35 @@ public sealed partial class CodexUsageEventSource
                 FileShare.ReadWrite | FileShare.Delete,
                 1024 * 1024,
                 FileOptions.SequentialScan);
+            if (checkpoint.PrefixHash is not null
+                && (stream.Length < checkpoint.PrefixLength
+                    || ReadBoundaryHash(stream, checkpoint.PrefixLength) != checkpoint.PrefixHash)
+                || checkpoint.BoundaryHash is not null
+                    && ReadBoundaryHash(stream, checkpoint.Offset) != checkpoint.BoundaryHash)
+            {
+                checkpoint.ReplayThroughUtc = checkpoint.PreviousTimestamp;
+                checkpoint.Offset = 0;
+                checkpoint.PrefixHash = null;
+                checkpoint.BoundaryHash = null;
+                checkpoints.DirtyFiles.Add(file.SessionIdentity);
+            }
+            if (checkpoint.PrefixHash is null || checkpoint.PrefixLength == 0 && stream.Length > 0)
+            {
+                checkpoint.PrefixLength = (int)Math.Min(64, stream.Length);
+                checkpoint.PrefixHash = ReadBoundaryHash(stream, checkpoint.PrefixLength);
+                checkpoints.DirtyFiles.Add(file.SessionIdentity);
+            }
+            if (checkpoint.Offset == stream.Length) return;
             stream.Seek(checkpoint.Offset, SeekOrigin.Begin);
-            ScanRecentLines(
-                stream,
-                checkpoint,
-                recentFrom,
-                state,
-                cancellationToken);
+            checkpoints.DirtyFiles.Add(file.SessionIdentity);
+            int previousObservations = checkpoint.Observations.Count;
+            try { ScanRecentLines(stream, checkpoint, recentFrom, state, cancellationToken); }
+            finally
+            {
+                foreach (CodexNumericObservation observation in checkpoint.Observations.Skip(previousObservations))
+                    checkpoints.AddedObservations.Add((file.SessionIdentity, observation));
+                checkpoint.BoundaryHash = ReadBoundaryHash(stream, checkpoint.Offset);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -130,6 +154,14 @@ public sealed partial class CodexUsageEventSource
         {
             state.MarkPartial();
         }
+    }
+
+    private static string ReadBoundaryHash(FileStream stream, long offset)
+    {
+        stream.Position = Math.Max(0, offset - 64);
+        Span<byte> buffer = stackalloc byte[(int)Math.Min(64, offset)];
+        stream.ReadExactly(buffer);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(buffer));
     }
 
     private void ScanRecentLines(
@@ -637,11 +669,19 @@ public sealed partial class CodexUsageEventSource
         CodexUsageCheckpointState checkpoints,
         DateOnly recentFrom)
     {
-        foreach (CodexUsageFileCheckpoint checkpoint in checkpoints.Files.Values)
+        if (checkpoints.PrunedThrough == recentFrom) return;
+        TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId);
+        foreach (var (session, checkpoint) in checkpoints.Files)
         {
-            checkpoint.Observations.RemoveAll(item => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(
-                item.Timestamp, TimeZoneInfo.FindSystemTimeZoneById(_groupingTimeZoneId)).DateTime) < recentFrom);
+            checkpoint.Observations.RemoveAll(item =>
+            {
+                if (DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(item.Timestamp, timeZone).DateTime) >= recentFrom)
+                    return false;
+                checkpoints.RemovedObservations.Add(session + "\0" + item.Key);
+                return true;
+            });
         }
+        checkpoints.PrunedThrough = recentFrom;
     }
 
     private ScanResult CreateScanResult(
@@ -663,14 +703,24 @@ public sealed partial class CodexUsageEventSource
             UsageSourceReadStatus.NoData => UsageSourceIssueKind.Empty,
             _ => null,
         };
+        IReadOnlyList<UsageEvent> Snapshot() => checkpoints.Files.Values.SelectMany(item => item.Observations)
+            .Select(item => CreateObservationEvent(item, checkpoints.SourceAuthority))
+            .DistinctBy(item => item.EventKey).OrderBy(item => item.OccurredAtUtc).ToArray();
+        UsageObservationMode mode = _checkpointStore is null || checkpoints.ForceSnapshot
+            ? UsageObservationMode.Snapshot : checkpoints.AddedObservations.Count > 0
+                ? UsageObservationMode.Delta : UsageObservationMode.Unchanged;
         return new ScanResult(
             status,
             issue ?? UsageSourceIssueKind.None)
         {
             SourceInstance = checkpoints.SourceAuthority,
-            Observations = checkpoints.Files.Values.SelectMany(item => item.Observations)
-                .Select(item => CreateObservationEvent(item, checkpoints.SourceAuthority))
-                .DistinctBy(item => item.EventKey).OrderBy(item => item.OccurredAtUtc).ToArray(),
+            ObservationMode = mode,
+            Progress = _checkpointStore is null ? null : new UsageSourceProgress(
+                "codex/" + SourceAuthority.Value + "/" + ParserVersion + "/" + _groupingTimeZoneId,
+                checkpoints.PreviousProgress, checkpoints.Progress!, Snapshot),
+            Observations = mode == UsageObservationMode.Snapshot ? Snapshot()
+                : checkpoints.AddedObservations.Select(item => CreateObservationEvent(item.Observation, checkpoints.SourceAuthority))
+                    .DistinctBy(item => item.EventKey).OrderBy(item => item.OccurredAtUtc).ToArray(),
         };
     }
 }

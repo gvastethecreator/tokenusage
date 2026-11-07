@@ -1,6 +1,7 @@
 using TokenUsage.App.Services;
 using TokenUsage.App.ViewModels;
 using TokenUsage.App.ViewModels.Dashboard;
+using TokenUsage.App.ViewModels.Reports;
 using TokenUsage.App.ViewModels.Sample;
 using TokenUsage.App.ViewModels.Surfaces;
 using TokenUsage.Core.Alerts;
@@ -400,7 +401,17 @@ public sealed class SessionModuleTests
             },
             synchronizationContext: null);
 
+        UsageHeatmapModel previousHeatmap = surface.GlobalHeatmap;
+        UsageReportTrendDataset previousTrend = surface.SelectedProviderTrend;
+        surface.SetPanelVisible(false);
         await surface.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Same(previousHeatmap, surface.GlobalHeatmap);
+        Assert.Same(previousTrend, surface.SelectedProviderTrend);
+        // Background collection still publishes the summaries consumed by the tray.
+        Assert.NotEmpty(surface.ProviderSummaries);
+        surface.SetPanelVisible(true);
+        Assert.NotSame(previousHeatmap, surface.GlobalHeatmap);
 
         DashboardProviderSummary codex = Assert.Single(
             surface.ProviderSummaries,

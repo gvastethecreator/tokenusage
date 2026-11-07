@@ -328,15 +328,16 @@ public sealed class UsageRepositoryTests
                     applied_at_utc TEXT NOT NULL
                 );
                 INSERT INTO schema_migration(version, applied_at_utc)
-                VALUES (14, '2026-07-22T12:00:00Z');
+                VALUES ($futureVersion, '2026-07-22T12:00:00Z');
                 """;
+            command.Parameters.AddWithValue("$futureVersion", UsageRepository.CurrentSchemaVersion + 1);
             await command.ExecuteNonQueryAsync();
         }
 
         UsageSchemaTooNewException error = await Assert.ThrowsAsync<UsageSchemaTooNewException>(
             () => UsageRepository.OpenAsync(folder.DatabasePath));
 
-        Assert.Equal(14, error.ActualVersion);
+        Assert.Equal(UsageRepository.CurrentSchemaVersion + 1, error.ActualVersion);
         await using var verify = new SqliteConnection(
             $"Data Source={folder.DatabasePath};Pooling=False");
         await verify.OpenAsync();
@@ -569,7 +570,7 @@ public sealed class UsageRepositoryTests
             }
         }
 
-        Assert.Equal(13, UsageRepository.CurrentSchemaVersion);
+        Assert.Equal(14, UsageRepository.CurrentSchemaVersion);
         Assert.Contains("ix_usage_event_agent_civil_date", names);
         Assert.Contains("ix_usage_event_occurred_at_utc", names);
         Assert.Contains("ix_daily_usage_rollup_agent_civil_date", names);
@@ -875,6 +876,28 @@ public sealed class UsageRepositoryTests
         Assert.Equal(2, (await upgraded.QueryUsageEventsAsync(
             new DateTimeOffset(2026, 7, 22, 0, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 7, 23, 0, 0, 0, TimeSpan.Zero))).Count);
+        // A previously supported writer keeps its function after another process upgrades.
+        await using (var setup = new SqliteConnection($"Data Source={folder.DatabasePath};Pooling=False"))
+        {
+            await setup.OpenAsync();
+            setup.CreateFunction("tokenusage_writer_schema", () => UsageRepository.CurrentSchemaVersion);
+            await using SqliteCommand downgrade = setup.CreateCommand();
+            downgrade.CommandText = "DELETE FROM schema_migration WHERE version = 14;";
+            await downgrade.ExecuteNonQueryAsync();
+        }
+        legacy.CreateFunction("tokenusage_writer_schema", () => 13);
+        await UsageRepository.OpenAsync(folder.DatabasePath);
+        foreach (string sql in new[]
+        {
+            "UPDATE usage_event SET parser_version = 'old-checkpoint-writer';",
+            "INSERT INTO source_cursor VALUES ('observations/stale', 'stale', '2026-07-22T00:00:00Z');",
+        })
+        {
+            command.CommandText = sql;
+            SqliteException oldWriter = await Assert.ThrowsAsync<SqliteException>(() => command.ExecuteNonQueryAsync());
+            Assert.Contains("Usage schema changed", oldWriter.Message, StringComparison.Ordinal);
+        }
+        Assert.Equal(committed, await upgraded.ReadDataRevisionAsync());
     }
 
     [Fact]
@@ -891,6 +914,7 @@ public sealed class UsageRepositoryTests
             setup.CreateFunction("tokenusage_writer_schema", () => UsageRepository.CurrentSchemaVersion);
             await using SqliteCommand command = setup.CreateCommand();
             command.CommandText = """
+                DROP INDEX IF EXISTS ix_usage_event_source_civil_date;
                 ALTER TABLE usage_event DROP COLUMN source_instance_id;
                 ALTER TABLE usage_event DROP COLUMN record_kind;
                 ALTER TABLE usage_event DROP COLUMN representation_revision;
@@ -985,7 +1009,7 @@ public sealed class UsageRepositoryTests
             command.CommandText = "DROP TRIGGER \"" + name.Replace("\"", "\"\"", StringComparison.Ordinal) + "\";";
             await command.ExecuteNonQueryAsync();
         }
-        command.CommandText = "DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
+        command.CommandText = "DROP INDEX IF EXISTS ix_usage_event_source_civil_date; DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
         await command.ExecuteNonQueryAsync();
     }
 
@@ -1008,7 +1032,7 @@ public sealed class UsageRepositoryTests
                 CREATE TABLE operation_fact (event_key TEXT);
                 CREATE TABLE saved_usage_comparison (revision_id TEXT);
                 UPDATE usage_event SET time_precision = 0;
-                DELETE FROM schema_migration WHERE version = 13;
+                DELETE FROM schema_migration WHERE version >= 13;
                 """;
             await command.ExecuteNonQueryAsync();
         }

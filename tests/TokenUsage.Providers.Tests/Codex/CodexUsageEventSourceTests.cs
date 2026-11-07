@@ -404,7 +404,7 @@ public sealed class CodexUsageEventSourceTests
             checkpointPath: Path.Combine(corpus.Root, "codex-usage.v1.json"),
             clock: new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
 
-        Assert.Empty((await source.ReadAsync()).Events);
+        Assert.Empty(Snapshot(await source.ReadAsync()));
 
         File.AppendAllLines(
             sessionPath,
@@ -422,7 +422,7 @@ public sealed class CodexUsageEventSourceTests
                     totalReasoningOutput: 21),
             ]);
 
-        UsageEvent usageEvent = Assert.Single((await source.ReadAsync()).Events);
+        UsageEvent usageEvent = Assert.Single(Snapshot(await source.ReadAsync()));
         Assert.Equal(55, usageEvent.Tokens.Total);
     }
 
@@ -520,8 +520,8 @@ public sealed class CodexUsageEventSourceTests
             Usage("2026-07-27T12:01:00Z", 100, 20, 10, 2));
         CodexUsageEventSource source = corpus.CreateSource();
 
-        UsageEvent first = Assert.Single((await source.ReadAsync()).Events);
-        UsageEvent second = Assert.Single((await source.ReadAsync()).Events);
+        UsageEvent first = Assert.Single(Snapshot(await source.ReadAsync()));
+        UsageEvent second = Assert.Single(Snapshot(await source.ReadAsync()));
 
         Assert.Equal(first.EventKey, second.EventKey);
     }
@@ -663,7 +663,7 @@ public sealed class CodexUsageEventSourceTests
         string checkpoint = Path.Combine(corpus.Root, "checkpoint.json");
         var source = corpus.CreateSource(checkpointPath: checkpoint);
         UsageSourceReadResult beforeCommit = await source.ReadAsync();
-        Assert.False(File.Exists(checkpoint));
+        Assert.False(await HasCheckpointAsync(checkpoint));
         // An uncommitted read must replay the same numeric identities after restart.
         UsageSourceReadResult replay = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
         Assert.Equal(beforeCommit.Events, replay.Events);
@@ -677,12 +677,12 @@ public sealed class CodexUsageEventSourceTests
             command.CommandText = "CREATE TRIGGER fail_ingest BEFORE INSERT ON usage_event BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END;";
             await command.ExecuteNonQueryAsync();
             await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => refresh.RefreshAsync());
-            Assert.False(File.Exists(checkpoint));
+            Assert.False(await HasCheckpointAsync(checkpoint));
             command.CommandText = "DROP TRIGGER fail_ingest;";
             await command.ExecuteNonQueryAsync();
         }
         await refresh.RefreshAsync();
-        Assert.True(File.Exists(checkpoint));
+        Assert.True(await HasCheckpointAsync(checkpoint));
         Assert.NotNull(beforeCommit.Checkpoint);
         await Assert.ThrowsAsync<IOException>(() => beforeCommit.Checkpoint.PersistAsync(() => Task.FromResult(true)));
         await repository.IngestAsync(replay.Events);
@@ -705,12 +705,12 @@ public sealed class CodexUsageEventSourceTests
             new CodexUsageEventSource("UTC", codexHomeOverride: Path.Combine(corpus.Root, ".")).SourceAuthority);
         Assert.NotEqual(source.SourceAuthority,
             new CodexUsageEventSource("UTC", codexHomeOverride: Path.Combine(corpus.Root, "separate-profile")).SourceAuthority);
-        Assert.Equal(replay.Events, (await source.ReadAsync()).Events);
-        string json = await File.ReadAllTextAsync(checkpoint);
+        Assert.Equal(replay.Events, Snapshot(await source.ReadAsync()));
+        string json = (await ReadCheckpointAsync(checkpoint)).ToJsonString();
         Assert.Contains(source.SourceAuthority.Value, json, StringComparison.Ordinal);
         var differentProfile = new CodexUsageEventSource("UTC", codexHomeOverride: Path.Combine(corpus.Root, "other-profile"), checkpointPath: checkpoint);
         await Assert.ThrowsAsync<InvalidDataException>(() => differentProfile.ReadAsync());
-        Assert.Equal(json, await File.ReadAllTextAsync(checkpoint));
+        Assert.Equal(json, (await ReadCheckpointAsync(checkpoint)).ToJsonString());
         Assert.DoesNotContain("private-project-path", json);
         Assert.DoesNotContain("private fixture summary", json);
     }
@@ -727,12 +727,12 @@ public sealed class CodexUsageEventSourceTests
         await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
         await File.WriteAllTextAsync(path, Context("gpt-5.6-sol") + "\n"
             + Usage("2026-07-27T13:00:00Z", 400, 0, 0, 0, totalInput: 1000) + "\n");
-        Assert.Equal(first.Events, (await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()).Events);
+        Assert.Equal(first.Events, Snapshot(await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()));
         await File.AppendAllTextAsync(path, Usage("2026-07-27T14:00:00Z", 200, 0, 0, 0, totalInput: 1200) + "\n");
         UsageSourceReadResult resumed = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
-        Assert.Equal(3, resumed.Events.Count);
-        Assert.Equal(1200, resumed.Events.Sum(item => item.Tokens.Total));
-        Assert.Equal(first.Events.Select(item => item.EventKey), resumed.Events.Take(2).Select(item => item.EventKey));
+        Assert.Equal(3, Snapshot(resumed).Count);
+        Assert.Equal(1200, Snapshot(resumed).Sum(item => item.Tokens.Total));
+        Assert.Equal(first.Events.Select(item => item.EventKey), Snapshot(resumed).Take(2).Select(item => item.EventKey));
     }
 
     [Fact]
@@ -750,10 +750,10 @@ public sealed class CodexUsageEventSourceTests
         var first = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
         await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
         Assert.Equal(count, first.Events.Count);
-        Assert.True(new FileInfo(checkpoint).Length > 32 * 1024 * 1024);
+        Assert.True(new FileInfo(checkpoint + ".sqlite").Length > 32 * 1024 * 1024);
         var replay = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
-        Assert.Equal(first.Events, replay.Events);
-        Assert.Equal(count, replay.Events.Sum(item => item.Tokens.Total));
+        Assert.Equal(first.Events, Snapshot(replay));
+        Assert.Equal(count, Snapshot(replay).Sum(item => item.Tokens.Total));
     }
 
     [Theory]
@@ -765,11 +765,12 @@ public sealed class CodexUsageEventSourceTests
         string path = Path.Combine(corpus.Root, "migration.json");
         var first = await corpus.CreateSource(checkpointPath: path).ReadAsync();
         await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
-        var old = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+        var old = (await ReadCheckpointAsync(path));
         old["schemaVersion"] = legacyVersion;
         old.AsObject().Remove("sourceAuthority");
         foreach (var file in old["files"]!.AsArray()) file!.AsObject().Remove("authorityPathHash");
         string legacyBytes = old.ToJsonString();
+        ResetCheckpointDatabase(path);
         await File.WriteAllTextAsync(path, legacyBytes);
         var migrated = await corpus.CreateSource(checkpointPath: path).ReadAsync();
         await migrated.Checkpoint!.PersistAsync(() => Task.FromResult(true));
@@ -782,8 +783,8 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(UsageSourceReadStatus.Complete, migrated.Status);
         Assert.Equal(UsageSourceIssueKind.None, migrated.Issue);
         Assert.Equal(600, migrated.Events.Sum(row => row.Tokens.Total));
-        Assert.Equal(legacyBytes, await File.ReadAllTextAsync(path + ".pre-v4"));
-        var upgraded = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+        Assert.Equal(legacyBytes, await File.ReadAllTextAsync(path));
+        var upgraded = (await ReadCheckpointAsync(path));
         Assert.Equal(corpus.CreateSource().SourceAuthority.Value, upgraded["sourceAuthority"]!.GetValue<string>());
     }
 
@@ -799,11 +800,12 @@ public sealed class CodexUsageEventSourceTests
         string checkpoint = Path.Combine(corpus.Root, "cleanup.json");
         var first = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
         await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
-        var legacy = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(checkpoint))!;
+        var legacy = (await ReadCheckpointAsync(checkpoint));
         legacy["schemaVersion"] = 3;
         legacy.AsObject().Remove("sourceAuthority");
         foreach (var file in legacy["files"]!.AsArray()) file!.AsObject().Remove("authorityPathHash");
         string legacyBytes = legacy.ToJsonString();
+        ResetCheckpointDatabase(checkpoint);
         await File.WriteAllTextAsync(checkpoint, legacyBytes);
         string database = Path.Combine(corpus.Root, "usage.db");
         UsageRepository repository = await UsageRepository.OpenAsync(database);
@@ -823,8 +825,8 @@ public sealed class CodexUsageEventSourceTests
         var merged = await refresh.RefreshAsync();
         Assert.Equal(UsageSourceReadStatus.Complete, merged.OverallStatus);
         Assert.Equal(1500, merged.Rollups.Sum(row => row.Tokens.Total));
-        Assert.Equal(legacyBytes, await File.ReadAllTextAsync(checkpoint + ".pre-v4"));
-        var upgraded = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(checkpoint))!;
+        Assert.Equal(legacyBytes, await File.ReadAllTextAsync(checkpoint));
+        var upgraded = (await ReadCheckpointAsync(checkpoint));
         Assert.Equal(4, upgraded["schemaVersion"]!.GetValue<int>());
         Assert.NotNull(upgraded["sourceAuthority"]);
 
@@ -880,7 +882,9 @@ public sealed class CodexUsageEventSourceTests
         third["payload"]!["info"]!.AsObject().Remove("last_token_usage");
         await File.AppendAllTextAsync(session, third.ToJsonString() + "\n");
         UsageSourceReadResult continued = await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync();
-        Assert.Equal(3, continued.Events.Count);
+        Assert.Single(continued.Events);
+        Assert.Equal(UsageObservationMode.Delta, continued.ObservationMode);
+        Assert.Equal(3, Snapshot(continued).Count);
         UsageEvent measured = continued.Events[^1];
         Assert.Equal(UsageRecordKind.IntervalDelta, measured.DetailMetadata.RecordKind);
         Assert.Equal(UsageComponentAvailability.Measured, measured.DetailMetadata.Input);
@@ -889,9 +893,9 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(UsageComponentAvailability.Measured, measured.DetailMetadata.CacheWrite);
         Assert.Equal(UsageComponentAvailability.Measured, measured.DetailMetadata.Reasoning);
         Assert.Equal(0, measured.Tokens.CacheRead);
-        Assert.Equal(810, continued.Events.Sum(row => row.Tokens.Total));
+        Assert.Equal(810, Snapshot(continued).Sum(row => row.Tokens.Total));
         await continued.Checkpoint!.PersistAsync(() => Task.FromResult(true));
-        Assert.Equal(continued.Events, (await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()).Events);
+        Assert.Equal(Snapshot(continued), Snapshot(await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()));
     }
 
     [Theory]
@@ -911,8 +915,8 @@ public sealed class CodexUsageEventSourceTests
         await File.AppendAllTextAsync(session, next.ToJsonString() + "\n");
         var source = corpus.CreateSource(checkpointPath: checkpoint);
         UsageSourceReadResult read = await source.ReadAsync();
-        Assert.Equal(2, read.Events.Count);
-        UsageEvent delta = read.Events[1];
+        Assert.Single(read.Events);
+        UsageEvent delta = read.Events[0];
         Assert.Equal(120, delta.Tokens.Total);
         Assert.Equal(hasMatchingLast ? new TokenBreakdown(75, 15, 5, 25, 0)
             : new TokenBreakdown(100, 20, 0, 0, 0), delta.Tokens);
@@ -929,7 +933,7 @@ public sealed class CodexUsageEventSourceTests
         for (int attempt = 0; attempt < 2; attempt++)
         {
             Assert.Equal(820, (await refresh.RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
-            Assert.Equal(read.Events, (await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()).Events);
+            Assert.Equal(Snapshot(read), Snapshot(await corpus.CreateSource(checkpointPath: checkpoint).ReadAsync()));
         }
     }
 
@@ -943,10 +947,11 @@ public sealed class CodexUsageEventSourceTests
         string path = Path.Combine(original.Root, "legacy.json");
         var first = await original.CreateSource(checkpointPath: path).ReadAsync();
         await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
-        var old = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+        var old = (await ReadCheckpointAsync(path));
         old["schemaVersion"] = 3;
         old.AsObject().Remove("sourceAuthority");
         foreach (var file in old["files"]!.AsArray()) file!.AsObject().Remove("authorityPathHash");
+        ResetCheckpointDatabase(path);
         await File.WriteAllTextAsync(path, old.ToJsonString());
         string originalHash = old["files"]![0]!["pathHash"]!.GetValue<string>();
         for (int attempt = 0; attempt < 2; attempt++)
@@ -954,19 +959,19 @@ public sealed class CodexUsageEventSourceTests
             var replay = await copy.CreateSource(checkpointPath: path).ReadAsync();
             Assert.Null(replay.SourceInstance);
             await replay.Checkpoint!.PersistAsync(() => Task.FromResult(true));
-            var saved = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+            var saved = (await ReadCheckpointAsync(path));
             Assert.Null(saved["sourceAuthority"]);
             Assert.Equal(originalHash, saved["files"]![0]!["authorityPathHash"]!.GetValue<string>());
-            Assert.Equal(600, replay.Events.Sum(item => item.Tokens.Total));
+            Assert.Equal(600, Snapshot(replay).Sum(item => item.Tokens.Total));
         }
-        string unboundCheckpoint = await File.ReadAllTextAsync(path);
+        string unboundCheckpoint = (await ReadCheckpointAsync(path)).ToJsonString();
         string database = Path.Combine(copy.Root, "unbound-usage.db");
         var refresh = new LocalUsageRefresh(database, copy.CreateSource(checkpointPath: path),
             new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero)));
         LocalUsageRefreshResult result = await refresh.RefreshAsync();
         Assert.Equal(UsageSourceIssueKind.UnresolvedHistory, Assert.Single(result.SourceDiagnostics).Issue);
         Assert.Empty(result.Rollups);
-        Assert.Equal(unboundCheckpoint, await File.ReadAllTextAsync(path));
+        Assert.Equal(unboundCheckpoint, (await ReadCheckpointAsync(path)).ToJsonString());
     }
 
     [Theory]
@@ -989,7 +994,7 @@ public sealed class CodexUsageEventSourceTests
                 source.EventParserVersion, day, day, newer.Events, complete: publishCheckpoint);
             return publishCheckpoint;
         });
-        Assert.Equal(publishCheckpoint, File.Exists(checkpoint));
+        Assert.Equal(publishCheckpoint, await HasCheckpointAsync(checkpoint));
         UsageDataRevision revision = await repository.ReadDataRevisionAsync();
         var clock = new FixedTimeProvider(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
         var staleRefresh = new LocalUsageRefresh(repository.DatabasePath, new PreparedSource(source, old), clock);
@@ -997,6 +1002,43 @@ public sealed class CodexUsageEventSourceTests
         Assert.Equal(revision, await repository.ReadDataRevisionAsync());
         Assert.Equal(300, (await repository.QueryDailyRollupsAsync(day, day)).Sum(row => row.Tokens.Total));
         Assert.Equal(300, (await new LocalUsageRefresh(repository.DatabasePath, source, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+    }
+
+    private static IReadOnlyList<UsageEvent> Snapshot(UsageSourceReadResult read) =>
+        read.Progress?.SnapshotEvents() ?? read.Events;
+
+    private static async Task<bool> HasCheckpointAsync(string path)
+    {
+        if (!File.Exists(path + ".sqlite")) return false;
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}.sqlite;Mode=ReadOnly;Pooling=False");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM checkpoint_record WHERE kind = 'meta' AND identity = 'header';";
+        return Convert.ToInt64(await command.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture) == 1;
+    }
+
+    private static Task<System.Text.Json.Nodes.JsonNode> ReadCheckpointAsync(string path)
+    {
+        using var database = new UsageCheckpointDatabase(path + ".sqlite");
+        var header = System.Text.Json.Nodes.JsonNode.Parse(database.Read("meta", "header")!)!;
+        var files = header["files"]!.AsArray();
+        var byIdentity = new Dictionary<string, System.Text.Json.Nodes.JsonNode>(StringComparer.Ordinal);
+        foreach (var row in database.ReadRecords("file"))
+        {
+            var file = System.Text.Json.Nodes.JsonNode.Parse(row.Value)!;
+            files.Add(file);
+            byIdentity.Add(row.Identity, file);
+        }
+        foreach (var row in database.ReadRecords("observation"))
+            byIdentity[row.Identity[..row.Identity.IndexOf('\0')]]["observations"]!.AsArray()
+                .Add(System.Text.Json.Nodes.JsonNode.Parse(row.Value));
+        return Task.FromResult(header);
+    }
+
+    private static void ResetCheckpointDatabase(string path)
+    {
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        foreach (string suffix in new[] { ".sqlite", ".sqlite-wal", ".sqlite-shm" }) File.Delete(path + suffix);
     }
 
     private sealed class PreparedSource(CodexUsageEventSource source, UsageSourceReadResult result) : ISourceScopedUsageEventSource

@@ -87,8 +87,7 @@ async Task<int> RefreshLocalUsageForHook()
             return 0;
         }
 
-        await HookRefreshGate.ForDataDirectory(hookDataDirectory)
-            .RunAsync(() => LocalUsageCliAccess.RefreshAsync(hookDataDirectory, TimeProvider.System));
+        await LocalUsageCliAccess.RequestRefreshAsync(hookDataDirectory, TimeProvider.System);
         return 0;
     }
     catch (Exception)

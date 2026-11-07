@@ -215,7 +215,13 @@ public sealed class LocalUsageRefresh
         }
     }
 
-    public async Task<LocalUsageRefreshResult> RefreshAsync(
+    public Task<LocalUsageRefreshResult> RefreshAsync(CancellationToken cancellationToken = default) =>
+        LocalUsageRefreshGate.RunAsync(_databasePath, RefreshCoreAsync, cancellationToken);
+
+    public Task<bool> TryRefreshAsync(CancellationToken cancellationToken = default) =>
+        LocalUsageRefreshGate.TryRunAsync(_databasePath, RefreshCoreAsync, cancellationToken);
+
+    private async Task<LocalUsageRefreshResult> RefreshCoreAsync(
         CancellationToken cancellationToken = default)
     {
         UsageRepository repository = await UsageRepository.OpenAsync(
@@ -227,6 +233,7 @@ public sealed class LocalUsageRefresh
         UsageEvent[] events = readResults.SelectMany(result => result.Events).ToArray();
         string[] groupingTimeZoneIds = events
             .Select(usageEvent => usageEvent.GroupingTimeZoneId)
+            .Concat(readResults.Select(result => result.GroupingTimeZoneId).OfType<string>())
             .Distinct(StringComparer.Ordinal)
             .ToArray();
         if (groupingTimeZoneIds.Length > 1)
@@ -248,6 +255,7 @@ public sealed class LocalUsageRefresh
             UsageSourceReadResult result = readResults[index];
             async Task<bool> PersistSourceAsync()
             {
+                result = await repository.ResolveSourceReadAsync(result, cancellationToken).ConfigureAwait(false);
                 bool canCommitCheckpoint = true;
                 UsageSourceInstanceId? sourceInstance = result.SourceInstance;
                 if (sourceInstance is not null && (source is not ISourceScopedUsageEventSource scoped
@@ -276,7 +284,8 @@ public sealed class LocalUsageRefresh
                         UsageSourceStoreResult stored = await repository.StoreSourceObservationsAsync(source.AgentId,
                             sourceInstance, scopedSource.EventParserVersion, from, today, admittedWindow,
                             complete: result.Status == UsageSourceReadStatus.Complete && allInWindow,
-                            token: cancellationToken).ConfigureAwait(false);
+                            observationMode: result.ObservationMode,
+                            progress: allInWindow ? result.Progress : null, token: cancellationToken).ConfigureAwait(false);
                         canCommitCheckpoint = allInWindow && stored.WithheldCount == 0;
                         if (stored.HasUnresolvedHistory || !allInWindow)
                             readResults[index] = UnresolvedSourceRead(result);
@@ -319,7 +328,7 @@ public sealed class LocalUsageRefresh
                         })
                         .ToArray();
                     canCommitCheckpoint = eventsInWindow.Length + olderEvents.Length == result.Events.Count;
-                    if ((eventsInWindow.Length > 0 || olderEvents.Length > 0)
+                    if ((eventsInWindow.Length > 0 || olderEvents.Length > 0 || result.Progress is not null)
                         && (result.Status == UsageSourceReadStatus.Complete || !await repository.HasDifferentParserInRangeAsync(windowedSource.AgentId,
                             windowedSource.EventParserVersion, reconcileFrom, today, cancellationToken).ConfigureAwait(false)))
                     {
@@ -327,7 +336,9 @@ public sealed class LocalUsageRefresh
                         {
                             UsageRecoveryResult recovered = await repository.RecoverAgentEventsAsync(windowedSource.AgentId,
                                 eventsInWindow.Concat(olderEvents).ToArray(),
-                                _clock.GetUtcNow().ToUniversalTime(), cancellationToken: cancellationToken).ConfigureAwait(false);
+                                _clock.GetUtcNow().ToUniversalTime(),
+                                progress: canCommitCheckpoint ? result.Progress : null,
+                                cancellationToken: cancellationToken).ConfigureAwait(false);
                             if (recovered.Exclusions.ConflictingIdentity > 0 || recovered.Exclusions.ConflictingPriceEvidence > 0)
                             {
                                 canCommitCheckpoint = false;
@@ -407,7 +418,8 @@ public sealed class LocalUsageRefresh
 
     private static UsageSourceReadResult UnresolvedSourceRead(UsageSourceReadResult result) =>
         new(result.Events, UsageSourceReadStatus.Partial, UsageSourceIssueKind.UnresolvedHistory)
-        { SourceInstance = result.SourceInstance, AccountAggregates = result.AccountAggregates, Checkpoint = result.Checkpoint };
+        { SourceInstance = result.SourceInstance, AccountAggregates = result.AccountAggregates, Checkpoint = result.Checkpoint,
+            ObservationMode = result.ObservationMode, Progress = result.Progress, GroupingTimeZoneId = result.GroupingTimeZoneId };
 
     /// <summary>
     /// Cached rollups prove past usage, not current presence. The root probe keeps an

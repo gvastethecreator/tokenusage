@@ -36,11 +36,13 @@ public sealed class ClaudeHistoryRecoveryTests
             var service = new ClaudeHistoryRecoveryService(repository, source);
             var readOnlyService = new ClaudeHistoryRecoveryService(
                 await UsageRepository.OpenReadOnlyAsync(Path.Combine(root, "usage.db")), source);
+            byte[] checkpointBeforePreview = await File.ReadAllBytesAsync(checkpoint + ".sqlite");
             ClaudeHistoryRecoveryReport preview = await readOnlyService.RecoverAsync(dryRun: true);
             Assert.True(preview.Completed);
             Assert.Equal(1, preview.Added);
             Assert.Equal(2, preview.Batches);
             Assert.False(File.Exists(checkpoint));
+            Assert.Equal(checkpointBeforePreview, await File.ReadAllBytesAsync(checkpoint + ".sqlite"));
             Assert.Empty(await repository.QueryUsageEventsAsync(occurred.AddSeconds(-1), occurred.AddSeconds(1)));
 
             using var cancellation = new CancellationTokenSource();
@@ -48,7 +50,8 @@ public sealed class ClaudeHistoryRecoveryTests
                 progress: new CancelAfterBatch(cancellation), cancellationToken: cancellation.Token));
             UsageEvent partial = Assert.Single(await repository.QueryUsageEventsAsync(occurred.AddSeconds(-1), occurred.AddSeconds(1)));
             Assert.Equal(2, partial.Tokens.Output);
-            Assert.True(File.Exists(checkpoint));
+            using (var persisted = new UsageCheckpointDatabase(checkpoint + ".sqlite"))
+                Assert.NotNull(persisted.Read("meta", "header"));
             ClaudeHistoryRecoveryReport actual = await service.RecoverAsync();
             Assert.True(actual.Completed);
             Assert.Equal(0, actual.Added);

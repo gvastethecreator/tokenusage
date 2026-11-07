@@ -210,7 +210,7 @@ public sealed class LocalUsageRefreshTests
                 command.CommandText = "DROP TRIGGER \"" + trigger.Replace("\"", "\"\"", StringComparison.Ordinal) + "\";";
                 await command.ExecuteNonQueryAsync();
             }
-            command.CommandText = "DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
+            command.CommandText = "DROP INDEX IF EXISTS ix_usage_event_source_civil_date; DROP TABLE usage_data_revision; ALTER TABLE usage_event DROP COLUMN source_instance_id; ALTER TABLE usage_event DROP COLUMN record_kind; ALTER TABLE usage_event DROP COLUMN representation_revision; ALTER TABLE usage_event DROP COLUMN input_availability; ALTER TABLE usage_event DROP COLUMN output_availability; ALTER TABLE usage_event DROP COLUMN reasoning_availability; ALTER TABLE usage_event DROP COLUMN cache_read_availability; ALTER TABLE usage_event DROP COLUMN cache_write_availability; ALTER TABLE usage_collection_state DROP COLUMN last_successful_at_utc; DELETE FROM schema_migration WHERE version >= 6;";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -571,6 +571,36 @@ public sealed class LocalUsageRefreshTests
         Assert.Equal(320, (await new LocalUsageRefresh(folder.DatabasePath, missing, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
         var emptyComplete = new ScopedSource(a, "test/1", new([], UsageSourceReadStatus.Complete));
         Assert.Equal(250, (await new LocalUsageRefresh(folder.DatabasePath, emptyComplete, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+
+        UsageEvent baseline = Fact("confirmed", 70, "test/1", a);
+        var initialProgress = new UsageSourceProgress("fixture/a", null, "first", () => [baseline]);
+        var initial = new ScopedSource(a, "test/1", new([baseline], UsageSourceReadStatus.Complete)
+        { Progress = initialProgress });
+        Assert.Equal(320, (await new LocalUsageRefresh(folder.DatabasePath, initial, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        UsageDataRevision stable = await repository.ReadDataRevisionAsync();
+        var unchanged = new ScopedSource(a, "test/1", new([], UsageSourceReadStatus.Complete)
+        {
+            ObservationMode = UsageObservationMode.Unchanged,
+            Progress = new("fixture/a", "first", "first", () => throw new InvalidOperationException("A confirmed destination needs no replay.")),
+        });
+        Assert.Equal(320, (await new LocalUsageRefresh(folder.DatabasePath, unchanged, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        Assert.Equal(stable, await repository.ReadDataRevisionAsync());
+        UsageEvent increment = Fact("increment", 30, "test/1", a);
+        var delta = new ScopedSource(a, "test/1", new([increment], UsageSourceReadStatus.Complete)
+        {
+            ObservationMode = UsageObservationMode.Delta,
+            Progress = new("fixture/a", "first", "second", () => [baseline, increment]),
+        });
+        Assert.Equal(350, (await new LocalUsageRefresh(folder.DatabasePath, delta, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        var restarted = new ScopedSource(a, "test/1", new([], UsageSourceReadStatus.Complete)
+        {
+            ObservationMode = UsageObservationMode.Unchanged,
+            Progress = new("fixture/a", "second", "second", () => [baseline, increment]),
+        });
+        string otherDatabase = folder.DatabasePath + ".other";
+        Assert.Equal(100, (await new LocalUsageRefresh(otherDatabase, restarted, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
+        await repository.DeleteAllUsageDataAsync();
+        Assert.Equal(100, (await new LocalUsageRefresh(folder.DatabasePath, restarted, clock).RefreshAsync()).Rollups.Sum(row => row.Tokens.Total));
     }
 
     private sealed class TrackingCheckpoint : IUsageReadCheckpoint

@@ -5,10 +5,17 @@ namespace TokenUsage.Cli;
 
 public static class LocalUsageCliAccess
 {
-    public static async Task<LocalUsageRefreshResult> RefreshAsync(
+    public static Task<bool> RequestRefreshAsync(string dataDirectory, TimeProvider clock,
+        CancellationToken cancellationToken = default) =>
+        CreateRefresh(dataDirectory, clock).TryRefreshAsync(cancellationToken);
+
+    public static Task<LocalUsageRefreshResult> RefreshAsync(
         string dataDirectory,
         TimeProvider clock,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        CreateRefresh(dataDirectory, clock).RefreshAsync(cancellationToken);
+
+    private static LocalUsageRefresh CreateRefresh(string dataDirectory, TimeProvider clock)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataDirectory);
         ArgumentNullException.ThrowIfNull(clock);
@@ -16,10 +23,9 @@ public static class LocalUsageCliAccess
         WindowsProviderComposition composition = WindowsProviderCatalog.CreateComposition(
             fullDataDirectory,
             clock);
-        var refresh = new LocalUsageRefresh(
+        return new LocalUsageRefresh(
             Path.Combine(fullDataDirectory, "scanner", "usage.v1.db"),
             composition.LocalUsageSources,
             clock);
-        return await refresh.RefreshAsync(cancellationToken).ConfigureAwait(false);
     }
 }

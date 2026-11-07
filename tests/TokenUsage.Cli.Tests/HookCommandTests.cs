@@ -1,5 +1,6 @@
 using System.Globalization;
 using TokenUsage.Cli;
+using TokenUsage.Core.Usage;
 
 namespace TokenUsage.Cli.Tests;
 
@@ -96,25 +97,51 @@ public sealed class HookCommandTests
     [Fact]
     public async Task OverlappingHookRefreshesRunOnceMoreInsteadOfStacking()
     {
-        var gate = new HookRefreshGate("TokenUsage.Tests." + Guid.NewGuid().ToString("N"));
+        string folder = Path.Combine(Path.GetTempPath(), "tokenusage-gate-" + Guid.NewGuid().ToString("N"));
+        string database = Path.Combine(folder, "usage.db");
         var firstPass = new TaskCompletionSource();
         var release = new TaskCompletionSource();
         int passes = 0;
-        Task<bool> first = gate.RunAsync(async () =>
+        Task<int> first = LocalUsageRefreshGate.RunAsync(database, async token =>
         {
             if (Interlocked.Increment(ref passes) == 1)
             {
                 firstPass.SetResult();
-                await release.Task;
+                await release.Task.WaitAsync(token);
             }
+            return passes;
         });
-        await firstPass.Task;
+        await firstPass.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-        bool[] waiting = await Task.WhenAll(gate.RunAsync(() => Task.CompletedTask), gate.RunAsync(() => Task.CompletedTask));
-        release.SetResult();
+        try
+        {
+            bool[] waiting = await Task.WhenAll(
+                LocalUsageRefreshGate.TryRunAsync(database, _ => Task.FromResult(0)),
+                LocalUsageRefreshGate.TryRunAsync(database, _ => Task.FromResult(0)));
+            using var cancellation = new CancellationTokenSource();
+            Task<int> canceledWaiter = LocalUsageRefreshGate.RunAsync(database,
+                _ => Task.FromResult(0), cancellation.Token);
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => canceledWaiter);
+            release.SetResult();
 
-        Assert.Equal([false, false], waiting);
-        Assert.True(await first);
-        Assert.Equal(2, passes);
+            Assert.Equal([false, false], waiting);
+            Assert.Equal(2, await first.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Equal(2, passes);
+            Assert.False(File.Exists(database + ".refresh-pending"));
+            Assert.Equal(3, await LocalUsageRefreshGate.RunAsync(database, _ => Task.FromResult(++passes)));
+
+            await Assert.ThrowsAsync<IOException>(() => LocalUsageRefreshGate.TryRunAsync(database,
+                _ => Task.FromException<int>(new IOException("Collection failed."))));
+            Assert.True(File.Exists(database + ".refresh-pending"));
+            Assert.Equal(4, await LocalUsageRefreshGate.RunAsync(database, _ => Task.FromResult(++passes)));
+            Assert.False(File.Exists(database + ".refresh-pending"));
+        }
+        finally
+        {
+            release.TrySetResult();
+            await first.WaitAsync(TimeSpan.FromSeconds(5));
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
     }
 }

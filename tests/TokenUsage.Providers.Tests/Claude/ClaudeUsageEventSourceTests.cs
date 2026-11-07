@@ -465,16 +465,16 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(UsageSourceReadStatus.Partial, read.Status);
         Assert.Equal(budget, source.LastScanProgress.BytesRead);
         await read.Checkpoint!.PersistAsync(() => Task.FromResult(false));
-        Assert.False(File.Exists(checkpoint));
+        Assert.False(HasCheckpoint(checkpoint));
         read = await source.ReadAsync();
         Assert.Equal(initial, Assert.Single(read.Events));
         await Assert.ThrowsAsync<IOException>(() => read.Checkpoint!.PersistAsync(
             () => throw new IOException("fixture persistence failure")));
-        Assert.False(File.Exists(checkpoint));
+        Assert.False(HasCheckpoint(checkpoint));
         read = await source.ReadAsync();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => read.Checkpoint!.PersistAsync(
             () => Task.FromCanceled<bool>(new CancellationToken(canceled: true))));
-        Assert.False(File.Exists(checkpoint));
+        Assert.False(HasCheckpoint(checkpoint));
         read = await source.ReadAsync();
         await read.Checkpoint!.PersistAsync(() => Task.FromResult(true));
 
@@ -484,7 +484,9 @@ public sealed class ClaudeUsageEventSourceTests
         Assert.Equal(initial.EventKey, final.EventKey);
         Assert.Equal(new TokenBreakdown(20, 8, 0, 0, 0), final.Tokens);
         await read.Checkpoint!.PersistAsync(() => Task.FromResult(true));
-        string saved = await File.ReadAllTextAsync(checkpoint);
+        using var savedDatabase = new UsageCheckpointDatabase(checkpoint + ".sqlite");
+        string saved = string.Join("\n", savedDatabase.ReadRecords("file").Concat(savedDatabase.ReadRecords("message"))
+            .Select(row => row.Value));
         Assert.DoesNotContain("PRIVATE CONTENT", saved, StringComparison.Ordinal);
         Assert.DoesNotContain("stream-private-id", saved, StringComparison.Ordinal);
         Assert.DoesNotContain(corpus.ProjectRoot, saved, StringComparison.Ordinal);
@@ -581,6 +583,13 @@ public sealed class ClaudeUsageEventSourceTests
     {
         public DateTimeOffset Now { get; set; } = now;
         public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    private static bool HasCheckpoint(string path)
+    {
+        if (!File.Exists(path + ".sqlite")) return false;
+        using var database = new UsageCheckpointDatabase(path + ".sqlite");
+        return database.Read("meta", "header") is not null;
     }
 
     private static string UsageLine(

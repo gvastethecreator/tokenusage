@@ -55,14 +55,20 @@ public sealed partial class UsageRepository
 {
     public async Task<UsageRecoveryResult> RecoverAgentEventsAsync(AgentId agentId,
         IEnumerable<UsageEvent> events, DateTimeOffset nowUtc, bool dryRun = false,
-        CancellationToken cancellationToken = default)
+        UsageSourceProgress? progress = null, CancellationToken cancellationToken = default)
     {
         UtcTimestamp.Require(nowUtc, nameof(nowUtc));
         if (!dryRun) EnsureWritable();
         UsageEvent[] batch = ValidateAgentBatchContent(agentId, events, "History recovery");
-        if (batch.Length == 0) return new(0, 0, 0);
+        if (batch.Length == 0 && (progress is null || dryRun)) return new(0, 0, 0);
         await using SqliteConnection connection = await OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         await using SqliteTransaction transaction = connection.BeginTransaction(deferred: dryRun);
+        if (batch.Length == 0)
+        {
+            await WriteSourceProgressOnAsync(connection, transaction, progress, cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return new(0, 0, 0);
+        }
         HashSet<string> tombstones = await LoadTombstonedKeysAsync(connection, transaction, batch, cancellationToken)
             .ConfigureAwait(false);
         var retiredDays = new HashSet<string>(StringComparer.Ordinal);
@@ -174,6 +180,9 @@ public sealed partial class UsageRepository
         await RebuildAgentRollupsForDatesAsync(connection, transaction, agentId,
             previousDates.Concat(written.Select(UsageRollupAggregator.CivilDate)).Distinct().ToArray(),
             cancellationToken).ConfigureAwait(false);
+        if (!reasons.Values.Any(reason => reason is UsageRecoveryExclusionKind.ConflictingIdentity
+                or UsageRecoveryExclusionKind.ConflictingPriceEvidence))
+            await WriteSourceProgressOnAsync(connection, transaction, progress, cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return new(added.Count, existing.Count, excluded.Count)
         { UnpricedGrowth = unpricedGrowth, AddedKeys = added, ExistingKeys = existing, ExcludedKeys = excluded,
