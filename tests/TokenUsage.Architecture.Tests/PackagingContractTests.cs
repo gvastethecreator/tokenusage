@@ -169,7 +169,7 @@ public sealed class PackagingContractTests
     [Theory]
     [InlineData("portable-x64.pubxml", "x64", "win-x64")]
     [InlineData("portable-arm64.pubxml", "ARM64", "win-arm64")]
-    public void PortableProfilesAreUnpackagedAndSelfContained(
+    public void PortableProfilesUseUnpackagedWinUiAndOnePrivateDotNetRuntime(
         string profileName,
         string platform,
         string runtimeIdentifier)
@@ -192,7 +192,9 @@ public sealed class PackagingContractTests
         Assert.Equal(
             "true",
             profile.Descendants(MsBuild + "WindowsAppSDKSelfContained").Single().Value);
-        Assert.Equal("true", profile.Descendants(MsBuild + "SelfContained").Single().Value);
+        Assert.Equal("false", profile.Descendants(MsBuild + "SelfContained").Single().Value);
+        Assert.Equal("AppRelative", profile.Descendants(MsBuild + "AppHostDotNetSearch").Single().Value);
+        Assert.Equal(".dotnet", profile.Descendants(MsBuild + "AppHostRelativeDotNet").Single().Value);
         Assert.Equal("false", profile.Descendants(MsBuild + "PublishSingleFile").Single().Value);
         Assert.Equal("false", profile.Descendants(MsBuild + "PublishTrimmed").Single().Value);
     }

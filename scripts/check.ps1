@@ -18,7 +18,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$solution = Join-Path $repoRoot 'TokenUsage.slnx'
 $packageProject = Join-Path $repoRoot 'src\TokenUsage.Package\TokenUsage.Package.wapproj'
 $architectureTests = Join-Path $repoRoot 'tests\TokenUsage.Architecture.Tests\TokenUsage.Architecture.Tests.csproj'
 $coreTests = Join-Path $repoRoot 'tests\TokenUsage.Core.Tests\TokenUsage.Core.Tests.csproj'
@@ -75,10 +74,6 @@ function Invoke-MSBuildStep {
     }
 }
 
-if (-not (Test-Path -LiteralPath $solution)) {
-    throw "Missing solution: $solution"
-}
-
 if (-not (Test-Path -LiteralPath $packageProject)) {
     throw "Missing packaging project: $packageProject"
 }
@@ -90,7 +85,7 @@ if ($PackageCertificatePassword -and -not $PackageCertificateKeyFile) {
 }
 
 $packageBuildArguments = @(
-    $solution,
+    $packageProject,
     '/restore',
     "/p:Configuration=$Configuration",
     "/p:Platform=$Platform",
@@ -157,7 +152,7 @@ try {
         '--verbosity', 'minimal'
     )
 
-    Invoke-MSBuildStep 'Solution and package build' $packageBuildArguments
+    Invoke-MSBuildStep 'Package and production project build' $packageBuildArguments
 }
 finally {
     Pop-Location

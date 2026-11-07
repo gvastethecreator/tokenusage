@@ -118,81 +118,27 @@ $defaultArgs = @("/nologo")
 $hasVerbosity = $extraArgs | Where-Object { $_ -match "^[/|-]v(erbosity)?:" }
 if (-not $hasVerbosity) { $defaultArgs += "/v:m" }
 
-# -- 4a. Inject Microsoft.WindowsAppSDK.Analyzers if available --
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-# Look for pre-built analyzer DLL in the skill folder first, then fall back to source tree
-$analyzerDll = Join-Path $scriptDir "analyzer\Microsoft.WindowsAppSDK.Analyzers.dll"
-$analyzerTargets = Join-Path $scriptDir "analyzer\Microsoft.WindowsAppSDK.Analyzers.targets"
-if (-not (Test-Path $analyzerDll)) {
-    $analyzerDll = Join-Path $scriptDir "..\..\tools\winui-analyzer\Microsoft.WindowsAppSDK.Analyzers\bin\Release\netstandard2.0\Microsoft.WindowsAppSDK.Analyzers.dll"
-    $analyzerTargets = Join-Path $scriptDir "..\..\tools\winui-analyzer\Microsoft.WindowsAppSDK.Analyzers\Microsoft.WindowsAppSDK.Analyzers.targets"
-}
-
-$analyzerArgs = @()
-$tempBuildProps = $null
-if (Test-Path $analyzerDll) {
-    $analyzerDll = (Resolve-Path $analyzerDll).Path
-    $analyzerTargets = (Resolve-Path $analyzerTargets).Path
-
-    # Inject via temporary Directory.Build.props (works with both MSBuild and dotnet build)
-    $projectDir = Split-Path (Resolve-Path $Project) -Parent
-    if (-not $projectDir) { $projectDir = "." }
-    $tempBuildProps = Join-Path $projectDir "Directory.Build.props"
-    $existingProps = $null
-
-    if (Test-Path $tempBuildProps) {
-        $existingProps = Get-Content $tempBuildProps -Raw
-    }
-
-    # Only create if one doesn't already exist (don't overwrite user's file)
-    if (-not $existingProps) {
-        @"
-<Project>
-  <ItemGroup>
-    <Analyzer Include="$analyzerDll" />
-  </ItemGroup>
-  <Import Project="$analyzerTargets" />
-</Project>
-"@ | Set-Content $tempBuildProps
-        Write-Host "--> Microsoft.WindowsAppSDK.Analyzers: enabled" -ForegroundColor DarkGray
-    } else {
-        $tempBuildProps = $null  # Don't clean up a pre-existing file
-        Write-Host "--> Microsoft.WindowsAppSDK.Analyzers: skipped (existing Directory.Build.props)" -ForegroundColor DarkGray
-    }
-}
-
 Write-Host ""
-try {
-    if ($msbuild) {
-        Write-Host "--> Building with MSBuild (Platform: $detectedPlatform, Config: $detectedConfig)" -ForegroundColor Cyan
-        Write-Host "--> MSBuild: $msbuild" -ForegroundColor DarkGray
-        $allArgs = $defaultArgs + $autoArgs + @($Project) + $extraArgs
-        & $msbuild $allArgs
-        $buildExit = $LASTEXITCODE
-    } else {
-        Write-Host "--> Building with dotnet build (Platform: $detectedPlatform, Config: $detectedConfig)" -ForegroundColor Yellow
-        $dotnetArgs = @($Project)
-        foreach ($a in ($autoArgs + $extraArgs)) {
-            if ($a -match "^[/|-]restore$|^[/|-]t:restore$") {
-                # dotnet build restores by default
-            } elseif ($a -match "^[/|-]p:(.+)$") {
-                $dotnetArgs += "-p:$($Matches[1])"
-            } elseif ($a -notmatch "\.(csproj|sln)$") {
-                $dotnetArgs += $a
-            }
+if ($msbuild) {
+    Write-Host "--> Building with MSBuild (Platform: $detectedPlatform, Config: $detectedConfig)" -ForegroundColor Cyan
+    Write-Host "--> MSBuild: $msbuild" -ForegroundColor DarkGray
+    $allArgs = $defaultArgs + $autoArgs + @($Project) + $extraArgs
+    & $msbuild $allArgs
+    $buildExit = $LASTEXITCODE
+} else {
+    Write-Host "--> Building with dotnet build (Platform: $detectedPlatform, Config: $detectedConfig)" -ForegroundColor Yellow
+    $dotnetArgs = @($Project)
+    foreach ($a in ($autoArgs + $extraArgs)) {
+        if ($a -match "^[/|-]restore$|^[/|-]t:restore$") {
+            # dotnet build restores by default
+        } elseif ($a -match "^[/|-]p:(.+)$") {
+            $dotnetArgs += "-p:$($Matches[1])"
+        } elseif ($a -notmatch "\.(csproj|sln)$") {
+            $dotnetArgs += $a
         }
-        & dotnet build @dotnetArgs
-        $buildExit = $LASTEXITCODE
     }
-}
-finally {
-    # Always clean up the temp Directory.Build.props we created — even on
-    # Ctrl-C, throws, or unexpected exits. Otherwise the user's project
-    # gets a stray file pointing at our analyzer that subsequent vanilla
-    # `dotnet build` invocations will fail to resolve.
-    if ($tempBuildProps -and (Test-Path $tempBuildProps)) {
-        Remove-Item $tempBuildProps -Force -ErrorAction SilentlyContinue
-    }
+    & dotnet build @dotnetArgs
+    $buildExit = $LASTEXITCODE
 }
 
 if ($buildExit -ne 0) {

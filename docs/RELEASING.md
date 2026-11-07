@@ -2,7 +2,7 @@
 
 Stable TokenUsage releases publish one signed MSIX package and one portable ZIP for each Windows architecture. Explicitly approved unsigned previews publish only a portable ZIP and must be marked as pre-releases.
 
-The portable ZIP contains the WinUI app, the CLI, .NET, and the Windows App SDK runtime. It does not require installation.
+The portable ZIP contains the WinUI app, the CLI, .NET, and the Windows App SDK runtime. It does not require installation. The app and CLI share one private .NET runtime in `.dotnet`; their native launchers use that runtime without searching the machine's installed .NET versions.
 
 ## Build a local release candidate
 
@@ -52,7 +52,7 @@ users install them manually and can later update to a newer stable app version.
 
 The portable folder contains `TokenUsage.portable` and `TokenUsage.files.json`. Keep both files beside the executable files. The JSON file lists files owned by the release, including itself, using paths relative to the portable root. The updater uses the old and new lists to replace release files without overwriting unrelated files.
 
-The app and CLI store their data in the `Data` folder. The CLI executable is in `cli`.
+The app and CLI store their data in the `Data` folder. The CLI executable is in `cli`. Keep `.dotnet` with the app and CLI when copying the portable folder.
 
 Run `tokenusage.cmd` from the portable root to use the CLI. Move the complete TokenUsage folder to move its data.
 
@@ -110,7 +110,7 @@ Keep these asset names exact:
 - Portable: `TokenUsage-<version>-win-<architecture>-portable.zip`.
 - Packaged: `TokenUsage-<version>-win-<architecture>` followed by `.msix`, `.msixbundle`, `.appx`, or `.appxbundle`.
 
-Use lowercase `x64` or `arm64` in asset names. Do not rename an unsigned package to remove its suffix. The updater never selects the `-unsigned` asset. The ZIP keeps one root folder named `TokenUsage-<version>-win-<architecture>-portable`, with `TokenUsage.App.exe`, `TokenUsage.App.dll`, `TokenUsage.portable`, `TokenUsage.files.json`, and the self-contained CLI in `cli`. The release script generates the owned-file list after it assembles the ZIP contents. Do not add user data to the ZIP or the owned-file list.
+Use lowercase `x64` or `arm64` in asset names. Do not rename an unsigned package to remove its suffix. The updater never selects the `-unsigned` asset. The ZIP keeps one root folder named `TokenUsage-<version>-win-<architecture>-portable`, with `TokenUsage.App.exe`, `TokenUsage.App.dll`, `TokenUsage.portable`, `TokenUsage.files.json`, the CLI in `cli`, and the shared private runtime in `.dotnet`. The release script generates the owned-file list after it assembles the ZIP contents. Do not add user data to the ZIP or the owned-file list.
 
 The updater requires the GitHub release asset's SHA-256 digest and verifies the downloaded bytes before staging an update. `SHA256SUMS.txt` and `release-manifest.json` remain useful review records, but do not replace a missing GitHub digest. Portable updates trust the GitHub repository, HTTPS transport, and matching digest. This protects download integrity; it is not Authenticode signing or an independent publisher signature. A compromise of the GitHub release account can therefore compromise portable updates. Packaged updates also pass Windows signature and installed-publisher checks.
 

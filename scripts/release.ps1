@@ -151,6 +151,40 @@ function Copy-PortableRuntimeResources {
     Copy-Item -LiteralPath (Join-Path $packageRoots[0] 'license.txt') -Destination (Join-Path $Destination 'LICENSE-WINDOWS-APP-SDK.txt')
 }
 
+function Copy-PortableDotNetRuntime {
+    param([Parameter(Mandatory)][string] $Destination)
+
+    # Use the exact runtime pack restored for the app's ReadyToRun publish.
+    # Its managed and native assets form one private shared framework for both
+    # apphosts; neither executable searches the machine's .NET installation.
+    $restore = Get-Content -LiteralPath (Join-Path $repoRoot 'src\TokenUsage.App\obj\project.assets.json') -Raw | ConvertFrom-Json
+    $runtimeName = "Microsoft.NETCore.App.Runtime.$runtimeIdentifier"
+    $runtime = @($restore.project.frameworks.PSObject.Properties.Value.downloadDependencies |
+        Where-Object name -EQ $runtimeName)
+    if ($runtime.Count -ne 1 -or $runtime[0].version -notmatch '^\[([^,]+), \1\]$') {
+        throw 'Expected one exact restored .NET runtime pack for the portable architecture.'
+    }
+
+    $runtimeVersion = $Matches[1]
+    $packageRoots = @($restore.packageFolders.PSObject.Properties.Name | ForEach-Object {
+        Join-Path $_ ($runtimeName.ToLowerInvariant() + '/' + $runtimeVersion)
+    } | Where-Object { Test-Path -LiteralPath (Join-Path $_ "runtimes\$runtimeIdentifier\native\hostfxr.dll") })
+    if ($packageRoots.Count -ne 1) { throw 'The restored .NET runtime pack could not be resolved uniquely.' }
+
+    $runtimeRoot = Join-Path $Destination '.dotnet'
+    $frameworkRoot = Join-Path $runtimeRoot "shared\Microsoft.NETCore.App\$runtimeVersion"
+    $hostRoot = Join-Path $runtimeRoot "host\fxr\$runtimeVersion"
+    New-Item -ItemType Directory -Force -Path $frameworkRoot, $hostRoot | Out-Null
+    $assets = Join-Path $packageRoots[0] "runtimes\$runtimeIdentifier"
+    Copy-PublishOutput (Join-Path $assets 'lib\net10.0') $frameworkRoot
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $assets 'native') -File) {
+        $target = if ($file.Name -eq 'hostfxr.dll') { $hostRoot } else { $frameworkRoot }
+        Copy-Item -LiteralPath $file.FullName -Destination $target
+    }
+    Copy-Item -LiteralPath (Join-Path $packageRoots[0] 'LICENSE.TXT') -Destination (Join-Path $runtimeRoot 'LICENSE-DOTNET.txt')
+    Copy-Item -LiteralPath (Join-Path $packageRoots[0] 'THIRD-PARTY-NOTICES.TXT') -Destination $runtimeRoot
+}
+
 function Assert-PackageIdentity {
     param([Parameter(Mandatory)][string] $Path)
 
@@ -308,10 +342,11 @@ try {
         & dotnet publish $appProject `
             --configuration Release `
             --runtime $runtimeIdentifier `
-            --self-contained true `
+            --self-contained false `
             --output $appPublish `
             "-p:Platform=$Platform" `
             "-p:IntermediateOutputPath=obj/portable-$architecture/Release/" `
+            "-p:OutputPath=bin/portable-$architecture/Release/" `
             "-p:PublishProfile=portable-$architecture"
     }
 
@@ -319,9 +354,11 @@ try {
         & dotnet publish $cliProject `
             --configuration Release `
             --runtime $runtimeIdentifier `
-            --self-contained true `
+            --self-contained false `
             --output $cliPublish `
             "-p:Platform=$Platform" `
+            '-p:AppHostDotNetSearch=AppRelative' `
+            '-p:AppHostRelativeDotNet=../.dotnet' `
             '-p:PublishTrimmed=false' `
             '-p:PublishSingleFile=false'
     }
@@ -331,6 +368,7 @@ try {
     Copy-PortableRuntimeResources $appPublish
     Copy-PublishOutput $appPublish $portableDirectory
     Copy-PublishOutput $cliPublish (Join-Path $portableDirectory 'cli')
+    Copy-PortableDotNetRuntime $portableDirectory
     Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $portableDirectory
     Set-Content -LiteralPath (Join-Path $portableDirectory 'TokenUsage.portable') -Encoding utf8 -Value @(
         'TokenUsage portable distribution'
@@ -343,6 +381,7 @@ try {
         $(if ($UnsignedPreview) { 'UNSIGNED PREVIEW: Windows may show an unknown-publisher warning. This is not a signed or stable release.' })
         'Run TokenUsage.App.exe to start the tray app.'
         'Run cli\tokenusage.exe from PowerShell to use the CLI.'
+        'Keep .dotnet with both executables; it contains their shared private .NET runtime.'
         'Keep TokenUsage.portable beside the executable files.'
         'Keep TokenUsage.files.json so updates can identify files owned by this release.'
         'The app and CLI use the Data folder in this directory.'

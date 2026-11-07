@@ -31,3 +31,10 @@ required repository check before review.
 Keep the app's WinApp helper marked `PrivateAssets="all"` so it does not flow
 into consumers' dependency graphs. Local research and build output are outside
 the active solution and are not part of the dependency update.
+
+The app and packaging project reference the Windows App SDK WinUI and Runtime
+packages at the same version. WinUI brings the Foundation and Interactive
+Experiences components used by the app. Keep those references aligned; the
+aggregate SDK package also includes unrelated AI, ML, Search, and Widgets
+components. Portable releases include the exact restored .NET runtime pack
+once, under `.dotnet`, for both executables.

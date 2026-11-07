@@ -155,7 +155,7 @@ public static class PortableUpdateInstaller
             throw new InvalidOperationException("Only a successfully installed update can discard its staging files.");
         }
 
-        foreach (string directory in new[] { "stage", "worker" })
+        foreach (string directory in new[] { "stage", "worker", ".dotnet" })
         {
             cancellationToken.ThrowIfCancellationRequested();
             string ownedPath = Path.Combine(root, directory);
@@ -443,7 +443,9 @@ public static class PortableUpdateInstaller
 
         int count = 0;
         long bytes = 0;
-        foreach (string relative in ownedFiles.Where(file => file.StartsWith("cli/", StringComparison.OrdinalIgnoreCase)))
+        foreach (string relative in ownedFiles.Where(file =>
+            file.StartsWith("cli/", StringComparison.OrdinalIgnoreCase)
+            || file.StartsWith(".dotnet/", StringComparison.OrdinalIgnoreCase)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             string file = ResolvePayloadPath(installDirectory, relative);
@@ -454,7 +456,11 @@ public static class PortableUpdateInstaller
                 throw new InvalidDataException("The installed CLI exceeds the staging limit.");
             }
 
-            string target = ResolvePayloadPath(destination, relative[4..]);
+            // The copied CLI keeps its original app-relative runtime location:
+            // worker/tokenusage.exe searches the transaction's .dotnet folder.
+            string target = relative.StartsWith("cli/", StringComparison.OrdinalIgnoreCase)
+                ? ResolvePayloadPath(destination, relative[4..])
+                : ResolvePayloadPath(Path.GetDirectoryName(destination)!, relative);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             await using var input = File.OpenRead(file);
             await using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);

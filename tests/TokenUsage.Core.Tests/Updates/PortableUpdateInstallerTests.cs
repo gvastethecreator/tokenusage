@@ -9,8 +9,10 @@ namespace TokenUsage.Core.Tests.Updates;
 public sealed class PortableUpdateInstallerTests
 {
     private static readonly string[] ReleaseMetadataFiles = ["TokenUsage.portable", "TokenUsage.files.json"];
-    [Fact]
-    public async Task InstallsAfterOwningProcessExitsAndPreservesDataUnownedFilesAndBackup()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InstallsAfterOwningProcessExitsAndPreservesDataUnownedFilesAndBackup(bool hasPrivateRuntime)
     {
         using var folder = new PortableFolder();
         string unchangedProduct = Path.Combine(folder.Install, "TokenUsage.App.dll");
@@ -22,8 +24,28 @@ public sealed class PortableUpdateInstallerTests
         await File.WriteAllTextAsync(Path.Combine(folder.Install, "personal.txt"), "keep");
         Directory.CreateDirectory(Path.Combine(folder.Install, "Data"));
         await File.WriteAllTextAsync(Path.Combine(folder.Install, "Data", "usage.db"), "private data");
-        string archive = folder.CreateArchive(("a-change.txt", "new"));
+        const string runtimePath = ".dotnet/shared/Microsoft.NETCore.App/10.0.14/runtime.txt";
+        string installedRuntime = Path.Combine(folder.Install, runtimePath);
+        if (hasPrivateRuntime)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(installedRuntime)!);
+            await File.WriteAllTextAsync(installedRuntime, "private runtime");
+            folder.AddOwnedFile(runtimePath);
+        }
+        string archive = folder.CreateArchive(("a-change.txt", "new"), (runtimePath, "next runtime"));
         PortableUpdatePlan plan = await folder.PrepareAsync(archive);
+        string transactionRoot = Path.GetDirectoryName(plan.PlanPath)!;
+        string workerRoot = Path.Combine(transactionRoot, "worker");
+        Assert.Equal(Path.Combine(workerRoot, "tokenusage.exe"), plan.WorkerExecutablePath);
+        if (hasPrivateRuntime)
+        {
+            Assert.Equal("private runtime", await File.ReadAllTextAsync(Path.Combine(transactionRoot, runtimePath)));
+        }
+        else
+        {
+            Assert.False(Directory.Exists(Path.Combine(transactionRoot, ".dotnet")));
+        }
+        Assert.False(Directory.Exists(Path.Combine(workerRoot, "Data")));
         await SimulateExitedParentAsync(plan);
 
         int result = await PortableUpdateInstaller.RunWorkerAsync(plan.PlanPath, plan.ParentProcessId);
@@ -32,6 +54,7 @@ public sealed class PortableUpdateInstallerTests
         Assert.Equal("new", await File.ReadAllTextAsync(Path.Combine(folder.Install, "a-change.txt")));
         Assert.Equal("keep", await File.ReadAllTextAsync(Path.Combine(folder.Install, "personal.txt")));
         Assert.Equal("private data", await File.ReadAllTextAsync(Path.Combine(folder.Install, "Data", "usage.db")));
+        Assert.Equal("next runtime", await File.ReadAllTextAsync(installedRuntime));
         Assert.Equal("old", await File.ReadAllTextAsync(Path.Combine(Path.GetDirectoryName(plan.PlanPath)!, "backup", "a-change.txt")));
         Assert.Equal("installed", (await PortableUpdateInstaller.ReadResultAsync(plan.PlanPath))?.Status);
         Assert.False(File.Exists(Path.Combine(folder.Install, "obsolete.txt")));
@@ -41,6 +64,7 @@ public sealed class PortableUpdateInstallerTests
         await PortableUpdateInstaller.CleanupAfterSuccessfulInstallAsync(plan.PlanPath);
         Assert.False(Directory.Exists(Path.Combine(Path.GetDirectoryName(plan.PlanPath)!, "stage")));
         Assert.False(Directory.Exists(Path.Combine(Path.GetDirectoryName(plan.PlanPath)!, "worker")));
+        Assert.False(Directory.Exists(Path.Combine(transactionRoot, ".dotnet")));
         Assert.Equal("old", await File.ReadAllTextAsync(Path.Combine(Path.GetDirectoryName(plan.PlanPath)!, "backup", "a-change.txt")));
     }
 
