@@ -12,7 +12,7 @@ Reuse existing tests when they cover the failure. Extend a nearby case only
 when the change exposes a meaningful gap. Do not add a test that repeats a
 type, constant, or an existing assertion without protecting distinct behavior.
 
-For a local iteration, use the VS Code **Test** task to choose one test project,
+At a verification boundary, use the VS Code **Test** task to choose one test project,
 or run that project directly. For example:
 
 ```powershell
@@ -45,6 +45,10 @@ Run the complete gate once before requesting review:
 ```
 
 Use `-Platform ARM64` for the ARM64 package path. Tests still run on the `x64` host.
+The gate runs the architecture, core, CLI, provider, and Windows platform test
+projects, then builds the packaging project and its production dependencies.
+Windows platform tests marked `Category=OptIn` need their documented environment
+and are excluded from this gate.
 
 ## Provider publication gate
 

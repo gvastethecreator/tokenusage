@@ -112,7 +112,7 @@ Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
 ## Requirements
 
-The portable preview runs on Windows x64 and includes its .NET and Windows App SDK runtimes. The app targets Windows 10 version 1809 or later. This preview has been checked on Windows 11; clean-machine qualification is still pending.
+The portable preview runs on Windows x64 and includes its .NET and Windows App SDK runtimes. You do not need a separate .NET installation. The app targets Windows 10 version 1809 or later. This preview has been checked on Windows 11; clean-machine qualification is still pending.
 
 Building from source also requires the .NET 10 SDK, Visual Studio with MSBuild and Windows app packaging tools, and Windows SDK `10.0.26100.0`. Source builds support x64 and ARM64; this release includes x64 only.
 
@@ -161,13 +161,15 @@ Build and launch with package identity:
 
 The helper launches the packaged app through `winapp`. Do not run the packaged executable directly.
 
-Run the complete local gate before requesting review:
+Run the complete local gate before requesting review. It runs the five test projects on the x64 host, excludes opt-in integration tests, and builds the package and its production dependencies:
 
 ```powershell
 .\scripts\check.ps1 -Platform x64 -Configuration Release
 ```
 
 Use `-Platform ARM64` for a cross-architecture package build. Tests still run on the `x64` host.
+
+For focused checks and the runtime evidence each change needs, use the [contributor testing guide](docs/CONTRIBUTOR-TESTING.md).
 
 For a quick dependency and security pass on active projects:
 

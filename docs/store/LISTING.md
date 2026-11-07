@@ -22,7 +22,7 @@ TokenUsage keeps honest data states. Provider-reported cost stays separate from 
 
 The application is local-first. It reads bounded, documented sources on your computer and does not require a TokenUsage account. Network-enabled provider connections remain opt-in and are used only when a user explicitly configures a documented integration.
 
-Provider coverage depends on the installed product, account type, product version, and data source available on the device. A provider listed in the catalog is not automatically a live integration.
+The catalog lists tools with a local reader. Available data depends on the installed product, account type, product version, and source on the device. A supported tool can still have no data or quota available.
 
 ### Features
 
@@ -86,7 +86,7 @@ TokenUsage está diseñado para mostrar el estado real de los datos. Los costos 
 
 La aplicación prioriza el funcionamiento local. Lee fuentes acotadas y documentadas en tu computadora y no requiere una cuenta de TokenUsage. Las conexiones de red con proveedores son opt-in y solo se utilizan cuando el usuario configura explícitamente una integración documentada.
 
-La cobertura depende de la herramienta instalada, tipo de cuenta, versión del producto y fuente disponible en el dispositivo. Que un proveedor aparezca en el catálogo no significa que tenga una integración activa.
+El catálogo incluye herramientas con un lector local. Los datos disponibles dependen de la herramienta instalada, el tipo de cuenta, la versión del producto y la fuente presente en el dispositivo. Una herramienta compatible puede no tener datos ni cuota disponibles.
 
 ### Funciones
 

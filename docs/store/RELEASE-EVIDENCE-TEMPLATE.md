@@ -64,7 +64,6 @@ Record the Windows version/build, architecture, account type, and whether the ma
 | Supported local provider | | `[pass/fail]` | |
 | CLI alias in new terminal | | `[pass/fail]` | |
 | English UI | | `[pass/fail]` | |
-| Spanish UI | | `[pass/fail]` | |
 | Offline launch | | `[pass/fail]` | |
 | Upgrade from prior Store version | | `[pass/fail/n-a]` | |
 | LocalState preserved | | `[pass/fail/n-a]` | |

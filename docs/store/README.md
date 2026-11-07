@@ -111,7 +111,7 @@ Partner Center can show a package as Validated while the Packages section remain
 
 ### 5. Store listings
 
-Create listings for both supported languages:
+Create Store listings in these two locales. The application UI is English-only:
 
 - English (United States)
 - Spanish (Spain), or the Spanish locale selected in Partner Center

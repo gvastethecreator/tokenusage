@@ -20,7 +20,7 @@ No TokenUsage account or test credentials are required.
 2. Launch **TokenUsage** from the Start menu.
 3. The tray application opens even when none of the supported provider tools is installed.
 4. In an environment without provider data, the application intentionally displays unavailable, empty, partial, or unsupported states. This is expected behavior and does not indicate an incomplete application.
-5. Open the detailed report to review the provider matrix, range controls, status explanations, and local report surfaces.
+5. Open the detailed report. Choose a 7, 30, or 90-day period and review quota pace, daily tokens, changes from the previous period, recent resets, and the detail table. Missing data must remain visible as missing data.
 6. Open **Options**, then **Appearance**, and change the **Theme**.
 7. Open PowerShell after installation and run:
 
@@ -41,7 +41,7 @@ No TokenUsage account or test credentials are required.
 
 ### Environment-dependent behavior
 
-The available providers and metrics depend on which supported developer tools and source versions are installed on the certification machine. A provider catalog entry does not imply that a working reader is available. TokenUsage intentionally does not generate sample activity for missing providers.
+The catalog lists tools with a local reader. Available metrics depend on which tools, source versions, and accounts are present on the certification machine. A supported reader does not guarantee that this machine has data for it. TokenUsage does not generate sample activity for missing providers.
 
 ### Hidden or gated functionality
 

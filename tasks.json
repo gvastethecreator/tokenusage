@@ -1,6 +1,6 @@
 {
-  "updatedOn": "2026-10-30",
-  "objective": "Slim the product, rebuild the report around quota pace, change, and resets, add claude-swap accounts, and remove attribution.",
+  "updatedOn": "2026-11-07",
+  "objective": "Reduce refresh work, distribution size, and maintenance cost while preserving usage history and public contracts.",
   "baseline": {
     "publicHead": "746efbba86b483855978e4e01ce2a85e2c9a5e89",
     "publishedRelease": "v0.0.1-preview.5",
@@ -10,6 +10,162 @@
     "releaseCheckedOn": "2026-09-30"
   },
   "tasks": [
+    {
+      "id": "provider-correctness-2026-11-07",
+      "title": "Fix provider imports, accounting, report dates, and current pricing",
+      "status": "completed",
+      "objective": "Resolve F01-F11 from the provider audit while preserving history and existing product contracts.",
+      "review": ".scratch/providers-audit-20261107/REVIEW.md",
+      "model": "codex:gpt-6.1-sol",
+      "constraints": [
+        "Local topic commits are authorized after final diff review. No push, branch changes, or screen control.",
+        "Preserve earlier uncommitted work and all real provider and application data.",
+        "Use current official provider contracts and targeted synthetic regression checks."
+      ],
+      "decisions": [
+        "Fix import blockers before accounting and catalog changes.",
+        "An aggregate above a per-request context threshold stays unpriced when the original request sizes are unknown.",
+        "Read available model detail without double-counting existing session aggregates; verify replacement and repeated refresh against a synthetic repository."
+      ],
+      "validation": [
+        "Required x64 gate completed in parts: architecture 87, core 291, CLI 100, providers 560, Windows 181 (Category!=OptIn). Total 1219 distinct cases passed; previous passing parts were reused after test-only repairs.",
+        "Release x64 package and production dependencies built successfully. No installation, signing claim, publication, or visual check.",
+        "Live pricing refresh: all 17 official source projections matched. New model rates and promotion dates were also reviewed manually against official sources.",
+        "Synthetic persisted-history cases cover empty and corrupt sessions, auxiliary/model accounting, repeated import, OpenCode pruning, and later growth.",
+        "Mux/Xum Windows process probe passed canonical root, XUM_ROOT, MUX_ROOT, and absent-root checks. CLI process returned the stable JSON schema and correct local civil-day range.",
+        "Independent review found two integration defects in Hermes auxiliary subtraction and OpenCode aggregate replacement; both were repaired before validation.",
+        "Final independent diff review found no new blocking P1/P2 defect. Existing test results remain valid; no production code changed during commit preparation.",
+        "All four code-map artifacts published together; generation ec44d6eba41d420a472a905291ca91c882dfdb6e86afa0878cdc0356bb1bc4ad. The refresh removes the committed deletion from the inventory; architecture is unchanged and analysis remains explicitly partial."
+      ],
+      "evidence": ".scratch/providers-audit-20261107/fixes",
+      "limitations": [
+        "No live-account queries or private-format qualification for Cursor, ZCode, Antigravity, or Amp.",
+        "OpenCode retains the last accepted snapshot if available message detail cannot reconcile the session aggregate; pruned detail is not treated as permission to reduce history.",
+        "A zero residual remains an observation but adds no tokens. Ambiguous context or retention pricing remains unavailable or explicitly qualified.",
+        "No ARM64 rebuild or screen control. The previous blocked slimming task remains separate."
+      ],
+      "nextAction": "No implementation work remains in this scope. Live-account qualification and publication remain separate."
+    },
+    {
+      "id": "complete-slimming-2026-11-07",
+      "title": "Implement and verify the project slimming audit",
+      "status": "blocked",
+      "mode": "goal",
+      "baseline": {
+        "commit": "20f8c5f7d902c8eac5ee75c7172c0cbf10858fe9",
+        "workingTree": "Clean before this task.",
+        "sourceSnapshot": ".scratch/slim-20261107/baseline-source.zip",
+        "sourceSnapshotSha256": "de1153d876894e60e558c51f2ad7ca6223fec8e3abf4f87db6972cfd28d883a6",
+        "portableZipBytes": 158797787,
+        "identicalPortableFilesBytes": 82145264,
+        "checkpointBytes": 221079689,
+        "buildOutputBytes": 6535813685,
+        "dataInsideBuildOutputBytes": 240383158
+      },
+      "acceptance": [
+        "Repeated unchanged scans avoid full event reconciliation and full checkpoint rewrites. A small admission generation remains durable for concurrency safety. Changed data updates only affected events and days.",
+        "History, recorded prices, parser authority, deletion semantics, recovery, and tokenusage.report.v1 remain correct.",
+        "App and CLI share local scan coordination without losing a pending refresh or delaying independent quota updates.",
+        "Hidden dashboard views defer visual projections. Report loads avoid superseded work and show the latest requested period.",
+        "Published packages contain only required Windows App SDK components. The portable app and CLI share runtime files without a compatibility launcher.",
+        "Build checks keep existing protection while avoiding redundant test-project builds. Obsolete analyzer and LocalApi paths are removed.",
+        "Cleanup preserves all data, backups, unique evidence, and the active installation. Suspended Windows alias processes receive a separate evidence-based diagnosis.",
+        "Documentation and all four code-map artifacts match the final implementation. Independent review finds no unresolved material defect.",
+        "Apply the requested simplify-ci, simplify-repo, simplify-tests, project-tune-up, rewrite-docs, and project-maintenance passes. Keep useful test protection and classify the full documentation and cleanup scope."
+      ],
+      "steps": [
+        "Capture the source baseline and compare synthetic usage results and writes through public APIs.",
+        "Implement incremental persistence and checkpoint changes.",
+        "Reduce package dependencies and share the portable runtime.",
+        "Defer hidden UI work, coalesce reports, and coordinate local scans.",
+        "Simplify build checks and remove proven obsolete paths.",
+        "Diagnose suspended aliases and prepare the exact safe cleanup scope.",
+        "Run the required gate, package checks, runtime comparisons, and affected UI proof.",
+        "Review independently, repair material findings, and refresh documentation and the code map."
+      ],
+      "decisions": [
+        "Use GPT-6.1 Sol, as selected for this task. Keep one existing task record.",
+        "Workers own separate source areas in the current checkout. Local topic commits are authorized after final diff review; no branch, worktree, push, or release.",
+        "Use synthetic data for behavioral comparisons. Do not mutate the installed usage store during development.",
+        "Keep the SQLite, MVVM, provider parser, and process-test boundaries that have proven responsibilities.",
+        "Measure actual outputs. Do not count source size or dependency removal as a runtime speedup.",
+        "The user confirmed that screen control must remain stopped after Escape. Keep visual acceptance open; do not resume control or repeat the permission question unless the user reopens that work."
+      ],
+      "gates": {
+        "sourceAndScope": {
+          "applicability": "required",
+          "state": "passed",
+          "proof": "Final diff and call sites reviewed; documentation and all four code-map artifacts updated. Map validates with stale:false; renderer unchanged. JSON/YAML/PowerShell structure and git diff --check passed. Protected data, installed package, releases and prior evidence were preserved."
+        },
+        "historyAndRefresh": {
+          "applicability": "required",
+          "state": "passed",
+          "proof": "Existing storage/provider/recovery cases; equal synthetic totals in two baseline/candidate runs; five Windows multiprocess gate scenarios. See validation fields."
+        },
+        "repositoryGate": {
+          "applicability": "required",
+          "state": "passed",
+          "proof": "All components of scripts/check.ps1 passed across bounded repairs: 1193 distinct tests, plus package/production builds. Nine affected pricing tests reran after its URI fix. Both final isolated x64 and ARM64 release builds passed without warnings/errors; no redundant full-suite rerun."
+        },
+        "packaging": {
+          "applicability": "required",
+          "state": "blocked",
+          "proof": "x64/ARM64 MSIX and portable builds, exact inventories/checksums, moved x64 CLI and real update workers passed. Isolated publish preserves the packaged PRI hash on both architectures. Full moved-app startup/rendering remains unverified after the user stopped screen control; do not equate CLI or report-runner startup with complete app acceptance."
+        },
+        "ui": {
+          "applicability": "required",
+          "state": "blocked",
+          "proof": "User stopped Computer Use with physical Escape. No visual or interaction acceptance is claimed. Resume only after explicit permission; hidden/visible dashboard, report period changes and closing during load remain required."
+        },
+        "cleanup": {
+          "applicability": "required",
+          "state": "blocked",
+          "proof": "User approved both exact changes. The unique art note was archived and its hash verified. Automatic tool policy rejected deletion of artifacts/release-staging; 811204058 logical bytes remain. No further deletion attempts. Evidence: .scratch/slim-20261107/cleanup-proposal/execution.json."
+        },
+        "independentReview": {
+          "applicability": "required",
+          "state": "passed",
+          "proof": "Fresh persistence/concurrency and delivery/UI reviews plus a final evidence audit completed. Lost refresh marker and wrong workflow HEAD repaired and reviewed. Shared PRI output found during artifact inspection, isolated and verified in both builds. No unresolved material source defect found; visual and deletion proof gaps remain explicit."
+        },
+        "creativeDirection": {
+          "applicability": "N/A",
+          "state": "N/A",
+          "reason": "The task preserves the product design and behavior."
+        },
+        "publication": {
+          "applicability": "N/A",
+          "state": "N/A",
+          "reason": "No commit, push, or release was requested."
+        }
+      },
+      "validation": {
+        "baselineBuild": "The archived baseline CLI built in Release x64 with no warnings or errors. Log: .scratch/slim-20261107/baseline-cli-build.log.",
+        "mapBaseline": "The map status command reported 7 changed source paths, 1 new source path, and 1 removed source path before integration. Analyzer and schema match.",
+        "github": "Public personal repository; Actions remain enabled. Pricing CI failures came from rebasing the generated report. Local repair pins main, validates automation-branch ownership and uses exact force-with-lease. No remote run, push or settings change.",
+        "integration": "All five x64 Release suites passed: Architecture 87, Core 291, CLI 98, Providers 536, Windows 181 (Category!=OptIn). Reused unaffected passes; reran only repaired failures. Logs check-x64-03 through 06. Tray discovery confirms three unique recovery cases. Nine affected PricingCommandTests passed after the Google URI correction. Both isolated package architectures built successfully without warnings/errors.",
+        "independentReview": "Two fresh static reviews found a lost pending refresh request and manual pricing workflow using a non-main HEAD. Both repaired; persistence repair reviewed again. A final independent audit found no further P1/P2, identified exact proof gaps, and required explicit disclosure of the small checkpoint admission write. Packaging inspection found a shared PRI output; OutputPath isolation repaired it and both architectures preserve the packaged PRI hash through portable publication.",
+        "cleanupProposal": "Exact batch approved. Archive completed and verified; staging deletion blocked by tool policy. Original manifest, full hash preflight and execution readback are preserved in .scratch/slim-20261107/cleanup-proposal/.",
+        "syntheticRefresh": "Two runs per version on 12x1000 synthetic Codex events preserved totals through initial scan, unchanged scans, append, restart, and recreated destination. Ten unchanged samples per version: median 4039.321ms -> 59.100ms, allocations 172623680 -> 12711736 bytes, logical writes 449558688 -> 8248 bytes, revision delta 24002 -> 0. Evidence benchmark-summary.json under task scratch. These are synthetic refresh and logical process IO measurements, not physical disk or whole-app latency.",
+        "crossProcessGate": "Five public-seam multiprocess Windows scenarios passed: coalescing, canceled waiter, canceled owner with pending hook, exception preserving pending work, and owner death. Results in gate-proof/runs/20261107-005603-50bd5715/results.json. Exact race timing and power loss not simulated.",
+        "movedCli": "Final x64 portable extracted to a different folder: help and report exit 0, tokenusage.report.v1 returns 12001 events and 1200100 tokens, private .dotnet runtime observed. A separate copy without .dotnet fails despite a global runtime being installed. Evidence: .scratch/slim-20261107/moved-cli-proof/results.json. No app rendering or provider collection is claimed.",
+        "updater": "Actual old and new CLI workers both installed a stable-layout fixture successfully with relaunch disabled. The fixture changed only the root name of the candidate archive; all 511 file hashes match. Existing Data and an unowned personal file were preserved, 747 changed or obsolete files backed up, and 35 identical files retained. New worker loaded its transaction's private .dotnet runtime. Both fixture versions are 0.0.1: this proves layout/worker migration, not version promotion, feed delivery, signing or publication. Exact preview archives are correctly rejected as update targets. Evidence: .scratch/slim-20261107/updater-artifact-proof/results.json.",
+        "latestArtifacts": "Final isolated ZIPs: x64 88256010 bytes (44.42% below the 158797787-byte x64 baseline), ARM64 85390739 bytes. MSIX: x64 109809006 bytes, ARM64 104873441 bytes. Each portable inventory has 511 files and one private .NET 10.0.14 runtime. Both MSIX packages retain the original 649 resources, with all 24 file references present. Default PRI hash remains 79A9F8548A77F92B4553BC503BBCDF8DD591B16908FA1835ECFD3726DA3E51F2 before/after publishing portable. Evidence: package-proof/package-comparison-isolated.json and resource-analysis/isolated-resource-relationships.json under task scratch.",
+        "latestArtifactRuntimeScope": "Output isolation changed only TokenUsage.App.dll among 511 payload files. CLI, Core, Providers, Presentation, runtime and configuration are byte-identical, so their prior focused proof remains valid. One additional real worker transaction applied the latest isolated x64 payload and verified all 511 current hashes, backed up the previous App DLL, and preserved Data/personal files. Evidence: updater-artifact-proof/supplement-results.json. App UI/runtime remains unverified; no functional-equivalence claim is inferred from its equal file size or source alone.",
+        "dependencies": "scripts/audit.ps1 passed for all 13 managed projects and covered packaging references. scripts/deps-check.ps1 found four updates: SDK BuildTools 10.0.28000.2957, WindowsAppSDK Runtime and WinUI 2.6.5, Microsoft.Data.Sqlite 10.0.14. Versions remain stable for this slimming pass; no known vulnerability requires an upgrade. Logs: dependency-audit.log and dependency-updates.log under task scratch.",
+        "pricing": "Google's old pricing URI returned 301. The canonical official URI returned 200 and matched all 14 existing markers. Only that URI and its documentation link changed. Live refresh now exits 0; Moonshot 1/7 and OpenAI model 4/5 markers remain review candidates. Prices, review dates and redirect policy are unchanged.",
+        "skillPasses": "simplify-ci: keep existing one-job gates, remove generated-report rebase conflict, pin main and guard branch ownership. simplify-repo: incremental ingestion, private shared portable runtime, deferred UI work, obsolete analyzer/LocalApi paths removed. simplify-tests: remove one exact tray recovery duplicate and obsolete LocalApi checks; retain distinct contracts. project-tune-up: task commands, dependency health and all four code maps checked. rewrite-docs: reviewed 23 owned Markdown files; 10 rewritten, 5 kept, 7 skipped for legal/generated or other-owner reasons, 1 archived with approval. Vendor/reference and generated files are not public-doc rewrite targets. project-maintenance: protected data/install/recovery paths classified; one archive done and one exact approved deletion blocked by tool policy.",
+        "aliasDiagnosis": "A controlled public alias probe exited 0 with stdout/stderr complete and alias count unchanged at 64. Existing suspended processes were not terminated. This does not establish the cause of the 64 older processes; evidence is limited to non-reproduction through the controlled public entry point.",
+        "visualBoundary": "User stopped Computer Use with Escape. The isolated report runner created a responsive window from exact App/Core/Presentation/PRI files, using 195 synthetic events across 65 days, then was stopped after verifying its PID/path. This is startup evidence only. No visual or interaction acceptance; no further control without explicit permission. The owned Sandbox was also stopped; its application proof was incomplete.",
+        "structural": "YAML and task JSON parsed. PowerShell AST validation passed for changed scripts and workflow run blocks. git diff --check passed. The code map includes the Google URI correction and reports stale:false; static analysis remains partial with unresolved references and no inferred runtime flows."
+      },
+      "quality": {
+        "task_state": "blocked",
+        "artifact_verdict": "win",
+        "verification_state": "limited",
+        "basis": "Measured portable size and synthetic refresh improvements; required app visual/runtime acceptance and the policy-blocked deletion remain incomplete."
+      },
+      "nextAction": "Await a user or external-state change: screen control must remain stopped by explicit user choice, and the exact approved staging deletion is rejected by tool policy. Do not retry deletion through another method, resume screen control, repeat completed checks, push or publish."
+    },
     {
       "id": "statusline-hangs-and-readme-captures-2026-10-30",
       "title": "Stop hung status line and hook processes, and refresh README captures from sample data",
@@ -643,7 +799,7 @@
     "Keep API estimates separate from reported costs and subscription quotas.",
     "Use one grouped report table and a responsive detail panel; keep explanations brief.",
     "Preserve LocalState through SQLite backups, the existing package identity, and conservation checks.",
-    "Provider and dependency updates and local package replacement are authorized. Preserve prior pending changes; no commit, branch change, push, or publication."
+    "Local topic commits are authorized after final diff review. Preserve prior work; no branch change, push, publication, or screen control."
   ],
   "previousValidation": {
     "configuration": "Release x64",

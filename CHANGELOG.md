@@ -6,12 +6,17 @@ User-facing changes for TokenUsage. Release notes include installation details a
 
 ### Fixed
 
+- Keep normal empty Hermes and Goose sessions from blocking usage imports.
+- Detect current Mux/Xum roots and preserve OpenCode message dates and model identities when replacing session aggregates.
+- Correct Hermes and Grok reasoning counts, retain Goose cache usage, and include Hermes model routes and auxiliary usage without adding session totals twice.
+- Leave ambiguous session-level context pricing unpriced and use local civil dates for relative CLI reports.
+- Add current OpenAI, Kimi, and Z.ai model prices; extend GPT-5.6 Sol's verified promotion through November 30.
 - Correct Gemini 3.8 Flash output estimates in Cursor to $3.75 per million tokens.
 - Show Codex quota windows by their reported duration; a 30-day window is no longer labeled Weekly.
 - Show Claude's actual quota refresh error, with session renewal steps, and distinguish rate limiting from sign-in failures.
 - Read Cursor's measured turn counters even when newer turns contain zero counters.
 - Correct Sonnet 5.5 cache-read estimates to $0.10 per million tokens.
-- Refresh Anthropic and Kimi prices from their official Markdown documents within the existing download limit.
+- Refresh Anthropic from official Markdown and Kimi from its official HTML price tables within the existing download limit.
 - Stop packaged builds when Visual Studio MSBuild is missing, instead of reporting success from a skipped build.
 
 - Build the portable resource index independently of the MSIX index so WinUI's theme resources are included at startup.
@@ -22,7 +27,7 @@ User-facing changes for TokenUsage. Release notes include installation details a
 - Count Claude usage in reset-cycle totals. Claude records always held each message's time but marked it unknown; the schema 13 upgrade marks stored records, and new ones arrive marked. No logs are read again.
 - Place reset cycles on the provider's schedule, so a reset that happened while TokenUsage was closed no longer stretches the next cycle backwards.
 - Stop `tokenusage claude statusline` and provider hooks from waiting forever when their host is killed and leaves the input pipe open; they now read at most 2 seconds of input. Orphaned status line processes had piled up for hours.
-- Run one hook refresh at a time. A Stop hook that fires during a refresh asks for one more pass and exits, so many agents finishing together no longer stack refresh processes.
+- Serialize usage collection across the app and CLI. A Stop hook that fires during a refresh asks for one more pass and exits, so many agents finishing together no longer stack refresh processes. Pending work can resume after a collector exits.
 
 ### Removed
 
@@ -40,6 +45,8 @@ User-facing changes for TokenUsage. Release notes include installation details a
 - The report is rebuilt around three questions: will each quota last to its reset, why usage changed from the previous period, and how many tokens each quota point covered in recent resets. It keeps 7, 30, and 90-day periods, a daily chart by agent, and a detail table by agent, model, or day.
 - Update Microsoft.Data.Sqlite to 10.0.13 and Microsoft.NET.Test.Sdk to 18.11.0.
 - Keep unchanged usage refreshes from rewriting events, rebuilding daily totals, and invalidating reports.
+- Store Codex and Claude checkpoints incrementally in SQLite. Existing JSON checkpoints are imported once and preserved unchanged; source cursors let a recreated or restored usage database replay retained observations safely.
+- Share one private .NET runtime between the portable app and CLI. The ZIP still includes the runtime and does not require a separate .NET installation.
 
 ### Added
 

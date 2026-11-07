@@ -1,6 +1,6 @@
 # Contributing to TokenUsage
 
-Thanks for helping improve TokenUsage. Focused fixes, provider research, tests, documentation, and interface work are welcome.
+Contribute a focused fix, provider integration, test, documentation update, or interface change. Start with an issue so the maintainer can agree on the scope and required evidence.
 
 ## Start with an issue
 
@@ -15,7 +15,7 @@ Every pull request needs an issue first.
 4. Agree on the scope before writing a large change.
 5. Link the issue from the pull request with `Closes #123`.
 
-A pull request without a linked issue can be closed. This rule avoids duplicate work and unsafe provider integrations.
+A pull request without a linked issue can be closed.
 
 Report security issues through [GitHub private vulnerability reporting](https://github.com/gvastethecreator/tokenusage/security/advisories/new). Do not open a public issue.
 
@@ -24,9 +24,7 @@ Report security issues through [GitHub private vulnerability reporting](https://
 - Use Windows 10 version 1809 or later on `x64` or `ARM64`.
 - Install the .NET 10 SDK.
 - Install Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0`.
-
 - Read the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, and publication gates.
-
 
 Do not add Playwright or another browser runner to the product, solution, package, or CI.
 
@@ -58,35 +56,19 @@ Document these items in the issue:
 
 Do not add reads of another application's credential store. The documented Claude account-limits opt-in reads only the existing Claude Code access token, expiry, and plan fields in memory; Claude Code owns renewal. It must never persist or log that token. Account-management flows must use their existing secure stores. Never store prompts, responses, commands, tool calls, emails, or full local paths in usage records or diagnostics.
 
-### When maintainers cannot test the provider
+The [contributor testing guide](docs/CONTRIBUTOR-TESTING.md#provider-publication-gate) defines the publication gate and the evidence to supply when maintainers cannot access your provider. Keep original evidence outside the repository and commit only sanitized fixtures. Mocked data proves deterministic behavior; it does not prove discovery, permissions, compatibility, or real totals.
 
-Supply evidence that another contributor can verify without your account:
-
-1. Add a sanitized fixture that matches the observed data shape.
-2. Remove credentials, content, identifiers, and personal paths.
-3. Add deterministic tests for parsing, normalization, and failure states.
-4. Record the provider version and the exact collection steps.
-5. Attach redacted CLI or UI proof from a real Windows installation.
-6. Show absent-account, stale-data, and changed-schema behavior.
-7. Explain cost provenance and unpriced-token handling.
-
-Mocked data proves deterministic behavior. It does not prove discovery, permissions, product compatibility, or real values.
-
-The provider remains `Prepared`, `Experimental`, or `PolicyBlocked` until reproducible evidence closes its publication gate. TokenUsage does not label unverified support as active.
-
-Read the [contributor testing guide](docs/CONTRIBUTOR-TESTING.md) for the required evidence by change type.
+The provider remains `Prepared`, `Experimental`, or `PolicyBlocked` until reproducible evidence closes its publication gate.
 
 ## Verify the change
 
-Run the narrowest relevant test while developing. Run the complete Windows gate before review:
+At a verification boundary, use the narrowest existing check that proves the changed behavior. Reuse a passed result while its code and environment are unchanged. Before requesting review, run the complete Windows gate:
 
 ```powershell
 .\scripts\check.ps1 -Platform x64 -Configuration Release
 ```
 
-For UI changes, also verify the packaged app. Record the affected real states. Check keyboard access, text scale, high contrast, and reduced motion.
-
-A successful build does not prove visual behavior. A fixture does not prove a provider works on a real installation.
+For UI changes, verify the affected states in the packaged app, including keyboard access, text scale, high contrast, and reduced motion. A successful build does not prove visual behavior. Use the [testing guide](docs/CONTRIBUTOR-TESTING.md) to select the required evidence for other changes.
 
 If a required check cannot run, explain the exact blocker and the unverified risk in the pull request.
 
