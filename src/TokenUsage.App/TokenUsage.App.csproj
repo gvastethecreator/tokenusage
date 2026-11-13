@@ -54,7 +54,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.6.4" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.6.4" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.7.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.8.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(WindowsPackageType)' == 'None'">
