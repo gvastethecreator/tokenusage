@@ -81,12 +81,12 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
-    [InlineData("composer-2.5", "cursor-models-2026-10-19")]
-    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-10-12")]
-    [InlineData("gpt-5.1-codex", "openai-api-2026-11-07")]
-    [InlineData("gemini-3.6-flash", "google-api-2026-10-19")]
-    [InlineData("gemini-3.8-flash", "google-api-2026-10-19")]
-    [InlineData("gemini-4-argon", "google-api-2026-10-19")]
+    [InlineData("composer-2.5", "cursor-models-2026-11-13")]
+    [InlineData("claude-4.5-sonnet", "anthropic-api-2026-11-09")]
+    [InlineData("gpt-5.1-codex", "openai-api-2026-11-17")]
+    [InlineData("gemini-3.6-flash", "google-api-2026-11-13")]
+    [InlineData("gemini-3.8-flash", "google-api-2026-11-13")]
+    [InlineData("gemini-4-argon", "google-api-2026-11-13")]
     [InlineData("glm-5.3-flash", "zai-api-2026-11-07")]
     [InlineData("kimi-k3", "moonshot-api-2026-11-07")]
     public void UsesTheOfficialCatalogVersion(string model, string catalogVersion)
@@ -439,6 +439,27 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Fact]
+    public void PricesGptSixTwoFromLaunchAtStandardRequestRates()
+    {
+        var launch = new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero);
+        var shortRequest = new TokenBreakdown(100_000, 100_000, 0, 100_000, 72_000);
+        var longRequest = new TokenBreakdown(100_001, 100_000, 0, 100_000, 72_000);
+
+        Assert.Equal(CostKind.Unavailable,
+            KnownModelPricingCatalog.Resolve("gpt-6.2-astra", launch.AddTicks(-1), shortRequest).Kind);
+        Assert.Equal(5.56m,
+            KnownModelPricingCatalog.Resolve("openai/gpt-6.2-astra", launch, shortRequest).EstimatedCostUsd);
+        Assert.Equal(9.120016m,
+            KnownModelPricingCatalog.Resolve("gpt-6.2-astra", launch, longRequest).EstimatedCostUsd);
+        Assert.Equal(1.390m,
+            KnownModelPricingCatalog.Resolve("gpt-6.2-sol", launch, shortRequest).EstimatedCostUsd);
+        Assert.Equal(2.280004m,
+            KnownModelPricingCatalog.Resolve("gpt-6.2-sol", launch, longRequest).EstimatedCostUsd);
+        Assert.Equal(CostKind.Unavailable,
+            KnownModelPricingCatalog.Resolve("gpt-6.2-sol", launch, longRequest, perRequestTokenCounters: false).Kind);
+    }
+
+    [Fact]
     public void ClaudeFastFlagOnAModelWithoutAFastEntryKeepsBaseRates()
     {
         CostObservation cost = ClaudePricingCatalog.Resolve(
@@ -592,6 +613,33 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
+    [InlineData("gemini-4-carbon", "2026-11-30T23:59:59Z", 2.61)]
+    [InlineData("gemini-4-carbon", "2026-12-01T00:00:00Z", 5.22)]
+    [InlineData("gemini-4-hydrogen", "2026-11-13T00:00:00Z", 1.9575)]
+    [InlineData("gemini-4-hydrogen", "2026-12-01T00:00:00Z", 1.9575)]
+    public void GeminiFourUsesPublishedDirectAndCursorRatesAtTheUsageDate(
+        string model,
+        string occurredAt,
+        decimal expectedUsd)
+    {
+        var date = DateTimeOffset.Parse(occurredAt, CultureInfo.InvariantCulture);
+        var tokens = new TokenBreakdown(800_000, 100_000, 0, 100_000, 0);
+        CostObservation direct = KnownModelPricingCatalog.Resolve(model, date, tokens);
+        CostObservation hosted = CursorPricingCatalog.Resolve("google/" + model, date, tokens);
+
+        Assert.Equal(CostKind.CatalogEstimated, direct.Kind);
+        Assert.Equal(CostKind.CatalogEstimated, hosted.Kind);
+        Assert.Equal(expectedUsd, direct.EstimatedCostUsd);
+        Assert.Equal(expectedUsd, hosted.EstimatedCostUsd);
+        Assert.Equal(GooglePricingCatalog.Version, direct.CatalogVersion);
+        Assert.Equal(CursorPricingCatalog.Version, hosted.CatalogVersion);
+        Assert.True(PricingCatalogAudit.CanReproduce(direct, date, PricingEvidenceCatalog.AllRates));
+        Assert.True(PricingCatalogAudit.CanReproduce(hosted, date, PricingEvidenceCatalog.AllRates));
+        Assert.Equal(CostKind.Unavailable, CursorPricingCatalog.Resolve(
+            model, date, new TokenBreakdown(800_000, 100_000, 0, 100_000, 1)).Kind);
+    }
+
+    [Theory]
     [InlineData("2026-12-31T23:59:59Z", 1.125)]
     [InlineData("2027-01-01T00:00:00Z", 2.25)]
     public void GeminiThreeSixFlashUsesTheSamePromotionalCutoff(
@@ -635,19 +683,28 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(15m, cost.EstimatedCostUsd);
     }
 
-    [Fact]
-    public void ClaudeFiveOneModelsUseThePublishedLowerCacheReadRate()
+    [Theory]
+    [InlineData("claude-fable-5-1", false, 0.25, 0.65)]
+    [InlineData("claude-mythos-5-1", false, 0.25, 0.65)]
+    [InlineData("claude-fable-5-2", false, 0.20, 0.52)]
+    [InlineData("claude-mythos-5-2", false, 0.20, 0.52)]
+    [InlineData("claude-fable-5-2", true, 0.40, 1.04)]
+    [InlineData("claude-mythos-5-2", true, 0.40, 1.04)]
+    public void ClaudeFiveModelsUseThePublishedCacheReadAndWriteRates(
+        string model, bool isFast, decimal expectedReadUsd, decimal expectedWriteUsd)
     {
-        foreach (string model in (string[])["claude-fable-5-1", "claude-mythos-5-1"])
-        {
-            CostObservation cost = KnownModelPricingCatalog.Resolve(
-                model,
-                OccurredAtUtc,
-                new TokenBreakdown(0, 0, 0, 1_000_000, 0));
+        var date = new DateTimeOffset(2026, 11, 9, 0, 0, 0, TimeSpan.Zero);
+        CostObservation read = KnownModelPricingCatalog.Resolve(
+            isFast ? model + "-fast" : model, date,
+            new TokenBreakdown(0, 0, 0, 1_000_000, 0));
+        CostObservation write = ClaudePricingCatalog.Resolve(
+            model, date, new TokenBreakdown(0, 0, 0, 0, 40_000),
+            20_000, 20_000, null, isFast);
 
-            Assert.Equal(CostKind.CatalogEstimated, cost.Kind);
-            Assert.Equal(0.25m, cost.EstimatedCostUsd);
-        }
+        Assert.Equal(CostKind.CatalogEstimated, read.Kind);
+        Assert.Equal(expectedReadUsd, read.EstimatedCostUsd);
+        Assert.Equal(CostKind.CatalogEstimated, write.Kind);
+        Assert.Equal(expectedWriteUsd, write.EstimatedCostUsd);
     }
 
     [Theory]

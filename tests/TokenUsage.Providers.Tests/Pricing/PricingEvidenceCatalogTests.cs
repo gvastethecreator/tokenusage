@@ -1,3 +1,4 @@
+using System.Globalization;
 using TokenUsage.Core.Usage;
 using TokenUsage.Providers.Cursor;
 using TokenUsage.Providers.Pricing;
@@ -104,21 +105,27 @@ public sealed class PricingEvidenceCatalogTests
         Assert.True(successor.IsEffectiveAt(cutoff));
     }
 
-    [Fact]
-    public void HostSpecificGoogleRateCannotReplaceTheDirectProviderRate()
+    [Theory]
+    [InlineData("gemini-3.8-flash", true)]
+    [InlineData("gemini-4-carbon", true)]
+    [InlineData("gemini-4-hydrogen", false)]
+    public void HostSpecificGoogleRateCannotReplaceTheDirectProviderRate(string model, bool isPromotional)
     {
+        DateTimeOffset occurredAt = new(2026, 11, 13, 0, 0, 0, TimeSpan.Zero);
         PricingRateEvidence direct = Assert.Single(
             PricingEvidenceCatalog.AllRates,
             item => item.CatalogVersion == GooglePricingCatalog.Version
-                    && item.ExactPriceMatch == "gemini-3.8-flash"
-                    && item.IsPromotional);
+                    && item.ExactPriceMatch == model
+                    && item.IsEffectiveAt(occurredAt));
         PricingRateEvidence hosted = Assert.Single(
             PricingEvidenceCatalog.AllRates,
             item => item.CatalogVersion == CursorPricingCatalog.Version
-                    && item.ExactPriceMatch == "gemini-3.8-flash");
+                    && item.ExactPriceMatch == model
+                    && item.IsEffectiveAt(occurredAt));
 
         Assert.Equal(PricingBillingScope.DirectProviderApi, direct.Source.BillingScope);
         Assert.Equal(PricingBillingScope.HostSpecific, hosted.Source.BillingScope);
+        Assert.Equal(isPromotional, direct.IsPromotional);
         Assert.NotEqual(direct.CatalogVersion, hosted.CatalogVersion);
     }
 
@@ -153,14 +160,19 @@ public sealed class PricingEvidenceCatalogTests
     }
 
     [Theory]
-    [InlineData("gpt-6.1-terra", 0.151)]
-    [InlineData("gpt-6-cyber", 3.04)]
-    [InlineData("kimi-k3.1-pro", 0.304)]
-    [InlineData("kimi-k3.1-pro-highspeed", 0.604)]
-    [InlineData("glm-5.3-flashx-legal", 0.051)]
-    public void NovemberModelsUseTheirReviewedInputCacheAndOutputPrices(string model, decimal expectedUsd)
+    [InlineData("gpt-6.1-terra", 0.151, 7)]
+    [InlineData("gpt-6-cyber", 3.04, 9)]
+    [InlineData("kimi-k3.1-pro", 0.304, 7)]
+    [InlineData("kimi-k3.1-pro-highspeed", 0.604, 7)]
+    [InlineData("glm-5.3-flashx-legal", 0.051, 7)]
+    [InlineData("claude-fable-5-2", 1.204, 9)]
+    [InlineData("claude-fable-5-2-fast", 2.408, 9)]
+    [InlineData("claude-mythos-5-2", 1.204, 9)]
+    [InlineData("claude-mythos-5-2-fast", 2.408, 9)]
+    public void NovemberModelsUseTheirReviewedInputCacheAndOutputPrices(
+        string model, decimal expectedUsd, int reviewedDay)
     {
-        DateTimeOffset occurredAt = new(2026, 11, 7, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset occurredAt = new(2026, 11, 9, 0, 0, 0, TimeSpan.Zero);
         CostObservation cost = KnownModelPricingCatalog.Resolve(
             model,
             occurredAt,
@@ -170,13 +182,22 @@ public sealed class PricingEvidenceCatalogTests
         Assert.Equal(expectedUsd, cost.EstimatedCostUsd);
         PricingRateEvidence evidence = Assert.Single(PricingEvidenceCatalog.AllRates,
             item => item.CatalogVersion == cost.CatalogVersion && item.ExactPriceMatch == cost.ExactPriceMatch);
-        Assert.Equal(new DateOnly(2026, 11, 7), evidence.Source.ReviewedOn);
+        Assert.Equal(new DateOnly(2026, 11, reviewedDay), evidence.Source.ReviewedOn);
+        if (evidence.EffectiveFromUtc > PricingEvidence.HistoricalStartUtc)
+        {
+            Assert.Equal(CostKind.Unavailable, KnownModelPricingCatalog.Resolve(
+                model, evidence.EffectiveFromUtc.AddTicks(-1),
+                new TokenBreakdown(100_000, 10_000, 0, 20_000, 0)).Kind);
+        }
     }
 
     [Theory]
     [InlineData("kimi-k3.1-pro")]
     [InlineData("kimi-k3.1-pro-highspeed")]
-    public void NewKimiCacheWritesRequireTheirRetentionTier(string model)
+    [InlineData("gemini-4-argon")]
+    [InlineData("gemini-4-carbon")]
+    [InlineData("gemini-4-hydrogen")]
+    public void DirectCacheWritesWithoutPublishedApplicableRatesRemainUnpriced(string model)
     {
         CostObservation cost = KnownModelPricingCatalog.Resolve(
             model,
@@ -186,14 +207,24 @@ public sealed class PricingEvidenceCatalogTests
         Assert.Equal(CostKind.Unavailable, cost.Kind);
     }
 
-    [Fact]
-    public void CyberSixDoesNotInventAnUnpublishedLongContextRate()
+    [Theory]
+    [InlineData(252_000, 20_000, 0, true, "5.081")]
+    [InlineData(252_001, 20_000, 0, true, "10.16154")]
+    [InlineData(252_001, 20_000, 1, true, null)]
+    [InlineData(252_001, 20_000, 0, false, null)]
+    public void CyberSixPricesOnlyPublishedLongContextCategories(
+        long input, long cacheRead, long cacheWrite, bool perRequest, string? expectedUsd)
     {
         CostObservation cost = KnownModelPricingCatalog.Resolve(
             "gpt-6-cyber",
-            new DateTimeOffset(2026, 11, 7, 0, 0, 0, TimeSpan.Zero),
-            new TokenBreakdown(272_001, 10, 0, 0, 0));
+            new DateTimeOffset(2026, 11, 9, 0, 0, 0, TimeSpan.Zero),
+            new TokenBreakdown(input, 10, 0, cacheRead, cacheWrite),
+            perRequestTokenCounters: perRequest);
 
-        Assert.Equal(CostKind.Unavailable, cost.Kind);
+        Assert.Equal(expectedUsd is null ? CostKind.Unavailable : CostKind.CatalogEstimated, cost.Kind);
+        decimal? expectedCost = expectedUsd is null
+            ? null
+            : decimal.Parse(expectedUsd, CultureInfo.InvariantCulture);
+        Assert.Equal(expectedCost, cost.EstimatedCostUsd);
     }
 }

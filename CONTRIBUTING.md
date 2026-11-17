@@ -24,6 +24,9 @@ Report security issues through [GitHub private vulnerability reporting](https://
 - Use Windows 10 version 1809 or later on `x64` or `ARM64`.
 - Install the .NET 10 SDK.
 - Install Visual Studio with MSBuild, Windows app packaging tools, and Windows SDK `10.0.26100.0`.
+  ARM64 packages also need the `Microsoft.VisualStudio.Component.UWP.VC.ARM64`
+  component (C++ UWP support for ARM64/ARM64EC). It supplies both VCLibs ARM64
+  framework packages; the general Visual C++ redistributable does not include them.
 - Read the [provider matrix](docs/PROVIDER-MATRIX.md) for sources, limits, and publication gates.
 
 Do not add Playwright or another browser runner to the product, solution, package, or CI.

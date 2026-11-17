@@ -1,5 +1,54 @@
 # Pricing evidence and refresh
 
+The 2026-11-13 review added Gemini 4 Hydrogen for the
+[Google API](https://aistudio.google.com/docs/pricing#gemini-4-hydrogen) and
+[Cursor](https://cursor.com/docs/models/gemini-4-hydrogen): $1.50 input, $0.075
+cache reads, and $7.50 output per million tokens. Neither page specifies a
+dated promotion. The `google-api-2026-11-13` and `cursor-models-2026-11-13`
+catalogs retain separate direct and host evidence. Positive explicit
+cache-write counters remain unpriced because neither source publishes a rate.
+The refresh manifest now includes 19 official sources. Existing rates and
+promotion cutoffs are unchanged.
+
+The 2026-11-12 review added Gemini 4 Carbon for the
+[Google API](https://aistudio.google.com/docs/pricing#gemini-4-carbon) and
+[Cursor](https://cursor.com/docs/models/gemini-4-carbon). Both publish $2 input,
+$0.10 cache reads, and $10 output per million tokens through November 30,
+followed by $4/$0.20/$20 from December 1, 2026. The
+`google-api-2026-11-12` and `cursor-models-2026-11-12` catalogs keep separate
+direct and host evidence and apply that cutoff to the usage timestamp.
+Google supports only implicit caching for Carbon and Argon, so direct API
+records with explicit cache-write counters remain unpriced.
+Cursor does not publish a Carbon cache-write rate either, so those records
+also remain unpriced.
+
+This review compared the current rows and conditions in the 17 existing
+sources and added Cursor's Carbon page as source 18. No other current price
+change was found. Kimi's current page retains the K3 and K3.1 rows but no longer
+lists K2 prices; the stored K2 rates retain their earlier evidence and were not
+requalified. Marker checks and historical-price limits remain as described below.
+
+The 2026-11-09 maintenance review added [Claude Fable 5.2 and Mythos 5.2](https://platform.claude.com/docs/en/about-claude/pricing), released on November 9.
+Their standard rates per million tokens are $8 input, $0.20 cache reads, $40
+output, and $10/$16 for 5-minute/1-hour cache writes. Fast mode doubles these
+rates. The `anthropic-api-2026-11-09` catalog applies them from their release
+date and keeps the previous models' rates unchanged.
+
+[GPT-6 Cyber](https://developers.openai.com/api/docs/models/gpt-6-cyber) now has
+published Standard rates above 272,000 prompt tokens: $40 input, $4 cached input,
+and $150 output per million tokens. `openai-api-2026-11-09` uses that tier when
+request counters identify it. Long-context cache writes remain unpriced because
+the source specifies their retention prices only for short context. Session
+totals that cannot identify a request's tier also remain unpriced.
+
+The same review compared the relevant current rows and pricing conditions in
+all 17 configured sources. The existing Google promotion dates, Cursor-specific
+rates, Kimi K3.1 rates, and Z.ai rates still matched. This is a documentation
+comparison, not a live billing or account reconciliation. The bounded refresh
+report remains a separate marker check. Legacy models that no longer appear on
+current pages retain their previously recorded evidence; this review does not
+requalify those historical rates.
+
 The 2026-10-12 review checked all 13 official sources and their current model
 price tables. It corrected Sonnet 5.5 cache reads from $0.20 to $0.10 per million
 tokens in `anthropic-api-2026-10-12`. Other rates and effective dates are unchanged.
@@ -20,10 +69,10 @@ The 2026-11-07 review added these direct API rates per million tokens:
 | Kimi K3.1 Pro Highspeed | $4 | $0.20 | $20 | [Kimi](https://platform.kimi.ai/docs/pricing/chat) |
 | GLM-5.3-FlashX-Legal | $0.37 | $0.075 | $1.25 | [Z.ai](https://docs.z.ai/guides/overview/pricing) |
 
-Their catalog versions are `openai-api-2026-11-07`, `moonshot-api-2026-11-07`,
+Their initial catalog versions were `openai-api-2026-11-07`, `moonshot-api-2026-11-07`,
 and `zai-api-2026-11-07`. Terra doubles input and cache rates above 272,000
-prompt tokens and multiplies output by 1.5. OpenAI publishes no long-context
-Cyber 6 rate, so those requests stay unpriced. Session totals above a model's
+prompt tokens and multiplies output by 1.5. The November 9 review adds Cyber 6
+long-context prices as described above. Session totals above a model's
 context threshold also stay unpriced when their individual request sizes are
 unknown. Smaller totals can use the base rate. Updating the catalog does not
 rewrite the usage database. A later accepted provider snapshot can correct its
@@ -53,7 +102,20 @@ GPT-6 Astra uses the [official OpenAI rates](https://developers.openai.com/api/d
 reviewed on 2026-10-02: $10 input, $1 cached input, $12.50 cache writes, and
 $50 output per million tokens. Input and cache rates double above 272,000 prompt
 tokens. Output, including reasoning, then uses 1.5 times the standard rate.
-The current catalog version is `openai-api-2026-11-07`.
+The current catalog version is `openai-api-2026-11-17`.
+
+GPT-6.2 Astra and Sol use OpenAI's Standard API rates from the November 17
+release date. Prices are USD per million text tokens.
+
+| Model | Input | Cache read | 30-minute cache write | Output |
+|---|---:|---:|---:|---:|
+| [GPT-6.2 Astra](https://developers.openai.com/api/docs/models/gpt-6.2-astra) | 8.00 | 0.40 | 10.00 | 40.00 |
+| [GPT-6.2 Sol](https://developers.openai.com/api/docs/models/gpt-6.2-sol) | 2.00 | 0.10 | 2.50 | 10.00 |
+
+Above 272,000 input tokens per request, input and cache rates double and output
+uses 1.5 times the short-context rate. These estimates use Standard and
+30-minute cache writes. Batch, Fast, Ultrafast, background completion windows,
+and 12-hour cache writes require separate billing details.
 
 GPT-6 Sol and GPT-6 Luna use the [official flagship rates](https://developers.openai.com/api/docs/pricing),
 reviewed on 2026-09-22. Sol is $2 input, $0.20 cached input, $2.50 cache writes,
@@ -141,6 +203,13 @@ version is `moonshot-api-2026-11-07`.
 its current promotional rates through November 30, 2026. No successor
 rate is published. Events from December 1 stay unpriced until a rate is
 verified. The audit flags this evidence deadline; it does not infer a price rise.
+
+The November 13 review found a different date in the Markdown metadata of
+[Cursor's model list](https://cursor.com/docs/models-and-pricing): November 21
+for the Sol promotion. Its visible HTML and dedicated model page do not confirm
+that date. TokenUsage's current Sol estimate uses direct OpenAI evidence; it
+does not establish Cursor's promotional terms. The discrepancy remains open,
+without a guessed successor rate or a change to the direct API cutoff.
 
 Astra remains a model within each agent's usage. Its addition does not create
 another provider or subscription quota. Codex keeps an allowlisted service tier when the numeric record supplies it.

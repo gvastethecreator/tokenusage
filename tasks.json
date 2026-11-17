@@ -1,5 +1,5 @@
 {
-  "updatedOn": "2026-11-07",
+  "updatedOn": "2026-11-17",
   "objective": "Reduce refresh work, distribution size, and maintenance cost while preserving usage history and public contracts.",
   "baseline": {
     "publicHead": "746efbba86b483855978e4e01ce2a85e2c9a5e89",
@@ -10,6 +10,219 @@
     "releaseCheckedOn": "2026-09-30"
   },
   "tasks": [
+    {
+      "id": "maintenance-2026-11-17",
+      "title": "Update provider pricing and review stable dependencies",
+      "status": "blocked",
+      "objective": "Apply verified provider and dependency updates while preserving existing work and usage history.",
+      "model": "Current chat model, as selected for TokenUsage maintenance",
+      "evidence": ".scratch/maintenance-20261117",
+      "changes": [
+        "Add Standard API rates and source evidence for GPT-6.2 Astra and Sol from November 17 UTC. The existing per-request calculation applies the long-context rates above 272,000 input tokens.",
+        "Update the provider release review and regenerate the pricing source report and all four code-map artifacts."
+      ],
+      "validation": [
+        "Compared the Standard pricing rows and context rules with the official OpenAI model pages and pricing table. The rebuilt CLI matched markers for all 21 official sources.",
+        "Reviewed releases for Claude Code 2.1.326, Goose 1.59.2, OpenCode 1.19.6, and Hermes 0.23.2. Goose's session manager is byte-identical. The inspected OpenCode and Hermes changes did not require reader edits.",
+        "NuGet reports no newer stable direct packages in 13 managed projects. The seven GitHub Actions releases still match the prior verified pins.",
+        "NuGet audit found no known vulnerabilities in direct or transitive dependencies across all 13 projects. Verified the selected SDK 10.0.404 after Windows rebooted. The .NET host and VSTest runner hashes match the recorded patched binaries.",
+        "Architecture 86, Core 292, CLI 100, and Providers 582 passed. The Windows stage first passed 179 of 181 cases. Both failures passed in isolation. A rerun passed 180 of 181, then a serial diagnostic passed 178 of 181. The Windows gate remains unresolved. Check, diagnostic, rerun, and serial logs preserve the individual failures.",
+        "All four code-map files share generation 5b5a22989bf76b5705a1192150ebda0a2236774275a5ecb85a980083b2ffb451. Status is current. The partial map shows no new architecture edges or cycles.",
+        "Built the x64 Release MSIX separately. Its 461 entries include both self-contained executables, SQLite 11, the expected registrations and all required framework dependencies. Both provider DLLs contain the new catalog and model IDs. The packaged CLI starts and its pricing audit lists the two official sources. MSIX SHA256 28252af10884ab91b26b49d6b7871b567a4b2e4ff0e5c02775cceea6623c92a9."
+      ],
+      "limitations": [
+        "OpenCode 2.0 storage, live provider accounts, installed app behavior, and ARM64 packaging remain unverified. The ARM64 VCLibs prerequisite is still absent. Pricing estimates use Standard processing and 30-minute cache writes.",
+        "Existing Windows process tests are unstable on this host. Codex's fake process recovery case failed twice with a transient result at the initial request. The exact cause is unconfirmed. No test limits, product process logic, or validation assertions were changed."
+      ],
+      "nextAction": "Diagnose the Windows process test failures before repeating the gate. The provider pricing changes and the x64 package are ready for review."
+    },
+    {
+      "id": "maintenance-2026-11-14",
+      "title": "Update TokenUsage dependencies, SDK, and native packaging",
+      "status": "blocked",
+      "objective": "Update the supported project dependencies and selected SDK, replace DesktopBridge packaging to adopt SQLite 11, and preserve both executables, release contracts, existing work, and real data.",
+      "model": "Current chat model, retained from this maintenance task",
+      "baseline": "HEAD 315d1b8 with all earlier uncommitted maintenance work preserved. Initial source map is current, generation c7366d62619e49ae32528cf2ab86fb9f00dddf1660229e42d7f40dcac1988a79. Selected SDK is 10.0.403.",
+      "evidence": ".scratch/maintenance-20261114",
+      "packagingEvidence": ".scratch/packaging-migration-20261114",
+      "decisions": [
+        "The user's request to update everything authorizes the pending SDK servicing update and project dependency work. It does not authorize commits, branches, worktrees, push, publication, or replacement of real application data.",
+        "Use the existing Microsoft SDK installation and its official package. Do not mask SQLite restore failures with warning suppression or a new fallback path.",
+        "Reuse unchanged module reviews and official provider evidence. Verify the final selected SDK and its actual VSTest runner before claiming the security issue is fixed.",
+        "The user explicitly approved migrating packaging and updating SQLite 11. Replace WAP with one native SDK packaging entry point; preserve app and CLI payloads, identity, alias, toast/COM activation, signing, Store uploads, and the portable release lane.",
+        "The map is current but its static analysis does not capture PowerShell call paths. Direct consumer tracing covers BuildAndRun, check, release, Store upload, dependency checks, and their existing tests.",
+        "Remove the obsolete DesktopBridge import test. Retain platform and manifest coverage, extend the existing manifest case for the confirmed COM path defect, and inspect actual packages. No new test infrastructure was added.",
+        "Keep the emitted Windows target contract: MinVersion 10.0.17763.0 and MaxVersionTested 10.0.26100.0. WAP previously overrode the source MaxVersionTested; the source now matches the verified package.",
+        "ARM64 packaging requires the missing Visual Studio component Microsoft.VisualStudio.Component.UWP.VC.ARM64. Requested explicit installation authorization; no component was installed. Do not omit framework dependencies or add a fallback to bypass this prerequisite."
+      ],
+      "validation": [
+        "Initial map status is stale:false. Dependency checks list only Microsoft.Data.Sqlite 11.0.0 as pending; other project packages are current.",
+        "Microsoft release metadata and winget both identify 10.0.404 as the latest stable SDK in the current 10.0 branch. The official installer applied the update; winget returned 0 and the installer returned 3010, with a Windows restart required.",
+        "The repository remains public under the authenticated personal owner. Actions are enabled and all seven release pins are current; no remote settings were changed.",
+        "Claude 2.1.325 and Goose 1.59.1 add no confirmed change to the admitted usage contracts. Goose session storage is byte-identical to 1.59.0. Provider documentation was updated; adapters and support stages were preserved.",
+        "All 19 official pricing sources responded. Six complete responses match November 13; the remaining current rows and conditions are unchanged. The existing Cursor Sol discrepancy remains documented. No pricing source, catalog, fixture, or test change was needed.",
+        "Read-only packaging analysis confirmed that SQLite 11 runs with net10 but the existing WAP restore selects its assets through a UAP fallback and rejects them with NU1701. The package copies SQLite from the app and CLI publish outputs. A packaging migration must keep both executables; single-project MSIX alone does not meet that contract.",
+        "Restart Manager identified four reusable MSBuild nodes from the preceding dependency check as file holders. A successful dotnet build-server shutdown --msbuild released them, and the original installer resumed. No application or MSI process was killed, and no second installation was launched.",
+        "The checkout now selects SDK 10.0.404. Its actual vstest.console.dll reports ProductVersion 18.7.1-hotfix-26529-119 and FileVersion 18.700.126.53019. The installed host is 10.0.1526.53008. The installer explicitly requested a restart; no restart has occurred.",
+        "The required x64 Release gate passed on SDK 10.0.404: architecture 87, Core 292, CLI 100, providers 581, and Windows 181 (Category!=OptIn), totaling 1241 passing cases. The package and production projects built successfully.",
+        "Both executables in the generated MSIX declare included .NET 10.0.15 frameworks. Their coreclr and hostfxr payloads have matching SHA256 hashes and exactly match the installed 10.0.15 binaries. An initial inspection assumed dotted coreclr version formatting; the actual metadata uses commas, so binary parity supplied the final proof. Package SHA256 is 86e4b8b25c53b7edc5d11b72116b3bdca93b446d4ebf0d014a7e4194fb623c93.",
+        "The rebuilt CLI pricing refresh passed all 19 official source projections. The NuGet audit passed for all 13 managed projects, with packaging references covered. The dependency scan still lists only the known SQLite 11 deferral.",
+        "The source map remains current with no changed modules, so its four existing artifacts and generation c7366d62619e49ae32528cf2ab86fb9f00dddf1660229e42d7f40dcac1988a79 were reused. Static architecture proof remains partial.",
+        "Tracker JSON and eight local links in the edited docs passed structural checks. All 41 previously changed tracked paths remain present, with no new tracked paths or unrelated cleanup. git diff --check passed.",
+        "Scheduled check-in at 2026-11-14 22:53 Buenos Aires (2026-11-15T01:53:12Z): source map, pending scope, selected SDK, and saved runner/host hashes are unchanged. Windows last boot is still November 13. Reused the gate completed at 01:49Z, audit at 01:51Z, pricing check at 01:48Z, and the same-session provider, price-row, and dependency reviews. Independent review confirmed no need to repeat unchanged checks. The previously reported restart and SQLite migration decision remain pending; no new action or notification was needed.",
+        "SQLite 11 gate passed: Architecture 86, Core 292, CLI 100, Providers 581, Windows 181 (Category!=OptIn), total 1240; x64 Release MSIX built. Existing Core repository cases use real temporary SQLite databases and cover migration, writes, deduplication, updates, and read-only access. Logs: packagingEvidence/check.log.",
+        "Independent review found and repaired inherited StrictMode access to absent Content.Link metadata and duplicate Store output cleanup. Store execution then exposed an unset LASTEXITCODE in the readiness wrapper; reused Invoke-CheckedCommand to initialize it. The failed run is preserved as store-build.log; subsequent Store runs passed. Native tool output now remains in redirected logs.",
+        "Final Store build and its 36 readiness checks passed after manifest alignment. The upload contains exactly a bundle and appxsym with seven PDBs. MSIX, bundle, and nested MSIX CMS signatures are valid for the recorded temporary construction certificate; the certificate was removed. Signature and CodeIntegrity entries can change when signing a bundle, while all nested payload, blockmap, and manifest bytes match the standalone package. Final upload SHA256 e09aee31d7e51d1337973cdbfc6b3e81485309ce6ce9b9b5569ccbb1c2d4a344. Evidence: store-build-final.log, store-inspection.json, store-signatures.json, store-package.json, store-nested-package.json.",
+        "Final x64 Store artifacts preserve identity, publisher, AppId, CLI alias, COM/toast IDs, target Windows versions, and both executable paths. Both apps include .NET 10.0.15, SQLite 11.0.0, native SQLite, and matching x64 runtimes. Independent inspection found 38 native PE files, all AMD64, and matching framework sidecars. The resource PRI matches the old package byte for byte: 649 named resources, 651 candidates, 24 resolved payload paths. Safe packaged CLI --help returned 0 without opening real data.",
+        "BuildAndRun -SkipRun passed for x64 Debug; its MSIX uses the Debug VCLibs dependencies and a distinct Debug output name. ARM64 Release compiled and published both apps, then stopped because the SDK lacks Desktop and UWP VCLibs ARM64 packages. The required component is absent from both installed VS inventories; the generic Visual C++ redistributable is insufficient. Evidence: debug-build.log, debug-package.json, arm64-build.log.",
+        "Final dependency scan reports no stable direct updates for all 13 managed projects. Final NuGet audit reports no known vulnerable direct or transitive packages. Evidence: deps-check.log and audit.log.",
+        "Updated all four code-map artifacts together; generation 2ffc948d7cb5bd7399ad20d5ea53a145b15ded464d1b466a7d57b32324544bcb. Analysis remains partial: 439 of 471 included files, 1278 unresolved references or limits, 478 nodes and 2986 edges. PowerShell flows required direct consumer review. No renderer change required browser proof.",
+        "Scope review preserved all 32 pre-existing diffs outside the migration-owned paths, with no unexpected changes. The other pre-existing edits were retained within deliberately updated files; WAP removal was authorized. No real data, installation of TokenUsage, commit, branch, push, or publication occurred. Evidence: scope-review.json.",
+        "Final structural checks passed: seven PowerShell scripts, tracker JSON, manifest and solution XML, 19 local documentation links, and git diff --check. Code-map status is stale:false with no changed modules. ARM64 approval is still pending."
+      ],
+      "changes": [
+        "Apply the official SDK 10.0.404 servicing update and verify the selected patched VSTest runner.",
+        "Update provider and dependency documentation while preserving the current application, data, and pending source changes.",
+        "Update Microsoft.Data.Sqlite from 10.0.14 to 11.0.0; retain native SQLitePCLRaw 3.0.5 and existing storage contracts.",
+        "Replace TokenUsage.Package.wapproj with scripts/package.ps1. Publish app and CLI through MSBuild and use restored native SDK tools for PRI, validated MSIX, signing, bundle, and symbols. Derive dependencies from restored packages and SDK metadata.",
+        "Route BuildAndRun, required checks, release, Store upload, audit, and dependency checks through their owning managed projects or the canonical package builder. Preserve the portable publishing logic and shared .dotnet runtime layout.",
+        "Fix the manifest COM executable path, preserve emitted Windows target metadata, restrict output cleanup, separate Debug artifact names, normalize supported platform casing for SDK metadata, and document the ARM64 SDK prerequisite."
+      ],
+      "limitations": [
+        "ARM64 packaging is blocked pending authorization to install Microsoft.VisualStudio.Component.UWP.VC.ARM64. App and CLI compilation succeeded, but no complete ARM64 MSIX or ARM64 runtime proof is claimed.",
+        "Windows restart remains required to finish the previously authorized SDK installation. Post-restart verification is pending; older SDK installations remain present.",
+        "No installed WinUI, registered CLI alias, COM/toast activation, upgrade/uninstall, live-account, or Store submission proof is claimed. Store construction uses a temporary self-signed certificate, not a public distribution credential. No TokenUsage installation or real data mutation was performed.",
+        "The complete portable release build was not repeated: its publish logic and profiles are unchanged, profile coverage passed in the required gate, and the wrapper integration was reviewed. No new portable runtime or visual proof is claimed. Opt-in integrations remain excluded by the required gate; no performance gain is claimed."
+      ],
+      "nextAction": "Await the requested authorization for the missing Visual Studio ARM64 UWP component, then recheck SDK framework metadata and repeat affected packaging checks. If ARM64 is explicitly deferred, close the source migration with that limit. Reuse the 1240 passing tests unless relevant code or environment changes invalidate them. Windows restart and installed-application proof remain separate pending actions. No commit, push, TokenUsage installation, or publication is authorized."
+    },
+    {
+      "id": "maintenance-2026-11-13",
+      "title": "Review daily provider, pricing, and dependency changes",
+      "status": "completed",
+      "objective": "Apply supported integration and dependency updates while preserving pending work, real data, and product quality.",
+      "model": "Current chat model, retained by the scheduled task",
+      "baseline": "HEAD 315d1b8. Source and SDK 10.0.403 are unchanged since November 12. The initial map is current, generation 7aee3752911334ed369212471444484273a0c6a483ac42ab9820bfbf65260159. Preserve all pending November 9 and 12 changes.",
+      "evidence": ".scratch/maintenance-20261113",
+      "decisions": [
+        "Reuse the prior module-level architecture review and unchanged proof. Review official release and pricing changes before edits.",
+        "Recheck the Test SDK publication blocker because its official 18.12 release is now available. Retain the SQLite 11 deferral while its packaging incompatibility is unchanged.",
+        "No commits, branches, worktrees, push, provider or SDK installations, publication, or real-data changes are authorized."
+      ],
+      "validation": [
+        "Initial code-map status passed with stale:false and no changed modules. The installed .NET SDK remains 10.0.403.",
+        "The repository remains public under the authenticated personal owner. Actions are enabled and all seven release pins remain current; no remote settings were changed.",
+        "Initial dependency checks found only SQLite 11.0.0 and Test SDK 18.12.0. The NuGet vulnerability audit passed for all 13 managed projects, including coverage of packaging references.",
+        "Installed Claude 2.1.323 and VS Code 1.146.0, plus published Codex 0.169.0, retain the numeric contracts read here. Codex adds an optional userId that the current projection ignores. Other reviewed release baselines remain unchanged; no provider support stage changed.",
+        "Independent review accepted Test SDK 18.12 compatibility with the current net10.0 test targets and adapters. Its official release is now available; the package metadata's source commit still cannot be resolved.",
+        "Installed SDK 10.0.403 contains VSTest CLI 18.7.0-release-26523-112, confirmed by binary version and deps.json. Microsoft's CVE-2026-105544 advisory lists this SDK as affected and 10.0.404 as patched. Project Test SDK packages do not replace that runner.",
+        "Independent pricing review found no Hydrogen code defect or changed existing promotion boundary. Its one documentation finding is recorded: Cursor's Markdown Sol promotion metadata differs from the visible pages and direct OpenAI evidence.",
+        "The required scripts/check.ps1 -Platform x64 -Configuration Release gate passed with Test SDK 18.12.0: architecture 87, Core 292, CLI 100, providers 581, and Windows 181 (Category!=OptIn), totaling 1241 passing cases. The Release x64 package and production projects built successfully.",
+        "The rebuilt checkout CLI pricing refresh passed all 19 official source projections. Manual review separately checked the current rows and conditions in the 18 previous sources plus Hydrogen. Missing historical rows retain their earlier qualification limits; marker matches alone do not verify billing.",
+        "Final dependency checks list only SQLite 11.0.0 as deferred. The final NuGet audit passed for all 13 managed projects, with packaging references covered. This does not remediate the installed SDK vulnerability.",
+        "All four map artifacts were updated together, generation c7366d62619e49ae32528cf2ab86fb9f00dddf1660229e42d7f40dcac1988a79. Final status is stale:false, with no architecture boundary changes or new cycles. Analysis remains partial: 439 of 470 files and 1277 unresolved references or limits.",
+        "Test project XML, tracker JSON, and nine local links in today's edited docs passed structural checks. Final scope review retained all 36 previously changed tracked paths and the existing untracked skill and Carbon fixture. git diff --check passed; scratch evidence remains outside the tracked scope."
+      ],
+      "changes": [
+        "Add Gemini 4 Hydrogen pricing for Google and Cursor, with separate billing evidence, no invented effective date, and no price for unsupported explicit cache-write counters.",
+        "Update Microsoft.NET.Test.Sdk from 18.11.0 to 18.12.0 in all five test projects.",
+        "Update provider and dependency documentation, including the installed SDK vulnerability and its separate remediation boundary."
+      ],
+      "limitations": [
+        "SDK 10.0.404 installation needs separate authorization under this task's no-installation constraint. The affected SDK remains installed; there is no evidence of exploitation. A clean project NuGet audit does not establish a secure SDK.",
+        "SQLite 11 remains deferred for the reproduced DesktopBridge NU1701 failure. No warning suppression, fallback path, or platform migration was added.",
+        "Test SDK 18.12's official release is verified, but the exact correspondence between its package metadata commit and source tag remains unverified.",
+        "Cursor Markdown metadata lists a November 21 Sol promotion end that its visible pages do not confirm. The current Sol estimate uses direct OpenAI evidence through November 30, not verified Cursor promotional terms. No host-specific successor rate was invented.",
+        "Static architecture and provider documentation checks do not qualify live accounts, private formats, ARM64, or installed UI behavior. No performance improvement is claimed."
+      ],
+      "nextAction": "Review the uncommitted changes. Obtain separate authorization to install patched SDK 10.0.404 and verify its bundled VSTest runner. Revisit SQLite packaging compatibility and Cursor's Sol promotional terms when official evidence changes."
+    },
+    {
+      "id": "maintenance-2026-11-12",
+      "title": "Run the daily provider and dependency maintenance pass",
+      "status": "completed",
+      "objective": "Review current provider contracts, pricing, dependencies, and project health without replacing the installed application or changing real data.",
+      "model": "Current chat model, retained by the scheduled task",
+      "baseline": "HEAD 315d1b8 with all November 9 changes preserved. Initial code map is current, generation fab9f73149e965c76b074eefc19ac4b3cb40decfbb738f6a2f5333d287f5219b. SDK remains 10.0.403.",
+      "evidence": ".scratch/maintenance-20261112",
+      "decisions": [
+        "Reuse valid November 9 source reviews and checks where code and environment are unchanged.",
+        "Check official provider and package changes, apply supported updates, and verify at integration.",
+        "Preserve the pending working tree. No commits, branches, worktrees, push, installation, publication, or screen control."
+      ],
+      "validation": [
+        "Initial map status is stale:false, and the .NET SDK is unchanged. The prior architecture review remains valid for unchanged modules.",
+        "Initial audit passed across 13 managed projects. Dependency checks found Microsoft.Data.Sqlite 11.0.0 and Microsoft.NET.Test.Sdk 18.12.0. All seven GitHub Actions release pins remain current.",
+        "SQLite 11 passed all 1237 managed tests but failed the DesktopBridge package restore with NU1701 against UAP10.0.17763. Independent diagnosis confirmed the missing .NET Standard assets; Core was restored to 10.0.14 without warning suppression or added fallback.",
+        "Independent pricing review found no actionable defect in the Carbon cutoff, billing scopes, or rejection of unsupported cache-write counters.",
+        "Independent review found that the first Mux proposal would block all persistence during a partial snapshot. The repair now uses the existing windowed upsert path, and its existing test checks real temporary-database refreshes and retained history. Follow-up static review found no remaining actionable defect.",
+        "The final scripts/check.ps1 -Platform x64 -Configuration Release run passed with SQLite 10.0.14: architecture 87, Core 292, CLI 100, providers 577, and Windows 181 (Category!=OptIn). All 1237 cases passed, followed by the Release x64 package build. The initial test-string compile failure was repaired; the failed SQLite 11 package log is retained.",
+        "The final rebuilt CLI pricing refresh passed all 18 official source projections. Manual review separately checked the current model rows and pricing conditions; marker matches alone do not establish billing accuracy.",
+        "Final dependency checks list only the two deferred packages: SQLite 11.0.0 and Test SDK 18.12.0. The final vulnerability audit passed for all 13 managed projects and covered packaging references.",
+        "All four map artifacts were published together, generation 7aee3752911334ed369212471444484273a0c6a483ac42ab9820bfbf65260159. Final status is stale:false, with no new boundaries or cycles. Static analysis remains partial: 439 of 470 files, with 1277 unresolved references or limits.",
+        "Tracker JSON, three project XML files, and 20 local documentation links passed structural checks. The final scope review retained all 31 previously changed tracked paths; git diff --check passed."
+      ],
+      "changes": [
+        "Keep the validated dependency versions and document the SQLite 11 packaging incompatibility and missing Test SDK 18.12 source evidence.",
+        "Add Gemini 4 Carbon prices and the December 1 transition for Google and Cursor with separate billing evidence; reject explicit cache-write estimates where no rate is published.",
+        "Reject ambiguous Mux parent rollups while allowing independent valid sessions to advance through the existing windowed snapshot contract. Preserve absent history and parser version 4."
+      ],
+      "limitations": [
+        "SQLite 11 is deferred because the required DesktopBridge package restore rejects its net10.0-only assets. Keep 10.0.14 until the packaging contract supports the update.",
+        "Test SDK 18.12.0 is deferred: NuGet metadata is available, but its public release/tag and referenced source commit could not be read. Keep 18.11.0 until its changes can be reviewed.",
+        "Mux parent usage mixed with absorbed child totals remains unimported when no reliable model split exists. Valid independent sessions can advance, but historical overcounts are not repaired automatically.",
+        "No new live-account, private-format, ARM64, or installed WinUI qualification. Opt-in integrations were excluded by the required gate. The unchanged architecture review does not establish new performance improvements."
+      ],
+      "nextAction": "Review the uncommitted changes. Revisit the two deferred dependencies when their blockers change. Installation, publication, and live-account qualification remain separate actions."
+    },
+    {
+      "id": "maintenance-2026-11-09",
+      "title": "Review current providers, dependencies, architecture, and resource use",
+      "status": "completed",
+      "objective": "Apply tokenusage-maintenance across the active solution, fix confirmed defects, and preserve usage history and public contracts.",
+      "model": "Current chat model, explicitly selected by the user",
+      "baseline": "315d1b8. Pending changes contain the new local maintenance skill and its documentation link.",
+      "evidence": ".scratch/maintenance-20261109",
+      "decisions": [
+        "Use the existing tracker, code map, toolchain, and verification commands.",
+        "Review provider compatibility, pricing, and architecture in separate lanes; integrate before running the required gate.",
+        "Use official sources and synthetic evidence. Preserve real application data and the installed build.",
+        "No commit, branch, worktree, push, release, or installation is authorized. Prior task permissions do not carry forward."
+      ],
+      "steps": [
+        "Confirm the baseline, map freshness, and dependency audit.",
+        "Review current provider contracts and official pricing rows.",
+        "Review all product layers and fix supported findings with small changes.",
+        "Run the required gate and affected runtime checks at integration.",
+        "Review the diff, update affected documentation and map artifacts, and record limits."
+      ],
+      "validation": [
+        "Initial code-map status passed with stale:false; analysis remains partial.",
+        "Initial dependency check found five stable NuGet updates. Initial vulnerability audit passed for all 13 managed projects and covered packaging references.",
+        "Official GitHub release tags verified the setup-dotnet v6.1.0 and upload-artifact v7.0.2 commit pins.",
+        "Independent static review accepted the Core and Goose fixes and found one outdated workflow-pin test expectation; that expectation was updated without weakening the assertion.",
+        "All required test projects passed in aggregate parts: architecture 87, Core 292, CLI 100, providers 572, and Windows 181 (Category!=OptIn). Total: 1232 distinct cases. Two new pricing cases initially failed xUnit argument binding; exact invariant decimal strings repaired the test input, and all four cases of that method passed. Unchanged passing results were reused.",
+        "The rebuilt Release CLI pricing refresh passed all 17 official source projections. Manual row and pricing-condition review covered those 17 sources independently; legacy rates absent from current pages were not requalified.",
+        "Independent review found no further actionable pricing defect. Project XML, workflow YAML, tracker JSON, and 19 local documentation links passed structural checks.",
+        "Release x64 package and production dependencies built successfully with the updated packages. Every component of scripts/check.ps1 is now covered by passed results; the initial failed aggregate log is retained.",
+        "All four map artifacts were published together, generation fab9f73149e965c76b074eefc19ac4b3cb40decfbb738f6a2f5333d287f5219b. Final status is stale:false. Static analysis remains partial, with no changed product boundaries or new cycles.",
+        "Final deps-check passed with no direct updates pending across 13 managed projects. Final audit passed with no known direct or transitive vulnerabilities; packaging references remain covered. git diff --check passed."
+      ],
+      "changes": [
+        "Update five stable NuGet packages, align app and packaging references, and update two verified GitHub Actions commit pins.",
+        "Keep retained history visibly partial when its provider root disappears, and report malformed Goose model JSON as a partial scan while preserving valid observations.",
+        "Add Claude Fable/Mythos 5.2 standard and Fast prices with launch dates; price documented Cyber 6 long-context categories while keeping unsupported cache writes and ambiguous aggregates unpriced.",
+        "Update provider, pricing, storage, and dependency documentation, plus all four code-map artifacts."
+      ],
+      "limitations": [
+        "Installed OpenCode could not run its version command because its Bun package mapping is broken. Provider application repair is outside this maintenance pass.",
+        "Provider version, schema, and documentation checks do not establish live-account totals or private-format qualification.",
+        "The architecture and resource review found no further supported optimization; no performance improvement is claimed.",
+        "Opt-in integrations, real accounts, ARM64, and installed WinUI visual behavior were not exercised. Windows App SDK update validation is limited to the x64 package build and existing automated checks. No installation or screen control occurred.",
+        "Hosted GitHub workflows were not dispatched; their pins were verified and local workflow contract checks passed."
+      ],
+      "nextAction": "Review the uncommitted changes. Installation, release, and further live-account or visual qualification remain separate actions."
+    },
     {
       "id": "provider-correctness-2026-11-07",
       "title": "Fix provider imports, accounting, report dates, and current pricing",

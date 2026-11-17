@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mantenimiento de TokenUsage"
+  short_description: "Actualiza proveedores y revisa calidad y consumo"
+  default_prompt: "Usa $tokenusage-maintenance para actualizar proveedores y dependencias de TokenUsage, corregir errores y mejorar su arquitectura y consumo sin perder calidad."

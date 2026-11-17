@@ -140,10 +140,10 @@ public sealed class GooseUsageEventSource :
             SELECT
               id,
               created_at,
-              COALESCE(
+              CASE WHEN json_valid(model_config_json) THEN COALESCE(
                 json_extract(model_config_json, '$.model_name'),
                 json_extract(model_config_json, '$.model'),
-                json_extract(model_config_json, '$.name')),
+                json_extract(model_config_json, '$.name')) END,
               {providerColumn},
               {Column("accumulated_input_tokens", "input_tokens")},
               {Column("accumulated_output_tokens", "output_tokens")},
@@ -154,7 +154,6 @@ public sealed class GooseUsageEventSource :
             FROM sessions
             WHERE model_config_json IS NOT NULL
               AND model_config_json != ''
-              AND json_valid(model_config_json)
             ORDER BY created_at
             LIMIT $limit
             """;

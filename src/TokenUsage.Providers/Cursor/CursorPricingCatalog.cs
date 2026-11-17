@@ -10,8 +10,10 @@ namespace TokenUsage.Providers.Cursor;
 /// </summary>
 public static class CursorPricingCatalog
 {
-    public const string Version = "cursor-models-2026-10-19";
+    public const string Version = "cursor-models-2026-11-13";
     private const long GrokFourSevenLongContextThreshold = 256_000;
+    private static readonly DateTimeOffset CarbonListEffectiveFromUtc =
+        new(2026, 12, 1, 0, 0, 0, TimeSpan.Zero);
 
     private static readonly Dictionary<string, Rates> FirstPartyRatesByModel =
         new(StringComparer.Ordinal)
@@ -20,6 +22,8 @@ public static class CursorPricingCatalog
             ["composer-2.5-fast"] = new(3m, 0.5m, 15m),
             ["gemini-3.8-flash"] = new(0.75m, 0.075m, 3.75m),
             ["gemini-4-argon"] = new(2m, 0.1m, 10m, CacheWrite: 0m),
+            ["gemini-4-carbon"] = new(2m, 0.1m, 10m),
+            ["gemini-4-hydrogen"] = new(1.5m, 0.075m, 7.5m),
             ["grok-4.5"] = new(2m, 0.5m, 6m),
             ["grok-4.5-fast"] = new(4m, 1m, 18m),
             ["grok-4.6"] = new(2m, 0.5m, 6m),
@@ -47,6 +51,17 @@ public static class CursorPricingCatalog
             return KnownModelPricingCatalog.Resolve(model, occurredAtUtc, tokens);
         }
 
+        // Cursor leaves these cache-write rates unpublished; a dash is not a zero-dollar rate.
+        if (tokens.CacheWrite > 0 && normalized is ("gemini-4-carbon" or "gemini-4-hydrogen"))
+        {
+            return CostObservation.Unavailable();
+        }
+
+        if (normalized == "gemini-4-carbon" && occurredAtUtc >= CarbonListEffectiveFromUtc)
+        {
+            rates = new(4m, 0.2m, 20m);
+        }
+
         // Cursor publishes a 256k input threshold, distinct from the xAI API's 200k tier.
         bool longContext = checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite)
             > GrokFourSevenLongContextThreshold;
@@ -69,23 +84,37 @@ public static class CursorPricingCatalog
         decimal Output,
         decimal? CacheWrite = null);
 
-    private static PricingRateEvidence[] BuildEvidence()
+    private static List<PricingRateEvidence> BuildEvidence()
     {
         string[] priceMatches = FirstPartyRatesByModel.Keys.ToArray();
-        PricingRateEvidence[] evidence = priceMatches
-            .Select(priceMatch => PricingEvidence.Ongoing(
-                Version,
-                priceMatch,
-                priceMatch switch
-                {
-                    "gemini-3.8-flash" => PricingOfficialSources.CursorGemini,
-                    "gemini-4-argon" => PricingOfficialSources.CursorArgon,
-                    "grok-4.7" or "grok-4.7-fast" => PricingOfficialSources.CursorGrok,
-                    "muse-spark-1.3" => PricingOfficialSources.CursorMuse,
-                    "muse-wonder-1.0" => PricingOfficialSources.CursorWonder,
-                    _ => PricingOfficialSources.Cursor,
-                }))
-            .ToArray();
+        var evidence = new List<PricingRateEvidence>();
+        foreach (string priceMatch in priceMatches)
+        {
+            if (priceMatch == "gemini-4-carbon")
+            {
+                evidence.Add(PricingEvidence.Promotion(
+                    Version, priceMatch, PricingOfficialSources.CursorCarbon, CarbonListEffectiveFromUtc));
+                evidence.Add(PricingEvidence.FollowOn(
+                    Version, priceMatch, PricingOfficialSources.CursorCarbon, CarbonListEffectiveFromUtc));
+            }
+            else
+            {
+                evidence.Add(PricingEvidence.Ongoing(
+                    Version,
+                    priceMatch,
+                    priceMatch switch
+                    {
+                        "gemini-3.8-flash" => PricingOfficialSources.CursorGemini,
+                        "gemini-4-argon" => PricingOfficialSources.CursorArgon,
+                        "gemini-4-hydrogen" => PricingOfficialSources.CursorHydrogen,
+                        "grok-4.7" or "grok-4.7-fast" => PricingOfficialSources.CursorGrok,
+                        "muse-spark-1.3" => PricingOfficialSources.CursorMuse,
+                        "muse-wonder-1.0" => PricingOfficialSources.CursorWonder,
+                        _ => PricingOfficialSources.Cursor,
+                    }));
+            }
+        }
+
         PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);
         return evidence;
     }

@@ -28,7 +28,7 @@ Set-StrictMode -Version Latest
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $manifestPath = Join-Path $repoRoot 'src\TokenUsage.Package\Package.appxmanifest'
-$packageProject = Join-Path $repoRoot 'src\TokenUsage.Package\TokenUsage.Package.wapproj'
+$packageScript = Join-Path $repoRoot 'scripts\package.ps1'
 $buildPropertiesPath = Join-Path $repoRoot 'Directory.Build.props'
 $readinessScript = Join-Path $PSScriptRoot 'Test-StoreReadiness.ps1'
 $checkScript = Join-Path $repoRoot 'scripts\check.ps1'
@@ -53,39 +53,6 @@ function Invoke-CheckedCommand {
     if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
         throw "$Name failed with exit code $LASTEXITCODE."
     }
-}
-
-function Resolve-MSBuild {
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
-        throw 'Visual Studio Installer vswhere.exe is required.'
-    }
-
-    $visualStudio = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($visualStudio)) {
-        throw 'A Visual Studio installation with MSBuild is required.'
-    }
-
-    $candidate = Join-Path $visualStudio 'MSBuild\Current\Bin\MSBuild.exe'
-    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        throw "MSBuild was not found at $candidate."
-    }
-
-    return $candidate
-}
-
-function Reset-OutputDirectory {
-    param([Parameter(Mandatory)] [string] $Path)
-
-    $artifactsRoot = [System.IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts'))
-    if (-not $Path.StartsWith($artifactsRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Refusing to clean a Store output path outside artifacts: $Path"
-    }
-
-    if (Test-Path -LiteralPath $Path) {
-        [System.IO.Directory]::Delete($Path, $true)
-    }
-    New-Item -ItemType Directory -Force -Path $Path | Out-Null
 }
 
 function New-RandomPassword {
@@ -141,10 +108,7 @@ function New-TemporaryStoreCertificate {
     }
 }
 
-& $readinessScript
-if ($LASTEXITCODE -ne 0) {
-    throw 'Store readiness validation failed.'
-}
+Invoke-CheckedCommand 'Store readiness' { & $readinessScript }
 
 [xml] $manifest = Get-Content -LiteralPath $manifestPath -Raw
 $publisher = [string] $manifest.Package.Identity.Publisher
@@ -206,28 +170,16 @@ try {
         }
     }
 
-    Reset-OutputDirectory -Path $OutputDirectory
-    $msbuild = Resolve-MSBuild
-    $packageDirectory = $OutputDirectory.TrimEnd('\') + '\'
-    $arguments = @(
-        $packageProject,
-        '/restore',
-        "/p:Configuration=$Configuration",
-        "/p:Platform=$Platform",
-        '/p:GenerateAppxPackageOnBuild=true',
-        "/p:AppxPackageDir=$packageDirectory",
-        '/p:UapAppxPackageBuildMode=StoreUpload',
-        '/p:AppxBundle=Always',
-        "/p:AppxBundlePlatforms=$Platform",
-        '/p:AppxPackageSigningEnabled=true',
-        '/p:PackageCertificateThumbprint=',
-        "/p:PackageCertificateKeyFile=$($certificateState.path)",
-        "/p:PackageCertificatePassword=$($certificateState.password)",
-        '/verbosity:minimal',
-        '/nologo'
-    )
+    $packageParameters = @{
+        Configuration = $Configuration
+        Platform = $Platform
+        OutputDirectory = $OutputDirectory
+        StoreUpload = $true
+        PackageCertificateKeyFile = $certificateState.path
+        PackageCertificatePassword = $certificateState.password
+    }
 
-    Invoke-CheckedCommand 'Build Store upload package' { & $msbuild @arguments }
+    Invoke-CheckedCommand 'Build Store upload package' { & $packageScript @packageParameters }
 
     $uploadFiles = @(Get-ChildItem -LiteralPath $OutputDirectory -Recurse -File -Filter '*.msixupload')
     if ($uploadFiles.Count -ne 1) {

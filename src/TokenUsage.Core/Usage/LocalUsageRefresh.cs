@@ -398,6 +398,13 @@ public sealed class LocalUsageRefresh
             today,
             cancellationToken).ConfigureAwait(false);
 
+        HashSet<AgentId> unavailableAgents = _sources
+            .Where((source, index) => readResults[index].Issue == UsageSourceIssueKind.RootUnavailable)
+            .Select(source => source.AgentId)
+            .ToHashSet();
+        if (rollups.Any(rollup => unavailableAgents.Contains(rollup.AgentId)))
+            readStatus = UsageSourceReadStatus.Partial;
+
         UsageSourceDiagnostic[] diagnostics = _sources.Select((source, index) =>
             new UsageSourceDiagnostic(
                 source.AgentId,

@@ -5,20 +5,25 @@ namespace TokenUsage.Providers.Claude;
 
 public static class ClaudePricingCatalog
 {
-    public const string Version = "anthropic-api-2026-10-12";
+    public const string Version = "anthropic-api-2026-11-09";
     private const decimal TokensPerMillion = 1_000_000m;
     private static readonly DateTimeOffset Haiku55LaunchUtc = new(2026, 10, 7, 0, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Fable52LaunchUtc = new(2026, 11, 9, 0, 0, 0, TimeSpan.Zero);
 
     private static readonly Dictionary<string, Rates> RatesByModel =
         new Dictionary<string, Rates>(StringComparer.Ordinal)
         {
             ["claude-fable-5"] = new(10m, 50m, 12.5m, 20m, 1m),
             ["claude-fable-5-1"] = new(10m, 50m, 12.5m, 20m, 0.25m),
+            ["claude-fable-5-2"] = new(8m, 40m, 10m, 16m, 0.2m),
+            ["claude-fable-5-2-fast"] = new(16m, 80m, 20m, 32m, 0.4m),
             ["claude-haiku-4-5"] = new(1m, 5m, 1.25m, 2m, 0.1m),
             ["claude-haiku-4-5-20251001"] = new(1m, 5m, 1.25m, 2m, 0.1m),
             ["claude-haiku-5-5"] = new(0.1m, 0.5m, 0.125m, 0.2m, 0.01m),
             ["claude-mythos-5"] = new(10m, 50m, 12.5m, 20m, 1m),
             ["claude-mythos-5-1"] = new(10m, 50m, 12.5m, 20m, 0.25m),
+            ["claude-mythos-5-2"] = new(8m, 40m, 10m, 16m, 0.2m),
+            ["claude-mythos-5-2-fast"] = new(16m, 80m, 20m, 32m, 0.4m),
             ["claude-opus-4-5"] = new(5m, 25m, 6.25m, 10m, 0.5m),
             ["claude-opus-4-6"] = new(5m, 25m, 6.25m, 10m, 0.5m),
             ["claude-opus-4-7"] = new(5m, 25m, 6.25m, 10m, 0.5m),
@@ -69,11 +74,14 @@ public static class ClaudePricingCatalog
             return CostObservation.Unavailable();
         }
 
+        if (occurredAtUtc < EffectiveFromUtc(priceMatch))
+            return CostObservation.Unavailable();
+
         decimal multiplier = 1m;
         if (priceMatch == "claude-haiku-5-5")
         {
             // Session totals cannot establish the per-request pricing tier.
-            if (!perRequestTokenCounters || occurredAtUtc < Haiku55LaunchUtc)
+            if (!perRequestTokenCounters)
                 return CostObservation.Unavailable();
             if (checked(tokens.Input + tokens.CacheRead + tokens.CacheWrite) > 100_000)
                 multiplier = 5m;
@@ -129,8 +137,7 @@ public static class ClaudePricingCatalog
             return true;
         }
 
-        // Fast mode is published for Opus 5.5, Opus 5, and Opus 4.8. A fast
-        // flag on any other model keeps the base rates instead of failing.
+        // A fast flag on a model without a published fast rate keeps its base rate.
         rates = matched;
         priceMatch = matchedKey;
         return true;
@@ -157,6 +164,14 @@ public static class ClaudePricingCatalog
     private static decimal RoundUsd(decimal amount) =>
         decimal.Round(amount, 6, MidpointRounding.AwayFromZero);
 
+    private static DateTimeOffset EffectiveFromUtc(string priceMatch) => priceMatch switch
+    {
+        "claude-haiku-5-5" => Haiku55LaunchUtc,
+        "claude-fable-5-2" or "claude-fable-5-2-fast"
+            or "claude-mythos-5-2" or "claude-mythos-5-2-fast" => Fable52LaunchUtc,
+        _ => PricingEvidence.HistoricalStartUtc,
+    };
+
     private sealed record Rates(
         decimal Input,
         decimal Output,
@@ -174,7 +189,7 @@ public static class ClaudePricingCatalog
                 Version,
                 priceMatch,
                 PricingOfficialSources.Anthropic,
-                priceMatch == "claude-haiku-5-5" ? Haiku55LaunchUtc : null));
+                EffectiveFromUtc(priceMatch)));
         }
 
         PricingCatalogAudit.ValidateCoverage(Version, priceMatches, evidence);

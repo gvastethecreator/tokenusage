@@ -6,7 +6,7 @@ namespace TokenUsage.Providers.Codex;
 
 public static class CodexPricingCatalog
 {
-    public const string Version = "openai-api-2026-11-07";
+    public const string Version = "openai-api-2026-11-17";
     private const long LongContextThreshold = 272_000;
 
     // The official page guarantees this promotion through November 30, but
@@ -44,6 +44,8 @@ public static class CodexPricingCatalog
             ["gpt-6-sol"] = new("gpt-6-sol", 2m, 0.20m, 10m, 2.5m, true),
             ["gpt-6.1-sol"] = new("gpt-6.1-sol", 2m, 0.10m, 10m, 2.5m, true),
             ["gpt-6.1-terra"] = new("gpt-6.1-terra", 1m, 0.05m, 5m, 1.25m, true),
+            ["gpt-6.2-astra"] = new("gpt-6.2-astra", 8m, 0.40m, 40m, 10m, true),
+            ["gpt-6.2-sol"] = new("gpt-6.2-sol", 2m, 0.10m, 10m, 2.5m, true),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -77,8 +79,8 @@ public static class CodexPricingCatalog
                 > LongContextThreshold)
         {
             // A session total does not identify any individual request's tier.
-            // Cyber's published table contains no long-context rate.
-            if (!perRequestTokenCounters || rates.PriceMatch == "gpt-6-cyber")
+            // Cyber publishes long-context input, cache-read, and output rates only.
+            if (!perRequestTokenCounters || rates.PriceMatch == "gpt-6-cyber" && tokens.CacheWrite > 0)
                 return CostObservation.Unavailable();
 
             inputMultiplier = 2m;
@@ -168,9 +170,14 @@ public static class CodexPricingCatalog
                         "gpt-6-cyber" => PricingOfficialSources.OpenAiCyberSix,
                         "gpt-6.1-terra" => PricingOfficialSources.OpenAiTerra,
                         "gpt-6-astra" => PricingOfficialSources.OpenAiAstra,
+                        "gpt-6.2-astra" => PricingOfficialSources.OpenAiAstraSixTwo,
+                        "gpt-6.2-sol" => PricingOfficialSources.OpenAiSolSixTwo,
                         "gpt-6-sol" or "gpt-6.1-sol" or "gpt-6-luna" => PricingOfficialSources.OpenAiFlagship,
                         _ => PricingOfficialSources.OpenAi,
-                    }));
+                    },
+                    priceMatch is "gpt-6.2-astra" or "gpt-6.2-sol"
+                        ? new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero)
+                        : null));
             }
         }
 

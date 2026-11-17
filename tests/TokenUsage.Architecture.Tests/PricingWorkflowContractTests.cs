@@ -22,7 +22,7 @@ public sealed class PricingWorkflowContractTests
             workflow,
             StringComparison.Ordinal);
         Assert.Contains(
-            "actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68",
+            "actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73",
             workflow,
             StringComparison.Ordinal);
         Assert.Contains("pricing refresh --update", workflow, StringComparison.Ordinal);

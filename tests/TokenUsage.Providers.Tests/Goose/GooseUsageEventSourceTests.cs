@@ -91,6 +91,13 @@ public sealed class GooseUsageEventSourceTests
         Assert.Equal(UsageSourceReadStatus.Complete, costOnly.Status);
         UsageEvent charged = Assert.Single(costOnly.Events, row => row.Tokens.Total == 0);
         Assert.Equal(0.5m, charged.Cost.ReportedCostUsd);
+
+        corrupt.CommandText = "UPDATE sessions SET model_config_json = '{broken' WHERE id = 'empty-session';";
+        corrupt.ExecuteNonQuery();
+        UsageSourceReadResult malformedModel = await source.ReadAsync();
+        Assert.Equal(UsageSourceReadStatus.Partial, malformedModel.Status);
+        Assert.Equal(UsageSourceIssueKind.PartialScan, malformedModel.Issue);
+        Assert.Equal(usageEvent.EventKey, Assert.Single(malformedModel.Events).EventKey);
     }
 
     [Theory]

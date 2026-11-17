@@ -1,15 +1,15 @@
 # Code map: tokenusage
 
-Generated: 2026-11-07T17:52:13Z | Commit: `894b5d26a64c` | Schema: 2
-Generation: `ec44d6eba41d420a472a905291ca91c882dfdb6e86afa0878cdc0356bb1bc4ad`
+Generated: 2026-11-17T19:55:08Z | Commit: `315d1b80f371` | Schema: 2
+Generation: `5b5a22989bf76b5705a1192150ebda0a2236774275a5ecb85a980083b2ffb451`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
-Nodes: 477 | Edges: 2973 | Flows: 0
+Nodes: 478 | Edges: 2986 | Flows: 0
 
 ## Coverage
 
-- Analysis: **partial**; 439 analyzed of 470 included files.
+- Analysis: **partial**; 439 analyzed of 471 included files.
 - Configuration files: 0; omitted untracked files: 0.
-- Unresolved references and analysis limits: 1274.
+- Unresolved references and analysis limits: 1278.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules
@@ -17,7 +17,7 @@ Nodes: 477 | Edges: 2973 | Flows: 0
 - `BuildAndRun.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `external:csharp:CommunityToolkit` | external | External | callers: src/TokenUsage.App/ViewModels/FlyoutViewModel.cs, src/TokenUsage.App/ViewModels/Reports/ReportViewModel.cs, src/TokenUsage.App/ViewModels/Surfaces/UpdateOptionsViewModel.cs, src/TokenUsage.Presentation/ViewModels/Surfaces/AppearanceSurfaceViewModel.cs | callees: none | tests: 0 | entry: none
 - `external:csharp:Microsoft` | external | External | callers: src/TokenUsage.App/App.xaml.cs, src/TokenUsage.App/Controls/AccountQuotaList.xaml.cs, src/TokenUsage.App/Controls/ProviderColorPalette.cs, src/TokenUsage.App/Controls/ProviderColorSwatch.xaml.cs | callees: none | tests: 10 | entry: none
-- `external:csharp:System` | external | External | callers: src/TokenUsage.App/App.xaml.cs, src/TokenUsage.App/Controls/ReportShareBar.cs, src/TokenUsage.App/Controls/ThemeSwitchTransition.cs, src/TokenUsage.App/Controls/UsageHeatmap.xaml.cs | callees: none | tests: 59 | entry: none
+- `external:csharp:System` | external | External | callers: src/TokenUsage.App/App.xaml.cs, src/TokenUsage.App/Controls/ReportShareBar.cs, src/TokenUsage.App/Controls/ThemeSwitchTransition.cs, src/TokenUsage.App/Controls/UsageHeatmap.xaml.cs | callees: none | tests: 60 | entry: none
 - `external:csharp:TokenUsage` | external | External | callers: src/TokenUsage.App/MainPage.xaml.cs, src/TokenUsage.App/MainWindow.xaml.cs | callees: none | tests: 0 | entry: none
 - `external:csharp:WinRT` | external | External | callers: src/TokenUsage.App/MainWindow.xaml.cs, src/TokenUsage.App/Services/ShareCaptureService.cs, src/TokenUsage.App/TraySummaryWindow.xaml.cs | callees: none | tests: 0 | entry: none
 - `external:csharp:Windows` | external | External | callers: src/TokenUsage.App/Controls/MotionSettings.cs, src/TokenUsage.App/Controls/ProviderColorPalette.cs, src/TokenUsage.App/Controls/ProviderColorSwatch.xaml.cs, src/TokenUsage.App/Controls/ReportCaptureStackLayout.cs | callees: none | tests: 0 | entry: none
@@ -25,6 +25,7 @@ Nodes: 477 | Edges: 2973 | Flows: 0
 - `scripts/audit.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `scripts/check.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `scripts/deps-check.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
+- `scripts/package.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `scripts/release.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `scripts/store/Build-StoreUpload.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `scripts/store/Test-StoreReadiness.ps1` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
@@ -33,8 +34,7 @@ Nodes: 477 | Edges: 2973 | Flows: 0
 - `src/TokenUsage.App/Composition/AppComposition.cs` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/AccountQuotaList.xaml` | module | Repository | callers: none | callees: none | tests: 0 | entry: none
 - `src/TokenUsage.App/Controls/AccountQuotaList.xaml.cs` | module | Repository | callers: none | callees: external:csharp:Microsoft, src/TokenUsage.Presentation/ViewModels/AccountQuota.cs | tests: 0 | entry: none
-- `src/TokenUsage.App/Controls/MotionSettings.cs` | module | Repository | callers: src/TokenUsage.App/Controls/ReportShareBar.cs, src/TokenUsage.App/Controls/ReportShareBar.cs, src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs, src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs | callees: external:csharp:Windows | tests: 0 | entry: none
-- Showing 20 of 477 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
+- Showing 20 of 478 nodes. Query `impact --module <path>` or open the HTML hierarchy for the rest.
 
 ## Edges
 
@@ -88,7 +88,7 @@ Nodes: 477 | Edges: 2973 | Flows: 0
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/MotionSettings.cs` | imports (type only)
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | calls
 - `src/TokenUsage.App/Controls/SpendDonutChart.xaml.cs` -> `src/TokenUsage.App/Controls/ProviderColorPalette.cs` | imports (type only)
-- Showing 50 of 2973 edges; JSON contains every edge and its evidence.
+- Showing 50 of 2986 edges; JSON contains every edge and its evidence.
 
 ## Unknown
 
@@ -96,6 +96,7 @@ Nodes: 477 | Edges: 2973 | Flows: 0
 - `scripts/audit.ps1:1`: unsupported-language (.ps1)
 - `scripts/check.ps1:1`: unsupported-language (.ps1)
 - `scripts/deps-check.ps1:1`: unsupported-language (.ps1)
+- `scripts/package.ps1:1`: unsupported-language (.ps1)
 - `scripts/release.ps1:1`: unsupported-language (.ps1)
 - `scripts/store/Build-StoreUpload.ps1:1`: unsupported-language (.ps1)
 - `scripts/store/Test-StoreReadiness.ps1:1`: unsupported-language (.ps1)
@@ -103,7 +104,6 @@ Nodes: 477 | Edges: 2973 | Flows: 0
 - `src/TokenUsage.App/App.xaml.cs:31`: call-target-symbol-not-resolved (InitializeComponent)
 - `src/TokenUsage.App/Composition/AppComposition.cs:89`: syntax-error (,)
 - `src/TokenUsage.App/Controls/AccountQuotaList.xaml:1`: unsupported-language (.xaml)
-- `src/TokenUsage.App/Controls/AccountQuotaList.xaml.cs:14`: call-target-symbol-not-resolved (InitializeComponent)
 
 ## Flows
 

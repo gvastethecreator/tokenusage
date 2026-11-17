@@ -83,8 +83,10 @@ public sealed class LocalUsageRefreshTests
         Assert.False(File.Exists(folder.DatabasePath));
     }
 
-    [Fact]
-    public async Task ReadCachedReportsAnAbsentRootEvenWhenHistoryRemains()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CacheAndRefreshReportAnAbsentRootWhenHistoryRemains(bool anotherSourceAvailable)
     {
         using var folder = new TemporaryFolder();
         var clock = new FixedTimeProvider(Now);
@@ -111,26 +113,35 @@ public sealed class LocalUsageRefreshTests
             clock);
         await seed.RefreshAsync();
 
-        // The same store, read after both tools were uninstalled.
+        UsageSourceReadResult unavailable = new(
+            [], UsageSourceReadStatus.NoData, UsageSourceIssueKind.RootUnavailable);
         var afterUninstall = new LocalUsageRefresh(
             folder.DatabasePath,
             [
-                new ScriptedRootDetectingSource(new AgentId("codex"), false, codexRead),
+                new ScriptedRootDetectingSource(new AgentId("codex"), false, unavailable),
                 new ScriptedRootDetectingSource(
                     new AgentId("claude"),
-                    isRootAvailable: false,
-                    new UsageSourceReadResult([], UsageSourceReadStatus.NoData)),
+                    isRootAvailable: anotherSourceAvailable,
+                    anotherSourceAvailable
+                        ? new UsageSourceReadResult([], UsageSourceReadStatus.Complete)
+                        : unavailable),
             ],
             clock);
         LocalUsageRefreshResult? cached = await afterUninstall.ReadCachedAsync();
 
         Assert.NotNull(cached);
+        Assert.Equal(UsageSourceReadStatus.Partial, cached.OverallStatus);
         UsageSourceDiagnostic codex = Find(cached.SourceDiagnostics, "codex");
         Assert.Equal(UsageSourceIssueKind.RootUnavailable, codex.Issue);
         Assert.True(codex.RetainsLastReliableSnapshot);
         UsageSourceDiagnostic claude = Find(cached.SourceDiagnostics, "claude");
-        Assert.Equal(UsageSourceIssueKind.RootUnavailable, claude.Issue);
+        Assert.Equal(anotherSourceAvailable ? UsageSourceIssueKind.Empty : UsageSourceIssueKind.RootUnavailable, claude.Issue);
         Assert.False(claude.RetainsLastReliableSnapshot);
+
+        LocalUsageRefreshResult refreshed = await afterUninstall.RefreshAsync();
+        Assert.Equal(UsageSourceReadStatus.Partial, refreshed.OverallStatus);
+        Assert.Equal(150, refreshed.Rollups.Sum(rollup => rollup.Tokens.Total));
+        Assert.Equal(1m, refreshed.Rollups.Sum(rollup => rollup.ReportedCostUsd ?? 0m));
     }
 
     [Fact]

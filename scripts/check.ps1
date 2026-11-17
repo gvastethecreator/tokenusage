@@ -18,7 +18,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$packageProject = Join-Path $repoRoot 'src\TokenUsage.Package\TokenUsage.Package.wapproj'
+$packageScript = Join-Path $PSScriptRoot 'package.ps1'
 $architectureTests = Join-Path $repoRoot 'tests\TokenUsage.Architecture.Tests\TokenUsage.Architecture.Tests.csproj'
 $coreTests = Join-Path $repoRoot 'tests\TokenUsage.Core.Tests\TokenUsage.Core.Tests.csproj'
 $cliTests = Join-Path $repoRoot 'tests\TokenUsage.Cli.Tests\TokenUsage.Cli.Tests.csproj'
@@ -42,64 +42,24 @@ function Invoke-DotNetStep {
     }
 }
 
-function Resolve-MSBuild {
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (-not (Test-Path -LiteralPath $vswhere)) {
-        throw 'Visual Studio MSBuild discovery tool is missing.'
-    }
-
-    $visualStudio = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-    $candidate = Join-Path $visualStudio 'MSBuild\Current\Bin\MSBuild.exe'
-    if (-not (Test-Path -LiteralPath $candidate)) {
-        throw 'Visual Studio MSBuild is required to build the packaging project.'
-    }
-
-    return $candidate
+if (-not (Test-Path -LiteralPath $packageScript)) {
+    throw "Missing packaging script: $packageScript"
 }
-
-function Invoke-MSBuildStep {
-    param(
-        [Parameter(Mandatory)]
-        [string] $Name,
-
-        [Parameter(Mandatory)]
-        [string[]] $Arguments
-    )
-
-    Write-Host "==> $Name" -ForegroundColor Cyan
-    & $script:MSBuild @Arguments
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Name failed with exit code $LASTEXITCODE."
-    }
-}
-
-if (-not (Test-Path -LiteralPath $packageProject)) {
-    throw "Missing packaging project: $packageProject"
-}
-
-$script:MSBuild = Resolve-MSBuild
 
 if ($PackageCertificatePassword -and -not $PackageCertificateKeyFile) {
     throw 'PackageCertificateKeyFile is required when PackageCertificatePassword is set.'
 }
 
-$packageBuildArguments = @(
-    $packageProject,
-    '/restore',
-    "/p:Configuration=$Configuration",
-    "/p:Platform=$Platform",
-    '/p:GenerateAppxPackageOnBuild=true',
-    '/verbosity:minimal',
-    '/nologo'
-)
+$packageParameters = @{
+    Configuration = $Configuration
+    Platform = $Platform
+}
 
 if ($PackageCertificateKeyFile) {
     $resolvedCertificate = (Resolve-Path -LiteralPath $PackageCertificateKeyFile).Path
-    $packageBuildArguments += '/p:AppxPackageSigningEnabled=true'
-    $packageBuildArguments += "/p:PackageCertificateKeyFile=$resolvedCertificate"
+    $packageParameters.PackageCertificateKeyFile = $resolvedCertificate
     if ($PackageCertificatePassword) {
-        $packageBuildArguments += "/p:PackageCertificatePassword=$PackageCertificatePassword"
+        $packageParameters.PackageCertificatePassword = $PackageCertificatePassword
     }
 }
 
@@ -152,7 +112,8 @@ try {
         '--verbosity', 'minimal'
     )
 
-    Invoke-MSBuildStep 'Package and production project build' $packageBuildArguments
+    Write-Host '==> Package and production project build' -ForegroundColor Cyan
+    & $packageScript @packageParameters
 }
 finally {
     Pop-Location

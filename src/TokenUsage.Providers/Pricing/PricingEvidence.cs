@@ -194,6 +194,9 @@ public static class PricingOfficialSources
 {
     private static readonly DateOnly ReviewDate = new(2026, 10, 19);
     private static readonly DateOnly CurrentReviewDate = new(2026, 11, 7);
+    private static readonly DateOnly NovemberMaintenanceReviewDate = new(2026, 11, 9);
+    private static readonly DateOnly CarbonReviewDate = new(2026, 11, 12);
+    private static readonly DateOnly HydrogenReviewDate = new(2026, 11, 13);
 
     public static PricingSourceEvidence OpenAi { get; } = new(
         "openai-model-pricing",
@@ -213,6 +216,18 @@ public static class PricingOfficialSources
         CurrentReviewDate,
         PricingBillingScope.DirectProviderApi);
 
+    public static PricingSourceEvidence OpenAiAstraSixTwo { get; } = new(
+        "openai-astra-6-2-pricing",
+        new Uri("https://developers.openai.com/api/docs/models/gpt-6.2-astra"),
+        new DateOnly(2026, 11, 17),
+        PricingBillingScope.DirectProviderApi);
+
+    public static PricingSourceEvidence OpenAiSolSixTwo { get; } = new(
+        "openai-sol-6-2-pricing",
+        new Uri("https://developers.openai.com/api/docs/models/gpt-6.2-sol"),
+        new DateOnly(2026, 11, 17),
+        PricingBillingScope.DirectProviderApi);
+
     public static PricingSourceEvidence OpenAiCyber { get; } = new(
         "openai-cyber-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-5.6-cyber"),
@@ -222,7 +237,7 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence OpenAiCyberSix { get; } = new(
         "openai-cyber-six-pricing",
         new Uri("https://developers.openai.com/api/docs/models/gpt-6-cyber"),
-        CurrentReviewDate,
+        NovemberMaintenanceReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence OpenAiTerra { get; } = new(
@@ -234,13 +249,13 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence Anthropic { get; } = new(
         "anthropic-model-pricing",
         new Uri("https://platform.claude.com/docs/en/about-claude/pricing.md"),
-        ReviewDate,
+        NovemberMaintenanceReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Google { get; } = new(
         "google-gemini-api-pricing",
         new Uri("https://aistudio.google.com/docs/pricing"),
-        ReviewDate,
+        HydrogenReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Xai { get; } = new(
@@ -271,6 +286,18 @@ public static class PricingOfficialSources
         "cursor-gemini-4-argon-pricing",
         new Uri("https://cursor.com/docs/models/gemini-4-argon"),
         ReviewDate,
+        PricingBillingScope.HostSpecific);
+
+    public static PricingSourceEvidence CursorCarbon { get; } = new(
+        "cursor-gemini-4-carbon-pricing",
+        new Uri("https://cursor.com/docs/models/gemini-4-carbon"),
+        CarbonReviewDate,
+        PricingBillingScope.HostSpecific);
+
+    public static PricingSourceEvidence CursorHydrogen { get; } = new(
+        "cursor-gemini-4-hydrogen-pricing",
+        new Uri("https://cursor.com/docs/models/gemini-4-hydrogen"),
+        HydrogenReviewDate,
         PricingBillingScope.HostSpecific);
 
     public static PricingSourceEvidence CursorWonder { get; } = new(

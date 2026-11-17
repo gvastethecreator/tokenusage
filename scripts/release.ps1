@@ -30,7 +30,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $buildPropertiesPath = Join-Path $repoRoot 'Directory.Build.props'
 $appProject = Join-Path $repoRoot 'src\TokenUsage.App\TokenUsage.App.csproj'
 $cliProject = Join-Path $repoRoot 'src\TokenUsage.Cli\TokenUsage.Cli.csproj'
-$packageProject = Join-Path $repoRoot 'src\TokenUsage.Package\TokenUsage.Package.wapproj'
+$packageScript = Join-Path $PSScriptRoot 'package.ps1'
 $packageManifestPath = Join-Path $repoRoot 'src\TokenUsage.Package\Package.appxmanifest'
 $packageOutput = Join-Path $repoRoot 'src\TokenUsage.Package\AppPackages'
 $releaseRoot = Join-Path $repoRoot 'artifacts\release'
@@ -50,21 +50,6 @@ function Invoke-CheckedCommand {
     if ($LASTEXITCODE -ne 0) {
         throw "$Name failed with exit code $LASTEXITCODE."
     }
-}
-
-function Resolve-MSBuild {
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (-not (Test-Path -LiteralPath $vswhere)) {
-        throw 'Visual Studio MSBuild discovery tool is missing.'
-    }
-
-    $visualStudio = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-    $candidate = Join-Path $visualStudio 'MSBuild\Current\Bin\MSBuild.exe'
-    if (-not (Test-Path -LiteralPath $candidate)) {
-        throw 'Visual Studio MSBuild is required to build the package.'
-    }
-
-    return $candidate
 }
 
 function Reset-Directory {
@@ -314,26 +299,19 @@ try {
         }
     }
     else {
-        $msbuild = Resolve-MSBuild
-        $packageArguments = @(
-            $packageProject,
-            '/restore',
-            '/p:Configuration=Release',
-            "/p:Platform=$Platform",
-            '/p:GenerateAppxPackageOnBuild=true',
-            '/verbosity:minimal',
-            '/nologo'
-        )
+        $packageParameters = @{
+            Configuration = 'Release'
+            Platform = $Platform
+        }
         if ($PackageCertificateKeyFile) {
             $resolvedCertificate = (Resolve-Path -LiteralPath $PackageCertificateKeyFile).Path
-            $packageArguments += '/p:AppxPackageSigningEnabled=true'
-            $packageArguments += "/p:PackageCertificateKeyFile=$resolvedCertificate"
+            $packageParameters.PackageCertificateKeyFile = $resolvedCertificate
             if ($PackageCertificatePassword) {
-                $packageArguments += "/p:PackageCertificatePassword=$PackageCertificatePassword"
+                $packageParameters.PackageCertificatePassword = $PackageCertificatePassword
             }
         }
 
-        Invoke-CheckedCommand 'Package build' { & $msbuild @packageArguments }
+        Invoke-CheckedCommand 'Package build' { & $packageScript @packageParameters }
     }
 
     Invoke-CheckedCommand 'Portable app publish' {

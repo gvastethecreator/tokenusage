@@ -23,7 +23,7 @@
   </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
   <Resources>
@@ -33,7 +33,7 @@
   <Applications>
     <Application
       Id="App"
-      Executable="TokenUsage.App.exe"
+      Executable="TokenUsage.App\TokenUsage.App.exe"
       EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="TokenUsage"
@@ -51,7 +51,7 @@
         <com:Extension Category="windows.comServer">
           <com:ComServer>
             <com:ExeServer
-              Executable="TokenUsage.App.exe"
+              Executable="TokenUsage.App\TokenUsage.App.exe"
               Arguments="----AppNotificationActivated:"
               DisplayName="TokenUsage">
               <com:Class Id="7B30C8A5-0C11-4FB5-94FA-59FD9154B798" />

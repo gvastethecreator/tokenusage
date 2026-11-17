@@ -7,7 +7,7 @@ One command to build and run:  .\BuildAndRun.ps1 MyApp.csproj
 
 - Checks Developer Mode is enabled (required for packaged WinUI apps)
 - Auto-detects platform (x64/ARM64), defaults to Debug, auto-restores
-- Finds MSBuild via vswhere, falls back to dotnet build
+- Packages TokenUsage through scripts/package.ps1; other projects use MSBuild or dotnet build
 - After successful build, finds the output folder and runs with winapp run
 - Pass -SkipRun to build without launching
 
@@ -68,16 +68,13 @@ if (-not $Project) {
     }
 }
 
-# The WinUI project no longer owns the package manifest. Route its packaged
-# workflow through the Windows Application Packaging Project while preserving
-# the existing command line used by docs and local scripts.
+# Keep the app's existing command line while the packaging script owns its layout.
 $resolvedProject = (Resolve-Path $Project).Path
-$packageProject = Join-Path (Split-Path (Split-Path $resolvedProject -Parent) -Parent) `
-    'TokenUsage.Package\TokenUsage.Package.wapproj'
-if ((Split-Path $resolvedProject -Leaf) -eq 'TokenUsage.App.csproj' -and
-    (Test-Path -LiteralPath $packageProject)) {
-    Write-Host "--> Packaging project: $packageProject" -ForegroundColor DarkGray
-    $Project = $packageProject
+$packageScript = Join-Path $PSScriptRoot 'scripts\package.ps1'
+$appProject = Join-Path $PSScriptRoot 'src\TokenUsage.App\TokenUsage.App.csproj'
+$useTokenUsagePackage = [string]::Equals($resolvedProject, $appProject, [StringComparison]::OrdinalIgnoreCase)
+if ($useTokenUsagePackage -and -not (Test-Path -LiteralPath $packageScript -PathType Leaf)) {
+    throw "Missing packaging script: $packageScript"
 }
 
 # -- 2. Auto-detect platform --
@@ -101,7 +98,7 @@ if (-not $hasRestore)  { $autoArgs += "/restore" }
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $msbuild = $null
 
-if (Test-Path $vswhere) {
+if (-not $useTokenUsagePackage -and (Test-Path $vswhere)) {
     $vsPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath 2>$null
     if ($vsPath) {
         $candidate = Join-Path $vsPath "MSBuild\Current\Bin\MSBuild.exe"
@@ -110,16 +107,46 @@ if (Test-Path $vswhere) {
 }
 
 # -- 4. Build --
-if (-not $msbuild -and [System.IO.Path]::GetExtension($Project) -eq '.wapproj') {
-    throw 'The Windows Application Packaging Project requires Visual Studio MSBuild.'
-}
-
 $defaultArgs = @("/nologo")
 $hasVerbosity = $extraArgs | Where-Object { $_ -match "^[/|-]v(erbosity)?:" }
 if (-not $hasVerbosity) { $defaultArgs += "/v:m" }
 
 Write-Host ""
-if ($msbuild) {
+if ($useTokenUsagePackage) {
+    $packageParameters = @{
+        Platform = $detectedPlatform
+        Configuration = $detectedConfig
+    }
+    foreach ($argument in $extraArgs) {
+        if ($argument -match '^[-/]p:([^=]+)=(.*)$') {
+            $propertyName = $Matches[1]
+            $propertyValue = $Matches[2]
+            switch ($propertyName) {
+                'Platform' { $packageParameters.Platform = $propertyValue }
+                'Configuration' { $packageParameters.Configuration = $propertyValue }
+                'EnableUiTestFixtures' {
+                    $enabled = $false
+                    if (-not [bool]::TryParse($propertyValue, [ref] $enabled)) {
+                        throw 'EnableUiTestFixtures must be true or false.'
+                    }
+                    $packageParameters.EnableUiTestFixtures = $enabled
+                }
+                'PackageCertificateKeyFile' {
+                    $packageParameters.PackageCertificateKeyFile = (Resolve-Path -LiteralPath $propertyValue).Path
+                }
+                'PackageCertificatePassword' { $packageParameters.PackageCertificatePassword = $propertyValue }
+                default { throw "Unsupported TokenUsage packaging property: $propertyName. Use scripts/package.ps1 for packaging options." }
+            }
+        }
+        elseif ($argument -notmatch '^[-/](restore|t:restore|nologo|v(erbosity)?:.+)$|^--restore$') {
+            throw 'Unsupported TokenUsage packaging argument. Use scripts/package.ps1 for packaging options.'
+        }
+    }
+
+    Write-Host "--> Packaging TokenUsage (Platform: $detectedPlatform, Config: $detectedConfig)" -ForegroundColor Cyan
+    & $packageScript @packageParameters
+    $buildExit = 0
+} elseif ($msbuild) {
     Write-Host "--> Building with MSBuild (Platform: $detectedPlatform, Config: $detectedConfig)" -ForegroundColor Cyan
     Write-Host "--> MSBuild: $msbuild" -ForegroundColor DarkGray
     $allArgs = $defaultArgs + $autoArgs + @($Project) + $extraArgs
@@ -160,8 +187,9 @@ if ($SkipRun) {
 $rid = $detectedPlatform.ToLower()
 $projectDir = Split-Path (Resolve-Path $Project) -Parent
 if (-not $projectDir) { $projectDir = "." }
+if ($useTokenUsagePackage) { $projectDir = Join-Path $PSScriptRoot 'src\TokenUsage.Package' }
 
-# A packaging project emits a ready-to-register layout directly under
+# The packaging script emits a ready-to-register layout directly under
 # bin\<Platform>\<Configuration>. SDK-style app projects retain their TFM path.
 $binDir = Join-Path $projectDir "bin\$detectedPlatform\$detectedConfig"
 if (-not (Test-Path $binDir)) {
@@ -169,7 +197,7 @@ if (-not (Test-Path $binDir)) {
     exit 0
 }
 
-if ([System.IO.Path]::GetExtension($Project) -eq '.wapproj') {
+if ($useTokenUsagePackage) {
     $outputDir = $binDir
 } else {
     $tfmDirs = Get-ChildItem $binDir -Directory | Where-Object { $_.Name -match "^net\d" }

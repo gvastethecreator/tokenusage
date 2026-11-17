@@ -68,6 +68,7 @@ public sealed class MuxUsageEventSourceTests
     public async Task ReadsAggregateTokensAndProviderReportedCost()
     {
         using var folder = new TemporaryFolder();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
         string sessions = Directory.CreateDirectory(Path.Combine(folder.Path, "sessions")).FullName;
         string session = Directory.CreateDirectory(Path.Combine(sessions, "workspace-1")).FullName;
         File.WriteAllText(
@@ -89,8 +90,9 @@ public sealed class MuxUsageEventSourceTests
                 lastRequest = new
                 {
                     model = "anthropic:claude-sonnet-4-6",
-                    timestamp = 1_786_488_925_618L,
+                    timestamp = now.AddDays(-1).ToUnixTimeMilliseconds(),
                 },
+                rolledUpFrom = new Dictionary<string, object>(),
                 privateTranscript = "must not enter the event",
             }));
         var source = new MuxUsageEventSource("UTC", sessionsDirectoryOverride: sessions);
@@ -106,6 +108,58 @@ public sealed class MuxUsageEventSourceTests
         Assert.Equal(CostKind.ProviderReported, usageEvent.Cost.Kind);
         Assert.Equal(0.003219m, usageEvent.Cost.ReportedCostUsd);
         Assert.Equal(CoverageKind.Complete, usageEvent.Coverage);
+
+        string child = Directory.CreateDirectory(Path.Combine(sessions, "child")).FullName;
+        File.WriteAllText(Path.Combine(child, "session-usage.json"), """
+            {"version":1,"byModel":{"anthropic:claude-sonnet-4-6":{"input":{"tokens":30},"output":{"tokens":10}}}}
+            """);
+        UsageSourceReadResult initial = await source.ReadAsync();
+        Assert.Equal(UsageSourceReadStatus.Complete, initial.Status);
+        Assert.Equal(205, initial.Events.Sum(row => row.Tokens.Total));
+        UsageEventKey childKey = Assert.Single(initial.Events, row => row.Tokens.Total == 40).EventKey;
+
+        string destination = Path.Combine(folder.Path, "usage.v1.db");
+        var refresh = new LocalUsageRefresh(destination, source, TimeProvider.System);
+        await refresh.RefreshAsync();
+        UsageRepository repository = await UsageRepository.OpenAsync(destination);
+        Assert.Equal(205, (await Stored()).Sum(row => row.Tokens.Total));
+        string healthy = Directory.CreateDirectory(Path.Combine(sessions, "healthy")).FullName;
+        File.WriteAllText(Path.Combine(healthy, "session-usage.json"), """
+            {"version":1,"byModel":{"anthropic:claude-sonnet-4-6":{"input":{"tokens":60},"output":{"tokens":10}}}}
+            """);
+        File.WriteAllText(Path.Combine(child, "session-usage.json"), """
+            {"version":1,"byModel":{"anthropic:claude-sonnet-4-6":{"input":{"tokens":50},"output":{"tokens":10}}}}
+            """);
+
+        string[] rollups = ["""{"child":true}""", """{"child":{"totalTokens":40,"rolledUpAtMs":1794016860000}}"""];
+        foreach (string rollup in rollups)
+        {
+            File.WriteAllText(Path.Combine(session, "session-usage.json"), $$$$"""
+                {"version":1,"byModel":{"anthropic:claude-sonnet-4-6":{"input":{"tokens":130},"output":{"tokens":20},"cached":{"tokens":30},"cacheCreate":{"tokens":20},"reasoning":{"tokens":5}}},"rolledUpFrom":{{{{rollup}}}} }
+                """);
+            UsageSourceReadResult rolledUp = await source.ReadAsync();
+            Assert.Equal(UsageSourceReadStatus.Partial, rolledUp.Status);
+            Assert.Equal(UsageSourceIssueKind.PartialScan, rolledUp.Issue);
+            Assert.Equal(130, rolledUp.Events.Sum(row => row.Tokens.Total));
+            Assert.Equal(60, Assert.Single(rolledUp.Events, row => row.EventKey == childKey).Tokens.Total);
+            Assert.Equal(UsageSourceReadStatus.Partial, (await refresh.RefreshAsync()).OverallStatus);
+            IReadOnlyList<UsageEvent> stored = await Stored();
+            Assert.Equal(3, stored.Count);
+            Assert.Equal(295, stored.Sum(row => row.Tokens.Total));
+            Assert.Equal(usageEvent.Tokens, Assert.Single(stored, row => row.EventKey == usageEvent.EventKey).Tokens);
+            Assert.Equal(60, Assert.Single(stored, row => row.EventKey == childKey).Tokens.Total);
+        }
+
+        File.Delete(Path.Combine(session, "session-usage.json"));
+        File.Delete(Path.Combine(child, "session-usage.json"));
+        Assert.Equal(UsageSourceReadStatus.Complete, (await refresh.RefreshAsync()).OverallStatus);
+        IReadOnlyList<UsageEvent> retained = await Stored();
+        Assert.Equal(3, retained.Count);
+        Assert.Equal(295, retained.Sum(row => row.Tokens.Total));
+        Assert.Equal(usageEvent.Cost, Assert.Single(retained, row => row.EventKey == usageEvent.EventKey).Cost);
+
+        Task<IReadOnlyList<UsageEvent>> Stored() => repository.QueryUsageEventsAsync(
+            now.AddDays(-2), now.AddDays(1), source.AgentId);
     }
 
     [Fact]

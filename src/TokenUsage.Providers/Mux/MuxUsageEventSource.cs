@@ -14,7 +14,7 @@ namespace TokenUsage.Providers.Mux;
 /// token, cost, and timestamp fields. The reader does not open Mux transcripts.
 /// </summary>
 public sealed class MuxUsageEventSource :
-    ISnapshotUsageEventSource,
+    IWindowedSnapshotUsageEventSource,
     IRootDetectingUsageEventSource
 {
     public const string ParserVersion = "mux-session-usage/4";
@@ -94,6 +94,8 @@ public sealed class MuxUsageEventSource :
         "CA1822:Mark members as static",
         Justification = "The property implements the usage-source contract.")]
     public string EventParserVersion => ParserVersion;
+
+    public int ReconciliationWindowDays => UsagePeriodPolicy.ReconciliationDays;
 
     public bool IsRootAvailable => Directory.Exists(_sessionsDirectory);
 
@@ -195,6 +197,14 @@ public sealed class MuxUsageEventSource :
             JsonElement root = document.RootElement;
             if (!root.TryGetProperty("byModel", out JsonElement byModel)
                 || byModel.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            // Rolled-up totals can overlap retained child usage without a reliable per-model split.
+            if (root.TryGetProperty("rolledUpFrom", out JsonElement rolledUpFrom)
+                && (rolledUpFrom.ValueKind != JsonValueKind.Object
+                    || rolledUpFrom.EnumerateObject().Any()))
             {
                 return false;
             }

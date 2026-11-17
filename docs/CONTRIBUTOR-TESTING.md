@@ -46,7 +46,8 @@ Run the complete gate once before requesting review:
 
 Use `-Platform ARM64` for the ARM64 package path. Tests still run on the `x64` host.
 The gate runs the architecture, core, CLI, provider, and Windows platform test
-projects, then builds the packaging project and its production dependencies.
+projects, then calls `scripts/package.ps1` to publish both executables and build
+the MSIX with native SDK tools.
 Windows platform tests marked `Category=OptIn` need their documented environment
 and are excluded from this gate.
 

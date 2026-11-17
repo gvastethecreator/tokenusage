@@ -58,7 +58,8 @@ public static class PricingRefreshManifest
             PricingOfficialSources.Anthropic,
             "anthropic-model-pricing.html",
             ["Claude Sonnet 5.5", "$2", "$2.50", "$10", "Claude Opus 5.5", "$4", "$0.20", "$20",
-             "Claude Haiku 5.5", "100,000", "$0.10", "$0.50", "$0.125", "$0.625", "$0.01", "$0.05"]),
+             "Claude Haiku 5.5", "100,000", "$0.10", "$0.50", "$0.125", "$0.625", "$0.01", "$0.05",
+             "Claude Fable 5.2", "Claude Mythos 5.2", "$8 / MTok", "$16 / MTok", "$40 / MTok", "$80 USD / MTok"]),
         Define(
             PricingOfficialSources.Cursor,
             "cursor-model-pricing.html",
@@ -71,6 +72,15 @@ public static class PricingRefreshManifest
             PricingOfficialSources.CursorArgon,
             "cursor-gemini-4-argon-pricing.html",
             ["Gemini 4 Argon", "$<!-- -->2", "$<!-- -->0.1", "$<!-- -->10"]),
+        Define(
+            PricingOfficialSources.CursorCarbon,
+            "cursor-gemini-4-carbon-pricing.html",
+            ["Gemini 4 Carbon", "$<!-- -->2", "$<!-- -->0.1", "$<!-- -->10",
+             "November 30, 2026", "December 1, 2026", "$4 input", "$0.20 cache read", "$20 output"]),
+        Define(
+            PricingOfficialSources.CursorHydrogen,
+            "cursor-gemini-4-hydrogen-pricing.html",
+            ["Gemini 4 Hydrogen", "$<!-- -->1.5", "$<!-- -->0.075", "$<!-- -->7.5"]),
         Define(
             PricingOfficialSources.CursorWonder,
             "cursor-muse-wonder-pricing.html",
@@ -87,7 +97,8 @@ public static class PricingRefreshManifest
             PricingOfficialSources.Google,
             "google-gemini-api-pricing.html",
             ["Gemini 3.8 Flash", "$0.75", "$0.075", "$3.75", "December 31, 2026",
-             "Gemini 4 Argon", "$2.00", "$0.10", "$10.00", "November 30, 2026", "December 1, 2026", "$4.00", "$0.20", "$20.00"]),
+             "Gemini 4 Argon", "Gemini 4 Carbon", "$2.00", "$0.10", "$10.00", "November 30, 2026", "December 1, 2026", "$4.00", "$0.20", "$20.00",
+             "Gemini 4 Hydrogen", "$1.50", "$7.50", "Implicit caching only (explicit caching is not supported)"]),
         Define(
             PricingOfficialSources.Moonshot,
             "moonshot-model-pricing.html",
@@ -105,11 +116,19 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.OpenAiCyberSix,
             "openai-cyber-six-pricing.html",
-            ["gpt-6-cyber", "$20.00", "$2.00", "$25.00", "$100.00", "short-context"]),
+            ["gpt-6-cyber", "$20.00", "$2.00", "$25.00", "$100.00", "short-context", "272K", "$40", "$150"]),
         Define(
             PricingOfficialSources.OpenAiAstra,
             "openai-astra-pricing.html",
             ["GPT-6 Astra", "$10.00", "$1.00", "$12.50", "$50.00", "272K", "1.5x"]),
+        Define(
+            PricingOfficialSources.OpenAiAstraSixTwo,
+            "openai-astra-6-2-pricing.html",
+            ["GPT-6.2 Astra", "$8.00", "$0.40", "$10.00", "$40.00", "272K", "1.5 times"]),
+        Define(
+            PricingOfficialSources.OpenAiSolSixTwo,
+            "openai-sol-6-2-pricing.html",
+            ["GPT-6.2 Sol", "$2.00", "$0.10", "$2.50", "$10.00", "272K", "1.5 times"]),
         Define(
             PricingOfficialSources.OpenAiCyber,
             "openai-cyber-pricing.html",

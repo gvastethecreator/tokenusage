@@ -8,13 +8,16 @@ namespace TokenUsage.Providers.Pricing;
 /// </summary>
 public static class GooglePricingCatalog
 {
-    public const string Version = "google-api-2026-10-19";
+    public const string Version = "google-api-2026-11-13";
     private const long LongContextThreshold = 200_000;
 
     // A resolve without a timestamp prices at the rate valid now.
     private static readonly Dictionary<string, DatedRates> ListRatesFromUtc =
         new(StringComparer.Ordinal)
         {
+            ["gemini-4-carbon"] = new(
+                new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero),
+                new("gemini-4-carbon", 4m, 0.2m, 20m)),
             ["gemini-4-argon"] = new(
                 new DateTimeOffset(2026, 12, 1, 0, 0, 0, TimeSpan.Zero),
                 new("gemini-4-argon", 4m, 0.2m, 20m)),
@@ -73,6 +76,8 @@ public static class GooglePricingCatalog
             ["gemini-3.7-flash"] = new("gemini-3.7-flash", 0.75m, 0.075m, 3.75m),
             ["gemini-3.8-flash"] = new("gemini-3.8-flash", 0.75m, 0.075m, 3.75m),
             ["gemini-4-argon"] = new("gemini-4-argon", 2m, 0.1m, 10m),
+            ["gemini-4-carbon"] = new("gemini-4-carbon", 2m, 0.1m, 10m),
+            ["gemini-4-hydrogen"] = new("gemini-4-hydrogen", 1.5m, 0.075m, 7.5m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -89,6 +94,12 @@ public static class GooglePricingCatalog
 
         string normalized = model.Trim().ToLowerInvariant();
         if (!RatesByModel.TryGetValue(normalized, out Rates? rates))
+        {
+            return CostObservation.Unavailable();
+        }
+
+        // Gemini 4 supports implicit caching only; explicit writes have no published rate.
+        if (tokens.CacheWrite > 0 && normalized is ("gemini-4-argon" or "gemini-4-carbon" or "gemini-4-hydrogen"))
         {
             return CostObservation.Unavailable();
         }

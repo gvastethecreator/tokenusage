@@ -111,7 +111,9 @@ Unrelated deleted conversations keep their history.
 Clients without a detected source or retained history are hidden from the local
 provider status list. Detection runs on every refresh, so installing a client
 later does not require resetting TokenUsage. Dashboard totals include retained
-usage even when source detection fails. A failed refresh keeps the last displayed
+usage even when source detection fails. If a provider root disappears while its
+history is retained, both cached reads and refreshes report partial coverage,
+even when the other providers are available. A failed refresh keeps the last displayed
 data and adds a failure notice. The dashboard shows 30 days, and the report offers
 7, 30, and 90 days. Use `tokenusage report --from <date> --to <date>` for another
 retained date range.
@@ -210,6 +212,11 @@ the last accepted snapshot. Model detail must reconcile with session counters
 before it replaces an earlier aggregate. A stored zero residual clears the old
 aggregate's contribution while keeping its identity available for later updates.
 It adds no tokens, although it remains an observation in the event count.
+
+Mux updates valid observations by stable event identity even during a partial
+scan and retains absent history. Parent snapshots with ambiguous child rollups
+remain unimported, while independent sessions can advance. See the
+[provider matrix](PROVIDER-MATRIX.md) for the accounting limits.
 
 The app and CLI share one collection gate for each usage database. A hook that
 arrives during collection leaves one pending refresh request and exits. The
