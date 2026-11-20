@@ -659,7 +659,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private List<ReportQuotaSource> GetReportQuotaSources(string resetHistoryPath)
     {
         IProviderAccountService? accounts = RootPage.ViewModel.Accounts;
-        var globalProviders = new HashSet<string>(new[] { "codex", "claude", "zcode" }, StringComparer.Ordinal);
+        var globalProviders = new HashSet<string>(StringComparer.Ordinal) { "codex", "claude", "zcode" };
         if (accounts?.IsActivated("codex") == true) globalProviders.Remove("codex");
         if (accounts?.IsActivated("claude") == true) globalProviders.Remove("claude");
         var sources = new List<ReportQuotaSource> { new("", resetHistoryPath, null, globalProviders, TokensAttributable: true) };
@@ -669,7 +669,7 @@ public sealed partial class MainWindow : Window, IDisposable
             string name = history.Account.Alias ?? string.Format(System.Globalization.CultureInfo.CurrentCulture,
                 _resources.GetString("CodexAccountProfileFormat"), history.Account.Number);
             sources.Add(new ReportQuotaSource($"{ReportProjection.AgentName(providerId)} · {name}", history.HistoryPath,
-                history.Account.InstanceKey, new HashSet<string>(new[] { providerId }, StringComparer.Ordinal), TokensAttributable: false));
+                history.Account.InstanceKey, new HashSet<string>(StringComparer.Ordinal) { providerId }, TokensAttributable: false));
         }
         return sources;
     }

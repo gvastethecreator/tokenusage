@@ -154,4 +154,4 @@ version from the restored framework package.
 The first hosted x64 package build with WinUI 2.7.0 reported
 [`CsWinRT1032`](https://github.com/microsoft/CsWinRT/blob/master/src/Authoring/WinRT.SourceGenerator/AnalyzerReleases.Shipped.md)
 for collection expressions with interface targets. The affected app call
-sites now pass concrete arrays. The report keeps its read-only periods.
+sites now construct concrete collections. The report keeps its read-only periods.

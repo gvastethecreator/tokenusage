@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "4cb712b41c708dd9e4397daa06f7cd94bcacd947",
+  "source_commit": "738336cb2f0f4cf8686fc521c54e375c56944a9f",
   "working_tree_dirty": true,
-  "generated_at": "2026-11-20T20:39:55Z",
-  "generation_id": "09569d09134bd363d8171732450017b47ed0f61db16280f361fb77bd895d6c41",
+  "generated_at": "2026-11-20T20:44:26Z",
+  "generation_id": "b25f6cf39af0e1a04185363bd227bca9e518bc8f718dbac2143ae888d289d072",
   "analysis": {
     "version": "syntax-1",
     "digest": "ae6d608d107619ec3efae990b53b43e523c90e8f5d2c3e86ab86c9e8ec95d260"
@@ -380,8 +380,8 @@
         "path": "src/TokenUsage.App/MainWindow.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
-        "size": 31173
+        "digest": "ccfafdea3a73efa477b63b5e9c1d1d3224fd58261db7dba31ac9a8d127a2499c",
+        "size": 31159
       },
       {
         "path": "src/TokenUsage.App/Program.cs",
@@ -3345,12 +3345,12 @@
         "size": 326
       }
     ],
-    "digest": "3e47d813380f7f81b31865ded3b20be1fac9f8a61a93841b20e1f64cba4c30b6"
+    "digest": "9ee6b8d345f2b51d43bec3dbec59f8d6a497a940bd041c4ff7660c0309b65a83"
   },
-  "source_digest": "a84d26efa02405ae691ca30e562c0661f11abb2a4f8a6692b96133da69e6bcf4",
+  "source_digest": "430f9a0959e5c5bc2814017a5edfeb6fa8e7920903076ab7332bf2f48d671b9c",
   "artifact_hashes": {
-    "codemap.json": "8effc169f3938ec9391b8aba18c448f54ca1e64c7b2d223f1dc022dc17e2ff19",
-    "codemap.md": "83034a5d3aa5396faf8dbe5b089595e7ff3e8b75d9793e3f83721b0b7f7a88a6",
-    "codemap.html": "0c24d335cfcd8516643e2704f96c8ac9ccc4ac731545744fe6925f3ad349fb49"
+    "codemap.json": "73dcc918fcc1f7f81818aa8ab90bb3f05322985ac61aecaa4f61b86febe09355",
+    "codemap.md": "0776cd3f049c776edb62b6c0cdf04ad327040160c0ae9f1ff1d83cedf395be86",
+    "codemap.html": "16561cd58ef9fe3f91fa0a554480952b3615bed6745e1d264d6cb15982a87293"
   }
 }
