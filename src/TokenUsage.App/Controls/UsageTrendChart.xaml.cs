@@ -207,7 +207,7 @@ public sealed partial class UsageTrendChart : UserControl
         // Only a single day draws stacked bars; lines compare series at their own heights.
         bool stackedBars = data.Days.Count == 1 && !data.IsComparison;
         UsageTrendScale scale = data.Metric == UsageReportMetric.Share
-            ? new UsageTrendScale(100, [0, 25, 50, 75, 100])
+            ? new UsageTrendScale(100, (double[])[0, 25, 50, 75, 100])
             : UsageTrendGeometry.CreateScale(UsageTrendLayouts.Peak(scaleValues, stackedBars),
                 emphasizeSmallValues: data.EmphasizeSmallValues);
         Brush gridBrush = GridBrushProxy.Background;

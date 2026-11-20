@@ -150,3 +150,8 @@ Update the WinUI and Runtime package references together to
 This release fixes WinUI input, style and dispatcher behavior. The project keeps
 its split SDK references, and the package builder derives the minimum runtime
 version from the restored framework package.
+
+The first hosted x64 package build with WinUI 2.7.0 reported
+[`CsWinRT1032`](https://github.com/microsoft/CsWinRT/blob/master/src/Authoring/WinRT.SourceGenerator/AnalyzerReleases.Shipped.md)
+for collection expressions with interface targets. The affected app call
+sites now pass concrete arrays. The report keeps its read-only periods.

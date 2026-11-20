@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "source_commit": "11141d0d473152af11434c8b1e04b511f2256099",
+  "source_commit": "4cb712b41c708dd9e4397daa06f7cd94bcacd947",
   "working_tree_dirty": true,
-  "generated_at": "2026-11-20T20:23:41Z",
-  "generation_id": "c105bc7166287965da3a606e9d9ec04d567c99d35ccf2f6ff4c9a096108bd710",
+  "generated_at": "2026-11-20T20:39:55Z",
+  "generation_id": "09569d09134bd363d8171732450017b47ed0f61db16280f361fb77bd895d6c41",
   "analysis": {
     "version": "syntax-1",
     "digest": "ae6d608d107619ec3efae990b53b43e523c90e8f5d2c3e86ab86c9e8ec95d260"
@@ -303,8 +303,8 @@
         "path": "src/TokenUsage.App/Controls/UsageTrendChart.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
-        "size": 14550
+        "digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
+        "size": 14560
       },
       {
         "path": "src/TokenUsage.App/Converters/ProviderStatusKindToBrushConverter.cs",
@@ -359,8 +359,8 @@
         "path": "src/TokenUsage.App/MainWindow.TrayOptions.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
-        "size": 7648
+        "digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
+        "size": 7721
       },
       {
         "path": "src/TokenUsage.App/MainWindow.Updates.cs",
@@ -380,8 +380,8 @@
         "path": "src/TokenUsage.App/MainWindow.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
-        "size": 31157
+        "digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
+        "size": 31173
       },
       {
         "path": "src/TokenUsage.App/Program.cs",
@@ -464,8 +464,8 @@
         "path": "src/TokenUsage.App/ViewModels/Reports/ReportViewModel.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
-        "size": 10961
+        "digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
+        "size": 10984
       },
       {
         "path": "src/TokenUsage.App/ViewModels/Surfaces/OptionsSurfaceViewModel.cs",
@@ -3345,12 +3345,12 @@
         "size": 326
       }
     ],
-    "digest": "b91271aad258e651a40dc03bc6a34be016e6cde7e74e0ae374677ae451cb350b"
+    "digest": "3e47d813380f7f81b31865ded3b20be1fac9f8a61a93841b20e1f64cba4c30b6"
   },
-  "source_digest": "327671527d3f4410b15eb9a1f096e97ce2f5bc8e78bf0f41979754f903c09ebb",
+  "source_digest": "a84d26efa02405ae691ca30e562c0661f11abb2a4f8a6692b96133da69e6bcf4",
   "artifact_hashes": {
-    "codemap.json": "50daebf3ac08356daace2ee7e83ad1ffb22e119ff13b8419790604e620f51474",
-    "codemap.md": "49fed741742f1274912270ba0e83e6b3517092f6921f8b198a56cf76117a9b8c",
-    "codemap.html": "a1f05fe5bae13a4c5002d1a8d71f1f802fc5f230203e02456ab9a2798e311b66"
+    "codemap.json": "8effc169f3938ec9391b8aba18c448f54ca1e64c7b2d223f1dc022dc17e2ff19",
+    "codemap.md": "83034a5d3aa5396faf8dbe5b089595e7ff3e8b75d9793e3f83721b0b7f7a88a6",
+    "codemap.html": "0c24d335cfcd8516643e2704f96c8ac9ccc4ac731545744fe6925f3ad349fb49"
   }
 }

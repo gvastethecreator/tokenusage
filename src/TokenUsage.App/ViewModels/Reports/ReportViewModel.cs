@@ -38,7 +38,7 @@ public sealed partial class ReportViewModel : ObservableObject, IDisposable
         _clock = clock ?? TimeProvider.System;
     }
 
-    public IReadOnlyList<int> PeriodOptions { get; } = [7, 30, 90];
+    public IReadOnlyList<int> PeriodOptions { get; } = Array.AsReadOnly<int>([7, 30, 90]);
 
     [ObservableProperty] public partial int PeriodDays { get; set; } = 30;
     [ObservableProperty] public partial ReportGrouping Grouping { get; set; } = ReportGrouping.Agent;

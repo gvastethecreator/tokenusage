@@ -68,7 +68,7 @@ public sealed partial class MainWindow
                 bool CanEditMetric() => CanEditProvider() && CurrentProvider().Metrics.Any(row => row.MetricId == metricId);
                 string prefix = $"provider.{providerId}.metric.{metricId}";
                 children.Add(new(prefix, metric.Label, Children:
-                [
+                (TrayMenuOption[])[
                     ToggleAsync(prefix + ".visible", Label("TrayOptionVisible"), () => CurrentMetric().IsVisible,
                         value => layout.SetMetricVisibleAsync(providerId, metricId, value), CanEditMetric),
                     ToggleAsync(prefix + ".highlight", Label("TrayOptionHighlighted"), () => CurrentMetric().IsHighlighted,
@@ -84,11 +84,11 @@ public sealed partial class MainWindow
 
         bool AlertsReady() => alerts.Initialization.IsCompleted;
         bool AlertRulesEnabled() => AlertsReady() && alerts.AreAlertControlsEnabled;
-        return
+        return (TrayMenuOption[])
         [
             Group("general", "OptionsGeneralTabLabel.Text", generalItems),
             Group("notifications", "OptionsNotificationsTabLabel.Text",
-            [
+            (TrayMenuOption[])[
                 Toggle("alerts.enabled", Label("AlertsMasterLabel.Text"), () => alerts.AreAlertsEnabled,
                     value => alerts.AreAlertsEnabled = value, AlertsReady),
                 Toggle("alerts.threshold", Label("QuotaThresholdAlertLabel.Text"), () => alerts.IsQuotaThresholdAlertEnabled,
@@ -101,7 +101,7 @@ public sealed partial class MainWindow
                     value => alerts.IsCredentialFailureAlertEnabled = value, AlertRulesEnabled),
             ]),
             Group("appearance", "OptionsAppearanceTabLabel.Text",
-            [
+            (TrayMenuOption[])[
                 Toggle("appearance.transparency", Label("AppearanceTransparencyLabel.Text"), () => appearance.IncreaseTransparency,
                     value => appearance.IncreaseTransparency = value, () => appearance.IsEditable),
                 Toggle("appearance.popover", Label("AppearanceTrayPopoverHeading.Text"), () => appearance.ShowTrayPopover,

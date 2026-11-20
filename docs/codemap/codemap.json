@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-20T20:23:41Z",
-  "generated_from_commit": "11141d0d473152af11434c8b1e04b511f2256099",
+  "generated_at": "2026-11-20T20:39:55Z",
+  "generated_from_commit": "4cb712b41c708dd9e4397daa06f7cd94bcacd947",
   "scope": [
     "BuildAndRun.ps1",
     "Directory.Build.props",
@@ -309,8 +309,8 @@
         "path": "src/TokenUsage.App/Controls/UsageTrendChart.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
-        "size": 14550
+        "digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
+        "size": 14560
       },
       {
         "path": "src/TokenUsage.App/Converters/ProviderStatusKindToBrushConverter.cs",
@@ -365,8 +365,8 @@
         "path": "src/TokenUsage.App/MainWindow.TrayOptions.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
-        "size": 7648
+        "digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
+        "size": 7721
       },
       {
         "path": "src/TokenUsage.App/MainWindow.Updates.cs",
@@ -386,8 +386,8 @@
         "path": "src/TokenUsage.App/MainWindow.xaml.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
-        "size": 31157
+        "digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
+        "size": 31173
       },
       {
         "path": "src/TokenUsage.App/Program.cs",
@@ -470,8 +470,8 @@
         "path": "src/TokenUsage.App/ViewModels/Reports/ReportViewModel.cs",
         "origin": "tracked",
         "state": "present",
-        "digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
-        "size": 10961
+        "digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
+        "size": 10984
       },
       {
         "path": "src/TokenUsage.App/ViewModels/Surfaces/OptionsSurfaceViewModel.cs",
@@ -3351,7 +3351,7 @@
         "size": 326
       }
     ],
-    "digest": "b91271aad258e651a40dc03bc6a34be016e6cde7e74e0ae374677ae451cb350b"
+    "digest": "3e47d813380f7f81b31865ded3b20be1fac9f8a61a93841b20e1f64cba4c30b6"
   },
   "coverage": {
     "discovered_files": 532,
@@ -13256,7 +13256,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "import",
             "resolved_target": "external:csharp:CommunityToolkit"
           }
@@ -16583,7 +16583,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:TokenUsage"
           }
@@ -16625,7 +16625,7 @@
             "start_line": 20,
             "end_line": 20,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:WinRT"
           },
@@ -19445,7 +19445,7 @@
             "start_line": 18,
             "end_line": 18,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "definition"
           },
           {
@@ -19454,7 +19454,7 @@
             "start_line": 97,
             "end_line": 97,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "definition"
           },
           {
@@ -19463,7 +19463,7 @@
             "start_line": 99,
             "end_line": 99,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "definition"
           }
         ]
@@ -20208,7 +20208,7 @@
             "start_line": 7,
             "end_line": 7,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "definition"
           },
           {
@@ -20217,7 +20217,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "definition"
           },
           {
@@ -20226,7 +20226,7 @@
             "start_line": 116,
             "end_line": 116,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "definition"
           }
         ]
@@ -20526,7 +20526,7 @@
             "start_line": 25,
             "end_line": 25,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "definition"
           },
           {
@@ -20535,7 +20535,7 @@
             "start_line": 128,
             "end_line": 128,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "definition"
           },
           {
@@ -20544,7 +20544,7 @@
             "start_line": 148,
             "end_line": 148,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "definition"
           }
         ]
@@ -22248,7 +22248,7 @@
             "start_line": 17,
             "end_line": 17,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "definition"
           },
           {
@@ -22257,7 +22257,7 @@
             "start_line": 61,
             "end_line": 61,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "definition"
           },
           {
@@ -22266,7 +22266,7 @@
             "start_line": 62,
             "end_line": 62,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "definition"
           }
         ]
@@ -123526,7 +123526,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "import",
             "resolved_target": "external:csharp:Microsoft"
           },
@@ -123536,7 +123536,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "import",
             "resolved_target": "external:csharp:Microsoft"
           },
@@ -123546,7 +123546,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "import",
             "resolved_target": "external:csharp:Microsoft"
           }
@@ -123569,7 +123569,7 @@
             "start_line": 9,
             "end_line": 9,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "import",
             "resolved_target": "external:csharp:Windows"
           },
@@ -123579,7 +123579,7 @@
             "start_line": 10,
             "end_line": 10,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "import",
             "resolved_target": "external:csharp:Windows"
           },
@@ -123589,7 +123589,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "import",
             "resolved_target": "external:csharp:Windows"
           }
@@ -123612,7 +123612,7 @@
             "start_line": 259,
             "end_line": 259,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/MotionSettings.cs",
             "target_symbol": "MotionSettings.AreAnimationsEnabled"
@@ -123636,7 +123636,7 @@
             "start_line": 259,
             "end_line": 259,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/Controls/MotionSettings.cs"
           }
@@ -123659,7 +123659,7 @@
             "start_line": 97,
             "end_line": 97,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Hover.cs",
             "target_symbol": "UsageTrendChart.HideHover"
@@ -123670,7 +123670,7 @@
             "start_line": 129,
             "end_line": 129,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Hover.cs",
             "target_symbol": "UsageTrendChart.HideHover"
@@ -123681,7 +123681,7 @@
             "start_line": 165,
             "end_line": 165,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Hover.cs",
             "target_symbol": "UsageTrendChart.HideHover"
@@ -123705,7 +123705,7 @@
             "start_line": 40,
             "end_line": 40,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Hover.cs"
           }
@@ -123728,7 +123728,7 @@
             "start_line": 198,
             "end_line": 198,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Rendering.cs",
             "target_symbol": "UsageTrendChart.BuildLegend"
@@ -123739,7 +123739,7 @@
             "start_line": 199,
             "end_line": 199,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Rendering.cs",
             "target_symbol": "UsageTrendChart.BuildResetLegend"
@@ -123750,7 +123750,7 @@
             "start_line": 256,
             "end_line": 256,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Rendering.cs",
             "target_symbol": "UsageTrendChart.RenderSeries"
@@ -123774,7 +123774,7 @@
             "start_line": 40,
             "end_line": 40,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Rendering.cs"
           }
@@ -123797,7 +123797,7 @@
             "start_line": 255,
             "end_line": 255,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Story.cs",
             "target_symbol": "UsageTrendChart.ResetBarColumns"
@@ -123808,7 +123808,7 @@
             "start_line": 258,
             "end_line": 258,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Story.cs",
             "target_symbol": "UsageTrendChart.RenderReferenceMarks"
@@ -123819,7 +123819,7 @@
             "start_line": 262,
             "end_line": 262,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Story.cs",
             "target_symbol": "UsageTrendChart.StartColumnGrow"
@@ -123843,7 +123843,7 @@
             "start_line": 40,
             "end_line": 40,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/Controls/UsageTrendChart.Story.cs"
           }
@@ -123866,7 +123866,7 @@
             "start_line": 211,
             "end_line": 212,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendGeometry.cs",
             "target_symbol": "UsageTrendGeometry.CreateScale"
@@ -123877,7 +123877,7 @@
             "start_line": 216,
             "end_line": 216,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendGeometry.cs",
             "target_symbol": "UsageTrendGeometry.SelectTicksForHeight"
@@ -123888,7 +123888,7 @@
             "start_line": 221,
             "end_line": 221,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendGeometry.cs",
             "target_symbol": "UsageTrendScale.Normalize"
@@ -123912,7 +123912,7 @@
             "start_line": 209,
             "end_line": 209,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendGeometry.cs"
           },
@@ -123922,7 +123922,7 @@
             "start_line": 211,
             "end_line": 211,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendGeometry.cs"
           },
@@ -123932,7 +123932,7 @@
             "start_line": 361,
             "end_line": 361,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendGeometry.cs"
           }
@@ -123955,7 +123955,7 @@
             "start_line": 211,
             "end_line": 211,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendLayouts.cs",
             "target_symbol": "UsageTrendLayouts.Peak"
@@ -123979,7 +123979,7 @@
             "start_line": 211,
             "end_line": 211,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/Controls/UsageTrendLayouts.cs"
           }
@@ -124002,7 +124002,7 @@
             "start_line": 24,
             "end_line": 24,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/UsageReportModels.cs"
           },
@@ -124012,7 +124012,7 @@
             "start_line": 209,
             "end_line": 209,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/UsageReportModels.cs"
           }
@@ -124035,7 +124035,7 @@
             "start_line": 184,
             "end_line": 184,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/UsageReportResetMarkers.cs",
             "target_symbol": "UsageReportResetMarkers.TopPaddingFor"
@@ -124046,7 +124046,7 @@
             "start_line": 184,
             "end_line": 184,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/UsageReportResetMarkers.cs",
             "target_symbol": "UsageReportResetMarkers.PackDays"
@@ -124070,7 +124070,7 @@
             "start_line": 184,
             "end_line": 184,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/UsageReportResetMarkers.cs"
           }
@@ -124093,7 +124093,7 @@
             "start_line": 369,
             "end_line": 369,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/UsageValueFormatter.cs",
             "target_symbol": "UsageValueFormatter.DetailUsd"
@@ -124104,7 +124104,7 @@
             "start_line": 370,
             "end_line": 370,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/UsageValueFormatter.cs",
             "target_symbol": "UsageValueFormatter.AxisUsd"
@@ -124115,7 +124115,7 @@
             "start_line": 375,
             "end_line": 375,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/UsageValueFormatter.cs",
             "target_symbol": "UsageValueFormatter.CompactTokens"
@@ -124139,7 +124139,7 @@
             "start_line": 369,
             "end_line": 369,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "cbcc5d4f64226bd8b33d58c707dc6e9f05ccd28607802d1f3c5e33352af38b72",
+            "source_digest": "81d35680172c9c2784ba9e33fca70bed8863b23661d928d471c2ed57d7eab115",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/UsageValueFormatter.cs"
           }
@@ -125118,7 +125118,7 @@
             "start_line": 35,
             "end_line": 35,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/MainWindow.xaml.cs",
             "target_symbol": "MainWindow.GetString"
@@ -125142,7 +125142,7 @@
             "start_line": 62,
             "end_line": 62,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Layout/DashboardLayout.cs"
           }
@@ -125165,7 +125165,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayContracts.cs"
           }
@@ -125188,7 +125188,7 @@
             "start_line": 53,
             "end_line": 53,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/DashboardLayoutProjector.cs"
           },
@@ -125198,7 +125198,7 @@
             "start_line": 67,
             "end_line": 67,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a07af258c35248e4fe439972759abc0e0f0b7c2c5907954393d9c45710840604",
+            "source_digest": "9ae8858dd5daaea8db300f04f6f1f2a74ea5a0f21d679bce9cae3529837abb8d",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/DashboardLayoutProjector.cs"
           }
@@ -125268,7 +125268,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:Microsoft"
           },
@@ -125278,7 +125278,7 @@
             "start_line": 3,
             "end_line": 3,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:Microsoft"
           },
@@ -125288,7 +125288,7 @@
             "start_line": 4,
             "end_line": 4,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:Microsoft"
           }
@@ -125311,7 +125311,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:System"
           }
@@ -125334,7 +125334,7 @@
             "start_line": 11,
             "end_line": 11,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:TokenUsage"
           }
@@ -125357,7 +125357,7 @@
             "start_line": 20,
             "end_line": 20,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:WinRT"
           }
@@ -125380,7 +125380,7 @@
             "start_line": 6,
             "end_line": 6,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:Windows"
           },
@@ -125390,7 +125390,7 @@
             "start_line": 7,
             "end_line": 7,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:Windows"
           },
@@ -125400,7 +125400,7 @@
             "start_line": 21,
             "end_line": 21,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "import",
             "resolved_target": "external:csharp:Windows"
           }
@@ -125423,7 +125423,7 @@
             "start_line": 357,
             "end_line": 357,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/MainWindow.Resize.cs",
             "target_symbol": "MainWindow.AnimateWindowBounds"
@@ -125434,7 +125434,7 @@
             "start_line": 361,
             "end_line": 361,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/MainWindow.Resize.cs",
             "target_symbol": "MainWindow.StopWindowResize"
@@ -125445,7 +125445,7 @@
             "start_line": 362,
             "end_line": 362,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/MainWindow.Resize.cs",
             "target_symbol": "MainWindow.ApplyWindowBounds"
@@ -125469,7 +125469,7 @@
             "start_line": 53,
             "end_line": 53,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/MainWindow.Resize.cs"
           }
@@ -125492,7 +125492,7 @@
             "start_line": 203,
             "end_line": 203,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/MainWindow.TrayOptions.cs",
             "target_symbol": "MainWindow.BuildTrayOptions"
@@ -125516,7 +125516,7 @@
             "start_line": 53,
             "end_line": 53,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/MainWindow.TrayOptions.cs"
           }
@@ -125539,7 +125539,7 @@
             "start_line": 237,
             "end_line": 237,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/MainWindow.Updates.cs",
             "target_symbol": "MainWindow.RequestGracefulExit"
@@ -125563,7 +125563,7 @@
             "start_line": 53,
             "end_line": 53,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/MainWindow.Updates.cs"
           }
@@ -125586,7 +125586,7 @@
             "start_line": 476,
             "end_line": 480,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/TraySummaryWindow.xaml.cs",
             "target_symbol": "TraySummaryWindow.Show"
@@ -125597,7 +125597,7 @@
             "start_line": 517,
             "end_line": 521,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.App/TraySummaryWindow.xaml.cs",
             "target_symbol": "TraySummaryWindow.Show"
@@ -125621,7 +125621,7 @@
             "start_line": 37,
             "end_line": 37,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/TraySummaryWindow.xaml.cs"
           }
@@ -125644,7 +125644,7 @@
             "start_line": 38,
             "end_line": 38,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/UsageReportWindow.cs"
           }
@@ -125667,7 +125667,7 @@
             "start_line": 659,
             "end_line": 659,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.App/ViewModels/Reports/ReportViewModel.cs"
           }
@@ -125690,7 +125690,7 @@
             "start_line": 291,
             "end_line": 291,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Alerts/AlertNotification.cs"
           }
@@ -125713,7 +125713,7 @@
             "start_line": 35,
             "end_line": 35,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Appearance/AppearanceSettings.cs"
           }
@@ -125736,7 +125736,7 @@
             "start_line": 661,
             "end_line": 661,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Providers/ProviderAccounts.cs"
           },
@@ -125746,7 +125746,7 @@
             "start_line": 666,
             "end_line": 666,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Providers/ProviderAccounts.cs"
           }
@@ -125769,7 +125769,7 @@
             "start_line": 301,
             "end_line": 301,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Providers/ProviderIdentity.cs"
           }
@@ -125792,7 +125792,7 @@
             "start_line": 219,
             "end_line": 219,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Session/AppSessionHost.cs"
           }
@@ -125815,7 +125815,7 @@
             "start_line": 324,
             "end_line": 327,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/FlyoutSizePolicy.cs",
             "target_symbol": "FlyoutSizePolicy.ClampHeightDips"
@@ -125826,7 +125826,7 @@
             "start_line": 338,
             "end_line": 341,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/FlyoutSizePolicy.cs",
             "target_symbol": "FlyoutSizePolicy.ClampWidthDips"
@@ -125837,7 +125837,7 @@
             "start_line": 343,
             "end_line": 346,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/FlyoutSizePolicy.cs",
             "target_symbol": "FlyoutSizePolicy.ClampHeightDips"
@@ -125861,7 +125861,7 @@
             "start_line": 62,
             "end_line": 62,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/FlyoutSizePolicy.cs"
           }
@@ -125884,7 +125884,7 @@
             "start_line": 633,
             "end_line": 633,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/MonitorPlacementContext.cs"
           }
@@ -125907,7 +125907,7 @@
             "start_line": 321,
             "end_line": 321,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/MonitorPlacementContextProvider.cs",
             "target_symbol": "MonitorPlacementContextProvider.Resolve"
@@ -125918,7 +125918,7 @@
             "start_line": 337,
             "end_line": 337,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/MonitorPlacementContextProvider.cs",
             "target_symbol": "MonitorPlacementContextProvider.GetWindowDpi"
@@ -125929,7 +125929,7 @@
             "start_line": 633,
             "end_line": 633,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/MonitorPlacementContextProvider.cs",
             "target_symbol": "MonitorPlacementContextProvider.Resolve"
@@ -125953,7 +125953,7 @@
             "start_line": 321,
             "end_line": 321,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Display/MonitorPlacementContextProvider.cs"
           }
@@ -125976,7 +125976,7 @@
             "start_line": 328,
             "end_line": 334,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Placement/FlyoutPlacementCalculator.cs",
             "target_symbol": "FlyoutPlacementCalculator.Calculate"
@@ -125987,7 +125987,7 @@
             "start_line": 347,
             "end_line": 353,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Placement/FlyoutPlacementCalculator.cs",
             "target_symbol": "FlyoutPlacementCalculator.Calculate"
@@ -126011,7 +126011,7 @@
             "start_line": 328,
             "end_line": 328,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Placement/FlyoutPlacementCalculator.cs"
           }
@@ -126034,7 +126034,7 @@
             "start_line": 43,
             "end_line": 43,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Placement/PlatformGeometry.cs"
           }
@@ -126057,7 +126057,7 @@
             "start_line": 625,
             "end_line": 626,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Storage/TokenUsageDataDirectory.cs",
             "target_symbol": "TokenUsageDataDirectory.Resolve"
@@ -126081,7 +126081,7 @@
             "start_line": 625,
             "end_line": 625,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Storage/TokenUsageDataDirectory.cs"
           }
@@ -126104,7 +126104,7 @@
             "start_line": 154,
             "end_line": 154,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayContracts.cs"
           },
@@ -126114,7 +126114,7 @@
             "start_line": 173,
             "end_line": 173,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayContracts.cs"
           }
@@ -126137,7 +126137,7 @@
             "start_line": 106,
             "end_line": 106,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayIconHost.cs",
             "target_symbol": "TrayIconHost.TryGetIconBounds"
@@ -126148,7 +126148,7 @@
             "start_line": 318,
             "end_line": 318,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayIconHost.cs",
             "target_symbol": "TrayIconHost.TryGetIconBounds"
@@ -126159,7 +126159,7 @@
             "start_line": 512,
             "end_line": 512,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayIconHost.cs",
             "target_symbol": "TrayIconHost.TryGetIconBounds"
@@ -126183,7 +126183,7 @@
             "start_line": 36,
             "end_line": 36,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Tray/TrayIconHost.cs"
           }
@@ -126206,7 +126206,7 @@
             "start_line": 253,
             "end_line": 253,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/ForegroundWindowActivator.cs",
             "target_symbol": "ForegroundWindowActivator.TryActivate"
@@ -126217,7 +126217,7 @@
             "start_line": 811,
             "end_line": 811,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/ForegroundWindowActivator.cs",
             "target_symbol": "ForegroundWindowActivator.TryActivate"
@@ -126241,7 +126241,7 @@
             "start_line": 253,
             "end_line": 253,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/ForegroundWindowActivator.cs"
           }
@@ -126264,7 +126264,7 @@
             "start_line": 789,
             "end_line": 789,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/ForegroundWindowInspector.cs",
             "target_symbol": "ForegroundWindowInspector.IsForeground"
@@ -126288,7 +126288,7 @@
             "start_line": 789,
             "end_line": 789,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/ForegroundWindowInspector.cs"
           }
@@ -126311,7 +126311,7 @@
             "start_line": 387,
             "end_line": 387,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/WindowBorderStyle.cs",
             "target_symbol": "WindowBorderStyle.TryClipRoundedCorners"
@@ -126322,7 +126322,7 @@
             "start_line": 706,
             "end_line": 706,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/WindowBorderStyle.cs",
             "target_symbol": "WindowBorderStyle.TryRestoreAccessibleFrame"
@@ -126333,7 +126333,7 @@
             "start_line": 707,
             "end_line": 707,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/WindowBorderStyle.cs",
             "target_symbol": "WindowBorderStyle.TryRemoveNonClientFrame"
@@ -126357,7 +126357,7 @@
             "start_line": 387,
             "end_line": 387,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Platform.Windows/Windowing/WindowBorderStyle.cs"
           }
@@ -126380,7 +126380,7 @@
             "start_line": 671,
             "end_line": 671,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs",
             "target_symbol": "ReportProjection.AgentName"
@@ -126404,7 +126404,7 @@
             "start_line": 671,
             "end_line": 671,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs"
           }
@@ -126427,7 +126427,7 @@
             "start_line": 494,
             "end_line": 499,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Tray/TraySummaryProjector.cs",
             "target_symbol": "TraySummaryProjector.Create"
@@ -126451,7 +126451,7 @@
             "start_line": 485,
             "end_line": 485,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Tray/TraySummaryProjector.cs"
           },
@@ -126461,7 +126461,7 @@
             "start_line": 487,
             "end_line": 487,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Tray/TraySummaryProjector.cs"
           },
@@ -126471,7 +126471,7 @@
             "start_line": 494,
             "end_line": 494,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "d1c30d21be9d267ea38051973b5db38c8fcf09dc85eb1b4f8d28f26caf6a1d57",
+            "source_digest": "3cf0e1c82f0f8f1dde5aa903fd10422785383caa4ffb5b6fdf80f6523dcf6d87",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Tray/TraySummaryProjector.cs"
           }
@@ -129790,7 +129790,7 @@
             "start_line": 2,
             "end_line": 2,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "import",
             "resolved_target": "external:csharp:CommunityToolkit"
           }
@@ -129813,7 +129813,7 @@
             "start_line": 1,
             "end_line": 1,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "import",
             "resolved_target": "external:csharp:System"
           }
@@ -129836,7 +129836,7 @@
             "start_line": 187,
             "end_line": 188,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Core/Automation/UsageReportQuery.cs",
             "target_symbol": "UsageReportQuery.ReadExactAsync"
@@ -129860,7 +129860,7 @@
             "start_line": 25,
             "end_line": 25,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Automation/UsageReportQuery.cs"
           },
@@ -129870,7 +129870,7 @@
             "start_line": 91,
             "end_line": 91,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Automation/UsageReportQuery.cs"
           }
@@ -129893,7 +129893,7 @@
             "start_line": 158,
             "end_line": 158,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Providers/ProviderIdentity.cs"
           },
@@ -129903,7 +129903,7 @@
             "start_line": 162,
             "end_line": 162,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Providers/ProviderIdentity.cs"
           }
@@ -129926,7 +129926,7 @@
             "start_line": 10,
             "end_line": 10,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Providers/ProviderInstanceKey.cs"
           }
@@ -129949,7 +129949,7 @@
             "start_line": 171,
             "end_line": 171,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Usage/QuotaObservationJournal.cs"
           }
@@ -129972,7 +129972,7 @@
             "start_line": 156,
             "end_line": 156,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Core/Usage/QuotaResetHistoryStore.cs",
             "target_symbol": "QuotaResetHistoryStore.ReadAsync"
@@ -129983,7 +129983,7 @@
             "start_line": 161,
             "end_line": 161,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Core/Usage/QuotaResetHistoryStore.cs",
             "target_symbol": "QuotaResetCycleQuery.Build"
@@ -130007,7 +130007,7 @@
             "start_line": 155,
             "end_line": 155,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Usage/QuotaResetHistoryStore.cs"
           },
@@ -130017,7 +130017,7 @@
             "start_line": 156,
             "end_line": 156,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Usage/QuotaResetHistoryStore.cs"
           },
@@ -130027,7 +130027,7 @@
             "start_line": 157,
             "end_line": 157,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Usage/QuotaResetHistoryStore.cs"
           }
@@ -130050,7 +130050,7 @@
             "start_line": 188,
             "end_line": 188,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Core/Usage/UsageEvent.cs"
           }
@@ -130073,7 +130073,7 @@
             "start_line": 189,
             "end_line": 189,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/LocalUsageCardProjector.cs"
           }
@@ -130096,7 +130096,7 @@
             "start_line": 85,
             "end_line": 85,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs",
             "target_symbol": "ReportPeriod.LastDays"
@@ -130107,7 +130107,7 @@
             "start_line": 103,
             "end_line": 103,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs",
             "target_symbol": "ReportProjection.Pace"
@@ -130118,7 +130118,7 @@
             "start_line": 107,
             "end_line": 108,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs",
             "target_symbol": "ReportProjection.Kpis"
@@ -130142,7 +130142,7 @@
             "start_line": 44,
             "end_line": 44,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs"
           },
@@ -130152,7 +130152,7 @@
             "start_line": 49,
             "end_line": 49,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs"
           },
@@ -130162,7 +130162,7 @@
             "start_line": 50,
             "end_line": 50,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportProjection.cs"
           }
@@ -130185,7 +130185,7 @@
             "start_line": 89,
             "end_line": 89,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "call",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportUsageReader.cs",
             "target_symbol": "ReportUsageReader.ReadAsync"
@@ -130209,7 +130209,7 @@
             "start_line": 81,
             "end_line": 81,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportUsageReader.cs"
           },
@@ -130219,7 +130219,7 @@
             "start_line": 89,
             "end_line": 89,
             "extractor": "tree-sitter-c_sharp",
-            "source_digest": "a707e87039c4be5e8c7af6cc2185d6a734e7d30b66dad86fe5667c1768e7519c",
+            "source_digest": "4ab5d0cefaa0d4445d7417e861954234a01c41510b5f123d45f2efecc8c84305",
             "kind": "type-reference",
             "resolved_target": "src/TokenUsage.Presentation/ViewModels/Reports/ReportUsageReader.cs"
           }
@@ -212758,7 +212758,7 @@
     }
   ],
   "triggers": [],
-  "source_digest": "327671527d3f4410b15eb9a1f096e97ce2f5bc8e78bf0f41979754f903c09ebb",
+  "source_digest": "a84d26efa02405ae691ca30e562c0661f11abb2a4f8a6692b96133da69e6bcf4",
   "changes": {
     "added_nodes": [],
     "removed_nodes": [],
@@ -212769,5 +212769,5 @@
     "changed": false,
     "changed_node_ids": []
   },
-  "generation_id": "c105bc7166287965da3a606e9d9ec04d567c99d35ccf2f6ff4c9a096108bd710"
+  "generation_id": "09569d09134bd363d8171732450017b47ed0f61db16280f361fb77bd895d6c41"
 }
