@@ -1,7 +1,7 @@
 # Code map: tokenusage
 
-Generated: 2026-11-17T19:55:08Z | Commit: `315d1b80f371` | Schema: 2
-Generation: `5b5a22989bf76b5705a1192150ebda0a2236774275a5ecb85a980083b2ffb451`
+Generated: 2026-11-20T20:23:41Z | Commit: `11141d0d4731` | Schema: 2
+Generation: `c105bc7166287965da3a606e9d9ec04d567c99d35ccf2f6ff4c9a096108bd710`
 Scope: BuildAndRun.ps1, Directory.Build.props, TokenUsage.slnx, scripts, src, tests | Inventory: working-tree
 Nodes: 478 | Edges: 2986 | Flows: 0
 
@@ -9,7 +9,7 @@ Nodes: 478 | Edges: 2986 | Flows: 0
 
 - Analysis: **partial**; 439 analyzed of 471 included files.
 - Configuration files: 0; omitted untracked files: 0.
-- Unresolved references and analysis limits: 1278.
+- Unresolved references and analysis limits: 1281.
 - Static references and call paths do not prove runtime execution or test coverage.
 
 ## Modules

@@ -125,6 +125,12 @@ public sealed partial class CodexUsageEventSource
                 checkpoints.DirtyFiles.Add(file.SessionIdentity);
             }
             if (checkpoint.Offset == stream.Length) return;
+            if (checkpoint.Offset == 0)
+            {
+                checkpoint.Tier = null;
+                checkpoint.NonStandardThreadTier = false;
+                checkpoint.PricingTierUnverified = false;
+            }
             stream.Seek(checkpoint.Offset, SeekOrigin.Begin);
             checkpoints.DirtyFiles.Add(file.SessionIdentity);
             int previousObservations = checkpoint.Observations.Count;
@@ -293,7 +299,8 @@ public sealed partial class CodexUsageEventSource
         bool mightBeUsage = bytes.IndexOf("token_count"u8) >= 0;
         bool mightBeSessionMeta = bytes.IndexOf("session_meta"u8) >= 0;
         bool mightBeTaskStarted = bytes.IndexOf("task_started"u8) >= 0;
-        if (!mightBeContext && !mightBeUsage && !mightBeSessionMeta && !mightBeTaskStarted)
+        if (!mightBeContext && !mightBeUsage && !mightBeSessionMeta && !mightBeTaskStarted
+            && bytes.IndexOf("thread_settings_applied"u8) < 0)
         {
             return;
         }
@@ -327,8 +334,9 @@ public sealed partial class CodexUsageEventSource
 
                 checkpoint.Effort = TryGetString(payload, "effort", out string? effort)
                     && effort is "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max" or "ultra" ? effort : null;
-                checkpoint.Tier = TryGetString(payload, "service_tier", out string? tier)
-                    && tier is "standard" or "fast" or "batch" or "flex" or "priority" ? tier : null;
+                string? tier = ReadServiceTier(payload);
+                checkpoint.PricingTierUnverified = tier == "unknown" || tier is null && checkpoint.NonStandardThreadTier;
+                checkpoint.Tier = tier == "unknown" ? null : tier;
                 return;
             }
 
@@ -341,6 +349,12 @@ public sealed partial class CodexUsageEventSource
             if (string.Equals(eventType, "task_started", StringComparison.Ordinal))
             {
                 ObserveTaskStarted(root, payload, checkpoint);
+                return;
+            }
+
+            if (string.Equals(eventType, "thread_settings_applied", StringComparison.Ordinal))
+            {
+                ObserveThreadTier(payload, checkpoint);
                 return;
             }
 
@@ -457,7 +471,8 @@ public sealed partial class CodexUsageEventSource
                 observedModel, delta, precision, precision == UsageTimePrecision.Interval ? previousTimestamp : null,
                 isTurnObservation ? checkpoint.ObservedModel : null,
                 isTurnObservation ? checkpoint.Effort : null, isTurnObservation ? checkpoint.Tier : null,
-                measured, kind, RepresentationRevision: 1));
+                measured, kind, RepresentationRevision: 1,
+                PricingTierUnverified: isTurnObservation && checkpoint.PricingTierUnverified));
 
         }
         catch (Exception exception) when (exception is JsonException
@@ -467,6 +482,53 @@ public sealed partial class CodexUsageEventSource
         {
             state.UnsupportedSchema = true;
             state.MarkPartial();
+        }
+    }
+
+    private static string? ReadServiceTier(JsonElement payload)
+    {
+        if (!payload.TryGetProperty("service_tier", out JsonElement tier) || tier.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        string? value = tier.ValueKind == JsonValueKind.String ? tier.GetString() : null;
+        return value switch
+        {
+            "default" => "standard",
+            "standard" or "fast" or "batch" or "flex" or "priority" => value,
+            _ => "unknown",
+        };
+    }
+
+    private static void ObserveThreadTier(JsonElement payload, CodexUsageFileCheckpoint checkpoint)
+    {
+        // A reverted rollout appends a revision ID after its stable thread ID.
+        ReadOnlySpan<char> ownerName = checkpoint.ObservationIdentity.AsSpan();
+        int revision = ownerName.IndexOf('_');
+        if (revision >= 0)
+        {
+            ownerName = ownerName[..revision];
+        }
+
+        // Forked rollouts can contain settings snapshots from a different thread.
+        if (!TryGetString(payload, "thread_id", out string? threadId)
+            || !Guid.TryParseExact(threadId, "D", out _)
+            || !ownerName.StartsWith("rollout-", StringComparison.Ordinal)
+            || ownerName.Length <= threadId.Length
+            || ownerName[^(threadId.Length + 1)] != '-'
+            || !ownerName.EndsWith(threadId, StringComparison.OrdinalIgnoreCase)
+            || !payload.TryGetProperty("thread_settings", out JsonElement settings)
+            || settings.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        checkpoint.NonStandardThreadTier = ReadServiceTier(settings) is not (null or "standard");
+        if (checkpoint.NonStandardThreadTier && checkpoint.Tier is null)
+        {
+            // A thread setting does not establish the tier billed on this response.
+            checkpoint.PricingTierUnverified = true;
         }
     }
 

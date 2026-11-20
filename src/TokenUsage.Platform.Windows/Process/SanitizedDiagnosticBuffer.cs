@@ -1,11 +1,12 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace TokenUsage.Platform.Windows.Processes;
 
 internal sealed class SanitizedDiagnosticBuffer
 {
     private const int MaximumRawLineCharacters = 2048;
-    private const string RemovedLongLine = "[diagnostic line removed]";
+    private const string RemovedLine = "[diagnostic line removed]";
 
     private readonly object _sync = new();
     private readonly int _maximumCharacters;
@@ -43,7 +44,7 @@ internal sealed class SanitizedDiagnosticBuffer
                 else if (_pendingLine.Length > MaximumRawLineCharacters)
                 {
                     _pendingLine.Clear();
-                    AppendSanitized(RemovedLongLine + Environment.NewLine);
+                    AppendSanitized(RemovedLine + Environment.NewLine);
                     _discardLongLine = true;
                 }
             }
@@ -76,7 +77,15 @@ internal sealed class SanitizedDiagnosticBuffer
     {
         string line = _pendingLine.ToString();
         _pendingLine.Clear();
-        AppendSanitized(DiagnosticTextSanitizer.Sanitize(line));
+        try
+        {
+            AppendSanitized(DiagnosticTextSanitizer.Sanitize(line));
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Keep draining stderr without retaining text that was not sanitized.
+            AppendSanitized(RemovedLine + Environment.NewLine);
+        }
     }
 
     private void AppendSanitized(string value)

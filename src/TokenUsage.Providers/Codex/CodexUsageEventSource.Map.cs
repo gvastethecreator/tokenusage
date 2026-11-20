@@ -122,7 +122,8 @@ public sealed partial class CodexUsageEventSource
     {
         UsageComponentAvailability Availability(CodexMeasuredComponents component) =>
             (observation.Measured & component) != 0 ? UsageComponentAvailability.Measured : UsageComponentAvailability.Unknown;
-        CostObservation cost = observation.Precision == UsageTimePrecision.Timestamp && observation.Tier is null or "standard"
+        CostObservation cost = observation.Precision == UsageTimePrecision.Timestamp
+            && !observation.PricingTierUnverified && observation.Tier is null or "standard"
             ? CodexPricingCatalog.Resolve(observation.Model, observation.Tokens, observation.Timestamp)
             : CostObservation.Unavailable();
         return new UsageEvent(new UsageEventKey(observation.Key), AgentId, new ModelProviderId("openai"),

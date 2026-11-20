@@ -179,6 +179,8 @@ internal sealed class CodexUsageCheckpointStore
                 checkpoint.ObservedModel = file.ObservedModel;
                 checkpoint.Effort = file.Effort;
                 checkpoint.Tier = file.Tier;
+                checkpoint.NonStandardThreadTier = file.NonStandardThreadTier;
+                checkpoint.PricingTierUnverified = file.PricingTierUnverified;
                 checkpoint.PrefixLength = file.PrefixLength;
                 checkpoint.PrefixHash = file.PrefixHash;
                 checkpoint.BoundaryHash = file.BoundaryHash;
@@ -188,7 +190,8 @@ internal sealed class CodexUsageCheckpointStore
                     // Match the metadata retained by the usage database migration.
                     // Older checkpoints did not record a kind, even for timed intervals.
                     document.SchemaVersion == SchemaVersion ? item.RecordKind : UsageRecordKind.Unknown,
-                    document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null)));
+                    document.SchemaVersion == SchemaVersion ? item.RepresentationRevision : null,
+                    item.PricingTierUnverified)));
                 if ((checkpoint.PreviousMeasured & ~CodexMeasuredComponents.All) != 0
                     || checkpoint.Observations.Any(item => (item.Measured & ~CodexMeasuredComponents.All) != 0
                         || !Enum.IsDefined(item.RecordKind) || item.RepresentationRevision is <= 0))
@@ -222,6 +225,8 @@ internal sealed class CodexUsageCheckpointStore
                     ChildCreatedAtUnixSeconds = file.ChildCreatedAtUnixSeconds, PreviousTimestamp = file.PreviousTimestamp,
                     PreviousMeasured = file.PreviousMeasured, ReplayThroughUtc = file.ReplayThroughUtc,
                     ObservedModel = file.ObservedModel, Effort = file.Effort, Tier = file.Tier,
+                    NonStandardThreadTier = file.NonStandardThreadTier,
+                    PricingTierUnverified = file.PricingTierUnverified,
                     PrefixLength = file.PrefixLength, PrefixHash = file.PrefixHash, BoundaryHash = file.BoundaryHash,
                 }, SerializerOptions));
             }
@@ -234,6 +239,7 @@ internal sealed class CodexUsageCheckpointStore
                     Tokens = FromTokens(value.Tokens), Precision = value.Precision, IntervalStart = value.IntervalStart,
                     ObservedModel = value.ObservedModel, Effort = value.Effort, Tier = value.Tier, Measured = value.Measured,
                     RecordKind = value.RecordKind, RepresentationRevision = value.RepresentationRevision,
+                    PricingTierUnverified = value.PricingTierUnverified,
                 }, SerializerOptions));
             foreach (string key in state.RemovedObservations) database.Write("observation", key, null);
         });
@@ -304,6 +310,10 @@ internal sealed class CodexUsageCheckpointStore
         public string? ObservedModel { get; init; }
         public string? Effort { get; init; }
         public string? Tier { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool NonStandardThreadTier { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool PricingTierUnverified { get; init; }
         public DateTimeOffset? PreviousTimestamp { get; init; }
         public CodexMeasuredComponents PreviousMeasured { get; init; }
         public DateTimeOffset? ReplayThroughUtc { get; init; }
@@ -314,6 +324,8 @@ internal sealed class CodexUsageCheckpointStore
 
     private sealed class ObservationV1
     {
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool PricingTierUnverified { get; init; }
         public UsageRecordKind RecordKind { get; init; }
         public long? RepresentationRevision { get; init; }
         public CodexMeasuredComponents Measured { get; init; }
@@ -382,6 +394,8 @@ internal sealed class CodexUsageFileCheckpoint(
     public string? ObservedModel { get; set; }
     public string? Effort { get; set; }
     public string? Tier { get; set; }
+    public bool NonStandardThreadTier { get; set; }
+    public bool PricingTierUnverified { get; set; }
     public DateTimeOffset? PreviousTimestamp { get; set; }
     public CodexMeasuredComponents PreviousMeasured { get; set; }
     public DateTimeOffset? ReplayThroughUtc { get; set; }
@@ -408,7 +422,8 @@ internal sealed class CodexUsageFileCheckpoint(
 internal sealed record CodexNumericObservation(string Key, DateTimeOffset Timestamp,
     string Model, TokenBreakdown Tokens, UsageTimePrecision Precision, DateTimeOffset? IntervalStart, string? ObservedModel, string? Effort, string? Tier,
     CodexMeasuredComponents Measured = CodexMeasuredComponents.None,
-    UsageRecordKind RecordKind = UsageRecordKind.Unknown, long? RepresentationRevision = null);
+    UsageRecordKind RecordKind = UsageRecordKind.Unknown, long? RepresentationRevision = null,
+    bool PricingTierUnverified = false);
 
 [Flags]
 internal enum CodexMeasuredComponents

@@ -81,12 +81,12 @@ public sealed class KnownModelPricingCatalogTests
     }
 
     [Theory]
-    [InlineData("composer-2.5", "cursor-models-2026-11-13")]
+    [InlineData("composer-2.5", "cursor-models-2026-11-19")]
     [InlineData("claude-4.5-sonnet", "anthropic-api-2026-11-09")]
     [InlineData("gpt-5.1-codex", "openai-api-2026-11-17")]
-    [InlineData("gemini-3.6-flash", "google-api-2026-11-13")]
-    [InlineData("gemini-3.8-flash", "google-api-2026-11-13")]
-    [InlineData("gemini-4-argon", "google-api-2026-11-13")]
+    [InlineData("gemini-3.6-flash", "google-api-2026-11-19")]
+    [InlineData("gemini-3.8-flash", "google-api-2026-11-19")]
+    [InlineData("gemini-4-argon", "google-api-2026-11-19")]
     [InlineData("glm-5.3-flash", "zai-api-2026-11-07")]
     [InlineData("kimi-k3", "moonshot-api-2026-11-07")]
     public void UsesTheOfficialCatalogVersion(string model, string catalogVersion)
@@ -617,6 +617,7 @@ public sealed class KnownModelPricingCatalogTests
     [InlineData("gemini-4-carbon", "2026-12-01T00:00:00Z", 5.22)]
     [InlineData("gemini-4-hydrogen", "2026-11-13T00:00:00Z", 1.9575)]
     [InlineData("gemini-4-hydrogen", "2026-12-01T00:00:00Z", 1.9575)]
+    [InlineData("gemini-4-neon", "2026-11-18T00:00:00Z", 3.915)]
     public void GeminiFourUsesPublishedDirectAndCursorRatesAtTheUsageDate(
         string model,
         string occurredAt,
@@ -635,8 +636,20 @@ public sealed class KnownModelPricingCatalogTests
         Assert.Equal(CursorPricingCatalog.Version, hosted.CatalogVersion);
         Assert.True(PricingCatalogAudit.CanReproduce(direct, date, PricingEvidenceCatalog.AllRates));
         Assert.True(PricingCatalogAudit.CanReproduce(hosted, date, PricingEvidenceCatalog.AllRates));
+        Assert.Equal(CostKind.Unavailable, KnownModelPricingCatalog.Resolve(
+            model, date, new TokenBreakdown(800_000, 100_000, 0, 100_000, 1)).Kind);
         Assert.Equal(CostKind.Unavailable, CursorPricingCatalog.Resolve(
             model, date, new TokenBreakdown(800_000, 100_000, 0, 100_000, 1)).Kind);
+    }
+
+    [Fact]
+    public void GeminiFourNeonHasNoPriceBeforeLaunch()
+    {
+        DateTimeOffset beforeLaunch = new(2026, 11, 17, 23, 59, 59, TimeSpan.Zero);
+        Assert.Equal(CostKind.Unavailable, KnownModelPricingCatalog.Resolve(
+            "gemini-4-neon", beforeLaunch, MillionInHundredKOut).Kind);
+        Assert.Equal(CostKind.Unavailable, CursorPricingCatalog.Resolve(
+            "gemini-4-neon", beforeLaunch, MillionInHundredKOut).Kind);
     }
 
     [Theory]

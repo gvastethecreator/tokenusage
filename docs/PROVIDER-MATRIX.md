@@ -45,6 +45,46 @@ and offers a separate upgrade to 2.0. The 2.0 storage format remains unverified.
 Hermes changes database write coordination and adds prompt cache metadata.
 This release review did not use live accounts or compare real usage totals.
 
+On 2026-11-18, the published [Codex 0.170.0](https://github.com/openai/codex/releases/tag/rust-v0.170.0)
+account, usage and rate-limit schemas matched 0.169.0. The
+[Claude Code 2.1.327 notes](https://github.com/anthropics/claude-code/releases/tag/v2.1.327)
+add billing-group attribution without documenting a change to the numeric fields
+TokenUsage reads. [Goose 1.60.1](https://github.com/aaif-goose/goose/compare/v1.59.2...v1.60.1)
+widens upstream token counters to 64 bits. The SQLite reader already reads
+64-bit integers. The chat serializer and chat model in
+[VS Code 1.147.0](https://code.visualstudio.com/updates/v1_147) match 1.146.0.
+These checks used published source and release notes.
+
+On 2026-11-19, the [Claude Code 2.1.328 notes](https://github.com/anthropics/claude-code/releases/tag/v2.1.328)
+describe token count corrections in the spinner and subagent display. The
+notes do not describe a change to the transcript fields TokenUsage reads.
+[Xum 0.32.3](https://github.com/coder/xum/releases/tag/v0.32.3) adds GPT-6.2 model
+routes and prices. The [session usage writer](https://github.com/coder/xum/blob/v0.32.3/src/node/services/sessionUsageService.ts)
+matches 0.32.2, and TokenUsage uses the aggregate cost reported by Xum.
+This review did not compare live accounts or real usage totals.
+
+[ZCode 3.18.2](https://github.com/zai-org/ZCode/releases/tag/v3.18.2) removes
+its 30-day automatic usage cleanup. The
+[`model_usage` table definition](https://github.com/zai-org/ZCode/blob/v3.18.2/apps/zcode-cli/packages/adapters/src/storage/session-store/schema.baseline.sql)
+matches 3.17.2. TokenUsage still bounds the date range, rows, and database size.
+[Antigravity](https://antigravity.google/blog/gemini-4-neon-in-google-antigravity/)
+can pair Neon and Hydrogen in one session. TokenUsage prices the model named
+in each readable generation. The new Orchestrator mode has no live validation.
+
+On 2026-11-20, [Codex 0.171.0](https://github.com/openai/codex/releases/tag/rust-v0.171.0)
+added an optional reason to the account notification. The numeric account,
+rate-limit, and token count contracts reviewed match 0.170.0. The
+[rollout policy](https://github.com/openai/codex/blob/rust-v0.171.0/codex-rs/rollout/src/policy.rs)
+keeps thread settings. TokenUsage uses a nonstandard setting from the same
+thread to withhold a Standard estimate when the turn tier is missing.
+
+[Hermes 0.23.3](https://github.com/NousResearch/hermes-agent/releases/tag/v0.23.3)
+moves SQLite code behind a persistence interface. The
+[`sessions` and `session_model_usage` definitions](https://github.com/NousResearch/hermes-agent/blob/v0.23.3/persistence/sqlite/_schema_ddl.py)
+match 0.23.2. The Goose 1.60.2 and Xum 0.32.4 usage writers match their previous
+releases. Claude Code 2.1.329 describes corrections to the usage credits
+display. These checks used published source and release notes.
+
 ## Local readers
 
 | Provider | Source | Cost and coverage | Quota |

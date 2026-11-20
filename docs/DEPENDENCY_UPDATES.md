@@ -142,3 +142,11 @@ requires authorization; no framework dependency was omitted to bypass the failur
 NuGet reports no newer stable direct dependencies across the 13 managed projects.
 Windows rebooted after the SDK update. The selected SDK remains `10.0.404`,
 and the .NET host and patched VSTest runner match their recorded binary hashes.
+
+## November 18 maintenance
+
+Update the WinUI and Runtime package references together to
+[Windows App SDK 2.7.0](https://github.com/microsoft/WindowsAppSDK/releases/tag/v2.7.0).
+This release fixes WinUI input, style and dispatcher behavior. The project keeps
+its split SDK references, and the package builder derives the minimum runtime
+version from the restored framework package.

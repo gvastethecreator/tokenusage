@@ -63,7 +63,8 @@ public static class PricingRefreshManifest
         Define(
             PricingOfficialSources.Cursor,
             "cursor-model-pricing.html",
-            ["Composer 2.5", "Grok 4.5", "Grok 4.6", "Grok 4.7", "Fast", "Claude Sonnet 5.5"]),
+            ["Composer 2.5", "Grok 4.5", "Grok 4.6", "Grok 4.7", "Fast", "Claude Sonnet 5.5",
+             "Gemini 4 Neon", "$<!-- -->0.15"]),
         Define(
             PricingOfficialSources.CursorGemini,
             "cursor-gemini-3-8-pricing.html",
@@ -98,7 +99,8 @@ public static class PricingRefreshManifest
             "google-gemini-api-pricing.html",
             ["Gemini 3.8 Flash", "$0.75", "$0.075", "$3.75", "December 31, 2026",
              "Gemini 4 Argon", "Gemini 4 Carbon", "$2.00", "$0.10", "$10.00", "November 30, 2026", "December 1, 2026", "$4.00", "$0.20", "$20.00",
-             "Gemini 4 Hydrogen", "$1.50", "$7.50", "Implicit caching only (explicit caching is not supported)"]),
+             "Gemini 4 Hydrogen", "$1.50", "$7.50", "Implicit caching only (explicit caching is not supported)",
+             "Gemini 4 Neon", "$3.00", "$0.15", "$15.00"]),
         Define(
             PricingOfficialSources.Moonshot,
             "moonshot-model-pricing.html",

@@ -12,10 +12,10 @@ Generated from bounded projections of allowlisted official pricing pages. No fet
 | cursor-gemini-4-carbon-pricing | hostSpecific | markers matched (9/9) | `561efb3366ee` |
 | cursor-gemini-4-hydrogen-pricing | hostSpecific | markers matched (4/4) | `2c821c5b0664` |
 | cursor-grok-4-7-pricing | hostSpecific | markers matched (9/9) | `ec8bef93034e` |
-| cursor-model-pricing | hostSpecific | markers matched (6/6) | `3f123daa4774` |
+| cursor-model-pricing | hostSpecific | markers matched (8/8) | `7354a499be7b` |
 | cursor-muse-spark-pricing | hostSpecific | markers matched (6/6) | `1cfd6d308eb9` |
 | cursor-muse-wonder-pricing | hostSpecific | markers matched (6/6) | `8e49f8fdcccf` |
-| google-gemini-api-pricing | directProviderApi | markers matched (19/19) | `0f787b87d250` |
+| google-gemini-api-pricing | directProviderApi | markers matched (23/23) | `3ea7ec27cf1c` |
 | moonshot-model-pricing | directProviderApi | markers matched (15/15) | `aed7ab7ae76e` |
 | openai-astra-6-2-pricing | directProviderApi | markers matched (7/7) | `0b1147506c09` |
 | openai-astra-pricing | directProviderApi | markers matched (7/7) | `7fbd2f696250` |

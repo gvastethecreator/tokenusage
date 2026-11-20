@@ -197,6 +197,10 @@ public static class PricingOfficialSources
     private static readonly DateOnly NovemberMaintenanceReviewDate = new(2026, 11, 9);
     private static readonly DateOnly CarbonReviewDate = new(2026, 11, 12);
     private static readonly DateOnly HydrogenReviewDate = new(2026, 11, 13);
+    private static readonly DateOnly NeonReviewDate = new(2026, 11, 19);
+
+    internal static DateTimeOffset GeminiNeonLaunchUtc { get; } =
+        new(2026, 11, 18, 0, 0, 0, TimeSpan.Zero);
 
     public static PricingSourceEvidence OpenAi { get; } = new(
         "openai-model-pricing",
@@ -255,7 +259,7 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence Google { get; } = new(
         "google-gemini-api-pricing",
         new Uri("https://aistudio.google.com/docs/pricing"),
-        HydrogenReviewDate,
+        NeonReviewDate,
         PricingBillingScope.DirectProviderApi);
 
     public static PricingSourceEvidence Xai { get; } = new(
@@ -267,7 +271,7 @@ public static class PricingOfficialSources
     public static PricingSourceEvidence Cursor { get; } = new(
         "cursor-model-pricing",
         new Uri("https://cursor.com/docs/models-and-pricing"),
-        ReviewDate,
+        NeonReviewDate,
         PricingBillingScope.HostSpecific);
 
     public static PricingSourceEvidence CursorGemini { get; } = new(

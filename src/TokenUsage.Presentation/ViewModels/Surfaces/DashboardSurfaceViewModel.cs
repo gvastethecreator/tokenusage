@@ -40,6 +40,7 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     private bool _hasLocalUsage;
     private LocalUsageCard? _rawLocalUsage;
     private IReadOnlyList<DailyUsageRollup> _localUsageRollups = [];
+    private readonly Lock _providerLimitsGate = new();
     private readonly Dictionary<string, IReadOnlyList<QuotaWindow>> _providerLimitsById =
         new(StringComparer.Ordinal);
     private ProviderOutcome? _lastCodexOutcome;
@@ -495,28 +496,29 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
     public IReadOnlyList<QuotaWindow> GetProviderLimits(string providerId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(providerId);
-        if (_providerLimitsById.TryGetValue(
-                providerId,
-                out IReadOnlyList<QuotaWindow>? cachedLimits))
+        lock (_providerLimitsGate)
         {
-            return cachedLimits;
-        }
-
-        DashboardSnapshot source = _appearanceDashboard ?? ActiveSample;
-        ProviderCard? providerCard = source.Providers.FirstOrDefault(card =>
-            string.Equals(card.ProviderId, providerId, StringComparison.Ordinal));
-        IReadOnlyList<QuotaWindow> limits = providerCard is null
-            ? []
-            : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).Select((window, index) => window with
+            if (_providerLimitsById.TryGetValue(providerId, out IReadOnlyList<QuotaWindow>? cachedLimits))
             {
-                ProviderId = providerId,
-                ProfileLabel = providerCard.Name,
-                ReadingNotice = index == 0 ? providerCard.NoticeText ?? string.Empty : string.Empty,
-                CompactRemainingLabel = string.Format(CultureInfo.CurrentCulture,
-                    _getString("AppearanceRemainingPercentFormat"), window.RemainingPercent),
-            }).ToArray();
-        _providerLimitsById.Add(providerId, limits);
-        return limits;
+                return cachedLimits;
+            }
+
+            DashboardSnapshot source = _appearanceDashboard ?? ActiveSample;
+            ProviderCard? providerCard = source.Providers.FirstOrDefault(card =>
+                string.Equals(card.ProviderId, providerId, StringComparison.Ordinal));
+            IReadOnlyList<QuotaWindow> limits = providerCard is null
+                ? []
+                : providerCard.Windows.Concat(providerCard.SecondaryWindowItems).Select((window, index) => window with
+                {
+                    ProviderId = providerId,
+                    ProfileLabel = providerCard.Name,
+                    ReadingNotice = index == 0 ? providerCard.NoticeText ?? string.Empty : string.Empty,
+                    CompactRemainingLabel = string.Format(CultureInfo.CurrentCulture,
+                        _getString("AppearanceRemainingPercentFormat"), window.RemainingPercent),
+                }).ToArray();
+            _providerLimitsById.Add(providerId, limits);
+            return limits;
+        }
     }
 
     public ProviderCreditSummary? GetProviderCreditSummary(string providerId)
@@ -880,8 +882,11 @@ public sealed partial class DashboardSurfaceViewModel : ObservableObject, IDispo
             _appearance.Settings,
             GetClock(IsSampleModeEnabled ? _activeScenario : null).GetUtcNow(),
             _getString);
-        _appearanceDashboard = appearanceDashboard;
-        _providerLimitsById.Clear();
+        lock (_providerLimitsGate)
+        {
+            _appearanceDashboard = appearanceDashboard;
+            _providerLimitsById.Clear();
+        }
         ActiveSample = _personalization.Apply(appearanceDashboard);
         RebuildCompactProjection();
         if (_rawLocalUsage is not null)

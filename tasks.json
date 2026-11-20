@@ -1,5 +1,5 @@
 {
-  "updatedOn": "2026-11-17",
+  "updatedOn": "2026-11-20",
   "objective": "Reduce refresh work, distribution size, and maintenance cost while preserving usage history and public contracts.",
   "baseline": {
     "publicHead": "746efbba86b483855978e4e01ce2a85e2c9a5e89",
@@ -10,6 +10,90 @@
     "releaseCheckedOn": "2026-09-30"
   },
   "tasks": [
+    {
+      "id": "maintenance-2026-11-20",
+      "title": "Fix Codex estimates for unverified service tiers",
+      "status": "completed",
+      "objective": "Review provider releases and stable dependencies. Preserve token counts, existing estimates, and the installed package.",
+      "model": "Current chat model, as selected for TokenUsage maintenance",
+      "baseline": "Main at 11141d0 with pending November 18 and 19 changes.",
+      "evidence": ".scratch/maintenance-20261120",
+      "changes": [
+        "Keep explicit Ultrafast and unknown turn tiers unpriced. Use nonstandard settings from the same thread to prevent a Standard estimate when the turn tier is missing.",
+        "Support regular and reverted Codex rollout names. Ignore copied settings from another thread and persist the pricing guard with the existing checkpoint.",
+        "Keep the reconciliation cursor and event keys stable. Read existing checkpoints without a backfill."
+      ],
+      "validation": [
+        "Compared Codex 0.171.0 account and usage contracts. The account notification adds an optional reason. The reviewed numeric and rate-limit schemas match 0.170.0.",
+        "The Goose 1.60.2 session manager and Xum 0.32.4 usage writer match their previous tags. Hermes 0.23.3 keeps both usage table definitions in the new SQLite backend. Claude Code 2.1.329 describes credits display fixes.",
+        "NuGet found no newer stable direct packages or known vulnerabilities across 13 projects. The seven GitHub Actions release tags match the pins.",
+        "Reviewed 21 pricing sources. Seventeen match November 19. OpenAI Standard rates, Anthropic list prices, and the applicable Google and xAI token rates need no revision. The Google change adds Genie video streaming pricing. xAI raises the Grok Build context limit and keeps the billed threshold.",
+        "The x64 gate segments passed 86 architecture, 292 Core, 100 CLI, 585 provider, and 181 Windows tests. The Windows segment used Category!=OptIn. The first provider run exposed the existing service-tier label restriction. After the final checkpoint change, all 64 selected Codex and coordinator tests passed.",
+        "Built and inspected the unsigned x64 MSIX at artifacts/maintenance-20261120. Verified both executable registrations, the new reader in both payloads, SQLite 11, and Windows App Runtime 2.7.0.0.",
+        "The packaged CLI passed help, pricing audit, and pricing refresh --dry-run. All 21 sources matched and the pricing report matches the tracked copy. The registered package is still 0.0.1.36.",
+        "Reviewed references, scan and checkpoint ownership, presentation boundaries, and package assembly. The four current code-map files report no new nodes, edges, or cycles. Static analysis is partial."
+      ],
+      "limitations": [
+        "A configured tier does not identify the tier billed on a response. The published Ultrafast multipliers need response-level evidence before TokenUsage can estimate them.",
+        "Existing checkpoints retain admitted estimates. An earlier checkpoint may lack the thread setting until a new owned snapshot is read.",
+        "Live provider totals, installed UI, ARM64 packaging, and resource measurements remain unverified."
+      ],
+      "nextAction": "Review the verified x64 candidate. Revisit premiums when Codex records the billed tier for an individual response."
+    },
+    {
+      "id": "maintenance-2026-11-19",
+      "title": "Review provider releases and price Gemini 4 Neon",
+      "status": "completed",
+      "objective": "Update verified pricing and review provider contracts, dependencies, and resource use while preserving the installed app and usage history.",
+      "model": "Current chat model, as selected for TokenUsage maintenance",
+      "baseline": "Main at 11141d0 with pending November 18 changes. Local package 0.0.1.36 remains registered.",
+      "evidence": ".scratch/maintenance-20261119",
+      "changes": [
+        "Add the standard Gemini 4 Neon rate of $3 input, $0.15 cache read, and $15 output per million tokens. Keep separate Google API and Cursor evidence. Use the November 18 Google launch date as the first pricing day for both catalogs.",
+        "Leave explicit cache writes unpriced. Verify the amount, source provenance, and pre-launch behavior in the existing pricing suite.",
+        "Review Claude Code 2.1.328 and Xum 0.32.3. Claude describes usage display changes. The Xum usage writer matches 0.32.2. Gemini CLI 0.69.0 is outside the current provider catalog.",
+        "Compare the ZCode 3.18.2 model_usage table with 3.17.2. ZCode now retains older usage. The table matches and the TokenUsage reader keeps its date, row, and database limits. Review the Antigravity Neon rollout and trace pricing for each named generation."
+      ],
+      "validation": [
+        "NuGet reported no stable direct updates or known vulnerabilities across 13 projects. The seven GitHub Actions release versions match their pins.",
+        "Reviewed all 21 pricing sources. Seventeen responses match November 18. Compared published rate rows in the four changed responses and checked the Gemini 4 Neon launch announcement.",
+        "The x64 gate segments passed 86 architecture, 292 Core, 100 CLI, 584 provider, and 181 Windows tests. The Windows segment used Category!=OptIn. Updated pricing fixtures and catalog version expectations after the initial failures.",
+        "Built the unsigned x64 MSIX at artifacts/maintenance-20261119. Verified both executable registrations, resources, the SQLite 11 payload, and the Windows App Runtime 2.7.0.0 requirement.",
+        "The packaged CLI passed help, pricing audit, and pricing refresh --dry-run. All 21 sources matched. The live run uses the HTML marker for Cursor cache reads. Updated the existing pricing refresh report.",
+        "Reviewed project references, refresh coordination, catalog callers, dashboard projection, and package assembly. All four code-map files are current. The partial static analysis reported no new nodes, edges, or cycles."
+      ],
+      "limitations": [
+        "The Cursor table lists Gemini 3.6 Flash at the Google list rate while Google still documents a promotion. Cursor does not specify the historical cutoff. Existing estimates remain in place pending dated host evidence.",
+        "Live provider totals, Antigravity Orchestrator attribution, installed WinUI behavior, ARM64, and performance measurements are outside the available proof for this run. ZCode retention can grow the source database over time."
+      ],
+      "nextAction": "Review the x64 candidate and confirm the Cursor Gemini 3.6 Flash rate boundary if a dated source becomes available."
+    },
+    {
+      "id": "maintenance-2026-11-18",
+      "title": "Review provider releases and update Windows App SDK",
+      "status": "completed",
+      "objective": "Apply verified dependency updates and correct observed refresh failures while preserving the installed app and its data.",
+      "model": "Current chat model, as selected for TokenUsage maintenance",
+      "baseline": "Clean main at 11141d0, with the matching local development package 0.0.1.36 registered. The prior deployment verified app and CLI startup and preserved all 782039 existing event keys and token counts. This run did not replace the registered package.",
+      "evidence": ".scratch/maintenance-20261118",
+      "changes": [
+        "Align the Windows App SDK Runtime and WinUI packages at 2.7.0. Keep the split SDK references and derive the runtime requirement from the restored package.",
+        "Drop a diagnostic line if redaction reaches its time limit. Preserve the output bound and continue draining the Codex process error stream without exposing the raw line.",
+        "Synchronize quota cache reads and invalidation when publishing an updated dashboard. Preserve the existing projections and cache behavior."
+      ],
+      "validation": [
+        "Compared published Codex 0.170.0 account, usage and rate-limit schemas with 0.169.0. Compared Claude Code 2.1.327 release notes, Goose 1.60.1 token storage, and the VS Code 1.147.0 serializer and model. The Goose reader already handles 64-bit tokens. The reviewed contracts do not require reader changes.",
+        "The installed CLI payload matches the reviewed HEAD. Pricing dry-run matched all 21 sources. Seventeen complete source bodies match the prior run. The published OpenAI 6.2, Google and xAI rates reviewed in the other four sources do not require catalog changes.",
+        "The initial NuGet scan found only the two Windows App SDK updates. The initial NuGet audit passed for 13 projects. The seven GitHub Actions release versions match their pins.",
+        "The first x64 gate passed 86 architecture, 292 Core and 100 CLI tests. A provider test then failed when concurrent quota reads added the same key. After the fix, all 582 provider tests and all 181 Windows tests selected by Category!=OptIn passed. The reused and completed stages total 1241 tests.",
+        "Built and inspected the new x64 Release MSIX and both self-contained executables. The manifest requires Windows App Runtime 2.7.0.0 and matches the supplied x64 framework package. The packaged CLI --help returned 0. Evidence is in x64-package.json and runtime-package.json.",
+        "After restore, the updated app dependency graph reported no newer stable direct references or known vulnerabilities. All four code-map files were regenerated together. The map is current and reports no new edges or cycles. Its analysis remains partial."
+      ],
+      "limitations": [
+        "No provider account or installed 2.7.0 WinUI behavior was exercised. ARM64 packaging still requires its Visual Studio component. No performance gain was measured."
+      ],
+      "nextAction": "Review the source changes and x64 candidate. Keep the current local registration until an installation is authorized."
+    },
     {
       "id": "maintenance-2026-11-17",
       "title": "Update provider pricing and review stable dependencies",

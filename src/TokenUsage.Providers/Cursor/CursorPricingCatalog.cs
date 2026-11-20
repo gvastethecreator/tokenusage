@@ -10,7 +10,7 @@ namespace TokenUsage.Providers.Cursor;
 /// </summary>
 public static class CursorPricingCatalog
 {
-    public const string Version = "cursor-models-2026-11-13";
+    public const string Version = "cursor-models-2026-11-19";
     private const long GrokFourSevenLongContextThreshold = 256_000;
     private static readonly DateTimeOffset CarbonListEffectiveFromUtc =
         new(2026, 12, 1, 0, 0, 0, TimeSpan.Zero);
@@ -24,6 +24,7 @@ public static class CursorPricingCatalog
             ["gemini-4-argon"] = new(2m, 0.1m, 10m, CacheWrite: 0m),
             ["gemini-4-carbon"] = new(2m, 0.1m, 10m),
             ["gemini-4-hydrogen"] = new(1.5m, 0.075m, 7.5m),
+            ["gemini-4-neon"] = new(3m, 0.15m, 15m),
             ["grok-4.5"] = new(2m, 0.5m, 6m),
             ["grok-4.5-fast"] = new(4m, 1m, 18m),
             ["grok-4.6"] = new(2m, 0.5m, 6m),
@@ -51,8 +52,13 @@ public static class CursorPricingCatalog
             return KnownModelPricingCatalog.Resolve(model, occurredAtUtc, tokens);
         }
 
-        // Cursor leaves these cache-write rates unpublished; a dash is not a zero-dollar rate.
-        if (tokens.CacheWrite > 0 && normalized is ("gemini-4-carbon" or "gemini-4-hydrogen"))
+        if (normalized == "gemini-4-neon" && occurredAtUtc < PricingOfficialSources.GeminiNeonLaunchUtc)
+        {
+            return CostObservation.Unavailable();
+        }
+
+        // Cursor leaves these cache-write rates unpublished.
+        if (tokens.CacheWrite > 0 && normalized is ("gemini-4-carbon" or "gemini-4-hydrogen" or "gemini-4-neon"))
         {
             return CostObservation.Unavailable();
         }
@@ -111,7 +117,8 @@ public static class CursorPricingCatalog
                         "muse-spark-1.3" => PricingOfficialSources.CursorMuse,
                         "muse-wonder-1.0" => PricingOfficialSources.CursorWonder,
                         _ => PricingOfficialSources.Cursor,
-                    }));
+                    },
+                    priceMatch == "gemini-4-neon" ? PricingOfficialSources.GeminiNeonLaunchUtc : null));
             }
         }
 

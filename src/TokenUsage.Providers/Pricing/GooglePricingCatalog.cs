@@ -8,7 +8,7 @@ namespace TokenUsage.Providers.Pricing;
 /// </summary>
 public static class GooglePricingCatalog
 {
-    public const string Version = "google-api-2026-11-13";
+    public const string Version = "google-api-2026-11-19";
     private const long LongContextThreshold = 200_000;
 
     // A resolve without a timestamp prices at the rate valid now.
@@ -78,6 +78,7 @@ public static class GooglePricingCatalog
             ["gemini-4-argon"] = new("gemini-4-argon", 2m, 0.1m, 10m),
             ["gemini-4-carbon"] = new("gemini-4-carbon", 2m, 0.1m, 10m),
             ["gemini-4-hydrogen"] = new("gemini-4-hydrogen", 1.5m, 0.075m, 7.5m),
+            ["gemini-4-neon"] = new("gemini-4-neon", 3m, 0.15m, 15m),
         };
 
     public static IReadOnlyList<PricingRateEvidence> EvidenceEntries { get; } =
@@ -98,14 +99,21 @@ public static class GooglePricingCatalog
             return CostObservation.Unavailable();
         }
 
-        // Gemini 4 supports implicit caching only; explicit writes have no published rate.
-        if (tokens.CacheWrite > 0 && normalized is ("gemini-4-argon" or "gemini-4-carbon" or "gemini-4-hydrogen"))
+        DateTimeOffset effectiveAtUtc = occurredAtUtc ?? DateTimeOffset.UtcNow;
+        if (normalized == "gemini-4-neon" && effectiveAtUtc < PricingOfficialSources.GeminiNeonLaunchUtc)
+        {
+            return CostObservation.Unavailable();
+        }
+
+        // Gemini 4 publishes an implicit cache read rate.
+        if (tokens.CacheWrite > 0
+            && normalized is ("gemini-4-argon" or "gemini-4-carbon" or "gemini-4-hydrogen" or "gemini-4-neon"))
         {
             return CostObservation.Unavailable();
         }
 
         if (ListRatesFromUtc.TryGetValue(rates.PriceMatch, out DatedRates? dated)
-            && (occurredAtUtc ?? DateTimeOffset.UtcNow) >= dated.ListEffectiveFromUtc)
+            && effectiveAtUtc >= dated.ListEffectiveFromUtc)
         {
             rates = dated.ListRates;
         }
@@ -174,7 +182,8 @@ public static class GooglePricingCatalog
                 evidence.Add(PricingEvidence.Ongoing(
                     Version,
                     priceMatch,
-                    PricingOfficialSources.Google));
+                    PricingOfficialSources.Google,
+                    priceMatch == "gemini-4-neon" ? PricingOfficialSources.GeminiNeonLaunchUtc : null));
             }
         }
 

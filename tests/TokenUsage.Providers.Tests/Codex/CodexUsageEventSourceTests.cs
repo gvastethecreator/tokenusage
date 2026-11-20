@@ -27,6 +27,55 @@ public sealed class CodexUsageEventSourceTests
     }
 
     [Fact]
+    public async Task KeepsUnverifiedTierUnpricedAcrossCheckpointReload()
+    {
+        using var corpus = new CodexCorpus();
+        const string threadId = "484ac8b2-b2da-4ddd-9409-525ec74d2e93";
+        const string otherThreadId = "aa243fc0-66e9-4cb5-9be3-3406fcac81ad";
+        string path = corpus.WriteSession($"rollout-2026-07-27T12-00-00-{threadId}_22408e8c-ef8c-4faf-b8fd-5741955fad77",
+            Context("gpt-5.5"),
+            TierSettings(otherThreadId, "ultrafast"),
+            Usage("2026-07-27T12:01:00Z", 1_000, 0, 0, 0),
+            TierSettings(threadId, "ultrafast"),
+            Context("gpt-5.5", serviceTier: "ultrafast"),
+            Usage("2026-07-27T12:02:00Z", 1_000, 0, 0, 0, totalInput: 2_000));
+        string checkpoint = Path.Combine(corpus.Root, "usage.json");
+        CodexUsageEventSource CreateSource() => corpus.CreateSource(checkpointPath: checkpoint);
+
+        UsageSourceReadResult first = await CreateSource().ReadAsync();
+        Assert.Collection(first.Events.OrderBy(item => item.OccurredAtUtc),
+            item => Assert.Equal(0.005m, item.Cost.EstimatedCostUsd),
+            Unpriced);
+        await first.Checkpoint!.PersistAsync(() => Task.FromResult(true));
+
+        File.AppendAllLines(path,
+        [
+            Context("gpt-5.5"),
+            Usage("2026-07-27T12:03:00Z", 1_000, 0, 0, 0, totalInput: 3_000),
+            Context("gpt-5.5", serviceTier: "future-tier"),
+            Usage("2026-07-27T12:04:00Z", 1_000, 0, 0, 0, totalInput: 4_000),
+            TierSettings(threadId, "default"),
+            Context("gpt-5.5"),
+            Usage("2026-07-27T12:05:00Z", 1_000, 0, 0, 0, totalInput: 5_000),
+        ]);
+        UsageSourceReadResult next = await CreateSource().ReadAsync();
+        Assert.Equal(UsageObservationMode.Delta, next.ObservationMode);
+        UsageEvent[] events = Snapshot(next).OrderBy(item => item.OccurredAtUtc).ToArray();
+        Assert.Equal(first.Events.OrderBy(item => item.OccurredAtUtc), events.Take(2));
+        Assert.Collection(events.Skip(2),
+            Unpriced,
+            Unpriced,
+            item => Assert.Equal(0.005m, item.Cost.EstimatedCostUsd));
+        Assert.Equal(5_000, events.Sum(item => item.Tokens.Input));
+
+        static void Unpriced(UsageEvent item)
+        {
+            Assert.Null(item.ServiceTier);
+            Assert.Equal(CostKind.Unavailable, item.Cost.Kind);
+        }
+    }
+
+    [Fact]
     public async Task MissingCodexDataIsReportedAsNoData()
     {
         string home = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -1051,7 +1100,8 @@ public sealed class CodexUsageEventSourceTests
         public Task<UsageSourceReadResult> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult(result);
     }
 
-    private static string Context(string model, string cwd = "private-project-path") => JsonSerializer.Serialize(new
+    private static string Context(string model, string cwd = "private-project-path", string? serviceTier = null) =>
+        JsonSerializer.Serialize(new
     {
         timestamp = "2026-07-27T12:00:00Z",
         type = "turn_context",
@@ -1059,7 +1109,20 @@ public sealed class CodexUsageEventSourceTests
         {
             model,
             cwd,
+            service_tier = serviceTier,
             summary = "private fixture summary",
+        },
+    });
+
+    private static string TierSettings(string threadId, string serviceTier) => JsonSerializer.Serialize(new
+    {
+        timestamp = "2026-07-27T12:00:00Z",
+        type = "event_msg",
+        payload = new
+        {
+            type = "thread_settings_applied",
+            thread_id = threadId,
+            thread_settings = new { service_tier = serviceTier },
         },
     });
 

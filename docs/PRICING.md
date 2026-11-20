@@ -1,5 +1,15 @@
 # Pricing evidence and refresh
 
+The 2026-11-19 review added Gemini 4 Neon at $3 input, $0.15 cache reads,
+and $15 output per million tokens. The
+[Google API](https://aistudio.google.com/docs/pricing#gemini-4-neon) Standard tier
+and [Cursor](https://cursor.com/docs/models-and-pricing#model-pricing) publish
+the same rates. The catalogs keep separate source evidence and use November 18
+UTC, the [Google launch date](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/),
+as the first pricing day. Records before that day or with explicit cache-write
+tokens remain unpriced. The estimate covers token value. Batch, priority,
+grounding, and subscription charges fall outside this estimate.
+
 The 2026-11-13 review added Gemini 4 Hydrogen for the
 [Google API](https://aistudio.google.com/docs/pricing#gemini-4-hydrogen) and
 [Cursor](https://cursor.com/docs/models/gemini-4-hydrogen): $1.50 input, $0.075
@@ -212,9 +222,14 @@ does not establish Cursor's promotional terms. The discrepancy remains open,
 without a guessed successor rate or a change to the direct API cutoff.
 
 Astra remains a model within each agent's usage. Its addition does not create
-another provider or subscription quota. Codex keeps an allowlisted service tier when the numeric record supplies it.
-The current estimator accepts Standard or an unspecified tier; explicitly different
-tiers stay unpriced. An unspecified tier is not proof of Standard billing.
+another provider or subscription quota. Codex uses the tier in the turn context
+for pricing. Ultrafast and unknown tiers stay unpriced. These pricing signals
+remain in the reader checkpoint. Stored usage events use the existing tier labels.
+An owned thread settings snapshot with a nonstandard tier also blocks the
+Standard estimate when the turn tier is missing. The estimator accepts
+Standard and records with no tier signal.
+[OpenAI's published Ultrafast rates](https://developers.openai.com/api/docs/pricing)
+require proof of the billed tier for each response.
 A reasoning-effort suffix does not imply a different service tier.
 
 Codex parser `codex-jsonl/9` preserves numeric deltas and prices supported
